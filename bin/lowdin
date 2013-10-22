@@ -1,0 +1,346 @@
+#!/bin/bash
+PID=$$
+VARS_PATH="$HOME/.lowdin2/lowdinvars.sh"
+source ${VARS_PATH}
+LOWDIN_SCRATCH=/scratch
+LOWDIN_PATH=$LOWDIN_PATH"/bin"
+
+usage(){
+	echo "Usage:"
+	echo "   $ lowdin -i file.lowdin [-t [all] [list] [file]] [-v number] [-p] [-s] [-h] "
+	echo ""
+	echo "   -i file.lowdin"
+	echo "      This is the input file name"
+        echo "   -t all"
+        echo "      This will run all the test files located on the test database."
+        echo "   -t list"
+        echo "      This will list all the test files located on the test database."
+        echo "   -t file"
+        echo "      This will run a specific test file which is located on test database."
+	echo "   -v number"
+	echo "      This is the lowdin version that will be used"
+	echo "   -p"
+	echo "      This will print the output file to the standard output on the fly"
+	echo "   -s"
+	echo "      This activate the singleton mode"
+	echo "   -h"
+	echo "      This will print this same message"
+	echo ""
+}
+
+###############################################
+# Funcion relacionada con la ejecucion de test
+##############################################
+testop(){
+
+if [ $test = "all" ]
+then
+    echo "Running all test file, this may take some time..."
+elif [ $test = "list" ]
+then
+    echo "Looking for a list of test files..."
+else
+    echo "Trying to test file:  $test ..."
+fi
+
+if [  $printOut = "T" ]; then
+	$LOWDIN_PATH/test.x $test | tee  $test.out
+else
+      	$LOWDIN_PATH/test.x $test > $test.out
+fi
+
+echo "done"
+}
+
+############################################
+# Lectura e interpretacion de opciones.
+############################################
+if [ "$#" -eq "0" ]
+then
+	usage
+	exit 1
+fi
+
+printOut="F"
+singleton="F"
+version=".x"
+runTest="F"
+
+while getopts 	"i:pt:sv:h" OPTNAME
+do
+	case $OPTNAME in
+		i)
+			nameFile=$OPTARG
+			extFile=${nameFile/#*./}
+			;;
+		p)
+			printOut="T"
+			;;
+		s)
+			singleton="T"
+			;;
+		v)
+			version="."$OPTARG".x"
+			;;
+		h)
+			usage
+			exit 0
+			;;
+                t)
+                        test=$OPTARG
+                        runTest="T"
+                        ;;
+	esac
+done
+
+
+if [ $runTest = "T" ]; then
+	testop
+	exit 0
+fi
+
+#############################################
+# Esta seccion verifica todo lo relacionado
+# con el posible proceso tipo singleton de LOWDIN
+#############################################
+if [ -e $LOWDIN_SCRATCH/lowdin.pid ]
+then
+	prevPID="`cat $LOWDIN_SCRATCH/lowdin.pid`"
+	isRunning=`ps -A | awk -v id=$prevPID '($4~/lowdin/ && $1==id){print "T"}'`
+	
+	if [ $isRunning = "T" ]
+	then
+		echo "## ERROR ## Another LOWDIN process (pid=`cat $LOWDIN_SCRATCH/lowdin.pid`) is running in singleton mode (-s)"
+		exit 0
+	else
+		chmod +w $LOWDIN_SCRATCH/lowdin.pid
+		echo "## WARNING ## Another LOWDIN process (pid=`cat $LOWDIN_SCRATCH/lowdin.pid`) in singleton mode (-s) have finished with errors"
+		rm $LOWDIN_SCRATCH/lowdin.pid
+	fi
+elif [ $singleton = "T" ]
+then
+	echo "Running LOWDIN in singleton mode"
+	echo $PID > $LOWDIN_SCRATCH/lowdin.pid
+	chmod -w $LOWDIN_SCRATCH/lowdin.pid
+fi
+
+if [ $extFile="lowdin" ]; then
+
+	#############################################
+	# Set name file
+	#############################################
+
+	if [ -e  "$nameFile" ]
+	then
+		nameFile=`echo $nameFile | gawk '{print substr($1,1,length($1)-7)}'`
+		bashDecimalSeparator=`echo " " | awk '{printf("%f \n",1.0)}' | sed "s/[10]//g"`
+	if [ $bashDecimalSeparator = "," ]
+	then
+	    grep -v "%" $nameFile.lowdin | grep -v "\!"  |  sed "/^[ tab]*$/d" | sed "s/\./\,/g" > $nameFile
+	else
+	    grep -v "%" $nameFile.lowdin | grep -v "\!"  |  sed "/^[ tab]*$/d" | sed "s/\,/\./g" > $nameFile
+	fi
+
+	###############################################
+	# Parse input file
+	###############################################
+
+	gawk "/CONTROL/,/END/" $nameFile | grep -v "CONTROL" | sed "s/=/ = /g" | gawk \
+	    ' BEGIN{printf("\n&LowdinParameters\n")} { printf("\tLowdinParameters_%s = %s %s %s %s\n",$1,$3,$4,$5,$6)} END{printf("/\n") } ' > $nameFile.aux
+	
+	gawk "/TASKS/,/END/" $nameFile | grep -v "TASKS" | sed "s/=/ = /g" | gawk \
+	    ' BEGIN{printf("\n&InputTasks\n")} {printf("\tInputTasks_%s = %s\n",$1,$3)}  END{printf("/\n")} ' >> $nameFile.aux
+
+	gawk "/GEOMETRY/,/END/" $nameFile | grep -v "GEOMETRY" | sed "s/=/ = /g" | gawk \
+	    '{
+		printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",$1,$2)
+		for(i=1;i<=NF;i++){
+			if($i=="addParticles"){
+				printf("\tInputParticle_addParticles = %s\n",$(i+2) )
+			}
+			else if($i=="multiplicity"){
+				printf("\tInputParticle_multiplicity = %s\n",$(i+2) )
+			}
+			else if($i=="fix"){
+				printf("\tInputParticle_fixedCoordinates = %s\n",$(i+2) )
+                        }
+                        else if($i=="fragmentNumber"){
+				printf("\tInputParticle_fragmentNumber = %s\n",$(i+2) )
+			};
+		};
+		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
+	}
+	END{ printf("\n&InputSystem\n\tInputSystem_numberOfParticles = %u\n",NR) }
+' | sed "s/,/./g" >> $nameFile.aux
+	
+	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	    'END{ printf("\tInputSystem_numberOfExternalPots =  %u\n",NR) }
+' | sed "s/,/./g" >> $nameFile.aux
+
+	gawk "/INTERPOTENTIAL/,/END/" $nameFile | grep -v "INTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	    'END{ printf("\tInputSystem_numberOfInterPots =  %u\n",NR) }
+' | sed "s/,/./g" >> $nameFile.aux
+	
+	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | sed "s/=/ = /g" | gawk \
+	    'END{ printf("\tInputSystem_numberOfOutputs =  %u\n",NR) }
+' | sed "s/,/./g" >> $nameFile.aux
+
+	grep  "SYSTEM_DESCRIPTION" $nameFile | sed "s/SYSTEM_DESCRIPTION//g"  | sed "s/=//g" | gawk '{printf("\tInputSystem_description = %s\n",$0)}' >> $nameFile.aux
+	
+	gawk "/EDA/,/END/" $nameFile | grep "numberOfFragments" | sed "s/=/ = /g" | gawk \
+	'{
+	printf("\tInputSystem_numberOfFragments =  %s",$3)
+	}'| sed "s/,/./g"  >> $nameFile.aux
+	 
+	gawk "/SYSTEM_PARAMETERS/,/END/" $nameFile | grep -v "SYSTEM_PARAMETERS" | sed "s/=/ = /g" | gawk  \
+	    ' {printf("\n\tInputSystem_%s = %s",$1,$3)} END{printf("\n/\n")} ' >> $nameFile.aux
+	    
+	sed -i 's/(/\[/g' $nameFile.aux
+	sed -i 's/)/\]/g' $nameFile.aux
+	sed -i 's/,/./g'  $nameFile.aux
+
+
+	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&ExternalPot\n\tExternalPot_name = \"%s\"\n\tExternalPot_specie =  \"%s\" \n/\n",$2,$1)
+	}
+	' | sed "s/,/./g" >> $nameFile.aux
+
+
+	gawk "/INTERPOTENTIAL/,/END/" $nameFile | grep -v "INTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&InterPot\n\tInterPot_name = \"%s\"\n\tInterPot_specie =  \"%s\"\n\tInterPot_otherSpecie = \"%s\" \n/\n",$3,$1,$2)
+	}
+	' | sed "s/,/./g" >> $nameFile.aux
+
+	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&Output\n")
+		for(i=1;i<=NF;i++){
+			if($i=="specie"){
+				printf("\tOutput_specie = %s\n",$(i+2) )
+			}
+			else if($i=="orbital"){
+				printf("\tOutput_orbital = %s\n",$(i+2) )
+			}
+			else if($i=="dimensions"){
+				printf("\tOutput_dimensions = %s\n",$(i+2) )
+                        }
+                        else if($i=="cubeSize"){
+                 		printf("\tOutput_cubeSize =  %s\n",$(i+2) )
+                        }
+                        else if($i=="point1"){
+                 		printf("\tOutput_point1 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
+                        }
+                        else if($i=="point2"){
+                 		printf("\tOutput_point2 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
+                        }
+                        else if($i=="point3"){
+                 		printf("\tOutput_point3 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
+			};
+		};
+                 printf("\tOutput_type = \"%s\" \n/\n",$1)
+	}
+	' | sed "s/,/./g" >> $nameFile.aux
+
+	rm -f $nameFile
+	
+	###########################################
+	# Exec lowdin.x
+	###########################################
+
+	currentPath=`pwd`
+
+	if [ -d "$LOWDIN_SCRATCH/$nameFile" ]
+	then
+	    echo "## WARNING ## The scratch directory $LOWDIN_SCRATCH/$nameFile"
+	    echo "              has been removed, probably it corresponds to"
+	    echo "              a calculation completed or with errors."
+	    rm -rf $LOWDIN_SCRATCH/$nameFile
+	    mkdir $LOWDIN_SCRATCH/$nameFile
+	else
+	    mkdir $LOWDIN_SCRATCH/$nameFile
+	fi
+	
+	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	mv $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	mv $nameFile*.coup $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	mv $nameFile*.coeff $LOWDIN_SCRATCH/$nameFile &> /dev/null		
+	
+	if [ -e  $nameFile.gms.bs ]
+	then
+	    cp $nameFile.gms.bs $LOWDIN_SCRATCH/$nameFile
+	fi
+
+	echo "Begin job by input: "$nameFile.lowdin, "for user: "$USERNAME " at " `date` > $nameFile.out
+	echo "under operating system" `uname -a` >> $nameFile.out
+	echo "" >> $nameFile.out
+	echo "BEGIN INPUT INFO:" >> $nameFile.out
+	echo "------------------------------------" >> $nameFile.out
+	cat  $nameFile.lowdin >> $nameFile.out
+	echo "" >> $nameFile.out
+	echo "... END INPUT INFO" >> $nameFile.out
+	echo "" >> $nameFile.out
+	
+	cp $nameFile.lowdin $LOWDIN_SCRATCH/$nameFile
+	echo "" >> $nameFile.out
+	mv $nameFile.out $LOWDIN_SCRATCH/$nameFile
+	mv $nameFile.aux $LOWDIN_SCRATCH/$nameFile
+	
+	cd $LOWDIN_SCRATCH/$nameFile
+	
+	if [  $printOut = "T" ]; then
+	    lowdin$version $nameFile.aux | tee -a $nameFile.out 
+	else
+	    lowdin$version $nameFile.aux >>   $nameFile.out
+	fi
+	
+	ls -l * >> $nameFile.out
+
+	if [ -e $nameFile.out ]
+	then
+	    cp $LOWDIN_SCRATCH/$nameFile/*.out $currentPath
+	    cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
+	fi
+
+	# mv $LOWDIN_SCRATCH/$nameFile/*.mol* $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
+        # mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
+        # mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
+        # mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.coeff $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*coup $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.com $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.over $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.kin $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.dat $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
+	rm -rf $LOWDIN_SCRATCH/$nameFile
+	
+    else
+		echo $1 ", this file does not exist. "
+		exit 1
+    fi
+else
+    echo $1 " Check your input file or Usage. "
+    echo ""
+    usage
+    exit 1
+fi
+
+if [ $singleton = "T" ]
+then
+	cd $LOWDIN_SCRATCH
+	chmod +w lowdin.pid
+	rm lowdin.pid
+	exit 0
+else
+	exit 0
+fi

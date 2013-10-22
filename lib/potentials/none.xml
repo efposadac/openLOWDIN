@@ -1,0 +1,17 @@
+<Potential name="HBox" type="gaussian" units="bohr">
+	<Interaction name="e-" size="1">
+	<GaussianComponent exponent="1.0000" factor="1.0000000" x="0" y ="0" z="0" angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	</Interaction>
+	<Interaction name="He_4" size="1">
+	<GaussianComponent exponent="0.378000" factor="-0.50000000" x="0" y ="0" z="3.54" angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	</Interaction>
+	<Interaction name="ea-" size="1">
+	<GaussianComponent exponent="4.1424343304" factor="1.00000000" x="6.68963" y ="0.0000" z="0.0000" angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	</Interaction>
+	<Interaction name="H_1" size="1">
+	<GaussianComponent exponent="4.1424343304" factor="1.00000000" x="0.0000" y ="0.0000" z="0.0000" angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	</Interaction>
+	<Interaction name="e(asfda-" size="1">
+	<GaussianComponent exponent="0.1107664098" factor="0.6470000" x="6.68963" y ="6.68963" z="6.68963" angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	</Interaction>
+</Potential>

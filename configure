@@ -1,0 +1,186 @@
+#!/bin/bash
+#******************************************************************************
+#	This code is part of LOWDIN Quantum chemistry package                 
+#	
+#	this program has been developed under direction of:
+#
+#	Prof. A REYES' Lab. Universidad Nacional de Colombia
+#		http://www.qcc.unal.edu.co
+#	Prof. R. FLORES' Lab. Universidad de Guadalajara
+#		http://www.cucei.udg.mx/~robertof
+#
+#		Todos los derechos reservados, 2013
+#
+#******************************************************************************
+
+###############################################################################
+#            SEARCHING FOR OLD OPTIONS OR SET DEFAULTS
+###############################################################################
+if [ -e CONFIG ] ; then
+    FC=`awk '{if($1 == "FC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    PREFIX=`awk '{if($1 == "PREFIX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CULAFLAGS=`awk '{if($1 == "CULAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CXX=`awk '{if($1 == "CXX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CC=`awk '{if($1 == "CC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    FOURINDEX_LIBS=`awk '{if($1 == "FOURINDEX_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    
+else
+    FC="ifort"
+    FLAGS="1"
+    PREFIX="/usr/local/bin"
+    CUBAFLAGS=
+    CULAFLAGS=
+    CXX="icpc"
+    CC="icc"
+    CFLAGS="-g -O2 -D intel"
+    CPPFLAGS="-g -O2 -D intel"
+    FCFLAGS="-fopenmp -O2 -D intel -fpic -no-vec -openmp -fpp "
+    LAPACK_LIBS="-mkl"
+    STDCPP_LIBS="-lstdc++"
+    GSL_LIBS="-lgsl -lgslcblas"
+    LIBINT_LIBS="-lr12 -lderiv -lint"
+    FOURINDEX_LIBS="-lfourindextransformation"
+    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS"
+fi
+
+###############################################################################
+#                        OPTIONS FOR FORTRAN COMPILER
+###############################################################################
+echo "Fortran Compiler command?  [$FC]"
+read FCOMP
+
+if [ "$FCOMP" = "" ] ; then
+    FCOMP=$FC
+fi
+
+FC=$FCOMP
+
+if [ "$FC" = "ifort" ]  ; then
+    CXX="icpc"
+    CC="icc"
+    CFLAGS="-g -O3 -D intel"
+    CPPFLAGS="-g -O3 -D intel"
+else
+    CXX=g++
+    CC=gcc
+    CFLAGS="-g -Ofast -fopenmp -D gfortran"
+    CPPFLAGS="-g -Ofast -fopenmp -D gfortran"
+fi
+
+echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only) [$FLAGS]"
+read FFLAGS
+
+if [ "$FFLAGS" = "" ] ; then
+    FFLAGS=$FLAGS
+fi
+
+FLAGS=$FFLAGS
+
+if [ "$FLAGS" = "1" ] ; then
+    
+    if [ "$FC" = "ifort" ] ; then
+	FCFLAGS="-O3 -D intel -fpic -no-vec -openmp -fpp "
+    else
+	FCFLAGS="-Ofast -fopenmp -D gfortran -fpic -cpp  -ffree-line-length-none -fno-range-check"
+    fi
+fi
+
+if [ "$FLAGS" = "2" ] ; then
+    if [ "$FC" = "ifort" ] ; then
+	FCFLAGS="-O3 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended " 
+    else
+	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check"
+    fi
+fi
+
+if [ "$FLAGS" = "3" ] ; then
+    if [ "$FC" = "ifort" ] ; then	
+	FCFLAGS="-static -static-intel -static-libgcc -O3 -D intel -fpic -no-vec -fpp -openmp -traceback -g -debug extended"
+    else
+	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
+	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check"
+    fi
+fi
+
+###############################################################################
+#                   LIBRARIES CONFIGURATION
+###############################################################################
+
+if [ "$FC" = "ifort" ] ; then
+    LAPACK_LIBS="-mkl"
+else
+    LAPACK_LIBS="-llapack"
+fi
+
+STDCPP_LIBS="-lstdc++"
+GSL_LIBS="-lgsl -lgslcblas"
+LIBINT_LIBS="-lr12 -lderiv -lint"
+FOURINDEX_LIBS="-lfourindextransformation"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS"
+
+###############################################################################
+#                       SPECIFIC INSTALLATION DIRECTORIES
+###############################################################################
+
+echo "Directory for executables? [$PREFIX]"
+read BINDIR
+
+if [ "$BINDIR" = "" ] ; then
+    BINDIR=$PREFIX
+fi
+
+PREFIX=$BINDIR
+
+###############################################################################
+#                       SAVING OPTIONS
+###############################################################################
+
+echo "FC = $FC" > CONFIG
+echo "FLAGS = $FLAGS" >> CONFIG
+echo "PREFIX = $PREFIX" >> CONFIG
+echo "CUBAFLAGS = $CUBAFFLAGS" >> CONFIG
+echo "CULAFLAGS = $CULAFFLAGS" >> CONFIG
+echo "CXX = $CXX"  >> CONFIG
+echo "CC = $CC"  >> CONFIG
+echo "CFLAGS = $CFLAGS"  >> CONFIG
+echo "CPPFLAGS = $CPPFLAGS"  >> CONFIG
+echo "FCFLAGS = $FCFLAGS"  >> CONFIG
+echo "LAPACK_LIBS = $LAPACK_LIBS"  >> CONFIG
+echo "STDCPP_LIBS = $STDCPP_LIBS"  >> CONFIG
+echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG
+echo "LIBINT_LIBS = $LIBINT_LIBS"  >> CONFIG
+echo "FOURINDEX_LIBS = $FOURINDEX_LIBS"  >> CONFIG
+echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
+
+
+###############################################################################
+#                       Generate makefiles
+###############################################################################
+
+TOPDIR=`pwd`
+SRCDIR="src"
+SUBDIRS="core ints HF scf"
+
+for DIR in $SRCDIR ; do
+    cd $DIR
+    for SUBDIR in $SUBDIRS ; do
+	if [[ -e $SUBDIR ]] ; then	    
+	    cd $SUBDIR  
+	    ./configure
+	    cd ..
+	fi
+    done
+    cd ..
+done
+
+echo "DONE. Now you can proceed with \"make\" command"

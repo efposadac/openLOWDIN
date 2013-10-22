@@ -1,0 +1,68 @@
+!!******************************************************************************
+!!	This code is part of LOWDIN Quantum chemistry package                 
+!!	
+!!	this program has been developed under direction of:
+!!
+!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!		http://www.qcc.unal.edu.co
+!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!		http://www.cucei.udg.mx/~robertof
+!!
+!!		Todos los derechos reservados, 2013
+!!
+!!******************************************************************************
+
+Welcome to LOWDIN Quantum Chemistry Package 2.0.
+
+Instalation notes.
+==================
+
+1. Prerequisites:
+
+   1.1. A standard FORTRAN compiler. gfortran and intel FORTRAN compiler have been tested.
+   1.2. Lapack or mkl libraries. 
+   1.3. LIBINT library version 1.1.5. you can download it from http://sourceforge.net/projects/libint/files/v1-releases/.
+        After download LIBINT please compile with default options. If you want to compile LOWDIN with angular momentum higher than "f" 
+	you have to compile LIBINT properly and edit the file src/ints/LibintInterface.f90 in order to adjust the arrays size.
+
+   NOTE: If you have the libraries in your own path please be sure to export the LIBRARY_PATH environment variable. ie:
+   	 
+	 export LIBRARY_PATH=$LIBRARY_PATH:[your library path]
+   	 
+
+2. Compile:
+
+   2.1. run ./configure located in the LOWDIN root directory.
+        Be sure that you have permissions to write in the instalation directory and properly exported to PATH enviroment variable.
+
+   2.2. run make
+
+3. Install:
+
+   3.1 run make install
+
+4. Uninstall
+
+   4.1 run make uninstall
+
+5. Documentation
+
+   5.1 run make doc
+   
+   That command produces booth latex and html documentation by using doxygen program. Be sure that you have instaled doxygen program
+   for example in a debian-based distribution: 
+
+   #apt-get install doxygen graphviz
+
+   For use latex documentation in doc/latex folder, run command:
+
+   pdflatex refman.tex
+
+   To visualize the html documentation use:
+
+   google-chrome doc/html/index.html
+
+6. Clean the proyect 
+
+   6.1 run make clean and then make distclean
+ 

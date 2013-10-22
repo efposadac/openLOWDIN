@@ -1,0 +1,381 @@
+<Potential name="HeHe.3g" type="gaussian" units="bohr">
+          <Interaction name="He_3He_3" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_3He-a_3" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-b_3He-a_3" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_3He-b_3" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+
+          <Interaction name="He-c_3He-d_3" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-c_3He-c_3" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+
+
+
+          <Interaction name="He-b_3He-b_3" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He_3He_4" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He_4He_4" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_3He-a_4" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_4He-a_4" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-b_4He-a_4" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_4He-b_4" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-b_4He-b_4" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_5He-a_5" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-b_5He-a_5" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_5He-b_5" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-b_5He-b_5" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_10He-a_10" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_100He-a_100" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_1000He-a_1000" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_100He-b_30" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+          <Interaction name="He-a_1000He-b_300" size="7">
+              <GaussianComponent exponent="8.2298598129" factor="3.8145328444" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.3123275432" factor="0.1460133763" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.0554142115" factor="-0.0002298302" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="16.3102768951" factor="14.6491868152" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3347979426" factor="15.2592386786" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="1.3241838016" factor="-13.4365499834" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+              <GaussianComponent exponent="0.6013129221" factor="0.7398314835" 
+ angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0"/>
+	 </Interaction>
+
+</Potential>
+
+
+
+
+
+

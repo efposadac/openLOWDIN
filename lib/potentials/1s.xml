@@ -1,0 +1,10 @@
+<Potential name="ee" type="gaussian" units="bohr">
+          <Interaction name="e-e-" size="1">
+                 <GaussianComponent exponent="1" factor="1" x="0.0000" y="0.0000" z="0.0000" angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0.0000"/>
+ </Interaction>
+          <Interaction name="ea-ea-" size="1">
+                  <GaussianComponent exponent="1" factor="1" x="0.0000" y="0.0000" z="0.0000" angularMomentIndex_x="0.0000" angularMomentIndex_y="0.0000" angularMomentIndex_z="0.0000" angularMoment="0.0000"/>
+ </Interaction>
+
+
+</Potential>

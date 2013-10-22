@@ -1,0 +1,101 @@
+<Basis name="10s10p" type="2" >
+  <Atom name="Helium_3" symbol="He_3" numberContractions="10" contraction="(5s5p1p)->[5s5p1p]">
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".04142593514693888283" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".08924947174757603529" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".19228215799999800700" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="0.3362976952" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".3395728413" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".89249471747575572762" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="1.3096033111" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="5.1459629816" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="9.9752431418" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="41.42593514693823876621" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+  </Atom>
+
+  <Atom name="Helium_3" symbol="Hea_3" numberContractions="10" contraction="(5s5p1p)->[5s5p1p]">
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".04142593514693888283" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".08924947174757603529" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".19228215799999800700" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="0.3362976952" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".3395728413" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".89249471747575572762" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="1.3096033111" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="5.1459629816" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="9.9752431418" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="41.42593514693823876621" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+  </Atom>
+
+  <Atom name="Helium_3" symbol="Heb_3" numberContractions="10" contraction="(5s5p1p)->[5s5p1p]">
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".04142593514693888283" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".08924947174757603529" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".19228215799999800700" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="0.3362976952" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".3395728413" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent=".89249471747575572762" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="1.3096033111" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="5.1459629816" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="9.9752431418" coefficient="1.00000000"/>
+    </ContractedGaussian>
+    <ContractedGaussian size="1" shellCode="s">
+      <PrimitiveGaussian exponent="41.42593514693823876621" coefficient="1.0000000"/>
+    </ContractedGaussian> 
+  </Atom>
+
+</Basis>
