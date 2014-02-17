@@ -386,7 +386,8 @@ contains
 
           write (6,'(T10,A10,A5,I8,A5,I12,A5,A10)') &
                trim(MolecularSystem_instance%species(i)%symbol)," ",&
-               MolecularSystem_getTotalNumberOfContractions(i)," ",&
+               !MolecularSystem_getTotalNumberOfContractions(i)," ",&
+               MolecularSystem_instance%species(i)%basisSetSize," ",&
                int(MolecularSystem_instance%species(i)%internalSize / 2), " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
           
@@ -394,7 +395,8 @@ contains
 
           write (6,'(T10,A10,A5,I8,A5,I12,A5,A10)') &
                trim(MolecularSystem_instance%species(i)%symbol)," ",&
-               MolecularSystem_getTotalNumberOfContractions(i)," ",&
+               !MolecularSystem_getTotalNumberOfContractions(i)," ",&
+               MolecularSystem_instance%species(i)%basisSetSize," ",&
                MolecularSystem_instance%species(i)%internalSize, " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
           
@@ -699,7 +701,7 @@ contains
           
           call CONTROL_start()
           call CONTROL_load(unit = 40)
-          
+        
           close(40)
           
        else
