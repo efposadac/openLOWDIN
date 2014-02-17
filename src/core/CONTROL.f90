@@ -18,6 +18,7 @@
 !! @version 1.0
 module CONTROL_
   use Exception_
+  use omp_lib
   implicit none
 
   type, public :: CONTROL
