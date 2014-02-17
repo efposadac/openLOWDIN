@@ -60,7 +60,6 @@ program HF
   real(8) :: electronicRepulsionEnergy
   real(8) :: puntualInteractionEnergy
   real(8) :: potentialEnergy
-
   integer :: nproc
   integer :: i
   
@@ -84,6 +83,7 @@ program HF
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+
 
   call WaveFunction_constructor()
 
@@ -159,13 +159,7 @@ program HF
         call Matrix_destructor(auxDensity)
         
      end if
-
-     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
      
-     call Matrix_constructor(WaveFunction_instance(speciesID)%coefficientsofcombination, int(numberOfContractions,8), int(numberOfContractions,8))
-
-     WaveFunction_instance(speciesID)%coefficientsofcombination%values = WaveFunction_instance( speciesID )%densityMatrix%values
-
      !!**********************************************************
      !! Save matrices to lowdin.wfn file
      !!
@@ -183,9 +177,6 @@ program HF
 
      arguments(1) = "TRANSFORMATION"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-
-     arguments(1) = "COEFFICIENTS"
-     call Matrix_writeToFile(WaveFunction_instance(speciesID)%coefficientsofcombination, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
      
   end do
   
@@ -219,12 +210,11 @@ program HF
      
   else        
      
-     !$OMP PARALLEL
-     nproc = OMP_get_thread_num()
-     !$OMP END PARALLEL            
+     !! Reads the number of cores !! Default defined by OMP!!!! FIX IT!!!
+     !>
+     !! @todo fix the default definition of CONTROL_instance%NUMBER_OF_CORES
+     nproc = CONTROL_instance%NUMBER_OF_CORES
      
-     nproc = nproc + 1 
-          
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
         
         !$OMP PARALLEL private(arguments)
@@ -251,6 +241,7 @@ program HF
   !!***************************************************************************************************************
 
   !! Begin SCF calculation...  
+
   write(arguments(1),*) nproc
   call system("lowdin-SCF.x "//trim(arguments(1)))
 
@@ -297,7 +288,7 @@ program HF
      call WaveFunction_obtainEnergyComponents(speciesID)
 
   end do
-
+  
   !! Obtain energy compotents for whole system
   totalKineticEnergy = sum( WaveFunction_instance(:)%kineticEnergy)             
   totalRepulsionEnergy = sum( WaveFunction_instance(:)%repulsionEnergy ) + electronicRepulsionEnergy                          
