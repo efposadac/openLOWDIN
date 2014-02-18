@@ -39,9 +39,11 @@ do
        echo -e "$ifile \c" >> makefile
      fi
   done
+
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
   do
       name=$(echo $mod)
+      
       for jfile in $SRCMOD
       do
 	  if [[ $jfile == $name.f90 ]]
