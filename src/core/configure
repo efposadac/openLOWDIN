@@ -41,8 +41,14 @@ do
   done
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
   do
-    name=$(echo $mod)
-    echo -e "$name.o \c" >> makefile
+      name=$(echo $mod)
+      for jfile in $SRCMOD
+      do
+	  if [[ $jfile == $name.f90 ]]
+	  then
+              echo -e "$name.o \c" >> makefile
+	  fi
+      done
   done
   echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) ${file}$\n" >> makefile
 done
