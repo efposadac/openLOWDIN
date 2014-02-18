@@ -152,6 +152,7 @@ contains
     integer(8) :: ssize
 
     type(ContractedGaussian), allocatable :: contractions(:) !< Basis set for specie
+    type(Matrix) :: coefficients
     
     external coul_rep
 
@@ -441,8 +442,8 @@ contains
     deallocate (eris%d)
     deallocate (eris%integrals)
     
-     write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
-          trim(MolecularSystem_instance%species(specieID)%name)
+    write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
+         trim(MolecularSystem_instance%species(specieID)%name)
         
     
   end subroutine RysQuadrature_computeIntraSpecies
