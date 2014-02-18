@@ -14,9 +14,9 @@
 SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
-	e-[O]   6-311G     0.000000      0.000000     -0.066575
-	e-[H]   6-311G     0.000000      0.754175      0.528381
-	e-[H]   6-311G     0.000000     -0.754174      0.528382
+	e-[O]   3-21G     0.000000      0.000000     -0.066575
+	e-[H]   3-21G     0.000000      0.754175      0.528381
+	e-[H]   3-21G     0.000000     -0.754174      0.528382
 	O        dirac     0.000000      0.000000     -0.066575
 	H_1      dirac     0.000000      0.754175      0.528381	
 	H_1      dirac     0.000000     -0.754174      0.528382  
@@ -27,8 +27,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralScheme="rys"
-	numberOfCores=7
+	numberOfCores = 4
+	readCoefficients = F
 END CONTROL
 
 

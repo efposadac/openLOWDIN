@@ -92,6 +92,8 @@ contains
        
     case('RHF-MP2')
 
+       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+
     case('RHF-CI')
 
     case('RHF-PT')

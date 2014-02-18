@@ -1,0 +1,38 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test RHF-MP2
+%  HF Single Point
+%  Electronic MP2
+%  Basis sets used:
+%      cc-ptvz e-
+%  Results
+%          E(0) + E(1) =  -1.000587089938E+02
+%                 E(2) =  -2.896141070497E-01
+%                        ____________________
+%                E(MP2)=  -1.00348323100887612E+02
+% End Results
+%      Author: Felix Moncada - GQT-UNAL/2011
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de H2O'
+
+GEOMETRY
+	e-(F)   cc-pVTZ   0 0 0.91
+	e-(H)   cc-pVTZ   0 0 0
+	F        dirac    0 0 0.91
+	H_1      dirac    0 0 0
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+	mollerPlessetCorrection=2
+END TASKS
+
+CONTROL
+	numberOfCores = 7
+!	integralStackSize = 790
+	readCoefficients=F
+END CONTROL
+
+
+
+
