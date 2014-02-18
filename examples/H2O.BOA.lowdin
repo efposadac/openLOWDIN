@@ -28,6 +28,7 @@ END TASKS
 
 CONTROL
 	integralScheme="rys"
+	numberOfCores=7
 END CONTROL
 
 
