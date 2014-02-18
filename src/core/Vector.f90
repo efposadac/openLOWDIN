@@ -355,6 +355,7 @@ contains
     logical :: existFile
     logical :: found
 
+
     if (present(elementsNum)) write(auxSize,*) elementsNum
     
     bbinary = .false.
@@ -375,7 +376,7 @@ contains
           line = ""
              
           if(present(arguments)) then
-                
+
              do                   
                 read(unit, iostat = status) line (1:len_trim(arguments(1)))
 
@@ -384,7 +385,7 @@ contains
                    call vector_exception( ERROR, "End of file!",&
                         "Class object Vector in the getfromFile() function" )
                 end if
-                
+
                 if(trim(line) == trim(arguments(1))) then
                    
                    found = .true.                   
@@ -413,7 +414,8 @@ contains
                 if(found) exit
                       
              end do
-                
+
+
           end if
              
           !! check size

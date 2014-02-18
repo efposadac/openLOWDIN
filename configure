@@ -50,7 +50,7 @@ else
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint"
     FOURINDEX_LIBS="-lfourindextransformation"
-    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS"
+    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $FOURINDEX_LIBS"
 fi
 
 ###############################################################################
@@ -73,8 +73,8 @@ if [ "$FC" = "ifort" ]  ; then
 else
     CXX=g++
     CC=gcc
-    CFLAGS="-g -Ofast -fopenmp -D gfortran"
-    CPPFLAGS="-g -Ofast -fopenmp -D gfortran"
+    CFLAGS="-g -O3 -fopenmp -D gfortran"
+    CPPFLAGS="-g -O3 -fopenmp -D gfortran"
 fi
 
 echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only) [$FLAGS]"
@@ -126,7 +126,7 @@ STDCPP_LIBS="-lstdc++"
 GSL_LIBS="-lgsl -lgslcblas"
 LIBINT_LIBS="-lr12 -lderiv -lint"
 FOURINDEX_LIBS="-lfourindextransformation"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $FOURINDEX_LIBS"
 
 ###############################################################################
 #                       SPECIFIC INSTALLATION DIRECTORIES
@@ -169,7 +169,7 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src"
-SUBDIRS="core ints HF scf"
+SUBDIRS="core ints HF MP2 scf"
 
 for DIR in $SRCDIR ; do
     cd $DIR

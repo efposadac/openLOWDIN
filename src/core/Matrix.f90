@@ -169,7 +169,6 @@ contains
     real(8), optional, intent(in) :: value
 
     real(8) :: valueTmp
-
     this%isInstanced = .true.
     valueTmp = 0.0_8
     if( present(value) ) valueTmp = value

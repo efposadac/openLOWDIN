@@ -18,6 +18,7 @@
 !! @version 1.0
 module CONTROL_
   use Exception_
+  use omp_lib
   implicit none
 
   type, public :: CONTROL
@@ -29,7 +30,6 @@ module CONTROL_
      integer :: INTEGRAL_STACK_SIZE
      character(20) :: INTEGRAL_DESTINY
      character(20) :: INTEGRAL_SCHEME
-     logical :: CUDA 
 
      !!***************************************************************************
      !! Parameter to control SCF program
@@ -130,18 +130,6 @@ module CONTROL_
      integer :: PT_ITERATION_SCHEME
      integer :: PT_MAX_NUMBER_POLES_SEARCHED
 
-     !!***************************************************************************
-     !! Environment variables
-     !!
-     character(255) :: HOME_DIRECTORY="NONE"
-     character(255) :: DATA_DIRECTORY="NONE"
-     character(255) :: EXTERNAL_COMMAND="NONE"
-     character(30) :: EXTERNAL_SOFTWARE_NAME="NONE"
-     character(255) :: ATOMIC_ELEMENTS_DATABASE="NONE"
-     character(255) :: BASIS_SET_DATABASE="NONE"
-     character(255) :: POTENTIALS_DATABASE="NONE"
-     character(255) :: ELEMENTAL_PARTICLES_DATABASE="NONE"
-     character(100) :: INPUT_FILE="NONE"
 
      !!***************************************************************************
      !! Control print level and units
@@ -223,7 +211,21 @@ module CONTROL_
      real(8) :: MO_FRACTION_OCCUPATION
      integer :: IONIZE_MO
      character(50) :: IONIZE_SPECIE
-     character(50) :: EXCITE_SPECIE                                                                                         
+     character(50) :: EXCITE_SPECIE
+     integer :: NUMBER_OF_CORES
+
+     !!***************************************************************************
+     !! Environment variables
+     !!
+     character(255) :: HOME_DIRECTORY="NONE"
+     character(255) :: DATA_DIRECTORY="NONE"
+     character(255) :: EXTERNAL_COMMAND="NONE"
+     character(30) :: EXTERNAL_SOFTWARE_NAME="NONE"
+     character(255) :: ATOMIC_ELEMENTS_DATABASE="NONE"
+     character(255) :: BASIS_SET_DATABASE="NONE"
+     character(255) :: POTENTIALS_DATABASE="NONE"
+     character(255) :: ELEMENTAL_PARTICLES_DATABASE="NONE"
+     character(100) :: INPUT_FILE=""
 
   end type CONTROL
 
@@ -237,7 +239,6 @@ module CONTROL_
   integer :: LowdinParameters_integralStackSize
   character(20) :: LowdinParameters_integralDestiny
   character(20) :: LowdinParameters_integralScheme
-  logical :: LowdinParameters_cuda
 
   !!***************************************************************************
   !! Parameter to control SCF program
@@ -338,19 +339,6 @@ module CONTROL_
   integer :: LowdinParameters_ptIterationScheme
   integer :: LowdinParameters_ptMaxNumberOfPolesSearched
 
-  !!***************************************************************************
-  !! Environment variables
-  !!
-  character(255) :: LowdinParameters_homeDirectory
-  character(255) :: LowdinParameters_dataDirectory
-  character(255) :: LowdinParameters_externalCommand
-  character(30) :: LowdinParameters_externalSoftwareName
-  character(255) :: LowdinParameters_atomicElementsDataBase
-  character(255) :: LowdinParameters_basisSetDataBase
-  character(255) :: LowdinParameters_potentialsDataBase
-  character(255) :: LowdinParameters_elementalParticlesDataBase
-  character(100) :: LowdinParameters_inputFile
-
 
   !!***************************************************************************
   !! Control print level and units
@@ -433,7 +421,21 @@ module CONTROL_
   integer :: LowdinParameters_ionizeMO
   character(50) :: LowdinParameters_ionizeSpecie
   character(50) :: LowdinParameters_exciteSpecie
-  
+  integer :: LowdinParameters_numberOfCores
+
+  !!***************************************************************************
+  !! Environment variables
+  !!
+  character(255) :: LowdinParameters_homeDirectory
+  character(255) :: LowdinParameters_dataDirectory
+  character(255) :: LowdinParameters_externalCommand
+  character(30) :: LowdinParameters_externalSoftwareName
+  character(255) :: LowdinParameters_atomicElementsDataBase
+  character(255) :: LowdinParameters_basisSetDataBase
+  character(255) :: LowdinParameters_potentialsDataBase
+  character(255) :: LowdinParameters_elementalParticlesDataBase
+  character(100) :: LowdinParameters_inputFile
+
   
   NAMELIST /LowdinParameters/ &
        !!***************************************************************************
@@ -444,7 +446,6 @@ module CONTROL_
        LowdinParameters_integralStackSize,&
        LowdinParameters_integralDestiny,&
        LowdinParameters_integralScheme,&
-       LowdinParameters_cuda,&
 
        !!***************************************************************************
        !! Parameter to control SCF program
@@ -546,20 +547,6 @@ module CONTROL_
        LowdinParameters_ptMaxNumberOfPolesSearched,&
        
        !!***************************************************************************
-       !! Variables de ambiente al sistema de archivos del programa
-       !!
-       LowdinParameters_homeDirectory,&
-       LowdinParameters_dataDirectory,&
-       LowdinParameters_externalCommand,&
-       LowdinParameters_externalSoftwareName,&
-       LowdinParameters_atomicElementsDataBase,&
-       LowdinParameters_basisSetDataBase,&
-       LowdinParameters_potentialsDataBase,&
-       LowdinParameters_elementalParticlesDataBase,&
-       LowdinParameters_inputFile,&
-       
-       
-       !!***************************************************************************
        !! Control print level and units
        !!
        LowdinParameters_formatNumberOfColumns,&
@@ -639,7 +626,21 @@ module CONTROL_
        LowdinParameters_MOFractionOccupation,&
        LowdinParameters_ionizeMO,&
        LowdinParameters_ionizeSpecie,&
-       LowdinParameters_exciteSpecie                                                                        
+       LowdinParameters_exciteSpecie,&
+       LowdinParameters_numberOfCores,&
+
+       !!***************************************************************************
+       !! Variables de ambiente al sistema de archivos del programa
+       !!
+       LowdinParameters_inputFile, &
+       LowdinParameters_homeDirectory,&
+       LowdinParameters_dataDirectory,&
+       LowdinParameters_externalCommand,&
+       LowdinParameters_externalSoftwareName,&
+       LowdinParameters_atomicElementsDataBase,&
+       LowdinParameters_basisSetDataBase,&
+       LowdinParameters_potentialsDataBase,&
+       LowdinParameters_elementalParticlesDataBase
 
   public :: &
        CONTROL_start, &
@@ -647,9 +648,6 @@ module CONTROL_
        CONTROL_save, &
        CONTROL_copy, &
        CONTROL_show
-
-
-
 
   private :: &
        CONTROL_getHomeDirectory, &
@@ -679,7 +677,7 @@ contains
     LowdinParameters_integralStackSize = 30000
     LowdinParameters_integralDestiny = "MEMORY" !! "MEMORY" or "DISK"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
-    LowdinParameters_cuda = .False.
+
     !!***************************************************************************
     !! Parameter to control SCF program
     !!
@@ -779,18 +777,6 @@ contains
     LowdinParameters_ptIterationScheme = 1
     LowdinParameters_ptMaxNumberOfPolesSearched = 10
 
-    !!***************************************************************************
-    !! Variables de ambiente al sistema de archivos del programa
-    !!
-    LowdinParameters_homeDirectory = CONTROL_getHomeDirectory()
-    LowdinParameters_dataDirectory = CONTROL_getDataDirectory()
-    LowdinParameters_externalCommand = CONTROL_getExternalCommand()
-    LowdinParameters_externalSoftwareName = CONTROL_getExternalSoftwareName()
-    LowdinParameters_atomicElementsDataBase = "/dataBases/atomicElements.lib"
-    LowdinParameters_basisSetDataBase = "/basis/"
-    LowdinParameters_potentialsDataBase = "/potentials/"
-    LowdinParameters_elementalParticlesDataBase = "/dataBases/elementalParticles.lib"
-    LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
 
 
     !!***************************************************************************
@@ -873,7 +859,23 @@ contains
     LowdinParameters_MOFractionOccupation = 1.0_8
     LowdinParameters_ionizeMO = 0
     LowdinParameters_ionizeSpecie = "NONE"
-    LowdinParameters_exciteSpecie = "NONE"
+    LowdinParameters_exciteSpecie = "NONE"     
+    !$OMP PARALLEL
+    LowdinParameters_numberOfCores = OMP_get_thread_num() + 1
+    !$OMP END PARALLEL 
+    
+    !!***************************************************************************
+    !! Variables de ambiente al sistema de archivos del programa
+    !!
+    LowdinParameters_homeDirectory = CONTROL_getHomeDirectory()
+    LowdinParameters_dataDirectory = CONTROL_getDataDirectory()
+    LowdinParameters_externalCommand = CONTROL_getExternalCommand()
+    LowdinParameters_externalSoftwareName = CONTROL_getExternalSoftwareName()
+    LowdinParameters_atomicElementsDataBase = "/dataBases/atomicElements.lib"
+    LowdinParameters_basisSetDataBase = "/basis/"
+    LowdinParameters_potentialsDataBase = "/potentials/"
+    LowdinParameters_elementalParticlesDataBase = "/dataBases/elementalParticles.lib"
+    LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
 
     !! Set defaults for CONTROL Object
     
@@ -890,7 +892,6 @@ contains
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
     CONTROL_instance%INTEGRAL_DESTINY = "MEMORY" !! "MEMORY" or "DISK"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
-    CONTROL_instance%CUDA = .false.
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -991,18 +992,6 @@ contains
     CONTROL_instance%PT_ITERATION_SCHEME = 1
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = 10
 
-    !!***************************************************************************                                              
-    !! Environment variables                                                                                                   
-    !!                                                                                                                         
-    CONTROL_instance%HOME_DIRECTORY = CONTROL_getHomeDirectory()
-    CONTROL_instance%DATA_DIRECTORY = CONTROL_getDataDirectory()
-    CONTROL_instance%EXTERNAL_COMMAND = CONTROL_getExternalCommand()
-    CONTROL_instance%EXTERNAL_SOFTWARE_NAME = CONTROL_getExternalSoftwareName()
-    CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = "/dataBases/atomicElements.lib"
-    CONTROL_instance%BASIS_SET_DATABASE = "/basis/"
-    CONTROL_instance%POTENTIALS_DATABASE = "/potentials/"
-    CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE = "/dataBases/elementalParticles.lib"
-    CONTROL_instance%INPUT_FILE = CONTROL_instance%INPUT_FILE
 
     !!***************************************************************************                                              
     !! Control print level and units                                                                                           
@@ -1085,6 +1074,22 @@ contains
     CONTROL_instance%IONIZE_MO = 0
     CONTROL_instance%IONIZE_SPECIE = "NONE"
     CONTROL_instance%EXCITE_SPECIE = "NONE"                                                            
+    !$OMP PARALLEL
+    CONTROL_instance%NUMBER_OF_CORES = OMP_get_thread_num() + 1
+    !$OMP END PARALLEL 
+    
+    !!***************************************************************************                                              
+    !! Environment variables                                                                                                   
+    !!                                                                                                                         
+    CONTROL_instance%HOME_DIRECTORY = CONTROL_getHomeDirectory()
+    CONTROL_instance%DATA_DIRECTORY = CONTROL_getDataDirectory()
+    CONTROL_instance%EXTERNAL_COMMAND = CONTROL_getExternalCommand()
+    CONTROL_instance%EXTERNAL_SOFTWARE_NAME = CONTROL_getExternalSoftwareName()
+    CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = "/dataBases/atomicElements.lib"
+    CONTROL_instance%BASIS_SET_DATABASE = "/basis/"
+    CONTROL_instance%POTENTIALS_DATABASE = "/potentials/"
+    CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE = "/dataBases/elementalParticles.lib"
+    CONTROL_instance%INPUT_FILE = CONTROL_instance%INPUT_FILE
     
   end subroutine CONTROL_start
 
@@ -1106,7 +1111,7 @@ contains
 
     !! Reads name-list
     read(uunit,NML=LowdinParameters, iostat=stat)
-    
+
     !! Check the process
     if(stat > 0 ) then
 
@@ -1141,9 +1146,7 @@ contains
     CONTROL_instance%INTEGRAL_STACK_SIZE = LowdinParameters_integralStackSize
     CONTROL_instance%INTEGRAL_DESTINY = LowdinParameters_integralDestiny
     CONTROL_instance%INTEGRAL_SCHEME =  LowdinParameters_integralScheme
-    CONTROL_instance%CUDA = LowdinParameters_cuda
-
-
+    
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
     !!                                                                                 
@@ -1244,20 +1247,6 @@ contains
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = LowdinParameters_ptMaxNumberOfPolesSearched
                                                                                                                                                                                           
     !!***************************************************************************      
-    !! Variables de ambiente al sistema de archivos del programa                       
-    !!                                                                                 
-    CONTROL_instance%HOME_DIRECTORY = LowdinParameters_homeDirectory
-    CONTROL_instance%DATA_DIRECTORY = LowdinParameters_dataDirectory
-    CONTROL_instance%EXTERNAL_COMMAND = LowdinParameters_externalCommand
-    CONTROL_instance%EXTERNAL_SOFTWARE_NAME = LowdinParameters_externalSoftwareName
-    CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = LowdinParameters_atomicElementsDataBase
-    CONTROL_instance%BASIS_SET_DATABASE = LowdinParameters_basisSetDataBase
-    CONTROL_instance%POTENTIALS_DATABASE = LowdinParameters_potentialsDataBase
-    CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE = LowdinParameters_elementalParticlesDataBase
-    CONTROL_instance%INPUT_FILE = LowdinParameters_inputFile
-                                                                                                                                                                                          
-                                                                                       
-    !!***************************************************************************      
     !! Control print level and units                                                   
     !!                                                                                 
     CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS = LowdinParameters_formatNumberOfColumns
@@ -1338,7 +1327,20 @@ contains
     CONTROL_instance%IONIZE_MO = LowdinParameters_ionizeMO
     CONTROL_instance%IONIZE_SPECIE = LowdinParameters_ionizeSpecie
     CONTROL_instance%EXCITE_SPECIE = LowdinParameters_exciteSpecie
+    CONTROL_instance%NUMBER_OF_CORES = LowdinParameters_numberOfCores
 
+    !!***************************************************************************      
+    !! Variables de ambiente al sistema de archivos del programa                       
+    !!                                                                                 
+    CONTROL_instance%HOME_DIRECTORY = LowdinParameters_homeDirectory
+    CONTROL_instance%DATA_DIRECTORY = LowdinParameters_dataDirectory
+    CONTROL_instance%EXTERNAL_COMMAND = LowdinParameters_externalCommand
+    CONTROL_instance%EXTERNAL_SOFTWARE_NAME = LowdinParameters_externalSoftwareName
+    CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = LowdinParameters_atomicElementsDataBase
+    CONTROL_instance%BASIS_SET_DATABASE = LowdinParameters_basisSetDataBase
+    CONTROL_instance%POTENTIALS_DATABASE = LowdinParameters_potentialsDataBase
+    CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE = LowdinParameters_elementalParticlesDataBase
+    CONTROL_instance%INPUT_FILE = LowdinParameters_inputFile
                                                                                               
 
   end subroutine CONTROL_load
@@ -1360,7 +1362,7 @@ contains
     LowdinParameters_integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
     LowdinParameters_integralDestiny = CONTROL_instance%INTEGRAL_DESTINY
     LowdinParameters_integralScheme = CONTROL_instance%INTEGRAL_SCHEME
-    LowdinParameters_cuda = CONTROL_instance%CUDA
+    
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
     !!                                                                                 
@@ -1460,19 +1462,7 @@ contains
     LowdinParameters_ptIterationScheme = CONTROL_instance%PT_ITERATION_SCHEME
     LowdinParameters_ptMaxNumberOfPolesSearched = CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED
                                                                                                                                                                                           
-    !!***************************************************************************      
-    !! Variables de ambiente al sistema de archivos del programa                       
-    !!                                                                                 
-    LowdinParameters_homeDirectory = CONTROL_instance%HOME_DIRECTORY
-    LowdinParameters_dataDirectory = CONTROL_instance%DATA_DIRECTORY
-    LowdinParameters_externalCommand = CONTROL_instance%EXTERNAL_COMMAND
-    LowdinParameters_externalSoftwareName = CONTROL_instance%EXTERNAL_SOFTWARE_NAME
-    LowdinParameters_atomicElementsDataBase = CONTROL_instance%ATOMIC_ELEMENTS_DATABASE
-    LowdinParameters_basisSetDataBase = CONTROL_instance%BASIS_SET_DATABASE
-    LowdinParameters_potentialsDataBase = CONTROL_instance%POTENTIALS_DATABASE
-    LowdinParameters_elementalParticlesDataBase = CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE
-    LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
-                                                                                                                                                                                          
+                                                                                  
                                                                                        
     !!***************************************************************************      
     !! Control print level and units                                                   
@@ -1555,7 +1545,21 @@ contains
     LowdinParameters_ionizeMO = CONTROL_instance%IONIZE_MO
     LowdinParameters_ionizeSpecie = CONTROL_instance%IONIZE_SPECIE
     LowdinParameters_exciteSpecie = CONTROL_instance%EXCITE_SPECIE
+    LowdinParameters_numberOfCores = CONTROL_instance%NUMBER_OF_CORES
 
+    !!***************************************************************************      
+    !! Variables de ambiente al sistema de archivos del programa                       
+    !!                                                                                 
+    LowdinParameters_homeDirectory = CONTROL_instance%HOME_DIRECTORY
+    LowdinParameters_dataDirectory = CONTROL_instance%DATA_DIRECTORY
+    LowdinParameters_externalCommand = CONTROL_instance%EXTERNAL_COMMAND
+    LowdinParameters_externalSoftwareName = CONTROL_instance%EXTERNAL_SOFTWARE_NAME
+    LowdinParameters_atomicElementsDataBase = CONTROL_instance%ATOMIC_ELEMENTS_DATABASE
+    LowdinParameters_basisSetDataBase = CONTROL_instance%BASIS_SET_DATABASE
+    LowdinParameters_potentialsDataBase = CONTROL_instance%POTENTIALS_DATABASE
+    LowdinParameters_elementalParticlesDataBase = CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE
+    LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
+                                                                                                        
     !! Write the name list in the specified unit.
     write(unit, NML=LowdinParameters)
     
@@ -1576,9 +1580,7 @@ contains
     otherThis%INTEGRAL_THRESHOLD = this%INTEGRAL_THRESHOLD 
     otherThis%INTEGRAL_DESTINY = this%INTEGRAL_DESTINY 
     otherThis%INTEGRAL_SCHEME = this%INTEGRAL_SCHEME
-    otherThis%INTEGRAL_STACK_SIZE = this%INTEGRAL_STACK_SIZE
-    otherThis%CUDA = this%CUDA
- 
+    otherThis%INTEGRAL_STACK_SIZE = this%INTEGRAL_STACK_SIZE 
     !!***************************************************************************
     !! Parametros para control de proceso de minizacion de energia mediante
     !! metodo SCF
@@ -1673,18 +1675,7 @@ contains
     otherThis%PT_MAX_NUMBER_POLES_SEARCHED = this%PT_MAX_NUMBER_POLES_SEARCHED 
     otherThis%PT_ITERATION_SCHEME = this%PT_ITERATION_SCHEME 
     otherThis%PT_ORDER = this%PT_ORDER 
-    !!***************************************************************************
-    !! Variables de ambiente al sistema de archivos del programa
-    !!
-    otherThis%INPUT_FILE = this%INPUT_FILE 
-    otherThis%HOME_DIRECTORY = this%HOME_DIRECTORY 
-    otherThis%DATA_DIRECTORY = this%DATA_DIRECTORY 
-    otherThis%EXTERNAL_COMMAND = this%EXTERNAL_COMMAND 
-    otherThis%EXTERNAL_SOFTWARE_NAME = this%EXTERNAL_SOFTWARE_NAME 
-    otherThis%ATOMIC_ELEMENTS_DATABASE = this%ATOMIC_ELEMENTS_DATABASE 
-    otherThis%BASIS_SET_DATABASE = this%BASIS_SET_DATABASE 
-    otherThis%POTENTIALS_DATABASE = this%POTENTIALS_DATABASE 
-    otherThis%ELEMENTAL_PARTICLES_DATABASE = this%ELEMENTAL_PARTICLES_DATABASE 
+
     !!*****************************************************
     !! Control parametros de formato
     !!
@@ -1756,6 +1747,20 @@ contains
     otherThis%IONIZE_MO = this%IONIZE_MO 
     otherThis%IONIZE_SPECIE = this%IONIZE_SPECIE 
     otherThis%EXCITE_SPECIE = this%EXCITE_SPECIE 
+    otherThis%NUMBER_OF_CORES = this%NUMBER_OF_CORES
+
+    !!***************************************************************************
+    !! Variables de ambiente al sistema de archivos del programa
+    !!
+    otherThis%INPUT_FILE = this%INPUT_FILE 
+    otherThis%HOME_DIRECTORY = this%HOME_DIRECTORY 
+    otherThis%DATA_DIRECTORY = this%DATA_DIRECTORY 
+    otherThis%EXTERNAL_COMMAND = this%EXTERNAL_COMMAND 
+    otherThis%EXTERNAL_SOFTWARE_NAME = this%EXTERNAL_SOFTWARE_NAME 
+    otherThis%ATOMIC_ELEMENTS_DATABASE = this%ATOMIC_ELEMENTS_DATABASE 
+    otherThis%BASIS_SET_DATABASE = this%BASIS_SET_DATABASE 
+    otherThis%POTENTIALS_DATABASE = this%POTENTIALS_DATABASE 
+    otherThis%ELEMENTAL_PARTICLES_DATABASE = this%ELEMENTAL_PARTICLES_DATABASE 
 
   end subroutine CONTROL_copy
 
@@ -1773,6 +1778,7 @@ contains
     print *,""
     
     write (*,"(T10,A)") "METHOD TYPE:  "//trim(CONTROL_instance%METHOD)
+    write (*,"(T10,A,I5)") "NUMBER OF CORES: ",CONTROL_instance%NUMBER_OF_CORES
     
     
     if(CONTROL_instance%METHOD=="RKS" .or. CONTROL_instance%METHOD=="UKS" .or. CONTROL_instance%METHOD=="ROKS" ) then
