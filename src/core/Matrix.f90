@@ -45,7 +45,7 @@ module Matrix_
   use Exception_
   use Vector_
   use LapackInterface_
-  use CudaInterface_
+  !use CudaInterface_
   use Math_
   use String_
   use, intrinsic :: iso_c_binding
