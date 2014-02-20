@@ -1,0 +1,15 @@
+FC = ifort
+FLAGS = 2
+PREFIX = /home/edwin/Dropbox/Software/bin
+CUBAFLAGS = 
+CULAFLAGS = 
+CXX = icpc
+CC = icc
+CFLAGS = -g -O3 -D intel
+CPPFLAGS = -g -O3 -D intel
+FCFLAGS = -O3 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended 
+LAPACK_LIBS = -mkl
+STDCPP_LIBS = -lstdc++
+GSL_LIBS = -lgsl -lgslcblas
+LIBINT_LIBS = -lr12 -lderiv -lint
+ALL_LIBS = -mkl -lr12 -lderiv -lint -lstdc++
