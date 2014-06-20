@@ -200,6 +200,14 @@ module CONTROL_
      integer :: CUBE_POINTS_DENSITY
      real(8) :: VOLUME_DENSITY_THRESHOLD
 
+     !!***************************************************** 
+     !! Molecular Mechanics Options                                                        
+     character(50) :: FORCE_FIELD
+
+     !!***************************************************** 
+     !! Output Options                                                        
+     logical :: MOLDEN_FILE
+
      !!*****************************************************
      !! Properties Options
      logical :: CALCULATE_INTERPARTICLE_DISTANCES
@@ -408,6 +416,14 @@ module CONTROL_
   !!
   integer :: LowdinParameters_cubePointsDensity
   real(8) :: LowdinParameters_volumeDensityThreshold
+  
+  !!***************************************************** 
+  !! Molecular Mechanics Options                                                        
+  character(50) :: LowdinParameters_forceField
+
+  !!*****************************************************                                                           
+  !! Output Options                                                                                                 
+  logical :: LowdinParameters_moldenFile
 
   !!*****************************************************
   !! Properties Options
@@ -614,6 +630,14 @@ module CONTROL_
        !!
        LowdinParameters_cubePointsDensity,&
        LowdinParameters_volumeDensityThreshold,&
+
+       !!***************************************************** 
+       !! Molecular Mechanics Options                                                        
+       LowdinParameters_forceField,&
+
+       !!*****************************************************                                                      
+       !! Output Options                                                                                            
+       LowdinParameters_moldenFile,&
        
        !!*****************************************************
        !! Properties Options
@@ -848,6 +872,14 @@ contains
     LowdinParameters_cubePointsDensity = 125
     LowdinParameters_volumeDensityThreshold = 1E-3
 
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    LowdinParameters_forceField = "UFF"
+
+    !!*****************************************************                                                       
+    !! Output Options          
+    LowdinParameters_moldenFile = .false.
+
     !!*****************************************************
     !! Properties Options
     LowdinParameters_calculateInterparticleDistances = .false.
@@ -1061,6 +1093,14 @@ contains
     !!                                                                                                                         
     CONTROL_instance%CUBE_POINTS_DENSITY = 125
     CONTROL_instance%VOLUME_DENSITY_THRESHOLD = 1E-3
+
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    CONTROL_instance%FORCE_FIELD = "UFF"
+
+    !!*****************************************************  
+    !! Output Options     
+    CONTROL_instance%MOLDEN_FILE = .false.
 
     !!*****************************************************                                                                    
     !! Properties Options                                                                                                      
@@ -1314,7 +1354,15 @@ contains
     !!                                                                                 
     CONTROL_instance%CUBE_POINTS_DENSITY = LowdinParameters_cubePointsDensity
     CONTROL_instance%VOLUME_DENSITY_THRESHOLD = LowdinParameters_volumeDensityThreshold
-                                                                                                                                                                                          
+                                                                                                                                
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    CONTROL_instance%FORCE_FIELD = LowdinParameters_forceField
+
+    !!*****************************************************   
+    !! Output Options                                                               
+    CONTROL_instance%MOLDEN_FILE = LowdinParameters_moldenFile
+                                                          
     !!*****************************************************                            
     !! Properties Options                                                              
     CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES = LowdinParameters_calculateInterparticleDistances
@@ -1532,7 +1580,14 @@ contains
     !!                                                                                 
     LowdinParameters_cubePointsDensity = CONTROL_instance%CUBE_POINTS_DENSITY
     LowdinParameters_volumeDensityThreshold = CONTROL_instance%VOLUME_DENSITY_THRESHOLD
-                                                                                                                                                                                          
+
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+     LowdinParameters_forceField = CONTROL_instance%FORCE_FIELD
+
+    !!*****************************************************      
+    !! Output Options                               
+    LowdinParameters_moldenFile = CONTROL_instance%MOLDEN_FILE                                                                                                                                                                                          
     !!*****************************************************                            
     !! Properties Options                                                              
     LowdinParameters_calculateInterparticleDistances = CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES
@@ -1736,6 +1791,12 @@ contains
     !!
     otherThis%CUBE_POINTS_DENSITY = this%CUBE_POINTS_DENSITY 
     otherThis%VOLUME_DENSITY_THRESHOLD = this%VOLUME_DENSITY_THRESHOLD 
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    otherThis%FORCE_FIELD = this%FORCE_FIELD
+    !!***************************************************** 
+    !! Output Options   
+    otherThis%MOLDEN_FILE = this%MOLDEN_FILE
     !!*****************************************************
     !! Properties Options
     otherThis%CALCULATE_INTERPARTICLE_DISTANCES  = this%CALCULATE_INTERPARTICLE_DISTANCES  
@@ -1799,6 +1860,10 @@ contains
 
        end if
 
+    end if
+
+    if(CONTROL_instance%METHOD=="MM") then
+       write (*,"(T10,A)") "FORCE FIELD: "//trim(CONTROL_instance%FORCE_FIELD)
     end if
 
     if(CONTROL_instance%MOLLER_PLESSET_CORRECTION>=2) then

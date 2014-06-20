@@ -78,7 +78,10 @@ program lowdin_
  
  !! Shows some information related to molecular system
  call MolecularSystem_showInformation()  
- call MolecularSystem_showParticlesInformation()
+
+ if (CONTROL_instance%METHOD/="MM") then 
+    call MolecularSystem_showParticlesInformation()
+ end if
  !!
  !!****************************************************************************
 

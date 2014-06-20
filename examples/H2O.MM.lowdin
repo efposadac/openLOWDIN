@@ -23,11 +23,10 @@ GEOMETRY
 END GEOMETRY
 
 TASKS
-	method = "RHF"
+	method = "MM"
 END TASKS
 
 CONTROL
-	integralScheme="rys"
 	numberOfCores=4
 END CONTROL
 
