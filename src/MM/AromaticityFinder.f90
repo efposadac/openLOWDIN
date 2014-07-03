@@ -46,34 +46,27 @@ module AromaticityFinder_
 
 contains
 
-  function AromaticityFinder_isAromatic( this, numberOfCenters, atomIdx ) result(output)
+  function AromaticityFinder_isAromatic( this, atomIdx ) result(output)
     implicit none
-    type(MolecularSystem) :: this
-    integer, intent(in) :: numberOfCenters
+    type(MatrixInteger), intent(in), allocatable :: this(:)
     integer, intent(in) :: atomIdx
     logical :: output
-    integer :: cyclomaticNumber
-    type(MatrixInteger), allocatable :: edges(:)
-    type(MatrixInteger) :: connectivityMatrix
-    type(Vector) :: bonds
-    type(MatrixInteger), allocatable :: rings(:)
+    integer :: numberOfRings 
+    integer :: numberOfColumns
+    integer :: i, j
 
-!!******************************************************************************
-!! Se calcula el cyclomatic number el cual es aquivalente al numero de anillos
-!! L. Matyska, J. Comp. Chem. 9(5), 455 (1988)
-!! si cyclomaticNumber = 0 no hay anillos y por la tanto se asume que 
-!! no hay aromaticidad y output devuelve false
-!!******************************************************************************
-    cyclomaticNumber = size(this%intCoordinates%distanceBondValue%values) - numberOfCenters + 1
+    output = .false.
+    
+    numberOfRings = size(this)
 
-    if ( cyclomaticNumber == 0 ) then
-       output = .false.
-       !!******************************************************************************    
-    else
-       call MMCommons_pruningGraph( this, numberOfCenters, edges, connectivityMatrix, bonds )
-       call RingFinder_getRings( edges, connectivityMatrix, rings )
-       output = .true.
-    end if
+    do i=1, numberOfRings
+       numberOfColumns = size(this(i)%values)
+       do j=1, numberOfColumns
+          if(this(i)%values(1,j)==atomIdx) then
+             output = .true.
+          end if
+       end do
+    end do
 
   end function AromaticityFinder_isAromatic
 

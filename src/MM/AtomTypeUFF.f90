@@ -36,7 +36,10 @@ module AtomTypeUFF_
   use MolecularSystem_
   use ParticleManager_
   use MMCommons_
+  use MatrixInteger_
+  use Vector_
   use AromaticityFinder_
+  use RingFinder_
   use Exception_
   implicit none
 
@@ -89,24 +92,54 @@ contains
   subroutine AtomTypeUFF_run()
     implicit none
     integer :: i   
-    integer :: numberofCenterofOptimization
+    integer :: numberOfCenterofOptimization
     character(10), allocatable :: labelOfCenters(:)
     character(10), allocatable :: ffAtomType(:)
     integer :: connectivity
     real(8) :: angleAverage
     real(8) :: SP2SP3AngleCutoff
+    real(8) :: SPSP2AngleCutoff
     logical :: isAromatic
+    integer :: numberOfEdges
+    integer :: cyclomaticNumber
+    type(MatrixInteger), allocatable :: edges(:)
+    type(MatrixInteger) :: connectivityMatrix
+    type(Vector) :: bonds
+    type(MatrixInteger), allocatable :: rings(:)
+    integer :: numberOfRings
+    integer :: numberOfColumns
 
     SP2SP3AngleCutoff = 115.00000000
+    SPSP2AngleCutoff = 160.00000000
 
     call MMCommons_constructor( MolecularSystem_instance )
 
-    numberofCenterofOptimization = ParticleManager_getNumberOfCentersOfOptimization()
-
-    allocate( labelOfCenters( numberofCenterofOptimization ) )
+    numberOfCenterofOptimization = ParticleManager_getNumberOfCentersOfOptimization()
+    
+!!******************************************************************************
+!! Se calcula el cyclomatic number el cual es aquivalente al numero de anillos
+!! L. Matyska, J. Comp. Chem. 9(5), 455 (1988)
+!! si cyclomaticNumber = 0 no hay anillos 
+!!******************************************************************************
+    numberOfEdges=size(MolecularSystem_instance%intCoordinates%distanceBondValue%values)
+    cyclomaticNumber = numberOfEdges - numberOfCenterofOptimization + 2
+    
+    allocate( labelOfCenters( numberOfCenterofOptimization ) )
     labelOfCenters = ParticleManager_getLabelsOfCentersOfOptimization()
 
-    allocate( ffAtomType( numberofCenterofOptimization ) )
+    allocate( ffAtomType( numberOfCenterofOptimization ) )
+
+    if (cyclomaticNumber>=1) then
+       call MMCommons_pruningGraph( MolecularSystem_instance, numberOfCenterofOptimization, edges, connectivityMatrix, bonds )
+       call RingFinder_getRings( edges, connectivityMatrix, cyclomaticNumber, rings )
+       numberOfRings=size(rings)
+       write (*,"(T10,A)") " Rings "
+       write (*,"(T10,A)") "--------------------------------------------"
+       do i=1,numberOfRings
+          numberOfColumns = size(rings(i)%values)
+          write (*,"(T10,<numberOfColumns>I)") rings(i)%values(1,:)
+       end do
+    end if
 
     do i=1, size(labelOfCenters)
 !!******************************************************************************
@@ -118,36 +151,131 @@ contains
 !! Se evaluan los carbonos
 !!******************************************************************************
        else if( trim( labelOfCenters(i) ) == "C" ) then
+
+          
           !! Se chequea la conectividad del carbono
           connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
 
-          !! Si connectivity == 4 se asume hibridacion sp3 (C_3)
-          if ( connectivity == 4 ) then
+          !! Si connectivity >= 4 se asume hibridacion sp3 (C_3)
+          if ( connectivity >= 4 ) then
              ffAtomType(i) = "C_3"
           
           !! Si connectivity == 3 hay tres posibles carbonos: hibridacion sp3: (C_3); hibridacion sp2: (C_2); 
           !! hibridacion sp2 y aromatico: (C_R). 
           !! Por eso es necesario ademas chequear aromaticidad y angulos de enlace
           else if ( connectivity == 3 ) then
-             !! Se cheque el angulo promedio de enlace
+             !! Se chequea el angulo promedio de enlace
              angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
              !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (C_3)
              if ( angleAverage < SP2SP3AngleCutoff ) then
                 ffAtomType(i) = "C_3"
              !! Falta programar la aromaticidad   
-             else
-                isAromatic = AromaticityFinder_isAromatic( MolecularSystem_instance, numberofCenterofOptimization, i )
+             else if ( cyclomaticNumber >= 1 ) then
+                isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "C_R"
-                else
-                   ffAtomType(i) = "C_2"
                 end if
+             else
+                ffAtomType(i) = "C_2"
              end if
-          !! Si connectivity <= 2 se asume hibridacion sp (C_1)
-          !! Aqui falta implementar las otras posibles hibridaciones
-          else if ( connectivity <= 2 ) then
+
+          else if ( connectivity == 2 ) then
+             !! Se chequea el angulo promedio de enlace
+             angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
+             !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (C_3)
+             if ( angleAverage < SP2SP3AngleCutoff ) then
+                ffAtomType(i) = "C_3"
+             !! Si el angulo es menor a 160 entonces se asume hibridacion sp2 (C_2)
+             else if ( angleAverage < SPSP2AngleCutoff ) then
+                ffAtomType(i) = "C_2"
+             else
+                ffAtomType(i) = "C_1"
+             end if
+!!!! Falta implementar las otras opciones para conectividad == 1
+          else
              ffAtomType(i) = "C_1"
           end if
+!!******************************************************************************
+!! Se evaluan los Nitrogenos
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "N" ) then
+          !! Se chequea la conectividad del nitrogeno
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+
+          !! Si connectivity >= 4 se asume hibridacion sp3 (N_3)
+          if ( connectivity >= 4 ) then
+             ffAtomType(i) = "N_3"
+          !! Si connectivity == 3 hay tres posibles nitrogenos: hibridacion sp3: (N_3); hibridacion sp2: (N_2); 
+          !! hibridacion sp2 y aromatico: (N_R). 
+          !! Por eso es necesario ademas chequear aromaticidad y angulos de enlace
+          else if ( connectivity == 3 ) then
+             !! Se chequea el angulo promedio de enlace
+             angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
+             !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (N_3)
+             if ( angleAverage < SP2SP3AngleCutoff ) then
+                ffAtomType(i) = "N_3"
+             !! Falta programar la aromaticidad   
+             else if ( cyclomaticNumber >= 1 ) then
+                isAromatic = AromaticityFinder_isAromatic( rings, i )
+                if ( isAromatic ) then
+                   ffAtomType(i) = "N_R"
+                end if
+             else
+                ffAtomType(i) = "N_2"
+             end if
+          else if ( connectivity == 2 ) then
+             !! Se chequea el angulo promedio de enlace
+             angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
+             !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (N_3)
+             if ( angleAverage < SP2SP3AngleCutoff ) then
+                ffAtomType(i) = "N_3"
+                !! Falta programar la aromaticidad   
+             else if ( cyclomaticNumber >= 1 ) then
+                isAromatic = AromaticityFinder_isAromatic( rings, i )
+                if ( isAromatic ) then
+                   ffAtomType(i) = "N_R"
+                end if
+             !! Si el angulo es menor a 160 entonces se asume hibridacion sp2 (C_2)
+             else if ( angleAverage < SPSP2AngleCutoff ) then
+                ffAtomType(i) = "N_2"
+             else
+                ffAtomType(i) = "N_1"
+             end if
+!!!! Falta implementar las otras opciones para conectividad == 1
+          else
+             ffAtomType(i) = "N_1"
+          end if
+!!******************************************************************************
+!! Se evaluan los Oxigenos
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "O" ) then
+          !! Se chequea la conectividad del oxigeno
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity >= 2 ) then
+                !! Falta programar la aromaticidad   
+             if ( cyclomaticNumber >= 1 ) then
+                isAromatic = AromaticityFinder_isAromatic( rings, i )
+                if ( isAromatic ) then
+                   ffAtomType(i) = "O_R"
+                end if
+             else
+                ffAtomType(i) = "O_3"
+             end if
+          else
+             ffAtomType(i) = "O_2"
+          end if
+!!******************************************************************************
+!! Se evaluan los Fosforos
+!!******************************************************************************
+       ! else if( trim( labelOfCenters(i) ) == "P" ) then
+       !    !! Se chequea la conectividad del oxigeno
+       !    connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+       !    if ( connectivity >= 4 ) then
+
+
+       !    else
+       !       ffAtomType(i) = "O_2"
+       !    end if
 !!******************************************************************************
        else
           ffAtomType(i) = labelOfCenters(i)

@@ -47,6 +47,7 @@ module MMCommons_
        MMCommons_constructor, &
        MMCommons_getConnectivity, &
        MMCommons_getConnectivityMatrix, &
+       MMCommons_isOrganometallic, &
        MMCommons_getAngleAverage
 
 contains
@@ -203,11 +204,13 @@ contains
     integer :: j
     integer :: outputSize
     integer :: position
+    integer :: numberOfColumns
 
     position = 1
     outputSize = 0
     do i=1, edgesSize
-       do j=1, 2
+       numberOfColumns = size(edges(i)%values)
+       do j=1, numberOfColumns
           if ( edges(i)%values(1,j) == Idx ) then
                 outputSize = outputSize+1
           end if
@@ -217,7 +220,8 @@ contains
     allocate( output( outputSize ) )
 
     do i=1, edgesSize
-       do j=1, 2
+       numberOfColumns = size(edges(i)%values)
+       do j=1, numberOfColumns
           if ( edges(i)%values(1,j) == Idx ) then
              output(position) = i
              position = position + 1
@@ -239,6 +243,7 @@ contains
     integer :: atomToRemove
     integer :: neighbor
     integer :: edgesSize
+    integer :: numberOfColumns
     integer :: minimum
     integer :: connectivitySize
     integer, allocatable :: edgesRow(:)
@@ -288,7 +293,7 @@ contains
        call MMCommons_sort( connectivityMatrix%values, connectivitySize )
        minimum = minval( connectivityMatrix%values(:,2), connectivitySize )
     end do
-
+   
   end subroutine MMCommons_pruningGraph
 
   subroutine MMCommons_removeEdge( this, numberOfElement, edgesSize )
@@ -299,34 +304,42 @@ contains
     type(Matrixinteger), allocatable :: auxArray(:)
     integer :: i
     integer :: j
+    integer :: numberOfColumns
+
 
     if (numberOfElement <= edgesSize ) then
 
        allocate( auxArray(edgesSize-1) )
-       do i=1,edgesSize-1
-          call MatrixInteger_constructor( auxArray(i), 1, 2 )
-       end do
+       ! do i=1,edgesSize-1
+       !    call MatrixInteger_constructor( auxArray(i), 1, 2 )
+       ! end do
 
        do i=1,numberOfElement-1
-          do j=1,2
+          numberOfColumns = size(this(i)%values)
+          call MatrixInteger_constructor( auxArray(i), 1, numberOfColumns )
+          do j=1,numberOfColumns
              auxArray(i)%values(1,j) = this(i)%values(1,j)
           end do
        end do
 
        do i=numberOfElement,edgesSize-1
-          do j=1,2
+          numberOfColumns = size(this(i+1)%values)
+          call MatrixInteger_constructor( auxArray(i), 1, numberOfColumns )
+          do j=1,numberOfColumns
              auxArray(i)%values(1,j) = this(i+1)%values(1,j)
           end do
        end do
 
-       deallocate( this )
-       allocate( this(edgesSize-1) )
+       deallocate( this ) 
+      allocate( this(edgesSize-1) )
        do i=1,edgesSize-1
-          call MatrixInteger_constructor( this(i), 1, 2 )
+          numberOfColumns = size(auxArray(i)%values)
+          call MatrixInteger_constructor( this(i), 1, numberOfColumns )
        end do
        
        do i=1,edgesSize-1
-          do j=1,2
+          numberOfColumns = size(auxArray(i)%values)
+          do j=1,numberOfColumns
              this(i)%values(1,j) = auxArray(i)%values(1,j)
           end do
        end do
@@ -336,5 +349,39 @@ contains
     end if
     
   end subroutine MMCommons_removeEdge
+
+  function MMCommons_isOrganometallic( this, atomIdx, connectivity ) result( output )
+    implicit none
+    type(MolecularSystem) :: this
+    integer, intent(in) :: atomIdx
+    integer, intent(in) :: connectivity
+    integer :: i
+    integer :: j
+    logical :: output
+    type(Vector) :: neighbor
+    integer :: edgesSize, row
+
+    output = .false.
+
+    edgesSize = size(this%intCoordinates%distanceBondValue%values)
+
+    call Vector_constructor( neighbor, connectivity )
+
+    row = 1
+    do i=1,edgesSize
+       if ( this%intCoordinates%connectionMatrixForBonds%values(i,1) == atomIdx ) then
+          neighbor%values(row) = this%intCoordinates%connectionMatrixForBonds%values(i,2)
+          row = row +1
+       else if ( this%intCoordinates%connectionMatrixForBonds%values(i,2) == atomIdx ) then
+          neighbor%values(row) = this%intCoordinates%connectionMatrixForBonds%values(i,1)
+          row = row +1
+       end if
+    end do
+
+    do j=1,connectivity
+       write(*,"(T20,A)") "Hola yo no hago nada"
+    end do
+
+  end function MMCommons_isOrganometallic
 
 end module MMCommons_
