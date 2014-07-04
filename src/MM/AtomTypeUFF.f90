@@ -100,6 +100,7 @@ contains
     real(8) :: SP2SP3AngleCutoff
     real(8) :: SPSP2AngleCutoff
     logical :: isAromatic
+    logical :: isOrganometallic
     integer :: numberOfEdges
     integer :: cyclomaticNumber
     type(MatrixInteger), allocatable :: edges(:)
@@ -267,15 +268,19 @@ contains
 !!******************************************************************************
 !! Se evaluan los Fosforos
 !!******************************************************************************
-       ! else if( trim( labelOfCenters(i) ) == "P" ) then
-       !    !! Se chequea la conectividad del oxigeno
-       !    connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
-       !    if ( connectivity >= 4 ) then
-
-
-       !    else
-       !       ffAtomType(i) = "O_2"
-       !    end if
+       else if( trim( labelOfCenters(i) ) == "P" ) then
+          !! Se chequea la conectividad del oxigeno
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity >= 4 ) then
+             isOrganometallic = MMCommons_isOrganometallic( MolecularSystem_instance, i, connectivity, labelOfCenters )
+             if (isOrganometallic) then
+                ffAtomType(i) = "P_3+q"
+             else
+                ffAtomType(i) = "P_3+5"
+             end if
+          else
+             ffAtomType(i) = "P_3+3"
+          end if
 !!******************************************************************************
        else
           ffAtomType(i) = labelOfCenters(i)

@@ -35,6 +35,7 @@ module MMCommons_
   use CONTROL_
   use MolecularSystem_
   use ParticleManager_
+  use AtomicElement_
   use MatrixInteger_
   use Matrix_
   use Vector_
@@ -350,7 +351,7 @@ contains
     
   end subroutine MMCommons_removeEdge
 
-  function MMCommons_isOrganometallic( this, atomIdx, connectivity ) result( output )
+  function MMCommons_isOrganometallic( this, atomIdx, connectivity, labelOfCenters ) result( output )
     implicit none
     type(MolecularSystem) :: this
     integer, intent(in) :: atomIdx
@@ -359,7 +360,10 @@ contains
     integer :: j
     logical :: output
     type(Vector) :: neighbor
+    integer :: neighborIdx
     integer :: edgesSize, row
+    type(AtomicElement) :: element
+    character(10), allocatable :: labelOfCenters(:)
 
     output = .false.
 
@@ -379,7 +383,17 @@ contains
     end do
 
     do j=1,connectivity
-       write(*,"(T20,A)") "Hola yo no hago nada"
+       neighborIdx = neighbor%values(j)
+       call AtomicElement_load ( element, trim( labelOfCenters(neighborIdx) ), 0 )
+       if (element%atomicNumber >= 21 .and. element%atomicNumber <= 31) then
+          output = .true.
+       else if (element%atomicNumber >= 39 .and. element%atomicNumber <= 50) then
+          output = .true.
+       else if (element%atomicNumber >= 57 .and. element%atomicNumber <= 83) then
+          output = .true.
+       else if (element%atomicNumber >= 89) then
+          output = .true.
+       end if
     end do
 
   end function MMCommons_isOrganometallic
