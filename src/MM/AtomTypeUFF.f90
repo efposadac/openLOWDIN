@@ -112,6 +112,7 @@ contains
     type(MatrixInteger), allocatable :: rings(:)
     integer :: numberOfRings
     integer :: numberOfColumns
+    type(Exception) :: ex
 
     SP2SP3AngleCutoff = 115.00000000
     SPSP2AngleCutoff = 160.00000000
@@ -138,10 +139,10 @@ contains
 
     allocate( ffAtomType( numberOfCenterofOptimization ) )
 
-    if (cyclomaticNumber>=1) then
+    if (cyclomaticNumber>=2) then
        call MMCommons_pruningGraph( MolecularSystem_instance, numberOfCenterofOptimization, edges, connectivityMatrix, bonds )
        call RingFinder_getRings( edges, connectivityMatrix, cyclomaticNumber, rings )
-       numberOfRings=size(rings)
+       ! numberOfRings=size(rings)
        ! write (*,"(T10,A)") " Rings "
        ! write (*,"(T10,A)") "--------------------------------------------"
        ! do i=1,numberOfRings
@@ -164,7 +165,8 @@ contains
           
           !! Se chequea la conectividad del carbono
           connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
-
+          !! Imprime el valor de conectividad, borrar luego
+          ! write (*,"(T20,A,I)") "Conectividad: ", connectivity
           !! Si connectivity >= 4 se asume hibridacion sp3 (C_3)
           if ( connectivity >= 4 ) then
              ffAtomType(i) = "C_3"
@@ -175,11 +177,14 @@ contains
           else if ( connectivity == 3 ) then
              !! Se chequea el angulo promedio de enlace
              angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
+             !! Imprime el angulo promedio, borrar despues
+             ! write (*,"(T20,A,F16.5)") "Angulo: ", angleAverage
+
              !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (C_3)
              if ( angleAverage < SP2SP3AngleCutoff ) then
                 ffAtomType(i) = "C_3"
              !! Falta programar la aromaticidad   
-             else if ( cyclomaticNumber >= 1 ) then
+             else if ( cyclomaticNumber >= 2 ) then
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "C_R"
@@ -224,7 +229,7 @@ contains
              if ( angleAverage < SP2SP3AngleCutoff ) then
                 ffAtomType(i) = "N_3"
              !! Falta programar la aromaticidad   
-             else if ( cyclomaticNumber >= 1 ) then
+             else if ( cyclomaticNumber >= 2 ) then
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "N_R"
@@ -239,7 +244,7 @@ contains
              if ( angleAverage < SP2SP3AngleCutoff ) then
                 ffAtomType(i) = "N_3"
                 !! Falta programar la aromaticidad   
-             else if ( cyclomaticNumber >= 1 ) then
+             else if ( cyclomaticNumber >= 2 ) then
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "N_R"
@@ -262,7 +267,7 @@ contains
           connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
           if ( connectivity >= 2 ) then
                 !! Falta programar la aromaticidad   
-             if ( cyclomaticNumber >= 1 ) then
+             if ( cyclomaticNumber >= 2 ) then
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "O_R"
@@ -299,7 +304,7 @@ contains
           if ( connectivity == 6 ) then
              ffAtomType(i) = "S_3+6"
           else if ( connectivity == 2 ) then
-             if ( cyclomaticNumber >= 1 ) then
+             if ( cyclomaticNumber >= 2 ) then
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "S_R"
@@ -420,8 +425,166 @@ contains
        else if( trim( labelOfCenters(i) ) == "RN" ) then
           ffAtomType(i) = "Rn4+4"
 !!******************************************************************************
+!! Se evalua la primera serie de transicion 
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "SC" ) then
+          ffAtomType(i) = "Sc3+3"
+       else if( trim( labelOfCenters(i) ) == "TI" ) then
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity == 6 ) then
+             ffAtomType(i) = "Ti6+4"
+          else
+             ffAtomType(i) = "Ti3+4"
+          end if
+       else if( trim( labelOfCenters(i) ) == "V" ) then
+          ffAtomType(i) = "V_3+5"
+       else if( trim( labelOfCenters(i) ) == "CR" ) then
+          ffAtomType(i) = "Cr6+3"
+       else if( trim( labelOfCenters(i) ) == "MN" ) then
+          ffAtomType(i) = "Mn6+2"
+       else if( trim( labelOfCenters(i) ) == "FE" ) then
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity == 6 ) then
+             ffAtomType(i) = "Fe6+2"
+          else
+             ffAtomType(i) = "Fe3+2"
+          end if
+       else if( trim( labelOfCenters(i) ) == "CO" ) then
+          ffAtomType(i) = "Co6+3"
+       else if( trim( labelOfCenters(i) ) == "NI" ) then
+          ffAtomType(i) = "Ni4+2"
+       else if( trim( labelOfCenters(i) ) == "CU" ) then
+          ffAtomType(i) = "Cu3+1"
+       else if( trim( labelOfCenters(i) ) == "ZN" ) then
+          ffAtomType(i) = "Zn3+2"
+!!******************************************************************************
+!! Se evalua la segunda serie de transicion 
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "Y" ) then
+          ffAtomType(i) = "Y_3+3"
+       else if( trim( labelOfCenters(i) ) == "ZR" ) then
+          ffAtomType(i) = "Zr3+4"
+       else if( trim( labelOfCenters(i) ) == "NB" ) then
+          ffAtomType(i) = "Nb3+5"
+       else if( trim( labelOfCenters(i) ) == "MO" ) then
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity == 6 ) then
+             ffAtomType(i) = "Mo6+6"
+          else
+             ffAtomType(i) = "Mo3+6"
+          end if
+       else if( trim( labelOfCenters(i) ) == "TC" ) then
+          ffAtomType(i) = "Tc6+5"
+       else if( trim( labelOfCenters(i) ) == "RU" ) then
+          ffAtomType(i) = "Ru6+2"
+       else if( trim( labelOfCenters(i) ) == "RH" ) then
+          ffAtomType(i) = "Rh6+3"
+       else if( trim( labelOfCenters(i) ) == "PD" ) then
+          ffAtomType(i) = "Pd4+2"
+       else if( trim( labelOfCenters(i) ) == "AG" ) then
+          ffAtomType(i) = "Ag1+1"
+       else if( trim( labelOfCenters(i) ) == "CD" ) then
+          ffAtomType(i) = "Cd3+2"
+!!******************************************************************************
+!! Se evalua la tercera serie de transicion y lantanidos
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "LA" ) then
+          ffAtomType(i) = "La3+3"
+       else if( trim( labelOfCenters(i) ) == "CE" ) then
+          ffAtomType(i) = "Ce6+3"
+       else if( trim( labelOfCenters(i) ) == "PR" ) then
+          ffAtomType(i) = "Pr6+3"
+       else if( trim( labelOfCenters(i) ) == "ND" ) then
+          ffAtomType(i) = "Nd6+3"
+       else if( trim( labelOfCenters(i) ) == "PM" ) then
+          ffAtomType(i) = "Pm6+3"
+       else if( trim( labelOfCenters(i) ) == "SM" ) then
+          ffAtomType(i) = "Sm6+3"
+       else if( trim( labelOfCenters(i) ) == "EU" ) then
+          ffAtomType(i) = "Eu6+3"
+       else if( trim( labelOfCenters(i) ) == "GD" ) then
+          ffAtomType(i) = "Gd6+3"
+       else if( trim( labelOfCenters(i) ) == "TB" ) then
+          ffAtomType(i) = "Tb6+3"
+       else if( trim( labelOfCenters(i) ) == "DY" ) then
+          ffAtomType(i) = "Dy6+3"
+       else if( trim( labelOfCenters(i) ) == "HO" ) then
+          ffAtomType(i) = "Ho6+3"
+       else if( trim( labelOfCenters(i) ) == "ER" ) then
+          ffAtomType(i) = "Er6+3"
+       else if( trim( labelOfCenters(i) ) == "TM" ) then
+          ffAtomType(i) = "Tm6+3"
+       else if( trim( labelOfCenters(i) ) == "YB" ) then
+          ffAtomType(i) = "Yb6+3"
+       else if( trim( labelOfCenters(i) ) == "LU" ) then
+          ffAtomType(i) = "Lu6+3"
+       else if( trim( labelOfCenters(i) ) == "HF" ) then
+          ffAtomType(i) = "Hf3+4"
+       else if( trim( labelOfCenters(i) ) == "TA" ) then
+          ffAtomType(i) = "Ta3+5"
+       else if( trim( labelOfCenters(i) ) == "W" ) then
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity == 6 ) then
+             ffAtomType(i) = "W_6+6"
+          else
+             ffAtomType(i) = "W_3+6"
+          end if
+       else if( trim( labelOfCenters(i) ) == "RE" ) then
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity == 6 ) then
+             ffAtomType(i) = "Re6+5"
+          else
+             ffAtomType(i) = "Re3+7"
+          end if
+       else if( trim( labelOfCenters(i) ) == "OS" ) then
+          ffAtomType(i) = "Os6+6"
+       else if( trim( labelOfCenters(i) ) == "IR" ) then
+          ffAtomType(i) = "Ir6+3"
+       else if( trim( labelOfCenters(i) ) == "PT" ) then
+          ffAtomType(i) = "Pt4+2"
+       else if( trim( labelOfCenters(i) ) == "AU" ) then
+          ffAtomType(i) = "Au4+3"
+       else if( trim( labelOfCenters(i) ) == "HG" ) then
+          ffAtomType(i) = "Hg1+2"
+!!******************************************************************************
+!! Se evalua los Actinidos
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "AC" ) then
+          ffAtomType(i) = "Ac6+3"
+       else if( trim( labelOfCenters(i) ) == "TH" ) then
+          ffAtomType(i) = "Th6+4"
+       else if( trim( labelOfCenters(i) ) == "PA" ) then
+          ffAtomType(i) = "Pa6+4"
+       else if( trim( labelOfCenters(i) ) == "U" ) then
+          ffAtomType(i) = "U_6+4"
+       else if( trim( labelOfCenters(i) ) == "NP" ) then
+          ffAtomType(i) = "Np6+4"
+       else if( trim( labelOfCenters(i) ) == "PU" ) then
+          ffAtomType(i) = "Pu6+4"
+       else if( trim( labelOfCenters(i) ) == "AM" ) then
+          ffAtomType(i) = "Am6+4"
+       else if( trim( labelOfCenters(i) ) == "CM" ) then
+          ffAtomType(i) = "Cm6+3"
+       else if( trim( labelOfCenters(i) ) == "BK" ) then
+          ffAtomType(i) = "Bk6+3"
+       else if( trim( labelOfCenters(i) ) == "CF" ) then
+          ffAtomType(i) = "Cf6+3"
+       else if( trim( labelOfCenters(i) ) == "ES" ) then
+          ffAtomType(i) = "Es6+3"
+       else if( trim( labelOfCenters(i) ) == "FM" ) then
+          ffAtomType(i) = "Fm6+3"
+       else if( trim( labelOfCenters(i) ) == "MD" ) then
+          ffAtomType(i) = "Md6+3"
+       else if( trim( labelOfCenters(i) ) == "NO" ) then
+          ffAtomType(i) = "No6+3"
+       else if( trim( labelOfCenters(i) ) == "LW" ) then
+          ffAtomType(i) = "Lw6+3"
+!!******************************************************************************
        else
-          ffAtomType(i) = labelOfCenters(i)
+          call Exception_constructor( ex , ERROR )
+          call Exception_setDebugDescription( ex, "Class object AtomTypeUFF in run() function" )
+          call Exception_setDescription( ex, "This Atom type hasn't been implemented in UFF Force Field" )
+          call Exception_show( ex )
        end if
     end do
     
@@ -437,22 +600,19 @@ contains
     
   end subroutine AtomTypeUFF_run
 
-! subroutine AtomTypeUFF_exception( typeMessage, description, debugDescription)
-!   implicit none
-!   integer :: typeMessage
+  subroutine AtomTypeUFF_exception( typeMessage, description, debugDescription)
+    implicit none
+    integer :: typeMessage
+    character(*) :: description
+    character(*) :: debugDescription
+    type(Exception) :: ex
 
+    call Exception_constructor( ex , typeMessage )
+    call Exception_setDebugDescription( ex, debugDescription )
+    call Exception_setDescription( ex, description )
+    call Exception_show( ex )
+    call Exception_destructor( ex )
 
-!   character(*) :: description
-!   character(*) :: debugDescription
-
-!   type(Exception) :: ex
-
-!   call Exception_constructor( ex , typeMessage )
-!   call Exception_setDebugDescription( ex, debugDescription )
-!   call Exception_setDescription( ex, description )
-!   call Exception_show( ex )
-!   call Exception_destructor( ex )
-
-! end subroutine AtomTypeUFF_exception
+  end subroutine AtomTypeUFF_exception
 
 end module AtomTypeUFF_
