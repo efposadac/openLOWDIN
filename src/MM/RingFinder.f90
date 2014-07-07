@@ -88,21 +88,21 @@ contains
     end do
 
     !!    Imprime valores de vertices del pruned graph, borrar luego
-    write (*,"(T10,A)") " "
-    write (*,"(T10,A)") " Atoms in Pruned Graph"
-    write (*,"(T10,A)") "--------------------------------------------"
-    do i=1, connectivitySize
-       write (*,"(T10,I)") vertices%values(i,:)
-    end do
+    ! write (*,"(T10,A)") " "
+    ! write (*,"(T10,A)") " Atoms in Pruned Graph"
+    ! write (*,"(T10,A)") "--------------------------------------------"
+    ! do i=1, connectivitySize
+    !    write (*,"(T10,I)") vertices%values(i,:)
+    ! end do
     !!    ******************************************************************************
     !!    Imprime los ejes, borrar luego
-    write (*,"(T10,A)") " "
-    write (*,"(T10,A)") " Edges in Pruned Graph"
-    write (*,"(T10,A)") "--------------------------------------------"
-    write (*,"(T10,A,I)") " Tamanio =>", edgesSize
-    do i=1,edgesSize
-       write (*,"(T10,2I)") this(i)%values(1,:)
-    end do
+    ! write (*,"(T10,A)") " "
+    ! write (*,"(T10,A)") " Edges in Pruned Graph"
+    ! write (*,"(T10,A)") "--------------------------------------------"
+    ! write (*,"(T10,A,I)") " Tamanio =>", edgesSize
+    ! do i=1,edgesSize
+    !    write (*,"(T10,2I)") this(i)%values(1,:)
+    ! end do
 
     allocate( auxEdges( edgesSize ))
     do i=1,edgesSize

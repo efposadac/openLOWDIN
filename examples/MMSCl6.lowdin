@@ -1,0 +1,41 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test RHF
+%  C8H18 Single Point
+%  Electronic Hartree Fock
+%  Basis sets used:
+%      PRUEBA e-
+%  Results
+%      TEST ENERGY =     -313.350331482763
+%      VIRIAL RATIO (V/T) =         2.0011931747
+% End Results
+%      Author: Fernando Posada - QCC-UNAL/2011
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de SCl6'
+GEOMETRY
+e-(S)      3-21G              1.177800    0.644400    0.000000
+e-(Cl)     3-21G              1.177800    2.644400    0.000000
+e-(Cl)     3-21G              1.177800    0.644400    -2.000000
+e-(Cl)     3-21G              3.177800    0.644400    0.000000
+e-(Cl)     3-21G              1.177800    0.644400    2.000000
+e-(Cl)     3-21G              -0.822200   0.644400    0.000000
+e-(Cl)     3-21G              1.177800    -1.355600   0.000000
+S          dirac              1.177800    0.644400    0.000000
+Cl         dirac              1.177800    2.644400    0.000000
+Cl         dirac              1.177800    0.644400    -2.000000
+Cl         dirac              3.177800    0.644400    0.000000
+Cl         dirac              1.177800    0.644400    2.000000
+Cl         dirac              -0.822200   0.644400    0.000000
+Cl         dirac              1.177800    -1.355600   0.000000
+END GEOMETRY
+
+TASKS
+        method = "MM"
+END TASKS
+
+CONTROL
+!        readCoefficients = F
+!	integralScheme="libint"
+	numberOfCores = 8
+	forceField = UFF
+END CONTROL

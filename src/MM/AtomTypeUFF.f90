@@ -94,11 +94,14 @@ contains
     integer :: i   
     integer :: numberOfCenterofOptimization
     character(10), allocatable :: labelOfCenters(:)
+    real(8), allocatable :: chargesOfCenters(:)
     character(10), allocatable :: ffAtomType(:)
     integer :: connectivity
     real(8) :: angleAverage
     real(8) :: SP2SP3AngleCutoff
     real(8) :: SPSP2AngleCutoff
+    real(8) :: AngleCutoff1
+    real(8) :: AngleCutoff2
     logical :: isAromatic
     logical :: isOrganometallic
     integer :: numberOfEdges
@@ -112,6 +115,8 @@ contains
 
     SP2SP3AngleCutoff = 115.00000000
     SPSP2AngleCutoff = 160.00000000
+    AngleCutoff1 = 100.00000000
+    AngleCutoff2 = 105.00000000
 
     call MMCommons_constructor( MolecularSystem_instance )
 
@@ -128,18 +133,21 @@ contains
     allocate( labelOfCenters( numberOfCenterofOptimization ) )
     labelOfCenters = ParticleManager_getLabelsOfCentersOfOptimization()
 
+    allocate( chargesOfCenters( numberOfCenterofOptimization ) )
+    chargesOfCenters = ParticleManager_getChargesOfCentersOfOptimization()
+
     allocate( ffAtomType( numberOfCenterofOptimization ) )
 
     if (cyclomaticNumber>=1) then
        call MMCommons_pruningGraph( MolecularSystem_instance, numberOfCenterofOptimization, edges, connectivityMatrix, bonds )
        call RingFinder_getRings( edges, connectivityMatrix, cyclomaticNumber, rings )
        numberOfRings=size(rings)
-       write (*,"(T10,A)") " Rings "
-       write (*,"(T10,A)") "--------------------------------------------"
-       do i=1,numberOfRings
-          numberOfColumns = size(rings(i)%values)
-          write (*,"(T10,<numberOfColumns>I)") rings(i)%values(1,:)
-       end do
+       ! write (*,"(T10,A)") " Rings "
+       ! write (*,"(T10,A)") "--------------------------------------------"
+       ! do i=1,numberOfRings
+       !    numberOfColumns = size(rings(i)%values)
+       !    write (*,"(T10,<numberOfColumns>I)") rings(i)%values(1,:)
+       ! end do
     end if
 
     do i=1, size(labelOfCenters)
@@ -282,13 +290,149 @@ contains
              ffAtomType(i) = "P_3+3"
           end if
 !!******************************************************************************
+!! Se evaluan los Azufres
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "S" ) then
+          !! Se chequea la conectividad del azufre
+          angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i ) 
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity == 6 ) then
+             ffAtomType(i) = "S_3+6"
+          else if ( connectivity == 2 ) then
+             if ( cyclomaticNumber >= 1 ) then
+                isAromatic = AromaticityFinder_isAromatic( rings, i )
+                if ( isAromatic ) then
+                   ffAtomType(i) = "S_R"
+                end if
+             end if
+          else if ( angleAverage <= AngleCutoff1 ) then
+             ffAtomType(i) = "S_3+2"
+          else if ( angleAverage <= AngleCutoff2 ) then
+             ffAtomType(i) = "S_3+4"
+          else if ( angleAverage <= SP2SP3AngleCutoff ) then
+             ffAtomType(i) = "S_3+6"
+          else
+             ffAtomType(i) = "S_2"
+          end if
+!!******************************************************************************
+!! Se evalua el grupo 17 (Halogenos)
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "F" ) then
+          ffAtomType(i) = "F_"
+       else if( trim( labelOfCenters(i) ) == "CL" ) then
+          ffAtomType(i) = "Cl"
+       else if( trim( labelOfCenters(i) ) == "BR" ) then
+          ffAtomType(i) = "Br"
+       else if( trim( labelOfCenters(i) ) == "I" ) then
+          ffAtomType(i) = "I_"
+       else if( trim( labelOfCenters(i) ) == "AT" ) then
+          ffAtomType(i) = "At"
+!!******************************************************************************
+!! Se evalua el grupo 1
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "LI" ) then
+          ffAtomType(i) = "Li"
+       else if( trim( labelOfCenters(i) ) == "NA" ) then
+          ffAtomType(i) = "Na"
+       else if( trim( labelOfCenters(i) ) == "K" ) then
+          ffAtomType(i) = "K_"
+       else if( trim( labelOfCenters(i) ) == "RB" ) then
+          ffAtomType(i) = "Rb"
+       else if( trim( labelOfCenters(i) ) == "CS" ) then
+          ffAtomType(i) = "Cs"
+       else if( trim( labelOfCenters(i) ) == "FR" ) then
+          ffAtomType(i) = "Fr"
+!!******************************************************************************
+!! Se evalua el grupo 2
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "BE" ) then
+          ffAtomType(i) = "Be3+2"
+       else if( trim( labelOfCenters(i) ) == "MG" ) then
+          ffAtomType(i) = "Mg3+2"
+       else if( trim( labelOfCenters(i) ) == "CA" ) then
+          ffAtomType(i) = "Ca6+2"
+       else if( trim( labelOfCenters(i) ) == "SR" ) then
+          ffAtomType(i) = "Sr6+2"
+       else if( trim( labelOfCenters(i) ) == "BA" ) then
+          ffAtomType(i) = "Ba6+2"
+       else if( trim( labelOfCenters(i) ) == "RA" ) then
+          ffAtomType(i) = "Ra6+2"
+!!******************************************************************************
+!! Se evalua el grupo 13
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "B" ) then
+          connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
+          if ( connectivity >= 4 ) then
+             ffAtomType(i) = "B_3"
+          else
+             ffAtomType(i) = "B_2"
+          end if
+       else if( trim( labelOfCenters(i) ) == "AL" ) then
+          ffAtomType(i) = "Al3"
+       else if( trim( labelOfCenters(i) ) == "GA" ) then
+          ffAtomType(i) = "Ga3+3"
+       else if( trim( labelOfCenters(i) ) == "IN" ) then
+          ffAtomType(i) = "In3+3"
+       else if( trim( labelOfCenters(i) ) == "TL" ) then
+          ffAtomType(i) = "Tl3+3"
+!!******************************************************************************
+!! Se evalua el grupo 14
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "SI" ) then
+          ffAtomType(i) = "Si3"
+       else if( trim( labelOfCenters(i) ) == "GE" ) then
+          ffAtomType(i) = "Ge3"
+       else if( trim( labelOfCenters(i) ) == "SN" ) then
+          ffAtomType(i) = "Sn3"
+       else if( trim( labelOfCenters(i) ) == "PB" ) then
+          ffAtomType(i) = "Pb3"
+!!******************************************************************************
+!! Se evalua el grupo 15
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "AS" ) then
+          ffAtomType(i) = "As3+3"
+       else if( trim( labelOfCenters(i) ) == "SB" ) then
+          ffAtomType(i) = "Sb3+3"
+       else if( trim( labelOfCenters(i) ) == "BI" ) then
+          ffAtomType(i) = "Bi3+3"
+!!******************************************************************************
+!! Se evalua el grupo 16
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "SE" ) then
+          ffAtomType(i) = "Se3+2"
+       else if( trim( labelOfCenters(i) ) == "TE" ) then
+          ffAtomType(i) = "Te3+2"
+       else if( trim( labelOfCenters(i) ) == "PO" ) then
+          ffAtomType(i) = "Po3+2"
+!!******************************************************************************
+!! Se evalua el grupo 18 (Gases Nobles)
+!!******************************************************************************
+       else if( trim( labelOfCenters(i) ) == "HE" ) then
+          ffAtomType(i) = "He4+4"
+       else if( trim( labelOfCenters(i) ) == "NE" ) then
+          ffAtomType(i) = "Ne4+4"
+       else if( trim( labelOfCenters(i) ) == "AR" ) then
+          ffAtomType(i) = "Ar4+4"
+       else if( trim( labelOfCenters(i) ) == "KR" ) then
+          ffAtomType(i) = "Kr4+4"
+       else if( trim( labelOfCenters(i) ) == "XE" ) then
+          ffAtomType(i) = "Xe4+4"
+       else if( trim( labelOfCenters(i) ) == "RN" ) then
+          ffAtomType(i) = "Rn4+4"
+!!******************************************************************************
        else
           ffAtomType(i) = labelOfCenters(i)
        end if
     end do
-
+    
+    write (*,"(T10,A)") ""
+    write (*,"(T10,A)") ""
+    write (*,"(T10,A)") ""
+    write (*,"(T15,A)") "------------------------------------------------------"
+    write (*,"(T20,A,T30,A,T40,A,T50,A)") "Idx", "Atom", "Type", "Charge"
+    write (*,"(T15,A)") "------------------------------------------------------"
     do i=1, size(ffAtomType)
-       write (*,"(T10,I,A,A,A,A)") i, ": ", trim( labelOfCenters(i) ), " ----> ", trim( ffAtomType(i) )
+       write (*,"(T10,I,T30,A,T40,A,T50,F8.5)") i, trim( labelOfCenters(i) ), trim( ffAtomType(i) ), chargesOfCenters(i)
     end do
     
   end subroutine AtomTypeUFF_run
