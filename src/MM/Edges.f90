@@ -31,7 +31,7 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-module BondsUFF_
+module Edges_
   use CONTROL_
   use MolecularSystem_
   use ParticleManager_
@@ -42,15 +42,51 @@ module BondsUFF_
   use Exception_
   implicit none
 
+  type , public :: Edges
+
+     integer :: numberOfEdges
+     type(MatrixInteger) :: connectionMatrix
+     type(Vector) :: distance
+     type(Vector) :: bondOrder
+
+  end type Edges
+
 
        public :: &
-            BondsUFF_getBondOrders
+            Edges_constructor, &
+            Edges_getBondOrders
 
 
 contains
 
+  subroutine Edges_constructor( this )
+    implicit none
+    type(Edges) :: this
+    integer :: i, j
+    real(8), allocatable :: orders(:)
 
-  subroutine BondsUFF_getBondOrders()
+    
+    call MMCommons_constructor( MolecularSystem_instance )
+    this%numberOfEdges = size(MolecularSystem_instance%intCoordinates%distanceBondValue%values)
+
+    call MatrixInteger_constructor( this%connectionMatrix, this%numberOfEdges, 2 )
+    call Vector_constructor( this%distance, this%numberOfEdges )
+    call Vector_constructor( this%bondOrder, this%numberOfEdges )
+
+    call Edges_getBondOrders(orders)
+
+    do i=1,this%numberOfEdges
+       do j=1,2
+          this%connectionMatrix%values(i,j) = MolecularSystem_instance%intCoordinates%connectionMatrixForBonds%values(i,j)
+       end do
+       this%distance%values(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * AMSTRONG
+       this%bondOrder%values(i) = orders(i)
+    end do
+
+  end subroutine Edges_constructor
+
+
+  subroutine Edges_getBondOrders(bondOrders)
     implicit none
     character(10), allocatable :: labelOfCenters(:)
     integer :: numberOfCenters
@@ -62,13 +98,11 @@ contains
     ! type(Exception) :: ex
     integer :: i, j, row
     type(MatrixInteger), allocatable :: auxBonds (:)
-    real(8), allocatable :: bondOrders(:)
+    real(8), allocatable, intent(in out) :: bondOrders(:)
     integer, allocatable :: neighbor(:)
     integer, allocatable :: edgesRow(:)
     type(Vector) :: bonds
     real(8) :: aromaticBondCutoff
-    integer :: atomAIdx, AtomBIdx
-    character(10) :: atomA, AtomB
 !! Enlaces de carbono
     real(8) :: singleBondCutoff
     real(8) :: doubleBondCutoff
@@ -1261,36 +1295,9 @@ contains
        end if
     end do
 
-    ! write(*,"(T20,A)") ""
-    ! write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
-    ! write(*,"(T20,A)") " Conectividad y Valencias "
-    ! write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
-    ! do i=1,numberOfCenters
-    !    write(*,"(T20,I5,2x,A1,I5,2x,F8.5)") connectivityMatrix%values(i,1), labelOfCenters(i), connectivityMatrix%values(i,2), valences(i)
-    ! end do
-    ! write(*,"(T20,A)") ""    
+  end subroutine Edges_getBondOrders
 
-    write(*,"(T20,A)") ""
-    write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
-    write(*,"(T20,A)") " Informacion completa de enlaces "
-    write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
-    do i=1,numberOfEdges
-       atomAIdx=MolecularSystem_instance%intCoordinates%connectionMatrixForBonds%values(i,1)
-       Write( atomA, '(i10)' ) atomAIdx
-       atomA = adjustl(trim(atomA))
-       atomA=trim(labelOfCenters(atomAIdx))//"("//trim(atomA)//")"
-       atomBIdx=MolecularSystem_instance%intCoordinates%connectionMatrixForBonds%values(i,2)
-       Write( atomB, '(i10)' ) atomBIdx
-       atomB = adjustl(trim(atomB))
-       atomB=trim(labelOfCenters(atomBIdx))//"("//trim(atomB)//")"
-       write(*,"(T20,I5,2x,2A,2x,F8.5,2x,F8.5)") i, atomA, atomB, bondOrders(i), bonds%values(i)
-    end do
-    write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
-    write(*,"(T20,A)") ""
-
-  end subroutine BondsUFF_getBondOrders
-
-  subroutine BondsUFF_exception( typeMessage, description, debugDescription)
+  subroutine Edges_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -1303,6 +1310,6 @@ contains
     call Exception_show( ex )
     call Exception_destructor( ex )
 
-  end subroutine BondsUFF_exception
+  end subroutine Edges_exception
 
-end module BondsUFF_
+end module Edges_

@@ -47,9 +47,10 @@ contains
   !! @brief Loads an atomic element from library.
   !! @author E. F. Posada, 2013
   !! @version 1.0
-  subroutine EnergyUFF_run( this )
+  subroutine EnergyUFF_run( this, bondOrders )
     implicit none
     character(10), allocatable, intent(in) :: this(:)
+    real(8), allocatable, intent(in) :: bondOrders(:)
     integer :: ffAtomTypeSize, i
     type(UFFParameters) :: atomType
     character(10) :: type

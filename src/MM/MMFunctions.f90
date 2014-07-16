@@ -33,9 +33,11 @@
 !!
 module MMFunctions_
   use CONTROL_
-  use BondsUFF_
-  use AtomTypeUFF_
-  use EnergyUFF_
+  use Graph_
+  use ParticleManager_
+  ! use Edges_
+  ! use AtomTypeUFF_
+  ! use EnergyUFF_
   use Exception_
   implicit none
 
@@ -82,15 +84,53 @@ contains
     character(50), intent(in) :: ffmethod
     type(Exception) :: ex
     character(10), allocatable :: ffAtomType(:)
+    real(8), allocatable :: bondOrders(:)
+!! Parametros para impresion borrar luego
+    integer :: atomAIdx, AtomBIdx
+    character(10) :: atomA, AtomB
+    character(10), allocatable :: labelOfCenters(:)
+    integer :: numberOfCenters, i
+
+    numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
+    allocate( labelOfCenters( numberOfCenters ) )
+    labelOfCenters = ParticleManager_getLabelsOfCentersOfOptimization()
     
     MolecularMechanics_instance%ffmethod = ffmethod
 
     if ( MolecularMechanics_instance%isInstanced ) then
     
        if ( MolecularMechanics_instance%ffmethod == "UFF" ) then
-          call BondsUFF_getBondOrders()
-          call AtomTypeUFF_run(ffAtomType)
-          call EnergyUFF_run(ffAtomType)
+          call Graph_initialize(MolecularMechanics_instance%ffmethod)
+
+          
+          write(*,"(T20,A)") ""
+          write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
+          write(*,"(T20,A)") " Informacion completa de enlaces "
+          write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
+          do i=1,Graph_instance%edges%numberOfEdges
+             atomAIdx=Graph_instance%edges%connectionMatrix%values(i,1)
+             Write( atomA, '(i10)' ) atomAIdx
+             atomA = adjustl(trim(atomA))
+             atomA=trim(labelOfCenters(atomAIdx))//"("//trim(atomA)//")"
+             atomBIdx=Graph_instance%edges%connectionMatrix%values(i,2)
+             Write( atomB, '(i10)' ) atomBIdx
+             atomB = adjustl(trim(atomB))
+             atomB=trim(labelOfCenters(atomBIdx))//"("//trim(atomB)//")"
+             write(*,"(T20,I5,2x,2A,2x,F8.5,2x,F8.5)") i, atomA, atomB, &
+                  Graph_instance%edges%bondOrder%values(i), Graph_instance%edges%distance%values(i)
+          end do
+          write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
+          write(*,"(T20,A)") ""
+
+
+
+
+
+
+          ! write(*,"(T20,A,I,A)") "Voy a construir un grafo con ", Graph_instance%numberOfVertex, " vertices" 
+          ! call Edges_getBondOrders(bondOrders)
+          ! call AtomTypeUFF_run(ffAtomType)
+          ! call EnergyUFF_run(ffAtomType, bondOrders)
        else
           call Exception_constructor( ex , ERROR )
           call Exception_setDebugDescription( ex, "Class object MolecularMechanics in run() function" )
