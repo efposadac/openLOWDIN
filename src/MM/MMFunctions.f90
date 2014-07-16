@@ -33,9 +33,9 @@
 !!
 module MMFunctions_
   use CONTROL_
-  use MolecularSystem_
-  use ParticleManager_
+  use BondsUFF_
   use AtomTypeUFF_
+  use EnergyUFF_
   use Exception_
   implicit none
 
@@ -48,19 +48,11 @@ module MMFunctions_
 	end type MolecularMechanics
 
        type(MolecularMechanics), target :: MolecularMechanics_instance
-!       character(50) :: job
-       ! private :: &
-            ! MolecularMechanics_ffmethod
 
        public :: &
             MolecularMechanics_constructor, &
             MolecularMechanics_destructor, &
-            ! MolecularMechanics_show, &
             MolecularMechanics_run
-            ! MolecularMechanics_getTotalEnergy, &
-            ! MolecularMechanics_getEnergyCorrection, &
-            ! MolecularMechanics_getSpecieCorrection
-
 
 contains
 	!**
@@ -89,13 +81,16 @@ contains
     implicit none
     character(50), intent(in) :: ffmethod
     type(Exception) :: ex
+    character(10), allocatable :: ffAtomType(:)
     
     MolecularMechanics_instance%ffmethod = ffmethod
 
     if ( MolecularMechanics_instance%isInstanced ) then
     
        if ( MolecularMechanics_instance%ffmethod == "UFF" ) then
-          call AtomTypeUFF_run()
+          call BondsUFF_getBondOrders()
+          call AtomTypeUFF_run(ffAtomType)
+          call EnergyUFF_run(ffAtomType)
        else
           call Exception_constructor( ex , ERROR )
           call Exception_setDebugDescription( ex, "Class object MolecularMechanics in run() function" )

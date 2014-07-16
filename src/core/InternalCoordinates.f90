@@ -900,36 +900,36 @@ contains
     !! Selecciona enlaces de acuerdo a criterio de conectividad
     this%connectionMatrixForBonds = InternalCoordinates_getBonds( this, CONTROL_instance%BOND_DISTANCE_FACTOR )
 
-    if ( size(this%connectionMatrixForBonds%values,dim=1) >1 ) then
+    ! if ( size(this%connectionMatrixForBonds%values,dim=1) >1 ) then
 
-       write (6,"(T20,A24)") "CHEMICAL BONDS: AMSTRONG"
-       write (6,"(T20,A23)") "======================="
-       write (6,*) ""
+    !    write (6,"(T20,A24)") "CHEMICAL BONDS: AMSTRONG"
+    !    write (6,"(T20,A23)") "======================="
+    !    write (6,*) ""
 
-       do i=1,size(this%distanceBondValue%values)
-          write (6,"(T20,I5,A1,2I5,F15.8)") i,":",this%connectionMatrixForBonds%values(i,:), this%distanceBondValue%values(i) &
-               * AMSTRONG
-       end do
-    end if
+    !    do i=1,size(this%distanceBondValue%values)
+    !       write (6,"(T20,I5,A1,2I5,F15.8)") i,":",this%connectionMatrixForBonds%values(i,:), this%distanceBondValue%values(i) &
+    !            * AMSTRONG
+    !    end do
+    ! end if
 
     !! Selecciona angulos de enlace de acuerdo a enlaces quimicos definidos
     if ( this%numberOfBonds >= 2) then
 
        this%connectionMatrixForAngles = InternalCoordinates_getAnglesOfBond(this, CONTROL_instance%BOND_ANGLE_THRESHOLD )
 
-       if ( size(this%connectionMatrixForAngles%values,dim=1)>=1 .and. &
-            sum(this%connectionMatrixForAngles%values(1,:))>0 .and. &
-            sum(abs(this%angleOfBondValue%values)) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-          write (6,*) ""
-          write (6,"(T20,A26)") "ANGLES OF VALENCE: DEGREES"
-          write (6,"(T20,A25)") "========================="
-          write (6,*) ""
+       ! if ( size(this%connectionMatrixForAngles%values,dim=1)>=1 .and. &
+       !      sum(this%connectionMatrixForAngles%values(1,:))>0 .and. &
+       !      sum(abs(this%angleOfBondValue%values)) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+       !    write (6,*) ""
+       !    write (6,"(T20,A26)") "ANGLES OF VALENCE: DEGREES"
+       !    write (6,"(T20,A25)") "========================="
+       !    write (6,*) ""
 
 
-          do i=1,size(this%angleOfBondValue%values)
-             write (6,"(T20,I5,A1,3I5,F15.8)") i,":",this%connectionMatrixForAngles%values(i,:), this%angleOfBondValue%values(i)
-          end do
-       end if
+       !    do i=1,size(this%angleOfBondValue%values)
+       !       write (6,"(T20,I5,A1,3I5,F15.8)") i,":",this%connectionMatrixForAngles%values(i,:), this%angleOfBondValue%values(i)
+       !    end do
+       ! end if
     end if
 
     !! Selecciona angulos diedros de acuerdo a agulos de enlaces definidos
@@ -937,20 +937,20 @@ contains
 
        this%connectionMatrixForDihedrals = &
             InternalCoordinates_getDihedralAngles(this, CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD )
-       if ( size(this%connectionMatrixForDihedrals%values,dim=1)>=1 .and. &
-            sum(this%connectionMatrixForDihedrals%values(1,:))>0 .and. &
-            sum(abs(this%dihedralsAngleValue%values)) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then 
-          write (6,*) ""
-          write (6,"(T20,A27)") "ANGLES OF TORSION: DEGREES"
-          write (6,"(T20,A26)") "=========================="
-          write (6,*) ""
+       ! if ( size(this%connectionMatrixForDihedrals%values,dim=1)>=1 .and. &
+       !      sum(this%connectionMatrixForDihedrals%values(1,:))>0 .and. &
+       !      sum(abs(this%dihedralsAngleValue%values)) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then 
+       !    write (6,*) ""
+       !    write (6,"(T20,A27)") "ANGLES OF TORSION: DEGREES"
+       !    write (6,"(T20,A26)") "=========================="
+       !    write (6,*) ""
 
 
-          do i=1,size(this%dihedralsAngleValue%values)
-             write (6,"(T20,I5,A1,4I5,F15.8)") i,":",this%connectionMatrixForDihedrals%values(i,:), &
-                  this%dihedralsAngleValue%values(i)
-          end do
-       end if
+       !    do i=1,size(this%dihedralsAngleValue%values)
+       !       write (6,"(T20,I5,A1,4I5,F15.8)") i,":",this%connectionMatrixForDihedrals%values(i,:), &
+       !            this%dihedralsAngleValue%values(i)
+       !    end do
+       ! end if
     end if
 
   end subroutine InternalCoordinates_obtainCoordinates

@@ -106,7 +106,9 @@ program lowdin_
     
  end if
  
- call MolecularSystem_showDistanceMatrix()  
+ if (CONTROL_instance%METHOD/="MM") then 
+    call MolecularSystem_showDistanceMatrix()
+ end if
   
  !! At this moment it is not relevant
  !! call MolecularSystem_showZMatrix( MolecularSystem_instance )  

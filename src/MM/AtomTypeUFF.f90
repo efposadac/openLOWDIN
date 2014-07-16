@@ -44,52 +44,12 @@ module AtomTypeUFF_
   implicit none
 
 
-       !  type :: AtomTypeUFF
-    
-       ! 	character(50) :: ffmethod
-       !  logical :: isInstanced
-
-       !  end type AtomTypeUFF
-
-       ! type(AtomTypeUFF), target :: AtomTypeUFF_instance
-!       character(50) :: job
-       ! private :: &
-            ! AtomTypeUFF_ffmethod
-
        public :: &
-            ! AtomTypeUFF_constructor, &
-            ! AtomTypeUFF_destructor, &
-            ! AtomTypeUFF_show, &
             AtomTypeUFF_run
-            ! AtomTypeUFF_getTotalEnergy, &
-            ! AtomTypeUFF_getEnergyCorrection, &
-            ! AtomTypeUFF_getSpecieCorrection
-
 
 contains
-	!**
-	! Define el constructor para la clase
-	!
-	!**
-  ! subroutine AtomTypeUFF_constructor()
-  !   implicit none
-  
-  !   AtomTypeUFF_instance%isInstanced =.true.
 
-  ! end subroutine AtomTypeUFF_constructor
-
-	!**
-	! Define el destructor para clase
-	!
-	!**
-  ! subroutine AtomTypeUFF_destructor()
-  !   implicit none
-
-  !   AtomTypeUFF_instance%isInstanced =.false.
-
-  ! end subroutine AtomTypeUFF_destructor
-
-  subroutine AtomTypeUFF_run()
+  subroutine AtomTypeUFF_run(ffAtomType)
     implicit none
     integer :: i   
     integer :: numberOfCenterofOptimization
@@ -179,7 +139,6 @@ contains
              angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
              !! Imprime el angulo promedio, borrar despues
              ! write (*,"(T20,A,F16.5)") "Angulo: ", angleAverage
-
              !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (C_3)
              if ( angleAverage < SP2SP3AngleCutoff ) then
                 ffAtomType(i) = "C_3"
@@ -188,6 +147,8 @@ contains
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "C_R"
+                else
+                   ffAtomType(i) = "C_2"
                 end if
              else
                 ffAtomType(i) = "C_2"
@@ -233,6 +194,8 @@ contains
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "N_R"
+                else
+                   ffAtomType(i) = "N_2"
                 end if
              else
                 ffAtomType(i) = "N_2"
@@ -248,6 +211,10 @@ contains
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "N_R"
+                else if ( angleAverage < SPSP2AngleCutoff ) then
+                   ffAtomType(i) = "N_2"
+                else
+                   ffAtomType(i) = "N_1"
                 end if
              !! Si el angulo es menor a 160 entonces se asume hibridacion sp2 (C_2)
              else if ( angleAverage < SPSP2AngleCutoff ) then
@@ -271,6 +238,8 @@ contains
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "O_R"
+                else
+                   ffAtomType(i) = "O_3"
                 end if
              else
                 ffAtomType(i) = "O_3"
@@ -308,6 +277,14 @@ contains
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "S_R"
+                else if ( angleAverage <= AngleCutoff1 ) then
+                   ffAtomType(i) = "S_3+2"
+                else if ( angleAverage <= AngleCutoff2 ) then
+                   ffAtomType(i) = "S_3+4"
+                else if ( angleAverage <= SP2SP3AngleCutoff ) then
+                   ffAtomType(i) = "S_3+6"
+                else
+                   ffAtomType(i) = "S_2"
                 end if
              end if
           else if ( angleAverage <= AngleCutoff1 ) then
@@ -577,8 +554,8 @@ contains
           ffAtomType(i) = "Md6+3"
        else if( trim( labelOfCenters(i) ) == "NO" ) then
           ffAtomType(i) = "No6+3"
-       else if( trim( labelOfCenters(i) ) == "LW" ) then
-          ffAtomType(i) = "Lw6+3"
+       else if( trim( labelOfCenters(i) ) == "LR" ) then
+          ffAtomType(i) = "Lr6+3"
 !!******************************************************************************
        else
           call Exception_constructor( ex , ERROR )

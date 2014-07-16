@@ -229,6 +229,7 @@ module CONTROL_
      character(255) :: DATA_DIRECTORY="NONE"
      character(255) :: EXTERNAL_COMMAND="NONE"
      character(30) :: EXTERNAL_SOFTWARE_NAME="NONE"
+     character(255) :: UFF_PARAMETERS_DATABASE="NONE"
      character(255) :: ATOMIC_ELEMENTS_DATABASE="NONE"
      character(255) :: BASIS_SET_DATABASE="NONE"
      character(255) :: POTENTIALS_DATABASE="NONE"
@@ -446,6 +447,7 @@ module CONTROL_
   character(255) :: LowdinParameters_dataDirectory
   character(255) :: LowdinParameters_externalCommand
   character(30) :: LowdinParameters_externalSoftwareName
+  character(255) :: LowdinParameters_uffParametersDataBase
   character(255) :: LowdinParameters_atomicElementsDataBase
   character(255) :: LowdinParameters_basisSetDataBase
   character(255) :: LowdinParameters_potentialsDataBase
@@ -661,6 +663,7 @@ module CONTROL_
        LowdinParameters_dataDirectory,&
        LowdinParameters_externalCommand,&
        LowdinParameters_externalSoftwareName,&
+       LowdinParameters_uffParametersDataBase,&
        LowdinParameters_atomicElementsDataBase,&
        LowdinParameters_basisSetDataBase,&
        LowdinParameters_potentialsDataBase,&
@@ -903,6 +906,7 @@ contains
     LowdinParameters_dataDirectory = CONTROL_getDataDirectory()
     LowdinParameters_externalCommand = CONTROL_getExternalCommand()
     LowdinParameters_externalSoftwareName = CONTROL_getExternalSoftwareName()
+    LowdinParameters_uffParametersDataBase = "/dataBases/uffParameters.lib"
     LowdinParameters_atomicElementsDataBase = "/dataBases/atomicElements.lib"
     LowdinParameters_basisSetDataBase = "/basis/"
     LowdinParameters_potentialsDataBase = "/potentials/"
@@ -1125,6 +1129,7 @@ contains
     CONTROL_instance%DATA_DIRECTORY = CONTROL_getDataDirectory()
     CONTROL_instance%EXTERNAL_COMMAND = CONTROL_getExternalCommand()
     CONTROL_instance%EXTERNAL_SOFTWARE_NAME = CONTROL_getExternalSoftwareName()
+    CONTROL_instance%UFF_PARAMETERS_DATABASE = "/dataBases/uffParameters.lib"
     CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = "/dataBases/atomicElements.lib"
     CONTROL_instance%BASIS_SET_DATABASE = "/basis/"
     CONTROL_instance%POTENTIALS_DATABASE = "/potentials/"
@@ -1384,6 +1389,7 @@ contains
     CONTROL_instance%DATA_DIRECTORY = LowdinParameters_dataDirectory
     CONTROL_instance%EXTERNAL_COMMAND = LowdinParameters_externalCommand
     CONTROL_instance%EXTERNAL_SOFTWARE_NAME = LowdinParameters_externalSoftwareName
+    CONTROL_instance%UFF_PARAMETERS_DATABASE = LowdinParameters_uffParametersDataBase
     CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = LowdinParameters_atomicElementsDataBase
     CONTROL_instance%BASIS_SET_DATABASE = LowdinParameters_basisSetDataBase
     CONTROL_instance%POTENTIALS_DATABASE = LowdinParameters_potentialsDataBase
@@ -1609,6 +1615,7 @@ contains
     LowdinParameters_dataDirectory = CONTROL_instance%DATA_DIRECTORY
     LowdinParameters_externalCommand = CONTROL_instance%EXTERNAL_COMMAND
     LowdinParameters_externalSoftwareName = CONTROL_instance%EXTERNAL_SOFTWARE_NAME
+    LowdinParameters_uffParametersDataBase = CONTROL_instance%UFF_PARAMETERS_DATABASE
     LowdinParameters_atomicElementsDataBase = CONTROL_instance%ATOMIC_ELEMENTS_DATABASE
     LowdinParameters_basisSetDataBase = CONTROL_instance%BASIS_SET_DATABASE
     LowdinParameters_potentialsDataBase = CONTROL_instance%POTENTIALS_DATABASE
@@ -1818,6 +1825,7 @@ contains
     otherThis%DATA_DIRECTORY = this%DATA_DIRECTORY 
     otherThis%EXTERNAL_COMMAND = this%EXTERNAL_COMMAND 
     otherThis%EXTERNAL_SOFTWARE_NAME = this%EXTERNAL_SOFTWARE_NAME 
+    otherThis%UFF_PARAMETERS_DATABASE = this%UFF_PARAMETERS_DATABASE 
     otherThis%ATOMIC_ELEMENTS_DATABASE = this%ATOMIC_ELEMENTS_DATABASE 
     otherThis%BASIS_SET_DATABASE = this%BASIS_SET_DATABASE 
     otherThis%POTENTIALS_DATABASE = this%POTENTIALS_DATABASE 
