@@ -38,7 +38,6 @@ module Edges_
   use MMCommons_
   use MatrixInteger_
   use Vector_
-  ! use RingFinder_
   use Exception_
   implicit none
 
@@ -61,7 +60,7 @@ contains
 
   subroutine Edges_constructor( this )
     implicit none
-    type(Edges) :: this
+    type(Edges), intent(in out) :: this
     integer :: i, j
     real(8), allocatable :: orders(:)
 

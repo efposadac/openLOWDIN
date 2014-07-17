@@ -30,19 +30,15 @@
 !!
 module Graph_
   use CONTROL_
-  ! use ParticleManager_
-  ! use MolecularSystem_
-  ! use MMCommons_
   use Edges_
+  use Vertex_
   use Exception_
   implicit none
   
   type , public :: Graph
      
-     integer :: numberOfVertex
-          
      type(Edges) :: edges
-     ! type(Vertex) :: vertex
+     type(Vertex) :: vertex
     
   end type Graph
 
@@ -59,6 +55,7 @@ contains
     character(50), intent(in) :: forcefield
 
     call Edges_constructor( Graph_instance%edges )
+    call Vertex_constructor( Graph_instance%vertex, forcefield )
 
   end subroutine Graph_initialize
 

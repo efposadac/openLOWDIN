@@ -565,16 +565,6 @@ contains
        end if
     end do
     
-    write (*,"(T10,A)") ""
-    write (*,"(T10,A)") ""
-    write (*,"(T10,A)") ""
-    write (*,"(T15,A)") "------------------------------------------------------"
-    write (*,"(T20,A,T30,A,T40,A,T50,A)") "Idx", "Atom", "Type", "Charge"
-    write (*,"(T15,A)") "------------------------------------------------------"
-    do i=1, size(ffAtomType)
-       write (*,"(T10,I,T30,A,T40,A,T50,F8.5)") i, trim( labelOfCenters(i) ), trim( ffAtomType(i) ), chargesOfCenters(i)
-    end do
-    
   end subroutine AtomTypeUFF_run
 
   subroutine AtomTypeUFF_exception( typeMessage, description, debugDescription)

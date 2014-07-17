@@ -34,7 +34,7 @@
 module MMFunctions_
   use CONTROL_
   use Graph_
-  use ParticleManager_
+  ! use ParticleManager_
   ! use Edges_
   ! use AtomTypeUFF_
   ! use EnergyUFF_
@@ -83,17 +83,16 @@ contains
     implicit none
     character(50), intent(in) :: ffmethod
     type(Exception) :: ex
-    character(10), allocatable :: ffAtomType(:)
-    real(8), allocatable :: bondOrders(:)
+    ! character(10), allocatable :: ffAtomType(:)
+    ! real(8), allocatable :: bondOrders(:)
 !! Parametros para impresion borrar luego
     integer :: atomAIdx, AtomBIdx
     character(10) :: atomA, AtomB
-    character(10), allocatable :: labelOfCenters(:)
-    integer :: numberOfCenters, i
+    integer :: i
 
-    numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
-    allocate( labelOfCenters( numberOfCenters ) )
-    labelOfCenters = ParticleManager_getLabelsOfCentersOfOptimization()
+    ! numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
+    ! allocate( labelOfCenters( numberOfCenters ) )
+    ! labelOfCenters = ParticleManager_getLabelsOfCentersOfOptimization()
     
     MolecularMechanics_instance%ffmethod = ffmethod
 
@@ -102,30 +101,45 @@ contains
        if ( MolecularMechanics_instance%ffmethod == "UFF" ) then
           call Graph_initialize(MolecularMechanics_instance%ffmethod)
 
+          write(*,"(T20,A)") ""
+          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          write(*,"(T60,A)") "INITIAL GEOMETRY: AMSTRONG"
+          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          write (*,"(T20,A,T30,A,T40,A,T50,A,T73,A,T93,A,T113,A)") "Idx", &
+               "Atom", "Type", "Charge(Z)", &
+               "<x>","<y>","<z>"
+          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          do i=1,Graph_instance%vertex%numberOfVertices
+                write(*,"(T10,I,T30,A,T40,A,T50,F8.5,T60,F20.10,T80,F20.10,T100,F20.10)") i, &
+                     trim(Graph_instance%vertex%symbol(i)), &
+                     trim( Graph_instance%vertex%type(i) ), &
+                     Graph_instance%vertex%charges(i), &
+                     Graph_instance%vertex%cartesianMatrix%values(i,1), &
+                     Graph_instance%vertex%cartesianMatrix%values(i,2), &
+                     Graph_instance%vertex%cartesianMatrix%values(i,3)
+          end do
+          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          write(*,"(T20,A)") ""
+
           
           write(*,"(T20,A)") ""
           write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
-          write(*,"(T20,A)") " Informacion completa de enlaces "
+          write(*,"(T20,A)") "                Informacion completa de enlaces "
           write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
           do i=1,Graph_instance%edges%numberOfEdges
              atomAIdx=Graph_instance%edges%connectionMatrix%values(i,1)
              Write( atomA, '(i10)' ) atomAIdx
              atomA = adjustl(trim(atomA))
-             atomA=trim(labelOfCenters(atomAIdx))//"("//trim(atomA)//")"
+             atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
              atomBIdx=Graph_instance%edges%connectionMatrix%values(i,2)
              Write( atomB, '(i10)' ) atomBIdx
              atomB = adjustl(trim(atomB))
-             atomB=trim(labelOfCenters(atomBIdx))//"("//trim(atomB)//")"
+             atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
              write(*,"(T20,I5,2x,2A,2x,F8.5,2x,F8.5)") i, atomA, atomB, &
                   Graph_instance%edges%bondOrder%values(i), Graph_instance%edges%distance%values(i)
           end do
           write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
           write(*,"(T20,A)") ""
-
-
-
-
-
 
           ! write(*,"(T20,A,I,A)") "Voy a construir un grafo con ", Graph_instance%numberOfVertex, " vertices" 
           ! call Edges_getBondOrders(bondOrders)
