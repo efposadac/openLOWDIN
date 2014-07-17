@@ -83,16 +83,11 @@ contains
     implicit none
     character(50), intent(in) :: ffmethod
     type(Exception) :: ex
-    ! character(10), allocatable :: ffAtomType(:)
-    ! real(8), allocatable :: bondOrders(:)
 !! Parametros para impresion borrar luego
     integer :: atomAIdx, AtomBIdx
     character(10) :: atomA, AtomB
     integer :: i
 
-    ! numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
-    ! allocate( labelOfCenters( numberOfCenters ) )
-    ! labelOfCenters = ParticleManager_getLabelsOfCentersOfOptimization()
     
     MolecularMechanics_instance%ffmethod = ffmethod
 
@@ -105,18 +100,38 @@ contains
           write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
           write(*,"(T60,A)") "INITIAL GEOMETRY: AMSTRONG"
           write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
-          write (*,"(T20,A,T30,A,T40,A,T50,A,T73,A,T93,A,T113,A)") "Idx", &
+          write (*,"(T20,A,T30,A,T40,A,T50,A,T68,A,T83,A,T98,A)") "Idx", &
                "Atom", "Type", "Charge(Z)", &
                "<x>","<y>","<z>"
           write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
           do i=1,Graph_instance%vertex%numberOfVertices
-                write(*,"(T10,I,T30,A,T40,A,T50,F8.5,T60,F20.10,T80,F20.10,T100,F20.10)") i, &
+                write(*,"(T10,I,T30,A,T40,A,T50,F8.5,T60,F12.5,T75,F12.5,T90,F12.5)") i, &
                      trim(Graph_instance%vertex%symbol(i)), &
                      trim( Graph_instance%vertex%type(i) ), &
                      Graph_instance%vertex%charges(i), &
                      Graph_instance%vertex%cartesianMatrix%values(i,1), &
                      Graph_instance%vertex%cartesianMatrix%values(i,2), &
                      Graph_instance%vertex%cartesianMatrix%values(i,3)
+          end do
+          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          write(*,"(T20,A)") ""
+
+          write(*,"(T20,A)") ""
+          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          write(*,"(T60,A)") "UFF Parameters"
+          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          write (*,"(T20,A,T30,A,T40,A,T50,A,T61,A,T78,A,T91,A)") "Idx", &
+               "Atom", "Type", "Charge(Z)", &
+               "Eff. Charge(Z*)","Bond Valence","Angle Valence"
+          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          do i=1,Graph_instance%vertex%numberOfVertices
+                write(*,"(T10,I,T30,A,T40,A,T50,F8.5,T60,F12.5,T75,F12.5,T90,F12.5)") i, &
+                     trim(Graph_instance%vertex%symbol(i)), &
+                     trim( Graph_instance%vertex%type(i) ), &
+                     Graph_instance%vertex%charges(i), &
+                     Graph_instance%vertex%effectiveCharge(i), &
+                     Graph_instance%vertex%bondValence(i), &
+                     Graph_instance%vertex%angleValence(i)
           end do
           write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
           write(*,"(T20,A)") ""

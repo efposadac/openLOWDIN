@@ -36,6 +36,7 @@ module Vertex_
   use Matrix_
   use AtomTypeUFF_
   use ParticleManager_
+  use UFFParameters_
   use Exception_
   implicit none
 
@@ -46,6 +47,17 @@ module Vertex_
      character(10), allocatable :: type(:)
      real(8), allocatable :: charges(:)
      type(Matrix) :: cartesianMatrix
+     real(8), allocatable :: bondValence(:)
+     real(8), allocatable :: angleValence(:)
+     real(8), allocatable :: distanceVdW(:)
+     real(8), allocatable :: energyVdW(:)
+     real(8), allocatable :: scaleVdW(:)
+     real(8), allocatable :: effectiveCharge(:)
+     real(8), allocatable :: torsionalBarrier(:)
+     real(8), allocatable :: torsionalConstant(:)
+     real(8), allocatable :: electronegativityGMP(:)
+     real(8), allocatable :: hard(:)
+     real(8), allocatable :: radius(:)
 
   end type Vertex
 
@@ -60,6 +72,7 @@ contains
     type(Vertex) :: this
     character(50), intent(in) :: forcefield
     character(10), allocatable :: ffAtomType(:)
+    type(UFFParameters) :: atomType
     integer :: i
     type(Exception) :: ex
 
@@ -70,13 +83,36 @@ contains
     allocate( this%charges( this%numberOfVertices ) )
     this%charges = ParticleManager_getChargesOfCentersOfOptimization()
 
-    ! call Matrix_constructor( this%cartesianMatrix, this%numberOfVertices, 3_8 )
+    allocate( this%bondValence( this%numberOfVertices ) ) 
+    allocate( this%angleValence( this%numberOfVertices ) )
+    allocate( this%distanceVdW( this%numberOfVertices ) )
+    allocate( this%energyVdW( this%numberOfVertices ) )
+    allocate( this%scaleVdW( this%numberOfVertices ) )
+    allocate( this%effectiveCharge( this%numberOfVertices ) )
+    allocate( this%torsionalBarrier( this%numberOfVertices ) )
+    allocate( this%torsionalConstant( this%numberOfVertices ) )
+    allocate( this%electronegativityGMP( this%numberOfVertices ) )
+    allocate( this%hard( this%numberOfVertices ) )
+    allocate( this%radius( this%numberOfVertices ) )
+
     this%cartesianMatrix = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
 
     if ( forcefield == "UFF" ) then
        call AtomTypeUFF_run(ffAtomType)
        do i=1,this%numberOfVertices
           this%type(i) = ffAtomType(i)
+          call UFFParameters_load( atomType, trim(this%type(i)) )
+          this%bondValence(i) = atomType%bond
+          this%angleValence(i) = atomType%angle
+          this%distanceVdW(i) = atomType%distanceVdW
+          this%energyVdW(i) = atomType%energyVdW
+          this%scaleVdW(i) = atomType%scaleVdW
+          this%effectiveCharge(i) = atomType%effectiveCharge
+          this%torsionalBarrier(i) = atomType%torsionalBarrier
+          this%torsionalConstant(i) = atomType%torsionalConstant
+          this%electronegativityGMP(i) = atomType%electronegativityGMP
+          this%hard(i) = atomType%hard
+          this%radius(i) = atomType%radius
        end do
     else
        call Exception_constructor( ex , ERROR )

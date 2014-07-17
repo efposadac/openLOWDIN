@@ -32,7 +32,6 @@ module EnergyUFF_
   use CONTROL_
   use MolecularSystem_
   use ParticleManager_
-  use UFFParameters_
   use Exception_
   implicit none
   
@@ -52,13 +51,11 @@ contains
     character(10), allocatable, intent(in) :: this(:)
     real(8), allocatable, intent(in) :: bondOrders(:)
     integer :: ffAtomTypeSize, i
-    type(UFFParameters) :: atomType
     character(10) :: type
 
           ffAtomTypeSize = size(this)
           do i=1,ffAtomTypeSize
              type = trim(this(i))
-             call UFFParameters_load( atomType, trim(type) )
           end do
 
   end subroutine EnergyUFF_run
