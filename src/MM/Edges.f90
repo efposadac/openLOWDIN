@@ -35,6 +35,7 @@ module Edges_
   use CONTROL_
   use MolecularSystem_
   use ParticleManager_
+  use Vertex_
   use MMCommons_
   use MatrixInteger_
   use Vector_
@@ -45,22 +46,28 @@ module Edges_
 
      integer :: numberOfEdges
      type(MatrixInteger) :: connectionMatrix
-     type(Vector) :: distance
-     type(Vector) :: bondOrder
+     real(8), allocatable :: distance(:)
+     real(8), allocatable :: bondOrder(:)
+     real(8), allocatable :: idealDistance(:)
+     real(8), allocatable :: forceConstant(:)
+     real(8), allocatable :: stretchingEnergy(:) !! Kcal/mol
+     real(8), allocatable :: stretchingEnergyKJ(:) !! KJ/mol
 
   end type Edges
 
 
        public :: &
             Edges_constructor, &
+            Edges_getIdealDistance, &
             Edges_getBondOrders
 
 
 contains
 
-  subroutine Edges_constructor( this )
+  subroutine Edges_constructor( this, vertices )
     implicit none
     type(Edges), intent(in out) :: this
+    type(Vertex), intent(in) :: vertices
     integer :: i, j
     real(8), allocatable :: orders(:)
 
@@ -69,8 +76,8 @@ contains
     this%numberOfEdges = size(MolecularSystem_instance%intCoordinates%distanceBondValue%values)
 
     call MatrixInteger_constructor( this%connectionMatrix, this%numberOfEdges, 2 )
-    call Vector_constructor( this%distance, this%numberOfEdges )
-    call Vector_constructor( this%bondOrder, this%numberOfEdges )
+    allocate( this%distance( this%numberOfEdges ) )
+    allocate( this%bondOrder( this%numberOfEdges ) )
 
     call Edges_getBondOrders(orders)
 
@@ -78,12 +85,84 @@ contains
        do j=1,2
           this%connectionMatrix%values(i,j) = MolecularSystem_instance%intCoordinates%connectionMatrixForBonds%values(i,j)
        end do
-       this%distance%values(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * AMSTRONG
-       this%bondOrder%values(i) = orders(i)
+       this%distance(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * AMSTRONG
+       this%bondOrder(i) = orders(i)
     end do
+
+    call Edges_getIdealDistance(this, vertices)
+
+    call Edges_getForceConstants(this, vertices)
+
+    call Edges_getStretchingEnergies(this)
 
   end subroutine Edges_constructor
 
+
+  subroutine Edges_getIdealDistance(this, vertices)
+    implicit none
+    type(Edges), intent(in out) :: this
+    type(Vertex), intent(in) :: vertices
+    real(8) :: rbo !! Pauling-Type bond order correction
+    real(8) :: ren !! Electronegativity correction
+    integer :: i
+    real(8) :: ri, rj, xi, xj
+    real(8) :: lambda
+
+    lambda = 0.1332
+
+    allocate( this%idealDistance( this%numberOfEdges ) )
+
+    do i=1, this%numberOfEdges
+       ri=vertices%bondValence(this%connectionMatrix%values(i,1))
+       rj=vertices%bondValence(this%connectionMatrix%values(i,2))
+       xi=vertices%electronegativityGMP(this%connectionMatrix%values(i,1))
+       xj=vertices%electronegativityGMP(this%connectionMatrix%values(i,2))
+       !! equation 3
+       rbo = -lambda*(ri+rj)*log(this%bondOrder(i)) 
+       !! equation 4
+       ren = ri*rj*(((sqrt(xi)-sqrt(xj))**2)/((xi*ri)+(xj*rj)))
+       !! equation 2
+       this%idealDistance(i) = ri + rj +rbo - ren
+    end do
+
+  end subroutine Edges_getIdealDistance
+
+  subroutine Edges_getForceConstants(this, vertices)
+    implicit none
+    type(Edges), intent(in out) :: this
+    type(Vertex), intent(in) :: vertices
+    integer :: i
+    real(8) :: Zi, Zj !! Effective charges
+    real(8) :: lambda
+
+    lambda = 664.12
+
+    allocate( this%forceConstant( this%numberOfEdges ) )
+
+    do i=1, this%numberOfEdges
+       Zi=vertices%effectiveCharge(this%connectionMatrix%values(i,1))
+       Zj=vertices%effectiveCharge(this%connectionMatrix%values(i,2))
+       !! equation 6
+       this%forceConstant(i) = lambda*((Zi*Zj)/(this%idealDistance(i)**3))
+    end do
+
+  end subroutine Edges_getForceConstants
+
+  subroutine Edges_getStretchingEnergies(this)
+    implicit none
+    type(Edges), intent(in out) :: this
+    integer :: i
+
+    allocate( this%stretchingEnergy( this%numberOfEdges ) )
+    allocate( this%stretchingEnergyKJ( this%numberOfEdges ) )
+
+    do i=1, this%numberOfEdges
+       !! equation 6
+       this%stretchingEnergy(i) = 0.5*this%forceConstant(i)*((this%distance(i)-this%idealDistance(i))**2)
+       this%stretchingEnergyKJ(i) = this%stretchingEnergy(i)*4.1868
+    end do
+
+  end subroutine Edges_getStretchingEnergies
 
   subroutine Edges_getBondOrders(bondOrders)
     implicit none

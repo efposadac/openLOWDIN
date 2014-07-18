@@ -32,6 +32,7 @@ module EnergyUFF_
   use CONTROL_
   use MolecularSystem_
   use ParticleManager_
+  use Graph_
   use Exception_
   implicit none
   
@@ -46,18 +47,25 @@ contains
   !! @brief Loads an atomic element from library.
   !! @author E. F. Posada, 2013
   !! @version 1.0
-  subroutine EnergyUFF_run( this, bondOrders )
+  subroutine EnergyUFF_run( this )
     implicit none
-    character(10), allocatable, intent(in) :: this(:)
-    real(8), allocatable, intent(in) :: bondOrders(:)
-    integer :: ffAtomTypeSize, i
-    character(10) :: type
+    type(Graph) :: this
+    real(8) :: totalStretchingEnergy
+    real(8) :: totalStretchingEnergyKJ
+    integer :: i
 
-          ffAtomTypeSize = size(this)
-          do i=1,ffAtomTypeSize
-             type = trim(this(i))
-          end do
 
+    totalStretchingEnergy = 0.0
+
+    do i=1, this%edges%numberOfEdges
+       totalStretchingEnergy = totalStretchingEnergy + this%edges%stretchingEnergy(i)
+    end do
+
+    totalStretchingEnergyKJ = totalStretchingEnergy*4.1868
+
+    write(*,"(T20,A,F12.5,A)") "Total Stretching Energy: ", totalStretchingEnergy, " kcal/mol"
+    write(*,"(T20,A,F12.5,A)") "Total Stretching Energy: ", totalStretchingEnergyKJ, " kJ/mol"
+    
   end subroutine EnergyUFF_run
   
   !<

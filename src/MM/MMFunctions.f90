@@ -37,7 +37,7 @@ module MMFunctions_
   ! use ParticleManager_
   ! use Edges_
   ! use AtomTypeUFF_
-  ! use EnergyUFF_
+  use EnergyUFF_
   use Exception_
   implicit none
 
@@ -96,16 +96,17 @@ contains
        if ( MolecularMechanics_instance%ffmethod == "UFF" ) then
           call Graph_initialize(MolecularMechanics_instance%ffmethod)
 
-          write(*,"(T20,A)") ""
-          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
-          write(*,"(T60,A)") "INITIAL GEOMETRY: AMSTRONG"
-          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
-          write (*,"(T20,A,T30,A,T40,A,T50,A,T68,A,T83,A,T98,A)") "Idx", &
+
+          write(*,"(T5,A)") ""
+          write(*,"(T5,A)") "-----------------------------------------------------------------------------"
+          write(*,"(T30,A)") "INITIAL GEOMETRY: AMSTRONG"
+          write(*,"(T5,A)") "-----------------------------------------------------------------------------"
+          write (*,"(T5,A5,T14,A,T20,A,T30,A,T45,A,T60,A,T75,A)") "Idx", &
                "Atom", "Type", "Charge(Z)", &
                "<x>","<y>","<z>"
-          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
+          write(*,"(T5,A)") "-----------------------------------------------------------------------------"
           do i=1,Graph_instance%vertex%numberOfVertices
-                write(*,"(T10,I,T30,A,T40,A,T50,F8.5,T60,F12.5,T75,F12.5,T90,F12.5)") i, &
+                write(*,"(T5,I5,T15,A,T20,A,T28,F8.2,T40,F10.5,T55,F10.5,T70,F10.5)") i, &
                      trim(Graph_instance%vertex%symbol(i)), &
                      trim( Graph_instance%vertex%type(i) ), &
                      Graph_instance%vertex%charges(i), &
@@ -113,34 +114,19 @@ contains
                      Graph_instance%vertex%cartesianMatrix%values(i,2), &
                      Graph_instance%vertex%cartesianMatrix%values(i,3)
           end do
-          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
-          write(*,"(T20,A)") ""
-
-          write(*,"(T20,A)") ""
-          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
-          write(*,"(T60,A)") "UFF Parameters"
-          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
-          write (*,"(T20,A,T30,A,T40,A,T50,A,T61,A,T78,A,T91,A)") "Idx", &
-               "Atom", "Type", "Charge(Z)", &
-               "Eff. Charge(Z*)","Bond Valence","Angle Valence"
-          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
-          do i=1,Graph_instance%vertex%numberOfVertices
-                write(*,"(T10,I,T30,A,T40,A,T50,F8.5,T60,F12.5,T75,F12.5,T90,F12.5)") i, &
-                     trim(Graph_instance%vertex%symbol(i)), &
-                     trim( Graph_instance%vertex%type(i) ), &
-                     Graph_instance%vertex%charges(i), &
-                     Graph_instance%vertex%effectiveCharge(i), &
-                     Graph_instance%vertex%bondValence(i), &
-                     Graph_instance%vertex%angleValence(i)
-          end do
-          write(*,"(T20,A)") "----------------------------------------------------------------------------------------------------"
-          write(*,"(T20,A)") ""
+          write(*,"(T5,A)") "-----------------------------------------------------------------------------"
 
           
-          write(*,"(T20,A)") ""
-          write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
-          write(*,"(T20,A)") "                Informacion completa de enlaces "
-          write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
+          write(*,"(T5,A)") ""
+          write(*,"(T5,A)") ""
+          write(*,"(T45,A)") "STRETCHING ENERGY"
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+          write(*,"(T15,A)") "Bond"
+          write(*,"(T5,A,T35,A,T50,A,T65,A,T80,A,T100,A)") "----------------------------", "Bond order", "Bond length", &
+               "Ideal length", "Force constant", "Energy"
+          write(*,"(T5,A5,T15,A,T25,A,T50,A,T65,A,T80,A,T100,A)") "Idx", "atom A", &
+               "atom B", "(Amstrong)", "(Amstrong)", "(kcal/mol*A^2)", "(kJ/mol)"
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           do i=1,Graph_instance%edges%numberOfEdges
              atomAIdx=Graph_instance%edges%connectionMatrix%values(i,1)
              Write( atomA, '(i10)' ) atomAIdx
@@ -150,16 +136,23 @@ contains
              Write( atomB, '(i10)' ) atomBIdx
              atomB = adjustl(trim(atomB))
              atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
-             write(*,"(T20,I5,2x,2A,2x,F8.5,2x,F8.5)") i, atomA, atomB, &
-                  Graph_instance%edges%bondOrder%values(i), Graph_instance%edges%distance%values(i)
+             write(*,"(T5,I5,T15,A,T25,A,T35,F8.5,T50,F8.5,T65,F8.5,T80,F12.5,T95,F12.5)") i, atomA, atomB, &
+                  Graph_instance%edges%bondOrder(i), &
+                  Graph_instance%edges%distance(i), &
+                  Graph_instance%edges%idealDistance(i), &
+                  Graph_instance%edges%forceConstant(i), &
+                  ! Graph_instance%edges%stretchingEnergy(i), &
+                  Graph_instance%edges%stretchingEnergyKJ(i)
           end do
-          write(*,"(T20,A)") "--------------------------------------------------------------------------------------------"
-          write(*,"(T20,A)") ""
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+          write(*,"(T5,A)") ""
+
+          call EnergyUFF_run(Graph_instance)
 
           ! write(*,"(T20,A,I,A)") "Voy a construir un grafo con ", Graph_instance%numberOfVertex, " vertices" 
           ! call Edges_getBondOrders(bondOrders)
           ! call AtomTypeUFF_run(ffAtomType)
-          ! call EnergyUFF_run(ffAtomType, bondOrders)
+
        else
           call Exception_constructor( ex , ERROR )
           call Exception_setDebugDescription( ex, "Class object MolecularMechanics in run() function" )

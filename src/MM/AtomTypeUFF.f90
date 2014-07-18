@@ -186,28 +186,25 @@ contains
           else if ( connectivity == 3 ) then
              !! Se chequea el angulo promedio de enlace
              angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
-             !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (N_3)
-             if ( angleAverage < SP2SP3AngleCutoff ) then
-                ffAtomType(i) = "N_3"
              !! Falta programar la aromaticidad   
-             else if ( cyclomaticNumber >= 2 ) then
+             if ( cyclomaticNumber >= 2 ) then
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "N_R"
                 else
                    ffAtomType(i) = "N_2"
                 end if
+             else if ( angleAverage < SP2SP3AngleCutoff ) then
+                ffAtomType(i) = "N_3"
+             !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (N_3)
              else
                 ffAtomType(i) = "N_2"
              end if
           else if ( connectivity == 2 ) then
              !! Se chequea el angulo promedio de enlace
              angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
-             !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (N_3)
-             if ( angleAverage < SP2SP3AngleCutoff ) then
-                ffAtomType(i) = "N_3"
-                !! Falta programar la aromaticidad   
-             else if ( cyclomaticNumber >= 2 ) then
+             !! Falta programar la aromaticidad   
+             if ( cyclomaticNumber >= 2 ) then
                 isAromatic = AromaticityFinder_isAromatic( rings, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "N_R"
@@ -216,6 +213,9 @@ contains
                 else
                    ffAtomType(i) = "N_1"
                 end if
+             !! Si el angulo es menor a 115 entonces se asume hibridacion sp3 (N_3)
+             else if ( angleAverage < SP2SP3AngleCutoff ) then
+                ffAtomType(i) = "N_3"
              !! Si el angulo es menor a 160 entonces se asume hibridacion sp2 (C_2)
              else if ( angleAverage < SPSP2AngleCutoff ) then
                 ffAtomType(i) = "N_2"

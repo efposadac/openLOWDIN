@@ -54,8 +54,8 @@ contains
     implicit none
     character(50), intent(in) :: forcefield
 
-    call Edges_constructor( Graph_instance%edges )
     call Vertex_constructor( Graph_instance%vertex, forcefield )
+    call Edges_constructor( Graph_instance%edges, Graph_instance%vertex )
 
   end subroutine Graph_initialize
 
