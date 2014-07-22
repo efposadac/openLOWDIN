@@ -94,8 +94,8 @@ contains
        end do
        this%theta(i) = MolecularSystem_instance%intCoordinates%angleOfBondValue%values(i)
        this%idealTheta(i) = vertices%angleValence(this%connectionMatrix%values(i,2))
-       this%cosTheta(i) = cos(this%theta(i))
-       this%cosIdealTheta(i) = cos(this%idealTheta(i))
+       this%cosTheta(i) = cos(this%theta(i)*0.01745329251)
+       this%cosIdealTheta(i) = cos(this%idealTheta(i)*0.01745329251)
        ! this%bondOrder(i) = orders(i)
     end do
 
