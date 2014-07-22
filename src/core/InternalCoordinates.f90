@@ -315,7 +315,6 @@ contains
                         this%connectionMatrixForBonds%values(j,1) ]
 
                 else if ( this%connectionMatrixForBonds%values(i,2) == this%connectionMatrixForBonds%values(j,1) ) then
-
                    connectivity = [this%connectionMatrixForBonds%values(i,1), this%connectionMatrixForBonds%values(i,2), &
                         this%connectionMatrixForBonds%values(j,2) ]
 
@@ -325,6 +324,7 @@ contains
                         this%connectionMatrixForBonds%values(j,1) ]
 
                 end if
+
 
                 if ( connectivity(1) /= 0 ) then
 
@@ -338,14 +338,12 @@ contains
                         / ( sqrt( dot_product( vectorA%values, vectorA%values ) )  &
                         * sqrt( dot_product( vectorB%values, vectorB%values ) ) ) ) * DEGREES
 
-                   if ( angleValue < angleThreshold ) then
-
+                   ! if ( angleValue <= angleThreshold ) then
                       call ListInteger_push_back( currentAtom, connectivity(1) )
                       call ListInteger_push_back( otherAtom, connectivity(2) )
                       call ListInteger_push_back( atomForDefineAngle, connectivity(3) )
                       call List_push_back( anglesOfBond, angleValue )
-
-                   end if
+                   ! end if
 
                 end if
 

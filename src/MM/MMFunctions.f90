@@ -34,9 +34,6 @@
 module MMFunctions_
   use CONTROL_
   use Graph_
-  ! use ParticleManager_
-  ! use Edges_
-  ! use AtomTypeUFF_
   use EnergyUFF_
   use Exception_
   implicit none
@@ -84,8 +81,8 @@ contains
     character(50), intent(in) :: ffmethod
     type(Exception) :: ex
 !! Parametros para impresion borrar luego
-    integer :: atomAIdx, AtomBIdx
-    character(10) :: atomA, AtomB
+    integer :: atomAIdx, AtomBIdx, AtomCIdx
+    character(10) :: atomA, AtomB, AtomC
     integer :: i
 
     
@@ -124,7 +121,7 @@ contains
           write(*,"(T15,A)") "Bond"
           write(*,"(T5,A,T35,A,T50,A,T65,A,T80,A,T100,A)") "----------------------------", "Bond order", "Bond length", &
                "Ideal length", "Force constant", "Energy"
-          write(*,"(T5,A5,T15,A,T25,A,T50,A,T65,A,T80,A,T100,A)") "Idx", "atom A", &
+          write(*,"(T5,A5,T15,A,T25,A,T50,A,T66,A,T80,A,T99,A)") "Idx", "atom A", &
                "atom B", "(Amstrong)", "(Amstrong)", "(kcal/mol*A^2)", "(kJ/mol)"
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           do i=1,Graph_instance%edges%numberOfEdges
@@ -146,6 +143,41 @@ contains
           end do
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T5,A)") ""
+
+          write(*,"(T5,A)") ""
+          write(*,"(T5,A)") ""
+          write(*,"(T47,A)") "BENDING ENERGY"
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+          write(*,"(T22,A)") "Angle"
+          write(*,"(T5,A,T48,A,T60,A,T75,A,T95,A)") "--------------------------------------", &
+               "Angle", &
+               "Ideal Angle", "Force constant", "Energy"
+          write(*,"(T5,A5,T15,A,T25,A,T35,A,T46,A,T61,A,T75,A,T94,A)") "Idx", "atom A", &
+               "atom B", "atom C", "(Degrees)", "(Degrees)", "(kcal/mol*A^2)", "(kJ/mol)"
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+          do i=1,Graph_instance%angles%numberOfAngles
+             atomAIdx=Graph_instance%angles%connectionMatrix%values(i,1)
+             Write( atomA, '(i10)' ) atomAIdx
+             atomA = adjustl(trim(atomA))
+             atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+             atomBIdx=Graph_instance%angles%connectionMatrix%values(i,2)
+             Write( atomB, '(i10)' ) atomBIdx
+             atomB = adjustl(trim(atomB))
+             atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+             atomCIdx=Graph_instance%angles%connectionMatrix%values(i,3)
+             Write( atomC, '(i10)' ) atomCIdx
+             atomC = adjustl(trim(atomC))
+             atomC=trim(Graph_instance%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
+             write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,F10.5,T60,F10.5,T75,F12.5)") i, atomA, &
+                  atomB, &
+                  atomC, &
+                  Graph_instance%angles%theta(i), &
+                  Graph_instance%angles%idealTheta(i), &
+                  Graph_instance%angles%forceConstant(i)
+          end do
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+          write(*,"(T5,A)") ""
+
 
           call EnergyUFF_run(Graph_instance)
 

@@ -32,6 +32,7 @@ module Graph_
   use CONTROL_
   use Edges_
   use Vertex_
+  use Angles_
   use Exception_
   implicit none
   
@@ -39,6 +40,7 @@ module Graph_
      
      type(Edges) :: edges
      type(Vertex) :: vertex
+     type(Angles) :: angles
     
   end type Graph
 
@@ -56,6 +58,7 @@ contains
 
     call Vertex_constructor( Graph_instance%vertex, forcefield )
     call Edges_constructor( Graph_instance%edges, Graph_instance%vertex )
+    call Angles_constructor( Graph_instance%angles, Graph_instance%vertex, Graph_instance%edges )
 
   end subroutine Graph_initialize
 

@@ -59,6 +59,7 @@ module Edges_
        public :: &
             Edges_constructor, &
             Edges_getIdealDistance, &
+            Edges_getDistance, &
             Edges_getBondOrders
 
 
@@ -126,6 +127,26 @@ contains
     end do
 
   end subroutine Edges_getIdealDistance
+
+  function Edges_getDistance(this, atomA, atomB) result(output)
+    implicit none
+    type(Edges), intent(in) :: this
+    integer, intent(in) :: atomA
+    integer, intent(in) :: atomB
+    real(8) :: output
+    integer :: i,j
+
+    do i=1, this%numberOfEdges
+       do j=1,2
+          if(this%connectionMatrix%values(i,1) == atomA .AND. this%connectionMatrix%values(i,2) == atomB) then
+             output = this%idealDistance(i)
+          else if(this%connectionMatrix%values(i,1) == atomB .AND. this%connectionMatrix%values(i,2) == atomA) then
+             output = this%idealDistance(i)
+          end if
+       end do
+    end do
+
+  end function Edges_getDistance
 
   subroutine Edges_getForceConstants(this, vertices)
     implicit none

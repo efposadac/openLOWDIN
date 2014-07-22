@@ -1003,7 +1003,7 @@ contains
     !! Parameter of atomic conectivity                                                                                         
     !!                                                                                                                         
     CONTROL_instance%BOND_DISTANCE_FACTOR = 1.3_8
-    CONTROL_instance%BOND_ANGLE_THRESHOLD = 170.0_8
+    CONTROL_instance%BOND_ANGLE_THRESHOLD = 180.0_8
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = 170.0_8
 
     !!***************************************************************************                                              
