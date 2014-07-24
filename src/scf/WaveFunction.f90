@@ -156,9 +156,7 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( WaveFunction_instance(speciesID)%waveFunctionCoefficients,numberOfContractions, numberOfContractions, 0.0_8 )
        call Vector_constructor( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, int(numberOfContractions) )
-       
-       WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .false.
-       
+              
     end do
     
   end subroutine WaveFunction_constructor
@@ -445,8 +443,7 @@ contains
           if ( otherSpecieID /= currentSpecieID ) then
 
              if( currentSpecieID > otherSpecieID) then       
-                auxMatrix = 0.0_8
-
+                
                 !! open file for integrals
                 open(UNIT=34,FILE=trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)//".ints", &
                      STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
@@ -477,6 +474,7 @@ contains
                 wavefunction_instance(currentSpecieID)%couplingMatrix%values = wavefunction_instance(currentSpecieID)%couplingMatrix%values + auxMatrix
 
              else
+
                 auxMatrix=0.0_8
                 
                 !! open file for integrals
@@ -574,8 +572,6 @@ contains
        print *,"MATRIZ DE FOCK: "//trim(nameOfSpecieSelected)
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
-    
-    WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .true.
     
   end subroutine WaveFunction_buildFockMatrix
 

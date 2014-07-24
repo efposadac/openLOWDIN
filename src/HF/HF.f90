@@ -210,6 +210,9 @@ program HF
      
   else        
      
+     !! Reads the number of cores !! Default defined by OMP!!!! FIX IT!!!
+     !>
+     !! @todo fix the default definition of CONTROL_instance%NUMBER_OF_CORES
      nproc = CONTROL_instance%NUMBER_OF_CORES
      
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
