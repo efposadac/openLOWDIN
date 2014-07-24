@@ -59,18 +59,16 @@ contains
     lowdin_solver%withProperties = .false.
     
     select case ( trim(lowdin_solver%methodName) )
-
-    case('MM')
-       call Solver_MMRun( )
-    case('RHF')
-       call Solver_RHFRun( )
-    case('UHF')
-       call Solver_UHFRun( )
-    case('RKS')
-       call Solver_RKSRun( )
-    case('UKS')
-       call Solver_UKSRun( )
-    case default
+       
+      case('RHF')
+        call Solver_RHFRun( )
+      case('UHF')
+        call Solver_UHFRun( )
+      case('RKS')
+        call Solver_RKSRun( )
+      case('UKS')
+        call Solver_UKSRun( )
+      case default
        
         call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
              "At Solver module in run function")
@@ -78,15 +76,6 @@ contains
      end select
      
    end subroutine Solver_run
-
-  !> @brief run Molecular Mechanics based calculation
-  subroutine Solver_MMRun( )
-    implicit none
-
-    !! Run Molecular Mechanics program with the force field selected
-    call system("lowdin-MolecularMechanics.x CONTROL_instance%FORCE_FIELD")
-    
-  end subroutine Solver_MMRun
   
   !> @brief run RHF-based calculation
   subroutine Solver_RHFRun( )

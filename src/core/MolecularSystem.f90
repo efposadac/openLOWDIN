@@ -38,7 +38,6 @@ module MolecularSystem_
   use MecanicProperties_
   use Matrix_
   use Vector_
-  use InternalCoordinates_
   implicit none
   
   type , public :: MolecularSystem
@@ -54,7 +53,6 @@ module MolecularSystem_
      type(Species), allocatable :: species(:)
      type(particle), allocatable :: pointCharges(:)
      type(particleManager), allocatable :: allParticles(:)
-     type(InternalCoordinates) :: intCoordinates
 
      type(MecanicProperties) :: mechanicalProp
      
@@ -70,7 +68,6 @@ module MolecularSystem_
        MolecularSystem_showInformation, &
        MolecularSystem_showParticlesInformation, &
        MolecularSystem_showCartesianMatrix, &
-       MolecularSystem_showZMatrix, &
        MolecularSystem_showDistanceMatrix, &
        MolecularSystem_saveToFile, &
        MolecularSystem_loadFromFile, &
@@ -481,20 +478,6 @@ contains
     print *," "
     
   end subroutine MolecularSystem_showCartesianMatrix
-
-  
-  !>                      
-  !! @Construye y mustra una matriz Z de coordenadas internas
-  !> 
-  subroutine MolecularSystem_showZMatrix( this )
-    implicit none
-    type(MolecularSystem) :: this
-
-    call InternalCoordinates_constructor(  this%intCoordinates )
-    call InternalCoordinates_obtainCoordinates( this%intCoordinates )
-    call InternalCoordinates_destructor(  this%intCoordinates )
-
-  end subroutine MolecularSystem_showZMatrix
 
   !>
   !! @brief Imprime una matriz de distancias entre particulas presentes en el sistema

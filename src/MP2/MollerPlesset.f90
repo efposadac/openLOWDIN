@@ -35,7 +35,6 @@
 program MollerPlesset
   use CONTROL_
   use MolecularSystem_
-  use String_
   use IntegralManager_
   use IndexMap_
   use Exception_
