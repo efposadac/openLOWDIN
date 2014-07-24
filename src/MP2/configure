@@ -15,7 +15,7 @@ TARGET=lowdin-MollerPlesset.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 INCI=-I\$(TOPDIR)src/ints/
-LDPATH=\$(TOPDIR)lib/lowdincore.a
+LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 

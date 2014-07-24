@@ -21,7 +21,7 @@ if [ -e CONFIG ] ; then
     FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     PREFIX=`awk '{if($1 == "PREFIX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CULAFLAGS=`awk '{if($1 == "CULAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     CXX=`awk '{if($1 == "CXX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     CC=`awk '{if($1 == "CC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
@@ -31,7 +31,7 @@ if [ -e CONFIG ] ; then
     STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    FOURINDEX_LIBS=`awk '{if($1 == "FOURINDEX_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     
 else
@@ -39,7 +39,7 @@ else
     FLAGS="1"
     PREFIX="/usr/local/bin"
     CUBAFLAGS=
-    CULAFLAGS=
+    CUDAFLAGS="no"
     CXX="icpc"
     CC="icc"
     CFLAGS="-g -O2 -D intel"
@@ -49,7 +49,7 @@ else
     STDCPP_LIBS="-lstdc++"
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint"
-    FOURINDEX_LIBS="-lfourindextransformation"
+    CUDA_LIBS="-lmagma -lmagmablas -lcuda -lcublas -lcudart"
     ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $FOURINDEX_LIBS"
 fi
 
@@ -86,29 +86,45 @@ fi
 
 FLAGS=$FFLAGS
 
+echo "Speed up on GPUs? (you need to have already installed CUDA and Magma libraries): yes/no [$CUDAFLAGS]"
+read FCUDAFLAGS
+
+if [ "$FCUDAFLAGS" = "" ] ; then
+    FCUDAFLAGS=$CUDAFLAGS
+fi
+
+CUDAFLAGS=$FCUDAFLAGS
+
+addflagsCuda=""
+
+
+if [ "$CUDAFLAGS" = "yes" ] ; then
+addflagsCuda="-D CUDA"
+fi
+
 if [ "$FLAGS" = "1" ] ; then
     
     if [ "$FC" = "ifort" ] ; then
-	FCFLAGS="-O3 -D intel -fpic -no-vec -openmp -fpp "
+	FCFLAGS="-O3 -D intel -fpic -no-vec -openmp -fpp $addflagsCuda"
     else
-	FCFLAGS="-Ofast -fopenmp -D gfortran -fpic -cpp  -ffree-line-length-none -fno-range-check"
+	FCFLAGS="-Ofast -fopenmp -D gfortran -fpic -cpp  -ffree-line-length-none -fno-range-check $addflagsCuda"
     fi
 fi
 
 if [ "$FLAGS" = "2" ] ; then
     if [ "$FC" = "ifort" ] ; then
-	FCFLAGS="-O3 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended " 
+	FCFLAGS="-O3 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended $addflagsCuda" 
     else
-	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check"
+	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check $addflagsCuda"
     fi
 fi
 
 if [ "$FLAGS" = "3" ] ; then
     if [ "$FC" = "ifort" ] ; then	
-	FCFLAGS="-static -static-intel -static-libgcc -O3 -D intel -fpic -no-vec -fpp -openmp -traceback -g -debug extended"
+	FCFLAGS="-static -static-intel -static-libgcc -O3 -D intel -fpic -no-vec -fpp -openmp -traceback -g -debug extended $addflagsCuda"
     else
 	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
-	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check"
+	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check $addflagsCuda"
     fi
 fi
 
@@ -122,11 +138,16 @@ else
     LAPACK_LIBS="-llapack"
 fi
 
+if [ "$CUDAFLAGS" = "yes" ] ; then
+    CUDA_LIBS="-lmagma -lmagmablas -lcuda -lcublas -lcudart"
+else
+    CUDA_LIBS=""
+fi
+
 STDCPP_LIBS="-lstdc++"
 GSL_LIBS="-lgsl -lgslcblas"
 LIBINT_LIBS="-lr12 -lderiv -lint"
-FOURINDEX_LIBS="-lfourindextransformation"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $FOURINDEX_LIBS"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $CUDA_LIBS"
 
 ###############################################################################
 #                       SPECIFIC INSTALLATION DIRECTORIES
@@ -149,7 +170,7 @@ echo "FC = $FC" > CONFIG
 echo "FLAGS = $FLAGS" >> CONFIG
 echo "PREFIX = $PREFIX" >> CONFIG
 echo "CUBAFLAGS = $CUBAFFLAGS" >> CONFIG
-echo "CULAFLAGS = $CULAFFLAGS" >> CONFIG
+echo "CUDAFLAGS = $CUDAFLAGS" >> CONFIG
 echo "CXX = $CXX"  >> CONFIG
 echo "CC = $CC"  >> CONFIG
 echo "CFLAGS = $CFLAGS"  >> CONFIG
@@ -159,7 +180,7 @@ echo "LAPACK_LIBS = $LAPACK_LIBS"  >> CONFIG
 echo "STDCPP_LIBS = $STDCPP_LIBS"  >> CONFIG
 echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG
 echo "LIBINT_LIBS = $LIBINT_LIBS"  >> CONFIG
-echo "FOURINDEX_LIBS = $FOURINDEX_LIBS"  >> CONFIG
+echo "CUDA_LIBS = $CUDA_LIBS" >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 
@@ -168,8 +189,8 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 ###############################################################################
 
 TOPDIR=`pwd`
-SRCDIR="src"
-SUBDIRS="core ints HF MP2 scf"
+SRCDIR="src utilities"
+SUBDIRS="core ints HF MP2 MM scf aduw"
 
 for DIR in $SRCDIR ; do
     cd $DIR

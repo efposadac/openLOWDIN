@@ -78,18 +78,21 @@ program lowdin_
  
  !! Shows some information related to molecular system
  call MolecularSystem_showInformation()  
- call MolecularSystem_showParticlesInformation()
+
+ if (CONTROL_instance%METHOD/="MM") then 
+    call MolecularSystem_showParticlesInformation()
+
  !!
  !!****************************************************************************
 
  !!***************************************************************************
  !!        Shows system's geometry
  !!
- write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
- write (6,"(T18,A35)") "------------------------------------------"
+    write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
+    write (6,"(T18,A35)") "------------------------------------------"
  
- call MolecularSystem_showCartesianMatrix()
- 
+    call MolecularSystem_showCartesianMatrix()
+ end if 
  !! Transform to center of mass
  call MecanicProperties_constructor(MolecularSystem_instance%mechanicalProp)
   
@@ -103,7 +106,9 @@ program lowdin_
     
  end if
  
- call MolecularSystem_showDistanceMatrix()  
+ if (CONTROL_instance%METHOD/="MM") then 
+    call MolecularSystem_showDistanceMatrix()
+ end if
   
  !! At this moment it is not relevant
  !! call MolecularSystem_showZMatrix( MolecularSystem_instance )  
