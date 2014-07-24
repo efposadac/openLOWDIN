@@ -5,7 +5,7 @@ endif
 
 include $(TOPDIR)/CONFIG
 
-SUBDIRS = utilities src
+SUBDIRS = src
 ALLSUBDIRS = $(SUBDIRS) doc bin
 
 default::

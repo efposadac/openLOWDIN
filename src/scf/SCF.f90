@@ -91,14 +91,6 @@ program SCF
         write (6,"(A10,A12,A25)") "Iteration", "Energy","Energy Change"
         write(*,*) "---------------------------------------------------------"
      end if
-
-     do i = 1, numberOfSpecies
-          
-        nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
-        call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
-        call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
-
-     end do
             
      auxValue = 0.0_8 
      do while( status == SCF_GLOBAL_CONVERGENCE_CONTINUE .and. &

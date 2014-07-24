@@ -36,19 +36,14 @@
 !!        -# Define y ajusta el formato de la documentacion para doxygen
 !!   - <tt> 2011-02-11 </tt>: Fernando Posada ( efposadac@unal.edu.co )
 !!        -# Reescribe y adapta el modulo para su inclusion en Lowdin
-!!   - <tt> 2014-02-12 </tt> Mauricio Rodas ( jmrodasr@unal.edu.co )
-!!        -# Adapta el modulo para usar la libreria MAGMA-CUDA y acelerar en GPUs
-
 
 module Matrix_
   use CONTROL_
   use Exception_
   use Vector_
   use LapackInterface_
-  !use CudaInterface_
   use Math_
   use String_
-  use, intrinsic :: iso_c_binding
   implicit none
 
   
@@ -89,8 +84,8 @@ module Matrix_
   !> enum Matrix_type {
   !! @todo Hay que definir bien cules son los tipos de matrices a utilizar
   !! @todo Hay que intentar que sea posible mezclarlar, por ejemplo utilizando codigos binarios para su definicion
-  integer, parameter, public :: SYMMETRIC		= 1
-  integer, parameter, public :: DIAGONAL		= 2
+  integer, parameter, public :: SYMMETRIC			= 1
+  integer, parameter, public :: DIAGONAL			= 2
   integer, parameter, public :: BIDIAGONAL		= 3
   integer, parameter, public :: TRIDIAGONAL		= 4
   integer, parameter, public :: TRIANGULAR		= 5
@@ -1245,113 +1240,6 @@ contains
   !! @return Retorna los valores propios
   !! @todo Hay que agregar las rutinas de Lapack para los diferentes tipos de matrices
   !!       como NONSYMMETRIC, entre otras
-
-#ifdef CUDA
-
-  subroutine Matrix_eigen( this, eigenValues, eigenVectors, flags, m, dm )
-    implicit none
-    type(Matrix), intent(in) :: this
-    type(Vector), intent(inout) :: eigenValues
-    type(Matrix), intent(inout), optional :: eigenVectors
-    integer, intent(in), optional :: flags
-    integer, intent(in), optional :: dm
-    real(8), intent(in), optional :: m(:,:)
-    real(8), allocatable :: vectorAux(:)
-
-    integer :: lengthWorkSpace
-    integer :: matrixSize
-    integer :: infoProcess
-    real(8), allocatable :: workSpace(:)
-    type(Matrix) :: eigenVectorsTmp
-    integer :: i
-    integer :: matrixOrder
-
-
-    COMMON/NCB/ matrixSize, matrixOrder, lengthWorkSpace, infoProcess
-
-    matrixSize = size( this%values, DIM=1 )
-    matrixOrder = matrixSize
-
-    allocate(vectorAux (matrixSize))
-
-    if( flags == SYMMETRIC ) then
-
-       !! Determina la longitud adecuada del vector de trabajo
-       lengthWorkSpace=3*matrixSize-1
-
-       !! Crea el vector de trabajo
-       allocate( workSpace( lengthWorkSpace ) )
-
-       if( present( eigenVectors ) ) then
-
-          if (present ( dm ) ) then
-             eigenvectors%values = m
-          else	
-
-             eigenVectors%values=this%values
-
-          end if
-
-          !! Calcula valores propios de la matriz de entrada
-
-          call eigen_vec( &
-               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
-               UPPER_TRIANGLE_IS_STORED, &
-               matrixSize, &
-               eigenVectors%values, &
-               matrixSize, &
-               vectorAux, &
-               workSpace, &
-               lengthWorkSpace, &
-               infoProcess )
-
-          eigenValues%values=vectorAux
-          deallocate(vectorAux)
-
-       else
-          !! Crea la matriz que almacenara los vectores propios
-          call Matrix_copyConstructor( eigenVectorsTmp, this )
-
-          !! Calcula valores propios de la matriz de entrada
-          call dsyev( &
-               COMPUTE_EIGENVALUES, &
-               UPPER_TRIANGLE_IS_STORED, &
-               matrixSize, &
-               eigenVectorsTmp%values, &
-               matrixSize, &
-               eigenValues%values, &
-               workSpace, &
-               lengthWorkSpace, &
-               infoProcess )
-
-          call Matrix_destructor( eigenVectorsTmp )
-
-       end if
-
-       !! Determina la ocurrencia de errores
-       if ( infoProcess /= 0 )  then
-
-          call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
-
-       end if
-
-       do i=1,size(eigenValues%values)
-          if( eigenValues%values(i) == Math_NaN ) then
-
-             call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
-          end if
-       end do
-
-
-       !! libera memoria separada para vector de trabajo
-       deallocate(workSpace)
-
-    end if
-
-  end subroutine Matrix_eigen
-
-#else
-
   subroutine Matrix_eigen( this, eigenValues, eigenVectors, flags, m, dm )
     implicit none
     type(Matrix), intent(in) :: this
@@ -1367,6 +1255,7 @@ contains
     real(8), allocatable :: workSpace(:)
     type(Matrix) :: eigenVectorsTmp
     integer :: i
+
 
 
     matrixSize = size( this%values, DIM=1 )
@@ -1443,8 +1332,6 @@ contains
     end if
 
   end subroutine Matrix_eigen
-
-#endif
 
   !>
   !! @brief  Calcula la descomposicion en valores simples de la matriz especificada

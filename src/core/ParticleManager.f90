@@ -44,13 +44,13 @@ module ParticleManager_
   integer, parameter :: LABELS_NUMERATED = 1
   !< }
   
-  public :: &
+   public :: &
         ParticleManager_show, &
 !        ParticleManager_getValuesOfFreeCoordinates, &
 !                ParticleManager_getPositionOfCenterOfOptimizacion, &
 !        ParticleManager_getNumberOfFreeCoordinates, &
 !        ParticleManager_getNumberOfCoordinates, &
-        ParticleManager_getNumberOfCentersOfOptimization, &
+!        ParticleManager_getNumberOfCentersOfOptimization, &
         ParticleManager_getCartesianMatrixOfCentersOfOptimization, &
 !        ParticleManager_getDistanceMatrix, &
 !        ParticleManager_getCenterOfOptimization, &
@@ -76,8 +76,8 @@ module ParticleManager_
 !        ParticleManager_getCenterOfMass, &
 !        ParticleManager_getCharge, &
 !        ParticleManager_getLabelsOfContractions, &
-        ParticleManager_getLabelsOfCentersOfOptimization, &
-        ParticleManager_getChargesOfCentersOfOptimization, &
+!        ParticleManager_getLabelsOfCentersOfOptimization, &
+!        ParticleManager_getChargesOfCentersOfOptimization, &
 !        ParticleManager_isQuantum, &
 !        ParticleManager_isCenterOfOptimization, &
 !        ParticleManager_isComponentFixed, &
@@ -1218,55 +1218,71 @@ contains
 !   end function ParticleManager_getLabelsOfContractions
 
 
-  !>                                                                                                                  !! @brief Retorna las cargas asociadas a los centros de optimizacion. 24-02-2014 
-  !>
-
-   function ParticleManager_getChargesOfCentersOfOptimization( flags ) result( output )
-    implicit none
-    real(8), allocatable :: output(:)
-    integer, optional :: flags
-
-    character(20) :: number
-    integer :: numberOfCenters
-    integer :: internalFlags
-    integer :: i
-    integer :: j
-
-    internalFlags=0
-    if( present(flags) ) internalFlags=flags
-
-    numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
-
-    if ( allocated( output ) ) deallocate( output )
-    allocate( output( numberOfCenters ) )
-
-    j = 0
-
-    do i=1, size(ParticleManager_instance )
-
-       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
-
-          j = j + 1
-
-          select case(internalFlags)
-
-          case( LABELS_NUMERATED )
-
-             write(number,*) j
-             number = adjustl(trim(number))
-             output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
-
-          case default
-
-             output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
-          end select
-
-       end if
-
-    end do
 
 
-   end function ParticleManager_getChargesOfCentersOfOptimization
+!   function ParticleManager_getChargesOfCentersOfOptimization( fragmentNumber ) result( output )
+!     implicit none
+
+!     integer, optional, intent(in) :: fragmentNumber
+
+!     real(8),allocatable :: output(:)
+
+!     integer :: numberOfCenters
+!     integer :: i
+!     integer :: j
+
+
+
+!     if ( present(fragmentNumber) ) then
+!        numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization(fragmentNumber)
+!     else
+
+!        numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
+!     end if
+
+!     if ( allocated( output ) ) deallocate( output )
+!     allocate( output( numberOfCenters ) )
+
+!     j=0
+
+!     if ( present(fragmentNumber) ) then
+
+!        do i=1, size(ParticleManager_instance%particlesPtr )
+
+!           if ( ParticleManager_instance%particlesPtr(i)%isCenterOfOptimization .and. &
+!                ParticleManager_instance%particlesPtr(i)%fragmentNumber == fragmentNumber ) then
+
+!              j = j + 1
+
+!              output(j) = ParticleManager_instance%particlesPtr(i)%totalCharge
+
+!           end if
+
+!        end do
+
+
+!     else
+
+!        do i=1, size(ParticleManager_instance%particlesPtr )
+
+!           if ( ParticleManager_instance%particlesPtr(i)%isCenterOfOptimization ) then
+
+!              j = j + 1
+
+!              output(j) = ParticleManager_instance%particlesPtr(i)%totalCharge
+
+!           end if
+
+!        end do
+
+!     end if
+
+!   end function ParticleManager_getChargesOfCentersOfOptimization
+
+
+
+
+
 
 !   !<
 !   !! @brief 	Indica si es una particula fija

@@ -232,17 +232,7 @@ contains
        call SingleSCF_convergenceMethod( speciesID )
        
        call Matrix_copyConstructor( fockMatrixTransformed, WaveFunction_instance( speciesID )%fockMatrix )
-
-       ! print*, "MATRIZ HCORE"
-       ! call Matrix_show(WaveFunction_instance( speciesID )%hcoreMatrix)
-       ! PRINT*, "MATRIZ TWOPARTICLES"
-       ! call Matrix_show(WaveFunction_instance( speciesID )%twoParticlesMatrix)
-       ! PRINT*, "MATRIZ DE ACOPLAMIENTO"
-       ! call Matrix_show(WaveFunction_instance( speciesID )%couplingMatrix)
-       ! print*, "FOCK MATRIX ITERATE"
-       ! call Matrix_show(WaveFunction_instance( speciesID )%fockMatrix)
-
-
+       
        !!**********************************************************************************************
        !! Level Shifting Convergence Method       
        !!
@@ -285,9 +275,6 @@ contains
        !! End of Level Shifting Convergence Routine       
        !!**********************************************************************************************
 
-       !print*, "COEFICIENTES! ANTES"
-       !call Matrix_show(WaveFunction_instance(speciesID)%waveFunctionCoefficients)
-
        !!**********************************************************************************************
        !! Iteration begins
        !!
@@ -306,10 +293,6 @@ contains
        !!
        !! Interation ends
        !!**********************************************************************************************
-       !print*, "COEFICIENTES! DESPUES"
-       !call Matrix_show(WaveFunction_instance(speciesID)%waveFunctionCoefficients)
-
-       
        
        !!**********************************************************************************************
        !! Orbital exchange for TOM calculation

@@ -25,7 +25,6 @@
 !!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
 !!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
 !!        -# Adapta el módulo para su inclusion en Lowdin 1
-! this is a change
 !!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
 !!        -# Rewrite the module as a program and adapts to Lowdin 2
 !!
@@ -35,7 +34,6 @@
 program MollerPlesset
   use CONTROL_
   use MolecularSystem_
-  use String_
   use IntegralManager_
   use IndexMap_
   use Exception_
