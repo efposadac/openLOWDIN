@@ -267,6 +267,8 @@ contains
     integer :: totalNumberOfContractions
     character(10) :: arguments(2)
 
+    real(8) :: aux
+
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
@@ -279,7 +281,7 @@ contains
     
     !! Load Kinetic Matrix
     arguments(1) = "KINETIC"    
-    
+
     WaveFunction_instance( speciesID )%kineticMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments)
 
@@ -297,7 +299,6 @@ contains
     
     !! Finite Nuclear Mass Correction
     if ( CONTROL_instance%FINITE_MASS_CORRECTION ) then
-       
        k=1
        do particleID = 1, size(MolecularSystem_instance%species(speciesID)%particles)
           do contractionID = 1, size(MolecularSystem_instance%species(speciesID)%particles(particleID)%basis%contraction)
@@ -308,8 +309,8 @@ contains
              do s = 1, numberOfCartesiansOrbitals
                 l=k
                 
-                do particleID_2 = 1, size(MolecularSystem_instance%species(speciesID)%particles)
-                   do contractionID_2 = 1, size(MolecularSystem_instance%species(speciesID)%particles(particleID_2)%basis%contraction)
+                do particleID_2 = particleID, size(MolecularSystem_instance%species(speciesID)%particles)
+                   do contractionID_2 = contractionID, size(MolecularSystem_instance%species(speciesID)%particles(particleID_2)%basis%contraction)
                       
                       numberOfCartesiansOrbitals_2 = MolecularSystem_instance%species(speciesID)%particles(particleID_2)%basis%contraction(contractionID_2)%numCartesianOrbital
                       owner_2 = MolecularSystem_instance%species(speciesID)%particles(particleID_2)%basis%contraction(contractionID_2)%owner
@@ -317,43 +318,48 @@ contains
                       do r = 1, numberOfCartesiansOrbitals_2
                          
                          if ( owner .eq. owner_2) then
+
                             WaveFunction_instance( speciesID )%kineticMatrix%values(k,l)=&
                                  WaveFunction_instance( speciesID )%kineticMatrix%values(k,l)*&
-                                 ( 1 + MolecularSystem_getMass( speciesID ) / MolecularSystem_instance%species(speciesID)%particles(particleID)%mass  )
-                         
-                            WaveFunction_instance( speciesID )%kineticMatrix%values(l,k)=&
-                                 WaveFunction_instance( speciesID )%kineticMatrix%values(k,l)
+                                 ( 1 + MolecularSystem_getMass( speciesID ) / MolecularSystem_getOwnerMass(owner) )
+                            
+                            WaveFunction_instance( speciesID )%kineticMatrix%values(l,k) = WaveFunction_instance( speciesID )%kineticMatrix%values(k,l)
+
                          end if
+                         
                       end do
-                      
                       l=l+1
+                      
                    end do
                 end do
                 k=k+1
+
              end do
+
           end do
        end do
+
     end if
-    
+   
     !! DEBUG
-!     print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-!     call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
-    
+    !print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    !call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
+
     !! Load N-Q- Attraction  Matrix
     arguments(1) = "ATTRACTION"
-    
+
     WaveFunction_instance( speciesID )%puntualInteractionMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments)    
-           
+
     !! Incluiding charge effect
     auxCharge = MolecularSystem_getCharge( speciesID )
     
     WaveFunction_instance( speciesID )%puntualInteractionMatrix%values = &
          WaveFunction_instance( speciesID )%puntualInteractionMatrix%values * (-auxCharge)
-    
+
     !! DEBUG
-!     print *,"Matriz de interaccion n-e: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-!     call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
+    !print *,"Matriz de interaccion n-e: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    !call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
     
     close(34)    
     
@@ -368,11 +374,11 @@ contains
     WaveFunction_instance(speciesID)%HCoreMatrix%values = &
          WaveFunction_instance(speciesID)%kineticMatrix%values + &
          WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
-        
+         
     !! DEBUG
-!     print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-!     call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
-       
+    !print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    !call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
+    
   end subroutine WaveFunction_HCoreMatrix
 
   !>

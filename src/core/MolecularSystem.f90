@@ -85,7 +85,8 @@ module MolecularSystem_
        MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getSpecieID, &
        MolecularSystem_getPointChargesEnergy, &
-       MolecularSystem_getlabelsofcontractions
+       MolecularSystem_getlabelsofcontractions, &
+       MolecularSystem_getOwnerMass
   
   !>Singleton
   type(MolecularSystem), public, target :: MolecularSystem_instance
@@ -1085,7 +1086,20 @@ contains
      end do
      
    end function MolecularSystem_getlabelsofcontractions
-   
+
+   !>
+   !! @brief returns the mass
+   function MolecularSystem_getOwnerMass(owner) result(output)
+     implicit none
+     integer :: owner
+     real(8) :: output
+
+     integer :: i
+
+     output = ParticleManager_instance(owner)%particlePtr%mass
+     
+   end function MolecularSystem_getOwnerMass
+
    !>
    !! @brief  Maneja excepciones de la clase
    subroutine MolecularSystem_exception( typeMessage, description, debugDescription)
