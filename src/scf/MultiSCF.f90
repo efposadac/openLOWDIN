@@ -105,7 +105,7 @@ contains
     
     isROHF = .false.
    
-    call List_constructor( MultiSCF_instance%energyOMNE,"energy", CONTROL_instance%LISTS_SIZE)
+    call List_constructor( MultiSCF_instance%energyOMNE,"ENERGY", CONTROL_instance%LISTS_SIZE)
     MultiSCF_instance%numberOfIterations = 0
     MultiSCF_instance%status = 0
     MultiSCF_instance%nproc = nproc
@@ -117,7 +117,7 @@ contains
        
     else
        
-       if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "density" ) then
+       if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "DENSITY" ) then
           
           MultiSCF_instance%electronicTolerance = CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE
           MultiSCF_instance%nonelectronicTolerance = CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
@@ -578,10 +578,11 @@ contains
              waveFunction_instance( iteratorOfSpecie )%wasBuiltFockMatrix = .true.
              
              !! Perform SCF iteration for Single species
+             
              call SingleSCF_iterate( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
              
              !! Test energy or density change (as requested)
-             if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "density" ) then
+             if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "DENSITY" ) then
 
                 MultiSCF_instance%status = SingleSCF_testDensityMatrixChange( nameOfSpecie, tolerace )
                 
@@ -648,9 +649,8 @@ contains
           
           nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
           call SingleSCF_iterate( trim(nameOfSpecie), actualizeDensityMatrix=.false., nproc = MultiSCF_instance%nproc )
-          
        end do
-          
+
        !! Get effective Fock matrix for restricted open-shell SCF
        ! if( isROHF ) then
        ! call MultiSCF_instance%mergeFockMatrix()

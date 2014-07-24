@@ -31,7 +31,6 @@ if [ -e CONFIG ] ; then
     STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    FOURINDEX_LIBS=`awk '{if($1 == "FOURINDEX_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     
 else
@@ -49,7 +48,6 @@ else
     STDCPP_LIBS="-lstdc++"
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint"
-    FOURINDEX_LIBS="-lfourindextransformation"
     ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $FOURINDEX_LIBS"
 fi
 
@@ -125,8 +123,7 @@ fi
 STDCPP_LIBS="-lstdc++"
 GSL_LIBS="-lgsl -lgslcblas"
 LIBINT_LIBS="-lr12 -lderiv -lint"
-FOURINDEX_LIBS="-lfourindextransformation"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $FOURINDEX_LIBS"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS"
 
 ###############################################################################
 #                       SPECIFIC INSTALLATION DIRECTORIES
@@ -159,7 +156,6 @@ echo "LAPACK_LIBS = $LAPACK_LIBS"  >> CONFIG
 echo "STDCPP_LIBS = $STDCPP_LIBS"  >> CONFIG
 echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG
 echo "LIBINT_LIBS = $LIBINT_LIBS"  >> CONFIG
-echo "FOURINDEX_LIBS = $FOURINDEX_LIBS"  >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 
@@ -168,8 +164,8 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 ###############################################################################
 
 TOPDIR=`pwd`
-SRCDIR="src"
-SUBDIRS="core ints HF MP2 scf"
+SRCDIR="src utilities"
+SUBDIRS="core ints HF MP2 scf aduw"
 
 for DIR in $SRCDIR ; do
     cd $DIR
