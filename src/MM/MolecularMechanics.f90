@@ -32,19 +32,16 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-program MollerPlesset
+program MolecularMechanics
   use CONTROL_
   use MolecularSystem_
   use String_
-  use IntegralManager_
-  use IndexMap_
+  use MMFunctions_
   use Exception_
-  use Vector_
-  use TransformIntegrals_
-  use MPFunctions_
   implicit none
 
        character(50) :: job
+       character(50) :: ffmethod
 
   job = ""  
   call get_command_argument(1,value=job)  
@@ -60,18 +57,20 @@ program MollerPlesset
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-  call MollerPlesset_constructor( CONTROL_instance%MOLLER_PLESSET_CORRECTION )
-  call MollerPlesset_run()
-  call MollerPlesset_show()
-  call MollerPlesset_destructor()
+
+  ffmethod = CONTROL_instance%FORCE_FIELD
+
+  call MolecularMechanics_constructor()
+  call MolecularMechanics_run(ffmethod)
+  ! call MolecularMechanics_show()
+  call MolecularMechanics_destructor()
 
   !!stop time
   call Stopwatch_stop(lowdin_stopwatch)
   
   write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time HF-MP2 : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Molecular Mechanics : ", lowdin_stopwatch%enlapsetTime ," (s)"
   write(*, *) ""
   close(30)
 
-
-end program MollerPlesset
+end program MolecularMechanics

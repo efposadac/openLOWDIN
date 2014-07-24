@@ -200,6 +200,14 @@ module CONTROL_
      integer :: CUBE_POINTS_DENSITY
      real(8) :: VOLUME_DENSITY_THRESHOLD
 
+     !!***************************************************** 
+     !! Molecular Mechanics Options                                                        
+     character(50) :: FORCE_FIELD
+
+     !!***************************************************** 
+     !! Output Options                                                        
+     logical :: MOLDEN_FILE
+
      !!*****************************************************
      !! Properties Options
      logical :: CALCULATE_INTERPARTICLE_DISTANCES
@@ -221,6 +229,7 @@ module CONTROL_
      character(255) :: DATA_DIRECTORY="NONE"
      character(255) :: EXTERNAL_COMMAND="NONE"
      character(30) :: EXTERNAL_SOFTWARE_NAME="NONE"
+     character(255) :: UFF_PARAMETERS_DATABASE="NONE"
      character(255) :: ATOMIC_ELEMENTS_DATABASE="NONE"
      character(255) :: BASIS_SET_DATABASE="NONE"
      character(255) :: POTENTIALS_DATABASE="NONE"
@@ -408,6 +417,14 @@ module CONTROL_
   !!
   integer :: LowdinParameters_cubePointsDensity
   real(8) :: LowdinParameters_volumeDensityThreshold
+  
+  !!***************************************************** 
+  !! Molecular Mechanics Options                                                        
+  character(50) :: LowdinParameters_forceField
+
+  !!*****************************************************                                                           
+  !! Output Options                                                                                                 
+  logical :: LowdinParameters_moldenFile
 
   !!*****************************************************
   !! Properties Options
@@ -430,6 +447,7 @@ module CONTROL_
   character(255) :: LowdinParameters_dataDirectory
   character(255) :: LowdinParameters_externalCommand
   character(30) :: LowdinParameters_externalSoftwareName
+  character(255) :: LowdinParameters_uffParametersDataBase
   character(255) :: LowdinParameters_atomicElementsDataBase
   character(255) :: LowdinParameters_basisSetDataBase
   character(255) :: LowdinParameters_potentialsDataBase
@@ -614,6 +632,14 @@ module CONTROL_
        !!
        LowdinParameters_cubePointsDensity,&
        LowdinParameters_volumeDensityThreshold,&
+
+       !!***************************************************** 
+       !! Molecular Mechanics Options                                                        
+       LowdinParameters_forceField,&
+
+       !!*****************************************************                                                      
+       !! Output Options                                                                                            
+       LowdinParameters_moldenFile,&
        
        !!*****************************************************
        !! Properties Options
@@ -637,6 +663,7 @@ module CONTROL_
        LowdinParameters_dataDirectory,&
        LowdinParameters_externalCommand,&
        LowdinParameters_externalSoftwareName,&
+       LowdinParameters_uffParametersDataBase,&
        LowdinParameters_atomicElementsDataBase,&
        LowdinParameters_basisSetDataBase,&
        LowdinParameters_potentialsDataBase,&
@@ -848,6 +875,14 @@ contains
     LowdinParameters_cubePointsDensity = 125
     LowdinParameters_volumeDensityThreshold = 1E-3
 
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    LowdinParameters_forceField = "UFF"
+
+    !!*****************************************************                                                       
+    !! Output Options          
+    LowdinParameters_moldenFile = .false.
+
     !!*****************************************************
     !! Properties Options
     LowdinParameters_calculateInterparticleDistances = .false.
@@ -871,6 +906,7 @@ contains
     LowdinParameters_dataDirectory = CONTROL_getDataDirectory()
     LowdinParameters_externalCommand = CONTROL_getExternalCommand()
     LowdinParameters_externalSoftwareName = CONTROL_getExternalSoftwareName()
+    LowdinParameters_uffParametersDataBase = "/dataBases/uffParameters.lib"
     LowdinParameters_atomicElementsDataBase = "/dataBases/atomicElements.lib"
     LowdinParameters_basisSetDataBase = "/basis/"
     LowdinParameters_potentialsDataBase = "/potentials/"
@@ -967,7 +1003,7 @@ contains
     !! Parameter of atomic conectivity                                                                                         
     !!                                                                                                                         
     CONTROL_instance%BOND_DISTANCE_FACTOR = 1.3_8
-    CONTROL_instance%BOND_ANGLE_THRESHOLD = 170.0_8
+    CONTROL_instance%BOND_ANGLE_THRESHOLD = 180.0_8
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = 170.0_8
 
     !!***************************************************************************                                              
@@ -1062,6 +1098,14 @@ contains
     CONTROL_instance%CUBE_POINTS_DENSITY = 125
     CONTROL_instance%VOLUME_DENSITY_THRESHOLD = 1E-3
 
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    CONTROL_instance%FORCE_FIELD = "UFF"
+
+    !!*****************************************************  
+    !! Output Options     
+    CONTROL_instance%MOLDEN_FILE = .false.
+
     !!*****************************************************                                                                    
     !! Properties Options                                                                                                      
     CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES = .false.
@@ -1085,6 +1129,7 @@ contains
     CONTROL_instance%DATA_DIRECTORY = CONTROL_getDataDirectory()
     CONTROL_instance%EXTERNAL_COMMAND = CONTROL_getExternalCommand()
     CONTROL_instance%EXTERNAL_SOFTWARE_NAME = CONTROL_getExternalSoftwareName()
+    CONTROL_instance%UFF_PARAMETERS_DATABASE = "/dataBases/uffParameters.lib"
     CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = "/dataBases/atomicElements.lib"
     CONTROL_instance%BASIS_SET_DATABASE = "/basis/"
     CONTROL_instance%POTENTIALS_DATABASE = "/potentials/"
@@ -1314,7 +1359,15 @@ contains
     !!                                                                                 
     CONTROL_instance%CUBE_POINTS_DENSITY = LowdinParameters_cubePointsDensity
     CONTROL_instance%VOLUME_DENSITY_THRESHOLD = LowdinParameters_volumeDensityThreshold
-                                                                                                                                                                                          
+                                                                                                                                
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    CONTROL_instance%FORCE_FIELD = LowdinParameters_forceField
+
+    !!*****************************************************   
+    !! Output Options                                                               
+    CONTROL_instance%MOLDEN_FILE = LowdinParameters_moldenFile
+                                                          
     !!*****************************************************                            
     !! Properties Options                                                              
     CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES = LowdinParameters_calculateInterparticleDistances
@@ -1336,6 +1389,7 @@ contains
     CONTROL_instance%DATA_DIRECTORY = LowdinParameters_dataDirectory
     CONTROL_instance%EXTERNAL_COMMAND = LowdinParameters_externalCommand
     CONTROL_instance%EXTERNAL_SOFTWARE_NAME = LowdinParameters_externalSoftwareName
+    CONTROL_instance%UFF_PARAMETERS_DATABASE = LowdinParameters_uffParametersDataBase
     CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = LowdinParameters_atomicElementsDataBase
     CONTROL_instance%BASIS_SET_DATABASE = LowdinParameters_basisSetDataBase
     CONTROL_instance%POTENTIALS_DATABASE = LowdinParameters_potentialsDataBase
@@ -1532,7 +1586,14 @@ contains
     !!                                                                                 
     LowdinParameters_cubePointsDensity = CONTROL_instance%CUBE_POINTS_DENSITY
     LowdinParameters_volumeDensityThreshold = CONTROL_instance%VOLUME_DENSITY_THRESHOLD
-                                                                                                                                                                                          
+
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+     LowdinParameters_forceField = CONTROL_instance%FORCE_FIELD
+
+    !!*****************************************************      
+    !! Output Options                               
+    LowdinParameters_moldenFile = CONTROL_instance%MOLDEN_FILE                                                                                                                                                                                          
     !!*****************************************************                            
     !! Properties Options                                                              
     LowdinParameters_calculateInterparticleDistances = CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES
@@ -1554,6 +1615,7 @@ contains
     LowdinParameters_dataDirectory = CONTROL_instance%DATA_DIRECTORY
     LowdinParameters_externalCommand = CONTROL_instance%EXTERNAL_COMMAND
     LowdinParameters_externalSoftwareName = CONTROL_instance%EXTERNAL_SOFTWARE_NAME
+    LowdinParameters_uffParametersDataBase = CONTROL_instance%UFF_PARAMETERS_DATABASE
     LowdinParameters_atomicElementsDataBase = CONTROL_instance%ATOMIC_ELEMENTS_DATABASE
     LowdinParameters_basisSetDataBase = CONTROL_instance%BASIS_SET_DATABASE
     LowdinParameters_potentialsDataBase = CONTROL_instance%POTENTIALS_DATABASE
@@ -1736,6 +1798,12 @@ contains
     !!
     otherThis%CUBE_POINTS_DENSITY = this%CUBE_POINTS_DENSITY 
     otherThis%VOLUME_DENSITY_THRESHOLD = this%VOLUME_DENSITY_THRESHOLD 
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    otherThis%FORCE_FIELD = this%FORCE_FIELD
+    !!***************************************************** 
+    !! Output Options   
+    otherThis%MOLDEN_FILE = this%MOLDEN_FILE
     !!*****************************************************
     !! Properties Options
     otherThis%CALCULATE_INTERPARTICLE_DISTANCES  = this%CALCULATE_INTERPARTICLE_DISTANCES  
@@ -1757,6 +1825,7 @@ contains
     otherThis%DATA_DIRECTORY = this%DATA_DIRECTORY 
     otherThis%EXTERNAL_COMMAND = this%EXTERNAL_COMMAND 
     otherThis%EXTERNAL_SOFTWARE_NAME = this%EXTERNAL_SOFTWARE_NAME 
+    otherThis%UFF_PARAMETERS_DATABASE = this%UFF_PARAMETERS_DATABASE 
     otherThis%ATOMIC_ELEMENTS_DATABASE = this%ATOMIC_ELEMENTS_DATABASE 
     otherThis%BASIS_SET_DATABASE = this%BASIS_SET_DATABASE 
     otherThis%POTENTIALS_DATABASE = this%POTENTIALS_DATABASE 
@@ -1799,6 +1868,10 @@ contains
 
        end if
 
+    end if
+
+    if(CONTROL_instance%METHOD=="MM") then
+       write (*,"(T10,A)") "FORCE FIELD: "//trim(CONTROL_instance%FORCE_FIELD)
     end if
 
     if(CONTROL_instance%MOLLER_PLESSET_CORRECTION>=2) then
