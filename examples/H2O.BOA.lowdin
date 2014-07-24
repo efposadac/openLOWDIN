@@ -27,6 +27,7 @@ TASKS
 END TASKS
 
 CONTROL
+	finiteMassCorrection=T
 	integralScheme="rys"
 	numberOfCores=7
 END CONTROL
