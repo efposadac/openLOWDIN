@@ -139,7 +139,7 @@ contains
     
     do particleID = 1, size(ParticleManager_instance)
        do i = 1, particleID - 1
-          
+
           if( abs( ParticleManager_instance(i)%particlePtr%origin(1) - ParticleManager_instance(particleID)%particlePtr%origin(1) ) &
                < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
                abs( ParticleManager_instance(i)%particlePtr%origin(2) - ParticleManager_instance(particleID)%particlePtr%origin(2) ) &
@@ -153,6 +153,7 @@ contains
              !! y la liviana como hija
              !!
              if ( ParticleManager_instance(particleID)%particlePtr%mass  > ParticleManager_instance(i)%particlePtr%mass )	then
+                
                 
                 call Particle_setOwner(ParticleManager_instance(i)%particlePtr, owner = particleID )
                 ParticleManager_instance(particleID)%particlePtr%isCenterOfOptimization =.true.
@@ -174,6 +175,7 @@ contains
           
        end do
     end do
+
     
   end subroutine ParticleManager_setOwner
 
