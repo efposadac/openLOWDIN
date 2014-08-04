@@ -153,7 +153,7 @@ contains
                "Angle", &
                "Ideal Angle", "Force constant", "Energy"
           write(*,"(T5,A5,T15,A,T25,A,T35,A,T46,A,T61,A,T75,A,T94,A)") "Idx", "atom A", &
-               "atom B", "atom C", "(Degrees)", "(Degrees)", "(kcal/mol*A^2)", "(kJ/mol)"
+               "atom B", "atom C", "(Degrees)", "(Degrees)", "(kcal/mol*rad^2)", "(kJ/mol)"
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           do i=1,Graph_instance%angles%numberOfAngles
              atomAIdx=Graph_instance%angles%connectionMatrix%values(i,1)
@@ -168,12 +168,13 @@ contains
              Write( atomC, '(i10)' ) atomCIdx
              atomC = adjustl(trim(atomC))
              atomC=trim(Graph_instance%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
-             write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,F10.5,T60,F10.5,T75,F12.5)") i, atomA, &
+             write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,F10.5,T60,F10.5,T75,F12.5,T95,F12.5)") i, atomA, &
                   atomB, &
                   atomC, &
                   Graph_instance%angles%theta(i), &
                   Graph_instance%angles%idealTheta(i), &
-                  Graph_instance%angles%forceConstant(i)
+                  Graph_instance%angles%forceConstant(i), &
+                  Graph_instance%angles%bendingEnergyKJ(i)
           end do
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T5,A)") ""

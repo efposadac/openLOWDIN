@@ -53,6 +53,8 @@ module Angles_
      real(8), allocatable :: forceConstant(:)
      real(8), allocatable :: cosTheta(:)
      real(8), allocatable :: cosIdealTheta(:)
+     real(8), allocatable :: sinTheta(:)
+     real(8), allocatable :: sinIdealTheta(:)
      real(8), allocatable :: bendingEnergy(:) !! Kcal/mol
      real(8), allocatable :: bendingEnergyKJ(:) !! KJ/mol
 
@@ -60,7 +62,8 @@ module Angles_
 
 
        public :: &
-            Angles_constructor!, &
+            Angles_constructor, &
+            Angles_getBendingEnergies
             ! Angles_getIdealAngle!, &
             ! Angles_getAngleType
 
@@ -84,9 +87,8 @@ contains
     allocate( this%idealTheta( this%numberOfAngles ) )
     allocate( this%cosTheta( this%numberOfAngles ) )
     allocate( this%cosIdealTheta( this%numberOfAngles ) )
-    ! allocate( this%bondOrder( this%numberOfAngles ) )
-
-    ! call Angles_getBondOrders(orders)
+    allocate( this%sinTheta( this%numberOfAngles ) )
+    allocate( this%sinIdealTheta( this%numberOfAngles ) )
 
     do i=1,this%numberOfAngles
        do j=1,3
@@ -96,12 +98,13 @@ contains
        this%idealTheta(i) = vertices%angleValence(this%connectionMatrix%values(i,2))
        this%cosTheta(i) = cos(this%theta(i)*0.01745329251)
        this%cosIdealTheta(i) = cos(this%idealTheta(i)*0.01745329251)
-       ! this%bondOrder(i) = orders(i)
+       this%sinTheta(i) = sin(this%theta(i)*0.01745329251)
+       this%sinIdealTheta(i) = sin(this%idealTheta(i)*0.01745329251)
     end do
 
     call Angles_getForceConstants(this, vertices, bonds)
 
-    ! call Angles_getStretchingEnergies(this)
+    call Angles_getBendingEnergies(this, vertices)
 
   end subroutine Angles_constructor
 
@@ -132,21 +135,47 @@ contains
 
   end subroutine Angles_getForceConstants
 
-!   subroutine Angles_getStretchingEnergies(this)
-!     implicit none
-!     type(Angles), intent(in out) :: this
-!     integer :: i
+  subroutine Angles_getBendingEnergies(this, vertices)
+    implicit none
+    type(Angles), intent(in out) :: this
+    type(Vertex), intent(in) :: vertices
+    integer :: i
+    integer :: centralAtom
+    real :: coeff0, coeff1, coeff2
 
-!     allocate( this%stretchingEnergy( this%numberOfAngles ) )
-!     allocate( this%stretchingEnergyKJ( this%numberOfAngles ) )
 
-!     do i=1, this%numberOfAngles
-!        !! equation 6
-!        this%stretchingEnergy(i) = 0.5*this%forceConstant(i)*((this%distance(i)-this%idealDistance(i))**2)
-!        this%stretchingEnergyKJ(i) = this%stretchingEnergy(i)*4.1868
-!     end do
+    allocate( this%bendingEnergy( this%numberOfAngles ) )
+    allocate( this%bendingEnergyKJ( this%numberOfAngles ) )
 
-!   end subroutine Angles_getStretchingEnergies
+    do i=1, this%numberOfAngles
+       centralAtom = this%connectionMatrix%values(i,2)
+       !! Caso lineal
+       if( vertices%connectivity(centralAtom) == 2 .AND. vertices%angleValence(centralAtom) == 180.0 ) then
+          this%bendingEnergy(i) = this%forceConstant(i)*(1.0 + this%cosTheta(i))
+       !! Caso Trigonal plana
+       else if( vertices%connectivity(centralAtom) == 3 .AND. vertices%angleValence(centralAtom) == 120.0 ) then
+          this%bendingEnergy(i) = (this%forceConstant(i)/4.5)*(1.0 + (1.0 + this%cosTheta(i))*(4.0*this%cosTheta(i)))
+       !! Caso cuadrado planar y octaedrico
+       else if( (vertices%connectivity(centralAtom) == 4 .AND. vertices%angleValence(centralAtom) == 90.0) .OR. &
+            (vertices%connectivity(centralAtom) == 6 .AND. vertices%angleValence(centralAtom) == 90.0) .OR. &
+            (vertices%connectivity(centralAtom) == 6 .AND. vertices%angleValence(centralAtom) == 180.0)) then
+          this%bendingEnergy(i) = this%forceConstant(i)*(1.0 + this%cosTheta(i))*this%cosTheta(i)*this%cosTheta(i)
+       !! Caso bipiramidal pentagonal (IF7)
+       else if( vertices%connectivity(centralAtom) == 7 ) then
+          this%bendingEnergy(i) = this%forceConstant(i)*1.0*&
+               (this%cosTheta(i)-0.30901699)*(this%cosTheta(i)-0.30901699)*&
+               (this%cosTheta(i)+0.80901699)*(this%cosTheta(i)+0.80901699)
+      !! Caso general sp3
+      else 
+         coeff2 = 1.0 / (4.0 * this%sinIdealTheta(i) * this%sinIdealTheta(i))
+         coeff1 = -4.0 * coeff2 * this%cosIdealTheta(i)
+         coeff0 = coeff2*(2.0*this%cosIdealTheta(i)*this%cosIdealTheta(i) + 1.0)
+         this%bendingEnergy(i) = this%forceConstant(i)*(coeff0 + coeff1*this%cosTheta(i) + coeff2*(2.0*this%cosTheta(i)*this%cosTheta(i)-1.0)) !! identidad cos2*Theta  
+       end if
+       this%bendingEnergyKJ(i) = this%bendingEnergy(i)*4.1868 
+     end do
+
+  end subroutine Angles_getBendingEnergies
 
 !   subroutine Angles_getBondOrders(bondOrders)
 !     implicit none

@@ -52,19 +52,29 @@ contains
     type(Graph) :: this
     real(8) :: totalStretchingEnergy
     real(8) :: totalStretchingEnergyKJ
+    real(8) :: totalBendingEnergy
+    real(8) :: totalBendingEnergyKJ
     integer :: i
 
 
     totalStretchingEnergy = 0.0
+    totalBendingEnergy = 0.0
 
     do i=1, this%edges%numberOfEdges
        totalStretchingEnergy = totalStretchingEnergy + this%edges%stretchingEnergy(i)
     end do
 
+    do i=1, this%angles%numberOfAngles
+       totalBendingEnergy = totalBendingEnergy + this%angles%bendingEnergy(i)
+    end do
+
     totalStretchingEnergyKJ = totalStretchingEnergy*4.1868
+    totalBendingEnergyKJ = totalBendingEnergy*4.1868
 
     write(*,"(T20,A,F12.5,A)") "Total Stretching Energy: ", totalStretchingEnergy, " kcal/mol"
     write(*,"(T20,A,F12.5,A)") "Total Stretching Energy: ", totalStretchingEnergyKJ, " kJ/mol"
+    write(*,"(T20,A,F12.5,A)") "Total Bending Energy: ", totalBendingEnergy, " kcal/mol"
+    write(*,"(T20,A,F12.5,A)") "Total Bending Energy: ", totalBendingEnergyKJ, " kJ/mol"
     
   end subroutine EnergyUFF_run
   

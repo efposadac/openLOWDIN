@@ -33,7 +33,10 @@
 !!
 module Vertex_
   use CONTROL_
+  use MolecularSystem_
   use Matrix_
+  use MMCommons_
+  use MatrixInteger_
   use AtomTypeUFF_
   use ParticleManager_
   use UFFParameters_
@@ -58,6 +61,7 @@ module Vertex_
      real(8), allocatable :: electronegativityGMP(:)
      real(8), allocatable :: hard(:)
      real(8), allocatable :: radius(:)
+     integer, allocatable :: connectivity(:)
 
   end type Vertex
 
@@ -75,6 +79,9 @@ contains
     type(UFFParameters) :: atomType
     integer :: i
     type(Exception) :: ex
+    type(MatrixInteger) :: connectivityMatrix
+
+    call MMCommons_constructor( MolecularSystem_instance )
 
     this%numberOfVertices = ParticleManager_getNumberOfCentersOfOptimization()
     allocate( this%symbol( this%numberOfVertices ) )
@@ -94,8 +101,12 @@ contains
     allocate( this%electronegativityGMP( this%numberOfVertices ) )
     allocate( this%hard( this%numberOfVertices ) )
     allocate( this%radius( this%numberOfVertices ) )
+    allocate( this%connectivity( this%numberOfVertices ) )
 
     this%cartesianMatrix = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
+
+    call MatrixInteger_constructor( connectivityMatrix, this%numberOfVertices, 2 )
+    call MMCommons_getConnectivityMatrix( MolecularSystem_instance, this%numberOfVertices, connectivityMatrix )
 
     if ( forcefield == "UFF" ) then
        call AtomTypeUFF_run(ffAtomType)
@@ -113,6 +124,7 @@ contains
           this%electronegativityGMP(i) = atomType%electronegativityGMP
           this%hard(i) = atomType%hard
           this%radius(i) = atomType%radius
+          this%connectivity(i) = connectivityMatrix%values(i,2)
        end do
     else
        call Exception_constructor( ex , ERROR )
