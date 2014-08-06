@@ -3,10 +3,10 @@ TOPDIR=..
 include $(TOPDIR)/CONFIG
 
 SUBDIRS = ints HF MP2 MM scf
-ALLDIRS = $(SUBDIRS) core
+ALLDIRS = $(SUBDIRS) lowdincore
 
 LDR=$(FC)
-INC=-I$(TOPDIR)/src/core/
+INC=-I$(TOPDIR)/src/lowdincore/
 LDPATH=$(TOPDIR)/lib/lowdincore.a
 FLAGS=$(FCFLAGS)
 LIBS=$(ALL_LIBS)
@@ -15,7 +15,7 @@ TARGET=lowdin.x
 OBJECTS=lowdin.x.o
 
 default::
-	(cd core && $(MAKE) $(JOBS)) || exit 1;\
+	(cd lowdincore && $(MAKE) $(JOBS)) || exit 1;\
 
 	for dir in $(SUBDIRS); \
 	do \
