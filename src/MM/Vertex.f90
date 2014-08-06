@@ -61,6 +61,7 @@ module Vertex_
      real(8), allocatable :: electronegativityGMP(:)
      real(8), allocatable :: hard(:)
      real(8), allocatable :: radius(:)
+     integer, allocatable :: hybridization(:)
      integer, allocatable :: connectivity(:)
 
   end type Vertex
@@ -101,6 +102,7 @@ contains
     allocate( this%electronegativityGMP( this%numberOfVertices ) )
     allocate( this%hard( this%numberOfVertices ) )
     allocate( this%radius( this%numberOfVertices ) )
+    allocate( this%hybridization( this%numberOfVertices ) )
     allocate( this%connectivity( this%numberOfVertices ) )
 
     this%cartesianMatrix = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
@@ -124,6 +126,7 @@ contains
           this%electronegativityGMP(i) = atomType%electronegativityGMP
           this%hard(i) = atomType%hard
           this%radius(i) = atomType%radius
+          this%hybridization(i) = atomType%hybridization
           this%connectivity(i) = connectivityMatrix%values(i,2)
        end do
     else

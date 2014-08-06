@@ -46,6 +46,7 @@ module UFFParameters_
      real(8) :: electronegativityGMP
      real(8) :: hard
      real(8) :: radius
+     integer :: hybridization
      logical :: isInstanced
   end type UFFParameters
   
@@ -82,6 +83,7 @@ contains
     real(8) :: electronegativityGMP
     real(8) :: hard
     real(8) :: radius
+    integer :: hybridization
 
 
     NAMELIST /atomtype/ &
@@ -96,7 +98,8 @@ contains
          torsionalConstant, &
          electronegativityGMP, &
          hard, &
-         radius
+         radius, &
+         hybridization
 
     !! Looking for library    
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%UFF_PARAMETERS_DATABASE), exist=existFile)
@@ -126,6 +129,7 @@ contains
           electronegativityGMP = 0
           hard = 0
           radius = 0
+          hybridization = 0
          
           if (stat == -1 ) then
              
@@ -158,6 +162,7 @@ contains
        this%electronegativityGMP = electronegativityGMP
        this%hard = hard
        this%radius = radius
+       this%hybridization = hybridization
        this%isInstanced = .true.
        
        
@@ -200,6 +205,7 @@ contains
     write (6,"(T10,A22,F12.5,A10)")	"Electronegativity GMP  = ",this%electronegativityGMP," (pauling)"
     write (6,"(T10,A22,F12.5,A10)")	"Hard                   = ",this%hard,""
     write (6,"(T10,A22,F12.5,A10)")	"Radius                 = ",this%radius," Angstroms"
+    write (6,"(T10,A22,I5,A10)")	"Hybridization          = ",this%hybridization,""
     print *,""
     
   end subroutine UFFParameters_show

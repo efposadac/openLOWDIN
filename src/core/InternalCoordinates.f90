@@ -552,7 +552,7 @@ contains
                         / ( sqrt( dot_product( vectorA%values, vectorA%values ) )  &
                         * sqrt( dot_product( vectorB%values, vectorB%values ) ) ) ) * DEGREES
 
-                   if ( dihedralAngle < angleThreshold ) then
+                   ! if ( dihedralAngle < angleThreshold ) then
 
                       call ListInteger_push_back( currentAtom, connectivity(1) )
                       call ListInteger_push_back( otherAtom, connectivity(2) )
@@ -560,7 +560,7 @@ contains
                       call ListInteger_push_back( atomForDefineDihedral, connectivity(4) )
                       call List_push_back( dihedralAngles, dihedralAngle )
 
-                   end if
+                   ! end if
 
                 end if
 

@@ -81,8 +81,8 @@ contains
     character(50), intent(in) :: ffmethod
     type(Exception) :: ex
 !! Parametros para impresion borrar luego
-    integer :: atomAIdx, AtomBIdx, AtomCIdx
-    character(10) :: atomA, AtomB, AtomC
+    integer :: atomAIdx, AtomBIdx, AtomCIdx, AtomDIdx
+    character(10) :: atomA, AtomB, AtomC, AtomD
     integer :: i
 
     
@@ -175,6 +175,46 @@ contains
                   Graph_instance%angles%idealTheta(i), &
                   Graph_instance%angles%forceConstant(i), &
                   Graph_instance%angles%bendingEnergyKJ(i)
+          end do
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+          write(*,"(T5,A)") ""
+
+          write(*,"(T5,A)") ""
+          write(*,"(T5,A)") ""
+          write(*,"(T47,A)") "TORSION ENERGY"
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+          write(*,"(T22,A)") "Dihedral Angle"
+          write(*,"(T5,A,T58,A,T70,A,T85,A,T105,A)") "------------------------------------------------", &
+               "Angle", &
+               "Ideal Angle", "Force constant", "Energy"
+          write(*,"(T5,A5,T15,A,T25,A,T35,A,T45,A,T56,A,T71,A,T85,A,T104,A)") "Idx", "atom A", &
+               "atom B", "atom C", "atom D", "(Degrees)", "(Degrees)", "(kcal/mol*rad^2)", "(kJ/mol)"
+          write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+          do i=1,Graph_instance%torsions%numberOfTorsions
+             atomAIdx=Graph_instance%torsions%connectionMatrix%values(i,1)
+             Write( atomA, '(i10)' ) atomAIdx
+             atomA = adjustl(trim(atomA))
+             atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+             atomBIdx=Graph_instance%torsions%connectionMatrix%values(i,2)
+             Write( atomB, '(i10)' ) atomBIdx
+             atomB = adjustl(trim(atomB))
+             atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+             atomCIdx=Graph_instance%torsions%connectionMatrix%values(i,3)
+             Write( atomC, '(i10)' ) atomCIdx
+             atomC = adjustl(trim(atomC))
+             atomC=trim(Graph_instance%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
+             atomDIdx=Graph_instance%torsions%connectionMatrix%values(i,4)
+             Write( atomD, '(i10)' ) atomDIdx
+             atomD = adjustl(trim(atomD))
+             atomD=trim(Graph_instance%vertex%symbol(atomDIdx))//"("//trim(atomD)//")"
+             write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,A,T55,F10.5,T70,F10.5,T85,F12.5,T105,F12.5)") i, atomA, &
+                  atomB, &
+                  atomC, &
+                  atomD, &
+                  Graph_instance%torsions%phi(i)!, &
+                  ! Graph_instance%angles%idealTheta(i), &
+                  ! Graph_instance%angles%forceConstant(i), &
+                  ! Graph_instance%angles%bendingEnergyKJ(i)
           end do
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T5,A)") ""
