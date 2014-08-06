@@ -42,5 +42,7 @@ distclean::
 	find . -name "*~" -exec rm -f {} \;
 	find . -name "*.x" -exec rm -f {} \;
 	find . -name "*.a" -exec rm -f {} \;
+	find . -name "*.i90" -exec rm -f {} \;
+	find . -name "*.i" -exec rm -f {} \;
 	rm -rf $(TOPDIR)/doc/html
 	rm -rf $(TOPDIR)/doc/latex

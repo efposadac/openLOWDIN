@@ -13,7 +13,7 @@ include \$(TOPDIR)/CONFIG
 
 TARGET=lowdin-MolecularMechanics.x
 LDR=\$(FC)
-INC=-I\$(TOPDIR)src/core/
+INC=-I\$(TOPDIR)src/lowdincore/
 INCI=-I\$(TOPDIR)src/ints/
 LDPATH=\$(TOPDIR)lib/lowdincore.a
 FLAGS=\$(FCFLAGS)
