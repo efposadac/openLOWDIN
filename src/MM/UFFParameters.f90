@@ -105,15 +105,14 @@ contains
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%UFF_PARAMETERS_DATABASE), exist=existFile)
     
     if ( existFile ) then
-       
        !! Open library
-       open(unit=10, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%UFF_PARAMETERS_DATABASE), status="old", form="formatted" )
+       open(unit=20, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%UFF_PARAMETERS_DATABASE), status="old", form="formatted" )
               
        !! Read information
        type = "NONE"
        stat = 0
 
-       rewind(10)
+       rewind(20)
        
        do while(trim(type) /= trim(typeSelected))
        
@@ -138,8 +137,8 @@ contains
              
           end if
           
-          read(10,NML=atomtype, iostat=stat)
- 
+          read(20,NML=atomtype, iostat=stat)
+
           if (stat > 0 ) then
              
              print*, "ERROR!!! ", stat
@@ -169,7 +168,7 @@ contains
        !! Debug information.
        ! call UFFParameters_show(this)
        
-       close(10)
+       close(20)
        
     else 
 
