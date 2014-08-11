@@ -168,7 +168,7 @@ contains
              Write( atomC, '(i10)' ) atomCIdx
              atomC = adjustl(trim(atomC))
              atomC=trim(Graph_instance%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
-             write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,F10.5,T60,F10.5,T75,F12.5,T95,F12.5)") i, atomA, &
+             write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,F10.5,T60,F10.5,T75,F12.5,T91,F12.5)") i, atomA, &
                   atomB, &
                   atomC, &
                   Graph_instance%angles%theta(i), &
@@ -181,7 +181,7 @@ contains
 
           write(*,"(T5,A)") ""
           write(*,"(T5,A)") ""
-          write(*,"(T47,A)") "TORSION ENERGY"
+          write(*,"(T47,A)") "TORSIONAL ENERGY"
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T22,A)") "Dihedral Angle"
           write(*,"(T5,A,T58,A,T70,A,T85,A,T105,A)") "------------------------------------------------", &
@@ -207,7 +207,7 @@ contains
              Write( atomD, '(i10)' ) atomDIdx
              atomD = adjustl(trim(atomD))
              atomD=trim(Graph_instance%vertex%symbol(atomDIdx))//"("//trim(atomD)//")"
-             write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,A,T55,F10.5,T70,F10.5,T85,F12.5,T105,F12.5)") i, atomA, &
+             write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,A,T55,F10.5,T70,F10.5,T85,F12.5,T100,F12.5)") i, atomA, &
                   atomB, &
                   atomC, &
                   atomD, &
