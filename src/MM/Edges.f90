@@ -60,7 +60,8 @@ module Edges_
             Edges_constructor, &
             Edges_getIdealDistance, &
             Edges_getDistance, &
-            Edges_getBondOrders
+            Edges_getBondOrders, &
+            Edges_getOrder
 
 
 contains
@@ -1395,6 +1396,25 @@ contains
     end do
 
   end subroutine Edges_getBondOrders
+
+  function Edges_getOrder(this, atomA, atomB) result(output)
+    implicit none
+    type(Edges), intent(in) :: this
+    integer, intent(in) :: atomA, atomB
+    real(8) :: output
+    integer :: i, j
+
+    do i=i,this%numberOfEdges
+       do j=1,2
+          if( this%connectionMatrix%values(i,1) == atomA .AND. this%connectionMatrix%values(i,2) == atomB ) then
+             output = this%bondOrder(i)
+          else if( this%connectionMatrix%values(i,1) == atomB .AND. this%connectionMatrix%values(i,2) == atomA ) then
+             output = this%bondOrder(i)
+          end if
+       end do
+    end do
+
+  end function Edges_getOrder
 
   subroutine Edges_exception( typeMessage, description, debugDescription)
     implicit none

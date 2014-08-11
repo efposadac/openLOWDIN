@@ -1,0 +1,43 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test RHF
+%  C8H18 Single Point
+%  Electronic Hartree Fock
+%  Basis sets used:
+%      PRUEBA e-
+%  Results
+%      TEST ENERGY =     -313.350331482763
+%      VIRIAL RATIO (V/T) =         2.0011931747
+% End Results
+%      Author: Fernando Posada - QCC-UNAL/2011
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Ethane'
+GEOMETRY
+e-(C)      3-21G              0.000000    0.000000    0.771400
+e-(H)      3-21G              0.000000    1.013700    1.155800
+e-(H)      3-21G              0.877900    -0.506800   1.155800
+e-(H)      3-21G              -0.877900   -0.506800   1.155800
+e-(C)      3-21G              0.000000    0.000000    -0.771400
+e-(H)      3-21G              0.877900    0.506800    -1.155800
+e-(H)      3-21G              0.000000    -1.013700   -1.155800
+e-(H)      3-21G              -0.877900   0.506800    -1.155800
+C          dirac              0.000000    0.000000    0.771400
+H          dirac              0.000000    1.013700    1.155800
+H          dirac              0.877900    -0.506800   1.155800
+H          dirac              -0.877900   -0.506800   1.155800
+C          dirac              0.000000    0.000000    -0.771400
+H          dirac              0.877900    0.506800    -1.155800
+H          dirac              0.000000    -1.013700   -1.155800
+H          dirac              -0.877900   0.506800    -1.155800
+END GEOMETRY
+
+TASKS
+        method = "MM"
+END TASKS
+
+CONTROL
+!        readCoefficients = F
+!	integralScheme="libint"
+	numberOfCores = 8
+	forceField = UFF
+END CONTROL

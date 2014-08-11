@@ -54,11 +54,14 @@ contains
     real(8) :: totalStretchingEnergyKJ
     real(8) :: totalBendingEnergy
     real(8) :: totalBendingEnergyKJ
+    real(8) :: totalTorsionEnergy
+    real(8) :: totalTorsionEnergyKJ
     integer :: i
 
 
     totalStretchingEnergy = 0.0
     totalBendingEnergy = 0.0
+    totalTorsionEnergy = 0.0
 
     do i=1, this%edges%numberOfEdges
        totalStretchingEnergy = totalStretchingEnergy + this%edges%stretchingEnergy(i)
@@ -68,13 +71,20 @@ contains
        totalBendingEnergy = totalBendingEnergy + this%angles%bendingEnergy(i)
     end do
 
+    do i=1, this%torsions%numberOfTorsions
+       totalTorsionEnergy = totalTorsionEnergy + this%torsions%torsionEnergy(i)
+    end do
+
     totalStretchingEnergyKJ = totalStretchingEnergy*4.1868
     totalBendingEnergyKJ = totalBendingEnergy*4.1868
+    totalTorsionEnergyKJ = totalTorsionEnergy*4.1868
 
     write(*,"(T20,A,F12.5,A)") "Total Stretching Energy: ", totalStretchingEnergy, " kcal/mol"
     write(*,"(T20,A,F12.5,A)") "Total Stretching Energy: ", totalStretchingEnergyKJ, " kJ/mol"
     write(*,"(T20,A,F12.5,A)") "Total Bending Energy: ", totalBendingEnergy, " kcal/mol"
     write(*,"(T20,A,F12.5,A)") "Total Bending Energy: ", totalBendingEnergyKJ, " kJ/mol"
+    write(*,"(T20,A,F12.5,A)") "Total Torsional Energy: ", totalTorsionEnergy, " kcal/mol"
+    write(*,"(T20,A,F12.5,A)") "Total Torsional Energy: ", totalTorsionEnergyKJ, " kJ/mol"
     
   end subroutine EnergyUFF_run
   

@@ -211,10 +211,10 @@ contains
                   atomB, &
                   atomC, &
                   atomD, &
-                  Graph_instance%torsions%phi(i)!, &
-                  ! Graph_instance%angles%idealTheta(i), &
-                  ! Graph_instance%angles%forceConstant(i), &
-                  ! Graph_instance%angles%bendingEnergyKJ(i)
+                  Graph_instance%torsions%phi(i), &
+                  Graph_instance%torsions%idealPhi(i), &
+                  Graph_instance%torsions%rotationalBarrier(i), &
+                  Graph_instance%torsions%torsionEnergyKJ(i)
           end do
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T5,A)") ""

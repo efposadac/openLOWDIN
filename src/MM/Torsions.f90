@@ -49,24 +49,19 @@ module Torsions_
      integer :: numberOfTorsions
      type(MatrixInteger) :: connectionMatrix
      real(8), allocatable :: phi(:)
-     integer, allocatable :: type(:)
-     ! real(8), allocatable :: angleType(:)
-     ! real(8), allocatable :: idealTheta(:)
-     ! real(8), allocatable :: forceConstant(:)
-     ! real(8), allocatable :: cosTheta(:)
-     ! real(8), allocatable :: cosIdealTheta(:)
-     ! real(8), allocatable :: sinTheta(:)
-     ! real(8), allocatable :: sinIdealTheta(:)
-     ! real(8), allocatable :: bendingEnergy(:) !! Kcal/mol
-     ! real(8), allocatable :: bendingEnergyKJ(:) !! KJ/mol
+     real(8), allocatable :: rotationalBarrier(:)
+     real(8), allocatable :: idealPhi(:)
+     real(8), allocatable :: order(:)
+     real(8), allocatable :: torsionEnergy(:) !! Kcal/mol
+     real(8), allocatable :: torsionEnergyKJ(:) !! KJ/mol
 
   end type Torsions
 
 
        public :: &
             Torsions_constructor, &
-            Torsions_getType
-            ! Torsions_getBendingEnergies
+            Torsions_getConstants, &
+            Torsions_getTorsionEnergies
 
 contains
 
@@ -85,110 +80,154 @@ contains
 
     call MatrixInteger_constructor( this%connectionMatrix, this%numberOfTorsions, 4 )
     allocate( this%phi( this%numberOfTorsions ) )
-    allocate( this%type( this%numberOfTorsions ) )
-    ! allocate( this%idealTheta( this%numberOfTorsions ) )
-    ! allocate( this%cosTheta( this%numberOfTorsions ) )
-    ! allocate( this%cosIdealTheta( this%numberOfTorsions ) )
-    ! allocate( this%sinTheta( this%numberOfTorsions ) )
-    ! allocate( this%sinIdealTheta( this%numberOfTorsions ) )
 
     do i=1,this%numberOfTorsions
        do j=1,4
           this%connectionMatrix%values(i,j) = MolecularSystem_instance%intCoordinates%connectionMatrixForDihedrals%values(i,j)
        end do
-       this%type(i) = Torsions_getType(this%connectionMatrix%values(i,2), this%connectionMatrix%values(i,3), vertices)
        this%phi(i) = MolecularSystem_instance%intCoordinates%dihedralsAngleValue%values(i)
-    !    this%idealTheta(i) = vertices%angleValence(this%connectionMatrix%values(i,2))
-    !    this%cosTheta(i) = cos(this%theta(i)*0.01745329251)
-    !    this%cosIdealTheta(i) = cos(this%idealTheta(i)*0.01745329251)
-    !    this%sinTheta(i) = sin(this%theta(i)*0.01745329251)
-    !    this%sinIdealTheta(i) = sin(this%idealTheta(i)*0.01745329251)
     end do
 
-    ! call Torsions_getForceConstants(this, vertices, bonds)
+    call Torsions_getConstants(this, vertices, bonds)
 
-    ! call Torsions_getBendingEnergies(this, vertices)
+    call Torsions_getTorsionEnergies(this)
 
   end subroutine Torsions_constructor
 
-  function Torsions_getType(atomB, atomC, vertices) result(output)
+  subroutine Torsions_getConstants(this, vertices, bonds)
     implicit none
-    integer, intent(in) :: atomB, atomC
+    type(Torsions), intent(in out) :: this
     type(Vertex), intent(in) :: vertices
-    integer :: output
+    type(Edges), intent(in) :: bonds
+    integer :: i, atomA, atomB, atomC, atomD
+    logical :: isBgroupSixMember, isCgroupSixMember
+    real(8) :: Vj, Vk !! Torsional barriers
+    real(8) :: Uj,Uk !! TorsionalConstant
+    real(8) :: bondOrder
 
-    output = 1
+    isBgroupSixMember = .false.
+    isCgroupSixMember = .false.
 
-  end function Torsions_getType
+    allocate(this%order(this%numberOfTorsions))
+    allocate(this%idealPhi(this%numberOfTorsions))
+    allocate(this%rotationalBarrier(this%numberOfTorsions))
 
-!   subroutine Torsions_getForceConstants(this, vertices, bonds)
-!     implicit none
-!     type(Torsions), intent(in out) :: this
-!     type(Vertex), intent(in) :: vertices
-!     type(Edges), intent(in) :: bonds
-!     integer :: i
-!     real(8) :: Zi, Zk !! Effective charges
-!     real(8) :: rij, rjk, rik
-!     real(8) :: lambda
+    do i=1,this%numberOfTorsions
+       atomA = this%connectionMatrix%values(i,1)
+       atomB = this%connectionMatrix%values(i,2)
+       atomC = this%connectionMatrix%values(i,3)
+       atomD = this%connectionMatrix%values(i,4)
+       if(vertices%hybridization(atomB)==3 .AND. vertices%hybridization(atomC)==3) then
+          isBgroupSixMember = Torsions_isGroupSixMember(atomB, vertices)
+          isCgroupSixMember = Torsions_isGroupSixMember(atomC, vertices)
+          if( isBgroupSixMember .AND. isCgroupSixMember ) then
+             if(vertices%charges(atomB)==8.0 .AND. vertices%charges(atomC)==8.0) then
+                Vj = 2.0
+                Vk = 2.0
+             else if (vertices%charges(atomB)==8.0 .AND. vertices%charges(atomC)/=8.0) then
+                Vj = 2.0
+                Vk = 6.8
+             else if (vertices%charges(atomB)/=8.0 .AND. vertices%charges(atomC)==8.0) then
+                Vj = 6.8
+                Vk = 2.0
+             else 
+                Vj = 6.8
+                Vk = 6.8
+             end if
+             this%order(i) = 2.0
+             this%idealPhi(i) = 90.0
+          else
+             Vj = vertices%torsionalBarrier(atomB)
+             Vk = vertices%torsionalBarrier(atomC)
+             this%order(i) = 3.0
+             this%idealPhi(i) = 60.0
+          end if
+          this%rotationalBarrier(i) = sqrt(Vj*Vk)
+       else if(vertices%hybridization(atomB)==2 .AND. vertices%hybridization(atomC)==2) then
+          this%order(i) = 2.0
+          this%idealPhi(i) = 180.0
+          bondOrder = Edges_getOrder(bonds, atomB, atomC)
+          Uj = vertices%torsionalConstant(atomB) 
+          Uk = vertices%torsionalConstant(atomC)
+          this%rotationalBarrier(i) = 5.0*sqrt(Uj*Uk)*(1.0+4.18*log(bondOrder))
+       else if(vertices%hybridization(atomB)==3 .AND. vertices%hybridization(atomC)==2) then
+          isBgroupSixMember = Torsions_isGroupSixMember(atomB, vertices)
+          isCgroupSixMember = Torsions_isGroupSixMember(atomB, vertices)
+          if(vertices%hybridization(atomD)==2) then
+             this%order(i) = 3.0
+             this%idealPhi(i) = 180.0
+             this%rotationalBarrier(i) = 2.0
+          else if(isBgroupSixMember .and. (.not.isCgroupSixMember)) then
+             this%order(i) = 2.0
+             this%idealPhi(i) = 90.0
+             bondOrder = Edges_getOrder(bonds, atomB, atomC)
+             Uj = vertices%torsionalConstant(atomB) 
+             Uk = vertices%torsionalConstant(atomC)
+             this%rotationalBarrier(i) = 5.0*sqrt(Uj*Uk)*(1.0+4.18*log(bondOrder))
+          else
+             this%order(i) = 6.0
+             this%idealPhi(i) = 0.0
+             this%rotationalBarrier(i) = 1.0
+          end if
+       else if(vertices%hybridization(atomB)==2 .AND. vertices%hybridization(atomC)==3) then
+          isBgroupSixMember = Torsions_isGroupSixMember(atomB, vertices)
+          isCgroupSixMember = Torsions_isGroupSixMember(atomB, vertices)
+          if(vertices%hybridization(atomA)==2) then
+             this%order(i) = 3.0
+             this%idealPhi(i) = 180.0
+             this%rotationalBarrier(i) = 2.0
+          else if(isCgroupSixMember .and. (.not.isBgroupSixMember)) then
+             this%order(i) = 2.0
+             this%idealPhi(i) = 90.0
+             bondOrder = Edges_getOrder(bonds, atomB, atomC)
+             Uj = vertices%torsionalConstant(atomB) 
+             Uk = vertices%torsionalConstant(atomC)
+             this%rotationalBarrier(i) = 5.0*sqrt(Uj*Uk)*(1.0+4.18*log(bondOrder))
+          else
+             this%order(i) = 6.0
+             this%idealPhi(i) = 0.0
+             this%rotationalBarrier(i) = 1.0
+          end if
+       else
+          this%idealPhi(i) = 0.0
+          this%rotationalBarrier(i) = 0.0
+       end if
+    end do
+  end subroutine Torsions_getConstants
 
-! !! se calcula usando la correccion de openbabel
-!     lambda = 664.12
+  function Torsions_isGroupSixMember(atom, vertices) result(output)
+    implicit none
+    integer, intent(in) :: atom
+    type(Vertex), intent(in) :: vertices
+    logical :: output
 
-!     allocate( this%forceConstant( this%numberOfTorsions ) )
+    output = .false.
+    if( vertices%charges(atom)==8.0 .OR. &
+         vertices%charges(atom)==16.0 .OR. &
+         vertices%charges(atom)==34.0 .OR. &
+         vertices%charges(atom)==52.0 .OR. &
+         vertices%charges(atom)==84.0 ) then
+       output = .true.
+    end if
 
-!     do i=1, this%numberOfTorsions
-!        rij = Edges_getDistance(bonds,this%connectionMatrix%values(i,1),this%connectionMatrix%values(i,2))
-!        rjk = Edges_getDistance(bonds,this%connectionMatrix%values(i,2),this%connectionMatrix%values(i,3))
-!        rik = sqrt((rij**2)+(rjk**2)-2*rij*rjk*this%cosIdealTheta(i))
-!        Zi=vertices%effectiveCharge(this%connectionMatrix%values(i,1))
-!        Zk=vertices%effectiveCharge(this%connectionMatrix%values(i,3))
-!        !! equation 13
-!        this%forceConstant(i) = lambda*((Zi*Zk)/(rik**5))*(3*rij*rjk*(1-(this%cosIdealTheta(i)**2))-(rik**2)*this%cosIdealTheta(i))
-!     end do
+  end function Torsions_isGroupSixMember
 
-!   end subroutine Torsions_getForceConstants
+  subroutine Torsions_getTorsionEnergies(this)
+    implicit none
+    type(Torsions), intent(in out) :: this
+    integer :: i
+    real(8) :: cosIdealTorsion, cosTorsion
 
-!   subroutine Torsions_getBendingEnergies(this, vertices)
-!     implicit none
-!     type(Torsions), intent(in out) :: this
-!     type(Vertex), intent(in) :: vertices
-!     integer :: i
-!     integer :: centralAtom
-!     real :: coeff0, coeff1, coeff2
+    allocate(this%torsionEnergy(this%numberOfTorsions))
+    allocate(this%torsionEnergyKJ(this%numberOfTorsions))
 
-
-!     allocate( this%bendingEnergy( this%numberOfTorsions ) )
-!     allocate( this%bendingEnergyKJ( this%numberOfTorsions ) )
-
-!     do i=1, this%numberOfTorsions
-!        centralAtom = this%connectionMatrix%values(i,2)
-!        !! Caso lineal
-!        if( vertices%connectivity(centralAtom) == 2 .AND. vertices%angleValence(centralAtom) == 180.0 ) then
-!           this%bendingEnergy(i) = this%forceConstant(i)*(1.0 + this%cosTheta(i))
-!        !! Caso Trigonal plana
-!        else if( vertices%connectivity(centralAtom) == 3 .AND. vertices%angleValence(centralAtom) == 120.0 ) then
-!           this%bendingEnergy(i) = (this%forceConstant(i)/4.5)*(1.0 + (1.0 + this%cosTheta(i))*(4.0*this%cosTheta(i)))
-!        !! Caso cuadrado planar y octaedrico
-!        else if( (vertices%connectivity(centralAtom) == 4 .AND. vertices%angleValence(centralAtom) == 90.0) .OR. &
-!             (vertices%connectivity(centralAtom) == 6 .AND. vertices%angleValence(centralAtom) == 90.0) .OR. &
-!             (vertices%connectivity(centralAtom) == 6 .AND. vertices%angleValence(centralAtom) == 180.0)) then
-!           this%bendingEnergy(i) = this%forceConstant(i)*(1.0 + this%cosTheta(i))*this%cosTheta(i)*this%cosTheta(i)
-!        !! Caso bipiramidal pentagonal (IF7)
-!        else if( vertices%connectivity(centralAtom) == 7 ) then
-!           this%bendingEnergy(i) = this%forceConstant(i)*1.0*&
-!                (this%cosTheta(i)-0.30901699)*(this%cosTheta(i)-0.30901699)*&
-!                (this%cosTheta(i)+0.80901699)*(this%cosTheta(i)+0.80901699)
-!       !! Caso general sp3
-!       else 
-!          coeff2 = 1.0 / (4.0 * this%sinIdealTheta(i) * this%sinIdealTheta(i))
-!          coeff1 = -4.0 * coeff2 * this%cosIdealTheta(i)
-!          coeff0 = coeff2*(2.0*this%cosIdealTheta(i)*this%cosIdealTheta(i) + 1.0)
-!          this%bendingEnergy(i) = this%forceConstant(i)*(coeff0 + coeff1*this%cosTheta(i) + coeff2*(2.0*this%cosTheta(i)*this%cosTheta(i)-1.0)) !! identidad cos2*Theta  
-!        end if
-!        this%bendingEnergyKJ(i) = this%bendingEnergy(i)*4.1868 
-!      end do
-
-!   end subroutine Torsions_getBendingEnergies
+    do i=1,this%numberOfTorsions
+       cosIdealTorsion = cos(this%order(i)*this%idealPhi(i)*0.01745329251)
+       cosTorsion = cos(this%order(i)*this%phi(i)*0.01745329251)
+       this%torsionEnergy(i) = 0.5*this%rotationalBarrier(i)*(1-cosIdealTorsion*cosTorsion)
+       this%torsionEnergyKJ(i) = this%torsionEnergy(i)*4.1868
+    end do
+  end subroutine Torsions_getTorsionEnergies
 
   subroutine Torsions_exception( typeMessage, description, debugDescription)
     implicit none
