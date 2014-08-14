@@ -34,6 +34,7 @@ module Graph_
   use Vertex_
   use Angles_
   use Torsions_
+  use VDWaals_
   use Exception_
   implicit none
   
@@ -43,7 +44,8 @@ module Graph_
      type(Vertex) :: vertex
      type(Angles) :: angles
      type(Torsions) :: torsions
-    
+     type(VDWaals) :: vdwaals
+
   end type Graph
 
   public :: &
@@ -62,6 +64,7 @@ contains
     call Edges_constructor( Graph_instance%edges, Graph_instance%vertex )
     call Angles_constructor( Graph_instance%angles, Graph_instance%vertex, Graph_instance%edges )
     call Torsions_constructor( Graph_instance%torsions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
+    call VDWaals_constructor( Graph_instance%vdwaals, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
 
   end subroutine Graph_initialize
 
