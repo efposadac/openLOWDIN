@@ -225,9 +225,9 @@ contains
           write(*,"(T45,A)") "VAN DER WAALS ENERGY"
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T15,A)") "VDW distance"
-          write(*,"(T5,A,T36,A,T49,A,T65,A,T85,A)") "----------------------------", "Distance", &
-               "Ideal distance", "Force constant", "Energy"
-          write(*,"(T5,A5,T15,A,T25,A,T35,A,T51,A,T65,A,T84,A)") "Idx", "atom A", &
+          write(*,"(T5,A,T36,A,T49,A,T66,A,T85,A)") "----------------------------", "Distance", &
+               "Ideal distance", "Well Depth", "Energy"
+          write(*,"(T5,A5,T15,A,T25,A,T35,A,T51,A,T66,A,T84,A)") "Idx", "atom A", &
                "atom B", "(Amstrong)", "(Amstrong)", "(kcal/mol)", "(kJ/mol)"
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           do i=1,Graph_instance%vdwaals%numberOfVDWaals
@@ -239,12 +239,12 @@ contains
              Write( atomB, '(i10)' ) atomBIdx
              atomB = adjustl(trim(atomB))
              atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
-             write(*,"(T5,I5,T15,A,T25,A,T35,F8.5,T50,F8.5,T65,F12.5,T80,F12.5)") i, atomA, atomB, &
-                  Graph_instance%vdwaals%distance(i)! , &
-                  ! Graph_instance%edges%idealDistance(i), &
-                  ! Graph_instance%edges%forceConstant(i), &
+             write(*,"(T5,I5,T15,A,T25,A,T35,F8.5,T50,F8.5,T62,F12.5,T80,F12.5)") i, atomA, atomB, &
+                  Graph_instance%vdwaals%distance(i) , &
+                  Graph_instance%vdwaals%idealDistance(i), &
+                  Graph_instance%vdwaals%wellDepth(i), &
                   ! ! Graph_instance%edges%stretchingEnergy(i), &
-                  ! Graph_instance%edges%stretchingEnergyKJ(i)
+                  Graph_instance%vdwaals%VDWEnergyKJ(i)
           end do
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T5,A)") ""

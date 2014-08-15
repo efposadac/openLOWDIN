@@ -62,7 +62,10 @@ module VDWaals_
        public :: &
             VDWaals_constructor, &
             VDWaals_getDistance, &
-            VDWaals_isVDW
+            VDWaals_getIdealDistance, &
+            VDWaals_getWellDepth, &
+            VDWaals_isVDW, &
+            VDWaals_getVDWEnergies
             ! VDWaals_getConstants, &
             ! VDWaals_getTorsionEnergies
 
@@ -77,7 +80,10 @@ contains
     integer :: i, j
  
     call VDWaals_getDistance(this, vertices, bonds, angle)
-    
+    call VDWaals_getIdealDistance(this, vertices)
+    call VDWaals_getWellDepth(this, vertices)
+    call VDWaals_getVDWEnergies(this)
+
   end subroutine VDWaals_constructor
 
   subroutine VDWaals_getDistance(this, vertices, bonds, angle)
@@ -170,6 +176,64 @@ contains
     end if
 
   end function VDWaals_isVDW
+
+  subroutine VDWaals_getIdealDistance(this, vertices)
+    implicit none
+    type(VDWaals), intent(in out) :: this
+    type(Vertex), intent(in) :: vertices
+    integer :: i
+    integer :: atomA, atomB
+    real(8) :: Xi, Xj !! atomic Van der Waals distance
+
+    allocate(this%idealDistance(this%numberOfVDWaals))
+
+    do i=1,this%numberOfVDWaals
+       atomA = this%connectionMatrix%values(i,1)
+       atomB = this%connectionMatrix%values(i,2)
+       Xi = vertices%distanceVdW(atomA)
+       Xj = vertices%distanceVdW(atomB)
+       this%idealDistance(i) = sqrt(Xi*Xj)
+    end do
+
+  end subroutine VDWaals_getIdealDistance
+
+  subroutine VDWaals_getWellDepth(this, vertices)
+    implicit none
+    type(VDWaals), intent(in out) :: this
+    type(Vertex), intent(in) :: vertices
+    integer :: i
+    integer :: atomA, atomB
+    real(8) :: Di, Dj !! atomic Van der Waals energy
+
+    allocate(this%wellDepth(this%numberOfVDWaals))
+
+    do i=1,this%numberOfVDWaals
+       atomA = this%connectionMatrix%values(i,1)
+       atomB = this%connectionMatrix%values(i,2)
+       Di = vertices%energyVdW(atomA)
+       Dj = vertices%energyVdW(atomB)
+       this%wellDepth(i) = sqrt(Di*Dj)
+    end do
+
+  end subroutine VDWaals_getWellDepth
+
+  subroutine VDWaals_getVDWEnergies(this)
+    implicit none
+    type(VDWaals), intent(in out) :: this
+    real(8) :: twelvepow, sixpow
+    integer :: i
+
+    allocate(this%VDWEnergy(this%numberOfVDWaals))
+    allocate(this%VDWEnergyKJ(this%numberOfVDWaals))
+
+    do i=1,this%numberOfVDWaals
+       sixpow = (this%idealDistance(i)/this%distance(i))**6
+       twelvepow = sixpow**2
+       this%VDWEnergy(i) = this%wellDepth(i)*(twelvepow - 2*sixpow)
+       this%VDWEnergyKJ(i) = this%VDWEnergy(i)*4.1868
+    end do
+
+  end subroutine VDWaals_getVDWEnergies
 
   subroutine VDWaals_exception( typeMessage, description, debugDescription)
     implicit none

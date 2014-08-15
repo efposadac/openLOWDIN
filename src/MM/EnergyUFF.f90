@@ -56,12 +56,23 @@ contains
     real(8) :: totalBendingEnergyKJ
     real(8) :: totalTorsionEnergy
     real(8) :: totalTorsionEnergyKJ
+    real(8) :: totalVDWEnergy
+    real(8) :: totalVDWEnergyKJ
+    real(8) :: totalInversionEnergy
+    real(8) :: totalInversionEnergyKJ
+    real(8) :: totalElectrostaticEnergy
+    real(8) :: totalElectrostaticEnergyKJ
+    real(8) :: totalEnergy
+    real(8) :: totalEnergyKJ
     integer :: i
 
 
     totalStretchingEnergy = 0.0
     totalBendingEnergy = 0.0
     totalTorsionEnergy = 0.0
+    totalVDWEnergy = 0.0
+    totalInversionEnergy = 0.0
+    totalElectrostaticEnergy = 0.0
 
     do i=1, this%edges%numberOfEdges
        totalStretchingEnergy = totalStretchingEnergy + this%edges%stretchingEnergy(i)
@@ -75,16 +86,37 @@ contains
        totalTorsionEnergy = totalTorsionEnergy + this%torsions%torsionEnergy(i)
     end do
 
+    do i=1, this%vdwaals%numberOfVDWaals
+       totalVDWEnergy = totalVDWEnergy + this%vdwaals%VDWEnergy(i)
+    end do
+
     totalStretchingEnergyKJ = totalStretchingEnergy*4.1868
     totalBendingEnergyKJ = totalBendingEnergy*4.1868
     totalTorsionEnergyKJ = totalTorsionEnergy*4.1868
+    totalVDWEnergyKJ = totalVDWEnergy*4.1868
+    totalInversionEnergyKJ = totalInversionEnergy*4.1868
+    totalElectrostaticEnergyKJ = totalElectrostaticEnergy*4.1868
 
-    write(*,"(T20,A,F12.5,A)") "Total Stretching Energy: ", totalStretchingEnergy, " kcal/mol"
-    write(*,"(T20,A,F12.5,A)") "Total Stretching Energy: ", totalStretchingEnergyKJ, " kJ/mol"
-    write(*,"(T20,A,F12.5,A)") "Total Bending Energy: ", totalBendingEnergy, " kcal/mol"
-    write(*,"(T20,A,F12.5,A)") "Total Bending Energy: ", totalBendingEnergyKJ, " kJ/mol"
-    write(*,"(T20,A,F12.5,A)") "Total Torsional Energy: ", totalTorsionEnergy, " kcal/mol"
-    write(*,"(T20,A,F12.5,A)") "Total Torsional Energy: ", totalTorsionEnergyKJ, " kJ/mol"
+    totalEnergy = totalStretchingEnergy + totalBendingEnergy + totalTorsionEnergy + totalVDWEnergy + totalInversionEnergy + totalElectrostaticEnergy
+    totalEnergyKJ = totalEnergy*4.1868
+
+    write(*,"(T5,A)") ""
+    write(*,"(T5,A)") ""
+    write(*,"(T5,A)") "------------------------------------------"
+    write(*,"(T12,A)") "Summary of total energies"
+    write(*,"(T5,A)") "------------------------------------------"
+    write(*,"(T7,A,T25,A,T39,A)") "Type", "kcal/mol", "kJ/mol"
+    write(*,"(T5,A)") "------------------------------------------"
+    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Stretching", totalStretchingEnergy, totalStretchingEnergyKJ
+    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Bending", totalBendingEnergy, totalBendingEnergyKJ
+    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Torsional", totalTorsionEnergy, totalTorsionEnergyKJ
+    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Van der Waals", totalVDWEnergy, totalVDWEnergyKJ
+    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Out of Plane", totalInversionEnergy, totalInversionEnergyKJ
+    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Electrostatic", totalElectrostaticEnergy, totalElectrostaticEnergyKJ
+    write(*,"(T5,A)") "------------------------------------------"
+    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "TOTAL", totalEnergy, totalEnergyKJ
+    write(*,"(T5,A)") "------------------------------------------"
+
     
   end subroutine EnergyUFF_run
   
