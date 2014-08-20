@@ -17,6 +17,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	ELECTRONEGATIVITY = 2.1
 	COVALENT = 0.30
 	ATOMIC = 0.25
+  KLAMT = 1.30
 	VANDERWAALS = 1.20
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
@@ -39,6 +40,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 31
 	VANDERWAALS = 140
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 3, 3.0160293097, 0.000137, 0.5, 
 		4, 4.0026032497, 99.999863, 0.0, 
@@ -62,7 +64,8 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 31
 	VANDERWAALS = 140
-	ELECTRONEGATIVITY = 0
+	KLAMT = 0.0
+  ELECTRONEGATIVITY = 0
 	ISOTOPES = 3, 3.0160293097, 0.000137, 0.5, 
 		4, 4.0026032497, 99.999863, 0.0, 
 		5, 5.012220, , -1.5, 
@@ -85,6 +88,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.23
 	ATOMIC = 1.45
 	VANDERWAALS = 1.82
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0.98
 	ISOTOPES = 4, 4.02718, , -2.0, 
 		5, 5.012540, , -1.5, 
@@ -109,6 +113,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.23
 	ATOMIC = 1.45
 	VANDERWAALS = 1.82
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0.98
 	ISOTOPES = 4, 4.02718, , -2.0, 
 		5, 5.012540, , -1.5, 
@@ -133,6 +138,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.89
 	ATOMIC = 1.45
 	VANDERWAALS = 1.82
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0.98
 	ISOTOPES = 5, 5.04079, , , 
 		6, 6.019726, , , 
@@ -158,6 +164,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.89
 	ATOMIC = 1.45
 	VANDERWAALS = 1.82
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0.98
 	ISOTOPES = 5, 5.04079, , , 
 		6, 6.019726, , , 
@@ -183,6 +190,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.88
 	ATOMIC = 85
 	VANDERWAALS = 1.92
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.04
 	ISOTOPES = 7, 7.029920, , , 
 		8, 8.0246067, , , 
@@ -211,6 +219,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.77
 	ATOMIC = 0.70
 	VANDERWAALS = 1.70
+  KLAMT = 2.00
 	ELECTRONEGATIVITY = 2.55
 	ISOTOPES = 8, 8.037675, , , 
 		9, 9.0310401, , , 
@@ -241,6 +250,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.77
 	ATOMIC = 0.70
 	VANDERWAALS = 1.70
+  KLAMT = 2.00
 	ELECTRONEGATIVITY = 2.55
 	ISOTOPES = 8, 8.037675, , , 
 		9, 9.0310401, , , 
@@ -271,6 +281,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.70
 	ATOMIC = 0.65
 	VANDERWAALS = 1.55
+  KLAMT = 1.83
 	ELECTRONEGATIVITY = 3.04
 	ISOTOPES = 10, 10.04262, , , 
 		11, 11.02680, , , 
@@ -301,6 +312,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.66
 	ATOMIC = 0.60
 	VANDERWAALS = 1.52
+  KLAMT = 1.72
 	ELECTRONEGATIVITY = 3.44
 	ISOTOPES = 12, 12.034405, , , 
 		13, 13.024810, , , 
@@ -331,6 +343,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -362,6 +375,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.60
 	ATOMIC = 38
 	VANDERWAALS = 154
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 16, 16.025757, , , 
 		17, 17.017700, , , 
@@ -394,6 +408,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.60
 	ATOMIC = 38
 	VANDERWAALS = 154
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 16, 16.025757, , , 
 		17, 17.017700, , , 
@@ -426,6 +441,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.66
 	ATOMIC = 1.80
 	VANDERWAALS = 2.27
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0.93
 	ISOTOPES = 23, 22.98976967, 100, , 
 /
@@ -442,6 +458,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.66
 	ATOMIC = 1.80
 	VANDERWAALS = 2.27
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0.93
 	ISOTOPES = 23, 22.98976967, 100, , 
 /
@@ -458,6 +475,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.36
 	ATOMIC = 1.50
 	VANDERWAALS = 1.73
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.31
 	ISOTOPES = 24, 23.98504190, 78.99, , 
 		25, 24.98583702, 10.00, , 
@@ -476,6 +494,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.36
 	ATOMIC = 1.50
 	VANDERWAALS = 1.73
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.31
 	ISOTOPES = 24, 23.98504190, 78.99, , 
 		25, 24.98583702, 10.00, , 
@@ -494,6 +513,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.25
 	ATOMIC = 1.25
 	VANDERWAALS = 1.84
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.61
 	ISOTOPES = 27, 26.98153844, 100, , 
 /
@@ -510,6 +530,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.25
 	ATOMIC = 1.25
 	VANDERWAALS = 1.84
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.61
 	ISOTOPES = 27, 26.98153844, 100, , 
 /
@@ -526,6 +547,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.17
 	ATOMIC = 1.10
 	VANDERWAALS = 2.10
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.91
 	ISOTOPES = 28, 27.9769265327, 92.2297, , 
 		29, 28.97649472, 4.6832, , 
@@ -544,6 +566,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.17
 	ATOMIC = 1.10
 	VANDERWAALS = 2.10
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.91
 	ISOTOPES = 28, 27.9769265327, 92.2297, , 
 		29, 28.97649472, 4.6832, , 
@@ -562,6 +585,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.10
 	ATOMIC = 1.00
 	VANDERWAALS = 1.80
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.19
 	ISOTOPES = 31, 30.97376151, 100, , 
 /
@@ -578,6 +602,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.10
 	ATOMIC = 1.00
 	VANDERWAALS = 1.80
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.19
 	ISOTOPES = 31, 30.97376151, 100, , 
 /
@@ -594,6 +619,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.04
 	ATOMIC = 1.00
 	VANDERWAALS = 1.80
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.58
 	ISOTOPES = 26, 26.02788, , , 
 		27, 27.01880, , , 
@@ -633,6 +659,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.994
 	ATOMIC = 1.00
 	VANDERWAALS = 1.75
+  KLAMT = 2.05
 	ELECTRONEGATIVITY = 3.16
 	ISOTOPES = 28, 28.02851, , , 
 		29, 29.01411, , , 
@@ -672,6 +699,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.994
 	ATOMIC = 1.00
 	VANDERWAALS = 1.75
+  KLAMT = 2.05
 	ELECTRONEGATIVITY = 3.16
 	ISOTOPES = 28, 28.02851, , , 
 		29, 29.01411, , , 
@@ -711,7 +739,8 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.91
 	ATOMIC = 0.71
 	VANDERWAALS = 1.88
-	ELECTRONEGATIVITY = 0
+  KLAMT = 0.0
+  ELECTRONEGATIVITY = 0
 	ISOTOPES = 36, 35.96754628, 0.3365, , 
 		38, 37.9627322, 0.0632, , 
 		40, 39.962383123, 99.6003, , 
@@ -729,6 +758,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.91
 	ATOMIC = 0.71
 	VANDERWAALS = 1.88
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 36, 35.96754628, 0.3365, , 
 		38, 37.9627322, 0.0632, , 
@@ -747,6 +777,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 2.03
 	ATOMIC = 2.20
 	VANDERWAALS = 2.75
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0.82
 	ISOTOPES = 39, 38.9637, 93.2581, , 
 /
@@ -763,6 +794,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.74
 	ATOMIC = 1.80
 	VANDERWAALS = 2.31
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.0
 	ISOTOPES = 40, 39.9625912, 96.941, , 
 		42, 41.9586183, 0.647, , 
@@ -800,6 +832,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.60
 	ATOMIC = 1.47
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.54
 	ISOTOPES = 48, 47.9478700, 73.72, , 
 /
@@ -816,6 +849,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.53
 	ATOMIC = 1.34
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.63
 	ISOTOPES = 51, 50.9439595, 99.75, , 
 /
@@ -832,6 +866,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.39
 	ATOMIC = 1.28
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.66
 	ISOTOPES = 52, 51.9405075, , , , 
 /
@@ -848,6 +883,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.39
 	ATOMIC = 1.27
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.55
 	ISOTOPES = 55, 54.9380451, 100.00, , 
 /
@@ -864,6 +900,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.32
 	ATOMIC = 1.26
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.83
 	ISOTOPES = 56, 55.9349375, 91.754, , 
 /
@@ -880,6 +917,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.26
 	ATOMIC = 1.25
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.88
 	ISOTOPES = 59, 58.9338171, 100.00, , 
 /
@@ -896,6 +934,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.24
 	ATOMIC = 1.24
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.91
 	ISOTOPES = 58, 57.9353429, 68.0769, , 
 		60, 59.9307684, 26.2231, , 
@@ -914,6 +953,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.32
 	ATOMIC = 1.28
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.90
 	ISOTOPES = 63, 62.9295975, 69.15, , 
 		65, 64.9277895, 30.85, , 
@@ -932,6 +972,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 1.34
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.65
 	ISOTOPES = 64, 63.9291422, 48.268, , 
 		66, 65.9260334, 27.975, , 
@@ -950,6 +991,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 1.87
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 1.81
 	ISOTOPES = 69, 68.9255736, 60.108, , 
 		71, 70.9247013, 39.892, , 
@@ -968,6 +1010,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 1.22
 	VANDERWAALS = 0
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.01
 	ISOTOPES = 70, 69.9242474, 20.38, , 
 		72, 71.9220758, 27.31, , 
@@ -987,6 +1030,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.19
 	ATOMIC = 1.19
 	VANDERWAALS = 1.85
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.18
 	ISOTOPES = 75, 74.9215965, 100.00, , 
 /
@@ -1003,6 +1047,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.20
 	ATOMIC = 1.20
 	VANDERWAALS = 1.90
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.55
 	ISOTOPES = 78, 77.9173091, 23.77, , 
 		80, 79.9165213, 49.61, , 
@@ -1020,6 +1065,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.145
 	ATOMIC = 1.15
 	VANDERWAALS = 1.85
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.96
 	ISOTOPES = 67, 66.964795, , , 
 		68, 67.9582558, , , 
@@ -1063,6 +1109,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.16
 	ATOMIC = 0
 	VANDERWAALS = 2.02
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 2.55
 	ISOTOPES = 84, 83.911507, 56.987, 0, 
 /
@@ -1080,6 +1127,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1101,6 +1149,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1122,6 +1171,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1143,6 +1193,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1164,6 +1215,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1185,6 +1237,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1205,6 +1258,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	ELECTRONEGATIVITY = 2.1
 	COVALENT = 0.30
 	ATOMIC = 0.25
+ 	KLAMT = 1.30
 	VANDERWAALS = 1.20
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
@@ -1227,6 +1281,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1248,6 +1303,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1269,6 +1325,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1290,6 +1347,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1311,6 +1369,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1332,6 +1391,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1353,6 +1413,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1374,6 +1435,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1395,6 +1457,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1416,6 +1479,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1437,6 +1501,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1458,6 +1523,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1479,6 +1545,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1500,6 +1567,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1521,6 +1589,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1542,6 +1611,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1563,6 +1633,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1584,6 +1655,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1605,6 +1677,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1626,6 +1699,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1647,6 +1721,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1668,6 +1743,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1689,6 +1765,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1710,6 +1787,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1731,6 +1809,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1752,6 +1831,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1773,6 +1853,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1794,6 +1875,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1815,6 +1897,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1836,6 +1919,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1857,6 +1941,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1878,6 +1963,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1899,6 +1985,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1920,6 +2007,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1941,6 +2029,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1962,6 +2051,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -1983,6 +2073,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2004,6 +2095,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2025,6 +2117,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2046,6 +2139,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2067,6 +2161,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2088,6 +2183,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2109,6 +2205,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2130,6 +2227,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2151,6 +2249,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2172,6 +2271,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2193,6 +2293,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2214,6 +2315,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2235,6 +2337,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2256,6 +2359,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2277,6 +2381,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2298,6 +2403,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2319,6 +2425,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2340,6 +2447,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2361,6 +2469,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2382,6 +2491,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2403,6 +2513,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2424,6 +2535,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2445,6 +2557,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2466,6 +2579,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2487,6 +2601,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2508,6 +2623,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2529,6 +2645,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2550,6 +2667,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2571,6 +2689,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2592,6 +2711,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2613,6 +2733,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2634,6 +2755,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2655,6 +2777,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2676,6 +2799,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2697,6 +2821,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2718,6 +2843,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2739,6 +2865,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2760,6 +2887,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2781,6 +2909,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2802,6 +2931,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2823,6 +2953,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2844,6 +2975,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2865,6 +2997,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2886,6 +3019,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2907,6 +3041,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2928,6 +3063,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2949,6 +3085,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2970,6 +3107,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -2991,6 +3129,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3012,6 +3151,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3033,6 +3173,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3054,6 +3195,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3075,6 +3217,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3096,6 +3239,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3117,6 +3261,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3138,6 +3283,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3159,6 +3305,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3180,6 +3327,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3201,6 +3349,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3222,6 +3371,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3243,6 +3393,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3264,6 +3415,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3285,6 +3437,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3306,6 +3459,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3327,6 +3481,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3348,6 +3503,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3369,6 +3525,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3390,6 +3547,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3411,6 +3569,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3432,6 +3591,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3453,6 +3613,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3474,6 +3635,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3495,6 +3657,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3516,6 +3679,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3537,6 +3701,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3558,6 +3723,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3579,6 +3745,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3600,6 +3767,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3621,6 +3789,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3642,6 +3811,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3663,6 +3833,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3684,6 +3855,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3705,6 +3877,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3726,6 +3899,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3747,6 +3921,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3768,6 +3943,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3789,6 +3965,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.30
 	ATOMIC = 0.25
 	VANDERWAALS = 1.20
+ 	KLAMT = 1.30
 	ISOTOPES = 1, 1.0078250321, 99.9885, 0.5, 
 		2, 2.0141017780, 0.0115, 1, 
 		3, 3.0160492675, 0.0, 0.5, 
@@ -3809,6 +3986,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 31
 	VANDERWAALS = 140
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 3, 3.0160293097, 0.000137, 0.5, 
 		4, 4.0026032497, 99.999863, 0.0, 
@@ -3832,6 +4010,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 31
 	VANDERWAALS = 140
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 3, 3.0160293097, 0.000137, 0.5, 
 		4, 4.0026032497, 99.999863, 0.0, 
@@ -3855,6 +4034,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 31
 	VANDERWAALS = 140
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 3, 3.0160293097, 0.000137, 0.5, 
 		4, 4.0026032497, 99.999863, 0.0, 
@@ -3878,6 +4058,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.22
 	ATOMIC = 31
 	VANDERWAALS = 140
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 3, 3.0160293097, 0.000137, 0.5, 
 		4, 4.0026032497, 99.999863, 0.0, 
@@ -3901,6 +4082,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.23
 	ATOMIC = 1.45
 	VANDERWAALS = 1.82
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 0.98
 	ISOTOPES = 4, 4.02718, , -2.0, 
 		5, 5.012540, , -1.5, 
@@ -3925,6 +4107,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.23
 	ATOMIC = 1.45
 	VANDERWAALS = 1.82
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 0.98
 	ISOTOPES = 4, 4.02718, , -2.0, 
 		5, 5.012540, , -1.5, 
@@ -3949,6 +4132,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.89
 	ATOMIC = 1.45
 	VANDERWAALS = 1.82
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 0.98
 	ISOTOPES = 5, 5.04079, , , 
 		6, 6.019726, , , 
@@ -3974,6 +4158,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.89
 	ATOMIC = 1.45
 	VANDERWAALS = 1.82
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 0.98
 	ISOTOPES = 5, 5.04079, , , 
 		6, 6.019726, , , 
@@ -3999,6 +4184,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.88
 	ATOMIC = 85
 	VANDERWAALS = 0
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 2.04
 	ISOTOPES = 7, 7.029920, , , 
 		8, 8.0246067, , , 
@@ -4027,6 +4213,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.88
 	ATOMIC = 85
 	VANDERWAALS = 0
+ 	KLAMT = 0.00
 	ELECTRONEGATIVITY = 2.04
 	ISOTOPES = 7, 7.029920, , , 
 		8, 8.0246067, , , 
@@ -4055,6 +4242,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.77
 	ATOMIC = 0.70
 	VANDERWAALS = 1.70
+  KLAMT = 2.00
 	ELECTRONEGATIVITY = 2.55
 	ISOTOPES = 8, 8.037675, , , 
 		9, 9.0310401, , , 
@@ -4085,6 +4273,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.77
 	ATOMIC = 0.70
 	VANDERWAALS = 1.70
+  KLAMT = 2.00
 	ELECTRONEGATIVITY = 2.55
 	ISOTOPES = 8, 8.037675, , , 
 		9, 9.0310401, , , 
@@ -4115,6 +4304,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.70
 	ATOMIC = 0.65
 	VANDERWAALS = 1.55
+  KLAMT = 1.83
 	ELECTRONEGATIVITY = 3.04
 	ISOTOPES = 10, 10.04262, , , 
 		11, 11.02680, , , 
@@ -4145,6 +4335,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.70
 	ATOMIC = 0.65
 	VANDERWAALS = 1.55
+  KLAMT = 1.83
 	ELECTRONEGATIVITY = 3.04
 	ISOTOPES = 10, 10.04262, , , 
 		11, 11.02680, , , 
@@ -4175,6 +4366,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.66
 	ATOMIC = 0.60
 	VANDERWAALS = 1.52
+  KLAMT = 1.72
 	ELECTRONEGATIVITY = 3.44
 	ISOTOPES = 12, 12.034405, , , 
 		13, 13.024810, , , 
@@ -4205,6 +4397,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.66
 	ATOMIC = 0.60
 	VANDERWAALS = 1.52
+  KLAMT = 1.72
 	ELECTRONEGATIVITY = 3.44
 	ISOTOPES = 12, 12.034405, , , 
 		13, 13.024810, , , 
@@ -4235,6 +4428,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.60
 	ATOMIC = 38
 	VANDERWAALS = 154
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 16, 16.025757, , , 
 		17, 17.017700, , , 
@@ -4267,6 +4461,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 1.60
 	ATOMIC = 38
 	VANDERWAALS = 154
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 0
 	ISOTOPES = 16, 16.025757, , , 
 		17, 17.017700, , , 
@@ -4299,6 +4494,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4330,6 +4526,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4361,6 +4558,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4392,6 +4590,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4423,6 +4622,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4454,6 +4654,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4485,6 +4686,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4516,6 +4718,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4547,6 +4750,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4578,6 +4782,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
@@ -4609,6 +4814,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	COVALENT = 0.58
 	ATOMIC = 50
 	VANDERWAALS = 147
+  KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
 		15, 15.01801, , , 
