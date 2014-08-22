@@ -2,7 +2,7 @@ TOPDIR=..
 
 include $(TOPDIR)/CONFIG
 
-SUBDIRS = ints HF MP2 scf
+SUBDIRS = ints HF MP2 scf cosmo
 ALLDIRS = $(SUBDIRS) lowdincore
 
 LDR=$(FC)
