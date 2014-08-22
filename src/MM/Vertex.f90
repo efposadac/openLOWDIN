@@ -62,6 +62,7 @@ module Vertex_
      real(8), allocatable :: hard(:)
      real(8), allocatable :: radius(:)
      integer, allocatable :: hybridization(:)
+     type(Matrix), allocatable :: ionizationPotential(:) 
      integer, allocatable :: connectivity(:)
 
   end type Vertex
@@ -78,13 +79,17 @@ contains
     character(50), intent(in) :: forcefield
     character(10), allocatable :: ffAtomType(:)
     type(UFFParameters) :: atomType
-    integer :: i
+    integer :: i, j
     type(Exception) :: ex
     type(MatrixInteger) :: connectivityMatrix
+    type(Matrix) :: auxIonizationPotentials
+    integer, allocatable :: ionizationSize(:)
+    integer(8) :: size1, size2
 
     call MMCommons_constructor( MolecularSystem_instance )
 
     this%numberOfVertices = ParticleManager_getNumberOfCentersOfOptimization()
+    size1 = this%numberOfVertices
     allocate( this%symbol( this%numberOfVertices ) )
     this%symbol = ParticleManager_getLabelsOfCentersOfOptimization()
     allocate( this%type( this%numberOfVertices ) ) 
@@ -104,6 +109,9 @@ contains
     allocate( this%radius( this%numberOfVertices ) )
     allocate( this%hybridization( this%numberOfVertices ) )
     allocate( this%connectivity( this%numberOfVertices ) )
+
+    
+    call Matrix_constructor( auxIonizationPotentials, size1, 9 )
 
     this%cartesianMatrix = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
 
@@ -127,7 +135,27 @@ contains
           this%hard(i) = atomType%hard
           this%radius(i) = atomType%radius
           this%hybridization(i) = atomType%hybridization
+          auxIonizationPotentials%values(i,:) = atomType%ionizationPotential(:)
           this%connectivity(i) = connectivityMatrix%values(i,2)
+       end do
+       allocate( ionizationSize ( this%numberOfVertices )) 
+       do i=1,this%numberOfVertices
+          ionizationSize(i) = 9
+          do j=9,2,-1
+             if(auxIonizationPotentials%values(i,j) == 0.0) then
+                ionizationSize(i) = ionizationSize(i) - 1
+             end if
+          end do
+       end do
+
+       allocate( this%ionizationPotential( this%numberOfVertices ))
+
+       do i=1,this%numberOfVertices
+          size2 = ionizationSize(i)
+          call Matrix_constructor( this%ionizationPotential(i), 1, size2 )
+          do j=1,ionizationSize(i)
+             this%ionizationPotential(i)%values(1,j) = auxIonizationPotentials%values(i,j)
+          end do
        end do
     else
        call Exception_constructor( ex , ERROR )

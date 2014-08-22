@@ -47,6 +47,7 @@ module UFFParameters_
      real(8) :: hard
      real(8) :: radius
      integer :: hybridization
+     real(8) :: ionizationPotential(9)
      logical :: isInstanced
   end type UFFParameters
   
@@ -84,6 +85,7 @@ contains
     real(8) :: hard
     real(8) :: radius
     integer :: hybridization
+    real(8) :: ionizationPotential(9)
 
 
     NAMELIST /atomtype/ &
@@ -99,7 +101,9 @@ contains
          electronegativityGMP, &
          hard, &
          radius, &
-         hybridization
+         hybridization, &
+         ionizationPotential
+
 
     !! Looking for library    
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%UFF_PARAMETERS_DATABASE), exist=existFile)
@@ -116,6 +120,7 @@ contains
        
        do while(trim(type) /= trim(typeSelected))
        
+
           !! Setting defaults
           bond = 0
           angle = 0
@@ -129,7 +134,9 @@ contains
           hard = 0
           radius = 0
           hybridization = 0
-         
+          ionizationPotential = 0
+
+        
           if (stat == -1 ) then
              
              this%isInstanced = .false.
@@ -163,7 +170,10 @@ contains
        this%radius = radius
        this%hybridization = hybridization
        this%isInstanced = .true.
-       
+
+       do i = 1, size(ionizationPotential)
+          this%ionizationPotential(i) = ionizationPotential(i)
+       end do
        
        !! Debug information.
        ! call UFFParameters_show(this)
