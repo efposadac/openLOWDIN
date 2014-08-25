@@ -1468,9 +1468,7 @@ C
       ZVEC=(ZP(I)-ZE(J))*FDR
 
 !      WRITE(8)ITO(I),J,ISA(I),XP(I),YP(I),ZP(I),AP(I),XVEC,YVEC,ZVEC
-			!!Modificado para imprimir la información para el resto del
-			!calculo y almacenarlo para ser llamado en lowdin
-	  	WRITE(8,150) XP(I),YP(I),ZP(I),AP(I)
+	  WRITE(8,150) XP(I),YP(I),ZP(I),AP(I)
 150	  FORMAT (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
 !150	  FORMAT (F16.8,2X,F16.8)
      

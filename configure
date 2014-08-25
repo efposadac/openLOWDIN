@@ -36,7 +36,7 @@ if [ -e CONFIG ] ; then
 else
     FC="ifort"
     FLAGS="1"
-    PREFIX="/usr/local/bin"
+    PREFIX="/home/danilo/bin"
     CUBAFLAGS=
     CULAFLAGS=
     CXX="icpc"

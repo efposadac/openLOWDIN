@@ -37,7 +37,6 @@ program Cosmo
        character(50) :: gepol
        character(50) :: input
 	
-	gepol='gepol.lib'							!hace el llamado a gepol
 	input='< gepol.inp'						!hace el llamado al input de gepol
 
   job = ""  
@@ -55,7 +54,8 @@ program Cosmo
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
 
-  call system (gepol// input)
+!  call system ("gepol.x"// input)
+!  call system ("gepol.a")
 	write (*,*) "Building surface"
   !call MollerPlesset_run()
   !call MollerPlesset_show()

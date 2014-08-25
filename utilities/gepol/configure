@@ -10,10 +10,10 @@ cat > makefile << EOF
 TOPDIR=../../
 include \$(TOPDIR)/CONFIG
 
-TARGET=gepol.x
+TARGET=gepol.a
 LDR=\$(FC)
-INC=-I\$(TOPDIR)src/lowdincore/
-LDPATH=\$(TOPDIR)lib/lowdincore.a
+#INC=-I\$(TOPDIR)src/lowdincore/
+#LDPATH=\$(TOPDIR)lib/lowdincore.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
@@ -25,7 +25,7 @@ OBJECTS=$(for file in $SRCMOD
 EOF
 echo -e "\n\$(TARGET) : \$(OBJECTS)" >> makefile
 echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(LDPATH) \$(LIBS)" >> makefile
-echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
+echo -e "\tmv \$(TARGET) \$(TOPDIR)lib/\n" >> makefile
 SRCMOD=$(ls [!_]*.for)
 #Fortran
 for file in $SRCMOD 
