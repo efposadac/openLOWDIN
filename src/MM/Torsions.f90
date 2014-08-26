@@ -54,6 +54,7 @@ module Torsions_
      real(8), allocatable :: order(:)
      real(8), allocatable :: torsionEnergy(:) !! Kcal/mol
      real(8), allocatable :: torsionEnergyKJ(:) !! KJ/mol
+     logical :: hasTorsion
 
   end type Torsions
 
@@ -77,6 +78,11 @@ contains
     
     call MMCommons_constructor( MolecularSystem_instance )
     this%numberOfTorsions = size(MolecularSystem_instance%intCoordinates%dihedralsAngleValue%values)
+
+    this%hasTorsion= .false.
+    if(this%numberOfTorsions > 0) then
+       this%hasTorsion= .true.
+    end if
 
     call MatrixInteger_constructor( this%connectionMatrix, this%numberOfTorsions, 4 )
     allocate( this%phi( this%numberOfTorsions ) )

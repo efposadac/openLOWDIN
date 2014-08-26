@@ -55,6 +55,7 @@ module VDWaals_
      real(8), allocatable :: wellDepth(:)
      real(8), allocatable :: VDWEnergy(:) !! Kcal/mol
      real(8), allocatable :: VDWEnergyKJ(:) !! KJ/mol
+     logical :: VDW
 
   end type VDWaals
 
@@ -116,7 +117,13 @@ contains
        end do
     end do
 
+
     numberofVDWdistances = ListInteger_size(atomA)
+    
+    this%VDW = .false.
+    if(numberofVDWdistances > 1) then
+       this%VDW = .true.
+    end if
 
     allocate(this%distance(numberofVDWdistances))
     this%distance = vdwDistance%data * AMSTRONG
@@ -126,6 +133,10 @@ contains
     this%connectionMatrix%values(:,2) = atomB%data(:)
 
     this%numberOfVDWaals = numberofVDWdistances
+
+    call List_destructor(vdwDistance)
+    call ListInteger_destructor(atomA)
+    call ListInteger_destructor(atomB)
 
   end subroutine VDWaals_getDistance
 

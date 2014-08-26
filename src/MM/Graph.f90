@@ -67,7 +67,7 @@ contains
     call Angles_constructor( Graph_instance%angles, Graph_instance%vertex, Graph_instance%edges )
     call Torsions_constructor( Graph_instance%torsions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
     call VDWaals_constructor( Graph_instance%vdwaals, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
-    call Electrostatic_constructor(Graph_instance%electrostatic, Graph_instance%vertex)
+    call Electrostatic_constructor(Graph_instance%electrostatic, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
 
   end subroutine Graph_initialize
 

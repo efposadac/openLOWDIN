@@ -82,18 +82,29 @@ contains
        totalBendingEnergy = totalBendingEnergy + this%angles%bendingEnergy(i)
     end do
 
-    do i=1, this%torsions%numberOfTorsions
-       totalTorsionEnergy = totalTorsionEnergy + this%torsions%torsionEnergy(i)
-    end do
+    if(this%torsions%hasTorsion) then
+       do i=1, this%torsions%numberOfTorsions
+          totalTorsionEnergy = totalTorsionEnergy + this%torsions%torsionEnergy(i)
+       end do
+    end if
 
-    do i=1, this%vdwaals%numberOfVDWaals
-       totalVDWEnergy = totalVDWEnergy + this%vdwaals%VDWEnergy(i)
-    end do
+    if(this%vdwaals%VDW) then
+       do i=1, this%vdwaals%numberOfVDWaals
+          totalVDWEnergy = totalVDWEnergy + this%vdwaals%VDWEnergy(i)
+       end do
+    end if
+
+    if(this%electrostatic%isElectrostatic) then
+       do i=1, this%electrostatic%numberOfElectrostatics
+          totalElectrostaticEnergy = totalElectrostaticEnergy + this%electrostatic%electrostaticEnergy(i)
+       end do
+    end if
 
     totalStretchingEnergyKJ = totalStretchingEnergy*4.1868
     totalBendingEnergyKJ = totalBendingEnergy*4.1868
     totalTorsionEnergyKJ = totalTorsionEnergy*4.1868
     totalVDWEnergyKJ = totalVDWEnergy*4.1868
+    
     totalInversionEnergyKJ = totalInversionEnergy*4.1868
     totalElectrostaticEnergyKJ = totalElectrostaticEnergy*4.1868
 
@@ -109,10 +120,16 @@ contains
     write(*,"(T5,A)") "------------------------------------------"
     write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Stretching", totalStretchingEnergy, totalStretchingEnergyKJ
     write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Bending", totalBendingEnergy, totalBendingEnergyKJ
-    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Torsional", totalTorsionEnergy, totalTorsionEnergyKJ
-    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Van der Waals", totalVDWEnergy, totalVDWEnergyKJ
+    if(this%torsions%hasTorsion) then
+       write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Torsional", totalTorsionEnergy, totalTorsionEnergyKJ
+    end if
+    if(this%vdwaals%VDW) then
+       write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Van der Waals", totalVDWEnergy, totalVDWEnergyKJ
+    end if
     write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Out of Plane", totalInversionEnergy, totalInversionEnergyKJ
-    write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Electrostatic", totalElectrostaticEnergy, totalElectrostaticEnergyKJ
+    if(this%electrostatic%isElectrostatic) then
+       write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Electrostatic", totalElectrostaticEnergy, totalElectrostaticEnergyKJ
+    end if
     write(*,"(T5,A)") "------------------------------------------"
     write(*,"(T5,A,T20,F12.5,T34,F12.5)") "TOTAL", totalEnergy, totalEnergyKJ
     write(*,"(T5,A)") "------------------------------------------"
