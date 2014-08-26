@@ -36,6 +36,7 @@ module Graph_
   use Torsions_
   use VDWaals_
   use Electrostatic_
+  use Inversions_
   use Exception_
   implicit none
   
@@ -47,6 +48,7 @@ module Graph_
      type(Torsions) :: torsions
      type(VDWaals) :: vdwaals
      type(Electrostatic) :: electrostatic
+     type(Inversions) :: inversions
 
   end type Graph
 
@@ -68,6 +70,7 @@ contains
     call Torsions_constructor( Graph_instance%torsions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
     call VDWaals_constructor( Graph_instance%vdwaals, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
     call Electrostatic_constructor(Graph_instance%electrostatic, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
+    call Inversions_constructor(Graph_instance%inversions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles)
 
   end subroutine Graph_initialize
 
