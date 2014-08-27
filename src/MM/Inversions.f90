@@ -39,9 +39,8 @@ module Inversions_
   use Edges_
   use Angles_
   use ListInteger_
-  ! use MMCommons_
   use MatrixInteger_
-  ! use Vector_
+  use Vector_
   use Exception_
   implicit none
 
@@ -49,12 +48,13 @@ module Inversions_
 
      integer :: numberOfInversions
      type(MatrixInteger) :: connectionMatrix
-     ! real(8), allocatable :: phi(:)
-     ! real(8), allocatable :: rotationalBarrier(:)
-     ! real(8), allocatable :: idealPhi(:)
-     ! real(8), allocatable :: order(:)
-     ! real(8), allocatable :: torsionEnergy(:) !! Kcal/mol
-     ! real(8), allocatable :: torsionEnergyKJ(:) !! KJ/mol
+     real(8), allocatable :: omega(:)
+     real(8), allocatable :: C0(:)
+     real(8), allocatable :: C1(:)
+     real(8), allocatable :: C2(:)
+     real(8), allocatable :: forceConstant(:)
+     real(8), allocatable :: inversionEnergy(:) !! Kcal/mol
+     real(8), allocatable :: inversionEnergyKJ(:) !! KJ/mol
      logical :: hasInversions
 
   end type Inversions
@@ -63,7 +63,10 @@ module Inversions_
        public :: &
             Inversions_constructor, &
             Inversions_getConnectionMatrix, &
-            Inversions_getNeighbors
+            Inversions_getNeighbors, &
+            Inversions_getOmega, &
+            Inversions_getPhi, &
+            Inversions_getConstants
 
 contains
 
@@ -83,19 +86,11 @@ contains
        this%hasInversions= .true.
     end if
 
-    ! call MatrixInteger_constructor( this%connectionMatrix, this%numberOfInversions, 4 )
-    ! allocate( this%phi( this%numberOfInversions ) )
-
-    ! do i=1,this%numberOfInversions
-    !    do j=1,4
-    !       this%connectionMatrix%values(i,j) = MolecularSystem_instance%intCoordinates%connectionMatrixForDihedrals%values(i,j)
-    !    end do
-    !    this%phi(i) = MolecularSystem_instance%intCoordinates%dihedralsAngleValue%values(i)
-    ! end do
-
-    ! call Inversions_getConstants(this, vertices, bonds)
-
-    ! call Inversions_getTorsionEnergies(this)
+    if(this%hasInversions) then
+       call Inversions_getOmega(this, vertices, angle)
+       call Inversions_getConstants(this, vertices)
+       call Inversions_getInversionEnergies(this)
+    end if
 
   end subroutine Inversions_constructor
 
@@ -133,18 +128,19 @@ contains
     end do
 
     this%numberOfInversions = ListInteger_size(centralAtom)
+    
+    if(this%numberOfInversions>0) then
+       call MatrixInteger_constructor( this%connectionMatrix, this%numberOfInversions, 4 )
 
-    call MatrixInteger_constructor( this%connectionMatrix, this%numberOfInversions, 4 )
+       this%connectionMatrix%values(:,1) = centralAtom%data(:)
 
-    this%connectionMatrix%values(:,1) = centralAtom%data(:)
-
-    do i=1,this%numberOfInversions
-       call Inversions_getNeighbors(neighbors, centralAtom%data(i), bonds)
-       this%connectionMatrix%values(i,2) = neighbors(1)
-       this%connectionMatrix%values(i,3) = neighbors(2)
-       this%connectionMatrix%values(i,4) = neighbors(3)
-       write(*,"(T20,5I)") i, this%connectionMatrix%values(i,:)
-    end do
+       do i=1,this%numberOfInversions
+          call Inversions_getNeighbors(neighbors, centralAtom%data(i), bonds)
+          this%connectionMatrix%values(i,2) = neighbors(1)
+          this%connectionMatrix%values(i,3) = neighbors(2)
+          this%connectionMatrix%values(i,4) = neighbors(3)
+       end do
+    end if
 
   end subroutine Inversions_getConnectionMatrix
 
@@ -170,140 +166,229 @@ contains
 
   end subroutine Inversions_getNeighbors
 
-  ! subroutine Inversions_getConstants(this, vertices, bonds)
-  !   implicit none
-  !   type(Inversions), intent(in out) :: this
-  !   type(Vertex), intent(in) :: vertices
-  !   type(Edges), intent(in) :: bonds
-  !   integer :: i, atomA, atomB, atomC, atomD
-  !   logical :: isBgroupSixMember, isCgroupSixMember
-  !   real(8) :: Vj, Vk !! Torsional barriers
-  !   real(8) :: Uj,Uk !! TorsionalConstant
-  !   real(8) :: bondOrder
+  subroutine Inversions_getOmega(this, vertices, angle)
+    implicit none
+    type(Inversions), intent(in out) :: this
+    type(Vertex), intent(in) :: vertices
+    type(Angles), intent(in) :: angle
+    integer :: i, atom1, atom2, atom3, atom4
+    type(Vector) :: R1, R2, R3, R4
+    type(Vector) :: R12, R13, R14
+    type(Vector) :: unitR12, unitR13, unitR14
+    type(Vector) :: crossVector1, crossVector2, crossVector3, perpenU1, perpenU2, perpenU3
+    real(8) :: phi1, phi2, phi3, norm12, norm13, norm14
+    real(8) :: sinPhi1, sinPhi2, sinPhi3, sinOmega1, sinOmega2, sinOmega3
+    real(8) :: omega1, omega2, omega3
 
-  !   isBgroupSixMember = .false.
-  !   isCgroupSixMember = .false.
 
-  !   allocate(this%order(this%numberOfInversions))
-  !   allocate(this%idealPhi(this%numberOfInversions))
-  !   allocate(this%rotationalBarrier(this%numberOfInversions))
+    ! 3
+    !  \
+    !   1----2   plane = 3-1-2
+    !  /
+    ! 4
+    !
+    ! R1 = [x1,y1,z1]
+    ! R2 = [x2,y2,z2]
+    ! R3 = [x3,y3,z3]
+    ! R4 = [x4,y4,z4]    
+    ! R12 = R2 - R1
+    ! R13 = R3 - R1
+    ! R14 = R4 - R1
+    ! norm12 = sqrt(R12(x)**R12(x)+R12(y)**R12(y)+R12(z)**R12(z))
+    ! norm13 = sqrt(R13(x)**R13(x)+R13(y)**R13(y)+R13(z)**R13(z))
+    ! norm14 = sqrt(R14(x)**R14(x)+R14(y)**R14(y)+R14(z)**R14(z))
+    ! unitR12 = R12/norm12
+    ! unitR13 = R13/norm13
+    ! unitR14 = R14/nomr14
+    ! phi1 = angle 3-1-4
+    ! phi2 = angle 2-1-4
+    ! phi3 = angle 2-1-3
+    ! crossVector1 = unitR13 X unitR14
+    ! crossVector2 = unitR14 X unitR12
+    ! crossVector3 = unitR12 X unitR13
+    ! perpenU1 = crossVector1/sin(phi1)
+    ! perpenU2 = crossVector2/sin(phi2)
+    ! perpenU3 = crossVector3/sin(phi3)
+    ! sinOmega1 = (unitR12)@perpenU1
+    ! sinOmega2 = (unitR13)@perpenU2
+    ! sinOmega3 = (unitR14)@perpenU3
+    ! @ = dot product
+    ! X = cross product
 
-  !   do i=1,this%numberOfInversions
-  !      atomA = this%connectionMatrix%values(i,1)
-  !      atomB = this%connectionMatrix%values(i,2)
-  !      atomC = this%connectionMatrix%values(i,3)
-  !      atomD = this%connectionMatrix%values(i,4)
-  !      if(vertices%hybridization(atomB)==3 .AND. vertices%hybridization(atomC)==3) then
-  !         isBgroupSixMember = Inversions_isGroupSixMember(atomB, vertices)
-  !         isCgroupSixMember = Inversions_isGroupSixMember(atomC, vertices)
-  !         if( isBgroupSixMember .AND. isCgroupSixMember ) then
-  !            if(vertices%charges(atomB)==8.0 .AND. vertices%charges(atomC)==8.0) then
-  !               Vj = 2.0
-  !               Vk = 2.0
-  !            else if (vertices%charges(atomB)==8.0 .AND. vertices%charges(atomC)/=8.0) then
-  !               Vj = 2.0
-  !               Vk = 6.8
-  !            else if (vertices%charges(atomB)/=8.0 .AND. vertices%charges(atomC)==8.0) then
-  !               Vj = 6.8
-  !               Vk = 2.0
-  !            else 
-  !               Vj = 6.8
-  !               Vk = 6.8
-  !            end if
-  !            this%order(i) = 2.0
-  !            this%idealPhi(i) = 90.0
-  !         else
-  !            Vj = vertices%torsionalBarrier(atomB)
-  !            Vk = vertices%torsionalBarrier(atomC)
-  !            this%order(i) = 3.0
-  !            this%idealPhi(i) = 60.0
-  !         end if
-  !         this%rotationalBarrier(i) = sqrt(Vj*Vk)
-  !      else if(vertices%hybridization(atomB)==2 .AND. vertices%hybridization(atomC)==2) then
-  !         this%order(i) = 2.0
-  !         this%idealPhi(i) = 180.0
-  !         bondOrder = Edges_getOrder(bonds, atomB, atomC)
-  !         Uj = vertices%torsionalConstant(atomB) 
-  !         Uk = vertices%torsionalConstant(atomC)
-  !         this%rotationalBarrier(i) = 5.0*sqrt(Uj*Uk)*(1.0+4.18*log(bondOrder))
-  !      else if(vertices%hybridization(atomB)==3 .AND. vertices%hybridization(atomC)==2) then
-  !         isBgroupSixMember = Inversions_isGroupSixMember(atomB, vertices)
-  !         isCgroupSixMember = Inversions_isGroupSixMember(atomB, vertices)
-  !         if(vertices%hybridization(atomD)==2) then
-  !            this%order(i) = 3.0
-  !            this%idealPhi(i) = 180.0
-  !            this%rotationalBarrier(i) = 2.0
-  !         else if(isBgroupSixMember .and. (.not.isCgroupSixMember)) then
-  !            this%order(i) = 2.0
-  !            this%idealPhi(i) = 90.0
-  !            bondOrder = Edges_getOrder(bonds, atomB, atomC)
-  !            Uj = vertices%torsionalConstant(atomB) 
-  !            Uk = vertices%torsionalConstant(atomC)
-  !            this%rotationalBarrier(i) = 5.0*sqrt(Uj*Uk)*(1.0+4.18*log(bondOrder))
-  !         else
-  !            this%order(i) = 6.0
-  !            this%idealPhi(i) = 0.0
-  !            this%rotationalBarrier(i) = 1.0
-  !         end if
-  !      else if(vertices%hybridization(atomB)==2 .AND. vertices%hybridization(atomC)==3) then
-  !         isBgroupSixMember = Inversions_isGroupSixMember(atomB, vertices)
-  !         isCgroupSixMember = Inversions_isGroupSixMember(atomB, vertices)
-  !         if(vertices%hybridization(atomA)==2) then
-  !            this%order(i) = 3.0
-  !            this%idealPhi(i) = 180.0
-  !            this%rotationalBarrier(i) = 2.0
-  !         else if(isCgroupSixMember .and. (.not.isBgroupSixMember)) then
-  !            this%order(i) = 2.0
-  !            this%idealPhi(i) = 90.0
-  !            bondOrder = Edges_getOrder(bonds, atomB, atomC)
-  !            Uj = vertices%torsionalConstant(atomB) 
-  !            Uk = vertices%torsionalConstant(atomC)
-  !            this%rotationalBarrier(i) = 5.0*sqrt(Uj*Uk)*(1.0+4.18*log(bondOrder))
-  !         else
-  !            this%order(i) = 6.0
-  !            this%idealPhi(i) = 0.0
-  !            this%rotationalBarrier(i) = 1.0
-  !         end if
-  !      else
-  !         this%idealPhi(i) = 0.0
-  !         this%rotationalBarrier(i) = 0.0
-  !      end if
-  !   end do
-  ! end subroutine Inversions_getConstants
+    call Vector_constructor(R1, 3)
+    call Vector_constructor(R2, 3)
+    call Vector_constructor(R3, 3)
+    call Vector_constructor(R4, 3)
+    call Vector_constructor(R12, 3)
+    call Vector_constructor(R13, 3)
+    call Vector_constructor(R14, 3)
+    call Vector_constructor(unitR12, 3)
+    call Vector_constructor(unitR13, 3)
+    call Vector_constructor(unitR14, 3)
+    call Vector_constructor(crossVector1, 3)
+    call Vector_constructor(crossVector2, 3)
+    call Vector_constructor(crossVector3, 3)
+    call Vector_constructor(perpenU1, 3)
+    call Vector_constructor(perpenU2, 3)
+    call Vector_constructor(perpenU3, 3)
 
-  ! function Inversions_isGroupSixMember(atom, vertices) result(output)
-  !   implicit none
-  !   integer, intent(in) :: atom
-  !   type(Vertex), intent(in) :: vertices
-  !   logical :: output
+    allocate( this%omega( this%numberOfInversions ) )
+    
+    do i=1,this%numberOfInversions
+       atom1 = this%connectionMatrix%values(i,1)
+       atom2 = this%connectionMatrix%values(i,2)
+       atom3 = this%connectionMatrix%values(i,3)
+       atom4 = this%connectionMatrix%values(i,4)
 
-  !   output = .false.
-  !   if( vertices%charges(atom)==8.0 .OR. &
-  !        vertices%charges(atom)==16.0 .OR. &
-  !        vertices%charges(atom)==34.0 .OR. &
-  !        vertices%charges(atom)==52.0 .OR. &
-  !        vertices%charges(atom)==84.0 ) then
-  !      output = .true.
-  !   end if
+       R1%values = vertices%cartesianMatrix%values(atom1,:) * AMSTRONG
+       R2%values = vertices%cartesianMatrix%values(atom2,:) * AMSTRONG
+       R3%values = vertices%cartesianMatrix%values(atom3,:) * AMSTRONG
+       R4%values = vertices%cartesianMatrix%values(atom4,:) * AMSTRONG
 
-  ! end function Inversions_isGroupSixMember
+       R12%values = R2%values - R1%values
+       R13%values = R3%values - R1%values
+       R14%values = R4%values - R1%values
 
-  ! subroutine Inversions_getTorsionEnergies(this)
-  !   implicit none
-  !   type(Inversions), intent(in out) :: this
-  !   integer :: i
-  !   real(8) :: cosIdealTorsion, cosTorsion
+       norm12 = sqrt(R12%values(1)*R12%values(1) + R12%values(2)*R12%values(2) + R12%values(3)*R12%values(3))
+       norm13 = sqrt(R13%values(1)*R13%values(1) + R13%values(2)*R13%values(2) + R13%values(3)*R13%values(3))
+       norm14 = sqrt(R14%values(1)*R14%values(1) + R14%values(2)*R14%values(2) + R14%values(3)*R14%values(3))
+       
+       unitR12%values = R12%values/norm12
+       unitR13%values = R13%values/norm13
+       unitR14%values = R14%values/norm14
+       
+       phi1 = Inversions_getPhi(angle, atom3, atom1, atom4)
+       phi2 = Inversions_getPhi(angle, atom2, atom1, atom4)
+       phi3 = Inversions_getPhi(angle, atom2, atom1, atom3)
 
-  !   allocate(this%torsionEnergy(this%numberOfInversions))
-  !   allocate(this%torsionEnergyKJ(this%numberOfInversions))
+       crossVector1 = Vector_cross(unitR13, unitR14)
+       crossVector2 = Vector_cross(unitR14, unitR12)
+       crossVector3 = Vector_cross(unitR12, unitR13)
 
-  !   do i=1,this%numberOfInversions
-  !      cosIdealTorsion = cos(this%order(i)*this%idealPhi(i)*0.01745329251)
-  !      cosTorsion = cos(this%order(i)*this%phi(i)*0.01745329251)
-  !      this%torsionEnergy(i) = 0.5*this%rotationalBarrier(i)*(1-cosIdealTorsion*cosTorsion)
-  !      this%torsionEnergyKJ(i) = this%torsionEnergy(i)*4.1868
-  !   end do
-  ! end subroutine Inversions_getTorsionEnergies
+       sinPhi1 = sin(phi1*0.01745329251)
+       sinPhi2 = sin(phi2*0.01745329251)
+       sinPhi3 = sin(phi3*0.01745329251)
+
+       perpenU1 = Vector_scalarDiv(crossVector1, sinPhi1)
+       perpenU2 = Vector_scalarDiv(crossVector2, sinPhi2)
+       perpenU3 = Vector_scalarDiv(crossVector3, sinPhi3)
+
+       sinOmega1 = Vector_dot(unitR12, perpenU1)
+       sinOmega2 = Vector_dot(unitR13, perpenU2)
+       sinOmega3 = Vector_dot(unitR14, perpenU3)
+
+       omega1 = asin(sinOmega1)*57.2957795
+       omega2 = asin(sinOmega2)*57.2957795
+       omega3 = asin(sinOmega3)*57.2957795
+       
+       this%omega(i) = (omega1 + omega2 + omega3)/3
+    end do
+
+  end subroutine Inversions_getOmega
+
+  function Inversions_getPhi(angle, atomA, atomB, atomC) result(output)
+    implicit none
+    type(Angles), intent(in) :: angle
+    integer, intent(in) :: AtomB ! Central atom
+    integer, intent(in) :: AtomA, AtomC
+    real(8) :: output
+    integer :: i
+
+    do i=1,angle%numberOfAngles
+       if(angle%connectionMatrix%values(i,1) == atomA .and. &
+            angle%connectionMatrix%values(i,2) == atomB .and. &
+            angle%connectionMatrix%values(i,3) == atomC) then
+          output = angle%theta(i)
+       else if(angle%connectionMatrix%values(i,1) == atomC .and. &
+            angle%connectionMatrix%values(i,2) == atomB .and. &
+            angle%connectionMatrix%values(i,3) == atomA) then
+          output = angle%theta(i)
+       end if
+    end do
+
+  end function Inversions_getPhi
+
+  subroutine Inversions_getConstants(this, vertices)
+    implicit none
+    type(Inversions), intent(in out) :: this
+    type(Vertex), intent(in) :: vertices
+    integer :: i, centralAtom, neighborA, neighborB, neighborC
+    real(8) :: idealOmega
+
+
+    allocate( this%C0( this%numberOfInversions ))
+    allocate( this%C1( this%numberOfInversions ))
+    allocate( this%C2( this%numberOfInversions ))
+    allocate( this%forceConstant( this%numberOfInversions ))
+
+    do i=1,this%numberOfInversions
+       centralAtom = this%connectionMatrix%values(i,1)
+       if(trim(vertices%type(centralAtom)) == "N_3" .or. &
+            trim(vertices%type(centralAtom)) == "N_2" .or. &
+            trim(vertices%type(centralAtom)) == "N_R") then
+          this%C0(i) = 1.0
+          this%C1(i) = -1.0
+          this%C2(i) = 0.0          
+          this%forceConstant(i) = 6.0
+       else if(trim(vertices%type(centralAtom)) == "C_R" .or. &
+            trim(vertices%type(centralAtom)) == "C_2") then
+          neighborA = this%connectionMatrix%values(i,2)
+          neighborB = this%connectionMatrix%values(i,3)
+          neighborC = this%connectionMatrix%values(i,4)
+          this%C0(i) = 1.0
+          this%C1(i) = -1.0
+          this%C2(i) = 0.0
+          if(trim(vertices%type(neighborA)) == "O_2" .or. &
+               trim(vertices%type(neighborB)) == "O_2" .or. &
+               trim(vertices%type(neighborC)) == "O_2") then
+             this%forceConstant(i) = 50.0
+          else
+             this%forceConstant(i) = 6.0
+          end if
+       else if(trim(vertices%type(centralAtom)) == "P_3+3") then
+          idealOmega = 84.4339*0.01745329251
+          this%C1(i) = -4.0*cos(idealOmega*0.01745329251)
+          this%C2(i) = 1.0
+          this%C0(i) = -1.0*this%C1(i)*cos(idealOmega) + this%C2(i)*cos(2.0*idealOmega)
+          this%forceConstant(i) = 22.0
+       else if(trim(vertices%type(centralAtom)) == "As3+3") then
+          idealOmega = 86.9735*0.01745329251
+          this%C1(i) = -4.0*cos(idealOmega*0.01745329251)
+          this%C2(i) = 1.0
+          this%C0(i) = -1.0*this%C1(i)*cos(idealOmega) + this%C2(i)*cos(2.0*idealOmega)
+          this%forceConstant(i) = 22.0
+       else if(trim(vertices%type(centralAtom)) == "Sb3+3") then
+          idealOmega = 87.7047*0.01745329251
+          this%C1(i) = -4.0*cos(idealOmega*0.01745329251)
+          this%C2(i) = 1.0
+          this%C0(i) = -1.0*this%C1(i)*cos(idealOmega) + this%C2(i)*cos(2.0*idealOmega)
+          this%forceConstant(i) = 22.0
+       else if(trim(vertices%type(centralAtom)) == "Bi3+3") then
+          idealOmega = 90.000*0.01745329251
+          this%C1(i) = -4.0*cos(idealOmega*0.01745329251)
+          this%C2(i) = 1.0
+          this%C0(i) = -1.0*this%C1(i)*cos(idealOmega) + this%C2(i)*cos(2.0*idealOmega)
+          this%forceConstant(i) = 22.0
+       end if
+    end do
+    
+  end subroutine Inversions_getConstants
+
+  subroutine Inversions_getInversionEnergies(this)
+    implicit none
+    type(Inversions), intent(in out) :: this
+    integer :: i
+
+    allocate( this%inversionEnergy( this%numberOfInversions ))
+    allocate( this%inversionEnergyKJ( this%numberOfInversions ))
+
+    do i=1,this%numberOfInversions
+       this%inversionEnergy(i) = this%forceConstant(i)*(this%C0(i) + &
+            this%C1(i)*cos(this%omega(i)*0.01745329251) + &
+            this%C2(i)*cos(2*this%omega(i)*0.01745329251))
+       this%inversionEnergyKJ(i) = this%inversionEnergy(i)**4.1868
+    end do
+  end subroutine Inversions_getInversionEnergies
 
   subroutine Inversions_exception( typeMessage, description, debugDescription)
     implicit none

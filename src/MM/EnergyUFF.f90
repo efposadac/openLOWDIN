@@ -100,11 +100,17 @@ contains
        end do
     end if
 
+    if(this%inversions%hasInversions) then
+       do i=1, this%inversions%numberOfInversions
+          totalInversionEnergy = totalInversionEnergy + this%inversions%inversionEnergy(i)
+       end do
+    end if
+
+
     totalStretchingEnergyKJ = totalStretchingEnergy*4.1868
     totalBendingEnergyKJ = totalBendingEnergy*4.1868
     totalTorsionEnergyKJ = totalTorsionEnergy*4.1868
     totalVDWEnergyKJ = totalVDWEnergy*4.1868
-    
     totalInversionEnergyKJ = totalInversionEnergy*4.1868
     totalElectrostaticEnergyKJ = totalElectrostaticEnergy*4.1868
 

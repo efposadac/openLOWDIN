@@ -217,7 +217,48 @@ contains
                      Graph_instance%torsions%rotationalBarrier(i), &
                      Graph_instance%torsions%torsionEnergyKJ(i)
              end do
-             write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
+             write(*,"(T5,A)") "----------------------------------------------------------------------------------------------"
+             write(*,"(T5,A)") ""
+          end if
+
+          if(Graph_instance%inversions%hasInversions) then
+             write(*,"(T5,A)") ""
+             write(*,"(T5,A)") ""
+             write(*,"(T32,A)") "INVERSION ENERGY (OUT OF PLANE)"
+             write(*,"(T5,A)") "----------------------------------------------------------------------------------------------"
+             write(*,"(T22,A)") "Improper Angle"
+             write(*,"(T5,A,T58,A,T70,A,T90,A)") "------------------------------------------------", &
+                  "Angle", &
+                  "Force constant", "Energy"
+             write(*,"(T5,A5,T15,A,T25,A,T35,A,T45,A,T56,A,T70,A,T89,A)") "Idx", "atom A", &
+                  "atom B", "atom C", "atom D", "(Degrees)", "(kcal/mol)", "(kJ/mol)"
+             write(*,"(T5,A)") "----------------------------------------------------------------------------------------------"
+             do i=1,Graph_instance%inversions%numberOfInversions
+                atomAIdx=Graph_instance%inversions%connectionMatrix%values(i,1)
+                Write( atomA, '(i10)' ) atomAIdx
+                atomA = adjustl(trim(atomA))
+                atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+                atomBIdx=Graph_instance%inversions%connectionMatrix%values(i,2)
+                Write( atomB, '(i10)' ) atomBIdx
+                atomB = adjustl(trim(atomB))
+                atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+                atomCIdx=Graph_instance%inversions%connectionMatrix%values(i,3)
+                Write( atomC, '(i10)' ) atomCIdx
+                atomC = adjustl(trim(atomC))
+                atomC=trim(Graph_instance%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
+                atomDIdx=Graph_instance%inversions%connectionMatrix%values(i,4)
+                Write( atomD, '(i10)' ) atomDIdx
+                atomD = adjustl(trim(atomD))
+                atomD=trim(Graph_instance%vertex%symbol(atomDIdx))//"("//trim(atomD)//")"
+                write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,A,T55,F10.5,T70,F12.5,T85,F12.5)") i, atomA, &
+                     atomB, &
+                     atomC, &
+                     atomD, &
+                     Graph_instance%inversions%omega(i), &
+                     Graph_instance%inversions%forceConstant(i), &
+                     Graph_instance%inversions%inversionEnergyKJ(i)
+             end do
+             write(*,"(T5,A)") "----------------------------------------------------------------------------------------------"    
              write(*,"(T5,A)") ""
           end if
 
@@ -245,10 +286,9 @@ contains
                      Graph_instance%vdwaals%distance(i) , &
                      Graph_instance%vdwaals%idealDistance(i), &
                      Graph_instance%vdwaals%wellDepth(i), &
-                                ! ! Graph_instance%edges%stretchingEnergy(i), &
                      Graph_instance%vdwaals%VDWEnergyKJ(i)
              end do
-             write(*,"(T5,A)") "--------------------------------------------------------"
+             write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
              write(*,"(T5,A)") ""
           end if
 
