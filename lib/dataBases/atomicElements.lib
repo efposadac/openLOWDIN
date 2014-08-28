@@ -342,7 +342,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4493,7 +4493,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4525,7 +4525,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4557,7 +4557,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4589,7 +4589,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4621,7 +4621,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4653,7 +4653,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4685,7 +4685,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4717,7 +4717,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4749,7 +4749,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4781,7 +4781,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
@@ -4813,7 +4813,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 	IONIZATIONENERGY1 = 1682.97
 	COVALENT = 0.58
 	ATOMIC = 50
-	VANDERWAALS = 147
+	VANDERWAALS = 1.47
   KLAMT = 0.0
 	ELECTRONEGATIVITY = 3.98
 	ISOTOPES = 14, 14.03608, , , 
