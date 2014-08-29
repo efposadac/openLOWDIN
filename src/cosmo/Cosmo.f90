@@ -28,11 +28,14 @@
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 program Cosmo
+  use CosmoTools_
   use CONTROL_
   use MolecularSystem_
-	use String_
-		implicit none 
-		integer :: n
+  use Matrix_
+  use String_
+  implicit none 
+
+  integer :: n
 
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
@@ -45,102 +48,19 @@ program Cosmo
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
 
-		call caller()
-		write(*,*)"llamado realizado a gepol"
-		
-		call lines(n)	
-		
-		write(*,*)"Se crearon ", n, "segmentos"
-		
-		write(*,*)"construyendo matriz C"
-		
-		call Cmatrix(n)
-		
-		write(*,*)"Finalizado"
+  call CosmoTools_caller()
+  write(*,*)"llamado realizado a gepol"
+
+  call CosmoTools_lines(n)	
+
+  write(*,*)"Se crearon ", n, "segmentos"
+
+  write(*,*)"construyendo matriz C"
+
+  call CosmoTools_Cmatrix(n)
+
+  write(*,*)"Finalizado"
 
 
-end program
+end program Cosmo
 
-!!----------------------subroutines------------------------------
-
-subroutine caller()
-!subrutina que llama el ejecutable de gepol
-implicit none
-character(len=60) :: cmd
-
-    cmd = "gepol.x < gepol.inp > gepol.out"
-    call system(cmd) 
-  	write(*,*) "Calculating tesseras"
-!		cmd = "rm gepol.out"
-    call system(cmd) 
-
-	
-end subroutine
-
-!!----------------------subroutines------------------------------
-subroutine lines(n) 
-!!subrutina que cuenta las lineas en el archivo vectors.out
-implicit none 
-integer,intent(out) :: n
-character(len=60):: cmd
-
-    cmd = "cat vectors.vec | grep '[^ ]' | wc -l > nlines.txt"
-    call system(cmd) 
-    open(1,file='nlines.txt')
-    read(1,*) n
-!   cmd = 'rm nlines.txt'
-    call system(cmd)
-return
-
-end subroutine
-
-!!----------------------subroutines------------------------------
-subroutine Cmatrix(np)
-
-!subrutina que construye la matriz c de acuerdo a Paifeng Su
-!a partir de el archivo generado por el cálculo usanto gepol
-implicit none 
-
-integer :: i, j, np
-real(8), dimension(np) :: x !segment x cordinate
-real(8), dimension(np) :: y !segment y cordinate
-real(8), dimension(np) :: z !segment z cordinate
-real(8), dimension(np) :: a	!segment area
-
-
-real(8), allocatable :: amat(:,:)
-
-allocate(amat(np,np))
-
-
-100	format(F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
-120 format(F12.8, F12.8)
-
-open(55,file='vectors.vec',status='OLD') 
-
-read(55,100) (x(i),y(i),z(i),a(i),i=1,np)
-
-
-	do i=1,np
-		do j=1,np
-			if (i==j) then
-				amat(i,j)=3.8*a(i)
-			else
-				amat(i,j)=((sqrt((x(i)-x(j))**2+(y(i)-y(j))**2+(z(i)-z(j))**2)))**-1
-			end if
-		end do
-	end do
-
-close(55) 
-
-!! la matriz es almacenada en el archivo amat.mat
-
-open(56,file="amat.mat",status="replace")
-
-	do i=1,np
-		write(56,120) (amat(i,j), j=1,np)
-	end do
-		
-close(56)
-
-end subroutine 
