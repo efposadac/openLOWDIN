@@ -30,6 +30,7 @@
 !!
 module Graph_
   use CONTROL_
+  use Rings_
   use Edges_
   use Vertex_
   use Angles_
@@ -42,6 +43,7 @@ module Graph_
   
   type , public :: Graph
      
+     type(Rings) :: rings
      type(Edges) :: edges
      type(Vertex) :: vertex
      type(Angles) :: angles
@@ -63,13 +65,15 @@ contains
   subroutine Graph_initialize( forcefield )
     implicit none
     character(50), intent(in) :: forcefield
-
-    call Vertex_constructor( Graph_instance%vertex, forcefield )
-    call Edges_constructor( Graph_instance%edges, Graph_instance%vertex )
+    
+    call Rings_constructor( Graph_instance%rings )
+    call Vertex_constructor( Graph_instance%vertex, forcefield, Graph_instance%rings )
+    call Edges_constructor( Graph_instance%edges, Graph_instance%vertex, Graph_instance%rings )
     call Angles_constructor( Graph_instance%angles, Graph_instance%vertex, Graph_instance%edges )
     call Torsions_constructor( Graph_instance%torsions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
     call VDWaals_constructor( Graph_instance%vdwaals, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
     call Electrostatic_constructor(Graph_instance%electrostatic, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
+    ! stop "Graph.f90"
     call Inversions_constructor(Graph_instance%inversions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles)
 
   end subroutine Graph_initialize

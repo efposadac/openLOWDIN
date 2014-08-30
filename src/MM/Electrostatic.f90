@@ -82,7 +82,7 @@ contains
     type(Electrostatic), intent(in out) :: this
     type(Vertex), intent(in) :: vertices
     real(8), allocatable, intent(in) :: partials(:)
-    integer :: i, j, iter
+    integer :: i, atomA, atomB
     real(8) :: K
 
     K = 332.0637
@@ -97,12 +97,10 @@ contains
     allocate( this%electrostaticEnergy( this%numberOfElectrostatics ) )
     allocate( this%electrostaticEnergyKJ( this%numberOfElectrostatics ) )
 
-    iter=1
-    do i=1,vertices%numberOfVertices
-       do j=i+1,vertices%numberOfVertices
-          this%electrostaticEnergy(iter) = K*((this%partialCharge(i)*this%partialCharge(j))/this%distance(iter))
-          iter = iter + 1
-       end do
+    do i=1,this%numberOfElectrostatics
+       atomA = this%connectionMatrix%values(i,1)
+       atomB = this%connectionMatrix%values(i,2)
+       this%electrostaticEnergy(i) = K*((this%partialCharge(atomA)*this%partialCharge(atomB))/this%distance(i))
     end do
 
     do i=1,this%numberOfElectrostatics

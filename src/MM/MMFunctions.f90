@@ -87,12 +87,10 @@ contains
 
     
     MolecularMechanics_instance%ffmethod = ffmethod
-
     if ( MolecularMechanics_instance%isInstanced ) then
     
        if ( MolecularMechanics_instance%ffmethod == "UFF" ) then
           call Graph_initialize(MolecularMechanics_instance%ffmethod)
-
 
           write(*,"(T5,A)") ""
           write(*,"(T5,A)") "-----------------------------------------------------------------------------"
@@ -138,7 +136,6 @@ contains
                   Graph_instance%edges%distance(i), &
                   Graph_instance%edges%idealDistance(i), &
                   Graph_instance%edges%forceConstant(i), &
-                  ! Graph_instance%edges%stretchingEnergy(i), &
                   Graph_instance%edges%stretchingEnergyKJ(i)
           end do
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"

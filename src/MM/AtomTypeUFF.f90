@@ -35,6 +35,7 @@ module AtomTypeUFF_
   use CONTROL_
   use MolecularSystem_
   use ParticleManager_
+  use Rings_
   use MMCommons_
   use MatrixInteger_
   use Vector_
@@ -49,8 +50,9 @@ module AtomTypeUFF_
 
 contains
 
-  subroutine AtomTypeUFF_run(ffAtomType)
+  subroutine AtomTypeUFF_run(ffAtomType, ring)
     implicit none
+    type(Rings), intent(in) :: ring
     integer :: i   
     integer :: numberOfCenterofOptimization
     character(10), allocatable :: labelOfCenters(:)
@@ -64,15 +66,9 @@ contains
     real(8) :: AngleCutoff2
     logical :: isAromatic
     logical :: isOrganometallic
-    integer :: numberOfEdges
-    integer :: cyclomaticNumber
-    type(MatrixInteger), allocatable :: edges(:)
-    type(MatrixInteger) :: connectivityMatrix
-    type(Vector) :: bonds
-    type(MatrixInteger), allocatable :: rings(:)
-    integer :: numberOfRings
     integer :: numberOfColumns
     type(Exception) :: ex
+
 
     SP2SP3AngleCutoff = 115.00000000
     SPSP2AngleCutoff = 160.00000000
@@ -82,15 +78,7 @@ contains
     call MMCommons_constructor( MolecularSystem_instance )
 
     numberOfCenterofOptimization = ParticleManager_getNumberOfCentersOfOptimization()
-    
-!!******************************************************************************
-!! Se calcula el cyclomatic number el cual es aquivalente al numero de anillos
-!! L. Matyska, J. Comp. Chem. 9(5), 455 (1988)
-!! si cyclomaticNumber = 0 no hay anillos 
-!!******************************************************************************
-    numberOfEdges=size(MolecularSystem_instance%intCoordinates%distanceBondValue%values)
-    cyclomaticNumber = numberOfEdges - numberOfCenterofOptimization + 2
-    
+  
     allocate( labelOfCenters( numberOfCenterofOptimization ) )
     labelOfCenters = ParticleManager_getLabelsOfCentersOfOptimization()
 
@@ -98,18 +86,6 @@ contains
     chargesOfCenters = ParticleManager_getChargesOfCentersOfOptimization()
 
     allocate( ffAtomType( numberOfCenterofOptimization ) )
-
-    if (cyclomaticNumber>=2) then
-       call MMCommons_pruningGraph( MolecularSystem_instance, numberOfCenterofOptimization, edges, connectivityMatrix, bonds )
-       call RingFinder_getRings( edges, connectivityMatrix, cyclomaticNumber, rings )
-       ! numberOfRings=size(rings)
-       ! write (*,"(T10,A)") " Rings "
-       ! write (*,"(T10,A)") "--------------------------------------------"
-       ! do i=1,numberOfRings
-       !    numberOfColumns = size(rings(i)%values)
-       !    write (*,"(T10,<numberOfColumns>I)") rings(i)%values(1,:)
-       ! end do
-    end if
 
     do i=1, size(labelOfCenters)
 !!******************************************************************************
@@ -122,7 +98,6 @@ contains
 !!******************************************************************************
        else if( trim( labelOfCenters(i) ) == "C" ) then
 
-          
           !! Se chequea la conectividad del carbono
           connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
           !! Imprime el valor de conectividad, borrar luego
@@ -143,8 +118,8 @@ contains
              if ( angleAverage < SP2SP3AngleCutoff ) then
                 ffAtomType(i) = "C_3"
              !! Falta programar la aromaticidad   
-             else if ( cyclomaticNumber >= 2 ) then
-                isAromatic = AromaticityFinder_isAromatic( rings, i )
+             else if ( ring%hasRings ) then
+                isAromatic = AromaticityFinder_isAromatic( ring, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "C_R"
                 else
@@ -187,8 +162,8 @@ contains
              !! Se chequea el angulo promedio de enlace
              angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
              !! Falta programar la aromaticidad   
-             if ( cyclomaticNumber >= 2 ) then
-                isAromatic = AromaticityFinder_isAromatic( rings, i )
+             if ( ring%hasRings ) then
+                isAromatic = AromaticityFinder_isAromatic( ring, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "N_R"
                 else
@@ -204,8 +179,8 @@ contains
              !! Se chequea el angulo promedio de enlace
              angleAverage = MMCommons_getAngleAverage( MolecularSystem_instance, i )
              !! Falta programar la aromaticidad   
-             if ( cyclomaticNumber >= 2 ) then
-                isAromatic = AromaticityFinder_isAromatic( rings, i )
+             if ( ring%hasRings ) then
+                isAromatic = AromaticityFinder_isAromatic( ring, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "N_R"
                 else if ( angleAverage < SPSP2AngleCutoff ) then
@@ -234,8 +209,8 @@ contains
           connectivity = MMCommons_getConnectivity( MolecularSystem_instance, i )
           if ( connectivity >= 2 ) then
                 !! Falta programar la aromaticidad   
-             if ( cyclomaticNumber >= 2 ) then
-                isAromatic = AromaticityFinder_isAromatic( rings, i )
+             if ( ring%hasRings ) then
+                isAromatic = AromaticityFinder_isAromatic( ring, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "O_R"
                 else
@@ -273,8 +248,8 @@ contains
           if ( connectivity == 6 ) then
              ffAtomType(i) = "S_3+6"
           else if ( connectivity == 2 ) then
-             if ( cyclomaticNumber >= 2 ) then
-                isAromatic = AromaticityFinder_isAromatic( rings, i )
+             if ( ring%hasRings ) then
+                isAromatic = AromaticityFinder_isAromatic( ring, i )
                 if ( isAromatic ) then
                    ffAtomType(i) = "S_R"
                 else if ( angleAverage <= AngleCutoff1 ) then

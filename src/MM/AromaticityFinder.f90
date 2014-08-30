@@ -34,6 +34,7 @@
 module AromaticityFinder_
   use MolecularSystem_
   use MatrixInteger_
+  use Rings_
   use Vector_
   use MMCommons_
   use RingFinder_
@@ -43,12 +44,12 @@ module AromaticityFinder_
 
   public :: &
        AromaticityFinder_isAromatic
-
+  
 contains
 
   function AromaticityFinder_isAromatic( this, atomIdx ) result(output)
     implicit none
-    type(MatrixInteger), intent(in), allocatable :: this(:)
+    type(Rings) :: this
     integer, intent(in) :: atomIdx
     logical :: output
     integer :: numberOfRings 
@@ -57,13 +58,12 @@ contains
 
     output = .false.
     
-    numberOfRings = size(this)
-
-    do i=1, numberOfRings
-       numberOfColumns = size(this(i)%values)
-       do j=1, numberOfColumns
-          if(this(i)%values(1,j)==atomIdx) then
-             output = .true.
+    do i=1, this%numberOfRings
+       do j=1, this%ringSize(i)
+          if(this%connectionMatrix(i)%values(1,j)==atomIdx) then
+             if(this%aromaticity(i) == 1) then
+                output = .true.
+             end if
           end if
        end do
     end do

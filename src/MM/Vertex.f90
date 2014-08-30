@@ -35,6 +35,7 @@ module Vertex_
   use CONTROL_
   use MolecularSystem_
   use Matrix_
+  use Rings_
   use MMCommons_
   use MatrixInteger_
   use AtomTypeUFF_
@@ -73,10 +74,11 @@ module Vertex_
 
 contains
 
-  subroutine Vertex_constructor( this, forcefield )
+  subroutine Vertex_constructor( this, forcefield, ring )
     implicit none
-    type(Vertex) :: this
+    type(Vertex), intent(in out) :: this
     character(50), intent(in) :: forcefield
+    type(Rings), intent(in) :: ring
     character(10), allocatable :: ffAtomType(:)
     type(UFFParameters) :: atomType
     integer :: i, j
@@ -119,7 +121,7 @@ contains
     call MMCommons_getConnectivityMatrix( MolecularSystem_instance, this%numberOfVertices, connectivityMatrix )
 
     if ( forcefield == "UFF" ) then
-       call AtomTypeUFF_run(ffAtomType)
+       call AtomTypeUFF_run(ffAtomType, ring)
        do i=1,this%numberOfVertices
           this%type(i) = ffAtomType(i)
           call UFFParameters_load( atomType, trim(this%type(i)) )

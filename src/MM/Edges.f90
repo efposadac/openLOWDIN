@@ -36,6 +36,7 @@ module Edges_
   use MolecularSystem_
   use ParticleManager_
   use Vertex_
+  use Rings_
   use MMCommons_
   use MatrixInteger_
   use Vector_
@@ -66,10 +67,11 @@ module Edges_
 
 contains
 
-  subroutine Edges_constructor( this, vertices )
+  subroutine Edges_constructor( this, vertices, ring )
     implicit none
     type(Edges), intent(in out) :: this
     type(Vertex), intent(in) :: vertices
+    type(Rings), intent(in) :: ring
     integer :: i, j
     real(8), allocatable :: orders(:)
 
@@ -81,7 +83,7 @@ contains
     allocate( this%distance( this%numberOfEdges ) )
     allocate( this%bondOrder( this%numberOfEdges ) )
 
-    call Edges_getBondOrders(orders)
+    call Edges_getBondOrders(orders, vertices, ring)
 
     do i=1,this%numberOfEdges
        do j=1,2
@@ -186,14 +188,17 @@ contains
 
   end subroutine Edges_getStretchingEnergies
 
-  subroutine Edges_getBondOrders(bondOrders)
+  subroutine Edges_getBondOrders(bondOrders, vertices, ring)
     implicit none
+    type(Vertex), intent(in) :: vertices
+    type(Rings), intent(in) :: ring
     character(10), allocatable :: labelOfCenters(:)
     integer :: numberOfCenters
     integer :: numberOfEdges
     integer :: connectivity
     type(MatrixInteger) :: connectivityMatrix
     real(8), allocatable :: valences(:)
+    logical :: isNeighborAromaticRing
     ! type(Vector) :: bonds
     ! type(Exception) :: ex
     integer :: i, j, row
@@ -234,6 +239,8 @@ contains
     real(8) :: singleAsSBondCutoff
 !! Enlaces de Arsenico
     real(8) :: singleAsAsBondCutoff
+
+    isNeighborAromaticRing = .false.
 
 !!--------------------------------------------------------------
 !! Enlaces de carbono
@@ -351,13 +358,34 @@ contains
              call MMCommons_searchNeighbor( auxBonds, numberOfEdges, size(edgesRow), i, neighbor )
              do j=1,size(edgesRow)
                 row=edgesRow(j)
-                bondOrders(row) = 1
-                connectivityMatrix%values(i,2) = connectivityMatrix%values(i,2) - 1
-                connectivityMatrix%values(neighbor(j),2) = connectivityMatrix%values(neighbor(j),2) - 1
-                valences(i) = valences(i) - 1
-                valences(neighbor(j)) = valences(neighbor(j)) - 1
-                auxBonds(row)%values(1,1) = 0
-                auxBonds(row)%values(1,2) = 0
+                if(trim( vertices%type(i) ) == "C_R") then
+                   isNeighborAromaticRing = Rings_isNeighborAromaticRing(ring, i, neighbor(j)) !!! ojo volver aqui
+                   if(isNeighborAromaticRing) then
+                      bondOrders(row) = 1.5
+                      connectivityMatrix%values(i,2) = connectivityMatrix%values(i,2) - 1
+                      connectivityMatrix%values(neighbor(j),2) = connectivityMatrix%values(neighbor(j),2) - 1
+                      valences(i) = valences(i) - 1.0
+                      valences(neighbor(j)) = valences(neighbor(j)) - 1.0
+                      auxBonds(row)%values(1,1) = 0
+                      auxBonds(row)%values(1,2) = 0
+                   else
+                      bondOrders(row) = 1
+                      connectivityMatrix%values(i,2) = connectivityMatrix%values(i,2) - 1
+                      connectivityMatrix%values(neighbor(j),2) = connectivityMatrix%values(neighbor(j),2) - 1
+                      valences(i) = valences(i) - 1
+                      valences(neighbor(j)) = valences(neighbor(j)) - 1
+                      auxBonds(row)%values(1,1) = 0
+                      auxBonds(row)%values(1,2) = 0
+                   end if
+                else
+                   bondOrders(row) = 1
+                   connectivityMatrix%values(i,2) = connectivityMatrix%values(i,2) - 1
+                   connectivityMatrix%values(neighbor(j),2) = connectivityMatrix%values(neighbor(j),2) - 1
+                   valences(i) = valences(i) - 1
+                   valences(neighbor(j)) = valences(neighbor(j)) - 1
+                   auxBonds(row)%values(1,1) = 0
+                   auxBonds(row)%values(1,2) = 0
+                end if
              end do
           !************************************************************************************************
           !! Carbono insaturado o un carboanion o carbocation
@@ -368,7 +396,15 @@ contains
              do j=1,size(edgesRow)
                 row=edgesRow(j)
                 if( trim( labelOfCenters(neighbor(j))) == "C" ) then
-                   if( bonds%values(row)>singleBondCutoff ) then
+                   if(trim( vertices%type(i) ) == "C_R") then
+                      bondOrders(row) = 1.5
+                      connectivityMatrix%values(i,2) = connectivityMatrix%values(i,2) - 1
+                      connectivityMatrix%values(neighbor(j),2) = connectivityMatrix%values(neighbor(j),2) - 1
+                      valences(i) = valences(i) - 1.5
+                      valences(neighbor(j)) = valences(neighbor(j)) - 1.5
+                      auxBonds(row)%values(1,1) = 0
+                      auxBonds(row)%values(1,2) = 0
+                   else if( bonds%values(row)>singleBondCutoff ) then
                       bondOrders(row) = 1
                       connectivityMatrix%values(i,2) = connectivityMatrix%values(i,2) - 1
                       connectivityMatrix%values(neighbor(j),2) = connectivityMatrix%values(neighbor(j),2) - 1

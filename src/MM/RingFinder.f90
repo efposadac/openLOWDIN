@@ -38,7 +38,6 @@ module RingFinder_
   use Exception_
   implicit none
 
-
   public :: &
        RingFinder_getRings
 

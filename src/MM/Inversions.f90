@@ -100,34 +100,45 @@ contains
     type(Vertex), intent(in) :: vertices
     type(Edges), intent(in) :: bonds
     integer, allocatable :: neighbors(:)
-    integer :: i
+    integer :: i, inversionsCounter
     type(ListInteger) :: centralAtom
 
     call ListInteger_constructor( centralAtom, ssize=-1 )
 
+
+    inversionsCounter = 0
     do i=1,vertices%numberOfVertices
        if(trim(vertices%type(i)) == "C_R" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        else if(trim(vertices%type(i)) == "C_2" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        else if(trim(vertices%type(i)) == "N_R" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        else if(trim(vertices%type(i)) == "N_3" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        else if(trim(vertices%type(i)) == "N_2" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        else if(trim(vertices%type(i)) == "P_3+3" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        else if(trim(vertices%type(i)) == "As3+3" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        else if(trim(vertices%type(i)) == "Sb3+3" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        else if(trim(vertices%type(i)) == "Bi3+3" .and. vertices%connectivity(i) == 3)then
           call ListInteger_push_back(centralAtom, i)
+          inversionsCounter = inversionsCounter + 1
        end if
     end do
 
-    this%numberOfInversions = ListInteger_size(centralAtom)
+    this%numberOfInversions = inversionsCounter
     
     if(this%numberOfInversions>0) then
        call MatrixInteger_constructor( this%connectionMatrix, this%numberOfInversions, 4 )
@@ -231,7 +242,9 @@ contains
     call Vector_constructor(perpenU1, 3)
     call Vector_constructor(perpenU2, 3)
     call Vector_constructor(perpenU3, 3)
-
+    
+    
+    if(allocated(this%omega)) deallocate(this%omega)
     allocate( this%omega( this%numberOfInversions ) )
     
     do i=1,this%numberOfInversions
