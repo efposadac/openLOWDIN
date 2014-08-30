@@ -134,6 +134,8 @@ contains
     integer :: i
     integer :: centralAtom
     real :: coeff0, coeff1, coeff2
+    real :: angle
+    integer :: conectivity
 
 
     allocate( this%bendingEnergy( this%numberOfAngles ) )
@@ -141,19 +143,24 @@ contains
 
     do i=1, this%numberOfAngles
        centralAtom = this%connectionMatrix%values(i,2)
+       conectivity = vertices%connectivity(centralAtom)
+       angle = vertices%angleValence(centralAtom)
        !! Caso lineal
-       if( vertices%connectivity(centralAtom) == 2 .AND. vertices%angleValence(centralAtom) == 180.0 ) then
+       if( conectivity == 2 .AND. angle == 180.0 ) then
           this%bendingEnergy(i) = this%forceConstant(i)*(1.0 + this%cosTheta(i))
        !! Caso Trigonal plana
-       else if( vertices%connectivity(centralAtom) == 3 .AND. vertices%angleValence(centralAtom) == 120.0 ) then
+       else if( conectivity == 3 .AND. angle == 120.0 ) then
+          this%bendingEnergy(i) = (this%forceConstant(i)/4.5)*(1.0 + (1.0 + this%cosTheta(i))*(4.0*this%cosTheta(i)))
+       !! Caso Trigonal plana del Nitrogeno
+       else if( conectivity == 3 .AND. angle == 111.2 ) then
           this%bendingEnergy(i) = (this%forceConstant(i)/4.5)*(1.0 + (1.0 + this%cosTheta(i))*(4.0*this%cosTheta(i)))
        !! Caso cuadrado planar y octaedrico
-       else if( (vertices%connectivity(centralAtom) == 4 .AND. vertices%angleValence(centralAtom) == 90.0) .OR. &
-            (vertices%connectivity(centralAtom) == 6 .AND. vertices%angleValence(centralAtom) == 90.0) .OR. &
-            (vertices%connectivity(centralAtom) == 6 .AND. vertices%angleValence(centralAtom) == 180.0)) then
+       else if( (conectivity == 4 .AND. angle == 90.0) .OR. &
+            (conectivity == 6 .AND. angle == 90.0) .OR. &
+            (conectivity == 6 .AND. angle == 180.0)) then
           this%bendingEnergy(i) = this%forceConstant(i)*(1.0 + this%cosTheta(i))*this%cosTheta(i)*this%cosTheta(i)
        !! Caso bipiramidal pentagonal (IF7)
-       else if( vertices%connectivity(centralAtom) == 7 ) then
+       else if( conectivity == 7 ) then
           this%bendingEnergy(i) = this%forceConstant(i)*1.0*&
                (this%cosTheta(i)-0.30901699)*(this%cosTheta(i)-0.30901699)*&
                (this%cosTheta(i)+0.80901699)*(this%cosTheta(i)+0.80901699)
