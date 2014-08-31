@@ -165,7 +165,7 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="lowdincore ints HF MP2 scf aduw"
+SUBDIRS="lowdincore ints HF scf integralsTransformation MP2 PT aduw"
 
 for DIR in $SRCDIR ; do
     cd $DIR
