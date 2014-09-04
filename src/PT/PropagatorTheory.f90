@@ -512,15 +512,18 @@ contains
           else
              
               !! Read transformed integrals from file
+!	  if ( i < p ) then  
               call ReadTransformedIntegrals_readTwoSpecies( i, p, auxMatrix2(p) )
-
-             
+!	  else 
+!              call ReadTransformedIntegrals_readTwoSpecies( p, i, auxMatrix2(p) )
+!          end if 
 !             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !                  MolecularSystem_getEigenVectors(i), MolecularSystem_getEigenVectors(p), &
 !                  auxMatrix2(p), i, nameOfSpeciesA, p, nameOfSpeciesB )
-
              auxMatrix2(p)%values = auxMatrix2(p)%values * MolecularSystem_getCharge( i ) &
                   * MolecularSystem_getCharge( p )
+	     		
+             print *, "auxmatrix ", sum(auxMatrix2(p)%values)
              
           end if
           
@@ -531,7 +534,6 @@ contains
        !****
 
        m =0
-
        do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary	
 
           m=m+1          
