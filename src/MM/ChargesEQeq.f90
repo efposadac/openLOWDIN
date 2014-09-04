@@ -61,6 +61,7 @@ contains
     integer :: totalCharge
     integer(8) :: numberOfCenters
     real(8) :: Ja, Jb !! dummies for idempotentials
+    integer :: info
 
     numberOfCenters = vertices%numberOfVertices
     totalCharge = MolecularSystem_instance%charge
@@ -113,14 +114,22 @@ contains
        end do
     end do
 
-    ! write(*,"(T20,A)") "Matrix A"
+    ! write(*,"(T20,A)") "B original"
+    ! do i=1,vertices%numberOfVertices
+    !    write(*,"(T20,F12.5)") B(i)
+    ! end do
+
+    ! write(*,"(T20,A)") "A values"
     ! do i=1,vertices%numberOfVertices
     !    write(*,"(T20,<vertices%numberOfVertices>F12.5)") A%values(i,:)
     ! end do
 
-    partialCharges = Matrix_solveLinearEquation(A, B)
+    ! partialCharges = Matrix_solveLinearEquation(A, B)
 
-    ! write(*,"(T20,A)") "Charges"
+    call Matrix_linear(vertices%numberOfVertices, 1, A, vertices%numberOfVertices, B, vertices%numberOfVertices, partialCharges, info)
+
+    
+    write(*,"(T20,A,I)") "Info: ", info
     ! do i=1,vertices%numberOfVertices
     !    write(*,"(T20,F12.5)") partialCharges(i)
     ! end do
