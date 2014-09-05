@@ -1,6 +1,8 @@
 module CosmoTools_
   use Matrix_
-  implicit none 
+	use LapackInterface_
+  use Particle_
+	implicit none 
 
 
 contains
@@ -53,6 +55,7 @@ contains
     real(8), dimension(np) :: a	!segment area
 
     type(Matrix) :: cmat
+		type(Matrix) :: cmatinv
 
     !real(8), allocatable :: cmat(:,:)
     !allocate(amat(np,np))
@@ -60,6 +63,7 @@ contains
     !! llamado al constructor de matrices
 
     call Matrix_constructor(cmat, int(np,8), int(np,8))
+    call Matrix_constructor(cmatinv, int(np,8), int(np,8))
 
 
 100 format(F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
@@ -79,27 +83,85 @@ contains
     end do
 
     close(55) 
-
-    !! la matriz se imprime en pantalla
-	 write(*,*) "Imprimiendo la matriz cmat"
-   call Matrix_show(cmat)
-		
-    !! almacena la matriz
-		!! preguntar como funciona y si es necesario?
-	 	!	 call Matrix_writeToFile (cmat, unit=56)
-
-    !do i=1,np
-    !write(56,120) (amat(i,j), j=1,np)
-    !end do
-
+	
+	cmatinv=Matrix_inverse(cmat)
 
   end subroutine CosmoTools_Cmatrix
 	
-  !!----------------------subroutines------------------------------
-!  subroutine CosmoTools_matrixinversion()
-!		call Matrix
-!
-!  end subroutine CosmoTools_matrixinversion()
+	
+  !!------------------------subroutine---------------------
+
+	subroutine CosmoTools_clasicalpot(n,np)
+	!!esta subrutina calcula los potenciales clasicos
+	!!a partir de las cargas clasicas (z), sus posiciones (pz)y 
+	!!las posiciones de los segmentos superficiales (ps)
+
+	implicit none
+	integer, intent(in):: n, np
+	!!contadores para las cargas clasicas y los segmentos
+	integer :: i, j
+	real(8) :: V, vij
+	real(8) :: xs,ys,zs
+
+	real(8), dimension(n) :: clasical
+	real(8), dimension(n,3)	:: clasical_positions
+	
+	V=0
+	vij=0
+
+	!! construyendo las matrices y vectores con 0
+	do i=1,n
+		clasical(i)=0
+	end do
+
+	do i=1,n
+		do j=1,3
+			clasical_positions(i,j)=0
+		end do
+	end do
+	
+
+	!! llenando los vectores y las matrices
+	!! el de las superficies se llena a partir de archivos
+	!! uno se puede llenar usando particle_information
+	
+	if (particle%isQuantum /= ".true.")
+
+	then
+
+		do i=1,n
+			clasical(i)=particle%totalCharge
+		end do
+	
+		do i=1,n
+			do j=1,3
+				clasical_positions(i,j)=particle%origin
+			end do
+		end do
+		
+		!!leyendo el archivo y sacando la información 
+
+100 format(F12.8,2X,F12.8,2X,F12.8)
+    open(55,file='vectors.vec',status='OLD') 
+    read(55,100) (xs(j),ys(j),zs(j),j=1,np)
+
+	
+		do i=1,n
+			do j=1,np
+				vij=clasical(i)/sqrt((clasical_positions(i,1)-xs(j))**2&
+				+(clasical_positions(i,2)-ys(j))**2+&
+				(clasical_positions(i,3)-zs(j))**2)
+				V=V+vij
+			end do
+		end do
+
+		close(55) 
+
+		write(*,*) "clasical potential" 
+	end if
+
+	end subroutine CosmoTools_clasicalpot
+
 
 
 end module CosmoTools_
