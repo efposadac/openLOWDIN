@@ -457,7 +457,15 @@ contains
                       auxBonds(row)%values(1,2) = 0
                    end if
                 else if( trim( labelOfCenters(neighbor(j))) == "N" ) then
-                   if( bonds%values(row)>singleNBondCutoff ) then
+                   if(trim( vertices%type(neighbor(j)) ) == "N_R") then
+                      bondOrders(row) = 1.5
+                      connectivityMatrix%values(i,2) = connectivityMatrix%values(i,2) - 1
+                      connectivityMatrix%values(neighbor(j),2) = connectivityMatrix%values(neighbor(j),2) - 1
+                      valences(i) = valences(i) - 1.5
+                      valences(neighbor(j)) = valences(neighbor(j)) - 1.5
+                      auxBonds(row)%values(1,1) = 0
+                      auxBonds(row)%values(1,2) = 0
+                   else if( bonds%values(row)>singleNBondCutoff ) then
                       bondOrders(row) = 1
                       connectivityMatrix%values(i,2) = connectivityMatrix%values(i,2) - 1
                       connectivityMatrix%values(neighbor(j),2) = connectivityMatrix%values(neighbor(j),2) - 1

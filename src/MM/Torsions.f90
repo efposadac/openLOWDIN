@@ -146,7 +146,7 @@ contains
              Vj = vertices%torsionalBarrier(atomB)
              Vk = vertices%torsionalBarrier(atomC)
              this%order(i) = 3.0
-             this%idealPhi(i) = 60.0
+             this%idealPhi(i) = 60.0 
           end if
           this%rotationalBarrier(i) = sqrt(Vj*Vk)
        else if(vertices%hybridization(atomB)==2 .AND. vertices%hybridization(atomC)==2) then
