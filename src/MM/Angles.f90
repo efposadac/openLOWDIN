@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module creates a class with the information of the angles in the system
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -64,6 +60,24 @@ module Angles_
 
 contains
 
+  !>
+  !! @brief Defines the class constructor
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] bonds Class with the information of the edges
+  !! @param numberOfAngles INTEGER number of angles in the system
+  !! @param connectionMatrix INTEGER ARRAY with the information about the vertices in a angle
+  !! @param theta REAL ARRAY with the angles(Degrees) of the system
+  !! @param idealTheta REAL ARRAY with the ideal angles(Degrees) of the system
+  !! @param forceConstant REAL ARRAY with the force constants of the system
+  !! @param cosTheta REAL ARRAY with cos(theta) of the system
+  !! @param cosIdealTheta REAL ARRAY with cos(idealTheta) of the system
+  !! @param sinTheta REAL ARRAY with sin(theta) of the system
+  !! @param sinIdealTheta REAL ARRAY with sin(idealTheta) of the system
+  !! @param bendingEnergy REAL ARRAY with the bending energies (kcal/mol) of the system
+  !! @param stretchingEnergyKJ REAL ARRAY with the bending energies (kJ/mol) of the system
   subroutine Angles_constructor( this, vertices, bonds )
     implicit none
     type(Angles), intent(in out) :: this
@@ -100,6 +114,25 @@ contains
 
   end subroutine Angles_constructor
 
+  !>
+  !! @brief This routine calculates the force constants using UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] bonds Class with the information of the edges
+  !! @note The Force constants are calculated using the equation 13 in Rappe et. al. paper (1992)
+  !! with the correction proposed by Marcus G. Martin and implemented on TOWHEE (http://towhee.sourceforge.net/forcefields/uff.html) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[ 
+  !! k_{ijk}=664.12\frac{Z_{i}^{*}Z_{k}^{*}}{r_{ik}^{5}}(3r_{ij}r_{jk}(1-\cos^{2}\theta_{0})-r_{ik}^{2}\cos\theta_{0})
+  !! \f]
+  !! where: \n
+  !! - \f$Z_{i}^{*}\f$ and \f$Z_{j}^{*}\f$ are the effective atomic charges, parameters in the UFF
+  !! - \f$r_{ij}\f$, \f$r_{ik}\f$, \f$r_{jk}\f$ are the ideal distances, parameters in the UFF
+  !! - \f$\theta_{0}\f$ is the ideal angle, parameter in the UFF
   subroutine Angles_getForceConstants(this, vertices, bonds)
     implicit none
     type(Angles), intent(in out) :: this
@@ -127,6 +160,47 @@ contains
 
   end subroutine Angles_getForceConstants
 
+  !>
+  !! @brief This routine calculates the bending energies using UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @note The Bending energies are calculated using the equation 10-12 in Rappe et. al. paper (1992)
+  !! with the correction proposed by Marcus G. Martin and implemented on TOWHEE (http://towhee.sourceforge.net/forcefields/uff.html) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \n
+  !! <b>Linear case:</b>
+  !! \f[ 
+  !! E_{\theta} = K_{ijk}(1+\cos\theta)
+  !! \f]
+  !! <b>Trigonal-planar case:</b>
+  !! \f[ 
+  !! E_{\theta} = \frac{K_{ijk}}{4.5}(1+(1+\cos\theta)(4\cos\theta))
+  !! \f]
+  !! <b>Square-planar and octahedral case:</b>
+  !! \f[ 
+  !! E_{\theta} = K_{ijk}(1+\cos\theta)\cos^{2}\theta
+  !! \f]
+  !! <b> General case:</b>
+  !! \f[ 
+  !! E_{\theta} = K_{ijk}(C_{0}+C_{1}\cos\theta+C_{2}\cos2\theta)
+  !! \f]
+  !! \f[ 
+  !! C_{2}= 1/(4\sin^{2}\theta_{0})
+  !! \f]
+  !! \f[ 
+  !! C_{1}= -4C_{2}\cos\theta_{0}$
+  !! \f]
+  !! \f[ 
+  !! C_{0}= C_{2}(2\cos^{2}\theta_{0}+1)
+  !! \f]
+  !! where: \n
+  !! - \f$K_{ijk}\f$ is the force constant
+  !! - \f$\theta\f$ is the angle
+  !! - \f$\theta_{0}\f$ is the ideal angle, parameter in the UFF
   subroutine Angles_getBendingEnergies(this, vertices)
     implicit none
     type(Angles), intent(in out) :: this
@@ -176,6 +250,10 @@ contains
 
   end subroutine Angles_getBendingEnergies
 
+  !>
+  !! @brief Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine Angles_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

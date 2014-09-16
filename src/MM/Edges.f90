@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module creates a class with the information of the edges in the system
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -67,6 +63,21 @@ module Edges_
 
 contains
 
+  !>
+  !! @brief Defines the class constructor
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the edges
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] ring Class with the information of the rings
+  !! @param numberOfEdges INTEGER number of edges in the system
+  !! @param connectionMatrix INTEGER ARRAY with the information about the vertices in a bond
+  !! @param distance REAL ARRAY with the bond distances(Angstroms) of the system
+  !! @param bondOrder REAL ARRAY with the bond orders of the system
+  !! @param idealDistance REAL ARRAY with the ideal bond distances(Angstroms) of the system
+  !! @param forceConstant REAL ARRAY with the force constants of the system
+  !! @param stretchingEnergy REAL ARRAY with the stretching energies (kcal/mol) of the system
+  !! @param stretchingEnergyKJ REAL ARRAY with the stretching energies (kJ/mol) of the system
   subroutine Edges_constructor( this, vertices, ring )
     implicit none
     type(Edges), intent(in out) :: this
@@ -101,7 +112,30 @@ contains
 
   end subroutine Edges_constructor
 
-
+  !>
+  !! @brief This routine calculates the ideal distance of a bond using UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the edges
+  !! @param [in] vertices Class with the information of the vertices
+  !! @note The ideal distance (Natural Bond Length) is calculated using the equations 2-4 in Rappe et. al. paper (1992)
+  !! with the correction proposed by Marcus G. Martin and implemented on TOWHEE (http://towhee.sourceforge.net/forcefields/uff.html) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[ 
+  !! r_{ij} = r_{i} + r_{j} + r_{BO} - r_{EN}
+  !! \f]
+  !! \f[ 
+  !! r_{BO} = -\lambda(r_{i} + r_{j})\ln(n)\:\:\:\:\:\lambda = 0.1332
+  !! \f]
+  !! \f[ 
+  !! r_{EN} = \frac{r_{i}r_{j}(\sqrt{X_{i}}-\sqrt{X_{j}})^{2}}{X_{i}r_{i}+X_{j}r_{j}}
+  !! \f]
+  !! where: \n
+  !! - \f$r_i\f$ and \f$r_j\f$ are the valence radius, parameters in the UFF
+  !! - \f$X_i\f$ and \f$X_j\f$ are the electronegativities parameters in the UFF
+  !! - \f$n\f$ is the bond order
   subroutine Edges_getIdealDistance(this, vertices)
     implicit none
     type(Edges), intent(in out) :: this
@@ -131,6 +165,14 @@ contains
 
   end subroutine Edges_getIdealDistance
 
+  !>
+  !! @brief This function evaluates the ideal distance between two atoms
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this Class with the information of the edges
+  !! @param [in] atomA INTEGER first atom to evaluate
+  !! @param [in] atomB INTEGER second atom to evaluate
+  !! @return [out] output REAL(8) ideal distance between atomA and atomB 
   function Edges_getDistance(this, atomA, atomB) result(output)
     implicit none
     type(Edges), intent(in) :: this
@@ -151,6 +193,22 @@ contains
 
   end function Edges_getDistance
 
+  !>
+  !! @brief This routine calculates the force constants using UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the edges
+  !! @param [in] vertices Class with the information of the vertices
+  !! @note The Force constants are calculated using the equation 6 in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[ 
+  !! k_{ij} = 664.12\frac{Z_{i}^{*}Z_{j}^{*}}{r_{ij}^{3}}
+  !! \f]
+  !! where: \n
+  !! - \f$Z_{i}^{*}\f$ and \f$Z_{j}^{*}\f$ are the effective atomic charges, parameters in the UFF
+  !! - \f$r_{ij}\f$ is the ideal distance
   subroutine Edges_getForceConstants(this, vertices)
     implicit none
     type(Edges), intent(in out) :: this
@@ -172,6 +230,22 @@ contains
 
   end subroutine Edges_getForceConstants
 
+  !>
+  !! @brief This routine calculates the Stretching energies using UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the edges
+  !! @note The Stretching energies are calculated using the equation 1a in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[ 
+  !! E_{R} = \frac{1}{2}k_{ij}(r-r_{ij})^{2}
+  !! \f]
+  !! where: \n
+  !! - \f$k_{ij}\f$ is the force constant
+  !! - \f$r\f$ is the bond distance
+  !! - \f$r_{ij}\f$ is the ideal distance
   subroutine Edges_getStretchingEnergies(this)
     implicit none
     type(Edges), intent(in out) :: this
@@ -188,6 +262,18 @@ contains
 
   end subroutine Edges_getStretchingEnergies
 
+  !>
+  !! @brief This routine calculates the bond order using the connectivities, valences, distances, angles and aromaticity information
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] bondOrders REAL(8) ARRAY with the information of the bond orders
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] ring Class with the information of the rings
+  !! @note 1 = single bond \n
+  !! 2 = double bond \n
+  !! 3 = triple bond \n
+  !! 1.5 = aromatic bond \n
+  !! 1.41 = amide C-N bond
   subroutine Edges_getBondOrders(bondOrders, vertices, ring)
     implicit none
     type(Vertex), intent(in) :: vertices
@@ -1441,6 +1527,14 @@ contains
 
   end subroutine Edges_getBondOrders
 
+  !>
+  !! @brief This function evaluates the bond order between two atoms
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this Class with the information of the edges
+  !! @param [in] atomA INTEGER first atom to evaluate
+  !! @param [in] atomB INTEGER second atom to evaluate
+  !! @return [out] output REAL(8) bond order between atomA and atomB 
   function Edges_getOrder(this, atomA, atomB) result(output)
     implicit none
     type(Edges), intent(in) :: this
@@ -1460,6 +1554,10 @@ contains
 
   end function Edges_getOrder
 
+  !>
+  !! @brief Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine Edges_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module creates a class with the information of the Van der Waals interactions in the system
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -72,6 +68,24 @@ module VDWaals_
 
 contains
 
+  !>
+  !! @brief Defines the class constructor
+  !! The Van der Waals energy excludes the interactions for atoms
+  !! that are bonded to each other (1,2 interactions) and bonded to a common atom (1,3 interactions)
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the Van der Waals interactions
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] bonds Class with the information of the edges
+  !! @param [in] angle Class with the information of the angles
+  !! @param numberOfVDWaals INTEGER number of Van der Waals interactions
+  !! @param connectionMatrix INTEGER ARRAY with the information about the vertices with Van der Waals interaction
+  !! @param distance REAL ARRAY with the Van der Waals distance interaction
+  !! @param idealDistance REAL ARRAY with the ideal Van der Waals distance interaction
+  !! @param wellDepth REAL ARRAY with the Van der Waals well depth
+  !! @param VDWEnergy REAL ARRAY with the Van der Waals energies (kcal/mol) of the system
+  !! @param VDWEnergyKJ REAL ARRAY with the Van der Waals energies (kJ/mol) of the system
+  !! @param VDW LOGICAL returns .true. if the system has Van der Waals interactions
   subroutine VDWaals_constructor( this, vertices, bonds, angle )
     implicit none
     type(VDWaals), intent(in out) :: this
@@ -87,6 +101,15 @@ contains
 
   end subroutine VDWaals_constructor
 
+  !>
+  !! @brief This routine calculates the Van der Waals distance excluding the interactions for atoms
+  !! that are bonded to each other (1,2 interactions) and bonded to a common atom (1,3 interactions)
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the Van der Waals interactions
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] bonds Class with the information of the edges
+  !! @param [in] angle Class with the information of the angles
   subroutine VDWaals_getDistance(this, vertices, bonds, angle)
     implicit none
     type(VDWaals), intent(in out) :: this
@@ -140,6 +163,15 @@ contains
 
   end subroutine VDWaals_getDistance
 
+  !>
+  !! @brief This function evaluates if two atoms has Van der Waals interactions
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] bonds Class with the information of the edges
+  !! @param [in] angle Class with the information of the angles
+  !! @param [in] atomA INTEGER first atom to evaluate
+  !! @param [in] atomB INTEGER second atom to evaluate
+  !! @return [out] output LOGICAL return .true. if the atoms has Van der Waals interactions
   function VDWaals_isVDW(bonds, angle, atomA, atomB) result(output)
     implicit none
     type(Edges), intent(in) :: bonds
@@ -188,6 +220,22 @@ contains
 
   end function VDWaals_isVDW
 
+  !>
+  !! @brief This routine calculates the ideal Van der Waals distance excluding the interactions for atoms
+  !! that are bonded to each other (1,2 interactions) and bonded to a common atom (1,3 interactions)
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the Van der Waals interactions
+  !! @param [in] vertices Class with the information of the vertices
+  !! @note The ideal distances are calculated using the equation 21b in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[
+  !! x_{ij}=\sqrt{x_{i}{x_{j}}}
+  !! \f]
+  !! where: \n
+  !! - \f$x_{i}\f$ and \f$x_{j}\f$ are the atomic Van der Waals distances, are parameters in UFF
   subroutine VDWaals_getIdealDistance(this, vertices)
     implicit none
     type(VDWaals), intent(in out) :: this
@@ -208,6 +256,22 @@ contains
 
   end subroutine VDWaals_getIdealDistance
 
+  !>
+  !! @brief This routine calculates the well depth for Van der Waals interactions excluding the interactions for atoms
+  !! that are bonded to each other (1,2 interactions) and bonded to a common atom (1,3 interactions)
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the Van der Waals interactions
+  !! @param [in] vertices Class with the information of the vertices
+  !! @note The well depths are calculated using the equation 22 in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[
+  !! D_{ij}=\sqrt{D_{i}{D_{j}}}
+  !! \f]
+  !! where: \n
+  !! - \f$D_{i}\f$ and \f$D_{j}\f$ are the atomic Van der Waals energy, are parameters in UFF
   subroutine VDWaals_getWellDepth(this, vertices)
     implicit none
     type(VDWaals), intent(in out) :: this
@@ -228,6 +292,23 @@ contains
 
   end subroutine VDWaals_getWellDepth
 
+  !>
+  !! @brief This routine calculates the Van der Waals energies excluding the interactions for atoms
+  !! that are bonded to each other (1,2 interactions) and bonded to a common atom (1,3 interactions)
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the Van der Waals interactions
+  !! @note The energies are calculated using the equation 20 in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[
+  !! E_{vdw} = D_{ij}\left[\left(\frac{x_{ij}}{x}\right)^{12}-2\left(\frac{x_{ij}}{x}\right)^{6}\right]
+  !! \f]
+  !! where: \n
+  !! - \f$D_{ij}\f$ is the well depth energy
+  !! - \f$x\f$ is the Van der Waals distance
+  !! - \f$x_{ij}\f$ is the ideal Van der Waals distance
   subroutine VDWaals_getVDWEnergies(this)
     implicit none
     type(VDWaals), intent(in out) :: this
@@ -246,6 +327,10 @@ contains
 
   end subroutine VDWaals_getVDWEnergies
 
+  !>
+  !! @brief Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine VDWaals_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

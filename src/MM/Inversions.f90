@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module creates a class with the information of the inversion angles(out of plane) in the system
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -70,6 +66,24 @@ module Inversions_
 
 contains
 
+  !>
+  !! @brief Defines the class constructor
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the inversion angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] bonds Class with the information of the edges
+  !! @param [in] angle Class with the information of the angles
+  !! @param numberOfInversions INTEGER number of inversion angles in the system
+  !! @param connectionMatrix INTEGER ARRAY with the information about the vertices in a inversion angle
+  !! @param omega REAL ARRAY with the inversion angles(Degrees) of the system
+  !! @param C0 REAL ARRAY with parameter of the UFF
+  !! @param C1 REAL ARRAY with parameter of the UFF
+  !! @param C2 REAL ARRAY with parameter of the UFF
+  !! @param forceConstant REAL ARRAY with the force constants in the system
+  !! @param inversionEnergy REAL ARRAY with the inversion energies (kcal/mol) of the system
+  !! @param inversionEnergyKJ REAL ARRAY with the inversion energies (kJ/mol) of the system
+  !! @param hasInversions LOGICAL returns .true. if the system has inversion angles
   subroutine Inversions_constructor( this, vertices, bonds, angle )
     implicit none
     type(Inversions), intent(in out) :: this
@@ -94,6 +108,13 @@ contains
 
   end subroutine Inversions_constructor
 
+  !>
+  !! @brief This routine evaluates if the system has inversion angles and return the members of the angle
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the inversion angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] bonds Class with the information of the edges
   subroutine Inversions_getConnectionMatrix(this, vertices, bonds)
     implicit none
     type(Inversions), intent(in out) :: this
@@ -155,6 +176,13 @@ contains
 
   end subroutine Inversions_getConnectionMatrix
 
+  !>
+  !! @brief This routine searches the neighbors of an atom in the inversion angle
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [out] neighbors INTEGER ARRAY with the neighbors of the atom
+  !! @param [in] AtomI INTEGER atom to evaluate
+  !! @param [in] bonds Class with the information of the edges
   subroutine Inversions_getNeighbors(neighbors, AtomI, bonds)
     implicit none
     integer, allocatable, intent(out) :: neighbors(:)
@@ -177,6 +205,28 @@ contains
 
   end subroutine Inversions_getNeighbors
 
+  !>
+  !! @brief This routine calculates the inversion angles (omega) of the system
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the inversion angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] angle Class with the information of the angle
+  !! @note The inversion angle (\f$\omega\f$) is calculated using the method proposed by Lee et al. (1999) \n
+  !! Lee, S.H., Palmo, K., Krimm, S., <b>New out-of-plane angle and bond angle internal coordinates 
+  !! and related potential energy functions for molecular mechanics and dynamics simulations</b>,
+  !! J. Comput. Chem., 20, 10, 1067--1084, 1999 \n
+  !! \f[
+  !! \sin\omega_{1} = e_{41}\cdot\left(\frac{e_{42}\times e_{43}}{\sin\phi_{1}}\right)
+  !! \f]
+  !! 3 (\f$e_{43}\f$) \n
+  !! &nbsp;&nbsp;\ \n
+  !! &nbsp;&nbsp;&nbsp;4 \f$\cdots\f$ 1 (\f$e_{41}\f$)&nbsp;&nbsp; plane = 3-4-2 and \f$\phi\f$ angle of 3-4-2\n
+  !! &nbsp;&nbsp;/ \n
+  !! 2 (\f$e_{42}\f$)\n
+  !! \n
+  !! where: \n
+  !! - \f$e_{43}\f$, \f$e_{41}\f$ and \f$e_{42}\f$ are the unit vectors
   subroutine Inversions_getOmega(this, vertices, angle)
     implicit none
     type(Inversions), intent(in out) :: this
@@ -299,11 +349,21 @@ contains
 
   end subroutine Inversions_getOmega
 
+
+  !>
+  !! @brief This function searches the angle (phi) for the plane A-B-C
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] angle Class with the information of the angles
+  !! @param [in] atomA INTEGER first atom to evaluate
+  !! @param [in] atomB INTEGER second atom(central atom) to evaluate
+  !! @param [in] atomC INTEGER third atom to evaluate
+  !! @return [out] output REAL(8) angle between A-B-C
   function Inversions_getPhi(angle, atomA, atomB, atomC) result(output)
     implicit none
     type(Angles), intent(in) :: angle
-    integer, intent(in) :: AtomB ! Central atom
-    integer, intent(in) :: AtomA, AtomC
+    integer, intent(in) :: atomB ! Central atom
+    integer, intent(in) :: atomA, atomC
     real(8) :: output
     integer :: i
 
@@ -321,6 +381,32 @@ contains
 
   end function Inversions_getPhi
 
+  !>
+  !! @brief This routine calculates the constants with the UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the inversion angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @note The constants are calculated using the parameters in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \n
+  !! For P, As, Sb and Bi the constants are calculated using the correction implemented on OpenBabel (http://openbabel.org/wiki/Main_Page): \n
+  !! \f[
+  !! C_{1} = -4.0\cos(\omega_{0})
+  !! \f]
+  !! \f[
+  !! C_{2} = 1.0
+  !! \f]
+  !! \f[
+  !! C_{0} = -C_{1}\cos(\omega_{0}) + C_{2}\cos(2.0\omega_{0})
+  !! \f]
+  !! where: \n
+  !! - \f$\omega_{0}\f$ = 84.4339 for P
+  !! - \f$\omega_{0}\f$ = 86.9735 for As
+  !! - \f$\omega_{0}\f$ = 87.7047 for Sb
+  !! - \f$\omega_{0}\f$ = 90.0000 for Bi
   subroutine Inversions_getConstants(this, vertices)
     implicit none
     type(Inversions), intent(in out) :: this
@@ -387,6 +473,22 @@ contains
     
   end subroutine Inversions_getConstants
 
+  !>
+  !! @brief This routine calculates the inversion energies with the UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the inversion angles
+  !! @note The inversion energies are calculated using the equation 18 in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[
+  !! E_{\omega} = K_{ijkl}(C_{0}+C_{1}\cos\omega_{ijkl}+C_{2}\cos2\omega_{ijkl})
+  !! \f]
+  !! where: \n
+  !! - \f$\omega_{ijkl}\f$ is the inversion angle
+  !! - \f$C_{0}\f$, \f$C_{1}\f$ and \f$C_{2}\f$ are parameters in UFF
+  !! - \f$K_{ijkl}\f$ is the force constant and it is a parameter in the UFF
   subroutine Inversions_getInversionEnergies(this)
     implicit none
     type(Inversions), intent(in out) :: this
@@ -403,6 +505,10 @@ contains
     end do
   end subroutine Inversions_getInversionEnergies
 
+  !>
+  !! @brief Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine Inversions_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

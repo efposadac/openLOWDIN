@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module creates a class with the information of the torsion angles(dihedrals) in the system
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -66,6 +62,23 @@ module Torsions_
 
 contains
 
+  !>
+  !! @brief Defines the class constructor
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the torsion angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] bonds Class with the information of the edges
+  !! @param [in] angle Class with the information of the angles
+  !! @param numberOfTorsions INTEGER number of torsion angles in the system
+  !! @param connectionMatrix INTEGER ARRAY with the information about the vertices in a torsion angle
+  !! @param phi REAL ARRAY with the torsion angles(Degrees) of the system
+  !! @param idealPhi REAL ARRAY with the ideal torsion angles(Degrees) of the system
+  !! @param rotationalBarrier REAL ARRAY with the rotation barrier of the system
+  !! @param order REAL ARRAY with the bond order of the j-k bond in the system
+  !! @param torsionEnergy REAL ARRAY with the torsion energies (kcal/mol) of the system
+  !! @param torsionEnergyKJ REAL ARRAY with the torsion energies (kJ/mol) of the system
+  !! @param hasTorsion LOGICAL returns .true. if the system has torsion angles
   subroutine Torsions_constructor( this, vertices, bonds, angle )
     implicit none
     type(Torsions), intent(in out) :: this
@@ -100,6 +113,27 @@ contains
 
   end subroutine Torsions_constructor
 
+  !>
+  !! @brief This routine calculates all constants needed for to calculate the torsion energy using UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the torsion angles
+  !! @param [in] vertices Class with the information of the vertices
+  !! @param [in] bonds Class with the information of the edges
+  !! @note The constants are calculated using the equations 16 and 17 in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[ 
+  !! V_{sp^{3}}= \sqrt{V_{j}V_{k}}
+  !! \f]
+  !! \f[ 
+  !! V_{sp^{2}}= 5\sqrt{U_{j}U_{k}}(1+4.18\ln(BO_{jk}))
+  !! \f]
+  !! where: \n
+  !! - \f$V_{j}\f$ and \f$V_{k}\f$ are the torsional barriers, parameters in the UFF
+  !! - \f$U_{j}\f$ and \f$U_{k}\f$ are constants, parameters in the UFF
+  !! - \f$BO_{jk}\f$ is the bond order of the j-k bond
   subroutine Torsions_getConstants(this, vertices, bonds)
     implicit none
     type(Torsions), intent(in out) :: this
@@ -201,6 +235,13 @@ contains
     end do
   end subroutine Torsions_getConstants
 
+  !>
+  !! @brief This function evaluates if an atom in the torsion angle is a group six member
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] atom INTEGER atom to evaluate
+  !! @param [in] vertices Class with the information of the vertices
+  !! @return [out] output LOGICAL returns .true. if the atom is group six member
   function Torsions_isGroupSixMember(atom, vertices) result(output)
     implicit none
     integer, intent(in) :: atom
@@ -218,6 +259,23 @@ contains
 
   end function Torsions_isGroupSixMember
 
+  !>
+  !! @brief This routine calculates the torsion energies using UFF parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the torsion angles
+  !! @note The energies are calculated using the equation 15 in Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[ 
+  !! E_{\phi} = \frac{1}{2}V_{\phi}(1-\cos n\phi_{0}\cos n\phi)
+  !! \f]
+  !! where: \n
+  !! - \f$V_{\phi}\f$ is the torsional barrier of the torsion angle \f$\phi\f$, parameters in the UFF
+  !! - \f$\phi\f$ torsion angle 
+  !! - \f$\phi_{0}\f$ ideal torsion angle , parameters in the UFF
+  !! - \f$n\f$ is a parameter in the UFF
   subroutine Torsions_getTorsionEnergies(this)
     implicit none
     type(Torsions), intent(in out) :: this
@@ -235,6 +293,10 @@ contains
     end do
   end subroutine Torsions_getTorsionEnergies
 
+  !>
+  !! @brief Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine Torsions_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
