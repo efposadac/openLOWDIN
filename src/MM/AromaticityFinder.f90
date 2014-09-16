@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module evaluates the aromaticity in a ring
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -47,6 +43,13 @@ module AromaticityFinder_
   
 contains
 
+  !>
+  !! @brief This function evaluates in an atom belongs to an aromatic ring
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this Class with informations of the rings
+  !! @param [in] atomIdx INTEGER atom to evaluate
+  !! @return [out] output LOGICAL if the ring is aromatic returns .true.
   function AromaticityFinder_isAromatic( this, atomIdx ) result(output)
     implicit none
     type(Rings) :: this

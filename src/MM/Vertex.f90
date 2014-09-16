@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module creates a class with the information of the vertices in the system
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -74,6 +70,34 @@ module Vertex_
 
 contains
 
+  !>
+  !! @brief Defines the class constructor, call the atom typing module a charge the parameters
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the vertices
+  !! @param [in] forcefield CHARACTER Force Field selected by the user
+  !! @param [in] ring Class with the information of the rings
+  !! @param numberOfVertices INTEGER number of vertices in the system
+  !! @param symbol CHARACTER ARRAY symbols of the vertices
+  !! @param type CHARACTER ARRAY types of atoms, those are specific for the force field
+  !! @param charges REAL(8) ARRAY Nuclear charges of all atoms
+  !! @param cartesianMatrix REAL(8) ARRAY cartesian coordinates for atoms
+  !! @param bondValence REAL(8) ARRAY valence radius for all atoms (UFF parameter)
+  !! @param angleValence REAL(8) ARRAY ideal angle for all atoms (UFF parameter)
+  !! @param distanceVdW REAL(8) ARRAY Van der Waals distance for all atoms (UFF parameter)
+  !! @param energyVdW REAL(8) ARRAY Van der Waals energy for all atoms (UFF parameter)
+  !! @param scaleVdW REAL(8) ARRAY Van der Waals scaling factor for all atoms (UFF parameter)
+  !! @param effectiveCharge REAL(8) ARRAY Nuclear effective charges for all atoms (UFF parameter)
+  !! @param torsionalBarrier REAL(8) ARRAY torsional energy barrier for all atoms (UFF parameter)
+  !! @param torsionalConstant REAL(8) ARRAY torsional constant for all atoms (UFF parameter)
+  !! @param electronegativityGMP REAL(8) ARRAY electronegativity for all atoms (UFF parameter)
+  !! @param hard REAL(8) ARRAY hardness for all atoms (UFF parameter)
+  !! @param radius REAL(8) ARRAY radius for all atoms (UFF parameter)
+  !! @param hybridization REAL(8) ARRAY hybridization for all atoms (UFF parameter)
+  !! @param ionizationPotential REAL(8) ARRAY experimental Ionization Potential for atoms
+  !! @param connectivity REAL(8) ARRAY connectivity for all atoms (UFF parameter)
+  !! @see atomtypeuff_::atomtypeuff_run
+  !! @see uffparameters_::uffparameters_load
   subroutine Vertex_constructor( this, forcefield, ring )
     implicit none
     type(Vertex), intent(in out) :: this
@@ -168,6 +192,10 @@ contains
 
   end subroutine Vertex_constructor
 
+  !>
+  !! @brief Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine Vertex_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

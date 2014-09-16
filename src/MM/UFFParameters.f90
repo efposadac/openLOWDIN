@@ -13,21 +13,20 @@
 !!******************************************************************************
 
 !>
-!! @brief Module for atomic elements definitions
+!! @brief Molecular Mechanics program.
+!!        This module loads the UFF parameters
+!! @author  J.M. Rodas
 !!
-!! @author Sergio A. Gonzalez Monico
+!! <b> Creation date : </b> 2014-06-02
 !!
-!! <b> Fecha de creacion : </b> 2008-08-05
+!! <b> History: </b>
 !!
-!! <b> Historial de modificaciones: </b>
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
-!!   - <tt> 2007-01-06 </tt>: Nestor Aguirre ( nfaguirrec@unal.edu.co )
-!!        -# Propuso estandar de codificacion.
-!!   - <tt> 2007-07-20 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Se adapto al estandar de codificacion propuesto.
-!!   - <tt> 2011-02-14 </tt>: Fernando Posada ( efposadac@unal.edu.cn
-!!        -# Reescribe y adapta el modulo  para su inclusion en Lowdin
-!!        -# Elminates XML dependence. The module is rewritten.
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!!          all those tools are provided by LOWDIN quantum chemistry package
+!!
 module UFFParameters_
   use CONTROL_
   use Exception_
@@ -59,9 +58,11 @@ module UFFParameters_
 contains
     
   !>
-  !! @brief Loads an atomic element from library.
-  !! @author E. F. Posada, 2013
-  !! @version 1.0
+  !! @brief Loads UFF parameters from library.
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the atom type information
+  !! @param [in] typeSelected CHARACTER atom type to evaluate
   subroutine UFFParameters_load( this, typeSelected )
     implicit none
     
@@ -191,7 +192,10 @@ contains
   end subroutine UFFParameters_load
   
   !<
-  !! @brief Define el destructor para clase
+  !! @brief This routine show the information for an atom type
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param this Class with informations of the atom type
   subroutine UFFParameters_show( this )
     implicit none
     type(UFFParameters) , intent(in) :: this
@@ -220,7 +224,9 @@ contains
   end subroutine UFFParameters_show
 
   !>
-  !! @brief  Maneja excepciones de la clase
+  !! @brief  Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine UFFParameters_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module contains common functions for Molecular Mechanics calculations 
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions using Universal Force Field has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -50,10 +46,19 @@ module MMCommons_
        MMCommons_getConnectivityMatrix, &
        MMCommons_isOrganometallic, &
        MMCommons_getAngleAverage, &
-       MMCommons_getValences
+       MMCommons_getValences, &
+       MMCommons_sort, &
+       MMCommons_removeEdge, &
+       MMCommons_pruningGraph, &
+       MMCommons_searchEdgesRow, &
+       MMCommons_searchNeighbor
 
 contains
 
+  !>
+  !! @brief Defines the class constructor
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine MMCommons_constructor(this)
     implicit none
     type(MolecularSystem) :: this
@@ -63,6 +68,13 @@ contains
 
   end subroutine MMCommons_constructor
 
+  !>
+  !! @brief This function search for the connectivity for one atom
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this Class MolecularSystem with all information about the system
+  !! @param [in] atomIdx INTEGER Id that indentify the atom to check his connectivity
+  !! @return [out] output INTEGER connectivity of the atom
   function MMCommons_getConnectivity( this, atomIdx ) result( output )
     implicit none
     type(MolecularSystem) :: this
@@ -83,6 +95,13 @@ contains
     
   end function MMCommons_getConnectivity
 
+  !>
+  !! @brief This function calculate the angle average for one atom
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this Class MolecularSystem with all information about the system
+  !! @param [in] atomIdx INTEGER Id that indentify the atom to check his connectivity
+  !! @return [out] output REAL(8) Angle average of the atom
   function MMCommons_getAngleAverage ( this, atomIdx ) result( output )
     implicit none
     type(MolecularSystem) :: this
@@ -106,7 +125,12 @@ contains
 
   end function MMCommons_getAngleAverage
 
-
+  !>
+  !! @brief Recursive subroutine realizes an ascending sort of an integer array
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] a INTEGER Array to sort, change on the output
+  !! @param [in] na INTEGER with the dimension of the array A
   recursive subroutine MMCommons_sort(a,na)
 
     ! DUMMY ARGUMENTS
@@ -155,6 +179,13 @@ contains
 
   end subroutine MMCommons_sort
 
+  !>
+  !! @brief Get connectivity Matrix for whole system
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this Class MolecularSystem with all information about the system
+  !! @param [in] outputSize INTEGER size of the output array
+  !! @param [in,out] output INTEGER ARRAY with connectivity information of the system
   subroutine MMCommons_getConnectivityMatrix ( this, outputSize, output )
     implicit none
     type(MolecularSystem) :: this
@@ -173,6 +204,15 @@ contains
 
   end subroutine MMCommons_getConnectivityMatrix
 
+  !>
+  !! @brief Search the neighbors of one atom in the system
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] edges INTEGER ARRAY with the edges(bonds) information
+  !! @param [in] edgesSize INTEGER size of the edges array
+  !! @param [in] outputSize INTEGER size of the output array, generally is the connectivity of the atom
+  !! @param [in] Idx ID of the atom 
+  !! @param [in,out] output INTEGER ARRAY with neighbors information of the atom
   subroutine MMCommons_searchNeighbor( edges, edgesSize, outputSize, Idx, output ) 
     implicit none
     integer, intent(in) :: edgesSize
@@ -203,6 +243,14 @@ contains
 
   end subroutine MMCommons_searchNeighbor
 
+  !>
+  !! @brief Search the rows in edges array where is the bond information of an specific atom
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] edges INTEGER ARRAY with the edges(bonds) information
+  !! @param [in] edgesSize INTEGER size of the edges array
+  !! @param [in] Idx ID of the atom 
+  !! @return [out] output INTEGER ARRAY with number of each row
   subroutine MMCommons_searchEdgesRow( edges, edgesSize, Idx, output )
     implicit none
     integer, intent(in) :: edgesSize
@@ -240,6 +288,15 @@ contains
 
   end subroutine MMCommons_searchEdgesRow
 
+  !>
+  !! @brief This subroutine cretes a pruned graph, all atoms with connectivity == 1 are cut of the original graph, the connectivity is updated in each iteration step
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this MolecularSystem class with all information of the system
+  !! @param [in] numberOfCenters INTEGER number of atoms in the system
+  !! @return [out] edges INTEGER ARRAY with edges information of the pruned graph
+  !! @return [out] connectivityMatrix INTEGER ARRAY with connectivity information of the pruned graph
+  !! @return [out] bonds REAL(8) ARRAY with distances information of the pruned graph
   subroutine MMCommons_pruningGraph(this, numberOfCenters, edges, connectivityMatrix, bonds)
     implicit none
     type(MolecularSystem) :: this
@@ -305,6 +362,13 @@ contains
    
   end subroutine MMCommons_pruningGraph
 
+  !>
+  !! @brief This subroutine removes an edge information of one element of the system
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this INTEGER ARRAY with edges information, on input has size = edgesSize, on output has size = edgesSize - 1
+  !! @param [in] numberOfElement INTEGER number of the element to remove
+  !! @param [in] edgesSize INTEGER size of the edges array
   subroutine MMCommons_removeEdge( this, numberOfElement, edgesSize )
     implicit none
     type(MatrixInteger), allocatable :: this(:)
@@ -359,6 +423,15 @@ contains
     
   end subroutine MMCommons_removeEdge
 
+  !>
+  !! @brief This function evaluates if the neigbors of one atom are metals
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this MolecularSystem class with all information of the system
+  !! @param [in] atomIdx INTEGER atom to evaluate if is organometallic
+  !! @param [in] connectivity INTEGER connectivity of the atom
+  !! @param [in] labelOfCenters CHARACTER ARRAY with the symbols of the atoms in the system
+  !! @return [out] output LOGICAL .true. = the atom is organometallic, .false. = atom is not organometallic
   function MMCommons_isOrganometallic( this, atomIdx, connectivity, labelOfCenters ) result( output )
     implicit none
     type(MolecularSystem) :: this
@@ -406,6 +479,13 @@ contains
 
   end function MMCommons_isOrganometallic
 
+  !>
+  !! @brief This subroutine obtain the valences of all atom in the system
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this CHARACTER ARRAY with the symbols of the atoms in the system
+  !! @param [in] numberOfCenters INTEGER number of atom in the system
+  !! @param [in,out] valences REAL(8) ARRAY with the valences of all atoms
   subroutine MMCommons_getValences(this, numberOfCenters, valences)
     implicit none
     character(10), allocatable, intent(in) :: this(:)
@@ -639,6 +719,10 @@ contains
 
   end subroutine MMCommons_getValences
 
+  !>
+  !! @brief Defines the exception of the class
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine MMCommons_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

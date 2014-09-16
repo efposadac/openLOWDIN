@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module creates a class with the information of the rings in the system
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -60,7 +56,21 @@ module Rings_
        Rings_isNeighborAromaticRing
 
 contains
-
+  
+  !>
+  !! @brief Defines the class constructor
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the rings
+  !! @param numberOfRings INTEGER number of rings in the system
+  !! @param ringSize INTEGER ARRAY contains the size of each ring in the system
+  !! @param aromaticity INTEGER ARRAY 1 == Aromatic ring, 0 == Non aromatic ring
+  !! @param connectionMatrix INTEGER ARRAY each row contains all atom ID in the ring
+  !! @param hasRings LOGICAL .true. the system has rings
+  !! @note  The number of rings are calculated using the cyclomatic number(c(G)) \n 
+  !! L. Matyska, J. Comp. Chem. 9(5), 455 (1988) \n 
+  !! c(G) = Ne - Nv + 1 (isolated rings), corrected with c(G) = Ne - Nv + 2 (3D rings) \n
+  !! where Ne = number of edges, Nv = number of vertices
   subroutine Rings_constructor(this)
     implicit none
     type(Rings), intent(in out) :: this
@@ -124,6 +134,24 @@ contains
 
   end subroutine Rings_constructor
 
+  !>
+  !! @brief Evaluates the aromaticity of a ring
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the rings
+  !! @note This routine calculates the aromaticity using Huckel's rule, 
+  !! for this first the pi electrons are calculated:
+  !! - sp2 hybridized neutral C shares one pi electron as in benzene;
+  !! - O and S share two pi electrons as in furane and thiophene; S in sulfone is also assumed to share a lone pair;
+  !! - sp2 hybridized N shares one pi electron as in pyridine;
+  !! - sp3 hybridized N, forming three single bonds, shares two pi electrons as in pyrrole;
+  !! - sp3 hybridized N, forming two single bonds and one double bond, 
+  !! shares one pi electron if the double bond is not exocyclic, otherwise, 
+  !! the number of shared pi electrons would be zero;
+  !! - sp3 hybridized N, forming one single and two double bonds, 
+  !! doesn't share pi electrons, excluding N as in pyridine N-oxide which shares one pi electron;
+  !! - P is treated like Nitrogen;
+  !! - Se is treated like Oxygen.
   subroutine Rings_getAromaticity(this)
     implicit none
     type(Rings), intent(in out) :: this
@@ -217,6 +245,15 @@ contains
 
   end subroutine Rings_getAromaticity
   
+  !>
+  !! @brief This function evaluates if a ring is a canditate for aromaticity, 
+  !! if the connectivity of one Carbon in the ring is >= 4 the ring is discarted
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the rings
+  !! @param [in] ringNumber INTEGER ring to evaluate
+  !! @param [in] labelOfCenters CHARACTER ARRAY symbols of the atoms
+  !! @return [out] output LOGICAL if .true. is aromatic ring candidate
   function Rings_isAromaticCandidate(this, ringNumber, labelOfCenters) result(output)
     implicit none
     type(Rings), intent(in out) :: this
@@ -237,6 +274,21 @@ contains
 
   end function Rings_isAromaticCandidate
 
+  !>
+  !! @brief This routine calculates the number of pi bonds of an atom in a ring
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the rings
+  !! @param [in] atom INTEGER atom to evaluate
+  !! @param [in] ringNumber INTEGER ring to evaluate
+  !! @param [in] connectivity INTEGER connectivity of the atom
+  !! @param [in] numberOfBonds INTEGER total number of bonds in the system
+  !! @param [in] bondConnectionMatrix INTEGER ARRAY with connectivity matrix of the whole system
+  !! @param [in] bondDistance REAL(8) ARRAY distances of the system
+  !! @param [in] labelOfCenters CHARACTER ARRAY symbols of the atoms
+  !! @return [out] numberOfPiBonds INTEGER number of pi bonds of the atom
+  !! @return [out] isExocyclic LOGICAL if the pi bond is exocyclic returns .true.
+  !! @return [out] isNOx LOGICAL if pi bond is N=O returns .true.
   subroutine Rings_getNumberOfPiBonds(this, atom, ringNumber, connectivity, numberOfBonds, &
        bondConnectionMatrix, bondDistance, labelOfCenters, numberOfPiBonds, isExocyclic, isNOx)
     implicit none
@@ -354,6 +406,14 @@ contains
 
   end subroutine Rings_getNumberOfPiBonds
 
+  !>
+  !! @brief This function evaluae if a neigbor of a ring is aromatic
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this Class with the information of the rings
+  !! @param [in] atomA INTEGER first to evaluate
+  !! @param [in] atomB INTEGER second to evaluate
+  !! @return [out] output LOGICAL if neighbor is aromatic returns .true.
   function Rings_isNeighborAromaticRing(this, atomA, atomB) result(output)
     implicit none
     type(Rings), intent(in) :: this

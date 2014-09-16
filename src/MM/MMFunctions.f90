@@ -13,20 +13,16 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module call the graph constructor and energy module
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions using Universal Force Field has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -54,10 +50,10 @@ module MMFunctions_
             MolecularMechanics_run
 
 contains
-	!**
-	! Define el constructor para la clase
-	!
-	!**
+  !>
+  !! @brief Defines the class constructor
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine MolecularMechanics_constructor()
     implicit none
   
@@ -65,10 +61,10 @@ contains
 
   end subroutine MolecularMechanics_constructor
 
-	!**
-	! Define el destructor para clase
-	!
-	!**
+  !>
+  !! @brief Defines the class destructor
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine MolecularMechanics_destructor()
     implicit none
 
@@ -76,22 +72,28 @@ contains
 
   end subroutine MolecularMechanics_destructor
 
+  !>
+  !! @brief Initialize all Molecular Mechanics calculation
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] ffmethod CHARACTER Force Field selected by the user, for now only UFF has been implemented
   subroutine MolecularMechanics_run( ffmethod )
     implicit none
     character(50), intent(in) :: ffmethod
     type(Exception) :: ex
-!! Parametros para impresion borrar luego
+    !! Parametros para impresion borrar luego
     integer :: atomAIdx, AtomBIdx, AtomCIdx, AtomDIdx
     character(10) :: atomA, AtomB, AtomC, AtomD
     integer :: i
 
-    
+    !! Charge the force field type
     MolecularMechanics_instance%ffmethod = ffmethod
     if ( MolecularMechanics_instance%isInstanced ) then
     
+       !! If force field = UFF initialize the graph
        if ( MolecularMechanics_instance%ffmethod == "UFF" ) then
           call Graph_initialize(MolecularMechanics_instance%ffmethod)
-
+          !! Print all results with UFF
           write(*,"(T5,A)") ""
           write(*,"(T5,A)") "-----------------------------------------------------------------------------"
           write(*,"(T30,A)") "INITIAL GEOMETRY: AMSTRONG"
@@ -328,8 +330,8 @@ contains
                      Graph_instance%electrostatic%partialCharge(i)
           end do
           write(*,"(T5,A)") "-----------------------------"
-
-
+          
+          !! Calculate total energies with UFF
           call EnergyUFF_run(Graph_instance)
 
        else
@@ -347,21 +349,25 @@ contains
 
   end subroutine MolecularMechanics_run
 
-subroutine MolecularMechanics_exception( typeMessage, description, debugDescription)
-  implicit none
-  integer :: typeMessage
-  character(*) :: description
-  character(*) :: debugDescription
+  !>
+  !! @brief Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  subroutine MolecularMechanics_exception( typeMessage, description, debugDescription)
+    implicit none
+    integer :: typeMessage
+    character(*) :: description
+    character(*) :: debugDescription
 
-  type(Exception) :: ex
+    type(Exception) :: ex
 
-  call Exception_constructor( ex , typeMessage )
-  call Exception_setDebugDescription( ex, debugDescription )
-  call Exception_setDescription( ex, description )
-  call Exception_show( ex )
-  call Exception_destructor( ex )
+    call Exception_constructor( ex , typeMessage )
+    call Exception_setDebugDescription( ex, debugDescription )
+    call Exception_setDescription( ex, description )
+    call Exception_show( ex )
+    call Exception_destructor( ex )
 
-end subroutine MolecularMechanics_exception
+  end subroutine MolecularMechanics_exception
 
   
 end module MMFunctions_

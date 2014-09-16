@@ -13,20 +13,27 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module evaluates the atom types for the Universal Force Field (UFF)
+!! @note This module has been created using several algortihms: \n
+!! \n
+!! <b>Hybridization algorithm was created using the IDATM algorithm</b> \n
+!! Meng, E.C.; Lewis, R.A., <b>Determination of molecular topology and atomic hybridization
+!! states from heavy atom coordinates</b>, J. Comput. Chem., 12, 7, 891--898, 1991 \n
+!! \n
+!! <b>Atom typing was made according to Rappe et al paper</b> \n
+!! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+!! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+!! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+!! \n
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -50,6 +57,12 @@ module AtomTypeUFF_
 
 contains
 
+  !>
+  !! @brief This routine assigns the atom types using the connectivity, bond distance, and angles information
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] ffAtomType CHARACTER ARRAY with the types of all atoms
+  !! @param [in] ring Class with the information of the rings
   subroutine AtomTypeUFF_run(ffAtomType, ring)
     implicit none
     type(Rings), intent(in) :: ring
@@ -542,6 +555,10 @@ contains
     
   end subroutine AtomTypeUFF_run
 
+  !>
+  !! @brief Determines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine AtomTypeUFF_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

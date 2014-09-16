@@ -13,20 +13,19 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module search rings in the system using the <b> Hanser's algorithm </b>
+!! @note Hanser, Th.; Jauffret, Ph.; Kaufmann, G., 
+!!        <b>A New Algorithm for Exhaustive Ring Perception in a Molecular Graph</b>,
+!!        J. Chem. Inf. Comput. Sci., 36, 1146--1152, 1996
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -43,6 +42,16 @@ module RingFinder_
 
 contains
 
+  !>
+  !! @brief This routine searchs for the rings in the system
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this INTEGER ARRAY with the information of the edges in the pruned graph 
+  !! @param [in] connectivityMatrix INTEGER ARRAY with the connectivity in the pruned graph 
+  !! @param [in] numberOfRings INTEGER number of rings in the system 
+  !! @return [out] rings INTEGER ARRAY with the rings found
+  !! @see mmcommons_::mmcommons_pruninggraph
+  !! @see rings_::rings_constructor
   subroutine RingFinder_getRings( this, connectivityMatrix, numberOfRings, rings )
     implicit none
     type(MatrixInteger), allocatable :: this(:)
@@ -202,6 +211,12 @@ contains
     
   end subroutine RingFinder_getRings
 
+  !>
+  !! @brief This routine removes a vertex and actualize the path
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] this INTEGER ARRAY with the information of the edges in the pruned graph 
+  !! @param [in] vertex INTEGER vertex that will be remove
   subroutine RingFinder_removeVertex(this,vertex)
     implicit none
     type(MatrixInteger), allocatable :: this(:)  
@@ -248,10 +263,6 @@ contains
     end do
     
     ! write(*,"(T20,A,I)") "Vertice a borrar: ", vertex
-
-!!!************************************************************************************************
-!!!! Nuevo Algortimo
-!!!************************************************************************************************
     if (vertexEdgesSize>=2) then
 
        edgesSpliceSize = (((vertexEdgesSize-1)*(vertexEdgesSize-1))+(vertexEdgesSize-1))/2
@@ -383,6 +394,13 @@ contains
 
   end subroutine RingFinder_removeVertex
 
+  !>
+  !! @brief This function evaluates if a path is a cycle (a-b-c-d-e-f-a)
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this INTEGER ARRAY with the information of the edges in the pruned graph 
+  !! @param [in] row INTEGER path that will be evaluate
+  !! @return [out] output LOGICAL if the path is a cycle returns .true.
   function RingFinder_isCycle(this,row) result(output)
     implicit none
     type(MatrixInteger), allocatable :: this(:)
@@ -403,6 +421,14 @@ contains
 
   end function RingFinder_isCycle
 
+  !>
+  !! @brief This function evaluates if a path a true path
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @note if the path is the type [a-b-c-d-e-c-f] is not a path
+  !! @param [in] this INTEGER ARRAY with the information of the edges in the pruned graph 
+  !! @param [in] row INTEGER path that will be evaluate
+  !! @return [out] output LOGICAL if it is a real path returns .true.
   function RingFinder_isPath( this , row) result(output)
     implicit none
     type(MatrixInteger), allocatable :: this(:)

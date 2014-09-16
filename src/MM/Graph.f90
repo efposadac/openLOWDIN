@@ -13,20 +13,19 @@
 !!******************************************************************************
 
 !>
-!! @brief This module handles all molecular system
+!! @brief Molecular Mechanics program.
+!!        This module creates a graph with the whole information about the system
+!! @author  J.M. Rodas
 !!
-!! @author Sergio A. Gonzalez Monico
+!! <b> Creation date : </b> 2014-06-02
 !!
-!! <b> Fecha de creacion : </b> 2008-08-14
+!! <b> History: </b>
 !!
-!! <b> Historial de modificaciones: </b>
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions using Universal Force Field has been created
 !!
-!!   - <tt> 2007-07-20 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulos y metodos basicos
-!!   - <tt> 2011-02-14 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapts module to inclusion on LOWDIN package
-!!   - <tt> 2013-04-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Rewrites the module to avoid XML dependence and for implement new LOWDIN standard.
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 module Graph_
   use CONTROL_
@@ -62,6 +61,11 @@ module Graph_
 
 contains
 
+  !>
+  !! @brief Initializes the graph calling all constructors
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] forcefield CHARACTER Force Field selected by the user, for now only is implemented UFF
   subroutine Graph_initialize( forcefield )
     implicit none
     character(50), intent(in) :: forcefield
