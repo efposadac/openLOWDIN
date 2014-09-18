@@ -1,11 +1,16 @@
 #!/bin/sh
 
-LOWDIN_HOME="$HOME/.lowdin2"
-LOWDIN_SCRT="/scratch"
+LOWDIN_HOME="/apps/lowdin2"
+LOWDIN_SCRATCH="/scratch"
 
 if [ -z "$LOWDIN_HOME" ]
 then
     export LOWDIN_HOME
+fi
+
+if [ -z "$LOWDIN_SCRATCH" ]
+then
+    export LOWDIN_SCRATCH
 fi
 
 if [ -z "$LOWDIN_DATA" ]
@@ -31,4 +36,3 @@ else
     LIBRARY_PATH="${LIBRARY_PATH}:$LOWDIN_HOME/bin:$LOWDIN_HOME/utils"
     export LIBRARY_PATH
 fi
-
