@@ -11,11 +11,11 @@ cat > makefile << EOF
 TOPDIR=../../
 include \$(TOPDIR)/CONFIG
 
-TARGET=lowdin-MollerPlesset.x
+TARGET=lowdin-integralsTransformation.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/lowdincore/
-INCI=-I\$(TOPDIR)src/integralsTransformation/
-LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a 
+INCI=-I\$(TOPDIR)src/ints/
+LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
