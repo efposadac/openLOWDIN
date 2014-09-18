@@ -1,6 +1,6 @@
 #!/bin/sh
 
-LOWDIN_HOME="/apps/lowdin2"
+LOWDIN_HOME="PREFIX/.lowdin2"
 LOWDIN_SCRATCH="/scratch"
 
 if [ -z "$LOWDIN_HOME" ]
