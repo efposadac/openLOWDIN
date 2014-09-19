@@ -28,7 +28,7 @@ TASKS
 END TASKS
 
 CONTROL
-!	numberOfCores=2
+	numberOfCores=8
 END CONTROL
 
 
