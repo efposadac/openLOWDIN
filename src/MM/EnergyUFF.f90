@@ -13,21 +13,20 @@
 !!******************************************************************************
 
 !>
-!! @brief Module for atomic elements definitions
+!! @brief Molecular Mechanics program.
+!!        This module calculates the total energies with the Universal Force Field (UFF)
+!! @author  J.M. Rodas
 !!
-!! @author Sergio A. Gonzalez Monico
+!! <b> Creation date : </b> 2014-06-02
 !!
-!! <b> Fecha de creacion : </b> 2008-08-05
+!! <b> History: </b>
 !!
-!! <b> Historial de modificaciones: </b>
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions using Universal Force Field has been created
 !!
-!!   - <tt> 2007-01-06 </tt>: Nestor Aguirre ( nfaguirrec@unal.edu.co )
-!!        -# Propuso estandar de codificacion.
-!!   - <tt> 2007-07-20 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Se adapto al estandar de codificacion propuesto.
-!!   - <tt> 2011-02-14 </tt>: Fernando Posada ( efposadac@unal.edu.cn
-!!        -# Reescribe y adapta el modulo  para su inclusion en Lowdin
-!!        -# Elminates XML dependence. The module is rewritten.
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!!          all those tools are provided by LOWDIN quantum chemistry package
+!!
 module EnergyUFF_
   use CONTROL_
   use MolecularSystem_
@@ -44,12 +43,29 @@ module EnergyUFF_
 contains
     
   !>
-  !! @brief Loads an atomic element from library.
-  !! @author E. F. Posada, 2013
-  !! @version 1.0
-  subroutine EnergyUFF_run( this )
+  !! @brief This routine calculates the total energies with the UFF
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] this Class with all information about the Graph (System)
+  !! @param [in] electrostatic LOGICAL evaluates if the user requires Electrostatic Energy
+  !! @note The total energies are calculated using the potential energy of UFF, Rappe et. al. paper (1992) \n
+  !! A.K. Rappe, C.J. Casewit, K.S. Colwell, W.A. Goddard III, W.M. Skiff. 
+  !! <b>UFF, a Full Periodic Table Force Field for Molecular Mechanics and Molecular 
+  !! Dynamics Simulations</b>. J. Am. Chem. Soc. 114, 10024-10035, 1992 \n
+  !! \f[ 
+  !! E = E_{R} + E_{\theta} + E_{\phi} + E_{\omega} + E_{vdw} + E_{el}
+  !! \f]
+  !! where: \n
+  !! - \f$E_{R}\f$ is the stretching energy
+  !! - \f$E_{\theta}\f$ is the bending energy
+  !! - \f$E_{\phi}\f$ is the torsion energy
+  !! - \f$E_{\omega}\f$ is the inversion energy
+  !! - \f$E_{vdw}\f$ is the Van der Waals energy
+  !! - \f$E_{el}\f$ is the electrostatic energy (this energy is optional)
+  subroutine EnergyUFF_run( this, electrostatic )
     implicit none
     type(Graph) :: this
+    logical, intent(in) :: electrostatic
     real(8) :: totalStretchingEnergy
     real(8) :: totalStretchingEnergyKJ
     real(8) :: totalBendingEnergy
@@ -94,10 +110,12 @@ contains
        end do
     end if
 
-    if(this%electrostatic%isElectrostatic) then
-       do i=1, this%electrostatic%numberOfElectrostatics
-          totalElectrostaticEnergy = totalElectrostaticEnergy + this%electrostatic%electrostaticEnergy(i)
-       end do
+    if(electrostatic) then
+       if(this%electrostatic%isElectrostatic) then
+          do i=1, this%electrostatic%numberOfElectrostatics
+             totalElectrostaticEnergy = totalElectrostaticEnergy + this%electrostatic%electrostaticEnergy(i)
+          end do
+       end if
     end if
 
     if(this%inversions%hasInversions) then
@@ -133,8 +151,10 @@ contains
        write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Van der Waals", totalVDWEnergy, totalVDWEnergyKJ
     end if
     write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Out of Plane", totalInversionEnergy, totalInversionEnergyKJ
-    if(this%electrostatic%isElectrostatic) then
-       write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Electrostatic", totalElectrostaticEnergy, totalElectrostaticEnergyKJ
+    if(electrostatic) then
+       if(this%electrostatic%isElectrostatic) then
+          write(*,"(T5,A,T20,F12.5,T34,F12.5)") "Electrostatic", totalElectrostaticEnergy, totalElectrostaticEnergyKJ
+       end if
     end if
     write(*,"(T5,A)") "------------------------------------------"
     write(*,"(T5,A,T20,F12.5,T34,F12.5)") "TOTAL", totalEnergy, totalEnergyKJ
@@ -143,59 +163,10 @@ contains
     
   end subroutine EnergyUFF_run
   
-  !<
-  !! @brief Define el destructor para clase
-  ! subroutine EnergyUFF_show( this )
-  !   implicit none
-  !   type(EnergyUFF) , intent(in) :: this
-
-    
-  !   print *,""
-  !   print *,"---------------------------------------------------"
-  !   print *,"  Atom Type Parameters   "
-  !   print *,"---------------------------------------------------"
-  !   print *,""
-  !   write (6,"(T10,A22,A12,A10)")	"Type                   = ",this%type,""
-  !   write (6,"(T10,A22,F12.5,A10)")	"Bond                   = ",this%bond," Angstroms"
-  !   write (6,"(T10,A22,F12.5,A10)")	"Angle                  = ",this%angle," Degrees"
-  !   write (6,"(T10,A22,F12.5,A10)")	"VdW distance           = ",this%distanceVdW," Angstroms"
-  !   write (6,"(T10,A22,F12.5,A10)")	"VdW energy             = ",this%energyVdW," Kcal/mol"
-  !   write (6,"(T10,A22,F12.5,A10)")	"VdW scale              = ",this%scaleVdW,""
-  !   write (6,"(T10,A22,F12.5,A10)")	"Effective Charge       = ",this%effectiveCharge,""
-  !   write (6,"(T10,A22,F12.5,A10)")	"Torsional Barrier      = ",this%torsionalBarrier," kcal/mol"
-  !   write (6,"(T10,A22,F12.5,A10)")	"Torsional Constant     = ",this%torsionalConstant," kcal/mol"
-  !   write (6,"(T10,A22,F12.5,A10)")	"Electronegativity GMP  = ",this%electronegativityGMP," (pauling)"
-  !   write (6,"(T10,A22,F12.5,A10)")	"Hard                   = ",this%hard,""
-  !   write (6,"(T10,A22,F12.5,A10)")	"Radius                 = ",this%radius," Angstroms"
-  !   print *,""
-    
-  ! end subroutine EnergyUFF_show
-
-  ! function EnergyUFF_getCovalentRadius( symbolOfElement ) result( output )
-  !       	implicit none
-  !       	character(*),  intent( in ) :: symbolOfElement
-  !       	real(8)  :: output
-
-  !       	type(EnergyUFF) :: element
-  !       	character(10) :: auxSymbol
-
-  !       	! call EnergyUFF_constructor( element )
-  !       	auxSymbol=trim( symbolOfElement )
-
-  !       	if (  scan( auxSymbol, "_" ) /= 0 ) then
-  !       		auxSymbol = trim(auxSymbol(1: scan( auxSymbol, "_" ) - 1 ) )
-  !       	end if
-
-  !       	call EnergyUFF_load( element, auxSymbol, 0 )
-  !       	output = element%covalentRadius
-
-  !       	! call EnergyUFF_destructor(element)
-
-  ! end function EnergyUFF_getCovalentRadius
-
-  
   !>
-  !! @brief  Maneja excepciones de la clase
+  !! @brief Defines the class exception
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
   subroutine EnergyUFF_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage

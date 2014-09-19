@@ -13,21 +13,33 @@
 !!******************************************************************************
 
 !>
-!! @brief Moller-Plesset and APMO-Moller-Plesset program.
-!!        This module allows to make calculations in the APMO-Moller-Plesset framework
-!! @author  J.M. Rodas, E. F. Posada and S. A. Gonzalez.
+!! @brief Molecular Mechanics program.
+!!        This module calculates the partial charges  system using the EQeq(Extended Charge Equilibration) approach,
+!! this calculation is optional and must be activated in the input like this:
+!! <BLOCKQUOTE>
+!! CONTROL \n
+!! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;electrostaticMM = T \n
+!! END CONTROL \n
+!! </BLOCKQUOTE>
+!! @note For reference see: \n
+!! <b>Original Charge Equilibration approach (QEq):</b> \n
+!! \n
+!! Rappe, A.K., Goddard III, W.A., <b>Charge Equilibration for Molecular Dynamics Simulations</b>,
+!! J. Phys. Chem., 95, 3358--3363, 1991 \n
+!! \n
+!! <b>Extended Charge Equilibration approach (EQeq)</b> \n
+!! \n
+!! Wilmer, C.E., Kim, K.C., Snurr, R.Q., <b>An Extended Charge Equilibration Method</b>,
+!! J. Phys. Chem. Lett, 3, 2506--2511, 2012 
+!! @author  J.M. Rodas
 !!
-!! <b> Creation date : </b> 2013-10-03
+!! <b> Creation date : </b> 2014-06-02
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
-!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
-!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Adapta el módulo para su inclusion en Lowdin 1
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
-!!        -# Rewrite the module as a program and adapts to Lowdin 2
-!!
+!!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
+!!        -# Basics functions has been created
+!! 
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
@@ -45,6 +57,38 @@ module ChargesEQeq_
 
 contains
 
+  !>
+  !! @brief This routine calculates the partial charges using the EQeq approach
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in,out] partialCharges REAL(8) ARRAY with the partial charges of the system
+  !! @param [in] vertices Class with the information of the vertices
+  !! @note For reference see: \n
+  !! <b>Extended Charge Equilibration approach (EQeq)</b> \n
+  !! \n
+  !! Wilmer, C.E., Kim, K.C., Snurr, R.Q., <b>An Extended Charge Equilibration Method</b>,
+  !! J. Phys. Chem. Lett, 3, 2506--2511, 2012 \n
+  !! \n
+  !! This routine needs the Idempotencials and electronegativities Matrices and resolves the system: \n
+  !! \f{eqnarray*}{
+  !!\left(\begin{bmatrix}
+  !!       J_{11} & \cdots & J_{1N} \\[0.3em]
+  !!       \vdots & \ddots & \cdots \\[0.3em]
+  !!   J_{(N-1)1} & \cdots & J_{(N-1)N}
+  !!     \end{bmatrix}-\begin{bmatrix}
+  !!       J_{21} & \cdots & J_{2N} \\[0.3em]
+  !!       \vdots & \ddots & \cdots \\[0.3em]
+  !!       J_{N1} & \cdots & J_{NN}
+  !!     \end{bmatrix}\right)\begin{bmatrix}
+  !!       Q_{1} \\[0.3em]
+  !!       \vdots \\[0.3em]
+  !!       Q_{N}
+  !!     \end{bmatrix}=\begin{bmatrix}
+  !!       \chi_{2}-\chi_{1} \\[0.3em]
+  !!       \vdots \\[0.3em]
+  !!       \chi_{N}-\chi_{N-1}
+  !!     \end{bmatrix}
+  !! \f}
   subroutine ChargesEQeq_getCharges(partialCharges, vertices)
     implicit none
     type(Vertex), intent(in) :: vertices
@@ -136,6 +180,37 @@ contains
 
   end subroutine ChargesEQeq_getCharges
 
+  !>
+  !! @brief This routine calculates the idempotentials between two atoms of the system
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-06-02
+  !! @param [in] i INTEGER first atom to evaluate
+  !! @param [in] j INTEGER second atom to evaluate
+  !! @param [in] vertices Class with the information of the vertices
+  !! @return [out] idempotential REAL(8) return the idempotential of the atoms evaluated
+  !! @note For reference see: \n
+  !! <b>Extended Charge Equilibration approach (EQeq)</b> \n
+  !! \n
+  !! Wilmer, C.E., Kim, K.C., Snurr, R.Q., <b>An Extended Charge Equilibration Method</b>,
+  !! J. Phys. Chem. Lett, 3, 2506--2511, 2012 \n
+  !! \n
+  !! \f[
+  !! J_{ij} = \lambda\left(\frac{K}{2}\right)\left[\frac{1}{R_{ij}} + E_{0}(R_{ij})\right] 
+  !! \f]
+  !! \f[
+  !! E_{0}(R_{ab}) = e^{-\left(\frac{J_{ab}R_{ab}}{K}\right)^2}\left(\frac{2J_{ab}}{K}-\frac{J_{ab}^{2}R_{ab}}{K^{2}}-\frac{1}{R_{ab}}\right)
+  !! \f]
+  !! \f[
+  !! J_{ab} = \sqrt{J_{a}J_{b}}
+  !! \f]
+  !! where: \n
+  !! - \f$J_{ij}\f$ is the idempotential
+  !! - \f$R_{ij} = R_{ab}\f$ is distance between atoms
+  !! - \f$E_{0}(R_{ij})\f$ is the orbital energy term
+  !! - \f$J_{ab}\f$ is geometric mean of the chemical hardness
+  !! - \f$J_{a}\f$ and \f$J_{b}\f$ are the hardnees of atoms
+  !! - \f$K = 14.4 \f$ 
+  !! - \f$\lambda = 1.2 \f$ 
   subroutine ChargesEQeq_getIdempotential(i,j,hardness,vertices,idempotential) 
     implicit none
     integer, intent(in) :: i, j

@@ -80,8 +80,12 @@ contains
     type(MatrixInteger) :: connectivityMatrix
     type(Vector) :: bonds
     type(MatrixInteger), allocatable :: ringsArray(:)
+    ! type(MatrixInteger), allocatable :: rings3DArray(:)
     integer :: numberOfCenterofOptimization
     integer :: i, j
+    logical :: rings3D
+
+    rings3D = .false.
 
     call MMCommons_constructor( MolecularSystem_instance )
     numberOfCenterofOptimization = ParticleManager_getNumberOfCentersOfOptimization()
@@ -106,6 +110,10 @@ contains
        call RingFinder_getRings( edges, connectivityMatrix, cyclomaticNumber, ringsArray )
        this%numberOfRings = size(ringsArray)
        
+       if(this%numberOfRings == cyclomaticNumber) then
+          rings3D = .true.
+       end if
+
        allocate( this%connectionMatrix( this%numberOfRings ))
        allocate( this%ringSize( this%numberOfRings ) )
 
@@ -116,8 +124,10 @@ contains
              this%connectionMatrix(i)%values(1,j) = ringsArray(i)%values(1,j)
           end do
        end do
+
+       
     
-       call Rings_getAromaticity(this)
+       call Rings_getAromaticity(this,rings3D)
 
        !! Debug
        ! write(*,"(T20,A)") ""
@@ -139,6 +149,7 @@ contains
   !! @author J.M. Rodas
   !! <b> Creation date : </b> 2014-06-02
   !! @param [in,out] this Class with the information of the rings
+  !! @param [in] rings3D LOGICAL evalutes if the system has 3D ring (e.g. Fullerene)
   !! @note This routine calculates the aromaticity using Huckel's rule, 
   !! for this first the pi electrons are calculated:
   !! - sp2 hybridized neutral C shares one pi electron as in benzene;
@@ -152,9 +163,10 @@ contains
   !! doesn't share pi electrons, excluding N as in pyridine N-oxide which shares one pi electron;
   !! - P is treated like Nitrogen;
   !! - Se is treated like Oxygen.
-  subroutine Rings_getAromaticity(this)
+  subroutine Rings_getAromaticity(this,rings3D)
     implicit none
     type(Rings), intent(in out) :: this
+    logical, intent(in) :: rings3D
     integer :: connectivity
     character(10), allocatable :: labelOfCenters(:)
     integer :: numberOfCenterofOptimization

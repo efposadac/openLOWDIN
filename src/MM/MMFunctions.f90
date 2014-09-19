@@ -38,6 +38,7 @@ module MMFunctions_
 	type :: MolecularMechanics
     
        	character(50) :: ffmethod
+        logical :: electrostaticEnergy
         logical :: isInstanced
 
 	end type MolecularMechanics
@@ -77,9 +78,11 @@ contains
   !! @author J.M. Rodas
   !! <b> Creation date : </b> 2014-06-02
   !! @param [in] ffmethod CHARACTER Force Field selected by the user, for now only UFF has been implemented
-  subroutine MolecularMechanics_run( ffmethod )
+  !! @param [in] electrostaticEnergy LOGICAL evaluates if the user requires Electrostatic Energy
+  subroutine MolecularMechanics_run( ffmethod, electrostaticEnergy )
     implicit none
     character(50), intent(in) :: ffmethod
+    logical, intent(in) :: electrostaticEnergy
     type(Exception) :: ex
     !! Parametros para impresion borrar luego
     integer :: atomAIdx, AtomBIdx, AtomCIdx, AtomDIdx
@@ -88,11 +91,12 @@ contains
 
     !! Charge the force field type
     MolecularMechanics_instance%ffmethod = ffmethod
+    MolecularMechanics_instance%electrostaticEnergy = electrostaticEnergy
     if ( MolecularMechanics_instance%isInstanced ) then
     
        !! If force field = UFF initialize the graph
        if ( MolecularMechanics_instance%ffmethod == "UFF" ) then
-          call Graph_initialize(MolecularMechanics_instance%ffmethod)
+          call Graph_initialize(MolecularMechanics_instance%ffmethod,MolecularMechanics_instance%electrostaticEnergy)
           !! Print all results with UFF
           write(*,"(T5,A)") ""
           write(*,"(T5,A)") "-----------------------------------------------------------------------------"
@@ -291,48 +295,51 @@ contains
              write(*,"(T5,A)") ""
           end if
 
-          if(Graph_instance%electrostatic%isElectrostatic) then
-             write(*,"(T5,A)") ""
-             write(*,"(T5,A)") ""
-             write(*,"(T22,A)") "ELECTROSTATIC ENERGY"
-             write(*,"(T5,A)") "--------------------------------------------------------"
-             write(*,"(T15,A)") "Charges center"
-             write(*,"(T5,A,T36,A,T53,A)") "----------------------------", "Distance", "Energy"
-             write(*,"(T5,A5,T15,A,T25,A,T35,A,T52,A)") "Idx", "atom A", &
-                  "atom B", "(Amstrong)", "(kJ/mol)"
-             write(*,"(T5,A)") "--------------------------------------------------------"
-             do i=1,Graph_instance%electrostatic%numberOfElectrostatics
-                atomAIdx=Graph_instance%electrostatic%connectionMatrix%values(i,1)
-                Write( atomA, '(i10)' ) atomAIdx
-                atomA = adjustl(trim(atomA))
-                atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
-                atomBIdx=Graph_instance%electrostatic%connectionMatrix%values(i,2)
-                Write( atomB, '(i10)' ) atomBIdx
-                atomB = adjustl(trim(atomB))
-                atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
-                write(*,"(T5,I5,T15,A,T25,A,T35,F8.5,T47,F12.5)") i, atomA, atomB, &
-                     Graph_instance%electrostatic%distance(i) , &
-                     Graph_instance%electrostatic%electrostaticEnergyKJ(i)
-             end do
-             write(*,"(T5,A)") "--------------------------------------------------------"
-             write(*,"(T5,A)") ""
-          end if
+          if(MolecularMechanics_instance%electrostaticEnergy) then
+             if(Graph_instance%electrostatic%isElectrostatic) then
+                write(*,"(T5,A)") ""
+                write(*,"(T5,A)") ""
+                write(*,"(T22,A)") "ELECTROSTATIC ENERGY"
+                write(*,"(T5,A)") "--------------------------------------------------------"
+                write(*,"(T15,A)") "Charges center"
+                write(*,"(T5,A,T36,A,T53,A)") "----------------------------", "Distance", "Energy"
+                write(*,"(T5,A5,T15,A,T25,A,T35,A,T52,A)") "Idx", "atom A", &
+                     "atom B", "(Amstrong)", "(kJ/mol)"
+                write(*,"(T5,A)") "--------------------------------------------------------"
+                do i=1,Graph_instance%electrostatic%numberOfElectrostatics
+                   atomAIdx=Graph_instance%electrostatic%connectionMatrix%values(i,1)
+                   Write( atomA, '(i10)' ) atomAIdx
+                   atomA = adjustl(trim(atomA))
+                   atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+                   atomBIdx=Graph_instance%electrostatic%connectionMatrix%values(i,2)
+                   Write( atomB, '(i10)' ) atomBIdx
+                   atomB = adjustl(trim(atomB))
+                   atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+                   write(*,"(T5,I5,T15,A,T25,A,T35,F8.5,T47,F12.5)") i, atomA, atomB, &
+                        Graph_instance%electrostatic%distance(i) , &
+                        Graph_instance%electrostatic%electrostaticEnergyKJ(i)
+                end do
+                write(*,"(T5,A)") "--------------------------------------------------------"
+                write(*,"(T5,A)") ""
+             end if
 
-          write(*,"(T5,A)") ""
-          write(*,"(T5,A)") "-----------------------------"
-          write(*,"(T5,A)") "PARTIAL CHARGES: EQeq Method"
-          write(*,"(T5,A)") "-----------------------------"
-          write (*,"(T5,A5,T14,A,T20,A)") "Idx", "Atom", "Charge(Z)"
-          write(*,"(T5,A)") "-----------------------------"
-          do i=1,Graph_instance%vertex%numberOfVertices
+             write(*,"(T5,A)") ""
+             write(*,"(T5,A)") "-----------------------------"
+             write(*,"(T5,A)") "PARTIAL CHARGES: EQeq Method"
+             write(*,"(T5,A)") "-----------------------------"
+             write (*,"(T5,A5,T14,A,T20,A)") "Idx", "Atom", "Charge(Z)"
+             write(*,"(T5,A)") "-----------------------------"
+             do i=1,Graph_instance%vertex%numberOfVertices
                 write(*,"(T5,I5,T15,A,T20,F8.5)") i, &
                      trim(Graph_instance%vertex%symbol(i)), &
                      Graph_instance%electrostatic%partialCharge(i)
-          end do
-          write(*,"(T5,A)") "-----------------------------"
+             end do
+             write(*,"(T5,A)") "-----------------------------"
+          end if
+
           
           !! Calculate total energies with UFF
-          call EnergyUFF_run(Graph_instance)
+          call EnergyUFF_run(Graph_instance,MolecularMechanics_instance%electrostaticEnergy)
 
        else
           call Exception_constructor( ex , ERROR )

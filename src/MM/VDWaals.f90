@@ -80,11 +80,11 @@ contains
   !! @param [in] angle Class with the information of the angles
   !! @param numberOfVDWaals INTEGER number of Van der Waals interactions
   !! @param connectionMatrix INTEGER ARRAY with the information about the vertices with Van der Waals interaction
-  !! @param distance REAL ARRAY with the Van der Waals distance interaction
-  !! @param idealDistance REAL ARRAY with the ideal Van der Waals distance interaction
-  !! @param wellDepth REAL ARRAY with the Van der Waals well depth
-  !! @param VDWEnergy REAL ARRAY with the Van der Waals energies (kcal/mol) of the system
-  !! @param VDWEnergyKJ REAL ARRAY with the Van der Waals energies (kJ/mol) of the system
+  !! @param distance REAL(8) ARRAY with the Van der Waals distance interaction
+  !! @param idealDistance REAL(8) ARRAY with the ideal Van der Waals distance interaction
+  !! @param wellDepth REAL(8) ARRAY with the Van der Waals well depth
+  !! @param VDWEnergy REAL(8) ARRAY with the Van der Waals energies (kcal/mol) of the system
+  !! @param VDWEnergyKJ REAL(8) ARRAY with the Van der Waals energies (kJ/mol) of the system
   !! @param VDW LOGICAL returns .true. if the system has Van der Waals interactions
   subroutine VDWaals_constructor( this, vertices, bonds, angle )
     implicit none

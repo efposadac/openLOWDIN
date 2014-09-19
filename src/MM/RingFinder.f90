@@ -34,6 +34,7 @@ module RingFinder_
   use MatrixInteger_
   use Vector_
   use MMCommons_
+  use ListInteger_
   use Exception_
   implicit none
 
@@ -52,22 +53,29 @@ contains
   !! @return [out] rings INTEGER ARRAY with the rings found
   !! @see mmcommons_::mmcommons_pruninggraph
   !! @see rings_::rings_constructor
-  subroutine RingFinder_getRings( this, connectivityMatrix, numberOfRings, rings )
+  subroutine RingFinder_getRings( this, connectivityMatrix, numberOfRings, rings)
     implicit none
     type(MatrixInteger), allocatable :: this(:)
     type(MatrixInteger), intent(in) :: connectivityMatrix
     integer, intent(in) :: numberOfRings
     type(MatrixInteger), intent(out), allocatable :: rings(:)
+    ! type(MatrixInteger), intent(out), allocatable :: rings3D(:)
     type(MatrixInteger), allocatable :: auxEdges(:)
     integer :: connectivitySize
     integer :: edgesSize
     integer :: i, ringRow, s
     integer :: j, k, numberOfColumns, numberOfRows
+    ! integer :: l, m
     type(MatrixInteger) :: vertices
     logical :: isCycle
     logical :: isPath
     integer :: totalRings
-    ! type(MatrixInteger), allocatable :: edgesMatrix(:)
+    ! type(ListInteger) :: aux3DRings
+    ! type(ListInteger) :: VertexRepeated
+    ! integer :: size3Dring
+    ! integer :: sizeRing
+    ! integer :: numberOfRepeated
+    type(MatrixInteger), allocatable :: edgesMatrix(:)
 
     !! Imprime valores de conectividad luego de cortar, borrar luego
     edgesSize = size(this)
@@ -192,6 +200,33 @@ contains
     end do
 
     totalRings = ringRow-1 
+    ! if(totalRings==numberOfRings) then
+    !    size3Dring = size(rings(1)%values) - 1
+    !    call ListInteger_constructor( aux3DRings, ssize=-1 )
+    !    call ListInteger_constructor( VertexRepeated, ssize=-1 )
+    !    do i=1,size3Dring
+    !       call ListInteger_push_back(aux3DRings, rings(1)%values(i))
+    !    end do
+    !    do i=2,totalRings
+    !       sizeRing = size(rings(i)%values) - 1
+    !       do j=1,size3Dring
+    !          do k=1,sizeRing
+    !             if(aux3DRings%data(j)==rings(i)%values(k)) then
+    !                call ListInteger_push_back(VertexRepeated, rings(i)%values(k))
+    !             endif
+    !          end do
+    !       end do
+    !       numberOfRepeated = ListInteger_size(VertexRepeated)
+    !       if(numberOfRepeated >= 2) then
+    !          do l=1,sizeRing
+    !             do m=1,numberOfRepeated
+    !                if(rings(i)%values(l) /= VertexRepeated%data(m)) then
+    !                   !! ojo seguir aqui
+    !                end if
+    !             end do
+    !          end do
+    !       end if
+    !    end do
     if(totalRings<numberOfRings) then
        do i=ringRow,numberOfRings
           call MMCommons_removeEdge( rings, i, numberOfRings)

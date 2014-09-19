@@ -66,9 +66,11 @@ contains
   !! @author J.M. Rodas
   !! <b> Creation date : </b> 2014-06-02
   !! @param [in] forcefield CHARACTER Force Field selected by the user, for now only is implemented UFF
-  subroutine Graph_initialize( forcefield )
+  !! @param [in] electrostatic LOGICAL evaluates if the user requires Electrostatic Energy
+  subroutine Graph_initialize( forcefield, electrostatic )
     implicit none
     character(50), intent(in) :: forcefield
+    logical, intent(in) :: electrostatic
     
     call Rings_constructor( Graph_instance%rings )
     call Vertex_constructor( Graph_instance%vertex, forcefield, Graph_instance%rings )
@@ -76,8 +78,9 @@ contains
     call Angles_constructor( Graph_instance%angles, Graph_instance%vertex, Graph_instance%edges )
     call Torsions_constructor( Graph_instance%torsions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
     call VDWaals_constructor( Graph_instance%vdwaals, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
-    call Electrostatic_constructor(Graph_instance%electrostatic, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
-    ! stop "Graph.f90"
+    if(electrostatic) then
+       call Electrostatic_constructor(Graph_instance%electrostatic, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles )
+    end if
     call Inversions_constructor(Graph_instance%inversions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles)
 
   end subroutine Graph_initialize

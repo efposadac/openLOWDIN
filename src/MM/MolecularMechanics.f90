@@ -37,6 +37,7 @@ program MolecularMechanics
 
        character(50) :: job
        character(50) :: ffmethod
+       logical :: electrostaticEnergy
 
   job = ""  
   call get_command_argument(1,value=job)  
@@ -54,10 +55,11 @@ program MolecularMechanics
 
 
   ffmethod = CONTROL_instance%FORCE_FIELD
+  electrostaticEnergy = CONTROL_instance%ELECTROSTATIC_MM
   !! Initializes the object MolecularMechanics
   call MolecularMechanics_constructor()
   !! Initializes calculation using the force field selected
-  call MolecularMechanics_run(ffmethod)
+  call MolecularMechanics_run(ffmethod,electrostaticEnergy)
   ! call MolecularMechanics_show()
   call MolecularMechanics_destructor()
 
