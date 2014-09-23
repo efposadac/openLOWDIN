@@ -1441,7 +1441,7 @@ C     --------------------------------------------------------------
       IF(LPR)WRITE(6,'(/A)')' ===> Start Subroutine PRIVEC '
       WRITE(6,'(A/1X,A)')' Printing vectors in file:',VECF
 
-      OPEN(UNIT=8,FILE=VECF,FORM='FORMATTED',STATUS='UNKNOWN')
+      OPEN(UNIT=8,FILE=VECF,FORM='FORMATTED',STATUS='REPLACE')
 
 !      WRITE(8,'(I)') LT
 !      DO I=1,LT

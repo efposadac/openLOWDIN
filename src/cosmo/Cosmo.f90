@@ -35,7 +35,13 @@ program Cosmo
   use String_
   implicit none 
 
-  integer :: n
+  
+	integer(8) :: n
+	integer :: np
+	
+	type(Matrix) :: cmatin
+
+	n=4
 
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
@@ -47,20 +53,14 @@ program Cosmo
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-
-  call CosmoTools_caller()
-  write(*,*)"llamado realizado a gepol"
-
-  call CosmoTools_lines(n)	
-
-  write(*,*)"Se crearon ", n, "segmentos"
-
-  write(*,*)"construyendo matriz C"
-
-  call CosmoTools_Cmatrix(n)
-
-  write(*,*)"Finalizado"
+	!cmatin es el dummy de cmatinv
+	call CosmoTools_constructor(surfaceSegment_instance,cmatin)	
 	
+	!call CosmoTools_quantum(n,np)
+
+	call CosmoTools_clasical(surfaceSegment_instance,n,cmatin)
+
+	!write(*,*)quantum charges
 
 end program Cosmo
 

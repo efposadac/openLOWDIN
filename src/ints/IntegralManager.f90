@@ -33,6 +33,7 @@ module IntegralManager_
   use KineticIntegrals_
   use LibintInterface_
   use RysQuadrature_
+!	use CosmoTools_
   implicit none
   
   public :: &
@@ -283,17 +284,23 @@ contains
   !! @version 1.0
   !! @par History
   !!      - 2013.03.05: reads point charge information from lowdin.bas file
-  subroutine IntegralManager_getAttractionIntegrals()
+	!!			- 2014.16.09: modify subroutines to calcule cosmo monoelectronic integrals
+  subroutine IntegralManager_getAttractionIntegrals(isCosmo)
     implicit none
     
+    logical, optional :: isCosmo
     integer :: f, g, h, i
     integer :: j, k, l, m
     integer :: ii, jj, hh
     integer :: numberOfPointCharges
+    integer :: numberOfSurfaceSegments
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:)
     real(8), allocatable :: integralBuffer(:)
     real(8), allocatable :: integralsMatrix(:,:)
+    real(8), allocatable :: surfaceBuffer(:)
+    real(8), allocatable :: surfaceValue(:)
+    real(8), allocatable :: surfaceMatrix(:,:)
     type(pointCharge), allocatable :: point(:)
     character(20) :: colNum
     character(100) :: job
@@ -301,17 +308,29 @@ contains
     job = "ATTRACTION"
     
     numberOfPointCharges = MolecularSystem_instance%numberOfPointCharges
-
+		!! carga el numero de segmentos de superficie
+!		call CosmoTools_information(numberOfSurfaceSegments)
+		
     !! Allocating memory for point charges objects
     if(allocated(point)) deallocate(point)
     allocate(point(0:numberOfPointCharges - 1))
     
-    do f = 0, numberOfPointCharges - 1
-       point(f)%charge = MolecularSystem_instance%pointCharges(f+1)%charge
-       point(f)%x  = MolecularSystem_instance%pointCharges(f+1)%origin(1)
-       point(f)%y  = MolecularSystem_instance%pointCharges(f+1)%origin(2)
-       point(f)%z  = MolecularSystem_instance%pointCharges(f+1)%origin(3)
-    end do
+    !if(isCosmo)then
+				!numberOfPointCharges=numberOfSurfaceSegments
+       !do f = 0, numberOfPointCharges - 1
+          !point(f)%charge = 0.0
+          !point(f)%x  =surfaceSegments(f+1)%xs(1)
+          !point(f)%y  =surfaceSegments(f+1)%ys(1)
+          !point(f)%z  =surfaceSegments(f+1)%zs(1)
+       !end do
+    !else
+       do f = 0, numberOfPointCharges - 1
+          point(f)%charge = MolecularSystem_instance%pointCharges(f+1)%charge
+          point(f)%x  = MolecularSystem_instance%pointCharges(f+1)%origin(1)
+          point(f)%y  = MolecularSystem_instance%pointCharges(f+1)%origin(2)
+          point(f)%z  = MolecularSystem_instance%pointCharges(f+1)%origin(3)
+       end do
+    !end if
 
     !!Attraction Integrals for all species
     do f = 1, size(MolecularSystem_instance%species)
@@ -329,6 +348,15 @@ contains
        
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+
+			 !!allocate matrices for potential surface
+
+			 if(allocated(surfaceBuffer)) deallocate(surfaceBuffer)
+       allocate(surfaceBuffer((MolecularSystem_instance%species(f)%basisSetSize * (MolecularSystem_instance%species(f)%basisSetSize + 1)) / 2 ) )
+       surfaceBuffer = 0.0_8
+       
+       if(allocated(surfaceMatrix)) deallocate(surfaceMatrix)
+       allocate(surfaceMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
 
        ii = 0
        do g = 1, size(MolecularSystem_instance%species(f)%particles)
@@ -352,7 +380,29 @@ contains
                    !!Calculating integrals for shell
                    call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
                         MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue)
+
+									!!Calculating monoelectronic integrals for cosmo method
                    
+									 if(allocated(surfaceValue)) deallocate(surfaceValue)
+                   allocate(surfaceValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+
+                   !if(isCosmo) then
+									 	!numberOfPointCharges=numberOfSurfaceSegments
+											!call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                        !MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, numberOfPointCharges, surfaceValue, isCosmo)
+												!
+											!!saving monoeletronic integrals on surfaceMatrix structure
+                   		!m = 0
+											!do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+												!do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+													!m = m + 1
+													!surfaceMatrix(k, l) = surfaceValue(m)
+													!surfaceMatrix(l, k) = surfacesMatrix(k, l)
+												!end do
+											!end do
+                   !end if
+!
                    !!saving integrals on Matrix
                    m = 0
                    do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
