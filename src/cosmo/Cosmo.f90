@@ -33,13 +33,17 @@ program Cosmo
   use MolecularSystem_
   use Matrix_
   use String_
+	use CosmoCore_
   implicit none 
 
   
 	integer(8) :: n
 	integer :: np
+
 	
 	type(Matrix) :: cmatin
+	type(Matrix) :: qc
+	type(Matrix) :: qq
 
 	n=4
 
@@ -58,9 +62,11 @@ program Cosmo
 	
 	!call CosmoTools_quantum(n,np)
 
-	call CosmoTools_clasical(surfaceSegment_instance,n,cmatin)
+	call CosmoTools_clasical(surfaceSegment_instance,n,cmatin,qc)
 
 	!write(*,*)quantum charges
+	
+	call CosmoTools_quantum(surfaceSegment_instance,n,cmatin,qq)
 
 end program Cosmo
 

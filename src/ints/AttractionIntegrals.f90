@@ -105,11 +105,15 @@ contains
   !!      -2013.02.04: E.F.Posada: change for use in opints
   !! @return  output: attraction integral of a shell (all combinations)
   !! @version 1.0
-  subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral)
+  subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral, isCosmo_aux)
     implicit none
     
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
     type(pointCharge), intent(in), allocatable :: point(:)
+
+		!!surface things
+		logical, optional, intent(in) :: isCosmo_aux
+
     integer, intent(in) :: npoints
     real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
 
@@ -157,6 +161,7 @@ contains
     
     m = 0
 
+
     do p = 1, contractedGaussianA%numcartesianOrbital
        do q = 1, contractedGaussianB%numcartesianOrbital
 
@@ -174,12 +179,19 @@ contains
           am1(0:2) = angularMomentIndexA(1:3, p)
           am2(0:2) = angularMomentIndexB(1:3, q)
 
-          call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral)
+					if(present(isCosmo_aux)) then
+						call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral, isCosmo_aux)
+					else
+						call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral)
+
+					end if
+
           
           auxIntegral = auxIntegral * contractedGaussianA%contNormalization(p) &
                * contractedGaussianB%contNormalization(q)
           
           integral(m) = auxIntegral
+
 
        end do
     end do
@@ -195,7 +207,7 @@ contains
        orbitalExponentsA, orbitalExponentsB, &
        contractionCoefficientsA, contractionCoefficientsB, &
        normalizationConstantsA, normalizationConstantsB, &
-       pointCharges, integralValue, isCosmo)
+       pointCharges, integralValue, isCosmo_aux2)
     implicit none
 		
     integer, intent(in) :: angularMomentindexA(0:3), angularMomentindexB(0:3)
@@ -207,7 +219,8 @@ contains
     real(8), intent(in) :: normalizationConstantsA(0:lengthA), normalizationConstantsB(0:lengthB)
     type(pointCharge), intent(in) :: pointCharges(0:numberOfPointCharges-1)
     real(8), intent(inout) :: integralValue
-		logical, optional, intent(in) :: isCosmo
+		!!cosmo things
+		logical,optional,intent(in) :: isCosmo_aux2
 
     real(8), allocatable :: AI0(:,:,:)
     real(8) :: PA(0:3), PB(0:3), PC(0:3), P(0:3)
@@ -276,6 +289,7 @@ contains
           PB(2) = P(2) - B(2)
 
           commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*zetaInv) * sqrt(Math_PI*zetaInv) * Math_PI * zetaInv * auxCoefficentA * auxCoefficentB * auxConstantA * auxConstantB
+					write(*,*)"fragmentos y length a y b",numberOfPointCharges,lengthA,lengthB
 
           do atom = 0, numberOfPointCharges - 1
              
@@ -290,11 +304,14 @@ contains
              indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
 
              indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
-						
-						!if (isCosmo) then
-             !integralValue = integralValue - AI0(indexI,indexJ,0) *  commonPreFactor
-			!			else
-             integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+
+						 !!cosmo things
+						 if(present(isCosmo_aux2)) then
+							 integralValue=AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+							 write(*,*) integralValue
+							else
+								integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+						 end if
 
           end do
        end do
