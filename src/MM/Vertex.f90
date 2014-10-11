@@ -112,8 +112,9 @@ contains
     integer, allocatable :: ionizationSize(:)
     integer(8) :: size1, size2
 
-    call MMCommons_constructor( MolecularSystem_instance )
 
+    call MMCommons_constructor( MolecularSystem_instance )
+    
     this%numberOfVertices = ParticleManager_getNumberOfCentersOfOptimization()
     size1 = this%numberOfVertices
     allocate( this%symbol( this%numberOfVertices ) )
@@ -140,7 +141,11 @@ contains
     call Matrix_constructor( auxIonizationPotentials, size1, 9 )
 
     this%cartesianMatrix = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
-
+    
+    write(*,"(A)") "Cartesianas dentro del MM"
+    do i=1, this%numberOfVertices
+       write(*,"(3(F12.5))") this%cartesianMatrix%values(i,:)
+    end do
     call MatrixInteger_constructor( connectivityMatrix, this%numberOfVertices, 2 )
     call MMCommons_getConnectivityMatrix( MolecularSystem_instance, this%numberOfVertices, connectivityMatrix )
 

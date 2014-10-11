@@ -63,8 +63,6 @@ module VDWaals_
             VDWaals_getWellDepth, &
             VDWaals_isVDW, &
             VDWaals_getVDWEnergies
-            ! VDWaals_getConstants, &
-            ! VDWaals_getTorsionEnergies
 
 contains
 

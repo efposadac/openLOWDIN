@@ -31,6 +31,7 @@ module Edges_
   use CONTROL_
   use MolecularSystem_
   use ParticleManager_
+  use Matrix_
   use Vertex_
   use Rings_
   use MMCommons_
@@ -86,8 +87,8 @@ contains
     integer :: i, j
     real(8), allocatable :: orders(:)
 
-    
     call MMCommons_constructor( MolecularSystem_instance )
+    
     this%numberOfEdges = size(MolecularSystem_instance%intCoordinates%distanceBondValue%values)
 
     call MatrixInteger_constructor( this%connectionMatrix, this%numberOfEdges, 2 )

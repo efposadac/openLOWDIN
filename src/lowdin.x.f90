@@ -30,7 +30,7 @@ program lowdin_
  use MecanicProperties_
  use Solver_
  implicit none
-
+! logical, optional :: firstStep
  !! Time Control
  call Stopwatch_constructor( lowdin_stopwatch )
  call Stopwatch_start( lowdin_stopwatch )
@@ -55,16 +55,17 @@ program lowdin_
  !! Load input and build the molecular system
  !!
  write(6, "(1A)", advance="no") " PARSING INPUT..."
- 
+
+
  !! Load info for system being calculated
  call InputManager_loadSystem() 
- 
+
  !! Load CONTROL block 
  call InputManager_loadControl() 
  
  !! Load TASKS block
  call InputManager_loadTask()   
- 
+
  !! Load GEOMETRY block
  call InputManager_loadGeometry() 
  

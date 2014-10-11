@@ -136,14 +136,12 @@ contains
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
-    
+
     !! Get number of shells and number of cartesian contractions
     numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
-    
     WaveFunction_instance( speciesID )%overlapMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments)
-    
     close(34)
     
     !! DEBUG

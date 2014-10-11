@@ -32,6 +32,7 @@ module Angles_
   use MolecularSystem_
   use Vertex_
   use Edges_
+  use Matrix_
   use MMCommons_
   use MatrixInteger_
   use Exception_
@@ -86,6 +87,7 @@ contains
     integer :: i, j
     
     call MMCommons_constructor( MolecularSystem_instance )
+    
     this%numberOfAngles = size(MolecularSystem_instance%intCoordinates%angleOfBondValue%values)
 
     call MatrixInteger_constructor( this%connectionMatrix, this%numberOfAngles, 3 )

@@ -29,6 +29,8 @@
 !!
 module MMFunctions_
   use CONTROL_
+  use ParticleManager_
+  use Matrix_
   use Graph_
   use EnergyUFF_
   use Exception_
@@ -48,7 +50,8 @@ module MMFunctions_
        public :: &
             MolecularMechanics_constructor, &
             MolecularMechanics_destructor, &
-            MolecularMechanics_run
+            MolecularMechanics_run, &
+            MolecularMechanics_show
 
 contains
   !>
@@ -79,25 +82,68 @@ contains
   !! <b> Creation date : </b> 2014-06-02
   !! @param [in] ffmethod CHARACTER Force Field selected by the user, for now only UFF has been implemented
   !! @param [in] electrostaticEnergy LOGICAL evaluates if the user requires Electrostatic Energy
-  subroutine MolecularMechanics_run( ffmethod, electrostaticEnergy )
+  !! @param [in] printAllMM LOGICAL evaluate if the user requires aditional print information
+  subroutine MolecularMechanics_run( ffmethod, electrostaticEnergy, printAllMM )
     implicit none
     character(50), intent(in) :: ffmethod
     logical, intent(in) :: electrostaticEnergy
+    logical, intent(in) :: printAllMM
     type(Exception) :: ex
-    !! Parametros para impresion borrar luego
-    integer :: atomAIdx, AtomBIdx, AtomCIdx, AtomDIdx
-    character(10) :: atomA, AtomB, AtomC, AtomD
-    integer :: i
+    integer :: i, j
 
-    !! Charge the force field type
+    write(*,"(A)")"----------------------------------------------------------------------"
+    write(*,"(A)")"** PROGRAM: MM (Molecular Mechanics).      Author: J.M Rodas  "
+    write(*,"(A)")"----------------------------------------------------------------------"
+
+    write(*,"(A)") "INFO: RUNNING WITH "//trim(ffmethod)//" FORCE FIELD."
+    write(*,"(A)")" "
+
     MolecularMechanics_instance%ffmethod = ffmethod
     MolecularMechanics_instance%electrostaticEnergy = electrostaticEnergy
     if ( MolecularMechanics_instance%isInstanced ) then
-    
        !! If force field = UFF initialize the graph
        if ( MolecularMechanics_instance%ffmethod == "UFF" ) then
           call Graph_initialize(MolecularMechanics_instance%ffmethod,MolecularMechanics_instance%electrostaticEnergy)
           !! Print all results with UFF
+          if (printAllMM) then
+             call MolecularMechanics_show(Graph_instance)
+          end if
+          !! Calculate total energies with UFF
+          call EnergyUFF_run(Graph_instance,MolecularMechanics_instance%electrostaticEnergy)
+          call EnergyUFF_show(EnergyUFF_instance, Graph_instance, MolecularMechanics_instance%electrostaticEnergy)
+       else
+          call Exception_constructor( ex , ERROR )
+          call Exception_setDebugDescription( ex, "Class object MolecularMechanics in run() function" )
+          call Exception_setDescription( ex, "This Force Field hasn't been implemented" )
+          call Exception_show( ex )
+       end if
+    else
+       call Exception_constructor( ex , ERROR )
+       call Exception_setDebugDescription( ex, "Class object MolecularMechanics in run() function" )
+       call Exception_setDescription( ex, "You should to instance MolecularMechanics module before use this function" )
+       call Exception_show( ex )
+    end if
+
+  end subroutine MolecularMechanics_run
+
+  !>
+  !! @brief Show all information about Molecular Mechanics calculation,
+  !! If the user needs aditional information about the Molecular Mechanics calculations, it must be activated in the input like this:
+  !! <BLOCKQUOTE>
+  !! CONTROL \n
+  !! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printMM = T \n
+  !! END CONTROL \n
+  !! </BLOCKQUOTE> 
+  !! @author J.M. Rodas
+  !! <b> Creation date : </b> 2014-09-23
+  !! @param [in] this Class with the information of the molecular graph
+  subroutine MolecularMechanics_show(this)
+    implicit none
+    type(Graph), intent(in) :: this
+    integer :: atomAIdx, AtomBIdx, AtomCIdx, AtomDIdx
+    character(10) :: atomA, AtomB, AtomC, AtomD
+    integer :: i
+
           write(*,"(T5,A)") ""
           write(*,"(T5,A)") "-----------------------------------------------------------------------------"
           write(*,"(T30,A)") "INITIAL GEOMETRY: AMSTRONG"
@@ -106,14 +152,14 @@ contains
                "Atom", "Type", "Charge(Z)", &
                "<x>","<y>","<z>"
           write(*,"(T5,A)") "-----------------------------------------------------------------------------"
-          do i=1,Graph_instance%vertex%numberOfVertices
+          do i=1,this%vertex%numberOfVertices
                 write(*,"(T5,I5,T15,A,T20,A,T28,F8.2,T40,F10.5,T55,F10.5,T70,F10.5)") i, &
-                     trim(Graph_instance%vertex%symbol(i)), &
-                     trim( Graph_instance%vertex%type(i) ), &
-                     Graph_instance%vertex%charges(i), &
-                     Graph_instance%vertex%cartesianMatrix%values(i,1), &
-                     Graph_instance%vertex%cartesianMatrix%values(i,2), &
-                     Graph_instance%vertex%cartesianMatrix%values(i,3)
+                     trim(this%vertex%symbol(i)), &
+                     trim( this%vertex%type(i) ), &
+                     this%vertex%charges(i), &
+                     this%vertex%cartesianMatrix%values(i,1), &
+                     this%vertex%cartesianMatrix%values(i,2), &
+                     this%vertex%cartesianMatrix%values(i,3)
           end do
           write(*,"(T5,A)") "-----------------------------------------------------------------------------"
 
@@ -128,21 +174,21 @@ contains
           write(*,"(T5,A5,T15,A,T25,A,T50,A,T66,A,T80,A,T99,A)") "Idx", "atom A", &
                "atom B", "(Amstrong)", "(Amstrong)", "(kcal/mol*A^2)", "(kJ/mol)"
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
-          do i=1,Graph_instance%edges%numberOfEdges
-             atomAIdx=Graph_instance%edges%connectionMatrix%values(i,1)
+          do i=1,this%edges%numberOfEdges
+             atomAIdx=this%edges%connectionMatrix%values(i,1)
              Write( atomA, '(i10)' ) atomAIdx
              atomA = adjustl(trim(atomA))
-             atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
-             atomBIdx=Graph_instance%edges%connectionMatrix%values(i,2)
+             atomA=trim(this%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+             atomBIdx=this%edges%connectionMatrix%values(i,2)
              Write( atomB, '(i10)' ) atomBIdx
              atomB = adjustl(trim(atomB))
-             atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+             atomB=trim(this%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
              write(*,"(T5,I5,T15,A,T25,A,T35,F8.5,T50,F8.5,T65,F8.5,T80,F12.5,T95,F12.5)") i, atomA, atomB, &
-                  Graph_instance%edges%bondOrder(i), &
-                  Graph_instance%edges%distance(i), &
-                  Graph_instance%edges%idealDistance(i), &
-                  Graph_instance%edges%forceConstant(i), &
-                  Graph_instance%edges%stretchingEnergyKJ(i)
+                  this%edges%bondOrder(i), &
+                  this%edges%distance(i), &
+                  this%edges%idealDistance(i), &
+                  this%edges%forceConstant(i), &
+                  this%edges%stretchingEnergyKJ(i)
           end do
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T5,A)") ""
@@ -158,31 +204,31 @@ contains
           write(*,"(T5,A5,T15,A,T25,A,T35,A,T46,A,T61,A,T75,A,T94,A)") "Idx", "atom A", &
                "atom B", "atom C", "(Degrees)", "(Degrees)", "(kcal/mol*rad^2)", "(kJ/mol)"
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
-          do i=1,Graph_instance%angles%numberOfAngles
-             atomAIdx=Graph_instance%angles%connectionMatrix%values(i,1)
+          do i=1,this%angles%numberOfAngles
+             atomAIdx=this%angles%connectionMatrix%values(i,1)
              Write( atomA, '(i10)' ) atomAIdx
              atomA = adjustl(trim(atomA))
-             atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
-             atomBIdx=Graph_instance%angles%connectionMatrix%values(i,2)
+             atomA=trim(this%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+             atomBIdx=this%angles%connectionMatrix%values(i,2)
              Write( atomB, '(i10)' ) atomBIdx
              atomB = adjustl(trim(atomB))
-             atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
-             atomCIdx=Graph_instance%angles%connectionMatrix%values(i,3)
+             atomB=trim(this%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+             atomCIdx=this%angles%connectionMatrix%values(i,3)
              Write( atomC, '(i10)' ) atomCIdx
              atomC = adjustl(trim(atomC))
-             atomC=trim(Graph_instance%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
+             atomC=trim(this%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
              write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,F10.5,T60,F10.5,T75,F12.5,T91,F12.5)") i, atomA, &
                   atomB, &
                   atomC, &
-                  Graph_instance%angles%theta(i), &
-                  Graph_instance%angles%idealTheta(i), &
-                  Graph_instance%angles%forceConstant(i), &
-                  Graph_instance%angles%bendingEnergyKJ(i)
+                  this%angles%theta(i), &
+                  this%angles%idealTheta(i), &
+                  this%angles%forceConstant(i), &
+                  this%angles%bendingEnergyKJ(i)
           end do
           write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
           write(*,"(T5,A)") ""
 
-          if(Graph_instance%torsions%hasTorsion) then
+          if(this%torsions%hasTorsion) then
              write(*,"(T5,A)") ""
              write(*,"(T5,A)") ""
              write(*,"(T47,A)") "TORSIONAL ENERGY"
@@ -194,37 +240,37 @@ contains
              write(*,"(T5,A5,T15,A,T25,A,T35,A,T45,A,T56,A,T71,A,T85,A,T104,A)") "Idx", "atom A", &
                   "atom B", "atom C", "atom D", "(Degrees)", "(Degrees)", "(kcal/mol*rad^2)", "(kJ/mol)"
              write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
-             do i=1,Graph_instance%torsions%numberOfTorsions
-                atomAIdx=Graph_instance%torsions%connectionMatrix%values(i,1)
+             do i=1,this%torsions%numberOfTorsions
+                atomAIdx=this%torsions%connectionMatrix%values(i,1)
                 Write( atomA, '(i10)' ) atomAIdx
                 atomA = adjustl(trim(atomA))
-                atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
-                atomBIdx=Graph_instance%torsions%connectionMatrix%values(i,2)
+                atomA=trim(this%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+                atomBIdx=this%torsions%connectionMatrix%values(i,2)
                 Write( atomB, '(i10)' ) atomBIdx
                 atomB = adjustl(trim(atomB))
-                atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
-                atomCIdx=Graph_instance%torsions%connectionMatrix%values(i,3)
+                atomB=trim(this%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+                atomCIdx=this%torsions%connectionMatrix%values(i,3)
                 Write( atomC, '(i10)' ) atomCIdx
                 atomC = adjustl(trim(atomC))
-                atomC=trim(Graph_instance%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
-                atomDIdx=Graph_instance%torsions%connectionMatrix%values(i,4)
+                atomC=trim(this%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
+                atomDIdx=this%torsions%connectionMatrix%values(i,4)
                 Write( atomD, '(i10)' ) atomDIdx
                 atomD = adjustl(trim(atomD))
-                atomD=trim(Graph_instance%vertex%symbol(atomDIdx))//"("//trim(atomD)//")"
+                atomD=trim(this%vertex%symbol(atomDIdx))//"("//trim(atomD)//")"
                 write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,A,T55,F10.5,T70,F10.5,T85,F12.5,T100,F12.5)") i, atomA, &
                      atomB, &
                      atomC, &
                      atomD, &
-                     Graph_instance%torsions%phi(i), &
-                     Graph_instance%torsions%idealPhi(i), &
-                     Graph_instance%torsions%rotationalBarrier(i), &
-                     Graph_instance%torsions%torsionEnergyKJ(i)
+                     this%torsions%phi(i), &
+                     this%torsions%idealPhi(i), &
+                     this%torsions%rotationalBarrier(i), &
+                     this%torsions%torsionEnergyKJ(i)
              end do
              write(*,"(T5,A)") "----------------------------------------------------------------------------------------------"
              write(*,"(T5,A)") ""
           end if
 
-          if(Graph_instance%inversions%hasInversions) then
+          if(this%inversions%hasInversions) then
              write(*,"(T5,A)") ""
              write(*,"(T5,A)") ""
              write(*,"(T32,A)") "INVERSION ENERGY (OUT OF PLANE)"
@@ -236,36 +282,36 @@ contains
              write(*,"(T5,A5,T15,A,T25,A,T35,A,T45,A,T56,A,T70,A,T89,A)") "Idx", "atom A", &
                   "atom B", "atom C", "atom D", "(Degrees)", "(kcal/mol)", "(kJ/mol)"
              write(*,"(T5,A)") "----------------------------------------------------------------------------------------------"
-             do i=1,Graph_instance%inversions%numberOfInversions
-                atomAIdx=Graph_instance%inversions%connectionMatrix%values(i,1)
+             do i=1,this%inversions%numberOfInversions
+                atomAIdx=this%inversions%connectionMatrix%values(i,1)
                 Write( atomA, '(i10)' ) atomAIdx
                 atomA = adjustl(trim(atomA))
-                atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
-                atomBIdx=Graph_instance%inversions%connectionMatrix%values(i,2)
+                atomA=trim(this%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+                atomBIdx=this%inversions%connectionMatrix%values(i,2)
                 Write( atomB, '(i10)' ) atomBIdx
                 atomB = adjustl(trim(atomB))
-                atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
-                atomCIdx=Graph_instance%inversions%connectionMatrix%values(i,3)
+                atomB=trim(this%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+                atomCIdx=this%inversions%connectionMatrix%values(i,3)
                 Write( atomC, '(i10)' ) atomCIdx
                 atomC = adjustl(trim(atomC))
-                atomC=trim(Graph_instance%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
-                atomDIdx=Graph_instance%inversions%connectionMatrix%values(i,4)
+                atomC=trim(this%vertex%symbol(atomCIdx))//"("//trim(atomC)//")"
+                atomDIdx=this%inversions%connectionMatrix%values(i,4)
                 Write( atomD, '(i10)' ) atomDIdx
                 atomD = adjustl(trim(atomD))
-                atomD=trim(Graph_instance%vertex%symbol(atomDIdx))//"("//trim(atomD)//")"
+                atomD=trim(this%vertex%symbol(atomDIdx))//"("//trim(atomD)//")"
                 write(*,"(T5,I5,T15,A,T25,A,T35,A,T45,A,T55,F10.5,T70,F12.5,T85,F12.5)") i, atomA, &
                      atomB, &
                      atomC, &
                      atomD, &
-                     Graph_instance%inversions%omega(i), &
-                     Graph_instance%inversions%forceConstant(i), &
-                     Graph_instance%inversions%inversionEnergyKJ(i)
+                     this%inversions%omega(i), &
+                     this%inversions%forceConstant(i), &
+                     this%inversions%inversionEnergyKJ(i)
              end do
              write(*,"(T5,A)") "----------------------------------------------------------------------------------------------"    
              write(*,"(T5,A)") ""
           end if
 
-          if(Graph_instance%vdwaals%VDW) then
+          if(this%vdwaals%VDW) then
              write(*,"(T5,A)") ""
              write(*,"(T5,A)") ""
              write(*,"(T45,A)") "VAN DER WAALS ENERGY"
@@ -276,27 +322,27 @@ contains
              write(*,"(T5,A5,T15,A,T25,A,T35,A,T51,A,T66,A,T84,A)") "Idx", "atom A", &
                   "atom B", "(Amstrong)", "(Amstrong)", "(kcal/mol)", "(kJ/mol)"
              write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
-             do i=1,Graph_instance%vdwaals%numberOfVDWaals
-                atomAIdx=Graph_instance%vdwaals%connectionMatrix%values(i,1)
+             do i=1,this%vdwaals%numberOfVDWaals
+                atomAIdx=this%vdwaals%connectionMatrix%values(i,1)
                 Write( atomA, '(i10)' ) atomAIdx
                 atomA = adjustl(trim(atomA))
-                atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
-                atomBIdx=Graph_instance%vdwaals%connectionMatrix%values(i,2)
+                atomA=trim(this%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+                atomBIdx=this%vdwaals%connectionMatrix%values(i,2)
                 Write( atomB, '(i10)' ) atomBIdx
                 atomB = adjustl(trim(atomB))
-                atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+                atomB=trim(this%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
                 write(*,"(T5,I5,T15,A,T25,A,T35,F8.5,T50,F8.5,T62,F12.5,T80,F12.5)") i, atomA, atomB, &
-                     Graph_instance%vdwaals%distance(i) , &
-                     Graph_instance%vdwaals%idealDistance(i), &
-                     Graph_instance%vdwaals%wellDepth(i), &
-                     Graph_instance%vdwaals%VDWEnergyKJ(i)
+                     this%vdwaals%distance(i) , &
+                     this%vdwaals%idealDistance(i), &
+                     this%vdwaals%wellDepth(i), &
+                     this%vdwaals%VDWEnergyKJ(i)
              end do
              write(*,"(T5,A)") "-------------------------------------------------------------------------------------------------------"
              write(*,"(T5,A)") ""
           end if
 
           if(MolecularMechanics_instance%electrostaticEnergy) then
-             if(Graph_instance%electrostatic%isElectrostatic) then
+             if(this%electrostatic%isElectrostatic) then
                 write(*,"(T5,A)") ""
                 write(*,"(T5,A)") ""
                 write(*,"(T22,A)") "ELECTROSTATIC ENERGY"
@@ -306,18 +352,18 @@ contains
                 write(*,"(T5,A5,T15,A,T25,A,T35,A,T52,A)") "Idx", "atom A", &
                      "atom B", "(Amstrong)", "(kJ/mol)"
                 write(*,"(T5,A)") "--------------------------------------------------------"
-                do i=1,Graph_instance%electrostatic%numberOfElectrostatics
-                   atomAIdx=Graph_instance%electrostatic%connectionMatrix%values(i,1)
+                do i=1,this%electrostatic%numberOfElectrostatics
+                   atomAIdx=this%electrostatic%connectionMatrix%values(i,1)
                    Write( atomA, '(i10)' ) atomAIdx
                    atomA = adjustl(trim(atomA))
-                   atomA=trim(Graph_instance%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
-                   atomBIdx=Graph_instance%electrostatic%connectionMatrix%values(i,2)
+                   atomA=trim(this%vertex%symbol(atomAIdx))//"("//trim(atomA)//")"
+                   atomBIdx=this%electrostatic%connectionMatrix%values(i,2)
                    Write( atomB, '(i10)' ) atomBIdx
                    atomB = adjustl(trim(atomB))
-                   atomB=trim(Graph_instance%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
+                   atomB=trim(this%vertex%symbol(atomBIdx))//"("//trim(atomB)//")"
                    write(*,"(T5,I5,T15,A,T25,A,T35,F8.5,T47,F12.5)") i, atomA, atomB, &
-                        Graph_instance%electrostatic%distance(i) , &
-                        Graph_instance%electrostatic%electrostaticEnergyKJ(i)
+                        this%electrostatic%distance(i) , &
+                        this%electrostatic%electrostaticEnergyKJ(i)
                 end do
                 write(*,"(T5,A)") "--------------------------------------------------------"
                 write(*,"(T5,A)") ""
@@ -329,32 +375,16 @@ contains
              write(*,"(T5,A)") "-----------------------------"
              write (*,"(T5,A5,T14,A,T20,A)") "Idx", "Atom", "Charge(Z)"
              write(*,"(T5,A)") "-----------------------------"
-             do i=1,Graph_instance%vertex%numberOfVertices
+             do i=1,this%vertex%numberOfVertices
                 write(*,"(T5,I5,T15,A,T20,F8.5)") i, &
-                     trim(Graph_instance%vertex%symbol(i)), &
-                     Graph_instance%electrostatic%partialCharge(i)
+                     trim(this%vertex%symbol(i)), &
+                     this%electrostatic%partialCharge(i)
              end do
              write(*,"(T5,A)") "-----------------------------"
           end if
 
-          
-          !! Calculate total energies with UFF
-          call EnergyUFF_run(Graph_instance,MolecularMechanics_instance%electrostaticEnergy)
 
-       else
-          call Exception_constructor( ex , ERROR )
-          call Exception_setDebugDescription( ex, "Class object MolecularMechanics in run() function" )
-          call Exception_setDescription( ex, "This Force Field hasn't been implemented" )
-          call Exception_show( ex )
-       end if
-    else
-       call Exception_constructor( ex , ERROR )
-       call Exception_setDebugDescription( ex, "Class object MolecularMechanics in run() function" )
-       call Exception_setDescription( ex, "You should to instance MolecularMechanics module before use this function" )
-       call Exception_show( ex )
-    end if
-
-  end subroutine MolecularMechanics_run
+  end subroutine MolecularMechanics_show
 
   !>
   !! @brief Defines the class exception

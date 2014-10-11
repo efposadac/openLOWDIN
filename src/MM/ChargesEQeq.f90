@@ -173,7 +173,7 @@ contains
     call Matrix_linear(vertices%numberOfVertices, 1, A, vertices%numberOfVertices, B, vertices%numberOfVertices, partialCharges, info)
 
     
-    write(*,"(T20,A,I)") "Info: ", info
+    ! write(*,"(T20,A,I)") "Info: ", info
     ! do i=1,vertices%numberOfVertices
     !    write(*,"(T20,F12.5)") partialCharges(i)
     ! end do

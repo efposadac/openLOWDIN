@@ -29,6 +29,8 @@
 !!
 module Graph_
   use CONTROL_
+  use Matrix_
+  use MatrixInteger_
   use Rings_
   use Edges_
   use Vertex_
@@ -54,7 +56,8 @@ module Graph_
   end type Graph
 
   public :: &
-       Graph_initialize
+       Graph_initialize,&
+       Graph_destructor
 
   !>Singleton
   type(Graph), public, target :: Graph_instance
@@ -71,7 +74,7 @@ contains
     implicit none
     character(50), intent(in) :: forcefield
     logical, intent(in) :: electrostatic
-    
+ 
     call Rings_constructor( Graph_instance%rings )
     call Vertex_constructor( Graph_instance%vertex, forcefield, Graph_instance%rings )
     call Edges_constructor( Graph_instance%edges, Graph_instance%vertex, Graph_instance%rings )
@@ -84,5 +87,102 @@ contains
     call Inversions_constructor(Graph_instance%inversions, Graph_instance%vertex, Graph_instance%edges, Graph_instance%angles)
 
   end subroutine Graph_initialize
+
+  subroutine Graph_destructor(this, electrostatic)
+    implicit none
+    type(Graph), intent(inout) :: this
+    logical, intent(in):: electrostatic
+    integer :: i
+    
+    ! Deallocate Rings
+    if(this%rings%hasRings) then
+       deallocate(this%rings%ringSize)
+       deallocate(this%rings%aromaticity)
+       do i=1, this%rings%numberOfRings
+          call MatrixInteger_destructor(this%rings%connectionMatrix(i))
+       end do
+       deallocate(this%rings%connectionMatrix)
+    end if
+    ! Deallocate Vertex
+    deallocate(this%vertex%symbol)
+    deallocate(this%vertex%type)
+    deallocate(this%vertex%charges)
+    call Matrix_destructor(this%vertex%cartesianMatrix)
+    deallocate(this%vertex%bondValence)
+    deallocate(this%vertex%angleValence)
+    deallocate(this%vertex%distanceVdW)
+    deallocate(this%vertex%energyVdW)
+    deallocate(this%vertex%scaleVdW)
+    deallocate(this%vertex%effectiveCharge)
+    deallocate(this%vertex%torsionalBarrier)
+    deallocate(this%vertex%torsionalConstant)
+    deallocate(this%vertex%electronegativityGMP)
+    deallocate(this%vertex%hard)
+    deallocate(this%vertex%radius)
+    deallocate(this%vertex%hybridization)
+    do i=1, this%vertex%numberOfVertices
+       call Matrix_destructor(this%vertex%ionizationPotential(i))
+    end do
+    deallocate(this%vertex%ionizationPotential)
+    deallocate(this%vertex%connectivity)
+    ! Deallocate Edges
+    call MatrixInteger_destructor(this%edges%connectionMatrix)
+    deallocate(this%edges%distance)
+    deallocate(this%edges%bondOrder)
+    deallocate(this%edges%idealDistance)
+    deallocate(this%edges%forceConstant)
+    deallocate(this%edges%stretchingEnergy) 
+    deallocate(this%edges%stretchingEnergyKJ)
+    ! Deallocate Angles
+     call MatrixInteger_destructor(this%angles%connectionMatrix)
+     deallocate(this%angles%theta)
+     deallocate(this%angles%idealTheta)
+     deallocate(this%angles%forceConstant)
+     deallocate(this%angles%cosTheta)
+     deallocate(this%angles%cosIdealTheta)
+     deallocate(this%angles%sinTheta)
+     deallocate(this%angles%sinIdealTheta)
+     deallocate(this%angles%bendingEnergy)
+     deallocate(this%angles%bendingEnergyKJ)
+    ! Deallocate Torsions
+     if(this%torsions%hasTorsion) then
+        call MatrixInteger_destructor(this%torsions%connectionMatrix)
+        deallocate(this%torsions%phi)
+        deallocate(this%torsions%rotationalBarrier)
+        deallocate(this%torsions%idealPhi)
+        deallocate(this%torsions%order)
+        deallocate(this%torsions%torsionEnergy)
+        deallocate(this%torsions%torsionEnergyKJ)
+     end if
+    ! Deallocate Inversions
+     if(this%inversions%hasInversions) then
+        call MatrixInteger_destructor(this%inversions%connectionMatrix)
+        deallocate(this%inversions%omega)
+        deallocate(this%inversions%C0)
+        deallocate(this%inversions%C1)
+        deallocate(this%inversions%C2)
+        deallocate(this%inversions%forceConstant)
+        deallocate(this%inversions%inversionEnergy)
+        deallocate(this%inversions%inversionEnergyKJ)
+     end if
+    ! Deallocate Van der Waals
+     if(this%vdwaals%VDW) then
+        call MatrixInteger_destructor(this%vdwaals%connectionMatrix)
+        deallocate(this%vdwaals%distance)
+        deallocate(this%vdwaals%idealDistance)
+        deallocate(this%vdwaals%wellDepth)
+        deallocate(this%vdwaals%VDWEnergy)
+        deallocate(this%vdwaals%VDWEnergyKJ)
+     end if
+    ! Deallocate Electrostatics
+     if(electrostatic) then
+        call MatrixInteger_destructor(this%electrostatic%connectionMatrix)
+        deallocate(this%electrostatic%partialCharge)
+        deallocate(this%electrostatic%distance)
+        deallocate(this%electrostatic%electrostaticEnergy)
+        deallocate(this%electrostatic%electrostaticEnergyKJ)
+     end if
+
+  end subroutine Graph_destructor
 
 end module Graph_

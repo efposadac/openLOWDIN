@@ -104,9 +104,8 @@ program HF
   inquire(file=trim(integralsFile), exist=existFile)
   
   if( existFile ) then
-     
      open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
-     
+      
      read(integralsUnit) numberOfSpecies
      
      if(MolecularSystem_instance%numberOfQuantumSpecies /= numberOfSpecies ) then
@@ -134,12 +133,11 @@ program HF
      !!
      !! Overlap Matrix
      call WaveFunction_buildOverlapMatrix(trim(integralsFile), speciesID)
-     
      !! Transformation Matrix
      call WaveFunction_buildTransformationMatrix( trim(integralsFile), speciesID, 2 )
-     
      !! Hcore Matrix
      call WaveFunction_HCoreMatrix(trim(integralsFile), speciesID)
+
      
      !!**********************************************************
      !! Build Guess and first density matrix

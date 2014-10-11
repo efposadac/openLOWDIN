@@ -35,6 +35,7 @@ module Torsions_
   use Edges_
   use Angles_
   use MMCommons_
+  use Matrix_
   use MatrixInteger_
   use Vector_
   use Exception_
@@ -87,9 +88,8 @@ contains
     type(Angles), intent(in) :: angle
     integer :: i, j
 
-
-    
     call MMCommons_constructor( MolecularSystem_instance )
+        
     this%numberOfTorsions = size(MolecularSystem_instance%intCoordinates%dihedralsAngleValue%values)
 
     this%hasTorsion= .false.

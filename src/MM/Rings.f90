@@ -32,6 +32,7 @@ module Rings_
   use ParticleManager_
   use MMCommons_
   use RingFinder_
+  use Matrix_
   use MatrixInteger_
   use Vector_
   use MMCommons_
@@ -88,6 +89,7 @@ contains
     rings3D = .false.
 
     call MMCommons_constructor( MolecularSystem_instance )
+
     numberOfCenterofOptimization = ParticleManager_getNumberOfCentersOfOptimization()
 
     !!******************************************************************************

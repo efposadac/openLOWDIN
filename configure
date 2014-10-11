@@ -105,7 +105,7 @@ fi
 if [ "$FLAGS" = "1" ] ; then
     
     if [ "$FC" = "ifort" ] ; then
-	FCFLAGS="-O3 -D intel -fpic -no-vec -openmp -fpp $addflagsCuda"
+	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp $addflagsCuda"
     else
 	FCFLAGS="-Ofast -fopenmp -D gfortran -fpic -cpp  -ffree-line-length-none -fno-range-check $addflagsCuda"
     fi
@@ -113,7 +113,7 @@ fi
 
 if [ "$FLAGS" = "2" ] ; then
     if [ "$FC" = "ifort" ] ; then
-	FCFLAGS="-O3 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended $addflagsCuda" 
+	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended $addflagsCuda" 
     else
 	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check $addflagsCuda"
     fi
@@ -190,7 +190,7 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="lowdincore ints HF MP2 MM scf aduw"
+SUBDIRS="lowdincore ints HF MP2 MM Optimizer scf aduw"
 
 for DIR in $SRCDIR ; do
     cd $DIR

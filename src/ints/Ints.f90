@@ -117,7 +117,7 @@ Program Ints
       if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
          
          !!Calculate attraction integrals (inter-species)
-         call IntegralManager_getInterRepulsionIntegrals()
+         call IntegralManager_getInterRepulsionIntegrals(trim(CONTROL_instance%INTEGRAL_SCHEME))
          
          !stop time
          call Stopwatch_stop(lowdin_stopwatch)

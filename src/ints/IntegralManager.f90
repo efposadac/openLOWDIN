@@ -32,6 +32,7 @@ module IntegralManager_
   use MomentIntegrals_
   use KineticIntegrals_
   use LibintInterface_
+  use CudintInterface_
   use RysQuadrature_
   implicit none
   
@@ -572,6 +573,8 @@ contains
           call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
        case("LIBINT")
           call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
+       case("CUDINT")
+          call CudintInterface_computeIntraSpecies(speciesID, "ERIS", starting, ending, int(process))
        case default
           call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     end select
@@ -584,17 +587,24 @@ contains
   !! @version 1.0
   !! @par History
   !!      - 2013.03.05: Use Libint V 1.1.4
-  subroutine IntegralManager_getInterRepulsionIntegrals()
+  subroutine IntegralManager_getInterRepulsionIntegrals(scheme)
     implicit none
-    
+    character(*) :: scheme    
     integer :: i, j
     
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
           
           !! Calculate integrals (stored on disk)       
-          call LibintInterface_computeInterSpecies( i, j, "ERIS" )
-          
+          select case (trim(String_getUppercase(trim(scheme))))
+          case("LIBINT")
+             call LibintInterface_computeInterSpecies( i, j, "ERIS" )
+          case("CUDINT")
+             call CudintInterface_computeInterSpecies( i, j, "ERIS" )
+          case default
+             call LibintInterface_computeInterSpecies( i, j, "ERIS" )
+          end select
+
        end do       
     end do
     
