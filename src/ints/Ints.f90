@@ -101,7 +101,7 @@ Program Ints
 
 		 !!Llena el tipo surface
 
-     write(*,"(A)") "Lo voy a llenar"
+     ! write(*,"(A)") "Lo voy a llenar"
 		
 		 call CosmoCore_lines(surface_aux)
 		 call CosmoCore_filler(surface_aux)

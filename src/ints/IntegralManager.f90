@@ -285,7 +285,7 @@ contains
   !! @version 1.0
   !! @par History
   !!      - 2013.03.05: reads point charge information from lowdin.bas file
-	!!			- 2014.16.09: modify subroutines to calcule cosmo monoelectronic integrals
+	!!			- 2014.16.09: modify subroutines to calcule cosmo monoelectronic integrals Danilo
   subroutine	IntegralManager_getAttractionIntegrals(surface)
     implicit none
     
@@ -304,11 +304,90 @@ contains
     
 		! Variables para calcular las integrales monoelectronicas para cosmo
 		type(surfaceSegment),intent(in), optional :: surface
+		integer :: n
 		logical :: isCosmo
+		real(8), allocatable ::  cosmoIntegrals(:,:,:)
 		
 		!
 
     job = "ATTRACTION"
+    
+		if(present(surface)) then
+					isCosmo=.true.
+					! write(*,'(A)')"remplazando los valores de point charges por surface"
+          numberOfPointCharges=surface%sizeSurface
+          if(allocated(point)) deallocate(point)
+          allocate(point(0:numberOfPointCharges - 1))
+					! write(*,*) "remplazadas por estas"
+          do f = 0, numberOfPointCharges - 1
+             point(f)%charge = 1.0
+             point(f)%x  =surface%xs(f+1)
+             point(f)%y  =surface%ys(f+1)
+             point(f)%z  =surface%zs(f+1)
+						 ! write(*,*) point(f)%x,point(f)%y,point(f)%z
+					end do
+					
+					do f = 1, size(MolecularSystem_instance%species)
+						write(*,*)"species", f
+						write(30) job
+						write(30) MolecularSystem_instance%species(f)%name
+					
+						if(allocated(labels)) deallocate(labels)
+						allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+						labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+						
+						if(allocated(integralBuffer)) deallocate(integralBuffer)
+						allocate(integralBuffer((MolecularSystem_instance%species(f)%basisSetSize * (MolecularSystem_instance%species(f)%basisSetSize + 1)) / 2 ) )
+						
+						integralBuffer = 0.0_8
+						
+						if(allocated(cosmoIntegrals)) deallocate(cosmoIntegrals)
+						allocate(cosmoIntegrals(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f), numberOfPointCharges))
+						ii = 0
+							do g = 1, size(MolecularSystem_instance%species(f)%particles)
+								do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+								hh = h
+								ii = ii + 1
+								jj = ii - 1
+								do i = g, size(MolecularSystem_instance%species(f)%particles)
+									do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+										jj = jj + 1
+										!! allocating memory Integrals for shell
+										if(allocated(integralValue)) deallocate(integralValue)
+										allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+														MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+										!!Calculating integrals for shell
+										call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+													MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue,isCosmo)
+										!!saving integrals on Matrix
+										m = 0
+
+										do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+											do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+												m = m + 1
+													do n=1,numberOfPointCharges
+														cosmoIntegrals(k, l,n) = integralValue(m)
+														cosmoIntegrals(l, k, n) = cosmoIntegrals(k, l, n)
+													end do
+											end do
+										end do
+									end do
+                hh = 1
+             end do
+          end do
+       end do
+
+					!!Write integrals to file (unit 30)
+					write(*,"(A,I6,A,A,A)")" Stored ",size(cosmoIntegrals,DIM=1)**2*numberOfPointCharges," cosmo integrals " ,trim(MolecularSystem_instance%species(f)%name),&
+					" in file cosmo.opints"
+					write(30) int(size(cosmoIntegrals),8)
+					write(30) cosmoIntegrals
+       
+    end do !done!
+		! write(*,*) cosmoIntegrals(3,4,:)
+
+			else
+
     
     numberOfPointCharges = MolecularSystem_instance%numberOfPointCharges
 		
@@ -319,33 +398,16 @@ contains
 		! Remplaza los parametros de las cargas puntuales por los parametros de la
 		! cargas de superficie
 
-    if(present(surface)) then
-					isCosmo=.true.
-					write(*,'(A)')"remplazando los valores de point charges por surface"
-          numberOfPointCharges=surface%sizeSurface
-          if(allocated(point)) deallocate(point)
-          allocate(point(0:numberOfPointCharges - 1))
-					write(*,*) "remplazadas por estas"
-          do f = 0, numberOfPointCharges - 1
-             point(f)%charge = 1.0
-             point(f)%x  =surface%xs(f+1)
-             point(f)%y  =surface%ys(f+1)
-             point(f)%z  =surface%zs(f+1)
-						 write(*,*) point(f)%x,point(f)%y,point(f)%z
-           end do
-					 write(*,*) "fin del remplazo"
-    else
        do f = 0, numberOfPointCharges - 1
           point(f)%charge = MolecularSystem_instance%pointCharges(f+1)%charge
           point(f)%x  = MolecularSystem_instance%pointCharges(f+1)%origin(1)
           point(f)%y  = MolecularSystem_instance%pointCharges(f+1)%origin(2)
           point(f)%z  = MolecularSystem_instance%pointCharges(f+1)%origin(3)
        end do
-    end if
 
     !!Attraction Integrals for all species
-		!!El indice f corre sobre todas las especies
     do f = 1, size(MolecularSystem_instance%species)
+			write(*,*)"species", f
        
        write(30) job
        write(30) MolecularSystem_instance%species(f)%name
@@ -363,42 +425,27 @@ contains
 
        ii = 0
        do g = 1, size(MolecularSystem_instance%species(f)%particles)
-				 ! g corre sobre las particulas de cada especie
           do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
-						!h corre sobre las la basis%contraction 
              
              hh = h
-						 !hh almacena la cantidad de contracciones para cada particula de
-						 !cada especie
-             
              ii = ii + 1
              jj = ii - 1
              
              do i = g, size(MolecularSystem_instance%species(f)%particles)
-							 ! corre sobre las particulas de la especie f a partir de g
                 do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
-									! corre sobre las basis%contraction	a partir de hh
 
                    jj = jj + 1
                    
                    !! allocating memory Integrals for shell
-									 ! el tamaño del arreglo integral valule es de el numero de
-									 ! cartesianas de la particula g por en numero de cartesianas
-									 ! de la particula i, donde i e g pertenecen a la especie f
 
                    if(allocated(integralValue)) deallocate(integralValue)
                    allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
                         MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
-									 !!cosmo things
-									 if(present(surface)) then
-
+									 
+										 
 										 !!Calculating integrals for shell
 										 call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue, isCosmo)
-										 else
-										 call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
                         MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue)
-									 end if
 
                    !!saving integrals on Matrix
                    m = 0
@@ -406,8 +453,10 @@ contains
                       do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                          m = m + 1
 
+
                          integralsMatrix(k, l) = integralValue(m)
                          integralsMatrix(l, k) = integralsMatrix(k, l)
+													
 
                       end do
                    end do
@@ -418,26 +467,14 @@ contains
 
           end do
        end do
-			 if(present(surface)) then
 					
-					!!Write integrals to file (unit 40)
-					write(*,"(A,I6,A,A,A)")" Stored ",size(integralsMatrix,DIM=1)**2," surface integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-					" in file surface.opints"
-					write(40) int(size(integralsMatrix),8)
-					write(40) integralsMatrix
-
-				else
 					!!Write integrals to file (unit 30)
 					write(*,"(A,I6,A,A,A)")" Stored ",size(integralsMatrix,DIM=1)**2," attraction integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
 					" in file lowdin.opints"
 					write(30) int(size(integralsMatrix),8)
 					write(30) integralsMatrix
 
-				end if
        
-       
-
-
        !!Depuration block
 !        print*, "Attraction  Matrix for specie: ", f
 
@@ -462,6 +499,7 @@ contains
 !        end do
        
     end do !done! 
+		end if 
 
   end subroutine IntegralManager_getAttractionIntegrals
   
