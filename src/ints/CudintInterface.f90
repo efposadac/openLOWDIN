@@ -461,23 +461,23 @@ contains
        end if
     end do
 
-    call cuda_int_intraspecies(&
-         numberOfContractions, &
-         maxLength, &
-         maxNumCartesianOrbital, &
-         primNormalizationLength, &
-         maxprimNormalizationLength, &
-         contractionId, &
-         contractionLength, &
-         contractionAngularMoment, &
-         contractionNumCartesianOrbital, &
-         contractionOwner, &
-         contractionOrigin, &
-         contractionOrbitalExponents, &
-         contractionCoefficients, &
-         contractionContNormalization, &
-         contractionPrimNormalization &
-         )
+    ! call cuda_int_intraspecies(&
+    !      numberOfContractions, &
+    !      maxLength, &
+    !      maxNumCartesianOrbital, &
+    !      primNormalizationLength, &
+    !      maxprimNormalizationLength, &
+    !      contractionId, &
+    !      contractionLength, &
+    !      contractionAngularMoment, &
+    !      contractionNumCartesianOrbital, &
+    !      contractionOwner, &
+    !      contractionOrigin, &
+    !      contractionOrbitalExponents, &
+    !      contractionCoefficients, &
+    !      contractionContNormalization, &
+    !      contractionPrimNormalization &
+    !      )
 
     write(*,*) "Ids en fortran"
 
