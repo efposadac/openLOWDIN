@@ -3,10 +3,10 @@ TOPDIR=..
 include $(TOPDIR)/CONFIG
 
 SUBDIRS = ints HF scf integralsTransformation MP2 PT
-ALLDIRS = $(SUBDIRS) lowdincore
+ALLDIRS = $(SUBDIRS) core
 
 LDR=$(FC)
-INC=-I$(TOPDIR)/src/lowdincore/
+INC=-I$(TOPDIR)/src/core/
 LDPATH=$(TOPDIR)/lib/lowdincore.a
 FLAGS=$(FCFLAGS)
 LIBS=$(ALL_LIBS)
@@ -15,7 +15,7 @@ TARGET=lowdin.x
 OBJECTS=lowdin.x.o
 
 default::
-	(cd lowdincore && $(MAKE) $(JOBS)) || exit 1;\
+	(cd core && $(MAKE) $(JOBS)) || exit 1;\
 
 	for dir in $(SUBDIRS); \
 	do \
