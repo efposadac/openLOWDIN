@@ -1,16 +1,11 @@
-!!******************************************************************************
-!!      This code is part of LOWDIN Quantum chemistry package
-!!
-!!      this program has been developed under direction of:
-!!
-!!      Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!              http://www.qcc.unal.edu.co
-!!      Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!              http://www.cucei.udg.mx/~robertof
-!!
-!!              Todos los derechos reservados, 2013
-!!
-!!******************************************************************************
+**This code is part of LOWDIN Quantum chemistry package**
+
+   this program has been developed under direction of:
+      Prof. A REYES' Lab. Universidad Nacional de Colombia
+      http://www.qcc.unal.edu.co
+      Prof. R. FLORES' Lab. Universidad de Guadalajara
+      http://www.cucei.udg.mx/~robertof
+      Todos los derechos reservados, 2013
 
 Welcome to LOWDIN Quantum Chemistry Package 2.0.
 
