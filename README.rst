@@ -1,11 +1,14 @@
 **This code is part of LOWDIN Quantum chemistry package**
 
    this program has been developed under direction of:
-      Prof. A REYES' Lab. Universidad Nacional de Colombia
-      http://www.qcc.unal.edu.co
-      Prof. R. FLORES' Lab. Universidad de Guadalajara
-      http://www.cucei.udg.mx/~robertof
-      Todos los derechos reservados, 2013
+   Prof. A REYES' Lab. Universidad Nacional de Colombia,
+   http://www.qcc.unal.edu.co
+
+   Prof. R. FLORES' Lab. Universidad de Guadalajara,
+   http://www.cucei.udg.mx/~robertof
+
+   Todos los derechos reservados, 2013
+
 
 Welcome to LOWDIN Quantum Chemistry Package 2.0.
 
@@ -28,9 +31,7 @@ Installation notes.
 
 2. Compile:
 
-   2.1. run ./configure located in the LOWDIN root directory.
-
-        Be sure that you have permissions to write in the installation directory and properly exported to PATH environment variable.
+   2.1. run ./configure located in the LOWDIN root directory. Be sure that you have permissions to write in the installation directory and properly exported to PATH environment variable.
 
    2.2. run make
 
