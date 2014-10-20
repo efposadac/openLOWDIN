@@ -190,13 +190,14 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="lowdincore ints HF MP2 MM Optimizer scf aduw"
+SUBDIRS="core ints HF MP2 MM Optimizer scf aduw"
 
 for DIR in $SRCDIR ; do
     cd $DIR
     for SUBDIR in $SUBDIRS ; do
 	if [[ -e $SUBDIR ]] ; then	    
 	    cd $SUBDIR  
+	    echo $SUBDIR
 	    ./configure
 	    cd ..
 	fi
