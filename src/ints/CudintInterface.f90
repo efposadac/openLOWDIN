@@ -43,7 +43,6 @@ module CudintInterface_
 
      subroutine cuda_int_intraspecies (&
           numberOfContractions, &
-          maxLength, &
           maxNumCartesianOrbital, &
           primNormalizationSize, &
           contractionId, &
@@ -59,7 +58,6 @@ module CudintInterface_
        use, intrinsic :: iso_c_binding
        implicit none
        integer (c_int) :: numberOfContractions
-       integer (c_int) :: maxLength
        integer (c_int) :: maxNumCartesianOrbital
        integer (c_int) :: primNormalizationSize
        integer (c_int) :: contractionId(*)
@@ -67,9 +65,9 @@ module CudintInterface_
        integer (c_int) :: contractionAngularMoment(*)
        integer (c_int) :: contractionNumCartesianOrbital(*)
        integer (c_int) :: contractionOwner(*)
-       real (c_double) :: contractionOrigin(numberOfContractions,*)
-       real (c_double) :: contractionOrbitalExponents(numberOfContractions,*)
-       real (c_double) :: contractionCoefficients(numberOfContractions,*)
+       real (c_double) :: contractionOrigin(*)
+       real (c_double) :: contractionOrbitalExponents(*)
+       real (c_double) :: contractionCoefficients(*)
        real (c_double) :: contractionContNormalization(numberOfContractions,*)
        real (c_double) :: contractionPrimNormalization(*)
      end subroutine cuda_int_intraspecies
@@ -99,12 +97,11 @@ contains
     integer, allocatable :: contractionAngularMoment(:)
     integer, allocatable :: contractionNumCartesianOrbital(:)
     integer, allocatable :: contractionOwner(:)
-    real(8), allocatable :: contractionOrigin(:,:)
-    real(8), allocatable :: contractionOrbitalExponents(:,:)
-    real(8), allocatable :: contractionCoefficients(:,:)
+    real(8), allocatable :: contractionOrigin(:)
+    real(8), allocatable :: contractionOrbitalExponents(:)
+    real(8), allocatable :: contractionCoefficients(:)
     real(8), allocatable :: contractionContNormalization(:,:)
     real(8), allocatable :: contractionPrimNormalization(:)
-    integer :: maxLength
     integer :: maxNumCartesianOrbital
     integer :: primNormalizationSize
 
@@ -130,7 +127,7 @@ contains
     allocate(contractionAngularMoment(numberOfContractions))
     allocate(contractionNumCartesianOrbital(numberOfContractions))
     allocate(contractionOwner(numberOfContractions))
-    allocate(contractionOrigin(numberOfContractions, 3))
+    allocate(contractionOrigin(numberOfContractions*3))
 
     primNormalizationSize=0
     do i=1, numberOfContractions
@@ -139,18 +136,13 @@ contains
        contractionAngularMoment(i)  = contractions(i)%angularMoment
        contractionNumCartesianOrbital(i) = contractions(i)%numCartesianOrbital
        contractionOwner(i) = contractions(i)%owner
-       contractionOrigin(i,1) = contractions(i)%origin(1)
-       contractionOrigin(i,2) = contractions(i)%origin(2)
-       contractionOrigin(i,3) = contractions(i)%origin(3)
+       contractionOrigin(i*3-2) = contractions(i)%origin(1)
+       contractionOrigin(i*3-1) = contractions(i)%origin(2)
+       contractionOrigin(i*3) = contractions(i)%origin(3)
        primNormalizationSize = primNormalizationSize + contractionLength(i)
     end do
 
-    maxLength = 0
-    do i=1, numberOfContractions
-       maxLength = max(maxLength, contractionLength(i))
-    end do
-    write(*,*) " Max en Fortran", maxLength
-    
+  
     maxNumCartesianOrbital = 0
     do i=1, numberOfContractions
        maxNumCartesianOrbital = max(maxNumCartesianOrbital, contractionNumCartesianOrbital(i))
@@ -161,29 +153,22 @@ contains
     if(allocated(contractionContNormalization)) deallocate(contractionContNormalization)
     if(allocated(contractionPrimNormalization)) deallocate(contractionPrimNormalization)
 
-    allocate(contractionOrbitalExponents(numberOfContractions, maxLength))
-    allocate(contractionCoefficients(numberOfContractions, maxLength))
+    allocate(contractionOrbitalExponents(primNormalizationSize))
+    allocate(contractionCoefficients(primNormalizationSize))
     allocate(contractionContNormalization(numberOfContractions, maxNumCartesianOrbital))
     allocate(contractionPrimNormalization(primNormalizationSize))
 
-    write(*,*) "En la interfaz"
+    ! write(*,*) "En la interfaz"
     auxCounter = 1
     do i=1, numberOfContractions
        do j=1, contractionLength(i)
-          contractionOrbitalExponents(i,j) = contractions(i)%orbitalExponents(j)
-          write(*,*) contractionOrbitalExponents(i,j)
+          contractionOrbitalExponents(auxCounter) = contractions(i)%orbitalExponents(j)
           contractionPrimNormalization(auxCounter) = contractions(i)%primNormalization(j,1)
+          contractionCoefficients(auxCounter) = contractions(i)%contractionCoefficients(j)
+          ! write(*,*) contractions(i)%orbitalExponents(j)
           ! write(*,*) contractionPrimNormalization(auxCounter), contractions(i)%primNormalization(j,1)
-          contractionCoefficients(i,j) = contractions(i)%contractionCoefficients(j)
           auxCounter = auxCounter + 1
        end do
-       if(contractionLength(i)<maxLength) then
-          do j=contractionLength(i)+1,maxLength
-             contractionOrbitalExponents(i,j) = 0.0_8
-             contractionCoefficients(i,j) = 0.0_8
-          end do
-       end if
-       write(*,*) contractionOrbitalExponents(i,j)
     end do
 
     ! write(*,*) ""
@@ -203,7 +188,6 @@ contains
 
     call cuda_int_intraspecies(&
          numberOfContractions, &
-         maxLength, &
          maxNumCartesianOrbital, &
          primNormalizationSize, &
          contractionId, &
