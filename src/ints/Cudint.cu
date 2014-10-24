@@ -3,7 +3,7 @@
 #include <math.h>
 #include <cuda.h>
 
-// const int numberOfThreads = 64;
+const int numberOfThreads = 256;
 const double pi = 3.14159265358979323846;
 
 __global__ void intssss(int N, 
@@ -15,11 +15,14 @@ __global__ void intssss(int N,
 			int *contCounter_d,
 			int *contLength_d,
 			double *origin_d,
-			double *integralValues_d)
+			double *integralValues_d,
+			int control,
+			int kernelIter)
 {
   int threadIndex = threadIdx.x + threadIdx.y*blockDim.x;
   int blockIndex = blockIdx.x;
-  int global = threadIndex + blockIndex*blockDim.x*blockDim.y;
+  int global1 = threadIndex + blockIndex*blockDim.x*blockDim.y;
+  int global = global1 + kernelIter; 
   
   int aa, bb, rr, ss, ii, jj, kk, ll;
   int contractionID;
@@ -32,7 +35,7 @@ __global__ void intssss(int N,
 
   double A, B, C, D, KIJ, KKL, rPx, rPy, rPz, rQx, rQy, rQz, rPQ, rIJ, rKL, tFunc, tFuncsqrt, F, prefact;
 
-  if(global<N)
+  if(global1< control)
     {
       // ID of unic integrals
       contractionID = primIndices_d[global*5];
@@ -115,7 +118,8 @@ __global__ void intssss(int N,
       
       preIntegral = prefact*KIJ*KKL*F;
       normIntegral = primNormII*primNormJJ*primNormKK*primNormLL*preIntegral;
-      integralValues_d[global] = coefficientsII*coefficientsJJ*coefficientsKK*coefficientsLL*normIntegral;
+      //integralValues_d[global1] = (double)global;
+      integralValues_d[global1] = coefficientsII*coefficientsJJ*coefficientsKK*coefficientsLL*normIntegral;
 
       // printf("Contraction (%d): (%d,%d|%d,%d)\n Primitive (%d): (%d,%d|%d,%d) [%f, %f, %f | %f, %f, %f | %f, %f, %f | %f, %f, %f]\n",
       // 	     contractionID, aa, bb, rr, ss,
@@ -145,7 +149,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   int *contLength;
   int contractionsMem, totalPrimitives, unicintegrals, unicintegralsMem, exponentSize;
   int *contIndices, *primIndices, *contCounter;
-  double *exponents, *primNormalization, *coefficients, *origin, *contractedIntegrals, *contNormalization;
+  double *exponents, *primNormalization, *coefficients, *origin, *contractedIntegrals, *contNormalization, *integralValuesTotal;
   int *numberOfPPUC, contractionsMemDoub, unicintegralsMemDoub;
   int i,j,k,l,m,p;
   int auxCounter, originSize;
@@ -280,14 +284,27 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
     }
 
 
-  // printf("Total Primitive: %d\n", totalPrimitives);
+  printf("Total Primitive: %d\n", totalPrimitives);
 
   N=totalPrimitives;	  
-  integralValues = (double *)malloc(N*sizeof(double));
+  integralValuesTotal = (double *)malloc(N*sizeof(double));
+  ////////////////////////////////////////////////////////////////////                                                                                                                                                                        /// Total threads in GPUs
+  // printf("     *** GPU Especifications ***\n");
+  int gpu, count;
+  cudaDeviceProp prop;
+  cudaGetDeviceCount(&count);
+  int totalThreads=0;
+  for (gpu = 0; gpu < count; gpu++) {
+    cudaGetDeviceProperties(&prop,gpu);
+    totalThreads+=prop.multiProcessorCount*prop.maxThreadsPerMultiProcessor;
+  }
+  ////////////////////////////////////////////////////////////////////   
+  int numberOfBlocks = totalThreads/numberOfThreads;
+  dim3 blockSize(16,16,1);
+  dim3 gridSize(numberOfBlocks,1,1);
 
   ////////////////////////////////////////////////////////////////////////////
   /// CUDA Malloc
-  cudaMalloc((void **)&integralValues_d, N*sizeof(double));
   cudaMalloc((void **)&primIndices_d, totalPrimitives*5*sizeof(int));
   cudaMalloc((void **)&contIndices_d, 4*unicintegralsMem);
   cudaMalloc((void **)&exponents_d, exponentSize);
@@ -310,34 +327,70 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   cudaMemcpy(origin_d, origin, originSize, cudaMemcpyHostToDevice);
   //////////////////////////////////////////////////////////////////////////
 
-  dim3 blockSize(8,8,1);
-  dim3 gridSize(360,1,1);
+  ////////////////////////////////////////////////////////////////////////
+  ///Number of Calls to kernel
 
-  intssss<<<gridSize,blockSize>>>(N, primIndices_d, contIndices_d, exponents_d, primNormalization_d, coefficients_d, contCounter_d, contLength_d, origin_d, integralValues_d);
+  int numberCallkernel = 0;
+  
+  i=0;
+  int kernelIter = 0;
+  int control2=0;
+  while(control2<=totalPrimitives-1)
+    {
+      int control = 0;
+      kernelIter = control2;
+      while(control+numberOfPPUC[i]<=totalThreads && i < unicintegrals)
+	{
+	  control += numberOfPPUC[i];
+          control2 += numberOfPPUC[i];
+	  i++;
+	  // printf("Control: %d %d\n",i, control);
+	}
+      numberCallkernel++;
+      integralValues = (double *)malloc(control*sizeof(double));
+      cudaMalloc((void **)&integralValues_d, control*sizeof(double));
 
-  cudaMemcpy(integralValues, integralValues_d, totalPrimitives*sizeof(double),cudaMemcpyDeviceToHost);
+      // printf("Control2: %d %d\n", numberCallkernel, control2);
+
+      //      printf("Kernel Call Number: %d\n", numberCallkernel );
+      intssss<<<gridSize,blockSize>>>(N, primIndices_d, contIndices_d, exponents_d, primNormalization_d, coefficients_d, contCounter_d, contLength_d, origin_d, integralValues_d, control, kernelIter);
+
+      cudaMemcpy(integralValues, integralValues_d, control*sizeof(double),cudaMemcpyDeviceToHost);
+      m=0;
+
+      for(j=kernelIter;j<control2;j++)
+	{
+	  integralValuesTotal[j] = integralValues[j-kernelIter];    
+	  // if(numberCallkernel==3)
+	  //    printf("Integral post Kernel: %d, %d -> %f\n", j, j-kernelIter, integralValuesTotal[j]);
+	}
+
+      cudaFree(integralValues_d);
+      free(integralValues);
+    }
+
+      // printf("Contracted Integrals:\n");
+      for(i=0; i<unicintegrals;i++)
+	{
+	  contractedIntegrals[i] = 0.0;
+	  a = contIndices[i*4];
+	  b = contIndices[i*4+1];
+	  r = contIndices[i*4+2];
+	  s = contIndices[i*4+3];
+	  for(j=0; j<numberOfPPUC[i];j++)
+	    {
+	      contractedIntegrals[i] += contNormalization[a-1]*contNormalization[b-1]*contNormalization[r-1]*contNormalization[s-1]*integralValuesTotal[m];
+	      m++;
+	    }
+	  // printf("%d %f %f %f %f\n", i, contNormalization[a],contNormalization[b],contNormalization[r],contNormalization[s]);
+	  // printf("(%d,%d|%d,%d) = %f \n", a,b,r,s,contractedIntegrals[i]);
+	}
 
   // for(i=0;i<N;i++)
   //   printf("Integral en Host: %d %f\n", i, integralValues[i]);
 
-  m=0;
-  printf("Contracted Integrals:\n");
-  for(i=0; i<unicintegrals;i++)
-    {
-      contractedIntegrals[i] = 0.0;
-      a = contIndices[i*4];
-      b = contIndices[i*4+1];
-      r = contIndices[i*4+2];
-      s = contIndices[i*4+3];
-    for(j=0; j<numberOfPPUC[i];j++)
-      {
-	contractedIntegrals[i] += contNormalization[a-1]*contNormalization[b-1]*contNormalization[r-1]*contNormalization[s-1]*integralValues[m];
-	m++;
-      }
-    printf("%d %f %f %f %f\n", i, contNormalization[a],contNormalization[b],contNormalization[r],contNormalization[s]);
-    printf("(%d,%d|%d,%d) = %f \n", a,b,r,s,contractedIntegrals[i]);
-    }
-  cudaFree(integralValues_d);
+
+
   cudaFree(primIndices_d);
   cudaFree(contIndices_d);
   cudaFree(exponents_d);
@@ -346,6 +399,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   cudaFree(contCounter_d);
   cudaFree(contLength_d);
   cudaFree(origin_d);
+  free(integralValuesTotal);
   free(contLength);
   free(contCounter);
   free(numberOfPPUC);
@@ -356,5 +410,4 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   free(origin);
   free(contractedIntegrals);
   free(contNormalization);
-  free(integralValues);
 }
