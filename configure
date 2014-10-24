@@ -24,6 +24,7 @@ if [ -e CONFIG ] ; then
     CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     CXX=`awk '{if($1 == "CXX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     CC=`awk '{if($1 == "CC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
@@ -42,6 +43,7 @@ else
     CUDAFLAGS="no"
     CXX="icpc"
     CC="icc"
+    CU="nvcc"
     CFLAGS="-g -O2 -D intel"
     CPPFLAGS="-g -O2 -D intel"
     FCFLAGS="-fopenmp -O2 -D intel -fpic -no-vec -openmp -fpp "
@@ -49,8 +51,8 @@ else
     STDCPP_LIBS="-lstdc++"
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint"
-    CUDA_LIBS="-lmagma -lmagmablas -lcuda -lcublas -lcudart"
-    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $FOURINDEX_LIBS"
+    CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcublas -lcudart"
+    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $FOURINDEX_LIBS" 
 fi
 
 ###############################################################################
@@ -68,11 +70,13 @@ FC=$FCOMP
 if [ "$FC" = "ifort" ]  ; then
     CXX="icpc"
     CC="icc"
+    CU="nvcc -arch=sm_20"
     CFLAGS="-g -O3 -D intel"
     CPPFLAGS="-g -O3 -D intel"
 else
     CXX=g++
     CC=gcc
+    CU="nvcc -arch=sm_20"
     CFLAGS="-g -O3 -fopenmp -D gfortran"
     CPPFLAGS="-g -O3 -fopenmp -D gfortran"
 fi
@@ -139,7 +143,7 @@ else
 fi
 
 if [ "$CUDAFLAGS" = "yes" ] ; then
-    CUDA_LIBS="-lmagma -lmagmablas -lcuda -lcublas -lcudart"
+    CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcublas -lcudart"
 else
     CUDA_LIBS=""
 fi
@@ -173,6 +177,7 @@ echo "CUBAFLAGS = $CUBAFFLAGS" >> CONFIG
 echo "CUDAFLAGS = $CUDAFLAGS" >> CONFIG
 echo "CXX = $CXX"  >> CONFIG
 echo "CC = $CC"  >> CONFIG
+echo "CU = $CU"  >> CONFIG
 echo "CFLAGS = $CFLAGS"  >> CONFIG
 echo "CPPFLAGS = $CPPFLAGS"  >> CONFIG
 echo "FCFLAGS = $FCFLAGS"  >> CONFIG

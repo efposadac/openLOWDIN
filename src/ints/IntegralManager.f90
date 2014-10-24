@@ -33,7 +33,7 @@ module IntegralManager_
   use KineticIntegrals_
   use LibintInterface_
   use CudintInterface_
-  use RysQuadrature_
+  ! use RysQuadrature_
   implicit none
   
   public :: &
@@ -569,12 +569,12 @@ contains
 
     !! Calculate integrals (stored on disk)           
     select case (trim(String_getUppercase(trim(scheme))))
-       case("RYS")
-          call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
+       ! case("RYS")
+       !    call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
        case("LIBINT")
           call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
        case("CUDINT")
-          call CudintInterface_computeIntraSpecies(speciesID, "ERIS", starting, ending, int(process))
+          call CudintInterface_computeIntraSpecies(speciesID)
        case default
           call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     end select
@@ -599,8 +599,8 @@ contains
           select case (trim(String_getUppercase(trim(scheme))))
           case("LIBINT")
              call LibintInterface_computeInterSpecies( i, j, "ERIS" )
-          case("CUDINT")
-             call CudintInterface_computeInterSpecies( i, j, "ERIS" )
+          ! case("CUDINT")
+          !    call CudintInterface_computeInterSpecies( i, j, "ERIS" )
           case default
              call LibintInterface_computeInterSpecies( i, j, "ERIS" )
           end select

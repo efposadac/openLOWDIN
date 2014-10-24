@@ -335,7 +335,8 @@ contains
     counter = 0
     auxCounter = 0    
     control = 0
-    
+
+   
     !!Start Calculating integrals for each shell
     do a = 1, numberOfContractions
        n = a
@@ -345,6 +346,8 @@ contains
              do s = u,  numberOfContractions
                                 
                 control = control + 1                 
+
+
                 if( control >= starting ) then                    
                    
                    if (control > ending) then
@@ -372,7 +375,7 @@ contains
                       
                    end if
                 
-                   !!Calcula el momento angular total
+                   ! Calcula el momento angular total
                    sumAngularMoment =  contractions(a)%angularMoment + &
                         contractions(b)%angularMoment + &
                         contractions(r)%angularMoment + &
@@ -405,6 +408,8 @@ contains
                    poj => j
                    pok => k
                    pol => l
+                   
+                   ! write(*,*) contractions(a)%angularMoment, contractions(b)%angularMoment, contractions(r)%angularMoment, contractions(s)%angularMoment
                    
                    if (contractions(a)%angularMoment < contractions(b)%angularMoment) then
                       
@@ -514,6 +519,11 @@ contains
                    !!start :)
                    integralsValue(1:arraySize) = 0.0_8
                    
+                   write(*,*)"Pointer printing contraida"
+                   write(*,*) a,b,r,s
+                   ! write(*,*) aa,bb,rr,ss
+                   
+
                    do l = 1, contractions(s)%length
                       do k = 1, contractions(r)%length
                          do j = 1, contractions(b)%length
@@ -578,11 +588,13 @@ contains
                                primitiveQuartet%oo2p = (0.5_8 / rho)
                                
                                if(arraySize == 1) then
-                                  
+                                  ! write(*,*)"Pointer printing (ss|ss)"
+                                  ! write(*,*)pi,pj,pk,pl
                                   auxIntegrals(1) = primitiveQuartet%F(1)
                                   
                                else
-                                  
+                                  ! write(*,*)"Pointer printing"
+                                  ! write(*,*)pi,pj,pk,pl
                                   arraySsize(1) = arraySize
                                   
                                   LibintInterface_instance%libint%PrimQuartet = c_loc(primitiveQuartet)
@@ -601,8 +613,8 @@ contains
                                   auxIntegrals(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy                                                                    
                                   
                                end if !!done by contractions
-                               
-                               
+
+                                                                                      
                                !!Normalize by primitive
                                m = 0
                                do ii = 1, contractions(aa)%numCartesianOrbital
@@ -615,6 +627,7 @@ contains
                                                 * contractions(bb)%primNormalization(pj,jj) &
                                                 * contractions(rr)%primNormalization(pk,kk) &
                                                 * contractions(ss)%primNormalization(pl,ll)
+                                           ! write(*,*) "( ", pi, ", ", pj, " | ", pk, ", ", pl, " )", auxIntegrals(m)
                                         end do
                                      end do
                                   end do
@@ -625,7 +638,8 @@ contains
                                     * contractions(bb)%contractionCoefficients(pj) &
                                     * contractions(rr)%contractionCoefficients(pk) &
                                     * contractions(ss)%contractionCoefficients(pl)                                                             
-                               
+                               ! write(*,*) "( ", pi, ", ", pj, " | ", pk, ", ", pl, " )", auxIntegrals(1:arraySize)
+
                                integralsValue(1:arraySize) = integralsValue(1:arraySize) + auxIntegrals(1:arraySize)
                                
                             end do
@@ -646,6 +660,7 @@ contains
                                     * contractions(bb)%contNormalization(jj) &
                                     * contractions(rr)%contNormalization(kk) &
                                     * contractions(ss)%contNormalization(ll)                            
+                                write(*,*) integralsValue(m)
                             end do
                          end do
                       end do
@@ -726,7 +741,10 @@ contains
                    end do !! Primitives loop
                    
                 end if
-                
+
+                ! write(*,*) "Info libintB"
+                ! write(*,*) a, b, r, s, sumAngularMoment
+                ! write(*,*) aa,bb,rr,ss, sumAngularMoment
              end do
              u=r+1
           end do
@@ -1115,13 +1133,14 @@ contains
                             primitiveQuartet%oo2p = (0.5_8 / rho)
 
                             if(arraySize == 1) then
-
+                               
                                auxIntegrals(1) = primitiveQuartet%F(1)
 
                             else
 
-                               arraySsize(1) = arraySize
 
+                               arraySsize(1) = arraySize
+                               
                                LibintInterface_instance%libint%PrimQuartet = c_loc(primitiveQuartet)
 
                                !! calculate integrals (finally)                               
