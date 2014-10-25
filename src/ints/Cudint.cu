@@ -141,7 +141,9 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
                                        double *contractionOrbitalExponents,
                                        double *contractionCoefficients,
                                        double *contractionContNormalization,
-                                       double *contractionPrimNormalization)
+                                       double *contractionPrimNormalization,
+				       double *contractionIntegrals,
+				       int *contractionIndices)
 {
   int N;
   double *integralValues, *integralValues_d;
@@ -149,7 +151,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   int *contLength;
   int contractionsMem, totalPrimitives, unicintegrals, unicintegralsMem, exponentSize;
   int *contIndices, *primIndices, *contCounter;
-  double *exponents, *primNormalization, *coefficients, *origin, *contractedIntegrals, *contNormalization, *integralValuesTotal;
+  double *exponents, *primNormalization, *coefficients, *origin, *contNormalization, *contractedIntegrals, *integralValuesTotal;
   int *numberOfPPUC, contractionsMemDoub, unicintegralsMemDoub;
   int i,j,k,l,m,p;
   int auxCounter, originSize;
@@ -380,6 +382,11 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
 	  for(j=0; j<numberOfPPUC[i];j++)
 	    {
 	      contractedIntegrals[i] += contNormalization[a-1]*contNormalization[b-1]*contNormalization[r-1]*contNormalization[s-1]*integralValuesTotal[m];
+	      *(contractionIntegrals+i) = contractedIntegrals[i];
+	      *(contractionIndices+(i*4)) = a;
+	      *(contractionIndices+(i*4+1)) = b;
+	      *(contractionIndices+(i*4+2)) = r;
+	      *(contractionIndices+(i*4+3)) = s;
 	      m++;
 	    }
 	  // printf("%d %f %f %f %f\n", i, contNormalization[a],contNormalization[b],contNormalization[r],contNormalization[s]);
@@ -410,4 +417,6 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   free(origin);
   free(contractedIntegrals);
   free(contNormalization);
+
+  return;
 }

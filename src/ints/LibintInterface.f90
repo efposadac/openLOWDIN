@@ -286,6 +286,9 @@ contains
     open(UNIT=34,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(specieID)%name)//".ints", &
          STATUS='UNKNOWN', ACCESS='SEQUENTIAL', FORM='Unformatted')
 
+    ! open(UNIT=69,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(specieID)%name)//".txt", &
+    !      STATUS='UNKNOWN', ACCESS='SEQUENTIAL', FORM='formatted')
+
     !! Get basisSet
     call MolecularSystem_getBasisSet(specieID, contractions)
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
@@ -365,10 +368,18 @@ contains
                            eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                            eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                            eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+                      write(*,*) "Primera impresion"
+                      write(*,*) &
+                           eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                           eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                           eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                           eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                           eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
                    
                       write(6,"(A,I12,A,A)") "**Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
                            trim(MolecularSystem_instance%species(specieID)%name)
                       
+                      ! close(69)
                       close(34)
 
                       return
@@ -519,8 +530,8 @@ contains
                    !!start :)
                    integralsValue(1:arraySize) = 0.0_8
                    
-                   write(*,*)"Pointer printing contraida"
-                   write(*,*) a,b,r,s
+                   ! write(*,*)"Pointer printing contraida"
+                   ! write(*,*) a,b,r,s
                    ! write(*,*) aa,bb,rr,ss
                    
 
@@ -660,7 +671,7 @@ contains
                                     * contractions(bb)%contNormalization(jj) &
                                     * contractions(rr)%contNormalization(kk) &
                                     * contractions(ss)%contNormalization(ll)                            
-                                write(*,*) integralsValue(m)
+                                ! write(*,*) integralsValue(m)
                             end do
                          end do
                       end do
@@ -727,6 +738,13 @@ contains
                                              eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                              eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                              eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+                                        write(*,*) "Segundo write"
+                                        write(*,*) &
+                                             eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                             eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                             eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                             eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                             eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
                                         
                                         counter = 0
                                         
@@ -764,7 +782,16 @@ contains
          eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+
+    write(*,*) "Tercer write"
+    write(*,*) &
+         eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
     
+    ! close(69)
     close(34)
 
     write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &

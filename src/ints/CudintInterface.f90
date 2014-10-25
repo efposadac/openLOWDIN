@@ -54,7 +54,9 @@ module CudintInterface_
           contractionOrbitalExponents, &
           contractionCoefficients, &
           contractionContNormalization, &
-          contractionPrimNormalization) bind (C, name = "cuda_int_intraspecies_")
+          contractionPrimNormalization, &
+          contractionIntegrals, &
+          contractionIndices) bind (C, name = "cuda_int_intraspecies_")
        use, intrinsic :: iso_c_binding
        implicit none
        integer (c_int) :: numberOfContractions
@@ -70,6 +72,8 @@ module CudintInterface_
        real (c_double) :: contractionCoefficients(*)
        real (c_double) :: contractionContNormalization(numberOfContractions,*)
        real (c_double) :: contractionPrimNormalization(*)
+       real (c_double) :: contractionIntegrals(*)
+       integer (c_int) :: contractionIndices(*)
      end subroutine cuda_int_intraspecies
     
  
@@ -104,8 +108,19 @@ contains
     real(8), allocatable :: contractionPrimNormalization(:)
     integer :: maxNumCartesianOrbital
     integer :: primNormalizationSize
+    integer :: unicIntegrals
 
-  
+
+    real(8), allocatable :: contractionIntegrals(:)
+    integer, allocatable :: contractionIndices(:)
+    character(50) :: fileNumber
+
+    write(fileNumber,*) 1
+    fileNumber = trim(adjustl(fileNumber))
+
+   open(UNIT=34,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(specieID)%name)//".ints", &
+        STATUS='UNKNOWN', ACCESS='SEQUENTIAL', FORM='Unformatted')
+
    !! Get basisSet
     call MolecularSystem_getBasisSet(specieID, contractions)
     
@@ -114,6 +129,9 @@ contains
     !! Get number of shells and cartesian contractions
     numberOfContractions = size(contractions)
     totalNumberOfContractions = MolecularSystem_instance%species(SpecieID)%basisSetSize
+
+    
+    unicIntegrals = ((numberOfContractions*(numberOfContractions+1)/2)+1)*(numberOfContractions*(numberOfContractions+1)/2)/2
 
     if(allocated(contractionId)) deallocate(contractionId)
     if(allocated(contractionLength)) deallocate(contractionLength)
@@ -185,6 +203,12 @@ contains
        ! write(*,*) contractionContNormalization(i,:)
     end do
 
+    if(allocated(contractionIntegrals)) deallocate(contractionIntegrals)
+    allocate(contractionIntegrals(unicIntegrals))
+
+    if(allocated(contractionIndices)) deallocate(contractionIndices)
+    allocate(contractionIndices(unicIntegrals*4))
+
 
     call cuda_int_intraspecies(&
          numberOfContractions, &
@@ -199,8 +223,26 @@ contains
          contractionOrbitalExponents, &
          contractionCoefficients, &
          contractionContNormalization, &
-         contractionPrimNormalization &
+         contractionPrimNormalization, &
+         contractionIntegrals, &
+         contractionIndices &
          )
+
+    do i=1, unicIntegrals
+       write(34) &
+            contractionIndices(i*4 - 3), &
+            contractionIndices(i*4 - 2), &
+            contractionIndices(i*4 - 1), &
+            contractionIndices(i*4), &
+            contractionIntegrals(i)
+       ! write(*,*) contractionIntegrals(i), contractionIndices(i*4 - 3), contractionIndices(i*4 - 2), &
+       !      contractionIndices(i*4 - 1), contractionIndices(i*4)
+    end do
+
+    close(34)
+
+    write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
+         trim(MolecularSystem_instance%species(specieID)%name)
 
     
   end subroutine CudintInterface_computeIntraSpecies
