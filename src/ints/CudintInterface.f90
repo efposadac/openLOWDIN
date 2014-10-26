@@ -37,7 +37,15 @@ module CudintInterface_
   use CONTROL_
   use, intrinsic :: iso_c_binding
   implicit none
-  
+
+  !> @brief the integrals are saved for big records (that reduces the I/O time)
+  type, public :: erisStack
+     integer*2, allocatable :: a(:)
+     integer*2, allocatable :: b(:)
+     integer*2, allocatable :: c(:)
+     integer*2, allocatable :: d(:)
+     real(8), allocatable :: integrals(:)
+  end type erisStack
  
   interface
 
@@ -78,6 +86,9 @@ module CudintInterface_
     
  
   end interface
+
+  !> @brief Integrals Stack
+  type(erisStack), private :: eris
   
 contains
   
@@ -114,6 +125,12 @@ contains
     real(8), allocatable :: contractionIntegrals(:)
     integer, allocatable :: contractionIndices(:)
     character(50) :: fileNumber
+
+    allocate (eris%a(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%b(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%c(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%d(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%integrals(CONTROL_instance%INTEGRAL_STACK_SIZE))
 
     write(fileNumber,*) 1
     fileNumber = trim(adjustl(fileNumber))
@@ -228,16 +245,33 @@ contains
          contractionIndices &
          )
 
+    auxCounter = 0
     do i=1, unicIntegrals
-       write(34) &
-            contractionIndices(i*4 - 3), &
-            contractionIndices(i*4 - 2), &
-            contractionIndices(i*4 - 1), &
-            contractionIndices(i*4), &
-            contractionIntegrals(i)
-       ! write(*,*) contractionIntegrals(i), contractionIndices(i*4 - 3), contractionIndices(i*4 - 2), &
-       !      contractionIndices(i*4 - 1), contractionIndices(i*4)
+       if(abs(contractionIntegrals(i)) > 1.0D-10) then
+
+          auxCounter = auxCounter + 1
+
+          eris%a(i) = contractionIndices(i*4 - 3)
+          eris%b(i) = contractionIndices(i*4 - 2)
+          eris%c(i) = contractionIndices(i*4 - 1)
+          eris%d(i) = contractionIndices(i*4)
+          eris%integrals(i) = contractionIntegrals(i)
+       end if
+
     end do
+
+    eris%a(unicIntegrals + 1) = -1
+    eris%b(unicIntegrals + 1) = -1
+    eris%c(unicIntegrals + 1) = -1
+    eris%d(unicIntegrals + 1) = -1
+    eris%integrals(unicIntegrals + 1) = 0.0_8
+
+    write(34) &
+         eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
     close(34)
 

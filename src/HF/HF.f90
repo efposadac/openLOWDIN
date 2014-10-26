@@ -194,6 +194,13 @@ program HF
      write(*,  "(A)")  " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
      write(*, "(A)")   " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2011   "
      write(*, "(A)")   " ----------------------------------------------------------------------"
+
+  case("CUDINT")
+     write(*,  "(A)")  " CUDA ERI Integrals Calculations has been implemented based on:         " 
+     write(*,  "(A)")  " Ufimtsev, I. S.; Martinez, T. J.; JCTC 2008, 4, 222           " 
+     write(*, "(A)")   " LOWDIN-CUDINT Implementation V. 1.0:  "
+     write(*, "(A)")   " Rodas, J. M.; Hernandez, R.; Escobar, D.; Galindo, J.; Reyes A. 2014   "
+     write(*, "(A)")   " ----------------------------------------------------------------------"
      
   case default
      write(*,  "(A)")  " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 

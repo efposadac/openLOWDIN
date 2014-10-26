@@ -118,13 +118,7 @@ __global__ void intssss(int N,
       
       preIntegral = prefact*KIJ*KKL*F;
       normIntegral = primNormII*primNormJJ*primNormKK*primNormLL*preIntegral;
-      //integralValues_d[global1] = (double)global;
       integralValues_d[global1] = coefficientsII*coefficientsJJ*coefficientsKK*coefficientsLL*normIntegral;
-
-      // printf("Contraction (%d): (%d,%d|%d,%d)\n Primitive (%d): (%d,%d|%d,%d) [%f, %f, %f | %f, %f, %f | %f, %f, %f | %f, %f, %f]\n",
-      // 	     contractionID, aa, bb, rr, ss,
-      // 	     global, ii, jj, kk, ll, 
-      // 	     IIx, IIy, IIz, JJx, JJy, JJz, KKx, KKy, KKz, LLx, LLy, LLz);
     }
     
 }
@@ -286,7 +280,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
     }
 
 
-  printf("Total Primitive: %d\n", totalPrimitives);
+  // printf("Total Primitive: %d\n", totalPrimitives);
 
   N=totalPrimitives;	  
   integralValuesTotal = (double *)malloc(N*sizeof(double));

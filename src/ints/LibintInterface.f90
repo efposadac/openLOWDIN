@@ -286,9 +286,6 @@ contains
     open(UNIT=34,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(specieID)%name)//".ints", &
          STATUS='UNKNOWN', ACCESS='SEQUENTIAL', FORM='Unformatted')
 
-    ! open(UNIT=69,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(specieID)%name)//".txt", &
-    !      STATUS='UNKNOWN', ACCESS='SEQUENTIAL', FORM='formatted')
-
     !! Get basisSet
     call MolecularSystem_getBasisSet(specieID, contractions)
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
@@ -339,7 +336,7 @@ contains
     auxCounter = 0    
     control = 0
 
-   
+   ! write(*,*) "Starting and ending", starting, ending
     !!Start Calculating integrals for each shell
     do a = 1, numberOfContractions
        n = a
@@ -368,13 +365,7 @@ contains
                            eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                            eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                            eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-                      write(*,*) "Primera impresion"
-                      write(*,*) &
-                           eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                           eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                           eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                           eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                           eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+
                    
                       write(6,"(A,I12,A,A)") "**Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
                            trim(MolecularSystem_instance%species(specieID)%name)
@@ -602,7 +593,6 @@ contains
                                   ! write(*,*)"Pointer printing (ss|ss)"
                                   ! write(*,*)pi,pj,pk,pl
                                   auxIntegrals(1) = primitiveQuartet%F(1)
-                                  
                                else
                                   ! write(*,*)"Pointer printing"
                                   ! write(*,*)pi,pj,pk,pl
@@ -714,11 +704,9 @@ contains
                                   if (  (apa /= pa .or. apb/=pb .or. apr/=pr .or. aps/=ps) .and. ( b==s ) ) then
                                      
                                      !! Descarted! (they are repeated)
-                                     
                                   else
-                                     
-                                     if(abs(integralsValue(m)) > 1.0D-10) then
-                                        
+                                   if(abs(integralsValue(m)) > 1.0D-10) then
+
                                         counter = counter + 1
                                         auxCounter = auxCounter + 1
                                         
@@ -726,20 +714,12 @@ contains
                                         eris%b(counter) = pb
                                         eris%c(counter) = pr
                                         eris%d(counter) = ps
-                                        eris%integrals(counter) = integralsValue(m)                                                                                
-
+                                        eris%integrals(counter) = integralsValue(m)
                                      end if
                                      
                                      if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
-                                        
+
                                         write(34) &
-                                             eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                             eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                             eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                             eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                             eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-                                        write(*,*) "Segundo write"
-                                        write(*,*) &
                                              eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                              eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                              eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
@@ -777,14 +757,6 @@ contains
     eris%integrals(counter) = 0.0_8
        
     write(34) &
-         eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-
-    write(*,*) "Tercer write"
-    write(*,*) &
          eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
