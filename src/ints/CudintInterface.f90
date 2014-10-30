@@ -102,7 +102,7 @@ contains
     integer :: totalNumberOfContractions
     integer :: maxAngularMoment
     integer :: sumAngularMoment
-    integer :: auxCounter
+    integer :: auxCounter, counter, control
 
     integer,target :: i, j, k
     type(ContractedGaussian), allocatable :: contractions(:) !< Basis set for specie
@@ -246,25 +246,41 @@ contains
          )
 
     auxCounter = 0
+    counter = 0
     do i=1, unicIntegrals
+
        if(abs(contractionIntegrals(i)) > 1.0D-10) then
 
           auxCounter = auxCounter + 1
+          counter = counter + 1
 
-          eris%a(i) = contractionIndices(i*4 - 3)
-          eris%b(i) = contractionIndices(i*4 - 2)
-          eris%c(i) = contractionIndices(i*4 - 1)
-          eris%d(i) = contractionIndices(i*4)
-          eris%integrals(i) = contractionIntegrals(i)
+          eris%a(counter) = contractionIndices(i*4 - 3)
+          eris%b(counter) = contractionIndices(i*4 - 2)
+          eris%c(counter) = contractionIndices(i*4 - 1)
+          eris%d(counter) = contractionIndices(i*4)
+          eris%integrals(counter) = contractionIntegrals(i)
        end if
 
+       if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
+
+          write(34) &
+               eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+               eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+               eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+               eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+               eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+
+          counter = 0
+
+       end if
     end do
 
-    eris%a(unicIntegrals + 1) = -1
-    eris%b(unicIntegrals + 1) = -1
-    eris%c(unicIntegrals + 1) = -1
-    eris%d(unicIntegrals + 1) = -1
-    eris%integrals(unicIntegrals + 1) = 0.0_8
+    counter = counter + 1 
+    eris%a(counter) = -1
+    eris%b(counter) = -1
+    eris%c(counter) = -1
+    eris%d(counter) = -1
+    eris%integrals(counter) = 0.0_8
 
     write(34) &
          eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &

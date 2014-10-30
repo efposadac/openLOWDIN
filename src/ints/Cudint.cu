@@ -15,6 +15,7 @@ __global__ void intssss(int N,
 			int *contCounter_d,
 			int *contLength_d,
 			double *origin_d,
+			int *angularMoments_d,
 			double *integralValues_d,
 			int control,
 			int kernelIter)
@@ -32,6 +33,9 @@ __global__ void intssss(int N,
   int exponentIterII, exponentIterJJ, exponentIterKK, exponentIterLL;
   double IIx, IIy, IIz, JJx, JJy, JJz, KKx, KKy, KKz, LLx, LLy, LLz;
   double preIntegral, normIntegral; 
+  double etha;
+  int lAA, lBB, lRR, lSS; // Angular moments of contractions
+  int integralCase;
 
   double A, B, C, D, KIJ, KKL, rPx, rPy, rPz, rQx, rQy, rQz, rPQ, rIJ, rKL, tFunc, tFuncsqrt, F, prefact;
 
@@ -50,6 +54,11 @@ __global__ void intssss(int N,
       jj = primIndices_d[global*5+2];
       kk = primIndices_d[global*5+3];
       ll = primIndices_d[global*5+4];
+      
+      lAA = angularMoments_d[aa-1];
+      lBB = angularMoments_d[bb-1];
+      lRR = angularMoments_d[rr-1];
+      lSS = angularMoments_d[ss-1];
       
       exponentIterII = contCounter_d[aa-1] + ii - 1;
       exponentIterJJ = contCounter_d[bb-1] + jj - 1;
@@ -83,12 +92,13 @@ __global__ void intssss(int N,
       LLx = origin_d[(ss*3)-3];
       LLy = origin_d[(ss*3)-2];
       LLz = origin_d[(ss*3)-1];
-
-      
+    
       A = exponentII + exponentJJ;
       B = exponentKK + exponentLL;
       C = exponentII*exponentJJ;
       D = exponentKK*exponentLL;
+
+      etha = (A*B)/(A+B);
 
       rIJ = (IIx-JJx)*(IIx-JJx) + (IIy-JJy)*(IIy-JJy) + (IIz-JJz)*(IIz-JJz);
       rKL = (KKx-LLx)*(KKx-LLx) + (KKy-LLy)*(KKy-LLy) + (KKz-LLz)*(KKz-LLz);
@@ -107,7 +117,7 @@ __global__ void intssss(int N,
       
       rPQ = (rPx-rQx)*(rPx-rQx) + (rPy-rQy)*(rPy-rQy) + (rPz-rQz)*(rPz-rQz);
 
-      tFunc = (A*B)*rPQ/(A+B);
+      tFunc = etha*rPQ;
 
       tFuncsqrt = sqrt(tFunc);
 
@@ -116,11 +126,63 @@ __global__ void intssss(int N,
       else
 	F = erf(tFuncsqrt)/tFuncsqrt;
       
-      preIntegral = prefact*KIJ*KKL*F;
+      integralCase = 64*lAA + 16*lBB + 4*lRR + lSS;
+
+      switch(integralCase)
+	{
+	case 0: // Integral (s,s|s,s)
+	  preIntegral = prefact*KIJ*KKL*F;
+	  break;
+	case 1: // Integral (s,s|s,p)
+	  preIntegral = (2*(exponentKK*((KKx-LLx)+(rPx-rQx))*etha)*(exponentKK*((KKy-LLy)+(rPy-rQy))*etha)*(exponentKK*((KKz-LLz)+(rPz-rQz))*etha)*F)/(B*B*B);
+	  break;
+	case 4: // Integral (s,s|p,s)
+	  preIntegral = -(2*(exponentLL*((KKx-LLx)+(rPx-rQx))*etha)*(exponentLL*((KKy-LLy)+(rPy-rQy))*etha)*(exponentLL*((KKz-LLz)+(rPz-rQz))*etha)*F)/(B*B*B);
+	  break;
+	case 16: // Integral (s,p|s,s)
+	  preIntegral = (2*(exponentII*((IIx-JJx)+(rPx-rQx))*etha)*(exponentII*((IIy-JJy)+(rPy-rQy))*etha)*(exponentII*((IIz-JJz)+(rPz-rQz))*etha)*F)/(A*A*A);
+	  break;
+	case 64: // Integral (p,s|s,s)
+	  preIntegral = (2*(exponentJJ*((IIx-JJx)+(rPx-rQx))*etha)*(exponentJJ*((IIy-JJy)+(rPy-rQy))*etha)*(exponentJJ*((IIz-JJz)+(rPz-rQz))*etha)*F)/(A*A*A);
+	  break;
+	case 5: // Integral (s,s|p,p)
+	  preIntegral = (1/(4*pow(B,6))*(B+2*exponentKK*(KKx-LLx)*(-exponentLL*((KKx-LLx)+(rPx-rQx))*etha)+etha*(-1-2*exponentLL*(KKx-LLx)*(rPx-rQx)+2*(rPx-rQx)*(rPx-rQx)*etha))*(4*exponentKK*exponentKK*(KKy-LLy)*(KKz-LLz)*(exponentLL*((KKy-LLy)-(rPy-rQy))*etha)*(exponentLL*((KKz-LLz)-(rPz-rQz))*etha)+(B+etha*(-1-2*exponentLL*(KKy-LLy)*(rPy-rQy)+2*(rPy-rQy)*(rPy-rQy)*etha))*(B+etha*(-1-2*exponentLL*(KKz-LLz)*(rPz-rQz)+2*(rPz-rQz)*(rPz-rQz)*etha))+2*exponentKK*(2*exponentLL*exponentLL*(KKy-LLy)*(KKz-LLz)*((KKz-LLz)*(rPy-rQy)+(KKy-LLy)*(rPz-rQz))*etha-exponentLL*(4*(KKy-LLy)*(KKz-LLz)*(rPy-rQy)*(rPz-rQz)*etha*etha+(KKz-LLz)*(KKz-LLz)*(B+etha*(-1+2*(rPy-rQy)*(rPy-rQy)*etha))+(KKy-LLy)*(KKy-LLy)*(B+etha*(-1+2*(rPz-rQz)*(rPz-rQz)*etha)))+etha*((KKz-LLz)*(rPz-rQz)*(B+etha*(-1+2*(rPy-rQy)*(rPy-rQy)*etha))+(KKy-LLy)*(rPy-rQy)*(B+etha*(-1+2*(rPz-rQz)*(rPz-rQz)*etha))))))*F;
+	  break;
+	case 17: // Integral (s,p|s,p)
+	  preIntegral = (1/(4*A*A*A*A*A*B*B*B*B*exponentKK*(rPx-rQx)*exponentII))*(2*(IIx-JJx)*A*A*B*((KKx-LLx)*(rPx-rQx)+exponentKK*etha)+A*A*B*(rPx-rQx)*exponentII*(exponentKK-2*(KKx-LLx)*(rPx-rQx)-2*exponentKK*(rPx-rQx)*(rPx-rQx)*etha))*(-2*exponentII*(IIy-JJy)*(exponentKK*(KKy-LLy)+(rPy-rQy)*etha)+etha*(-1+2*exponentKK*(KKy-LLy)*(rPy-rQy)+2*(rPy-rQy)*(rPy-rQy)*etha))*(-2*exponentII*(IIz-JJz)*(exponentKK*(KKz-LLz)+(rPz-rQz)*etha)+etha*(-1+2*exponentKK*(KKz-LLz)*(rPz-rQz)+2*(rPz-rQz)*(rPz-rQz)*etha))*F;
+	  break;
+	case 20: // Integral (s,p|p,s)
+	  preIntegral = (1/(4*A*A*A*A*A*B*B*B*B*exponentLL*(rPx-rQx)*exponentII))*(2*(IIx-JJx)*A*A*B*(-(KKx-LLx)*(rPx-rQx)+exponentLL*etha)+A*A*B*(rPx-rQx)*exponentII*(exponentLL+2*(KKx-LLx)*(rPx-rQx)-2*exponentLL*(rPx-rQx)*(rPx-rQx)*etha))*(2*exponentII*(IIy-JJy)*(exponentLL*(KKy-LLy)-(rPy-rQy)*etha)+etha*(-1-2*exponentLL*(KKy-LLy)*(rPy-rQy)+2*(rPy-rQy)*(rPy-rQy)*etha))*(-2*exponentII*(IIz-JJz)*(exponentLL*(KKz-LLz)-(rPz-rQz)*etha)+etha*(-1-2*exponentLL*(KKz-LLz)*(rPz-rQz)+2*(rPz-rQz)*(rPz-rQz)*etha))*F;
+	  break;
+	case 65: // Integral (p,s|s,p)
+	  preIntegral = -(1/(4*A*A*A*A*A*B*B*B*B*exponentKK*(rPx-rQx)*exponentJJ))*(2*exponentJJ*(IIy-JJy)*(exponentKK*(KKy-LLy)+(rPy-rQy)*etha)+etha*(-1+2*exponentKK*(KKy-LLy)*(rPy-rQy)+2*(rPy-rQy)*(rPy-rQy)*etha))*(2*exponentJJ*(IIz-JJz)*(exponentKK*(KKz-LLz)+(rPz-rQz)*etha)+etha*(-1+2*exponentKK*(KKz-LLz)*(rPz-rQz)+2*(rPz-rQz)*(rPz-rQz)*etha))*(2*(IIx-JJx)*A*A*B*((KKx-LLx)*(rPx-rQx)+exponentKK*etha)+A*A*B*(rPx-rQx)*exponentJJ*etha*(2*(KKx-LLx)*(rPx-rQx)+exponentKK*(-1+2*(rPx-rQx)*(rPx-rQx)*etha)))*F;
+	  break;
+	case 68: // Integral (p,s|p,s)
+	  preIntegral = -1/(4*A*A*A*A*exponentLL*A*(rPx-rQx)*B*B*B*B*exponentJJ)*(2*(IIx-JJx)*A*B*((rPx-rQx)*A*(KKx-LLx)-A*exponentLL*etha)+A*(KKx-LLx)*B*exponentJJ*etha*(A*exponentLL+2*(KKx-LLx)*A*(rPx-rQx)-2*A*exponentLL*(rPx-rQx)*(rPx-rQx)*etha))*(exponentJJ*(-2*exponentLL*(IIx-JJx)*(KKx-LLx)+2*(IIy-JJy)*(rPy-rQy)*etha)+etha*(-1-2*exponentLL*(KKy-LLy)*(rPy-rQy)+2*(rPy-rQy)*(rPy-rQy)*etha))*(2*exponentJJ*(KKz-LLz)*(exponentLL*(KKz-LLz)-(rPz-rQz)*etha)+etha*(1+2*exponentLL*(KKz-LLz)*(rPz-rQz)-2*(rPz-rQz)*(rPz-rQz)*etha))*F;
+	  break;
+	case 80: // Integral (p,p|s,s)
+	  preIntegral = 1/(4*A*A*A*A*A*A)*(A-2*exponentII*(IIx-JJx)*(exponentJJ*(IIx-JJx)+(rPx-rQx)*etha)+etha*(2*exponentJJ*(IIx-JJx)*(rPx-rQx)-1+2*(rPx-rQx)*(rPx-rQx)*etha)*(4*exponentII*exponentII*(IIy-JJy)*(IIz-JJz)*(exponentJJ*(IIy-JJy)+(rPy-rQy)*etha)*(exponentJJ*(IIz-JJz)+(rPx-rQx)*etha)+(A+etha*(-1+2*exponentJJ*(IIy-JJy)*(rPy-rQy)+2*(rPy-rQy)*(rPy-rQy)))*(A+etha*(-1+2*exponentJJ*(IIz-JJz)*(rPz-rQz)+2*(rPz-rQz)*(rPy-rQy)))-2*exponentII*(2*exponentJJ*exponentJJ*(IIy-JJy)*(IIz-JJz)*((IIz-JJz)*(rPy-rQy)+(rPz-rQz)*((IIy-JJy))*etha)+exponentJJ*(4*(IIy-JJy)*(IIz-JJz)*(rPy-rQy)*(rPz-rQz)*etha*etha+(IIz-JJz)*(IIz-JJz)*(A+etha*(-1+2*(rPy-rQy)*(rPy-rQy)*etha))+(IIy-JJy)*(IIy-JJy)*(A+etha*(-1+2*(rPz-rQz)*(rPz-rQz)*etha)))+etha*((IIz-JJz)*(rPz-rQz)*(A+etha*(-1+2*(rPz-rQz)*(rPy-rQy)*etha))+(IIy-JJy)*(rPy-rQy)*(A+etha*(-1+2*(rPz-rQz)*(rPy-rQy)*etha))))))*F;
+	  break;
+	case 21: // Integral (s,p|p,p)
+	  preIntegral = -1/(4*A*A*A*A*A*B*B*B*B*B*B*exponentKK*exponentLL)*(exponentII*(IIy-JJy)*(-B+2*exponentKK*(KKy-LLy)*(-(rPy-rQy)*(etha)+exponentLL*(KKy-LLy))+etha*(-2*(rPy-rQy)*(rPy-rQy)*etha+1+2*exponentLL*(KKy-LLy)*(rPy-rQy))+etha*(exponentLL*((KKy-LLy)-2*(KKy-LLy)*(rPy-rQy)*(rPy-rQy)*etha)-(KKy-LLy)*exponentKK*(1+2*exponentLL*(KKy-LLy)*(rPy-rQy)-2*(rPy-rQy)*(rPy-rQy)*etha)+(rPy-rQy)*(B+etha*(2*(rPy-rQy)*(rPy-rQy)*etha-3)))))*(exponentII*(IIz-JJz)*(-B+2*exponentKK*(KKz-LLz)*(-etha*(rPz-rQz)+(KKz-LLz)*exponentLL)+etha*(-2*(rPz-rQz)*(rPz-rQz)+1+2*exponentLL*(KKz-LLz)*(rPz-rQz)))+etha*(exponentLL*((KKz-LLz)-2*(KKz-LLz)*(rPz-rQz)*(rPz-rQz)*etha)-exponentKK*(KKz-LLz)*(1+2*exponentLL*(KKz-LLz)*(rPz-rQz)-2*(rPz-rQz)*(rPz-rQz)*etha)+(rPz-rQz)*(B+etha*(2*etha*(rPz-rQz)*(rPz-rQz)-3))))*(A*exponentLL*etha*(exponentKK*(KKx-LLx)*A*exponentKK*(-1+2*(rPx-rQx)*(rPx-rQx))+A*exponentKK*(rPx-rQx)*(B+etha*(2*(rPx-rQx)*(rPx-rQx)*etha-3))+exponentLL*(KKx-LLx)*(A*exponentKK-2*(KKx-LLx)*A*(rPx-rQx)-2*exponentKK*A*(rPx-rQx)*(rPx-rQx)))+exponentII*(IIx-JJx)*(2*exponentLL*(KKx-LLx)*(KKx-LLx)*A*A*exponentLL-2*(KKx-LLx)*A*A*exponentLL*(rPx-rQx)*etha+A*exponentKK*(2*(KKx-LLx)*A*(rPx-rQx)*etha+A*exponentLL*(etha-B-2*(rPx-rQx)*(rPx-rQx)*etha*etha))))*F;
+	  break;
+	case 69: // Integral (p,s|p,p)
+	  preIntegral = 1/(4*A*A*A*A*A*B*B*B*B*B*B*exponentKK*exponentLL)*(exponentJJ*(IIy-JJy)*(B+2*exponentKK*(KKy-LLy)*((rPy-rQy)*(etha)-exponentLL*(KKy-LLy))+etha*(2*(rPy-rQy)*(rPy-rQy)*etha-1-2*exponentLL*(KKy-LLy)*(rPy-rQy))+etha*(exponentLL*((KKy-LLy)-2*(KKy-LLy)*(rPy-rQy)*(rPy-rQy)*etha)-(KKy-LLy)*exponentKK*(1+2*exponentLL*(KKy-LLy)*(rPy-rQy)-2*(rPy-rQy)*(rPy-rQy)*etha)+(rPy-rQy)*(B+etha*(2*(rPy-rQy)*(rPy-rQy)*etha-3)))))*(exponentJJ*(IIz-JJz)*(B+2*exponentKK*(KKz-LLz)*(etha*(rPz-rQz)-(KKz-LLz)*exponentLL)+etha*(2*(rPz-rQz)*(rPz-rQz)-1-2*exponentLL*(KKz-LLz)*(rPz-rQz)))+etha*(exponentLL*((KKz-LLz)-2*(KKz-LLz)*(rPz-rQz)*(rPz-rQz)*etha)-exponentKK*(KKz-LLz)*(1+2*exponentLL*(KKz-LLz)*(rPz-rQz)-2*(rPz-rQz)*(rPz-rQz)*etha)+(rPz-rQz)*(B+etha*(2*etha*(rPz-rQz)*(rPz-rQz)-3))))*(A*exponentLL*etha*(exponentKK*(KKx-LLx)*A*exponentKK*(1-2*(rPx-rQx)*(rPx-rQx))-A*exponentKK*(rPx-rQx)*(B+etha*(2*(rPx-rQx)*(rPx-rQx)*etha-3))+exponentLL*(KKx-LLx)*(2*(KKx-LLx)*A*(rPx-rQx)+exponentKK*A*(2*(rPx-rQx)*(rPx-rQx)*etha-1)))+exponentJJ*(IIx-JJx)*(2*exponentLL*(KKx-LLx)*(KKx-LLx)*A*A*exponentLL-2*(KKx-LLx)*A*A*exponentLL*(rPx-rQx)*etha+A*exponentKK*(2*(KKx-LLx)*A*(rPx-rQx)*etha+A*exponentLL*(etha-B-2*(rPx-rQx)*(rPx-rQx)*etha*etha))))*F;
+	  break;
+	case 81: // Integral (p,p|s,p)
+	  preIntegral = 1/(4*A*A*A*A*A*A*B*B*B*B*B*exponentII*exponentII*exponentJJ*exponentJJ)*(-2*exponentJJ*exponentJJ*(IIx-JJx)*(IIx-JJx)*B*B*(exponentKK*(KKx-LLx) + (rPx-rQx)*etha) + exponentKK*(KKx-LLx)*(A*B*B*exponentII*exponentJJ + etha*B*B*(-exponentII*exponentJJ + 2*(IIx-JJx)*exponentII*(rPx-rQx) - 2*(IIx-JJx)*exponentJJ*(rPx-rQx) + 2*exponentII*exponentJJ*(rPx-rQx)*(rPx-rQx)*etha)) + etha*((IIx-JJx)*B*B*(exponentII-exponentJJ)*(-1 + 2*(rPx-rQx)*(rPx-rQx)*etha) + B*B*exponentII*exponentJJ*(rPx-rQx)*(A + etha*(-3 + 2*(rPx-rQx)*(rPx-rQx)*etha))))*(-2*exponentJJ*exponentJJ*(IIy-JJy)*(IIy-JJy)*B*B*(exponentKK*(KKy-LLy) + (rPy-rQy)*etha) + exponentKK*(KKy-LLy)*(A*B*B*exponentII*exponentJJ + etha*B*B*(-exponentII*exponentJJ + 2*(IIy-JJy)*exponentII*(rPy-rQy) - 2*(IIy-JJy)*exponentJJ*(rPy-rQy) + 2*exponentII*exponentJJ*(rPy-rQy)*(rPy-rQy)*etha)) + etha*((IIy-JJy)*B*B*(exponentII-exponentJJ)*(-1 + 2*(rPy-rQy)*(rPy-rQy)*etha) + B*B*exponentII*exponentJJ*(rPy-rQy)*(A + etha*(-3 + 2*(rPy-rQy)*(rPy-rQy)*etha))))*(exponentKK*(KKz-LLz)*(A + etha*(-1 + 2*exponentJJ*(IIz-JJz)*(rPz-rQz) + 2*(rPz-rQz)*(rPz-rQz)*etha)) - exponentII*(IIz-JJz)*(2*exponentJJ*(IIz-JJz)*(exponentKK*(KKz-LLz) + (rPz-rQz)*etha) + etha*(-1 + 2*exponentKK*(KKz-LLz)*(rPz-rQz) + 2*(rPz-rQz)*(rPz-rQz)*etha)) + etha*(exponentJJ*(IIz-JJz)*(-1 + 2*(rPz-rQz)*(rPz-rQz)*etha) + (rPz-rQz)*(A + etha*(-3 + 2*(rPz-rQz)*(rPz-rQz)*etha))))*F;
+	  break;
+	case 84: // Integral (p,p|p,s)
+	  preIntegral = -1/(4*A*A*A*A*A*A*B*B*B*B*B*exponentII*exponentII*exponentJJ*exponentJJ)*(2*exponentJJ*exponentJJ*(IIx-JJx)*(IIx-JJx)*B*B*(exponentLL*(KKx-LLx)-(rPx-rQx)*etha)+etha*((IIx-JJx)*B*B*(exponentII-exponentJJ)*(2*(rPx-rQx)*(rPx-rQx)*etha-1)+B*B*exponentII*exponentJJ*(rPx-rQx)*(A+etha*(2*(rPx-rQx)*(rPx-rQx)*etha-3)))+exponentLL*(KKx-LLx)*(etha*(2*(IIx-JJx)*B*B*exponentJJ*(rPx-rQx)-A*B*B*exponentII*exponentJJ+B*B*exponentII*(exponentJJ-2*(IIx-JJx)*(rPx-rQx)-2*exponentJJ*(rPx-rQx)*(rPx-rQx)*etha))))*(2*exponentJJ*exponentJJ*(IIy-JJy)*(IIy-JJy)*B*B*(exponentLL*(KKy-LLy)-(rPy-rQy)*etha)+etha*((IIy-JJy)*B*B*(exponentII-exponentJJ)*(2*(rPy-rQy)*(rPy-rQy)*etha-1)+B*B*exponentII*exponentJJ*(rPy-rQy)*(A+etha*(2*(rPy-rQy)*(rPy-rQy)*etha-3)))+exponentLL*(KKy-LLy)*(etha*(2*(IIy-JJy)*B*B*exponentJJ*(rPy-rQy)-A*B*B*exponentII*exponentJJ+B*B*exponentII*(exponentJJ-2*(IIy-JJy)*(rPy-rQy)-2*exponentJJ*(rPy-rQy)*(rPy-rQy)*etha))))*(exponentLL*(KKz-LLz)*(A+etha*(2*exponentJJ*(IIz-JJz)*(rPz-rQz)+2*(rPz-rQz)*(rPz-rQz)*etha-1))-exponentII*(IIz-JJz)*(2*exponentJJ*(IIz-JJz)*(exponentLL*(KKz-LLz)-(rPz-rQz)*etha)+etha*(1+2*exponentLL*(KKz-LLz)*(rPz-rQz)-2*(rPz-rQz)*(rPz-rQz)*etha))+etha*(exponentJJ*((IIz-JJz)-2*(IIz-JJz)*(rPz-rQz)*(rPz-rQz)*etha)-(rPz-rQz)*(A+etha*(2*(rPz-rQz)*(rPz-rQz)*etha-3))))*F;
+	  break;
+	case 85: // Integral (p,p|p,p)
+	  preIntegral = 1/(32*A*A*A*A*A*A*B*B*B*B*B*B)*(A*B + 2*exponentJJ*exponentLL*(IIx-JJx)*(KKx-LLx)*etha - A*etha-B*etha - 2*exponentLL*(KKx-LLx)*A*(rPx-rQx)*etha + 2*exponentJJ*(IIx-JJx)*B*(rPx-rQx)*etha + 3*etha*etha - 6*exponentJJ*(IIx-JJx)*(rPx-rQx)*etha*etha + 6*exponentLL*(KKx-LLx)*(rPx-rQx)*etha*etha - 4*exponentJJ*exponentLL*(IIx-JJx)*(KKx-LLx)*(rPx-rQx)*(rPx-rQx)*etha*etha + 2*A*(rPx-rQx)*(rPx-rQx)*etha*etha + 2*B*(rPx-rQx)*(rPx-rQx)*etha*etha - 12*(rPx-rQx)*(rPx-rQx)*etha*etha*etha + 4*exponentJJ*(IIx-JJx)*(rPx-rQx)*(rPx-rQx)*(rPx-rQx)*etha*etha*etha - 4*exponentLL*(KKx-LLx)*(rPx-rQx)*(rPx-rQx)*(rPx-rQx)*etha*etha*etha + 4*(rPx-rQx)*(rPx-rQx)*(rPx-rQx)*(rPx-rQx)*etha*etha*etha*etha - 2*exponentKK*(KKx-LLx)*(exponentLL*(KKx-LLx)*(A+etha*(-1 + 2*exponentJJ*(IIx-JJx)*(rPx-rQx) + 2*(rPx-rQx)*(rPx-rQx)*etha)) + etha*(exponentJJ*((IIx-JJx) - 2*(IIx-JJx)*(rPx-rQx)*(rPx-rQx)*etha) - (rPx-rQx)*(A + etha*(-3 + 2*(rPx-rQx)*(rPx-rQx)*etha)))) + 2*exponentII*(IIx-JJx)*(exponentJJ*(IIx-JJx)*(-B + 2*exponentKK*(KKx-LLx)*(exponentLL*(KKx-LLx) - (rPx-rQx)*etha) + etha*(1 + 2*exponentLL*(KKx-LLx)*(rPx-rQx) - 2*(rPx-rQx)*(rPx-rQx)*etha)) + etha*(exponentKK*(KKx-LLx)*(1 + 2*exponentLL*(KKx-LLx)*(rPx-rQx) - 2*(rPx-rQx)*(rPx-rQx)*etha) + exponentLL*(KKx-LLx)*(-1 + 2*(rPx-rQx)*(rPx-rQx)*etha) - (rPx-rQx)*(B + etha*(-3 + 2*(rPx-rQx)*(rPx-rQx)*etha)))))*(A*B + 2*exponentJJ*exponentLL*(IIy-JJy)*(KKy-LLy)*etha - A*etha-B*etha - 2*exponentLL*(KKy-LLy)*A*(rPy-rQy)*etha + 2*exponentJJ*(IIy-JJy)*B*(rPy-rQy)*etha + 3*etha*etha - 6*exponentJJ*(IIy-JJy)*(rPy-rQy)*etha*etha + 6*exponentLL*(KKy-LLy)*(rPy-rQy)*etha*etha - 4*exponentJJ*exponentLL*(IIy-JJy)*(KKy-LLy)*(rPy-rQy)*(rPy-rQy)*etha*etha + 2*A*(rPy-rQy)*(rPy-rQy)*etha*etha + 2*B*(rPy-rQy)*(rPy-rQy)*etha*etha - 12*(rPy-rQy)*(rPy-rQy)*etha*etha*etha + 4*exponentJJ*(IIy-JJy)*(rPy-rQy)*(rPy-rQy)*(rPy-rQy)*etha*etha*etha - 4*exponentLL*(KKy-LLy)*(rPy-rQy)*(rPy-rQy)*(rPy-rQy)*etha*etha*etha + 4*(rPy-rQy)*(rPy-rQy)*(rPy-rQy)*(rPy-rQy)*etha*etha*etha*etha - 2*exponentKK*(KKy-LLy)*(exponentLL*(KKy-LLy)*(A+etha*(-1 + 2*exponentJJ*(IIy-JJy)*(rPy-rQy) + 2*(rPy-rQy)*(rPy-rQy)*etha)) + etha*(exponentJJ*((IIy-JJy) - 2*(IIy-JJy)*(rPy-rQy)*(rPy-rQy)*etha) - (rPy-rQy)*(A + etha*(-3 + 2*(rPy-rQy)*(rPy-rQy)*etha)))) + 2*exponentII*(IIy-JJy)*(exponentJJ*(IIy-JJy)*(-B + 2*exponentKK*(KKy-LLy)*(exponentLL*(KKy-LLy) - (rPy-rQy)*etha) + etha*(1 + 2*exponentLL*(KKy-LLy)*(rPy-rQy) - 2*(rPy-rQy)*(rPy-rQy)*etha)) + etha*(exponentKK*(KKy-LLy)*(1 + 2*exponentLL*(KKy-LLy)*(rPy-rQy) - 2*(rPy-rQy)*(rPy-rQy)*etha) + exponentLL*(KKy-LLy)*(-1 + 2*(rPy-rQy)*(rPy-rQy)*etha) - (rPy-rQy)*(B + etha*(-3 + 2*(rPy-rQy)*(rPy-rQy)*etha)))))*(A*B + 2*exponentJJ*exponentLL*(IIz-JJz)*(KKz-LLz)*etha - A*etha-B*etha - 2*exponentLL*(KKz-LLz)*A*(rPz-rQz)*etha + 2*exponentJJ*(IIz-JJz)*B*(rPz-rQz)*etha + 3*etha*etha - 6*exponentJJ*(IIz-JJz)*(rPz-rQz)*etha*etha + 6*exponentLL*(KKz-LLz)*(rPz-rQz)*etha*etha - 4*exponentJJ*exponentLL*(IIz-JJz)*(KKz-LLz)*(rPz-rQz)*(rPz-rQz)*etha*etha + 2*A*(rPz-rQz)*(rPz-rQz)*etha*etha + 2*B*(rPz-rQz)*(rPz-rQz)*etha*etha - 12*(rPz-rQz)*(rPz-rQz)*etha*etha*etha + 4*exponentJJ*(IIz-JJz)*(rPz-rQz)*(rPz-rQz)*(rPz-rQz)*etha*etha*etha - 4*exponentLL*(KKz-LLz)*(rPz-rQz)*(rPz-rQz)*(rPz-rQz)*etha*etha*etha + 4*(rPz-rQz)*(rPz-rQz)*(rPz-rQz)*(rPz-rQz)*etha*etha*etha*etha - 2*exponentKK*(KKz-LLz)*(exponentLL*(KKz-LLz)*(A+etha*(-1 + 2*exponentJJ*(IIz-JJz)*(rPz-rQz) + 2*(rPz-rQz)*(rPz-rQz)*etha)) + etha*(exponentJJ*((IIz-JJz) - 2*(IIz-JJz)*(rPz-rQz)*(rPz-rQz)*etha) - (rPz-rQz)*(A + etha*(-3 + 2*(rPz-rQz)*(rPz-rQz)*etha)))) + 2*exponentII*(IIz-JJz)*(exponentJJ*(IIz-JJz)*(-B + 2*exponentKK*(KKz-LLz)*(exponentLL*(KKz-LLz) - (rPz-rQz)*etha) + etha*(1 + 2*exponentLL*(KKz-LLz)*(rPz-rQz) - 2*(rPz-rQz)*(rPz-rQz)*etha)) + etha*(exponentKK*(KKz-LLz)*(1 + 2*exponentLL*(KKz-LLz)*(rPz-rQz) - 2*(rPz-rQz)*(rPz-rQz)*etha) + exponentLL*(KKz-LLz)*(-1 + 2*(rPz-rQz)*(rPz-rQz)*etha) - (rPz-rQz)*(B + etha*(-3 + 2*(rPz-rQz)*(rPz-rQz)*etha)))))*F;
+	  break;
+	}
+
       normIntegral = primNormII*primNormJJ*primNormKK*primNormLL*preIntegral;
       integralValues_d[global1] = coefficientsII*coefficientsJJ*coefficientsKK*coefficientsLL*normIntegral;
     }
-    
 }
 
 extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
@@ -146,12 +208,13 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   int contractionsMem, totalPrimitives, unicintegrals, unicintegralsMem, exponentSize;
   int *contIndices, *primIndices, *contCounter;
   double *exponents, *primNormalization, *coefficients, *origin, *contNormalization, *contractedIntegrals, *integralValuesTotal;
+  int *angularMoments;
   int *numberOfPPUC, contractionsMemDoub, unicintegralsMemDoub;
   int i,j,k,l,m,p;
   int auxCounter, originSize;
 
   //Cuda Arrays
-  int *contIndices_d, *primIndices_d, *contLength_d, *contCounter_d;
+  int *contIndices_d, *primIndices_d, *contLength_d, *contCounter_d, *angularMoments_d;
   double *exponents_d, *primNormalization_d, *coefficients_d, *origin_d;
 
   unicintegrals = ((*numberOfContractions*(*numberOfContractions+1)/2)+1)*(*numberOfContractions*(*numberOfContractions+1)/2)/2;
@@ -188,12 +251,16 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   contractedIntegrals = (double *)malloc(unicintegralsMemDoub);
   // Normalization constants of contractions
   contNormalization = (double *)malloc(contractionsMemDoub);
+  // Angular moments of contractions
+  angularMoments = (int *)malloc(contractionsMem);
   //////////////////////////////////////////////////////////////////////
 
   auxCounter = 0;
   for(i=0; i<*numberOfContractions;i++)
     {
       contNormalization[i] = *(contractionContNormalization+i);
+      angularMoments[i] = *(contractionAngularMoment+i);
+      // printf("Angular moments: %d\n", angularMoments[i]);
       for(j=0; j<3; j++)
 	{
 	  origin[j+i*3] = *(contractionOrigin+(j+i*3));
@@ -217,6 +284,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
 
   m=0;
   totalPrimitives = 0;
+  printf("NUmber of Contractions Cudint: %d\n", *numberOfContractions);
   for( a = 1;  a<=*numberOfContractions; a++)
     {
       n = a;
@@ -233,7 +301,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
 		  contIndices[m*4+3] = s;
 		  numberOfPPUC[m] = contLength[a-1]*contLength[b-1]*contLength[r-1]*contLength[s-1];
 		  totalPrimitives += numberOfPPUC[m];
-		  // printf("Contraction C (%d): (%d,%d|%d,%d) %d\n", m, a, b, r, s, numberOfPPUC[m] );
+		  printf("Contraction C (%d): (%d,%d|%d,%d) %d\n", m, a, b, r, s, numberOfPPUC[m] );
 		  m++;
   		}
   	      u = r+1;
@@ -307,6 +375,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   cudaMalloc((void **)&primNormalization_d, exponentSize);
   cudaMalloc((void **)&coefficients_d, exponentSize);
   cudaMalloc((void **)&contCounter_d, contractionsMem);
+  cudaMalloc((void **)&angularMoments_d, contractionsMem);
   cudaMalloc((void **)&contLength_d, contractionsMem);
   cudaMalloc((void **)&origin_d, originSize);
   ///////////////////////////////////////////////////////////////////////////
@@ -319,6 +388,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   cudaMemcpy(primNormalization_d, primNormalization, exponentSize, cudaMemcpyHostToDevice);
   cudaMemcpy(coefficients_d, coefficients, exponentSize, cudaMemcpyHostToDevice);
   cudaMemcpy(contCounter_d, contCounter, contractionsMem, cudaMemcpyHostToDevice);
+  cudaMemcpy(angularMoments_d, angularMoments, contractionsMem, cudaMemcpyHostToDevice);
   cudaMemcpy(contLength_d, contLength, contractionsMem, cudaMemcpyHostToDevice);
   cudaMemcpy(origin_d, origin, originSize, cudaMemcpyHostToDevice);
   //////////////////////////////////////////////////////////////////////////
@@ -349,7 +419,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
       // printf("Control2: %d %d\n", numberCallkernel, control2);
 
       //      printf("Kernel Call Number: %d\n", numberCallkernel );
-      intssss<<<gridSize,blockSize>>>(N, primIndices_d, contIndices_d, exponents_d, primNormalization_d, coefficients_d, contCounter_d, contLength_d, origin_d, integralValues_d, control, kernelIter);
+      intssss<<<gridSize,blockSize>>>(N, primIndices_d, contIndices_d, exponents_d, primNormalization_d, coefficients_d, contCounter_d, contLength_d, origin_d, angularMoments_d, integralValues_d, control, kernelIter);
 
       cudaMemcpy(integralValues, integralValues_d, control*sizeof(double),cudaMemcpyDeviceToHost);
       m=0;
@@ -365,7 +435,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
       free(integralValues);
     }
 
-      // printf("Contracted Integrals:\n");
+  printf("Unic Integrals:%d\n", unicintegrals);
       for(i=0; i<unicintegrals;i++)
 	{
 	  contractedIntegrals[i] = 0.0;
@@ -384,7 +454,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
 	      m++;
 	    }
 	  // printf("%d %f %f %f %f\n", i, contNormalization[a],contNormalization[b],contNormalization[r],contNormalization[s]);
-	  // printf("(%d,%d|%d,%d) = %f \n", a,b,r,s,contractedIntegrals[i]);
+	  printf("(%d,%d|%d,%d) = %f \n", a,b,r,s,contractedIntegrals[i]);
 	}
 
   // for(i=0;i<N;i++)

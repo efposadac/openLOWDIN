@@ -199,7 +199,7 @@ program HF
      write(*,  "(A)")  " CUDA ERI Integrals Calculations has been implemented based on:         " 
      write(*,  "(A)")  " Ufimtsev, I. S.; Martinez, T. J.; JCTC 2008, 4, 222           " 
      write(*, "(A)")   " LOWDIN-CUDINT Implementation V. 1.0:  "
-     write(*, "(A)")   " Rodas, J. M.; Hernandez, R.; Escobar, D.; Galindo, J.; Reyes A. 2014   "
+     write(*, "(A)")   " Rodas, J. M.; Hernandez, R.; Zapata, A.; Galindo, J. F.; Reyes A. 2014   "
      write(*, "(A)")   " ----------------------------------------------------------------------"
      
   case default

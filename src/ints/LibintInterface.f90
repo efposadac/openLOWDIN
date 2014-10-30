@@ -298,6 +298,8 @@ contains
     ssize = (numberOfContractions * (numberOfContractions + 1))/2
     ssize = (ssize * (ssize + 1))/2
 
+    write(*,*) "Unic Integrals: ", ssize
+
     !! Libint constructor (solo una vez)
     if( LibintInterface_isInstanced() ) then
        call LibintInterface_destructor()
@@ -335,9 +337,9 @@ contains
     counter = 0
     auxCounter = 0    
     control = 0
-
    ! write(*,*) "Starting and ending", starting, ending
     !!Start Calculating integrals for each shell
+    write(*,*) "Number of Contractions Libint: ", numberOfContractions
     do a = 1, numberOfContractions
        n = a
        do b = a, numberOfContractions
@@ -521,8 +523,8 @@ contains
                    !!start :)
                    integralsValue(1:arraySize) = 0.0_8
                    
-                   ! write(*,*)"Pointer printing contraida"
-                   ! write(*,*) a,b,r,s
+                   write(*,*)"Pointer printing contraida"
+                   write(*,*) a,b,r,s
                    ! write(*,*) aa,bb,rr,ss
                    
 
@@ -661,7 +663,7 @@ contains
                                     * contractions(bb)%contNormalization(jj) &
                                     * contractions(rr)%contNormalization(kk) &
                                     * contractions(ss)%contNormalization(ll)                            
-                                ! write(*,*) integralsValue(m)
+                                write(*,*) "( ", aa, ", ", bb, " | ", rr, ", ", ss, " )", integralsValue(m)
                             end do
                          end do
                       end do
