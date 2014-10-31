@@ -31,6 +31,8 @@ program lowdin_
  use Solver_
  implicit none
 
+ character(50) :: strAuxNumber
+
  !! Time Control
  call Stopwatch_constructor( lowdin_stopwatch )
  call Stopwatch_start( lowdin_stopwatch )
@@ -67,6 +69,9 @@ program lowdin_
  
  !! Load GEOMETRY block
  call InputManager_loadGeometry() 
+
+ !! Load OUTPUTY block
+! call InputManager_loadOUTPUT() 
  
  write(6, "(1A)") " DONE!"
 
@@ -159,6 +164,13 @@ program lowdin_
 
  !!
  !!******************************************************************************
+
+ call system("lowdin-CalcProp.x") 
+
+ if ( CONTROL_instance%IS_THERE_OUTPUT ) then
+       write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
+       call system("lowdin-output.x"//trim(strAuxNumber))
+ end if
 
  !!Cleaning
  call MolecularSystem_destroy()

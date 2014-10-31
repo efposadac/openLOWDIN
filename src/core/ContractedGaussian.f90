@@ -55,6 +55,7 @@ module ContractedGaussian_
   use Math_
   use CONTROL_
   use Exception_
+  use String_
   implicit none
   
   type :: contractedGaussian
@@ -75,6 +76,7 @@ module ContractedGaussian_
        ContractedGaussian_saveToFile, &
        ContractedGaussian_loadFromFile, &
        ContractedGaussian_showInCompactForm, &
+       ContractedGaussian_showInSimpleForm, 	&
        ContractedGaussian_normalizePrimitive, &
        ContractedGaussian_normalizeContraction, &
        ContractedGaussian_overlapIntegral, &
@@ -174,6 +176,26 @@ contains
     ! end do
 
   end subroutine ContractedGaussian_showInCompactForm
+
+  subroutine ContractedGaussian_showInSimpleForm( this, unidOfOutput)
+    implicit none
+    type(ContractedGaussian) , intent(in) :: this
+    integer :: unidOfOutput
+
+    integer :: i
+    character(9) :: shellCode(this%numCartesianOrbital)
+
+    shellCode=ContractedGaussian_getShellCode(this)
+
+    write (unidOfOutput,"(A1,I3,F5.2)") trim(String_getLowercase(shellCode(1)(1:1))),this%length,1.00
+
+    do i=1,this%length
+       write (unidOfOutput,"(ES19.10,ES19.10)") this%orbitalExponents(i) ,this%contractionCoefficients(i)
+    end do
+
+  end subroutine ContractedGaussian_showInSimpleForm
+
+
     
   !>
   !! @brief Normalization constant for a primitive gaussian
