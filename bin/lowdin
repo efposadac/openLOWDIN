@@ -1,9 +1,7 @@
 #!/bin/bash
 PID=$$
-VARS_PATH="$HOME/.lowdin2/lowdinvars.sh"
+VARS_PATH="PREFIX/.lowdin2/lowdinvars.sh"
 source ${VARS_PATH}
-LOWDIN_SCRATCH=/scratch
-LOWDIN_PATH=$LOWDIN_PATH"/bin"
 
 usage(){
 	echo "Usage:"
@@ -44,9 +42,9 @@ else
 fi
 
 if [  $printOut = "T" ]; then
-	$LOWDIN_PATH/test.x $test | tee  $test.out
+	test.x $test | tee  $test.out
 else
-      	$LOWDIN_PATH/test.x $test > $test.out
+      	test.x $test > $test.out
 fi
 
 echo "done"
@@ -308,7 +306,7 @@ if [ $extFile="lowdin" ]; then
 	fi
 
 
-	mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.mol* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2

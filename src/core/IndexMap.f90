@@ -20,7 +20,7 @@
 !!******************************************************************************
 
 module IndexMap_
-	use Exception_
+  use Exception_
 	implicit none
 
 	!>

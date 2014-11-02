@@ -19,17 +19,22 @@ doc::
 
 
 install:: bin/lowdin bin/lowdin.x
-	mkdir -p ${HOME}/.lowdin2
-	cp -rf $(TOPDIR)/bin/lowdinvars.sh ${HOME}/.lowdin2/
-	cp -rf lib ${HOME}/.lowdin2/
-	mkdir -p ${HOME}/.lowdin2/bin
-	cp -rf $(TOPDIR)/bin/*.x ${HOME}/.lowdin2/bin
-	cp -rf $(TOPDIR)/bin/lowdin $(PREFIX)/lowdin2
+	mkdir -p $(PREFIX)/.lowdin2
+	cp -rf $(TOPDIR)/bin/lowdinvars.sh $(TOPDIR)
+	sed -i "s/PREFIX/\$(PREFIX)/g" $(TOPDIR)/lowdinvars.sh
+	cp -rf $(TOPDIR)/lowdinvars.sh $(PREFIX)/.lowdin2/
+	cp -rf lib $(PREFIX)/.lowdin2/
+	mkdir -p $(PREFIX)/.lowdin2/bin
+	cp -rf $(TOPDIR)/bin/*.x $(PREFIX)/.lowdin2/bin
+	cp -rf $(TOPDIR)/bin/lowdin $(TOPDIR)
+	sed -i "s/PREFIX/\$(PREFIX)/g" $(TOPDIR)/lowdin
+	cp -rf $(TOPDIR)/lowdin $(PREFIX)/lowdin2
+	rm -rf $(TOPDIR)/lowdin
+	rm -rf $(TOPDIR)/lowdinvars.sh
 
 uninstall:: bin/lowdin bin/lowdin.x
-	rm -rf ${HOME}/.lowdin2
+	rm -rf $(PREFIX)/.lowdin2
 	rm -rf $(PREFIX)/lowdin2
-
 clean::
 	for dir in $(SUBDIRS); \
 	  do \
@@ -42,5 +47,7 @@ distclean::
 	find . -name "*~" -exec rm -f {} \;
 	find . -name "*.x" -exec rm -f {} \;
 	find . -name "*.a" -exec rm -f {} \;
+	find . -name "*.i90" -exec rm -f {} \;
+	find . -name "*.i" -exec rm -f {} \;
 	rm -rf $(TOPDIR)/doc/html
 	rm -rf $(TOPDIR)/doc/latex
