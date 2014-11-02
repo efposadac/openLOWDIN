@@ -7,7 +7,7 @@ This program has been developed under direction of:
 * [Prof. R. FLORES' Lab](http://www.cucei.udg.mx/~robertof). Universidad de Guadalajara.
 
 
-® All rights reserved, 2014.
+© All rights reserved, 2014.
 
 Welcome to LOWDIN Quantum Chemistry Package 2.0.
 
