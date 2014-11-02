@@ -2,7 +2,7 @@ TOPDIR=..
 
 include $(TOPDIR)/CONFIG
 
-SUBDIRS = ints HF MP2 MM Optimizer scf
+SUBDIRS = ints HF scf integralsTransformation MP2 PT MM Optimizer
 ALLDIRS = $(SUBDIRS) core
 
 LDR=$(FC)

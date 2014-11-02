@@ -107,11 +107,15 @@ contains
        
     case('RHF-MP2')
 
+       call system("lowdin-integralsTransformation.x")
        call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
 
     case('RHF-CI')
 
     case('RHF-PT')
+
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
 
     case default
 
@@ -183,21 +187,25 @@ contains
   subroutine Solver_UHFRun( )
     implicit none
 
+
+    call system("lowdin-HF.x RHF")
+
     select case(CONTROL_instance%METHOD)
        
     case("UHF")
 
-       !! Run HF program in RHF mode
-       call system("lowdin-HF.x RHF")
+	return
 
-       
     case('UHF-CI')
        
     case('UHF-MP2')
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
        
     case('UHF-PT')
-       call system("lowdin-HF.x UHF")
-       call system("lowdin-MOERI.x UHF")
+
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
        !rfm call system("lowdin-EPT.x UHF")
        
     case default

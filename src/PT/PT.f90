@@ -32,12 +32,13 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-program MollerPlesset
+program PT
   use CONTROL_
   use MolecularSystem_
   use Exception_
   use Vector_
-  use MPFunctions_
+  use PropagatorTheory_
+  use String_
   implicit none
 
   character(50) :: job
@@ -56,18 +57,18 @@ program MollerPlesset
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-  call MollerPlesset_constructor( CONTROL_instance%MOLLER_PLESSET_CORRECTION )
-  call MollerPlesset_run()
-  call MollerPlesset_show()
-  call MollerPlesset_destructor()
+  call PropagatorTheory_constructor( CONTROL_instance%PT_ORDER )
+  call PropagatorTheory_run()
+  call PropagatorTheory_show()
+  call PropagatorTheory_destructor()
 
   !!stop time
   call Stopwatch_stop(lowdin_stopwatch)
   
   write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time HF-MP2 : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time PT : ", lowdin_stopwatch%enlapsetTime ," (s)"
   write(*, *) ""
   close(30)
 
 
-end program MollerPlesset
+end program PT
