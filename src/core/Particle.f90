@@ -188,8 +188,8 @@ contains
                 this%mass = PhysicalConstants_ELECTRON_MASS
                 this%totalCharge = -element%atomicNumber
                 this%internalSize = element%atomicNumber + (auxMultiplicity-1)  + auxAdditionOfParticles             
-								this%klamt = element%klamt
-								this%vanderWaalsRadio = element%vanderWaalsRadio
+                this%klamt = element%klamt
+                this%vanderWaalsRadio = element%vanderWaalsRadio
                 this%statistics="FERMION"
                 this%spin = PhysicalConstants_SPIN_ELECTRON
                 this%id = id    
@@ -203,8 +203,8 @@ contains
                 this%mass = PhysicalConstants_ELECTRON_MASS
                 this%totalCharge = -element%atomicNumber
                 this%internalSize = element%atomicNumber - (auxMultiplicity-1)  + auxAdditionOfParticles             
-								this%klamt = element%klamt
-								this%vanderWaalsRadio = element%vanderWaalsRadio
+                this%klamt = element%klamt
+                this%vanderWaalsRadio = element%vanderWaalsRadio
                 this%statistics="FERMION"
                 this%spin = PhysicalConstants_SPIN_ELECTRON
                 this%id = id    
@@ -220,8 +220,8 @@ contains
              this%mass = PhysicalConstants_ELECTRON_MASS
              this%totalCharge = -element%atomicNumber
              this%internalSize = element%atomicNumber  + auxAdditionOfParticles
-						 this%klamt = element%klamt
-						 this%vanderWaalsRadio = element%vanderWaalsRadio
+             this%klamt = element%klamt
+             this%vanderWaalsRadio = element%vanderWaalsRadio
              this%statistics="FERMION"
              this%spin = PhysicalConstants_SPIN_ELECTRON
              this%id = id    
@@ -253,9 +253,9 @@ contains
                + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)          
           this%totalCharge = element%atomicNumber
           this%internalSize = 1  + auxAdditionOfParticles
-					this%klamt = element%klamt
-					this%vanderWaalsRadio = element%vanderWaalsRadio
-         	this%id = id    
+          this%klamt = element%klamt
+          this%vanderWaalsRadio = element%vanderWaalsRadio
+          this%id = id    
           
           !! Identify statistics for this particle
           if ( Math_isEven( INT( element%massicNumber ) ) ) then

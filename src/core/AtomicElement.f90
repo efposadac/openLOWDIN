@@ -49,7 +49,7 @@ module AtomicElement_
      real(8) :: atomicRadio
      real(8) :: vanderWaalsRadio
      real(8) :: klamt
-		 real(8) :: atomicWeight
+     real(8) :: atomicWeight
      real(8) :: nuclearSpin     
      !!< Variables con propositos de conveniencia
      logical :: isMassNumberPresent
@@ -108,7 +108,7 @@ contains
          covalent, & 
          atomic, & 
          vanderWaals, &
-				 klamt, &
+         klamt, &
          isotopes
 
     !! Looking for library    
@@ -140,7 +140,7 @@ contains
           covalent = 0
           atomic = 0
           vanderWaals = 0
-		 		  klamt = 0
+          klamt = 0
           isotopes = -1
           
           if (stat == -1 ) then
@@ -174,7 +174,7 @@ contains
        this%covalentRadius = covalent
        this%atomicRadio =atomic
        this%vanderWaalsRadio =	vanderWaals
-   		 this%klamt = klamt
+       this%klamt = klamt
        this%isMassNumberPresent = .false.
        this%abundance = 0
        this%isInstanced = .true.
@@ -250,7 +250,7 @@ contains
     write (6,"(T10,A22,F12.5,A10)")	"Atomic weight       = ",this%atomicWeight,"u.m.a"
     write (6,"(T10,A22,F12.5,A10)")	"Nuclear Spin        = ",this%nuclearSpin,""
     write (6,"(T10,A22,F12.5,A10)")	"Klamt radius		 		= ",this%klamt," pm"
-		print *,""
+    print *,""
     
   end subroutine AtomicElement_show
   

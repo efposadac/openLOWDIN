@@ -81,6 +81,8 @@ module MolecularSystem_
        MolecularSystem_getCharge, &
        MolecularSystem_getMass, &
        MolecularSystem_getEta, &
+       MolecularSystem_getLambda, &
+       MolecularSystem_getParticlesFraction, &
        MolecularSystem_getFactorOfInterchangeIntegrals, &
        MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getSpecieID, &
@@ -390,7 +392,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                int(MolecularSystem_instance%species(i)%internalSize / 2), " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
-					write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
+          write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        else
 
@@ -400,7 +402,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                MolecularSystem_instance%species(i)%internalSize, " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
-					write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
+          write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        end if
        
@@ -587,7 +589,7 @@ contains
     
     close(40)
     
-		!!****************************************************************************
+    !!****************************************************************************
     !! Saving info for gepol program
     !!
 	
@@ -979,6 +981,30 @@ contains
      output = MolecularSystem_instance%species(speciesID)%eta
           
    end function MolecularSystem_getEta
+
+   function MolecularSystem_getLambda(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     integer :: output
+     
+     output = -1
+     output = MolecularSystem_instance%species(speciesID)%lambda
+          
+   end function MolecularSystem_getLambda
+
+
+   function MolecularSystem_getParticlesFraction(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     real(8) :: output
+     
+     output = -1
+     output = MolecularSystem_instance%species(speciesID)%particlesFraction
+          
+   end function MolecularSystem_getParticlesFraction
+
 
    !> @brief Returns the charge of speciesID
    !! @author E. F. Posada, 2013

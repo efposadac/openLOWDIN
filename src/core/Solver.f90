@@ -82,20 +82,23 @@ contains
     implicit none
 
     !! Run HF program in RHF mode
+    call system("lowdin-HF.x RHF")
     
     select case(CONTROL_instance%METHOD)
               
     case("RHF")
 
-   		 call system("lowdin-HF.x RHF")
-	
-		case ("RHF-COSMO")
-				
-				call system("lowdin-cosmo.x")
-   		 	call system("lowdin-HF.x RHF")
-				write(*,*) CONTROL_instance%METHOD
+       call system("lowdin-HF.x RHF")
+       
+    case ("RHF-COSMO")
+       
+       call system("lowdin-cosmo.x")
+       call system("lowdin-HF.x RHF")
+       write(*,*) CONTROL_instance%METHOD
        
     case('RHF-MP2')
+
+       call system("lowdin-integralsTransformation.x")
 
        call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
 
@@ -103,6 +106,9 @@ contains
 
     case('RHF-PT')
 
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+       
     case default
 
        call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
@@ -173,33 +179,41 @@ contains
   subroutine Solver_UHFRun( )
     implicit none
 
+    call system("lowdin-HF.x RHF")
+
     select case(CONTROL_instance%METHOD)
        
     case("UHF")
-
+       
        !! Run HF program in RHF mode
        call system("lowdin-HF.x RHF")
-
-       
-    case('UHF-CI')
        
     case('UHF-MP2')
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
        
     case('UHF-PT')
-       call system("lowdin-HF.x UHF")
-       call system("lowdin-MOERI.x UHF")
+       
+       ! <<<<<<< head
+       !        call system("lowdin-HF.x UHF") ???
+       !        call system("lowdin-MOERI.x UHF") ???
+       ! ===========
+       
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+       ! >>>>>>> master
        !rfm call system("lowdin-EPT.x UHF")
        
     case default
        
        call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
             "At Solver module in UHFrun function")
-
+       
     end select
-
-
+    
+    
 !     type(Solver) :: this
-
+    
 !     call UHF_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_dipole( CalculateProperties_instance )

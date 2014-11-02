@@ -43,7 +43,8 @@ module InputManager_
      integer :: propagatorTheoryCorrection
      logical :: optimizeGeometry
      logical :: TDHF
-	 	 logical :: cosmo		
+     logical :: cosmo		
+
   end type InputManager
 
   !> Singleton
@@ -169,7 +170,8 @@ contains
     integer:: InputTasks_propagatorTheoryCorrection
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
-		logical:: InputTasks_cosmo
+    logical:: InputTasks_cosmo
+
     
     NAMELIST /InputTasks/ &
          InputTasks_method, &
@@ -178,7 +180,8 @@ contains
          InputTasks_propagatorTheoryCorrection, &
          InputTasks_optimizeGeometry, &
          InputTasks_TDHF, &
-		 		 InputTasks_cosmo		
+         InputTasks_cosmo		
+
     
     !! Setting defaults    
     InputTasks_method = "NONE"
@@ -246,11 +249,11 @@ contains
     if ( input_instance%TDHF ) then 
        CONTROL_instance%TDHF = .true.
     end if    
-
-		if (input_instance%cosmo) then 	
-			 CONTROL_instance%cosmo = .true.	
+    
+    if (input_instance%cosmo) then 	
+       CONTROL_instance%cosmo = .true.	
        CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
-    end if    
+    end if
     
     if( Input_instance%numberOfExternalPots > 0) then    
        CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL=.true.

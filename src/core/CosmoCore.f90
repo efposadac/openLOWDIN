@@ -1,7 +1,7 @@
 module CosmoCore_
-	use Units_
+  use Units_
   implicit none
-
+  
   type, public :: surfaceSegment
      real(8), allocatable :: xs(:)
      real(8), allocatable :: ys(:)
@@ -9,12 +9,12 @@ module CosmoCore_
      real(8), allocatable :: area(:)
      integer :: sizeSurface
   end type surfaceSegment
-
+  
   ! >Singleton
   type(surfaceSegment), public, target :: surfaceSegment_instance
-
+  
 contains
-
+  
   !----------------------subroutines------------------------------
   subroutine CosmoCore_lines(surface) 
     !subrutina que cuenta las lineas en el archivo vectors.out

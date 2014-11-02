@@ -85,10 +85,10 @@ module ParticleManager_
 !        ParticleManager_beginSpecie, &
 !        ParticleManager_endSpecie, &
 !        ParticleManager_rewindSpecies, &
-!        ParticleManager_setOrigin, &
 ! 				ParticleManager_getOriginOfPuntualParticle, &
 !   			ParticleManager_getChargeOfPuntualParticle, &
-!				ParticleManager_setParticlesPositions, &
+        ParticleManager_setOrigin, &
+        ParticleManager_setParticlesPositions, &
         ParticleManager_setOwner
 !        ParticleManager_puntualParticlesEnergy,&
 !        ParticleManager_changeOriginOfSystem, &
@@ -634,9 +634,9 @@ contains
 !   function ParticleManager_getOriginOfPuntualParticle( specieID) result( output )
 !     implicit none
 !     integer, intent(in) :: specieID
-!
+
 !     real(8) :: output(3)
-!
+
 !     output = ParticleManager_instance%particlesPtr( ParticleManager_instance%idsOfPuntualParticles%particleID( specieID ) )%origin
 
 !   end function ParticleManager_getOriginOfPuntualParticle
@@ -897,20 +897,20 @@ contains
 !   end  function ParticleManager_getCenterOfOptimization
 
 
-   !<
-   !! @brief Retorna la carga de la particula puntual especificada
-   !!
-   !>
+!   !<
+!   !! @brief Retorna la carga de la particula puntual especificada
+!   !!
+!   !>
 !   function ParticleManager_getChargeOfPuntualParticle( specieID) result( output )
 !     implicit none
 !     integer, intent(in) :: specieID
-!
+
 !     real(8) :: output
-!
+
 !     output = ParticleManager_instance%particlesPtr( ParticleManager_instance%idsOfPuntualParticles%particleID( specieID ) )%charge
-!
+
 !   end function ParticleManager_getChargeOfPuntualParticle
-!
+
 !   !<
 !   !! @brief Retorna el indice del porpietario de la particula puntual especificada
 !   !!

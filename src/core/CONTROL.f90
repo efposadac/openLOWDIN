@@ -18,6 +18,7 @@
 !! @version 1.0
 module CONTROL_
   use Exception_
+  use omp_lib
   implicit none
 
   type, public :: CONTROL
@@ -124,6 +125,7 @@ module CONTROL_
 	   real(8) :: COSMO_RSOLV
 
      !!***************************************************************************
+
      !! Parameter to control the propagator theory module
      !!
      logical :: PT_ONLY_ONE_SPECIE_CORRECTION
@@ -551,13 +553,13 @@ module CONTROL_
        !!***************************************************************************
        !! Parameter to control cosmo theory
        !!
-        LowdinParameters_cosmo,& 
-        LowdinParameters_cosmo_solvent_dialectric,& 
-        LowdinParameters_cosmo_min_bem,&  
-        LowdinParameters_cosmo_max_bem,&  
-        LowdinParameters_cosmo_rsolv,& 
+       LowdinParameters_cosmo,& 
+       LowdinParameters_cosmo_solvent_dialectric,& 
+       LowdinParameters_cosmo_min_bem,&  
+       LowdinParameters_cosmo_max_bem,&  
+       LowdinParameters_cosmo_rsolv,& 
        
-			 !!***************************************************************************
+       !!***************************************************************************
        !! Parameter to control the propagator theory module
        !!
        LowdinParameters_ptOnlyOneSpecieCorrection,&
@@ -571,8 +573,6 @@ module CONTROL_
        LowdinParameters_ptIterationMethod2Limit,&
        LowdinParameters_ptIterationScheme,&
        LowdinParameters_ptMaxNumberOfPolesSearched,&
-       
-       
        
        !!***************************************************************************
        !! Control print level and units
@@ -677,9 +677,6 @@ module CONTROL_
        CONTROL_save, &
        CONTROL_copy, &
        CONTROL_show
-
-
-
 
   private :: &
        CONTROL_getHomeDirectory, &
@@ -802,8 +799,8 @@ contains
     LowdinParameters_cosmo_min_bem = 2
     LowdinParameters_cosmo_max_bem = 3
     LowdinParameters_cosmo_rsolv =0.5d+00
-
-	!!***************************************************************************
+    
+    !!***************************************************************************
     !! Parameter to control the propagator theory module
     !!
     LowdinParameters_ptOnlyOneSpecieCorrection = .false.
@@ -902,6 +899,10 @@ contains
     LowdinParameters_ionizeSpecie = "NONE"
     LowdinParameters_exciteSpecie = "NONE"
     LowdinParameters_numberOfCores = 1
+    LowdinParameters_exciteSpecie = "NONE"     
+    !$OMP PARALLEL
+    LowdinParameters_numberOfCores = OMP_get_thread_num() + 1
+    !$OMP END PARALLEL 
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
@@ -1020,12 +1021,12 @@ contains
     !! Parameter to control cosmo method                                                                                         
     !!                                                                                                                         
     CONTROL_instance%COSMO = .false.
-  	CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= 78.4d+00 
-  	CONTROL_instance%COSMO_MIN_BEM= 2
-  	CONTROL_instance%COSMO_MAX_BEM= 3
-  	CONTROL_instance%COSMO_RSOLV= 0.5d+00
+    CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= 78.4d+00 
+    CONTROL_instance%COSMO_MIN_BEM= 2
+    CONTROL_instance%COSMO_MAX_BEM= 3
+    CONTROL_instance%COSMO_RSOLV= 0.5d+00
 
-	!!***************************************************************************                                              
+    !!***************************************************************************                                              
     !! Parameter to control the propagator theory module                                                                       
     !!                                                                                                                         
     CONTROL_instance%PT_ONLY_ONE_SPECIE_CORRECTION = .false.
@@ -1123,6 +1124,9 @@ contains
     CONTROL_instance%IONIZE_SPECIE = "NONE"
     CONTROL_instance%EXCITE_SPECIE = "NONE"                                                            
     CONTROL_instance%NUMBER_OF_CORES = 1
+    !$OMP PARALLEL
+    CONTROL_instance%NUMBER_OF_CORES = OMP_get_thread_num() + 1
+    !$OMP END PARALLEL 
 
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   
@@ -1158,7 +1162,6 @@ contains
     !! Reads name-list
     read(uunit,NML=LowdinParameters, iostat=stat)
 
-   
     !! Check the process
     if(stat > 0 ) then
 
@@ -1302,8 +1305,6 @@ contains
     CONTROL_instance%PT_ITERATION_SCHEME = LowdinParameters_ptIterationScheme
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = LowdinParameters_ptMaxNumberOfPolesSearched
                                                                                                                                                                                           
-                                                                                                                                                                                          
-                                                                                       
     !!***************************************************************************      
     !! Control print level and units                                                   
     !!                                                                                 
@@ -1737,7 +1738,8 @@ contains
     otherThis%COSMO_MIN_BEM = this%COSMO_MIN_BEM           
     otherThis%COSMO_MAX_BEM = this%COSMO_MAX_BEM           
     otherThis%COSMO_RSOLV = this%COSMO_RSOLV             
-	!!*****************************************************
+
+    !!*****************************************************
     ! Control this for Propagator Theory= !! Control this for Propagator Theory
     !!
     otherThis%PT_ONLY_ONE_SPECIE_CORRECTION = this%PT_ONLY_ONE_SPECIE_CORRECTION 

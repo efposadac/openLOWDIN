@@ -36,7 +36,7 @@ if [ -e CONFIG ] ; then
 else
     FC="ifort"
     FLAGS="1"
-    PREFIX="/usr/local/bin"
+    PREFIX="/usr/local"
     CUBAFLAGS=
     CULAFLAGS=
     CXX="icpc"
@@ -129,7 +129,7 @@ ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS"
 #                       SPECIFIC INSTALLATION DIRECTORIES
 ###############################################################################
 
-echo "Directory for executables? [$PREFIX]"
+echo "Installation directory? [$PREFIX]"
 read BINDIR
 
 if [ "$BINDIR" = "" ] ; then
@@ -165,15 +165,15 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="core ints HF MP2 scf aduw gepol cosmo"
+SUBDIRS="core ints HF scf integralsTransformation MP2 PT aduw gepol cosmo"
 
 for DIR in $SRCDIR ; do
     cd $DIR
     for SUBDIR in $SUBDIRS ; do
 	if [[ -e $SUBDIR ]] ; then	    
 	    cd $SUBDIR  
-	    echo $SUBDIR
-			./configure
+	    echo $SUBDIR  
+	    ./configure
 	    cd ..
 	fi
     done
