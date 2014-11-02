@@ -1,64 +1,62 @@
-**This code is part of LOWDIN Quantum chemistry package**
+# LOWDIN 2 Quantum chemistry package #
 
-   this program has been developed under direction of:
-   Prof. A REYES' Lab. Universidad Nacional de Colombia,
-   http://www.qcc.unal.edu.co
+This program has been developed under direction of:
 
-   Prof. R. FLORES' Lab. Universidad de Guadalajara,
-   http://www.cucei.udg.mx/~robertof
+* [Prof. A REYES' Lab](http://www.qcc.unal.edu.co). Universidad Nacional de Colombia.
 
-   Todos los derechos reservados, 2013
+* [Prof. R. FLORES' Lab](http://www.cucei.udg.mx/~robertof). Universidad de Guadalajara.
 
+
+® All rights reserved, 2014.
 
 Welcome to LOWDIN Quantum Chemistry Package 2.0.
 
 Installation notes.
-==================
+=============
 
-1. Prerequisites:
+###Prerequisites: ###
 
-   1.1. A standard FORTRAN compiler. gfortran and intel FORTRAN compiler have been tested.
+* A standard FORTRAN compiler. gfortran and intel FORTRAN compiler have been tested.
+* Lapack or MKL libraries.
+* [LIBINT library version 1.1.5](http://sourceforge.net/projects/libint/files/v1-releases/). NOTE: After download LIBINT please compile with default options. If you want to compile with angular momentum higher than `f`	you should compile LIBINT properly and edit the file `src/ints/LibintInterface.f90` accordingly.
 
-   1.2. Lapack or mkl libraries.
+NOTE: If you have the libraries in your own path please be sure to export the LIBRARY_PATH environment variable. ie:
 
-   1.3. LIBINT library version 1.1.5. you can download it from http://sourceforge.net/projects/libint/files/v1-releases/. 
-        After download LIBINT please compile with default options. If you want to compile with angular momentum higher than "f"
-	you have to compile LIBINT properly and edit the file src/ints/LibintInterface.f90 in order to adjust the arrays size.
+`export LIBRARY_PATH=$LIBRARY_PATH:[your library path]`
 
-   NOTE: If you have the libraries in your own path please be sure to export the LIBRARY_PATH environment variable. ie:
+### Compile: ###
 
-         export LIBRARY_PATH=$LIBRARY_PATH:[your library path]
+* run `./configure` in LOWDIN root directory. Be sure that you have permissions to write in the installation directory and have properly exported the `$PATH` environment.
 
-2. Compile:
+* run `make`
 
-   2.1. run ./configure located in the LOWDIN root directory. Be sure that you have permissions to write in the installation directory and properly exported to PATH environment variable.
+### Install: ###
 
-   2.2. run make
+* run `make install`
 
-3. Install:
+### Uninstall ###
 
-   3.1 run make install
+* run `make uninstall`
 
-4. Uninstall
+### Documentation ###
 
-   4.1 run make uninstall
+* run `make doc`
 
-5. Documentation
+The `make doc` command produces both latex and html documentation using doxygen program. Be sure you have installed doxygen, for instance in a debian-based distribution run:
 
-   5.1 run make doc
+`# apt-get install doxygen graphviz`
 
-   That command produces booth latex and html documentation by using doxygen program. Be sure that you have installed doxygen program for example in a debian-based distribution:
+To use latex documentation in doc/latex folder, run command:
 
-      #apt-get install doxygen graphviz
+`pdflatex refman.tex`
 
-   For use latex documentation in doc/latex folder, run command:
+To visualize the html documentation use:
 
-      $pdflatex refman.tex
+`<web browser> doc/html/index.html`
 
-   To visualize the html documentation use:
+### Clean the project ###
 
-      $google-chrome doc/html/index.html
+* run `make clean` and then `make distclean`
 
-6. Clean the project
-
-   6.1 run make clean and then make distclean
+### Further info: ###
+efposadac@unal.edu.co
