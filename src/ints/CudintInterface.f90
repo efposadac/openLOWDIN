@@ -247,8 +247,9 @@ contains
 
     auxCounter = 0
     counter = 0
+    ! write(*,*) "Contraida"
     do i=1, unicIntegrals
-
+       
        if(abs(contractionIntegrals(i)) > 1.0D-10) then
 
           auxCounter = auxCounter + 1
@@ -259,6 +260,7 @@ contains
           eris%c(counter) = contractionIndices(i*4 - 1)
           eris%d(counter) = contractionIndices(i*4)
           eris%integrals(counter) = contractionIntegrals(i)
+          ! write(*,*) "(",eris%a(counter),",",eris%b(counter),"|",eris%c(counter),",",eris%d(counter),")", ": ", contractionIntegrals(i)
        end if
 
        if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
