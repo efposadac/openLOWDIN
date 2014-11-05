@@ -4,11 +4,6 @@
 %  Electronic Hartree Fock
 %  Basis sets used:
 %      6-311g e-
-%  Results
-%      TEST ENERGY =     -76.008843007734
-%      VIRIAL RATIO (V/T) =         1.9991485503
-% End Results
-%      Author: Felix Moncada - GQT-UNAL/2011
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SYSTEM_DESCRIPTION='Molecula de H2O'
@@ -28,7 +23,7 @@ TASKS
 END TASKS
 
 CONTROL
-!	numberOfCores=2
+	numberOfCores=2
 END CONTROL
 
 

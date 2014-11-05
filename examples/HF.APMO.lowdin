@@ -8,18 +8,18 @@
 %          E(0) + E(1) =  -1.000587089938E+02
 %                 E(2) =  -2.896141070497E-01
 %                        ____________________
-%                E(MP2)=  -1.00348323100887612E+02
+%                E%(MP2)=  -1.00348323100887612E+02
 % End Results
 %      Author: Felix Moncada - GQT-UNAL/2011
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SYSTEM_DESCRIPTION='Molecula de H2O'
+SYSTEM_DESCRIPTION='Molecula de HF'
 
 GEOMETRY
-	e-(F)   cc-pVTZ   0 0 0.91
-	e-(H)   cc-pVTZ   0 0 0
-	F        dirac    0 0 0.91
-	H_1      DZSPDN    0 0 0
+	e-(F)   cc-pVTZ   0.00 0.00 0.91
+	e-(H)   cc-pVTZ   0.00 0.00 0.00
+	F        dirac    0.00 0.00 0.91
+	H_1      DZSPDN    0.00 0.00 0.00
 END GEOMETRY
 
 TASKS
@@ -28,11 +28,9 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores = 7
+	numberOfCores = 4
 	readCoefficients=F
-	iterationScheme = 1
+	!iterationScheme = 3
 END CONTROL
-
-
 
 

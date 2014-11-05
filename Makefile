@@ -21,13 +21,13 @@ doc::
 install:: bin/lowdin bin/lowdin.x
 	mkdir -p $(PREFIX)/.lowdin2
 	cp -rf $(TOPDIR)/bin/lowdinvars.sh $(TOPDIR)
-	sed -i "s/PREFIX/\$(PREFIX)/g" $(TOPDIR)/lowdinvars.sh
+	sed -i "s'PREFIX'\$(PREFIX)'g" $(TOPDIR)/lowdinvars.sh
 	cp -rf $(TOPDIR)/lowdinvars.sh $(PREFIX)/.lowdin2/
 	cp -rf lib $(PREFIX)/.lowdin2/
 	mkdir -p $(PREFIX)/.lowdin2/bin
 	cp -rf $(TOPDIR)/bin/*.x $(PREFIX)/.lowdin2/bin
 	cp -rf $(TOPDIR)/bin/lowdin $(TOPDIR)
-	sed -i "s/PREFIX/\$(PREFIX)/g" $(TOPDIR)/lowdin
+	sed -i "s'PREFIX'\$(PREFIX)'g" $(TOPDIR)/lowdin
 	cp -rf $(TOPDIR)/lowdin $(PREFIX)/lowdin2
 	rm -rf $(TOPDIR)/lowdin
 	rm -rf $(TOPDIR)/lowdinvars.sh
@@ -51,3 +51,8 @@ distclean::
 	find . -name "*.i" -exec rm -f {} \;
 	rm -rf $(TOPDIR)/doc/html
 	rm -rf $(TOPDIR)/doc/latex
+
+test::
+	cd $(TOPDIR)/examples/ && sh runtest.sh
+
+

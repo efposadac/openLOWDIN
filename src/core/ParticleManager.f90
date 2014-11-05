@@ -267,20 +267,20 @@ contains
 
   !>
   !! @brief gets the number of centers of optimization.
-  function ParticleManager_getNumberOfCentersOfOptimization( ) result( output)
-    implicit none
-    
-    integer :: output
-    
-    integer :: i
-
-    output = 0
-    
-    do i=1, size(ParticleManager_instance)
-       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) output =output + 1
-    end do
-       
-  end function ParticleManager_getNumberOfCentersOfOptimization
+!  function ParticleManager_getNumberOfCentersOfOptimization( ) result( output)
+!    implicit none
+!    
+!    integer :: output
+!    
+!    integer :: i
+!
+!    output = 0
+!    
+!    do i=1, size(ParticleManager_instance)
+!       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) output =output + 1
+!    end do
+!       
+!  end function ParticleManager_getNumberOfCentersOfOptimization
 
   !>
   !! @brief Retorna la masa total del sistema en las unidades solicitadas
@@ -857,29 +857,29 @@ contains
 !   end function ParticleManager_getNumberOfFreeCoordinates
 
 
-!   function ParticleManager_getNumberOfCentersOfOptimization( fragmentNumber ) result( output)
+   function ParticleManager_getNumberOfCentersOfOptimization( fragmentNumber ) result( output)
 
-!     implicit none
-!     integer :: output
-!     integer, optional, intent(in) :: fragmentNumber
-!     integer :: i
+     implicit none
+     integer :: output
+     integer, optional, intent(in) :: fragmentNumber
+     integer :: i
 
-!     output = 0
-!     !
+     output = 0
+     !
 !     if( present(fragmentNumber)) then
-!        do i=1, size(ParticleManager_instance%particlesPtr)
-!           if ( ParticleManager_instance%particlesPtr(i)%isCenterOfOptimization .and. &
-!                ParticleManager_instance%particlesPtr(i)%fragmentNumber == fragmentNumber) output =output + 1
+!        do i=1, size(ParticleManager_instance)
+!           if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization .and. &
+!                ParticleManager_instance(i)%particlePtr%fragmentNumber == fragmentNumber) output =output + 1
 !        end do
 !     else
-!        do i=1, size(ParticleManager_instance%particlesPtr)
-!           if ( ParticleManager_instance%particlesPtr(i)%isCenterOfOptimization ) output =output + 1
-!        end do
+        do i=1, size(ParticleManager_instance)
+           if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) output =output + 1
+        end do
 
 !     end if
 
 
-!   end function ParticleManager_getNumberOfCentersOfOptimization
+   end function ParticleManager_getNumberOfCentersOfOptimization
 
 
 
@@ -1221,50 +1221,63 @@ contains
   !>                                                                                                                  !! @brief Retorna las cargas asociadas a los centros de optimizacion. 24-02-2014 
   !>
 
-   function ParticleManager_getChargesOfCentersOfOptimization( flags ) result( output )
-    implicit none
-    real(8), allocatable :: output(:)
-    integer, optional :: flags
+   function ParticleManager_getChargesOfCentersOfOptimization( fragmentNumber ) result( output )
+     implicit none
 
-    character(20) :: number
-    integer :: numberOfCenters
-    integer :: internalFlags
-    integer :: i
-    integer :: j
+     integer, optional, intent(in) :: fragmentNumber
 
-    internalFlags=0
-    if( present(flags) ) internalFlags=flags
+     real(8),allocatable :: output(:)
+
+     integer :: numberOfCenters
+     integer :: i
+     integer :: j
+
+
+
+     if ( present(fragmentNumber) ) then
+        numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization(fragmentNumber)
+     else
+
+        numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
+     end if
+
+     if ( allocated( output ) ) deallocate( output )
+     allocate( output( numberOfCenters ) )
+
+     j=0
+
+     if ( present(fragmentNumber) ) then
+
+        do i=1, size(ParticleManager_instance )
+
+           if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then !.and. &
+!                ParticleManager_instance(i)%particlePtr%fragmentNumber == fragmentNumber ) then
+
+              j = j + 1
+
+              output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
+
+           end if
+
+        end do
 
     numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
 
-    if ( allocated( output ) ) deallocate( output )
-    allocate( output( numberOfCenters ) )
+     else
 
-    j = 0
+        do i=1, size(ParticleManager_instance)
 
-    do i=1, size(ParticleManager_instance )
+           if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
 
-       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
+              j = j + 1
 
-          j = j + 1
+              output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
 
-          select case(internalFlags)
+           end if
 
-          case( LABELS_NUMERATED )
+        end do
 
-             write(number,*) j
-             number = adjustl(trim(number))
-             output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
-
-          case default
-
-             output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
-          end select
-
-       end if
-
-    end do
-
+     end if
 
    end function ParticleManager_getChargesOfCentersOfOptimization
 
