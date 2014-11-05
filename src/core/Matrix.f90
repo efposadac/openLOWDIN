@@ -157,7 +157,8 @@ module Matrix_
        Matrix_addColumn, &
        Matrix_removeColumn, &
        Matrix_Fortran_orthogonalizeLastVector, &
-       Matrix_eigenProperties
+       Matrix_eigenProperties, &
+       diagonalize_matrix ! Copiada de Parakata
 
   private
 
@@ -2278,6 +2279,36 @@ contains
     end if
 
   end subroutine Matrix_removeColumn
+
+  subroutine diagonalize_matrix(m,eig,dm)
+  ! Diagonalize
+  ! Roberto Flores-Moreno, Aug 2008
+  implicit none
+    integer dm
+    real(8) m(dm,dm),eig(dm)
+
+    type(Matrix) :: tmp1
+    type(Matrix) :: eigenVectors
+    type(Vector) :: eigenValues
+
+    call Matrix_constructor( tmp1, int(dm,8), int(dm,8 ) )
+    call Matrix_constructor( eigenVectors, int(dm,8), int(dm,8 ) )
+    call Vector_constructor( eigenValues, dm )
+
+    tmp1%values = m
+
+    call Matrix_eigen(tmp1, eigenValues, eigenVectors, SYMMETRIC, m,dm )
+   	m = eigenVectors%values	
+
+    eig(1:dm) = eigenValues%values(1:dm)
+
+    call Matrix_destructor( tmp1 )
+    call Matrix_destructor( eigenVectors )
+    call Vector_destructor( eigenValues )
+
+  end subroutine
+
+
 
   !>
   !! @brief  Maneja excepciones de la clase

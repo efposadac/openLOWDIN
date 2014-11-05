@@ -297,7 +297,7 @@ program HF
        + totalQuantumPuntualInteractionEnergy &
        + totalCouplingEnergy &
        + totalExternalPotentialEnergy
-  
+
   close(wfnUnit)
   
   !! Show results

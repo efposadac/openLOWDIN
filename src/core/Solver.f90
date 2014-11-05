@@ -97,6 +97,9 @@ contains
 
     case('RHF-CI')
 
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-CI.x" )
+
     case('RHF-PT')
 
        call system("lowdin-integralsTransformation.x")

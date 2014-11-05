@@ -82,6 +82,8 @@ module MolecularSystem_
        MolecularSystem_getMass, &
        MolecularSystem_getEta, &
        MolecularSystem_getLambda, &
+       MolecularSystem_getKappa, &
+       MolecularSystem_getMultiplicity, &
        MolecularSystem_getParticlesFraction, &
        MolecularSystem_getFactorOfInterchangeIntegrals, &
        MolecularSystem_getNameOfSpecie, &
@@ -956,6 +958,31 @@ contains
      output = MolecularSystem_instance%species(speciesID)%lambda
           
    end function MolecularSystem_getLambda
+
+
+   function MolecularSystem_getKappa(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     integer :: output
+     
+     output = -1
+     output = MolecularSystem_instance%species(speciesID)%kappa
+          
+   end function MolecularSystem_getKappa
+
+   function MolecularSystem_getMultiplicity(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     integer :: output
+     
+     output = -1
+     output = MolecularSystem_instance%species(speciesID)%spin
+          
+   end function MolecularSystem_getMultiplicity
+
+
 
 
    function MolecularSystem_getParticlesFraction(speciesID) result(output)
