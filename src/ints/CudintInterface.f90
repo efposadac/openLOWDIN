@@ -227,6 +227,7 @@ contains
     allocate(contractionIndices(unicIntegrals*4))
 
 
+! <<<<<<< HEAD
     call cuda_int_intraspecies(&
          numberOfContractions, &
          maxNumCartesianOrbital, &
@@ -244,6 +245,25 @@ contains
          contractionIntegrals, &
          contractionIndices &
          )
+! =======
+!     ! call cuda_int_intraspecies(&
+!     !      numberOfContractions, &
+!     !      maxLength, &
+!     !      maxNumCartesianOrbital, &
+!     !      primNormalizationLength, &
+!     !      maxprimNormalizationLength, &
+!     !      contractionId, &
+!     !      contractionLength, &
+!     !      contractionAngularMoment, &
+!     !      contractionNumCartesianOrbital, &
+!     !      contractionOwner, &
+!     !      contractionOrigin, &
+!     !      contractionOrbitalExponents, &
+!     !      contractionCoefficients, &
+!     !      contractionContNormalization, &
+!     !      contractionPrimNormalization &
+!     !      )
+! >>>>>>> 4b26bf79c7d0611b371844c5313c02f5c0500e13
 
     auxCounter = 0
     counter = 0

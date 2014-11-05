@@ -27,6 +27,11 @@
 !!        -# Adapta el módulo para su inclusion en Lowdin 1
 !!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
 !!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-08-26 </tt>: Jorge Charry (jacharrym@unal.edu.co)
+!!        -# Adapts the module to read the transformed integrals from the
+!!         integralsTransformation program.
+!!        -# Enable the UMP2 method.
+!!        -# Consider the particle fraction in the intraspecies term.
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
@@ -34,11 +39,11 @@
 module MPFunctions_
   use CONTROL_
   use MolecularSystem_
-  use IntegralManager_
   use IndexMap_
   use Exception_
   use Vector_
-  use TransformIntegrals_
+  use ReadTransformedIntegrals_
+  use String_
   implicit none
 
 	!< enum MollerPlesset_correctionFlags {
@@ -336,7 +341,7 @@ end if
    type(Vector) :: eigenValues
    type(Vector) :: eigenValuesOfOtherSpecie
    type(Matrix) :: auxMatrix
-   type(TransformIntegrals) :: repulsionTransformer
+!   type(TransformIntegrals) :: repulsionTransformer
    real(8) :: lambda
    real(8) :: lambdaOfOtherSpecie
    real(8) :: independentEnergyCorrection
@@ -347,8 +352,11 @@ end if
    type(Matrix) :: eigenVec
    type(Matrix) :: eigenVecOtherSpecie 
    character(50) :: wfnFile
-   character(50) :: arguments(20)
+   character(50) :: arguments(2)
    integer :: wfnUnit
+   !! TypeOfIntegrals 
+   integer, parameter :: ONE_SPECIE			= 0
+   integer, parameter :: TWO_SPECIES			= 1
 
    wfnFile = "lowdin.wfn"
    wfnUnit = 20
@@ -356,25 +364,12 @@ end if
 
    electronsID = MolecularSystem_getSpecieID(  nameOfSpecie="E-" )
 
-   call TransformIntegrals_constructor( repulsionTransformer )
-   
+   !! Define file names
+!   call TransformIntegrals_constructor( repulsionTransformer )
 
    !!*******************************************************************************************
    !! Calculo de correcciones de segundo orden para particulas de la misma especie
    !!
-   if ( .not.CONTROL_instance%OPTIMIZE ) then
-      print *,""
-      print *,"BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
-      print *,"========================================"
-      print *,""
-      print *,"--------------------------------------------------"
-      print *,"    Algorithm Four-index integral tranformation"
-      print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
-      print *,"  Computer Physics Communications, 2005, 166, 58-65"
-      print *,"--------------------------------------------------"
-      print *,""
-
-   end if
 
    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
    rewind(wfnUnit)
@@ -412,89 +407,95 @@ end if
          numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
          lambda = MolecularSystem_instance%species(i)%lambda
          
-         if ( .not.CONTROL_instance%OPTIMIZE ) then
-            write (6,"(T10,A)")"INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)
-            print *,""
-         end if
+         !! Read transformed integrals from file
+         call ReadTransformedIntegrals_readOneSpecies( specieID, auxMatrix)
+
+!         call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer,&
+!              eigenVec, auxMatrix, specieID, trim(nameOfSpecie) )
+
+                !!**************************************************************************
+                !!	Calcula la correccion de segundo orden a la energia
+                !!****
+                do a=MollerPlesset_instance%frozenCoreBoundary, ocupationNumber
+                        do b=MollerPlesset_instance%frozenCoreBoundary,ocupationNumber
+                                do r=ocupationNumber+1, numberOfContractions
+                                        do s=r, numberOfContractions
+                                                auxIndex = IndexMap_tensorR4ToVector(a,r,b,s, numberOfContractions )
+                                                auxVal_A= auxMatrix%values(auxIndex, 1)
+
+                                                if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
+
+                                                        if ( s>r ) then
+
+                                                                if (a==b) then
+
+                                                                        if( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+
+                                                                                independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A**2.0  &
+                                                                                * ( lambda  -  1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                                                - eigenValues%values(r) - eigenValues%values(s) )
+
+                                                                        end if
+
+                                                                else
+
+                                                                        auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
+                                                                        auxVal_B= auxMatrix%values(auxIndex, 1)
+
+                                                                        independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A  &
+                                                                        * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                                        - eigenValues%values(r) - eigenValues%values(s) )
+
+                                                                end if
+
+                                                        else if ( a==b .and. r==s ) then
+
+                                                                if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+
+                                                                        independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0_8  &
+                                                                                * ( lambda - 1.0_8 ) / ( 2.0_8*( eigenValues%values(a)-eigenValues%values(r)))
+
+                                                                end if
+
+                                                        else
+
+                                                                if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+                                                                        independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0  &
+                                                                                * ( lambda  - 1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                                                - eigenValues%values(r) - eigenValues%values(s) )
+                                                                end if
+
+                                                        end if
+                                                end if
 
 
+                                        end do
+                                end do
+                        end do
+                end do
+       	end if
 
-         call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer,&
-              eigenVec, auxMatrix, specieID, trim(nameOfSpecie) )
+		MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = independentEnergyCorrection &
+			* ( ( MolecularSystem_getCharge( specieID ) )**4.0_8 )
 
+                if ( nameOfSpecie == "E-ALPHA" .or. nameOfSpecie == "E-BETA" ) then
 
-				!!**************************************************************************
-				!!	Calcula la correccion de segundo orden a la energia
-				!!****
-				do a=MollerPlesset_instance%frozenCoreBoundary, ocupationNumber
-					do b=MollerPlesset_instance%frozenCoreBoundary,ocupationNumber
-						do r=ocupationNumber+1, numberOfContractions
-							do s=r, numberOfContractions
-								auxIndex = IndexMap_tensorR4ToVector(a,r,b,s, numberOfContractions )
-								auxVal_A= auxMatrix%values(auxIndex, 1)
+                        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = &
+                        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) / &
+                        ( 2.0 )
 
-								if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
-
-									if ( s>r ) then
-
-										if (a==b) then
-
-											if( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-
-												independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A**2.0  &
-												* ( lambda  -  1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
-												- eigenValues%values(r) - eigenValues%values(s) )
-
-											end if
-
-										else
-
-											auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
-											auxVal_B= auxMatrix%values(auxIndex, 1)
-
-											independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A  &
-											* ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(a) + eigenValues%values(b) &
-											- eigenValues%values(r) - eigenValues%values(s) )
-
-										end if
-
-									else if ( a==b .and. r==s ) then
-
-										if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-
-											independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0_8  &
-												* ( lambda - 1.0_8 ) / ( 2.0_8*( eigenValues%values(a)-eigenValues%values(r)))
-
-										end if
-
-									else
-
-										if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-											independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0  &
-												* ( lambda  - 1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
-												- eigenValues%values(r) - eigenValues%values(s) )
-										end if
-
-									end if
-								end if
+                else 
+                        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = &
+                        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) / &
+                        ( MolecularSystem_getParticlesFraction ( specieID ) * 2.0 )
+                end if
+        
 
 
-							end do
-						end do
-					end do
-				end do
-       		end if
-
-			MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = independentEnergyCorrection &
-				* ( ( MolecularSystem_getCharge( specieID ) )**4.0_8 )
-
-
-			call Matrix_destructor(auxMatrix)
-			!!
-			!!**************************************************************************
-
-end do
-
+		call Matrix_destructor(auxMatrix)
+		!!
+		!!**************************************************************************
+  end do
 
 
 !! Suma las correcciones de energia para especies independientes
@@ -559,16 +560,17 @@ if ( MollerPlesset_instance%numberOfSpecies > 1 ) then
         lambdaOfOtherSpecie = MolecularSystem_instance%species(j)%lambda
         couplingEnergyCorrection = 0.0_8
 
-        if ( .not.CONTROL_instance%OPTIMIZE ) then
-           write (6,"(T10,A)") "INTER-SPECIES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)//"/"//trim(nameOfOtherSpecie)
-           print *,""
-        end if
+!        if ( .not.CONTROL_instance%OPTIMIZE ) then
+!           write (6,"(T10,A)") "INTER-SPECIES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)//"/"//trim(nameOfOtherSpecie)
+!           print *,""
+!        end if
 
+         !! Read transformed integrals from file
+        call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, auxMatrix)
 
-        call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
-             eigenVec, eigenVecOtherSpecie, &
-             auxMatrix, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
-
+!        call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
+!             eigenVec, eigenVecOtherSpecie, &
+!             auxMatrix, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
 
         auxMatrix%values = auxMatrix%values * MolecularSystem_getCharge( specieID ) &
              * MolecularSystem_getCharge( otherSpecieID )
@@ -606,10 +608,6 @@ end if
 !!
 !!*******************************************************************************************
 
-if ( .not.CONTROL_instance%OPTIMIZE ) then
-   print *,"END FOUR-INDEX INTEGRALS TRANFORMATION"
-   print *,""
-end if
 close(wfnUnit)
 
 end subroutine MollerPlesset_secondOrderCorrection
