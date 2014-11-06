@@ -324,7 +324,6 @@ contains
 
        end do
 
-!! Deallocated before diagonalization
 !       do i=1, numberOfSpecies
 !          call Matrix_destructor (  ConfigurationInteraction_instance%twoCenterIntegrals(i))
 !          do j=1, numberOfSpecies
@@ -438,7 +437,10 @@ contains
 
        call ConfigurationInteraction_buildHamiltonianMatrix()
 
-       print *, "Size of Hamiltonian Matrix", size(ConfigurationInteraction_instance%hamiltonianMatrix%values)
+	print *, "(ConfigurationInteraction_instance%hamiltonianMatrix%values", size(ConfigurationInteraction_instance%hamiltonianMatrix%values)
+
+       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, ConfigurationInteraction_instance%numberOfConfigurations)
+	print *, " ConfigurationInteraction_instance%eigenvalues,",size( ConfigurationInteraction_instance%eigenvalues%values) 
 
        call Matrix_eigen (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
 		flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations)
