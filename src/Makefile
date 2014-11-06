@@ -2,11 +2,11 @@ TOPDIR=..
 
 include $(TOPDIR)/CONFIG
 
-SUBDIRS = ints HF MP2 MM Optimizer scf
-ALLDIRS = $(SUBDIRS) lowdincore
+SUBDIRS = ints HF scf integralsTransformation MP2 PT CalcProp output MM Optimizer
+ALLDIRS = $(SUBDIRS) core
 
 LDR=$(FC)
-INC=-I$(TOPDIR)/src/lowdincore/
+INC=-I$(TOPDIR)/src/core/
 LDPATH=$(TOPDIR)/lib/lowdincore.a
 FLAGS=$(FCFLAGS)
 LIBS=$(ALL_LIBS)
@@ -15,7 +15,7 @@ TARGET=lowdin.x
 OBJECTS=lowdin.x.o
 
 default::
-	(cd lowdincore && $(MAKE) $(JOBS)) || exit 1;\
+	(cd core && $(MAKE) $(JOBS)) || exit 1;\
 
 	for dir in $(SUBDIRS); \
 	do \

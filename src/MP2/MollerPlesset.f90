@@ -35,16 +35,12 @@
 program MollerPlesset
   use CONTROL_
   use MolecularSystem_
-  use String_
-  use IntegralManager_
-  use IndexMap_
   use Exception_
   use Vector_
-  use TransformIntegrals_
   use MPFunctions_
   implicit none
 
-       character(50) :: job
+  character(50) :: job
 
   job = ""  
   call get_command_argument(1,value=job)  

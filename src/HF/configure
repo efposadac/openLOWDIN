@@ -13,7 +13,7 @@ include \$(TOPDIR)/CONFIG
 
 TARGET=lowdin-HF.x
 LDR=\$(FC)
-INC=-I\$(TOPDIR)src/lowdincore/
+INC=-I\$(TOPDIR)src/core/
 LDPATH=\$(TOPDIR)lib/lowdincore.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
