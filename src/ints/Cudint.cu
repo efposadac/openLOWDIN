@@ -3,8 +3,54 @@
 #include <math.h>
 #include <cuda.h>
 
+
 const int numberOfThreads = 256;
 const double pi = 3.14159265358979323846;
+
+__device__ float errorFunction(int order, double tFunc)
+{
+
+  double tFuncsqrt;
+  double errorF; 
+
+  tFuncsqrt = sqrt(tFunc);
+
+  if(tFunc == 0.0)
+    errorF = 1.0/(2*order + 1);
+  else
+    {
+      switch(order)
+	{
+	case 0:
+	  errorF = 0.5*erf(tFuncsqrt)*sqrt(pi/tFunc);
+	  break;
+	case 1:
+	  errorF = 0.25*(-2*tFuncsqrt*exp(-tFunc) + sqrt(pi)*erf(tFuncsqrt))/(tFuncsqrt*tFunc);
+	  break;
+	case 2:
+	  errorF = -0.125*(exp(-tFunc)*(6*tFuncsqrt + 4*tFuncsqrt*tFunc) - 3*sqrt(pi)*erf(tFuncsqrt))/(tFuncsqrt*tFunc*tFunc);
+	  break;
+	case 3:
+	  errorF = -0.0625*(exp(-tFunc)*(30*tFuncsqrt + 20*tFunc*tFuncsqrt + 8*tFunc*tFunc*tFuncsqrt) - 15*sqrt(pi)*erf(tFuncsqrt))/(tFuncsqrt*tFunc*tFunc*tFunc);
+	  break;
+	case 4:
+	  errorF = -0.03125*(exp(-tFunc)*(16*tFuncsqrt*tFunc*tFunc*tFunc + 56*tFunc*tFunc*tFuncsqrt + 140*tFunc*tFuncsqrt + 210*tFuncsqrt) - (105*sqrt(pi)*erf(tFuncsqrt)))/(tFuncsqrt*tFunc*tFunc*tFunc*tFunc);
+	  break;
+	}
+    }
+
+  return errorF;
+}
+
+__device__ float ssss(double tFunc, double prefact)
+{
+	double F0;
+	double preIntegral;
+	F0 = errorFunction(0, tFunc);
+	preIntegral = 2*F0*prefact;
+  return preIntegral;
+}
+
 
 __global__ void intssss(int N, 
 			int *primIndices_d,
@@ -15,6 +61,7 @@ __global__ void intssss(int N,
 			int *contCounter_d,
 			int *contLength_d,
 			double *origin_d,
+			int *angularMoments_d,
 			double *integralValues_d,
 			int control,
 			int kernelIter)
@@ -32,8 +79,13 @@ __global__ void intssss(int N,
   int exponentIterII, exponentIterJJ, exponentIterKK, exponentIterLL;
   double IIx, IIy, IIz, JJx, JJy, JJz, KKx, KKy, KKz, LLx, LLy, LLz;
   double preIntegral, normIntegral; 
+  double etha;
+  int lAA, lBB, lRR, lSS; // Angular moments of contractions
+  int integralCase;
 
-  double A, B, C, D, KIJ, KKL, rPx, rPy, rPz, rQx, rQy, rQz, rPQ, rIJ, rKL, tFunc, tFuncsqrt, F, prefact;
+  double A, B, C, D, KIJ, KKL, rPx, rPy, rPz, rQx, rQy, rQz, rPQ, rIJ, rKL, tFunc, prefact;
+  double F0, F1, F2, F3, F4;
+  double rPQx, rPQy, rPQz;
 
   if(global1< control)
     {
@@ -45,11 +97,17 @@ __global__ void intssss(int N,
       bb = contIndices_d[contractionID*4+1];
       rr = contIndices_d[contractionID*4+2];
       ss = contIndices_d[contractionID*4+3];
+      
       // Primitive indices
       ii = primIndices_d[global*5+1];
       jj = primIndices_d[global*5+2];
       kk = primIndices_d[global*5+3];
       ll = primIndices_d[global*5+4];
+      
+      lAA = angularMoments_d[aa-1];
+      lBB = angularMoments_d[bb-1];
+      lRR = angularMoments_d[rr-1];
+      lSS = angularMoments_d[ss-1];
       
       exponentIterII = contCounter_d[aa-1] + ii - 1;
       exponentIterJJ = contCounter_d[bb-1] + jj - 1;
@@ -83,12 +141,13 @@ __global__ void intssss(int N,
       LLx = origin_d[(ss*3)-3];
       LLy = origin_d[(ss*3)-2];
       LLz = origin_d[(ss*3)-1];
-
-      
+    
       A = exponentII + exponentJJ;
       B = exponentKK + exponentLL;
       C = exponentII*exponentJJ;
       D = exponentKK*exponentLL;
+
+      etha = (A*B)/(A+B);
 
       rIJ = (IIx-JJx)*(IIx-JJx) + (IIy-JJy)*(IIy-JJy) + (IIz-JJz)*(IIz-JJz);
       rKL = (KKx-LLx)*(KKx-LLx) + (KKy-LLy)*(KKy-LLy) + (KKz-LLz)*(KKz-LLz);
@@ -96,7 +155,7 @@ __global__ void intssss(int N,
       KIJ = exp(-(C/A)*rIJ);
       KKL = exp(-(D/B)*rKL);
 
-      prefact = (pi*pi*pi)/(A*B*(sqrt(A+B)));
+      prefact = sqrt(etha/pi)*sqrt(pi/A)*(pi/A)*sqrt(pi/B)*(pi/B)*KIJ*KKL;
 
       rPx =(exponentII*IIx+exponentJJ*JJx)/A;
       rPy =(exponentII*IIy+exponentJJ*JJy)/A;
@@ -105,22 +164,31 @@ __global__ void intssss(int N,
       rQy = (exponentKK*KKy+exponentLL*LLy)/B;
       rQz = (exponentKK*KKz+exponentLL*LLz)/B;
       
+      rPQx = (rPx*A + rQx*B)/(A+B);
+      rPQy = (rPy*A + rQy*B)/(A+B);
+      rPQz = (rPz*A + rQz*B)/(A+B);
+
       rPQ = (rPx-rQx)*(rPx-rQx) + (rPy-rQy)*(rPy-rQy) + (rPz-rQz)*(rPz-rQz);
 
-      tFunc = (A*B)*rPQ/(A+B);
+      tFunc = etha*rPQ;
 
-      tFuncsqrt = sqrt(tFunc);
+      integralCase = 64*lAA + 16*lBB + 4*lRR + lSS;
 
-      if(tFunc == 0.0)
-	F = 2/(sqrt(pi));
-      else
-	F = erf(tFuncsqrt)/tFuncsqrt;
-      
-      preIntegral = prefact*KIJ*KKL*F;
+      switch(integralCase)
+	{
+	case 0: // Integral (s,s|s,s)
+	  preIntegral = ssss(tFunc, prefact);
+	  break;
+	// case 64:
+	//   F0 = errorFunction(0, tFunc);
+	//   F1 = errorFunction(1, tFunc);
+	//   preIn
+	}
+
+      // printf("(%d,%d|%d,%d)  (%d,%d|%d,%d)  %f\n", aa, bb, rr, ss, ii, jj, kk, ll, preIntegral);
       normIntegral = primNormII*primNormJJ*primNormKK*primNormLL*preIntegral;
       integralValues_d[global1] = coefficientsII*coefficientsJJ*coefficientsKK*coefficientsLL*normIntegral;
     }
-    
 }
 
 extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
@@ -146,12 +214,13 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   int contractionsMem, totalPrimitives, unicintegrals, unicintegralsMem, exponentSize;
   int *contIndices, *primIndices, *contCounter;
   double *exponents, *primNormalization, *coefficients, *origin, *contNormalization, *contractedIntegrals, *integralValuesTotal;
+  int *angularMoments;
   int *numberOfPPUC, contractionsMemDoub, unicintegralsMemDoub;
   int i,j,k,l,m,p;
   int auxCounter, originSize;
 
   //Cuda Arrays
-  int *contIndices_d, *primIndices_d, *contLength_d, *contCounter_d;
+  int *contIndices_d, *primIndices_d, *contLength_d, *contCounter_d, *angularMoments_d;
   double *exponents_d, *primNormalization_d, *coefficients_d, *origin_d;
 
   unicintegrals = ((*numberOfContractions*(*numberOfContractions+1)/2)+1)*(*numberOfContractions*(*numberOfContractions+1)/2)/2;
@@ -188,12 +257,16 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   contractedIntegrals = (double *)malloc(unicintegralsMemDoub);
   // Normalization constants of contractions
   contNormalization = (double *)malloc(contractionsMemDoub);
+  // Angular moments of contractions
+  angularMoments = (int *)malloc(contractionsMem);
   //////////////////////////////////////////////////////////////////////
 
   auxCounter = 0;
   for(i=0; i<*numberOfContractions;i++)
     {
       contNormalization[i] = *(contractionContNormalization+i);
+      angularMoments[i] = *(contractionAngularMoment+i);
+      // printf("Angular moments: %d\n", angularMoments[i]);
       for(j=0; j<3; j++)
 	{
 	  origin[j+i*3] = *(contractionOrigin+(j+i*3));
@@ -217,6 +290,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
 
   m=0;
   totalPrimitives = 0;
+  // printf("NUmber of Contractions Cudint: %d\n", *numberOfContractions);
   for( a = 1;  a<=*numberOfContractions; a++)
     {
       n = a;
@@ -307,6 +381,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   cudaMalloc((void **)&primNormalization_d, exponentSize);
   cudaMalloc((void **)&coefficients_d, exponentSize);
   cudaMalloc((void **)&contCounter_d, contractionsMem);
+  cudaMalloc((void **)&angularMoments_d, contractionsMem);
   cudaMalloc((void **)&contLength_d, contractionsMem);
   cudaMalloc((void **)&origin_d, originSize);
   ///////////////////////////////////////////////////////////////////////////
@@ -319,6 +394,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   cudaMemcpy(primNormalization_d, primNormalization, exponentSize, cudaMemcpyHostToDevice);
   cudaMemcpy(coefficients_d, coefficients, exponentSize, cudaMemcpyHostToDevice);
   cudaMemcpy(contCounter_d, contCounter, contractionsMem, cudaMemcpyHostToDevice);
+  cudaMemcpy(angularMoments_d, angularMoments, contractionsMem, cudaMemcpyHostToDevice);
   cudaMemcpy(contLength_d, contLength, contractionsMem, cudaMemcpyHostToDevice);
   cudaMemcpy(origin_d, origin, originSize, cudaMemcpyHostToDevice);
   //////////////////////////////////////////////////////////////////////////
@@ -348,24 +424,56 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
 
       // printf("Control2: %d %d\n", numberCallkernel, control2);
 
-      //      printf("Kernel Call Number: %d\n", numberCallkernel );
-      intssss<<<gridSize,blockSize>>>(N, primIndices_d, contIndices_d, exponents_d, primNormalization_d, coefficients_d, contCounter_d, contLength_d, origin_d, integralValues_d, control, kernelIter);
+           printf("Kernel Call Number: %d\n", numberCallkernel );
+      intssss<<<gridSize,blockSize>>>(N, primIndices_d, contIndices_d, exponents_d, primNormalization_d, coefficients_d, contCounter_d, contLength_d, origin_d, angularMoments_d, integralValues_d, control, kernelIter);
 
       cudaMemcpy(integralValues, integralValues_d, control*sizeof(double),cudaMemcpyDeviceToHost);
+
       m=0;
+      ///Ojo quitar esto luego
+      // for( a = 1;  a<=*numberOfContractions; a++)
+      // 	{
+      // 	  n = a;
+      // 	  for( b = a; b<=*numberOfContractions;b++)
+      // 	    {
+      // 	      u = b;
+      // 	      for( r = n ;r <=*numberOfContractions;r++)
+      // 		{
+      // 		  for( s = u; s<=*numberOfContractions; s++)
+      // 		    {
+      // 		      for(i=1;i<=contLength[a-1];i++)
+      // 			for(j=1;j<=contLength[b-1];j++)
+      // 			  for(k=1;k<=contLength[r-1];k++)
+      // 			    for(l=1;l<=contLength[s-1];l++)
+      // 			      {
+      // 				// if(a == 1 && b == 1 && r == 3 && s == 3 )
+      // 				  printf("(%d,%d|%d,%d) (%d,%d|%d,%d) : %f\n", a,b,r,s,i,j,k,l,integralValues[m]);
+				
+      // 				m++;
+      // 			      }
+      // 		    }
+      // 		  u = r+1;
+      // 		}
+      // 	    }
+      // 	}
+      // m=0;
+
+      /////////////////////////////////////////
+
+
 
       for(j=kernelIter;j<control2;j++)
 	{
 	  integralValuesTotal[j] = integralValues[j-kernelIter];    
 	  // if(numberCallkernel==3)
-	  //    printf("Integral post Kernel: %d, %d -> %f\n", j, j-kernelIter, integralValuesTotal[j]);
+	     // printf("Integral post Kernel: %d, %d -> %f\n", j, j-kernelIter, integralValuesTotal[j]);
 	}
 
       cudaFree(integralValues_d);
       free(integralValues);
     }
 
-      // printf("Contracted Integrals:\n");
+  // printf("Unic Integrals Cuda:%d\n", unicintegrals);
       for(i=0; i<unicintegrals;i++)
 	{
 	  contractedIntegrals[i] = 0.0;
@@ -384,7 +492,7 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
 	      m++;
 	    }
 	  // printf("%d %f %f %f %f\n", i, contNormalization[a],contNormalization[b],contNormalization[r],contNormalization[s]);
-	  // printf("(%d,%d|%d,%d) = %f \n", a,b,r,s,contractedIntegrals[i]);
+	  printf("(%d,%d|%d,%d) = %e \n", a,b,r,s,contractedIntegrals[i]);
 	}
 
   // for(i=0;i<N;i++)

@@ -1,4 +1,3 @@
-!!******************************************************************************
 !!	This code is part of LOWDIN Quantum chemistry package                 
 !!	
 !!	this program has been developed under direction of:
@@ -279,6 +278,8 @@ contains
     type(c_ptr) :: resultPc !< array of integrals from C (LIBINT)
     procedure(LibintInterface_buildLibInt), pointer :: pBuild !<procedure to calculate eris on LIBINT
     
+    integer :: contractionNumberdebug, primitiveCounterdebug, contractionNumberperOrbital, totalIntegralswithP
+
     write(fileNumber,*) process
     fileNumber = trim(adjustl(fileNumber))
     
@@ -290,6 +291,8 @@ contains
     call MolecularSystem_getBasisSet(specieID, contractions)
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
     numberOfPrimitives = MolecularSystem_getTotalNumberOfContractions(specieID)
+
+
 
     !! Get number of shells and cartesian contractions
     numberOfContractions = size(contractions)
@@ -312,17 +315,27 @@ contains
     !! Get contractions labels for integrals index
     if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
     allocate(labelsOfContractions(numberOfContractions))
-    
+
+    !! Debug
+    write(*,*) "SSize: ", ssize
+    write(*,*) "Max Angular Moment: ", maxAngularMoment
+    write(*,*) "Number of Primitives: ", numberOfPrimitives
+    write(*,*) "Number of Contractions: ", numberOfContractions
+    write(*,*) "Total number of Contractions: ", numberOfContractions
+
     !!Real labels for contractions
     aux = 1
     do i = 1, numberOfContractions
        !!position for cartesian contractions
        labelsOfContractions(i) = aux
+       write(*,*) "Label of Contractions: ", labelsOfContractions(i)
        aux = aux + contractions(i)%numCartesianOrbital          
     end do
 
     !! allocating space for integrals just one time (do not put it inside do loop!!!)
     arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
+
+    write(*,*) "Array size: ", arraySize
 
     if(allocated(incompletGamma)) deallocate(incompletGamma)
     if(allocated(auxIntegrals)) deallocate(auxIntegrals)
@@ -335,9 +348,11 @@ contains
     counter = 0
     auxCounter = 0    
     control = 0
-
+    contractionNumberdebug = 0
+    totalIntegralswithP = 0
    ! write(*,*) "Starting and ending", starting, ending
     !!Start Calculating integrals for each shell
+    ! write(*,*) "Number of Contractions Libint: ", numberOfContractions
     do a = 1, numberOfContractions
        n = a
        do b = a, numberOfContractions
@@ -345,8 +360,8 @@ contains
           do r = n , numberOfContractions
              do s = u,  numberOfContractions
                                 
+                contractionNumberdebug = contractionNumberdebug + 1
                 control = control + 1                 
-
 
                 if( control >= starting ) then                    
                    
@@ -525,12 +540,22 @@ contains
                    ! write(*,*) a,b,r,s
                    ! write(*,*) aa,bb,rr,ss
                    
+                   ! write(*,*) "**************************************************************************"
+                   ! write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2,4(I3))") "Contraida numero: ", contractionNumberdebug, &
+                   !      " (", a, ",", b, "|", r, ",", s, ") ", &
+                   !      contractions(s)%length, &
+                   !      contractions(r)%length, &
+                   !      contractions(b)%length, &
+                   !      contractions(a)%length
+                   ! write(*,*) "**************************************************************************"
 
+                   primitiveCounterdebug = 0
                    do l = 1, contractions(s)%length
                       do k = 1, contractions(r)%length
                          do j = 1, contractions(b)%length
                             do i = 1, contractions(a)%length
                                
+                               primitiveCounterdebug = primitiveCounterdebug + 1
                                !!LIBINT PRIMQUARTET
                                
                                !!Exponentes
@@ -578,9 +603,10 @@ contains
                                
                                call Math_fgamma0(sumAngularMoment,incompletGammaArgument,incompletGamma(0:sumAngularMoment))
                                
+                               
                                !!prim_data.F
                                primitiveQuartet%F(1:sumAngularMoment+1) = 2.0_8 * incompletGamma(0:sumAngularMoment) * s1234
-                               
+
                                !!Datos restantes para prim.U
                                primitiveQuartet%oo2z = (0.5_8 / zeta)
                                primitiveQuartet%oo2n = (0.5_8 / eta)
@@ -593,6 +619,16 @@ contains
                                   ! write(*,*)"Pointer printing (ss|ss)"
                                   ! write(*,*)pi,pj,pk,pl
                                   auxIntegrals(1) = primitiveQuartet%F(1)
+
+                                  ! write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2,<sumAngularMoment+1>(F16.12), A3, <sumAngularMoment+1>(F16.12), A3, F16.12)") "Primitiva numero: ", &
+                                  !      primitiveCounterdebug, &
+                                  !      " (", pi, ",", pj, "|", pk, ",", pl, ") ", &
+                                  !      incompletGamma(0:sumAngularMoment), &
+                                  !      " | ", &
+                                  !      primitiveQuartet%F(1:sumAngularMoment+1), &
+                                  !      " | ", &
+                                  !      auxIntegrals(1)
+
                                else
                                   ! write(*,*)"Pointer printing"
                                   ! write(*,*)pi,pj,pk,pl
@@ -606,13 +642,12 @@ contains
                                        contractions(aa)%angularMoment), pBuild)
                                   
                                   resultPc = pBuild(LibintInterface_instance%libint,1)
-                                  
+
                                   call c_f_pointer(resultPc, temporalPtr, arraySsize)
                                   
                                   integralsPtr => temporalPtr
                                   
-                                  auxIntegrals(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy                                                                    
-                                  
+                                  auxIntegrals(1:arraySize) = integralsPtr(1:arraySize)
                                end if !!done by contractions
 
                                                                                       
@@ -628,7 +663,11 @@ contains
                                                 * contractions(bb)%primNormalization(pj,jj) &
                                                 * contractions(rr)%primNormalization(pk,kk) &
                                                 * contractions(ss)%primNormalization(pl,ll)
-                                           ! write(*,*) "( ", pi, ", ", pj, " | ", pk, ", ", pl, " )", auxIntegrals(m)
+                                           ! if(aa == 1 .and. bb == 1 .and. rr == 3 .and. ss == 3) then
+                                           !    write(*,*) "Integral Normalizada ( ", aa, ", ", bb, " | ", rr, ", ", ss, " )"
+                                           !    write(*,*) "( ", pi, ", ", pj, " | ", pk, ", ", pl, " )", auxIntegrals(m)
+                                           !    write(*,*) contractions(rr)%primNormalization(pk,kk)
+                                           ! end if
                                         end do
                                      end do
                                   end do
@@ -639,6 +678,12 @@ contains
                                     * contractions(bb)%contractionCoefficients(pj) &
                                     * contractions(rr)%contractionCoefficients(pk) &
                                     * contractions(ss)%contractionCoefficients(pl)                                                             
+                               ! write(*,*) "(",aa,",",bb,"|",rr,",",ss,")", ": ", &
+                               !      "(",pi,",",pj,"|",pk,",",pl,")", ": ", &
+                               !      contractions(aa)%contractionCoefficients(pi), &
+                               !      contractions(bb)%contractionCoefficients(pj), &
+                               !      contractions(rr)%contractionCoefficients(pk), &
+                               !      contractions(ss)%contractionCoefficients(pl)
                                ! write(*,*) "( ", pi, ", ", pj, " | ", pk, ", ", pl, " )", auxIntegrals(1:arraySize)
 
                                integralsValue(1:arraySize) = integralsValue(1:arraySize) + auxIntegrals(1:arraySize)
@@ -651,22 +696,28 @@ contains
 
                    !!normalize by shell
                    m = 0
+                   contractionNumberperOrbital = 0
+                   ! write(*,*) "Con numero cartesian Orbital"
                    do ii = 1,  contractions(aa)%numCartesianOrbital
                       do jj = 1,  contractions(bb)%numCartesianOrbital
                          do kk = 1,  contractions(rr)%numCartesianOrbital
                             do ll = 1, contractions(ss)%numCartesianOrbital
                                m = m + 1
+                               contractionNumberperOrbital = contractionNumberperOrbital + 1
                                integralsValue(m) = integralsValue(m) &
                                     * contractions(aa)%contNormalization(ii) &
                                     * contractions(bb)%contNormalization(jj) &
                                     * contractions(rr)%contNormalization(kk) &
                                     * contractions(ss)%contNormalization(ll)                            
-                                ! write(*,*) integralsValue(m)
+                               ! if(aa == 1 .and. bb == 1 .and. rr == 3 .and. ss == 3) then
+                               !    write(*,*) "Integral Contraida ( ", aa, ", ", bb, " | ", rr, ", ", ss, " )", integralsValue(m)
+                               ! end if
                             end do
                          end do
                       end do
                    end do !! done by shell                                         
-                   
+                   totalIntegralswithP = totalIntegralswithP + contractionNumberperOrbital
+                   write(*,*) "Number of integrals : ", contractionNumberperOrbital, totalIntegralswithP
                    !!write to disk
                    m = 0
                    do i = 1, contractions(aa)%numCartesianOrbital
@@ -705,7 +756,15 @@ contains
                                      
                                      !! Descarted! (they are repeated)
                                   else
-                                   if(abs(integralsValue(m)) > 1.0D-10) then
+
+                                     write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2, A3, F16.12)") &
+                                          "Contraida numero: ", &
+                                          contractionNumberdebug, &
+                                          " (", pa, ",", pb, "|", pr, ",", ps, ") ", &
+                                          " | ", &
+                                          integralsValue(m)
+                                                                         
+                                     if(abs(integralsValue(m)) > 1.0D-10) then
 
                                         counter = counter + 1
                                         auxCounter = auxCounter + 1
@@ -725,7 +784,7 @@ contains
                                              eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                              eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                              eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-                                        
+
                                         counter = 0
                                         
                                      end if
@@ -764,6 +823,16 @@ contains
          eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
     
     ! close(69)
+    ! write(*,*) &
+    !      "Contraida numero: ", &
+    !      contractionNumberdebug, &
+    !      " (", eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), "," , &
+    !      eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), "|", &
+    !      eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), ",", &
+    !      eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), ") ", &
+    !      " | ", &
+    !      eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+
     close(34)
 
     write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
