@@ -237,7 +237,6 @@ contains
     call Matrix_constructor(qe, int(surface%sizeSurface,8), 1)
     call Matrix_constructor(aux_surface, int(surface%sizeSurface,8), 4_8)
 
-    write(*,*)"construi la aux como matrix type"
 
     do k=1,surface%sizeSurface
        aux_surface%values(k,1)=surface%xs(k)
@@ -246,7 +245,6 @@ contains
        aux_surface%values(k,4)=surface%area(k)
     end do
     
-		write(*,*)"construi la aux como matrix type"
 
     ! write(*,*)"lo alimenté ",k," veces"
     ! write(*,*)"dummy vs real"	

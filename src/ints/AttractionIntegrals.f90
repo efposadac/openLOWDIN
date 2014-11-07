@@ -193,7 +193,8 @@ contains
                * contractedGaussianB%contNormalization(q)
           
           integral(m) = auxIntegral
-
+					
+					! write(*,*) integral(:)
 
        end do
     end do
@@ -311,7 +312,7 @@ contains
              indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
 						 
 						 if (present(isCosmo_aux2)) then
-							  IntegralValue=AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+							 integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
 						 else
 							 integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
 						 end if
