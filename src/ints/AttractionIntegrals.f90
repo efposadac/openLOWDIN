@@ -174,27 +174,20 @@ contains
 
           exp2(0:nprim2-1) = contractedGaussianB%orbitalExponents(1:nprim2)
           nor2(0:nprim2-1) = contractedGaussianB%primNormalization(1:nprim2,q)
-             
+
           am1 = 0
           am2 = 0
 
           am1(0:2) = angularMomentIndexA(1:3, p)
           am2(0:2) = angularMomentIndexB(1:3, q)
 
-					if(present(isCosmo_aux)) then
-						call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral, isCosmo_aux)
-					else
-						call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral)
+          call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral)
 
-					end if
 
-          
           auxIntegral = auxIntegral * contractedGaussianA%contNormalization(p) &
                * contractedGaussianB%contNormalization(q)
-          
+
           integral(m) = auxIntegral
-					
-					! write(*,*) integral(:)
 
        end do
     end do
@@ -311,11 +304,7 @@ contains
 
              indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
 						 
-						 if (present(isCosmo_aux2)) then
-							 integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
-						 else
-							 integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
-						 end if
+						 integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
 
           end do
 					! write(*,*) "se ha llamado obara-saika ",atom," veces"

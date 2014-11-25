@@ -446,7 +446,7 @@ C Solvent-excluding Surface
       IF(KSURF.EQ.'ESURF')THEN
 
        IF(GHOST)CALL SHELL(NCOR,LPR,RD)
-      
+
        CALL BULK(NATOM,NCOR,NDIV,OFAC,RD,LPR)
 
        IF(LPR)CALL PCOUNT(NATOM,NCOR,KSURF,LPR)
@@ -491,7 +491,7 @@ C Print several files
       IF(PVEC)CALL PRIVEC(NP,DVEC,TIT,LT,VECF,LPR)
 
       IF(PDIS)CALL PRIDIS(NP,DISF,TIT,LT,LPR)
-     
+
 
       STOP
       END
@@ -759,13 +759,13 @@ C     ---------------------------------------------------------------
       NESFI=0
       GHOST=.FALSE.
 
-      OPEN(UNIT=1,FILE=COOF,FORM='FORMATTED',STATUS='UNKNOWN')
+      OPEN(UNIT=30,FILE=COOF,FORM='FORMATTED',STATUS='UNKNOWN')
       IF(LPR)WRITE(6,'(A/1x,A)')' Reading Coordinates from file:'
      &                          ,COOF
 
       WRITE(6,'(/A)')' Title found in coordinate file'
       WRITE(6,'( A)')' -------------------------------'
-    1 READ (1,'(A)') TITULO
+    1 READ (30,'(A)') TITULO
       IF(TITULO(1:1).EQ.'*')THEN
       WRITE(6,'(A)')TITULO
       GO TO 1
@@ -775,7 +775,8 @@ C     ---------------------------------------------------------------
 
       
       DO  I = 1,NATOM
-      READ (1,'(4F10.5,A)') XE(I),YE(I),ZE(I),RE(I),LABEL(I)
+      READ (30,'(4F10.5)') XE(I),YE(I),ZE(I),RE(I)
+			write(*,*) XE(I),YE(I),ZE(I),RE(I)
 
        IF((RE(I).GT.-0.00001).AND.(RE(I).LT.0.00001)) THEN
 
@@ -799,7 +800,7 @@ C     ---------------------------------------------------------------
 
       END DO
 
-      CLOSE(UNIT=1)
+      CLOSE(UNIT=30)
   
       WRITE(6,'(/A)')' About initial set of coordinates'
       WRITE(6,'( A)')' --------------------------------'

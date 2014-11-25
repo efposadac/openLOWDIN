@@ -595,7 +595,7 @@ contains
 	
     call get_command_argument (1,value=title)
 		write(*,*)'gepol data'
-		150 format (F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
+		150 format (4(F10.5))
 		open(unit=41, file="gepol.xyzr",status="replace", form="formatted")
 
 		write(41,"(I8)") MolecularSystem_instance%numberOfPointCharges

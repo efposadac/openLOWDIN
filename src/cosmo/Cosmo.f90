@@ -28,24 +28,20 @@
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 program Cosmo
-  use CosmoTools_
+  ! use CosmoTools_
   use CONTROL_
   use MolecularSystem_
   use Matrix_
   use String_
-	use CosmoCore_
+  use CosmoCore_
   implicit none 
 
-  
-	integer(8) :: n
-	integer :: np
+  integer(8) :: n
 
-	
-	type(Matrix) :: cmatin
-	type(Matrix) :: qc
-	type(Matrix) :: qq
+  type(Matrix) :: cmatin
+  type(Matrix) :: qc
+  type(Matrix) :: qq
 
-	n=4
 
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
@@ -56,17 +52,17 @@ program Cosmo
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-
-	!cmatin es el dummy de cmatinv
-	call CosmoTools_constructor(surfaceSegment_instance,cmatin)	
 	
-	!call CosmoTools_quantum(n,np)
 
-	call CosmoTools_clasical(surfaceSegment_instance,n,cmatin,qc)
+  !cmatin es el dummy de cmatinv
+  call CosmoCore_constructor(surfaceSegment_instance,cmatin)	
 
-	!write(*,*)quantum charges
+	n=MolecularSystem_instance%numberOfParticles
+	write(*,*)"n", n
+
+  call CosmoCore_clasical(surfaceSegment_instance,n,cmatin,qc)
 	
-	call CosmoTools_quantum(surfaceSegment_instance,n,cmatin,qq)
+  ! call CosmoTools_quantum(surfaceSegment_instance,n,cmatin,qq)
 
 end program Cosmo
 

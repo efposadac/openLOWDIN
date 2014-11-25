@@ -36,7 +36,10 @@ Program Ints
   character(50) :: speciesName
   
 	type(surfaceSegment) :: surface_aux
-
+!!Cosmo test
+	real(8) :: x,y,z
+	integer :: j
+!Cosmo test
 
   integer(8) :: nprocess
   integer(8) :: process
@@ -92,6 +95,7 @@ Program Ints
      close(30)
 
   case("COSMO")
+  call Stopwatch_start(lowdin_stopwatch)
 
      write(*,"(A)")"----------------------------------------------------------------------"
      write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
@@ -107,16 +111,35 @@ Program Ints
 		 call CosmoCore_filler(surface_aux)
      
 		 !!Open file to store integrals
-     open(unit=40, file="cosmo.opints", status="unknown", form="unformatted")
+     ! open(unit=70, file="cosmo.opints", status="unknown")
+		 ! open(unit=80, file="cosmo.charges", status="unknown")
+     open(unit=70, file="cosmo.opints", status="unknown",form="unformatted")
+		 open(unit=80, file="cosmo.charges", status="unknown",form="unformatted")
 
      !!Calculate attraction integrals
 
 		 call IntegralManager_getAttractionIntegrals(surface_aux)
 
+
      !stop time
 
      call Stopwatch_stop(lowdin_stopwatch)
-		 close(40)
+     
+		 write(*, *) ""
+     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*, *) ""
+		 
+		 close(80)
+		 close(70)
+     ! open(unit=70, file="cosmo.opints", status="unknown")
+		 ! write(*,*) "desde 70"
+		 ! 20 format (3F10.5)
+     !
+			! do j=1,95
+			! 	read(70,20) x,y,z
+			! 	write(*,*) x,y,z
+			! end do
+
 		
      
   case("TWO_PARTICLE_R12_INTRA")
