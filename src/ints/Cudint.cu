@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <cuda.h>
-
+#include "CudintF.h"
+// using namespace std;
 
 const int numberOfThreads = 256;
 const double pi = 3.14159265358979323846;
@@ -205,19 +206,28 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
                                        double *contractionContNormalization,
                                        double *contractionPrimNormalization,
 				       double *contractionIntegrals,
-				       int *contractionIndices)
+				       int *contractionIndices, 
+				       int *labelsOfContractions)
 {
   int N;
   double *integralValues, *integralValues_d;
   int a, b, r, s, u, n;
+  int aa, bb, rr, ss;
+  int i,j,k,l,m,p, counterPerCatersian;
+  int ii, jj, kk, ll;
+  int pa, pb, pr, ps;
+  int * pi, * pj, * pk, * pl;
+  int * poi, * poj, * pok, * pol;
   int *contLength;
-  int contractionsMem, totalPrimitives, unicintegrals, unicintegralsMem, exponentSize;
+  int totalPrimitives;
+  int contractionsMem, unicintegrals, unicintegralsMem, exponentSize;
   int *contIndices, *primIndices, *contCounter;
   double *exponents, *primNormalization, *coefficients, *origin, *contNormalization, *contractedIntegrals, *integralValuesTotal;
   int *angularMoments;
+  int *numCartesianOrbitals, *labelsForContractions;
   int *numberOfPPUC, contractionsMemDoub, unicintegralsMemDoub;
-  int i,j,k,l,m,p;
   int auxCounter, originSize;
+  // int sumAngularMoment;
 
   //Cuda Arrays
   int *contIndices_d, *primIndices_d, *contLength_d, *contCounter_d, *angularMoments_d;
@@ -259,6 +269,10 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   contNormalization = (double *)malloc(contractionsMemDoub);
   // Angular moments of contractions
   angularMoments = (int *)malloc(contractionsMem);
+  // Number of cartesian orbitals
+  numCartesianOrbitals = (int *)malloc(contractionsMem);
+  // Labels of cartesian orbitals
+  labelsForContractions = (int *)malloc(contractionsMem);
   //////////////////////////////////////////////////////////////////////
 
   auxCounter = 0;
@@ -266,7 +280,9 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
     {
       contNormalization[i] = *(contractionContNormalization+i);
       angularMoments[i] = *(contractionAngularMoment+i);
-      // printf("Angular moments: %d\n", angularMoments[i]);
+      numCartesianOrbitals[i] = *(contractionNumCartesianOrbital+i);
+      labelsForContractions[i] = *(labelsOfContractions+i);
+      printf("Angular moments: %d\n", angularMoments[i]);
       for(j=0; j<3; j++)
 	{
 	  origin[j+i*3] = *(contractionOrigin+(j+i*3));
@@ -288,9 +304,12 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
 	// printf(" (%d) %f %f %f\n", i, exponents[i], coefficients[i], primNormalization[i]);
       }
 
+  getIndices(*numberOfContractions, contLength, angularMoments, numCartesianOrbitals, labelsForContractions, &totalPrimitives);
+  printf("Salida: %d\n", totalPrimitives);
+
   m=0;
-  totalPrimitives = 0;
-  // printf("NUmber of Contractions Cudint: %d\n", *numberOfContractions);
+  // totalPrimitives = 0;
+  printf("Number of Contractions Cudint: %d\n", *numberOfContractions);
   for( a = 1;  a<=*numberOfContractions; a++)
     {
       n = a;
@@ -301,14 +320,171 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   	    {
   	      for( s = u; s<=*numberOfContractions; s++)
   		{
-		  contIndices[m*4] = a;
-		  contIndices[m*4+1] = b;
-		  contIndices[m*4+2] = r;
-		  contIndices[m*4+3] = s;
-		  numberOfPPUC[m] = contLength[a-1]*contLength[b-1]*contLength[r-1]*contLength[s-1];
-		  totalPrimitives += numberOfPPUC[m];
-		  // printf("Contraction C (%d): (%d,%d|%d,%d) %d\n", m, a, b, r, s, numberOfPPUC[m] );
-		  m++;
+  		  numberOfPPUC[m] = contLength[a-1]*contLength[b-1]*contLength[r-1]*contLength[s-1];
+  		  // totalPrimitives += numberOfPPUC[m];
+  		  // This is new, is necessary for the correct contractionsto know the correct indices of hight angular moments
+  		  // sumAngularMoment = angularMoments[a-1] + angularMoments[b-1] + angularMoments[r-1] + angularMoments[s-1];
+
+  		  int aux = 0;
+  		  int order = 0;
+
+  		  //permuted index
+  		  aa = a;
+  		  bb = b;
+  		  rr = r;
+  		  ss = s;
+                   
+                  //pointer to permuted index under a not permuted loop
+  		  pi = &i;
+  		  pj = &j;
+  		  pk = &k;
+  		  pl = &l;
+                   
+  		  //pointer to not permuted index under a permuted loop
+  		  poi = &i;
+  		  poj = &j;
+  		  pok = &k;
+  		  pol = &l;
+		  
+  		  if (angularMoments[a-1] < angularMoments[b-1])
+  		    {
+  		      aa = b;
+  		      bb = a;
+                      
+  		      pi = &j;
+  		      pj = &i;
+                      
+  		      poi = &j;
+  		      poj = &i;
+                      
+  		      order = order + 1;
+  		    }
+                   
+  		  if (angularMoments[r-1] < angularMoments[s-1])
+  		    {
+  		      // printf("encontre un r menor: %d , %d\n", angularMoments[r-1], angularMoments[s-1]);
+  		      rr = s;
+  		      ss = r;
+                      
+  		      pk = &l;
+  		      pl = &k;
+                      
+  		      pok = &l;
+  		      pol = &k;
+                      
+  		      order = order + 3;
+  		    }
+                   
+                   if((angularMoments[a-1] + angularMoments[b-1]) < (angularMoments[r-1] + angularMoments[s-1]))
+  		     {  
+  		       aux = aa;
+  		       aa = rr;
+  		       rr = aux;
+                      
+  		       aux = bb;
+  		       bb = ss;
+  		       ss = aux;
+                      
+  		       switch(order)
+  			 {
+  			 case 0:
+  			   pi = &k;
+  			   pj = &l;
+  			   pk = &i;
+  			   pl = &j;
+                         
+  			   poi = &k;
+  			   poj = &l;
+  			   pok = &i;
+  			   pol = &j;
+  			   break;
+  			 case 1:
+  			   pi = &k;
+  			   pj = &l;
+  			   pk = &j;
+  			   pl = &i;
+                         
+  			   poi = &l;
+  			   poj = &k;
+  			   pok = &i;
+  			   pol = &j;
+  			   break;
+  			 case 3:
+  			   pi = &l;
+  			   pj = &k;
+  			   pk = &i;
+  			   pl = &j;
+                         
+  			   poi = &k;
+  			   poj = &l;
+  			   pok = &j;
+  			   pol = &i;
+  			   break;
+  			 case 4:
+  			   pi = &l;
+  			   pj = &k;
+  			   pk = &j;
+  			   pl = &i;
+                         
+  			   poi = &l;
+  			   poj = &k;
+  			   pok = &j;
+  			   pol = &i;
+  			   break;
+  			 }
+  		     }
+
+  		   contIndices[m*4] = a;
+  		   contIndices[m*4+1] = b;
+  		   contIndices[m*4+2] = r;
+  		   contIndices[m*4+3] = s;
+  		  //  printf("Contraction C (%d): (%d,%d|%d,%d) %d | %d, %d, %d, %d \n", m, a, b, r, s, 
+  		  // 	  numberOfPPUC[m], 
+  		  // 	  numCartesianOrbitals[a-1], 
+  		  // 	  numCartesianOrbitals[b-1], 
+  		  // 	  numCartesianOrbitals[r-1], 
+  		  // 	  numCartesianOrbitals[s-1]);
+  		  // printf("Contraction C2 (%d): (%d,%d|%d,%d) %d\n", m, aa, bb, rr, ss, numberOfPPUC[m] );
+
+  		  /////////////////////////////////////////////////////////////////////////////////////////////
+  		  //////////////////////Take care this part is new
+
+  		  counterPerCatersian = 0;
+  		  for(i=1; i<=numCartesianOrbitals[aa-1]; i++)
+  		    for(j=1; j<=numCartesianOrbitals[bb-1]; j++)
+  		      for(k=1; k<=numCartesianOrbitals[rr-1]; k++)
+  			for(l=1; l<=numCartesianOrbitals[ss-1]; l++)
+  			  {
+			    
+
+  			    counterPerCatersian = counterPerCatersian + 1;
+
+  			    // index not permuted
+  			    pa=labelsForContractions[a-1] + *poi - 1;
+  			    pb=labelsForContractions[b-1] + *poj - 1;
+  			    pr=labelsForContractions[r-1] + *pok - 1;
+  			    ps=labelsForContractions[s-1] + *pol - 1;
+
+                               
+  			    if( pa <= pb && pr <= ps && (pa*1000)+pb >= (pr*1000)+ps)
+  			      {
+  				aux = pa;
+  				pa = pr;
+  				pr = aux;
+                                  
+  				aux = pb;
+  				pb = ps;
+  				ps = aux;
+  			      }
+
+  			    if( pa <= pb && pr <= ps )
+  			      {
+  				// printf("Contraction (%d): (%d,%d|%d,%d) -> [%d, %d, %d, %d] (%d,%d|%d,%d) \n", m, aa, bb, rr, ss, i, j, k, l, 
+  				//        pa, pb, pr, ps);
+  			      }
+  			  }
+  		  //////////////////////////////////////////////////////////////////////////////////////////////
+  		  m++;
   		}
   	      u = r+1;
   	    }
@@ -328,25 +504,25 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
   	    {
   	      for( s = u; s<=*numberOfContractions; s++)
   		{
-		  for(i=1;i<=contLength[a-1];i++)
-		    for(j=1;j<=contLength[b-1];j++)
-		      for(k=1;k<=contLength[r-1];k++)
-			for(l=1;l<=contLength[s-1];l++)
-			  {
-			    primIndices[5*p] = m;
-			    primIndices[5*p+1] = i;
-			    primIndices[5*p+2] = j;
-			    primIndices[5*p+3] = k;
-			    primIndices[5*p+4] = l;
-			    // printf("%d, %d, %d, %d\n",i,j,k,l);
-			    // printf("Primitives %d, %d, %d, %d, %d\n", primIndices[5*p],
-			    	   // primIndices[5*p+1],
-			    	   // primIndices[5*p+2],
-			    	   // primIndices[5*p+3],
-			    	   // primIndices[5*p+4]);
-			    p++;
-			  }
-		  m++;
+  		  for(i=1;i<=contLength[a-1];i++)
+  		    for(j=1;j<=contLength[b-1];j++)
+  		      for(k=1;k<=contLength[r-1];k++)
+  			for(l=1;l<=contLength[s-1];l++)
+  			  {
+  			    primIndices[5*p] = m;
+  			    primIndices[5*p+1] = i;
+  			    primIndices[5*p+2] = j;
+  			    primIndices[5*p+3] = k;
+  			    primIndices[5*p+4] = l;
+  			    // printf("%d, %d, %d, %d\n",i,j,k,l);
+  			    // printf("Primitives %d, %d, %d, %d, %d\n", primIndices[5*p],
+  			    	   // primIndices[5*p+1],
+  			    	   // primIndices[5*p+2],
+  			    	   // primIndices[5*p+3],
+  			    	   // primIndices[5*p+4]);
+  			    p++;
+  			  }
+  		  m++;
   		}
   	      u = r+1;
   	    }
@@ -354,8 +530,8 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
     }
 
 
-  // printf("Total Primitive: %d\n", totalPrimitives);
-
+  printf("Total Primitive: %d\n", totalPrimitives);
+ 
   N=totalPrimitives;	  
   integralValuesTotal = (double *)malloc(N*sizeof(double));
   ////////////////////////////////////////////////////////////////////                                                                                                                                                                        /// Total threads in GPUs

@@ -1,6 +1,7 @@
 #!/bin/bash
 SRCMOD=$(ls [!_]*.f90)
 SRCMOD="$SRCMOD $(ls [!_]*.cpp)" 
+SRCMOD="$SRCMOD $(ls [!_]*.c)" 
 SRCMOD="$SRCMOD $(ls [!_]*.cu)" 
 #
 rm -f makefile
@@ -60,9 +61,17 @@ SRCMOD=$(ls [!_]*.cpp)
 for file in $SRCMOD 
 do
     echo -e "${file%.cpp}.o:\t${file} \c" >> makefile
-    echo -e "\n\t\$(CXX) -c \$(INC) \$(CFLAGS) ${file}\n" >> makefile
+    echo -e "\n\t\$(CU) -c \$(INC) ${file}\n" >> makefile
+# \$(CFLAGS) ${file}\n" >> makefile
 done
 #
+#c sources
+SRCMOD=$(ls [!_]*.c)
+for file in $SRCMOD 
+do
+    echo -e "${file%.c}.o:\t${file} \c" >> makefile
+    echo -e "\n\t\$(CU) -c \$(INC) ${file}\n" >> makefile
+done
 #cuda sources
 SRCMOD=$(ls [!_]*.cu)
 for file in $SRCMOD 

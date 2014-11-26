@@ -64,7 +64,8 @@ module CudintInterface_
           contractionContNormalization, &
           contractionPrimNormalization, &
           contractionIntegrals, &
-          contractionIndices) bind (C, name = "cuda_int_intraspecies_")
+          contractionIndices, &
+          labelsOfContractions) bind (C, name = "cuda_int_intraspecies_")
        use, intrinsic :: iso_c_binding
        implicit none
        integer (c_int) :: numberOfContractions
@@ -82,6 +83,7 @@ module CudintInterface_
        real (c_double) :: contractionPrimNormalization(*)
        real (c_double) :: contractionIntegrals(*)
        integer (c_int) :: contractionIndices(*)
+       integer (c_int) :: labelsOfContractions(*)
      end subroutine cuda_int_intraspecies
     
  
@@ -102,12 +104,13 @@ contains
     integer :: totalNumberOfContractions
     integer :: maxAngularMoment
     integer :: sumAngularMoment
-    integer :: auxCounter, counter, control
+    integer :: auxCounter, counter, control, aux
 
     integer,target :: i, j, k
     type(ContractedGaussian), allocatable :: contractions(:) !< Basis set for specie
 
     integer, allocatable :: contractionId(:)
+    integer, allocatable :: labelsOfContractions(:)
     integer, allocatable :: contractionLength(:)
     integer, allocatable :: contractionAngularMoment(:)
     integer, allocatable :: contractionNumCartesianOrbital(:)
@@ -156,6 +159,7 @@ contains
     if(allocated(contractionNumCartesianOrbital)) deallocate(contractionNumCartesianOrbital)
     if(allocated(contractionOwner)) deallocate(contractionOwner)
     if(allocated(contractionOrigin)) deallocate(contractionOrigin)
+    if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
 
     allocate(contractionId(numberOfContractions))
     allocate(contractionLength(numberOfContractions))
@@ -163,8 +167,10 @@ contains
     allocate(contractionNumCartesianOrbital(numberOfContractions))
     allocate(contractionOwner(numberOfContractions))
     allocate(contractionOrigin(numberOfContractions*3))
+    allocate(labelsOfContractions(numberOfContractions))
 
     primNormalizationSize=0
+    aux = 1
     do i=1, numberOfContractions
        contractionId(i) = contractions(i)%id
        contractionLength(i) = contractions(i)%length
@@ -175,6 +181,9 @@ contains
        contractionOrigin(i*3-1) = contractions(i)%origin(2)
        contractionOrigin(i*3) = contractions(i)%origin(3)
        primNormalizationSize = primNormalizationSize + contractionLength(i)
+       !!position for cartesian contractions
+       labelsOfContractions(i) = aux
+       aux = aux + contractions(i)%numCartesianOrbital          
     end do
 
   
@@ -227,7 +236,6 @@ contains
     allocate(contractionIndices(unicIntegrals*4))
 
 
-! <<<<<<< HEAD
     call cuda_int_intraspecies(&
          numberOfContractions, &
          maxNumCartesianOrbital, &
@@ -243,27 +251,9 @@ contains
          contractionContNormalization, &
          contractionPrimNormalization, &
          contractionIntegrals, &
-         contractionIndices &
+         contractionIndices, &
+         labelsOfContractions &
          )
-! =======
-!     ! call cuda_int_intraspecies(&
-!     !      numberOfContractions, &
-!     !      maxLength, &
-!     !      maxNumCartesianOrbital, &
-!     !      primNormalizationLength, &
-!     !      maxprimNormalizationLength, &
-!     !      contractionId, &
-!     !      contractionLength, &
-!     !      contractionAngularMoment, &
-!     !      contractionNumCartesianOrbital, &
-!     !      contractionOwner, &
-!     !      contractionOrigin, &
-!     !      contractionOrbitalExponents, &
-!     !      contractionCoefficients, &
-!     !      contractionContNormalization, &
-!     !      contractionPrimNormalization &
-!     !      )
-! >>>>>>> 4b26bf79c7d0611b371844c5313c02f5c0500e13
 
     auxCounter = 0
     counter = 0
