@@ -25,7 +25,7 @@ __device__ float errorFunction(int order, double tFunc)
 
   tFuncsqrt = sqrt(tFunc);
 
-  if(round(tFunc) == 0.0)
+  if(tFunc == 0.0)
     errorF = 1.0/(2*order + 1);
   else
     {
@@ -164,9 +164,7 @@ __global__ void analyticInts(int N,
       KKL = exp(-(D/B)*rKL);
 
       prefact = sqrt(etha/pi)*sqrt(pi/A)*(pi/A)*sqrt(pi/B)*(pi/B)*KIJ*KKL;
-      // if(aa==1 && bb==1 && rr==1 && ss==2)
-      // 	printf("etha: %f KIJ: %f KKL: %f prefact: %f %f %f %f\n", etha, KIJ, KKL, prefact, D, B, rKL);
-      
+
       rPx =(exponentII*IIx+exponentJJ*JJx)/A;
       rPy =(exponentII*IIy+exponentJJ*JJy)/A;
       rPz =(exponentII*IIz+exponentJJ*JJz)/A;
@@ -223,19 +221,34 @@ __global__ void analyticInts(int N,
 	    {
 	    case 68: // Integral (px,s|px,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQx-KKx)*(FB*(rPQx-rPx) + FA*(rPx-IIx)) + 2*(rPQx-rQx)*(FC*(rPQx-rPx) + FB*(rPx-IIx)));
+              // if(aa==3 && bb==1 && rr==3 && ss==1)			 
+              // printf("Sin norm px: (%d,%d|%d,%d) = %f %f %d %d\n", aa, bb, rr, ss, preIntegral, dij, alpha, kappa);	
 	      break;
 	    case 72: // Integral (px,s|py,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQy-KKy)*(FB*(rPQx-rPx) + FA*(rPx-IIx)) + 2*(rPQy-rQy)*(FC*(rPQx-rPx) + FB*(rPx-IIx)));
+              // if(aa==3 && bb==1 && rr==3 && ss==1)			 
+              // printf("Sin norm py: (%d,%d|%d,%d) = %f %f %d %d\n", aa, bb, rr, ss, preIntegral, dij, alpha, kappa);	
 	      break;
 	    case 76: // Integral (px,s|pz,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQz-KKz)*(FB*(rPQx-rPx) + FA*(rPx-IIx)) + 2*(rPQz-rQz)*(FC*(rPQx-rPx) + FB*(rPx-IIx)));
+              // if(aa==3 && bb==1 && rr==3 && ss==1)			 
+              // printf("Sin norm pz: (%d,%d|%d,%d) = %f %f %d %d\n", aa, bb, rr, ss, preIntegral, dij, alpha, kappa);		      
 	      break;
+	    // case 132: // Integral (py,s|px,s)
+	    //   preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQx-KKx)*(FB*(rPQy-rPy) + FA*(rPy-IIy)) + 2*(rPQx-rQx)*(FC*(rPQy-rPy) + FB*(rPy-IIy)));
+	    //   break;
 	    case 136: // Integral (py,s|py,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQy-KKy)*(FB*(rPQy-rPy) + FA*(rPy-IIy)) + 2*(rPQy-rQy)*(FC*(rPQy-rPy) + FB*(rPy-IIy)));
 	      break;
 	    case 140: // Integral (py,s|pz,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQz-KKz)*(FB*(rPQy-rPy) + FA*(rPy-IIy)) + 2*(rPQz-rQz)*(FC*(rPQy-rPy) + FB*(rPy-IIy)));
 	      break;
+            // case 196: // Integral (pz,s|px,s)
+	    //   preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQx-KKx)*(FB*(rPQz-rPz) + FA*(rPz-IIz)) + 2*(rPQx-rQx)*(FC*(rPQz-rPz) + FB*(rPz-IIz)));
+	    //   break;
+            // case 200: // Integral (pz,s|py,s)
+	    //   preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQy-KKy)*(FB*(rPQz-rPz) + FA*(rPz-IIz)) + 2*(rPQy-rQy)*(FC*(rPQz-rPz) + FB*(rPz-IIz)));
+	    //   break;
 	    case 204: // Integral (pz,s|pz,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQz-KKz)*(FB*(rPQz-rPz) + FA*(rPz-IIz)) + 2*(rPQz-rQz)*(FC*(rPQz-rPz) + FB*(rPz-IIz)));
 	      break;
@@ -270,11 +283,12 @@ __global__ void analyticInts(int N,
 	    }
 	  break;
 	}
-      // if(aa == 1 && bb == 1 && rr == 1 && ss == 2)
-      // 	{
-      // 	  printf("Sin Norm:  %f %f | %f %f\n",
-      // 		 preIntegral, prefact, FA, rKL);
-      // 	}
+      if(aa == 3 && bb == 1 && rr == 3 && ss == 1 && alpha == 1)
+      	{
+      	  printf("Sin Norm:  %f %f | %f FA: %f FB: %f FC: %f\n", 
+      		 preIntegral, prefact, 
+      		 tFunc, FA, FB, FC);
+      	}
       normIntegral = primNormII*primNormJJ*primNormKK*primNormLL*preIntegral;
       integralValues_d[global1] = coefficientsII*coefficientsJJ*coefficientsKK*coefficientsLL*normIntegral;
     }
@@ -374,13 +388,13 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
       // printf("Angular moments: %d\n", angularMoments[i]);
       for(j=0; j<3; j++)
 	{
-	  origin[j+i*3] = *(contractionOrigin+(j+i*3));
-             printf("Origin from inter %f \n",*(contractionOrigin+(j+i*3)), origin[j+i*3]);
+	  origin[j+i*2] = *(contractionOrigin+(j+i*3));
+	  // printf("Origin %f \n",*(contractionOrigin+(j+i*3)));
 	}
       contLength[i] = *(contractionLength+i);
       contCounter[i] = auxCounter; 
       // printf("Contraction length: %d %d\n", contLength[i], contCounter[i]);
-      printf("Origins: (%f, %f, %f)\n", origin[i*3], origin[i*3+1], origin[i*3+2]);
+      // printf("Origins: (%f, %f, %f)\n", origin[i*3], origin[i*3+1], origin[i*3+2]);
       auxCounter += contLength[i];
     }
 
@@ -403,7 +417,6 @@ extern "C" void cuda_int_intraspecies_(int *numberOfContractions,
       auxNumberOfPPUC[i*3] = *(numberOfPPUC+(i*3));
       auxNumberOfPPUC[i*3+1] = *(numberOfPPUC+(i*3+1));
       auxNumberOfPPUC[i*3+2] = *(numberOfPPUC+(i*3+2));
-      /* printf("Contraction num: %d (%d,%d|%d,%d)\n", i, contIndices[i*4], contIndices[i*4+1], contIndices[i*4+2], contIndices[i*4+3]); */
     }
 
   primIndices = (int *)malloc(totalPrim*9*sizeof(int));

@@ -317,25 +317,25 @@ contains
     allocate(labelsOfContractions(numberOfContractions))
 
     !! Debug
-    write(*,*) "SSize: ", ssize
-    write(*,*) "Max Angular Moment: ", maxAngularMoment
-    write(*,*) "Number of Primitives: ", numberOfPrimitives
-    write(*,*) "Number of Contractions: ", numberOfContractions
-    write(*,*) "Total number of Contractions: ", numberOfContractions
+    !write(*,*) "SSize: ", ssize
+    !write(*,*) "Max Angular Moment: ", maxAngularMoment
+    !write(*,*) "Number of Primitives: ", numberOfPrimitives
+    !write(*,*) "Number of Contractions: ", numberOfContractions
+    !write(*,*) "Total number of Contractions: ", numberOfContractions
 
     !!Real labels for contractions
     aux = 1
     do i = 1, numberOfContractions
        !!position for cartesian contractions
        labelsOfContractions(i) = aux
-       write(*,*) "Label of Contractions: ", labelsOfContractions(i)
+       ! write(*,*) "Label of Contractions: ", labelsOfContractions(i)
        aux = aux + contractions(i)%numCartesianOrbital          
     end do
 
     !! allocating space for integrals just one time (do not put it inside do loop!!!)
     arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
 
-    write(*,*) "Array size: ", arraySize
+    ! write(*,*) "Array size: ", arraySize
 
     if(allocated(incompletGamma)) deallocate(incompletGamma)
     if(allocated(auxIntegrals)) deallocate(auxIntegrals)
@@ -617,8 +617,9 @@ contains
                                
                                if(arraySize == 1) then
                                   ! write(*,*)"Pointer printing (ss|ss)"
-                                  ! write(*,*)pi,pj,pk,pl
+                                  write(*,*)pi,pj,pk,pl
                                   auxIntegrals(1) = primitiveQuartet%F(1)
+                                  write(*,*) auxIntegrals(1), s1234,  incompletGamma(0:sumAngularMoment), CD2
 
                                   ! write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2,<sumAngularMoment+1>(F16.12), A3, <sumAngularMoment+1>(F16.12), A3, F16.12)") "Primitiva numero: ", &
                                   !      primitiveCounterdebug, &
@@ -658,6 +659,13 @@ contains
                                      do kk = 1, contractions(rr)%numCartesianOrbital
                                         do ll = 1, contractions(ss)%numCartesianOrbital
                                            m = m + 1
+                                           !if(aa == 1 .and. bb == 1 .and. rr == 3 .and. ss == 1) then
+                                           !   write(*,*) "Integral sin Norm, K= ", kk
+                                           !   write(*,*) "( ", aa, ", ", bb, " | ", rr, ", ", ss, " )"
+                                           !   write(*,*) "( ", pi, ", ", pj, " | ", pk, ", ", pl, " )"
+                                           !   write(*,*) auxIntegrals(m)
+                                           !   write(*,*) contractions(rr)%primNormalization(pk,kk)
+                                           !end if
                                            auxIntegrals(m) = auxIntegrals(m) &
                                                 * contractions(aa)%primNormalization(pi,ii) &
                                                 * contractions(bb)%primNormalization(pj,jj) &
@@ -717,7 +725,7 @@ contains
                       end do
                    end do !! done by shell                                         
                    totalIntegralswithP = totalIntegralswithP + contractionNumberperOrbital
-                   write(*,*) "Number of integrals : ", contractionNumberperOrbital, totalIntegralswithP
+                   ! write(*,*) "Number of integrals : ", contractionNumberperOrbital, totalIntegralswithP
                    !!write to disk
                    m = 0
                    do i = 1, contractions(aa)%numCartesianOrbital
