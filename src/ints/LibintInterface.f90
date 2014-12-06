@@ -617,9 +617,9 @@ contains
                                
                                if(arraySize == 1) then
                                   ! write(*,*)"Pointer printing (ss|ss)"
-                                  write(*,*)pi,pj,pk,pl
+                                  ! write(*,*)pi,pj,pk,pl
                                   auxIntegrals(1) = primitiveQuartet%F(1)
-                                  write(*,*) auxIntegrals(1), s1234,  incompletGamma(0:sumAngularMoment), CD2
+                                  ! write(*,*) auxIntegrals(1), s1234,  incompletGamma(0:sumAngularMoment), CD2
 
                                   ! write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2,<sumAngularMoment+1>(F16.12), A3, <sumAngularMoment+1>(F16.12), A3, F16.12)") "Primitiva numero: ", &
                                   !      primitiveCounterdebug, &

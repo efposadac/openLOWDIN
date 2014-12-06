@@ -87,7 +87,7 @@ __global__ void analyticInts(int N,
   double FA, FB, FC, FD, FE;
   double rPQx, rPQy, rPQz;
   int alpha, beta, kappa, lambda, selectCart;
-  double dij;
+  double dij, dik, djk, dkl, djl, dil;
 
   if(global1< control)
     {
@@ -221,20 +221,29 @@ __global__ void analyticInts(int N,
 	  dij = kroneckerDelta(alpha, kappa);
 	  switch(selectCart)
 	    {
-	    case 68: // Integral (px,s|px,s)
+	    case 68:  // Integral (px,s|px,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQx-KKx)*(FB*(rPQx-rPx) + FA*(rPx-IIx)) + 2*(rPQx-rQx)*(FC*(rPQx-rPx) + FB*(rPx-IIx)));
 	      break;
-	    case 72: // Integral (px,s|py,s)
+	    case 72:  // Integral (px,s|py,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQy-KKy)*(FB*(rPQx-rPx) + FA*(rPx-IIx)) + 2*(rPQy-rQy)*(FC*(rPQx-rPx) + FB*(rPx-IIx)));
 	      break;
-	    case 76: // Integral (px,s|pz,s)
+	    case 76:  // Integral (px,s|pz,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQz-KKz)*(FB*(rPQx-rPx) + FA*(rPx-IIx)) + 2*(rPQz-rQz)*(FC*(rPQx-rPx) + FB*(rPx-IIx)));
+	      break;
+	    case 132: // Integral (py,s|px,s)
+	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQx-KKx)*(FB*(rPQy-rPy) + FA*(rPy-IIy)) + 2*(rPQx-rQx)*(FC*(rPQy-rPy) + FB*(rPy-IIy)));
 	      break;
 	    case 136: // Integral (py,s|py,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQy-KKy)*(FB*(rPQy-rPy) + FA*(rPy-IIy)) + 2*(rPQy-rQy)*(FC*(rPQy-rPy) + FB*(rPy-IIy)));
 	      break;
 	    case 140: // Integral (py,s|pz,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQz-KKz)*(FB*(rPQy-rPy) + FA*(rPy-IIy)) + 2*(rPQz-rQz)*(FC*(rPQy-rPy) + FB*(rPy-IIy)));
+	      break;
+	    case 196: // Integral (pz,s|px,s)
+	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQx-KKx)*(FB*(rPQz-rPz) + FA*(rPz-IIz)) + 2*(rPQx-rQx)*(FC*(rPQz-rPz) + FB*(rPz-IIz)));
+	      break;
+	    case 200: // Integral (pz,s|py,s)
+	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQy-KKy)*(FB*(rPQz-rPz) + FA*(rPz-IIz)) + 2*(rPQy-rQy)*(FC*(rPQz-rPz) + FB*(rPz-IIz)));
 	      break;
 	    case 204: // Integral (pz,s|pz,s)
 	      preIntegral = prefact*((FB*dij)/(B+A) + 2*(rQz-KKz)*(FB*(rPQz-rPz) + FA*(rPz-IIz)) + 2*(rPQz-rQz)*(FC*(rPQz-rPz) + FB*(rPz-IIz)));
@@ -269,6 +278,845 @@ __global__ void analyticInts(int N,
 	      break;
 	    }
 	  break;
+	case 84:
+	  FA = errorFunction(0, tFunc);
+	  FB = errorFunction(1, tFunc);
+	  FC = errorFunction(2, tFunc);
+	  FD = errorFunction(3, tFunc);
+	  selectCart = 64*alpha + 16*beta + 4*kappa;
+	  dij = kroneckerDelta(alpha, beta);
+	  dik = kroneckerDelta(alpha, kappa);
+	  djk = kroneckerDelta(beta, kappa);
+	  switch(selectCart)
+	    {
+	    case 84:  // Integral (px,px|px,s)
+	      preIntegral = prefact*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+				     (rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A));
+	      break;
+	    case 88:  // Integral (px,px|py,s)
+	      preIntegral = prefact*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+				     (rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A));	      
+	      break;
+	    case 92:  // Integral (px,px|pz,s)
+	      preIntegral = prefact*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+				     (rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A));	      
+	      break;
+	    case 100: // Integral (px,py|px,s)
+	      preIntegral = prefact*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy)) +
+				     (rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A));
+	      break;
+	    case 104: // Integral (px,py|py,s)
+	      preIntegral = prefact*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy)) +
+				     (rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A));
+	      break;
+	    case 108: // Integral (px,py|pz,s)
+	      preIntegral = prefact*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy)) +
+				     (rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A));
+	      break;
+	    case 116: // Integral (px,pz|px,s)
+	      preIntegral = prefact*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz)) +
+				     (rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A));
+	      break;
+	    case 120: // Integral (px,pz|py,s)
+	      preIntegral = prefact*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz)) +
+				     (rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A));
+	      break;
+	    case 124: // Integral (px,pz|pz,s)
+	      preIntegral = prefact*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+						2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz)) +
+				     (rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+						 2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+				     (FC*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A));
+	      break;
+	    case 164: // Integral (py,py|px,s)
+	      preIntegral = prefact*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+						2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy)) +
+				     (rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+						 2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+				     (FC*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+				      FB*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A));
+	      break;
+	    case 168: // Integral (py,py|py,s)
+	      preIntegral = prefact*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+						2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy)) +
+				     (rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+						 2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+				     (FC*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+				      FB*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A));
+	      break;
+	    case 172: // Integral (py,py|pz,s)
+	      preIntegral = prefact*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+						2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy)) +
+				     (rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+						 2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+				     (FC*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+				      FB*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A));
+	      break;
+	    case 180: // Integral (py,pz|px,s)
+	      preIntegral = prefact*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQz-rPz) +
+						2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPz-JJz)) +
+				     (rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+						 2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)) +
+				     (FC*(djk*(rPQy-rPy) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPy-IIy) + dik*(rPz-JJz)))/(B+A));
+	      break;
+	    case 184: // Integral (py,pz|py,s)
+	      preIntegral = prefact*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQz-rPz) +
+						2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPz-JJz)) +
+				     (rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+						 2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)) +
+				     (FC*(djk*(rPQy-rPy) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPy-IIy) + dik*(rPz-JJz)))/(B+A));
+	      break;
+	    case 188: // Integral (py,pz|pz,s)
+	      preIntegral = prefact*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQz-rPz) +
+						2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPz-JJz)) +
+				     (rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+						 2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)) +
+				     (FC*(djk*(rPQy-rPy) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPy-IIy) + dik*(rPz-JJz)))/(B+A));
+	      break;
+	    case 244: // Integral (pz,pz|px,s)
+	      preIntegral = prefact*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPQz-rPz) +
+						2*(FB*(rPQz-rPz) + FA*(rPz-IIz))*(rPz-JJz)) +
+				     (rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQz-rPz) + FC*(rPz-IIz))*(rPQz-rPz) +
+						 2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPz-JJz)) +
+				     (FC*(djk*(rPQz-rPz) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPz-IIz) + dik*(rPz-JJz)))/(B+A));
+	      break;
+	    case 248: // Integral (pz,pz|py,s)
+	      preIntegral = prefact*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPQz-rPz) +
+						2*(FB*(rPQz-rPz) + FA*(rPz-IIz))*(rPz-JJz)) +
+				     (rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQz-rPz) + FC*(rPz-IIz))*(rPQz-rPz) +
+						 2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPz-JJz)) +
+				     (FC*(djk*(rPQz-rPz) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPz-IIz) + dik*(rPz-JJz)))/(B+A));
+	      break;
+	    case 252: // Integral (pz,pz|pz,s)
+	      preIntegral = prefact*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+						2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPQz-rPz) +
+						2*(FB*(rPQz-rPz) + FA*(rPz-IIz))*(rPz-JJz)) +
+				     (rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+						 2*(FD*(rPQz-rPz) + FC*(rPz-IIz))*(rPQz-rPz) +
+						 2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPz-JJz)) +
+				     (FC*(djk*(rPQz-rPz) + dik*(rPQz-rPz)) +
+				      FB*(djk*(rPz-IIz) + dik*(rPz-JJz)))/(B+A));
+	      break;	      
+	    }
+	  break;
+	case 85:
+	  FA = errorFunction(0, tFunc);
+	  FB = errorFunction(1, tFunc);
+	  FC = errorFunction(2, tFunc);
+	  FD = errorFunction(3, tFunc);
+	  FE = errorFunction(4, tFunc);
+	  selectCart = 64*alpha + 16*beta + 4*kappa + lambda;
+	  dij = kroneckerDelta(alpha, beta);
+	  dik = kroneckerDelta(alpha, kappa);
+	  dil = kroneckerDelta(alpha, lambda);
+	  djk = kroneckerDelta(beta, kappa);
+	  djl = kroneckerDelta(beta, lambda);
+	  dkl = kroneckerDelta(kappa, lambda);
+	  switch(selectCart)
+	    {
+	    case 85:   // Integral (px,px|px,px)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-JJx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-JJx))))/(2*(B+A)) +
+				     (rQx-LLx)*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+						(rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)) +
+				     (rPQx-rQx)*((rQx-KKx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						 (rPQx-rQx)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQx-rPx) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPx-JJx)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)));
+	      break;
+	    case 86:   // Integral (px,px|px,py)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-JJx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-JJx))))/(2*(B+A)) +
+				     (rQy-LLy)*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+						(rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)) +
+				     (rPQy-rQy)*((rQx-KKx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						 (rPQx-rQx)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQx-rPx) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPx-JJx)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)));
+	      break;
+	    case 87:   // Integral (px,px|px,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-JJx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-JJx))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+						(rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)) +
+				     (rPQz-rQz)*((rQx-KKx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						 (rPQx-rQx)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQx-rPx) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPx-JJx)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)));
+	      break;
+	    case 90:   // Integral (px,px|py,py)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQy-rQy)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQx-rPx) + FB*(rPx-JJx)) +
+					   2*(rPQy-rQy)*(FD*(rPQx-rPx) + FC*(rPx-JJx))))/(2*(B+A)) +
+				     (rQy-LLy)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)) +
+				     (rPQy-rQy)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQx-rPx) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPx-JJx)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)));
+	      break;
+	    case 91:   // Integral (px,px|py,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQy-rQy)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQx-rPx) + FB*(rPx-JJx)) +
+					   2*(rPQy-rQy)*(FD*(rPQx-rPx) + FC*(rPx-JJx))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)) +
+				     (rPQz-rQz)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQx-rPx) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPx-JJx)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)));
+	      break;
+	    case 95:   // Integral (px,px|pz,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQz-rQz)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQx-rPx) + FB*(rPx-JJx)) +
+					   2*(rPQz-rQz)*(FD*(rPQx-rPx) + FC*(rPx-JJx))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQx-rPx) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPx-JJx)) +
+						(rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)) +
+				     (rPQz-rQz)*((rQz-KKz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQx-rPx) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPx-JJx)) +
+						 (rPQz-rQz)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQx-rPx) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPx-JJx)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQx-rPx)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPx-JJx)))/(B+A)));
+	      break;
+	    case 102:  // Integral (px,py|px,py)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQy-rPy) + FB*(rPy-JJy)) +
+					   2*(rPQx-rQx)*(FD*(rPQy-rPy) + FC*(rPy-JJy))))/(2*(B+A)) +
+				     (rQy-LLy)*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy)) +
+						(rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)) +
+				     (rPQy-rQy)*((rQx-KKx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						 (rPQx-rQx)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQy-rPy) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPy-JJy)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)));
+	      break;
+	    case 103:  // Integral (px,py|px,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQy-rPy) + FB*(rPy-JJy)) +
+					   2*(rPQx-rQx)*(FD*(rPQy-rPy) + FC*(rPy-JJy))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy)) +
+						(rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)) +
+				     (rPQz-rQz)*((rQx-KKx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						 (rPQx-rQx)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQy-rPy) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPy-JJy)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)));
+	      break;
+	    case 106:  // Integral (px,py|py,py)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQy-rQy)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQy-rPy) + FB*(rPy-JJy)) +
+					   2*(rPQy-rQy)*(FD*(rPQy-rPy) + FC*(rPy-JJy))))/(2*(B+A)) +
+				     (rQy-LLy)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)) +
+				     (rPQy-rQy)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQy-rPy) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPy-JJy)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)));
+	      break;
+	    case 107:  // Integral (px,py|py,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQy-rQy)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQy-rPy) + FB*(rPy-JJy)) +
+					   2*(rPQy-rQy)*(FD*(rPQy-rPy) + FC*(rPy-JJy))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)) +
+				     (rPQz-rQz)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQy-rPy) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPy-JJy)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)));
+	      break;
+	    case 111:  // Integral (px,py|pz,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQz-rQz)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQy-rPy) + FB*(rPy-JJy)) +
+					   2*(rPQz-rQz)*(FD*(rPQy-rPy) + FC*(rPy-JJy))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQy-rPy) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPy-JJy)) +
+						(rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)) +
+				     (rPQz-rQz)*((rQz-KKz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQy-rPy) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPy-JJy)) +
+						 (rPQz-rQz)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQy-rPy) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPy-JJy)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQy-rPy)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPy-JJy)))/(B+A)));
+	      break;
+	    case 119:  // Integral (px,pz|px,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQx-rQx)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQx-KKx)*(FC*(rPQz-rPz) + FB*(rPz-JJz)) +
+					   2*(rPQx-rQx)*(FD*(rPQz-rPz) + FC*(rPz-JJz))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQx-KKx)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz)) +
+						(rPQx-rQx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A)) +
+				     (rPQz-rQz)*((rQx-KKx)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+						 (rPQx-rQx)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQz-rPz) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPz-JJz)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A)));
+	      break;
+	    case 122:  // Integral (px,pz|py,py)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQy-rQy)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQz-rPz) + FB*(rPz-JJz)) +
+					   2*(rPQy-rQy)*(FD*(rPQz-rPz) + FC*(rPz-JJz))))/(2*(B+A)) +
+				     (rQy-LLy)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A)) +
+				     (rPQy-rQy)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQz-rPz) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPz-JJz)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A)));
+	      break;
+	    case 123:  // Integral (px,pz|py,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQy-rQy)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQz-rPz) + FB*(rPz-JJz)) +
+					   2*(rPQy-rQy)*(FD*(rPQz-rPz) + FC*(rPz-JJz))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A)) +
+				     (rPQz-rQz)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQz-rPz) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPz-JJz)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A)));
+	      break;
+	    case 127:  // Integral (px,pz|pz,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+					   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+						  2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQx-rPx) + FB*(rPx-IIx)) +
+					   2*(rPQz-rQz)*(FD*(rPQx-rPx) + FC*(rPx-IIx))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQz-rPz) + FB*(rPz-JJz)) +
+					   2*(rPQz-rQz)*(FD*(rPQz-rPz) + FC*(rPz-JJz))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPQz-rPz) +
+							   2*(FB*(rPQx-rPx) + FA*(rPx-IIx))*(rPz-JJz)) +
+						(rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+						(FC*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+						 FB*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A)) +
+				     (rPQz-rQz)*((rQz-KKz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPQz-rPz) +
+							    2*(FC*(rPQx-rPx) + FB*(rPx-IIx))*(rPz-JJz)) +
+						 (rPQz-rQz)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQx-rPx) + FD*(rPx-IIx))*(rPQz-rPz) +
+							     2*(FD*(rPQx-rPx) + FC*(rPx-IIx))*(rPz-JJz)) +
+						 (FD*(djk*(rPQx-rPx) + dik*(rPQz-rPz)) +
+						  FC*(djk*(rPx-IIx) + dik*(rPz-JJz)))/(B+A)));
+	      break;
+	    case 170:  // Integral (py,py|py,py)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+					   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+						  2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQy-rPy) + FB*(rPy-IIy)) +
+					   2*(rPQy-rQy)*(FD*(rPQy-rPy) + FC*(rPy-IIy))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQy-rPy) + FB*(rPy-JJy)) +
+					   2*(rPQy-rQy)*(FD*(rPQy-rPy) + FC*(rPy-JJy))))/(2*(B+A)) +
+				     (rQy-LLy)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+							   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+						(FC*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+						 FB*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A)) +
+				     (rPQy-rQy)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQy-rPy) + FD*(rPy-IIy))*(rPQy-rPy) +
+							     2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPy-JJy)) +
+						 (FD*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+						  FC*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A)));
+	      break;
+	    case 171:  // Integral (py,py|py,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+					   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+						  2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQy-rPy) + FB*(rPy-IIy)) +
+					   2*(rPQy-rQy)*(FD*(rPQy-rPy) + FC*(rPy-IIy))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQy-rPy) + FB*(rPy-JJy)) +
+					   2*(rPQy-rQy)*(FD*(rPQy-rPy) + FC*(rPy-JJy))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+							   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+						(FC*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+						 FB*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A)) +
+				     (rPQz-rQz)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQy-rPy) + FD*(rPy-IIy))*(rPQy-rPy) +
+							     2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPy-JJy)) +
+						 (FD*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+						  FC*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A)));
+	      break;
+	    case 175:  // Integral (py,py|pz,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+					   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+						  2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQy-rPy) + FB*(rPy-IIy)) +
+					   2*(rPQz-rQz)*(FD*(rPQy-rPy) + FC*(rPy-IIy))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQy-rPy) + FB*(rPy-JJy)) +
+					   2*(rPQz-rQz)*(FD*(rPQy-rPy) + FC*(rPy-JJy))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQy-rPy) +
+							   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPy-JJy)) +
+						(rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+						(FC*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+						 FB*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A)) +
+				     (rPQz-rQz)*((rQz-KKz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQy-rPy) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPy-JJy)) +
+						 (rPQz-rQz)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQy-rPy) + FD*(rPy-IIy))*(rPQy-rPy) +
+							     2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPy-JJy)) +
+						 (FD*(djk*(rPQy-rPy) + dik*(rPQy-rPy)) +
+						  FC*(djk*(rPy-IIy) + dik*(rPy-JJy)))/(B+A)));
+	      break;
+	    case 187:  // Integral (py,pz|py,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQz-rPz) +
+					   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPz-JJz) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+						  2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQy-rPy) + FB*(rPy-IIy)) +
+					   2*(rPQy-rQy)*(FD*(rPQy-rPy) + FC*(rPy-IIy))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQy-KKy)*(FC*(rPQz-rPz) + FB*(rPz-JJz)) +
+					   2*(rPQy-rQy)*(FD*(rPQz-rPz) + FC*(rPz-JJz))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQy-KKy)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQz-rPz) +
+							   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPz-JJz)) +
+						(rPQy-rQy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)) +
+						(FC*(djk*(rPQy-rPy) + dik*(rPQz-rPz)) +
+						 FB*(djk*(rPy-IIy) + dik*(rPz-JJz)))/(B+A)) +
+				     (rPQz-rQz)*((rQy-KKy)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)) +
+						 (rPQy-rQy)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQy-rPy) + FD*(rPy-IIy))*(rPQz-rPz) +
+							     2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPz-JJz)) +
+						 (FD*(djk*(rPQy-rPy) + dik*(rPQz-rPz)) +
+						  FC*(djk*(rPy-IIy) + dik*(rPz-JJz)))/(B+A)));
+	      break;
+	    case 191:  // Integral (py,pz|pz,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQz-rPz) +
+					   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPz-JJz) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+						  2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQy-rPy) + FB*(rPy-IIy)) +
+					   2*(rPQz-rQz)*(FD*(rPQy-rPy) + FC*(rPy-IIy))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQz-rPz) + FB*(rPz-JJz)) +
+					   2*(rPQz-rQz)*(FD*(rPQz-rPz) + FC*(rPz-JJz))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPQz-rPz) +
+							   2*(FB*(rPQy-rPy) + FA*(rPy-IIy))*(rPz-JJz)) +
+						(rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)) +
+						(FC*(djk*(rPQy-rPy) + dik*(rPQz-rPz)) +
+						 FB*(djk*(rPy-IIy) + dik*(rPz-JJz)))/(B+A)) +
+				     (rPQz-rQz)*((rQz-KKz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPQz-rPz) +
+							    2*(FC*(rPQy-rPy) + FB*(rPy-IIy))*(rPz-JJz)) +
+						 (rPQz-rQz)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQy-rPy) + FD*(rPy-IIy))*(rPQz-rPz) +
+							     2*(FD*(rPQy-rPy) + FC*(rPy-IIy))*(rPz-JJz)) +
+						 (FD*(djk*(rPQy-rPy) + dik*(rPQz-rPz)) +
+						  FC*(djk*(rPy-IIy) + dik*(rPz-JJz)))/(B+A)));
+	      break;
+	    case 255:  // Integral (pz,pz|pz,pz)
+	      preIntegral = prefact*((dkl*(((A*FA-etha*FB)*dij)/(A*A) +
+					   2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPQz-rPz) +
+					   2*(FB*(rPQz-rPz) + FA*(rPz-IIz))*(rPz-JJz) -
+					   (etha*(((A*FB-etha*FC)*dij)/(A*A) +
+						  2*(FD*(rPQz-rPz) + FC*(rPz-IIz))*(rPQz-rPz) +
+						  2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPz-JJz)))/B))/(2*B) +
+				     (djl*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQz-rPz) + FB*(rPz-IIz)) +
+					   2*(rPQz-rQz)*(FD*(rPQz-rPz) + FC*(rPz-IIz))) +
+				      dil*((FC*dik)/(B+A) +
+					   2*(rQz-KKz)*(FC*(rPQz-rPz) + FB*(rPz-JJz)) +
+					   2*(rPQz-rQz)*(FD*(rPQz-rPz) + FC*(rPz-JJz))))/(2*(B+A)) +
+				     (rQz-LLz)*((rQz-KKz)*(((A*FA-etha*FB)*dij)/(A*A) +
+							   2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPQz-rPz) +
+							   2*(FB*(rPQz-rPz) + FA*(rPz-IIz))*(rPz-JJz)) +
+						(rPQz-rQz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQz-rPz) + FC*(rPz-IIz))*(rPQz-rPz) +
+							    2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPz-JJz)) +
+						(FC*(djk*(rPQz-rPz) + dik*(rPQz-rPz)) +
+						 FB*(djk*(rPz-IIz) + dik*(rPz-JJz)))/(B+A)) +
+				     (rPQz-rQz)*((rQz-KKz)*(((A*FB-etha*FC)*dij)/(A*A) +
+							    2*(FD*(rPQz-rPz) + FC*(rPz-IIz))*(rPQz-rPz) +
+							    2*(FC*(rPQz-rPz) + FB*(rPz-IIz))*(rPz-JJz)) +
+						 (rPQz-rQz)*(((A*FC-etha*FD)*dij)/(A*A) +
+							     2*(FE*(rPQz-rPz) + FD*(rPz-IIz))*(rPQz-rPz) +
+							     2*(FD*(rPQz-rPz) + FC*(rPz-IIz))*(rPz-JJz)) +
+						 (FD*(djk*(rPQz-rPz) + dik*(rPQz-rPz)) +
+						  FC*(djk*(rPz-IIz) + dik*(rPz-JJz)))/(B+A)));
+	      break;	      
+	    }
 	}
       // if(aa == 1 && bb == 1 && rr == 1 && ss == 2)
       // 	{

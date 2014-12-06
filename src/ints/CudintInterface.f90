@@ -449,17 +449,18 @@ contains
                                      auxNumberOfPPUC%values(m,3) = auxCounter3
                                   end if
 
-                                  ! write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2,A6,I1,A1,I1,A1,I1,A1,I1,A3)") &
-                                  !      "Contraida numero: ", &
-                                  !      totalContIntegrals+1, " (", &
-                                  !      auxContIndices%values(totalContIntegrals+1,1), ",", &
-                                  !      auxContIndices%values(totalContIntegrals+1,2), "|", &
-                                  !      auxContIndices%values(totalContIntegrals+1,3), ",", &
-                                  !      auxContIndices%values(totalContIntegrals+1,4), ") ", " ->  (", &
-                                  !      defContIndices%values(totalContIntegrals+1,1), ",", &
-                                  !      defContIndices%values(totalContIntegrals+1,2), "|", &
-                                  !      defContIndices%values(totalContIntegrals+1,3), ",", &
-                                  !      defContIndices%values(totalContIntegrals+1,4), ") :"
+                                  write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2,A6,I1,A1,I1,A1,I1,A1,I1,A3,A2,I1,A1,I1,A1,I1,A1,I1,A)") &
+                                       "Contraida numero: ", &
+                                       totalContIntegrals+1, " (", &
+                                       auxContIndices%values(totalContIntegrals+1,1), ",", &
+                                       auxContIndices%values(totalContIntegrals+1,2), "|", &
+                                       auxContIndices%values(totalContIntegrals+1,3), ",", &
+                                       auxContIndices%values(totalContIntegrals+1,4), ") ", " ->  (", &
+                                       defContIndices%values(totalContIntegrals+1,1), ",", &
+                                       defContIndices%values(totalContIntegrals+1,2), "|", &
+                                       defContIndices%values(totalContIntegrals+1,3), ",", &
+                                       defContIndices%values(totalContIntegrals+1,4), ") :", &
+                                       " [", i, ",", j, "|", k, ",", l, "]"
 
                                   do ii = 1, contractions(aa)%length
                                      do jj = 1, contractions(bb)%length
