@@ -47,7 +47,7 @@ Program Ints
   job = ""  
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
-  
+
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
   call Stopwatch_start(lowdin_stopwatch)
@@ -103,18 +103,11 @@ Program Ints
      write(*,"(A)") "INFO: RUNNING IN COSMO MODE."
      write(*,"(A)")" "
 
-		 !!Llena el tipo surface
-
-     ! write(*,"(A)") "Lo voy a llenar"
 		
 		 call CosmoCore_lines(surface_aux)
 		 call CosmoCore_filler(surface_aux)
      
 		 !!Open file to store integrals
-     ! open(unit=70, file="cosmo.opints", status="unknown")
-		 ! open(unit=80, file="cosmo.charges", status="unknown")
-     open(unit=70, file="cosmo.opints", status="unknown",form="unformatted")
-		 open(unit=80, file="cosmo.charges", status="unknown",form="unformatted")
 
      !!Calculate attraction integrals
 
@@ -129,8 +122,6 @@ Program Ints
      write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
      write(*, *) ""
 		 
-		 close(80)
-		 close(70)
      ! open(unit=70, file="cosmo.opints", status="unknown")
 		 ! write(*,*) "desde 70"
 		 ! 20 format (3F10.5)
@@ -162,6 +153,8 @@ Program Ints
      
      !!Calculate attraction integrals (intra-species)
      call IntegralManager_getIntraRepulsionIntegrals(nprocess, process, speciesName, trim(CONTROL_instance%INTEGRAL_SCHEME))
+
+		 ! write(*,*)"nprocess,process,speciesName", nprocess, process, speciesName
      
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)

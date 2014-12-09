@@ -146,7 +146,8 @@ contains
     
     ocupationNumber = MolecularSystem_getOcupationNumber( speciesID )
     orderOfMatrix = MolecularSystem_getTotalnumberOfContractions( speciesID )
-    
+    write(*,*)"orderOfMatrix = ",MolecularSystem_getTotalnumberOfContractions( speciesID )
+ 
     nameOfSpecie = MolecularSystem_instance%species(speciesID)%name
 
     if ( .not.allocated(hcoreDensityMatrix%values) ) then

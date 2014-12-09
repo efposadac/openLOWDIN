@@ -295,6 +295,7 @@ contains
     integer :: j, k, l, m
     integer :: ii, jj, hh
     integer :: numberOfPointCharges
+    integer :: numberOfClasicalCharges
     integer :: numberOfSurfaceSegments
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:)
@@ -313,11 +314,15 @@ contains
     real(8), allocatable ::  cosmoV(:)
     real(8), allocatable ::  qCharges(:)
     real(8), allocatable ::  qChargesAc(:,:)
+    character(100) :: cosmoIntegralFile
+    character(100) :: cosmoQuantumChargeFile
+    character(100) :: cosmoClasicalChargeFile
+
 
     type(Matrix) :: cmatin
     real(8) ::  cosmoPotInt
 
-    integer :: b,d,totals
+    integer :: b,d,totals,total_aux
 
     a=0
 
@@ -333,6 +338,7 @@ contains
        isCosmo=.true.
        ! write(*,'(A)')"remplazando los valores de point charges por surface"
        numberOfPointCharges=surface%sizeSurface
+       numberOfClasicalCharges = MolecularSystem_instance%numberOfPointCharges
        ! write (*,*) "cargas puntuales cosmo", numberOfPointCharges
        if(allocated(point)) deallocate(point)
        allocate(point(1:numberOfPointCharges))
@@ -347,6 +353,14 @@ contains
        !!do sobre las especies
 
        do f = 1, size(MolecularSystem_instance%species)
+			 
+			 total_aux=0
+			 
+			 cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".opints"
+			 cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+			 
+			 open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
+			 open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
 
           ! write(*,*)"species", f
           ! write(70) job
@@ -389,6 +403,7 @@ contains
                       totals=b*d
 
                       write (*,*) 'h,b,j,d,totals', h,b,j,d,totals
+											total_aux=total_aux+totals
 
 
                       do c = 1, numberOfPointCharges
@@ -414,14 +429,16 @@ contains
                          end do
 
                          ! todas las integrales para un c específico 
-                         ! aqui es donde se hace el calculo para cada carga
+                         
+												 ! aqui es donde se hace el calculo para cada carga
 											
-                      end do
+                      end do 
+											!! end do de cargas puntuales
                       
 											if(allocated(qCharges)) deallocate(qCharges)
                       allocate(qCharges(numberOfPointCharges))
                       
-											!! end do de cargas puntuales
+
 											m=0
                          do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
                             do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
@@ -434,9 +451,9 @@ contains
                                write(80)qCharges
                             end do
                          end do
+
                    end do
                    !! end do de bases
-
                    hh = 1
                 end do
                 !!end do particulas
@@ -444,8 +461,25 @@ contains
              ! end do bases
           end do
           !! end do particulas
+					
+					close(80)
+					close(70)
+			 !!quantum
+			 totals=total_aux
+			 write(*,*)"totals", totals
+			 call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals,totals)
+			 cosmoClasicalChargeFile="cosmo.clasical"
+
+			 !!clasical
+
+			 call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals)
+
+	
+
+
        end do
        !! end do especies
+
 
        !Write integrals to file (unit 40)
        ! write(*,"(A,I6,A,A,A)")" Stored ",size(cosmoIntegrals,DIM=1)**2*numberOfPointCharges," cosmo integrals " ,trim(MolecularSystem_instance%species(f)%name),&
@@ -473,7 +507,6 @@ contains
 
        !!Attraction Integrals for all species
        do f = 1, size(MolecularSystem_instance%species)
-          write(*,*)"species", f
 
           write(30) job
           write(30) MolecularSystem_instance%species(f)%name
@@ -519,6 +552,8 @@ contains
                          do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                             m = m + 1
 
+														write(*,*)"m_lowdin_default,k,l",m,k,l
+							
 
                             integralsMatrix(k, l) = integralValue(m)
                             integralsMatrix(l, k) = integralsMatrix(k, l)
@@ -538,11 +573,7 @@ contains
           write(*,"(A,I6,A,A,A)")" Stored ",size(integralsMatrix,DIM=1)**2," attraction integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
                " in file lowdin.opints"
           write(30) int(size(integralsMatrix),8)
-          write(*,*) 'int(size(integralsMatrix),8)'
-          write(*,*) int(size(integralsMatrix),8)
           write(30) integralsMatrix
-          ! write(*,*) "integralsMatrix_sin cosmo"
-          ! write(*,*) integralsMatrix
 
 
 
@@ -723,8 +754,12 @@ contains
     speciesID = MolecularSystem_getSpecieID(trim(nameOfSpecies))
     numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
 
+		write(*,*) "numero de contracciones para la especie ",speciesID,"es",numberOfContractions
+
     ssize = (numberOfContractions * (numberOfContractions + 1))/2
     ssize = (ssize * (ssize + 1))/2
+
+		write(*,*)"integrales únicas a calcular", ssize
 
     integralsByProcess = ceiling( real(ssize,8)/real(nprocess,8) )
 

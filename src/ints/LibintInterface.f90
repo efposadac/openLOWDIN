@@ -281,6 +281,7 @@ contains
     
     write(fileNumber,*) process
     fileNumber = trim(adjustl(fileNumber))
+
     
     !! open file for integrals
     open(UNIT=34,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(specieID)%name)//".ints", &
@@ -363,12 +364,6 @@ contains
                            eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                            eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
                       
-											write(54,*) &
-                           eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                           eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                           eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                           eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                           eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
                    
                       write(6,"(A,I12,A,A)") "**Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
                            trim(MolecularSystem_instance%species(specieID)%name)
@@ -720,12 +715,6 @@ contains
                                              eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                              eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 																						 
-																						 write(54,*) &
-																						 eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-																						 eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-																						 eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-																						 eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-																						 eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
                                         
                                         counter = 0
                                         
@@ -760,12 +749,6 @@ contains
          eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-		write(54,*) &
-		eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-		eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-		eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-		eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-		eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
     
     close(34)
 

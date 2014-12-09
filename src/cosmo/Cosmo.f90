@@ -28,7 +28,6 @@
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 program Cosmo
-  ! use CosmoTools_
   use CONTROL_
   use MolecularSystem_
   use Matrix_
@@ -53,7 +52,6 @@ program Cosmo
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 	
-
   !cmatin es el dummy de cmatinv
   call CosmoCore_constructor(surfaceSegment_instance,cmatin)	
 
@@ -61,6 +59,8 @@ program Cosmo
 	write(*,*)"n", n
 
   call CosmoCore_clasical(surfaceSegment_instance,n,cmatin,qc)
+	
+	call system(" lowdin-ints.x COSMO ")
 	
   ! call CosmoTools_quantum(surfaceSegment_instance,n,cmatin,qq)
 

@@ -59,6 +59,12 @@ module WaveFunction_
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: coefficientsofcombination
      type(vector) :: energyofmolecularorbital
+
+		 !! Cosmo Things
+     type(Matrix) :: electronPotentialNucleiCharges
+     type(Matrix) :: electronPotentialElectronCharges
+     type(Matrix) :: nucleiPotentialElectronCharges
+
      
      !!**************************************************************
 
@@ -74,6 +80,11 @@ module WaveFunction_
      real(8) :: repulsionEnergy
      real(8) :: couplingEnergy
      real(8) :: externalPotentialEnergy
+
+
+		 !! Cosmo Things
+
+     real(8) :: cosmoEnergy
 
      !!**************************************************************
 
@@ -109,6 +120,7 @@ contains
        WaveFunction_instance( speciesID )%repulsionEnergy = 0.0_8
        WaveFunction_instance( speciesID )%externalPotentialEnergy = 0.0_8
        WaveFunction_instance( speciesID )%couplingEnergy = 0.0_8
+       WaveFunction_instance( speciesID )%cosmoEnergy = 0.0_8
        
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions )
        
@@ -455,6 +467,27 @@ contains
     WaveFunction_instance( specieID )%totalEnergyForSpecie = &
          WaveFunction_instance( specieID )%independentSpecieEnergy +  &
          WaveFunction_instance( specieID )%couplingEnergy
+
+
+		!! Cosmo energy calculation
+    
+
+    !! Calcula la energia COSMO	
+
+		if(CONTROL_instance%COSMO)then
+
+		 WaveFunction_instance( specieID )%cosmoEnergy = 0.5_8 * &
+          (sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
+          WaveFunction_instance( specieID )%electronPotentialNucleiCharges%values )+ &
+          sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
+          WaveFunction_instance( specieID )%electronPotentialElectronCharges%values )+ &
+          sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
+          WaveFunction_instance( specieID )%nucleiPotentialElectronCharges%values ))
+		end if
+    
+
+
+
 
 
     ! print *, "__________________ ENERGY COMPONENTS _______________________"

@@ -2,6 +2,9 @@ module CosmoCore_
   use Units_
   use Matrix_
   use CONTROL_
+  use MolecularSystem_
+  use String_
+  use ParticleManager_
   implicit none
 
   type, public :: surfaceSegment
@@ -12,33 +15,36 @@ module CosmoCore_
      integer :: sizeSurface
   end type surfaceSegment
 
+
   ! >Singleton
   type(surfaceSegment), public, target :: surfaceSegment_instance
 
 contains
- 
- !----------------------subroutines------------------------------
-  
-	subroutine CosmoCore_constructor(surface,cmatinv)
+
+  !----------------------subroutines------------------------------
+
+  subroutine CosmoCore_constructor(surface,cmatinv)
     implicit none
     integer :: n
 
     type(surfaceSegment), intent(inout) :: surface
     type(Matrix), intent(inout) :: cmatinv
 
-    call CosmoCore_caller(surface)
+
+    call CosmoCore_caller()
     call CosmoCore_lines(surface)
     call CosmoCore_Filler(surface)
-    ! call CosmoTools_Cmatrix(surface,cmatinv)
+    call CosmoCore_cmat(surface,cmatinv)
 
   end subroutine CosmoCore_constructor
-  
-	!----------------------subroutines------------------------------
+
+  !----------------------subroutines------------------------------
 
   subroutine CosmoCore_caller()
     ! subrutina que llama el ejecutable de gepol
     implicit none
     character(len=60) :: cmd
+
 
     cmd = "gepol.x < gepol.inp > gepol.out"
     call system(cmd) 
@@ -97,7 +103,7 @@ contains
 
 
 100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
-    open(55,file='vectors.vec',status='OLD') 
+    open(55,file='vectors.vec',status='unknown') 
     read(55,100) (x(i),y(i),z(i),a(i),i=1,surface%sizeSurface)
 
     !asignando espacio en memoria para los parametros
@@ -121,6 +127,7 @@ contains
   end subroutine CosmoCore_Filler
 
   !----------------------subroutines------------------------------
+
   subroutine CosmoCore_cmat(surface,cmat_inv)
     ! subroutine CosmoTools_Cmatrix(surface)
     implicit none
@@ -153,8 +160,8 @@ contains
     cmat_inv=Matrix_inverse(cmat)
 
   end subroutine CosmoCore_cmat
-  
-	!!------------------------subroutine---------------------
+
+  !!------------------------subroutine---------------------
 
   subroutine CosmoCore_clasical(surface,np,cmatinv,q)
     !!esta subrutina calcula las cargas clasicas a partir de
@@ -178,9 +185,9 @@ contains
     !!contadores 
     integer :: i, j, k
 
-		!!entero
+    !!entero
 
-		integer(8) ::segments
+    integer(8) ::segments
 
     !! parametro lambda segun Su-Li
     real(8) :: lambda
@@ -196,18 +203,18 @@ contains
 
     verifier=.false.
     lambda=0.0
-		
-		write(*,*) "surfacesize", int(surface%sizeSurface,8)
 
-		segments=int(surface%sizeSurface,8)
+    ! write(*,*) "surfacesize", int(surface%sizeSurface,8)
 
-		write(*,*)"segments", segments
+    segments=int(surface%sizeSurface,8)
+
+    ! write(*,*)"segments", segments
 
 
     !asignando espacio en memoria para los parametros
 
     allocate(clasical_positions(np,3))
-		allocate(q_clasical(segments))
+    allocate(q_clasical(segments))
 
     !llamando al constructor de matrices, creando matrices unidimensionales
     call Matrix_constructor(clasical_charge, np, 1)
@@ -218,6 +225,8 @@ contains
     lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+0.5)
 
     ! write(*,*) "esto es lambda", lambda
+
+    open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 
 
     do i=1,np
@@ -230,8 +239,10 @@ contains
 
        ! write(*,*)"testest",verifier, i
 
+
        if (verifier == .false.)	then
           ! write(*,*)"particula clasica", i
+
 
           clasical_charge%values(i,1)= ParticleManager_instance(i)%particlePtr%totalCharge
 
@@ -245,29 +256,35 @@ contains
           !sobre la distancia euclidiana para cada una de las cargas clasicas
           !teniendo en cuenta el factor de atenuación lamda
 
-          do j=1,surface%sizeSurface
-             v%values(j,1)=clasical_charge%values(i,1)/sqrt((clasical_positions(i,1)-surface%xs(j))**2&
+
+          do j=1,segments
+             v%values(j,1)=v%values(j,1)+(clasical_charge%values(i,1)/sqrt((clasical_positions(i,1)-surface%xs(j))**2&
                   +(clasical_positions(i,2)-surface%ys(j))**2 &
-                  +(clasical_positions(i,3)-surface%zs(j))**2)
-             do k=1,surface%sizeSurface
-                cmatinv%values(j,k)=lambda*cmatinv%values(j,k)
-             end do
+                  +(clasical_positions(i,3)-surface%zs(j))**2))
           end do
+
+
        end if
     end do
 
-    ! luego se construye q
+    do k=1,segments
+       do j=k,segments
+          cmatinv%values(j,k)=lambda*cmatinv%values(j,k)
+          cmatinv%values(k,j)=cmatinv%values(j,k)
+       end do
+    end do
+
     q=Matrix_product(cmatinv,v)
 
-    call Matrix_show(q)
-    ! write(*,*)"q" 
-    ! write(*,"(F15.10)") q%values(:,1)
 
-		do i=1,segments
-			q_clasical(i)=q%values(i,1)
-			write(*,*)"q_clasical,q%values"
-			write(*,*)q_clasical(i)
-		end do
+    do j=1,segments
+       q_clasical(j)=q%values(j,1)
+    end do
+
+    write(77) q_clasical
+
+
+    close(77)
 
   end subroutine CosmoCore_clasical
 
@@ -290,99 +307,164 @@ contains
 
     type(Matrix) :: cosmo_pot
 
-		real(8) :: lambda
+    real(8) :: lambda
 
     integer ,intent(in) :: ints
 
     integer :: i,j
 
-		! primero se multiplica cmatinv por el lambda y luego por el vector
+    ! primero se multiplica cmatinv por el lambda y luego por el vector
 
-		if(allocated(q_charges)) deallocate(q_charges)
-		allocate(q_charges(ints))
-		
-		if(allocated(cmatinvs)) deallocate(cmatinvs)
-		allocate(cmatinvs(int(ints,8),int(ints,8)))
+    if(allocated(q_charges)) deallocate(q_charges)
+    allocate(q_charges(ints))
+
+    if(allocated(cmatinvs)) deallocate(cmatinvs)
+    allocate(cmatinvs(int(ints,8),int(ints,8)))
 
     call Matrix_constructor(q_charge, int(ints,8), 1)
     call Matrix_constructor(cosmo_pot, int(ints,8), 1)
-    
-		lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+0.5)
-		
+
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+0.5)
+
     do i=1,ints
-			cosmo_pot%values(i,1)=cosmo_ints(i)*-1
-			do j=1,ints
-       cmatinv%values(i,j)=cmatinv%values(i,j)*lambda
-			 cmatinvs(i,j)=cmatinv%values(i,j)
-			end do
+       cosmo_pot%values(i,1)=cosmo_ints(i)*-1
+       do j=1,ints
+          cmatinv%values(i,j)=cmatinv%values(i,j)*lambda
+          cmatinvs(i,j)=cmatinv%values(i,j)
+       end do
     end do
 
     q_charge=Matrix_product(cmatinv,cosmo_pot)
 
-		! call Matrix_show(q_charge)
+    ! call Matrix_show(q_charge)
 
-		do i=1,ints
-			q_charges(i)=q_charge%values(i,1)
-		end do
+    do i=1,ints
+       q_charges(i)=q_charge%values(i,1)
+    end do
 
-		! write(*,*)q_charges(:)
+    ! write(*,*)q_charges(:)
 
 
-		
+
   end subroutine CosmoCore_q_builder
   !----------------------subroutines------------------------------
 
-  subroutine CosmoCore_q_int_builder(cosmo_pot, q_charge, ints, cosmo_pot_int)
+  subroutine CosmoCore_q_int_builder(integrals_file,charges_file,surface,charges,integrals)
     implicit none
-    !! esta subrutina se encarga de construir los elementos matriciales de las
-    !integrales asociadas a cosmo de acuerdo al paper de su-li y suma todos los
-		!potenciales por par de funciones para luego ordenarlas 
+    character(100), intent(in):: integrals_file,charges_file
 
-    type(Matrix), intent(inout) :: cosmo_pot
-    type(Matrix), intent(inout) :: q_charge
-    type(Matrix) :: cosmo_pot_ints
-		
-		real(8) :: cosmo_pot_int
-		real(8), allocatable :: cosmo_pot_ints_diito(:)
+    integer :: surface, charges, integrals
 
-    integer :: i 
-    integer ,intent(in) :: ints
-		
-		if(allocated(cosmo_pot_ints_diito)) deallocate(cosmo_pot_ints_diito)
-		allocate(cosmo_pot_ints_diito(int(ints,8)))
+    real(8), allocatable :: a_mat(:,:)
+    real(8), allocatable :: ints_mat(:,:)
 
-    call Matrix_constructor(cosmo_pot_ints, int(ints,8), 1)
+    real(8), allocatable :: cosmo_int(:)
+    integer :: i,j,k,l,m,n
 
-    do i = 1, ints
-       cosmo_pot_ints%values(i,1)=cosmo_pot%values(i,1)*q_charge%values(i,1)
-			 cosmo_pot_ints_diito(i)=cosmo_pot_ints%values(i,1)
+    allocate (cosmo_int(integrals*charges))
+    allocate (a_mat(surface,charges))
+    allocate (ints_mat(surface,integrals))
+
+    open(unit=90, file=trim(integrals_file), status='old', form="unformatted") 
+    open(unit=100, file=trim(charges_file), status='old', form="unformatted")
+
+    !!lectura de los archivos
+
+
+    do n=1,integrals
+       read(90)(ints_mat(i,n),i=1,surface)
     end do
-		
-		cosmo_pot_int=SUM(cosmo_pot_ints_diito)
+
+    do n=1,charges
+       read(100)(a_mat(i,n),i=1,surface)
+    end do
+
+    !!calculo del producto punto
 
 
-			
+    m=1
+    do n=1,integrals
+       do k=1,charges
+          cosmo_int(m)=dot_product(ints_mat(:,n),a_mat(:,k))
+          m=m+1
+       end do
+    end do
+
+
+    close(unit=90)
+    close(unit=100)
+
+    if (charges==integrals)then
+
+       write(26,*) cosmo_int(:)
+    else
+       write(27,*) cosmo_int(:)
+    end if
+
 
   end subroutine CosmoCore_q_int_builder
 
   !----------------------subroutines------------------------------
 
-  subroutine CosmoCore_q_int_staker(cosmo_pot_ints, cosmo_pot_ints_tot, cartesians, ints)
-    implicit none
+  subroutine CosmoCore_nucleiPotentialNucleiCharges(surface,output)
 
-    type(Matrix), intent(inout) :: cosmo_pot_ints
-    type(Matrix), intent(inout) :: cosmo_pot_ints_tot
+    type(surfaceSegment), intent(in) :: surface
 
-    integer :: cartesians
-    integer :: ints
+    integer(8) :: np 
+    integer:: segments,j,i
 
-    call Matrix_constructor(cosmo_pot_ints, int(ints,8), int(cartesians,8))
+    type(Matrix) :: clasical_charge
 
-    !! como meter de nuevo todas las integrales en este arreglo para guardarlas en
-    !el mugre archivo???
+    real(8), allocatable :: q_clasical(:)
+    real(8), allocatable :: clasical_positions(:,:)
 
-  end subroutine CosmoCore_q_int_staker
+    real(8), intent(out) :: output
+
+    logical:: verifier
 
 
+    verifier=.false.
+		np=MolecularSystem_instance%numberOfParticles
+    segments=int(surface%sizeSurface,8)
 
-end module CosmoCore_
+    allocate(q_clasical(segments))
+    allocate(clasical_positions(np,3))
+
+    open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
+    read(77)(q_clasical(i),i=1,segments)
+
+    close(77)
+		
+
+    call Matrix_constructor(clasical_charge, np, 1)
+
+		write(*,*)sum(q_clasical)
+
+
+    do i=1,np
+
+       verifier = ParticleManager_instance(i)%particlePtr%isQuantum
+
+       if (verifier == .false.)	then
+
+
+          clasical_charge%values(i,1)= ParticleManager_instance(i)%particlePtr%totalCharge
+					clasical_positions(i,:)=ParticleManager_instance(i)%particlePtr%origin(:)
+          
+          do j=1,segments
+             output=output+(clasical_charge%values(i,1)*q_clasical(j)/sqrt((clasical_positions(i,1)-surface%xs(j))**2&
+                  +(clasical_positions(i,2)-surface%ys(j))**2 &
+                  +(clasical_positions(i,3)-surface%zs(j))**2))
+          end do
+
+
+       end if
+    end do
+
+    output=0.5_8*output
+
+		write(*,*)"output",output
+
+  end subroutine CosmoCore_nucleiPotentialNucleiCharges
+
+  end module CosmoCore_
