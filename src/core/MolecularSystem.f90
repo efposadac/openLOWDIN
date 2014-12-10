@@ -594,7 +594,6 @@ contains
     !!
 	
     call get_command_argument (1,value=title)
-		write(*,*)'gepol data'
 		150 format (4(F10.5))
 		open(unit=41, file="gepol.xyzr",status="replace", form="formatted")
 
@@ -611,7 +610,6 @@ contains
 
 		close(41)
 		
-		write(*,*)"gepol input"
 		160 format (A,A)
 		open(unit=42, file="gepol.inp",status="replace", form="formatted")
 			write(42,160)"TITL=",trim(title)

@@ -37,6 +37,7 @@ module IntegralManager_
   use CosmoCore_
   use Stopwatch_
 
+
   implicit none
 
   public :: &
@@ -344,23 +345,26 @@ contains
        allocate(point(1:numberOfPointCharges))
        ! write(*,*) "remplazadas por estas"
 
+       write(40) job
+
        call Matrix_constructor(cmatin, int(surface%sizeSurface,8), int(surface%sizeSurface,8))
 
        call CosmoCore_cmat(surface,cmatin)
 
-			 ! call Matrix_Show(cmatin)
+       ! call Matrix_Show(cmatin)
 
        !!do sobre las especies
 
        do f = 1, size(MolecularSystem_instance%species)
-			 
-			 total_aux=0
-			 
-			 cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".opints"
-			 cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
-			 
-			 open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
-			 open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
+       write(40) MolecularSystem_instance%species(f)%name
+
+          total_aux=0
+
+          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".opints"
+          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+
+          open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
+          open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
 
           ! write(*,*)"species", f
           ! write(70) job
@@ -402,8 +406,7 @@ contains
                       d=MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital
                       totals=b*d
 
-                      write (*,*) 'h,b,j,d,totals', h,b,j,d,totals
-											total_aux=total_aux+totals
+                      total_aux=total_aux+totals
 
 
                       do c = 1, numberOfPointCharges
@@ -423,34 +426,35 @@ contains
                             do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                                m = m + 1
                                integralValueCosmo(m,c)=integralValue(m)
-															 !! debug
+                               !! debug
                                ! write(37,'(F10.5)')integralValueCosmo(m,c)
                             end do
                          end do
 
                          ! todas las integrales para un c específico 
-                         
-												 ! aqui es donde se hace el calculo para cada carga
-											
-                      end do 
-											!! end do de cargas puntuales
-                      
-											if(allocated(qCharges)) deallocate(qCharges)
-                      allocate(qCharges(numberOfPointCharges))
-                      
 
-											m=0
-                         do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                            do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                               m = m + 1
-															if(allocated(cosmoV)) deallocate(cosmoV)
-															allocate(cosmoV(numberOfPointCharges))
-															 cosmoV(:)=integralValueCosmo(m,:)
-                               call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges)
-                               write(70)integralValueCosmo(m,:)
-                               write(80)qCharges
-                            end do
+                         ! aqui es donde se hace el calculo para cada carga
+
+                      end do
+                      !! end do de cargas puntuales
+
+                      if(allocated(qCharges)) deallocate(qCharges)
+                      allocate(qCharges(numberOfPointCharges))
+
+
+                      m=0
+                      do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                         do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                            m = m + 1
+                            if(allocated(cosmoV)) deallocate(cosmoV)
+                            allocate(cosmoV(numberOfPointCharges))
+                            cosmoV(:)=integralValueCosmo(m,:)
+                            call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges)
+                            ! write(*,*)"cosmo integrals: m,k,l",m,k,l
+                            write(70)integralValueCosmo(m,:)
+                            write(80)qCharges
                          end do
+                      end do
 
                    end do
                    !! end do de bases
@@ -461,37 +465,37 @@ contains
              ! end do bases
           end do
           !! end do particulas
+
+          close(80)
+          close(70)
+          !!quantum
+          totals=total_aux
+          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals,totals)
+
+          !!clasical vs clasical
+
+          cosmoClasicalChargeFile="cosmo.clasical"
+
+					job="CLASICALCHVSQUANTUMPOT"
+
+          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals,labels,f)
+
+          !clasical vs quantum
+          
+					write(40) job
+          write(40) MolecularSystem_instance%species(f)%name
 					
-					close(80)
-					close(70)
-			 !!quantum
-			 totals=total_aux
-			 write(*,*)"totals", totals
-			 call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals,totals)
-			 cosmoClasicalChargeFile="cosmo.clasical"
+					job="QUANTUMCHVSCLASICALPOT"
 
-			 !!clasical
-
-			 call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals)
-
-	
-
+          call CosmoCore_nucleiPotentialQuantumCharges(surface,cosmoQuantumChargeFile,totals,labels,f)
 
        end do
        !! end do especies
 
-
-       !Write integrals to file (unit 40)
-       ! write(*,"(A,I6,A,A,A)")" Stored ",size(cosmoIntegrals,DIM=1)**2*numberOfPointCharges," cosmo integrals " ,trim(MolecularSystem_instance%species(f)%name),&
-       ! " in file cosmo.opints"
-       ! 					write(40) cosmoIntegrals 
-       ! write(*,"(A,I6,A,A,A)")" Stored ",size(cosmoIntegrals,DIM=1)**2*numberOfPointCharges," cosmo integrals " ,trim(MolecularSystem_instance%species(f)%name),&
-       ! " in file cosmo.opints"
-
-
     else
 
        numberOfPointCharges = MolecularSystem_instance%numberOfPointCharges
+
 
        !! Allocating memory for point charges objects
        if(allocated(point)) deallocate(point)
@@ -552,12 +556,10 @@ contains
                          do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                             m = m + 1
 
-														write(*,*)"m_lowdin_default,k,l",m,k,l
-							
+                            ! write(*,*)"lowdin integrals: m,k,l",m,k,l
 
                             integralsMatrix(k, l) = integralValue(m)
                             integralsMatrix(l, k) = integralsMatrix(k, l)
-
 
                          end do
                       end do
@@ -568,6 +570,8 @@ contains
 
              end do
           end do
+
+
 
           !!Write integrals to file (unit 30)
           write(*,"(A,I6,A,A,A)")" Stored ",size(integralsMatrix,DIM=1)**2," attraction integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
@@ -754,12 +758,10 @@ contains
     speciesID = MolecularSystem_getSpecieID(trim(nameOfSpecies))
     numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
 
-		write(*,*) "numero de contracciones para la especie ",speciesID,"es",numberOfContractions
 
     ssize = (numberOfContractions * (numberOfContractions + 1))/2
     ssize = (ssize * (ssize + 1))/2
 
-		write(*,*)"integrales únicas a calcular", ssize
 
     integralsByProcess = ceiling( real(ssize,8)/real(nprocess,8) )
 

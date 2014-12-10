@@ -26,7 +26,8 @@ Program Ints
   use IntegralManager_
   use String_
   use Stopwatch_
-	use CosmoCore_
+  use CosmoCore_
+  use ParticleManager_
 
   implicit none
   
@@ -108,8 +109,14 @@ Program Ints
 		 call CosmoCore_filler(surface_aux)
      
 		 !!Open file to store integrals
+     
+		 open(unit=40, file="cosmo.opints", status="unknown", form="unformatted")
+     
+		 !!write global info on output
+     write(40) size(MolecularSystem_instance%species)
 
-     !!Calculate attraction integrals
+
+     !!Calculate cosmo integrals
 
 		 call IntegralManager_getAttractionIntegrals(surface_aux)
 
@@ -121,15 +128,8 @@ Program Ints
 		 write(*, *) ""
      write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
      write(*, *) ""
+		 close(40)
 		 
-     ! open(unit=70, file="cosmo.opints", status="unknown")
-		 ! write(*,*) "desde 70"
-		 ! 20 format (3F10.5)
-     !
-			! do j=1,95
-			! 	read(70,20) x,y,z
-			! 	write(*,*) x,y,z
-			! end do
 
 		
      

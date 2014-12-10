@@ -56,13 +56,10 @@ program Cosmo
   call CosmoCore_constructor(surfaceSegment_instance,cmatin)	
 
 	n=MolecularSystem_instance%numberOfParticles
-	write(*,*)"n", n
 
   call CosmoCore_clasical(surfaceSegment_instance,n,cmatin,qc)
 	
 	call system(" lowdin-ints.x COSMO ")
 	
-  ! call CosmoTools_quantum(surfaceSegment_instance,n,cmatin,qq)
-
 end program Cosmo
 

@@ -26,7 +26,6 @@ module WaveFunction_
   use Convergence_
   use MolecularSystem_
   use CosmoCore_
-  use ParticleManager_
 
   implicit none
 
@@ -783,6 +782,7 @@ contains
 
        call CosmoCore_nucleiPotentialNucleiCharges(surface_aux2,cosmoEnergy)
        totalEnergy=totalEnergy+cosmoEnergy
+
        write(*,*)"cosmoEnergy",cosmoEnergy
 
     end if

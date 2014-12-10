@@ -4,7 +4,9 @@ module CosmoCore_
   use CONTROL_
   use MolecularSystem_
   use String_
-  use ParticleManager_
+  use Particle_
+
+
   implicit none
 
   type, public :: surfaceSegment
@@ -48,7 +50,6 @@ contains
 
     cmd = "gepol.x < gepol.inp > gepol.out"
     call system(cmd) 
-    write(*,*) "Calculating tesseras"
     cmd = "rm gepol.out"
     call system(cmd) 
 
@@ -74,7 +75,6 @@ contains
     cmd = 'rm nlines.txt'
     call system(cmd)
     surface%sizeSurface=n
-    write(*,*) "la superficie tiene", n, "segmentos"
     return
 
   end subroutine CosmoCore_lines
@@ -349,17 +349,22 @@ contains
   end subroutine CosmoCore_q_builder
   !----------------------subroutines------------------------------
 
-  subroutine CosmoCore_q_int_builder(integrals_file,charges_file,surface,charges,integrals)
+  subroutine CosmoCore_q_int_builder(integrals_file,charges_file,surface,charges,integrals,labels_aux,f_aux)
     implicit none
     character(100), intent(in):: integrals_file,charges_file
+    integer, allocatable,intent(in),optional :: labels_aux(:)
+		integer,intent(in),optional :: f_aux
 
     integer :: surface, charges, integrals
 
     real(8), allocatable :: a_mat(:,:)
     real(8), allocatable :: ints_mat(:,:)
+    real(8), allocatable :: ints_mat_aux(:,:)
+
 
     real(8), allocatable :: cosmo_int(:)
     integer :: i,j,k,l,m,n
+		integer :: ii,g,h,hh,jj
 
     allocate (cosmo_int(integrals*charges))
     allocate (a_mat(surface,charges))
@@ -398,7 +403,46 @@ contains
 
        write(26,*) cosmo_int(:)
     else
-       write(27,*) cosmo_int(:)
+				allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+          ii = 0
+          do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)
+             do h = 1, size(MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction)
+
+                hh = h
+                ii = ii + 1
+                jj = ii - 1
+
+                do i = g, size(MolecularSystem_instance%species(f_aux)%particles)
+                   do j = hh, size(MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction)
+
+                      jj = jj + 1
+
+
+                      !!saving integrals on Matrix
+                      m = 0
+                      do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                         do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                            m = m + 1
+
+                            ! write(*,*)"lowdin integrals: m,k,l",m,k,l
+
+                            ints_mat_aux(k, l) = cosmo_int(m)
+                            ints_mat_aux(l, k) = ints_mat_aux(k, l)
+
+                         end do
+                      end do
+
+                   end do
+                   hh = 1
+                end do
+
+             end do
+          end do
+          write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Quantum potential vs clasical charges ",trim(MolecularSystem_instance%species(f_aux)%name),&
+               " in file lowdin.opints"
+          write(40) int(size(ints_mat_aux),8)
+          write(40) ints_mat_aux
+			
     end if
 
 
@@ -424,7 +468,7 @@ contains
 
 
     verifier=.false.
-		np=MolecularSystem_instance%numberOfParticles
+    np=MolecularSystem_instance%numberOfParticles
     segments=int(surface%sizeSurface,8)
 
     allocate(q_clasical(segments))
@@ -434,11 +478,9 @@ contains
     read(77)(q_clasical(i),i=1,segments)
 
     close(77)
-		
+
 
     call Matrix_constructor(clasical_charge, np, 1)
-
-		write(*,*)sum(q_clasical)
 
 
     do i=1,np
@@ -449,8 +491,8 @@ contains
 
 
           clasical_charge%values(i,1)= ParticleManager_instance(i)%particlePtr%totalCharge
-					clasical_positions(i,:)=ParticleManager_instance(i)%particlePtr%origin(:)
-          
+          clasical_positions(i,:)=ParticleManager_instance(i)%particlePtr%origin(:)
+
           do j=1,segments
              output=output+(clasical_charge%values(i,1)*q_clasical(j)/sqrt((clasical_positions(i,1)-surface%xs(j))**2&
                   +(clasical_positions(i,2)-surface%ys(j))**2 &
@@ -463,8 +505,107 @@ contains
 
     output=0.5_8*output
 
-		write(*,*)"output",output
+    ! write(*,*)"output",output
 
   end subroutine CosmoCore_nucleiPotentialNucleiCharges
 
-  end module CosmoCore_
+  !----------------------subroutines------------------------------
+
+  subroutine CosmoCore_nucleiPotentialQuantumCharges(surface_aux,charges_file,charges,labels_aux,f_aux)
+
+    type(surfaceSegment), intent(in) :: surface_aux
+    integer, intent(in):: charges
+		integer, intent(in):: f_aux
+		integer, allocatable, intent(in) :: labels_aux(:)
+
+    integer(8) :: np 
+    integer:: segments,j,i,k,n
+    integer:: ii,g,h,hh,jj,l,m
+
+    type(Matrix) :: clasical_charge
+
+    real(8), allocatable :: a_mat(:,:)
+    real(8), allocatable :: clasical_positions(:,:)
+    real(8), allocatable :: cosmo_int(:)
+    real(8), allocatable :: ints_mat_aux(:,:)
+
+    character(100), intent(in):: charges_file
+
+
+    np=MolecularSystem_instance%numberOfPointCharges
+    segments=int(surface_aux%sizeSurface,8)
+
+    allocate (cosmo_int(charges))
+    allocate (a_mat(segments,charges))
+    allocate(clasical_positions(np,3))
+		allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+
+    open(unit=100, file=trim(charges_file), status='old', form="unformatted")
+
+    do n=1,charges
+       read(100)(a_mat(i,n),i=1,segments)
+    end do
+
+    close(unit=100)
+
+    call Matrix_constructor(clasical_charge, np, 1)
+
+    do k=1,charges
+
+    do i=1,np
+
+          clasical_charge%values(i,1)= MolecularSystem_instance%pointCharges(i)%charge
+          clasical_positions(i,:)=MolecularSystem_instance%pointCharges(i)%origin(:)
+
+          do j=1,segments
+             cosmo_int(k)=cosmo_int(k)+(clasical_charge%values(i,1)*a_mat(j,k)/sqrt((clasical_positions(i,1)-surface_aux%xs(j))**2&
+                  +(clasical_positions(i,2)-surface_aux%ys(j))**2 &
+                  +(clasical_positions(i,3)-surface_aux%zs(j))**2))
+          end do
+    end do
+    end do
+
+          ii = 0
+          do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)
+             do h = 1, size(MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction)
+
+                hh = h
+                ii = ii + 1
+                jj = ii - 1
+
+                do i = g, size(MolecularSystem_instance%species(f_aux)%particles)
+                   do j = hh, size(MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction)
+
+                      jj = jj + 1
+
+
+                      !!saving integrals on Matrix
+                      m = 0
+                      do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                         do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                            m = m + 1
+
+                            ! write(*,*)"lowdin integrals: m,k,l",m,k,l
+
+                            ints_mat_aux(k, l) = cosmo_int(m)
+                            ints_mat_aux(l, k) = ints_mat_aux(k, l)
+
+                         end do
+                      end do
+
+                   end do
+                   hh = 1
+                end do
+
+             end do
+          end do
+          write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Clasical potential vs quantum charges ",trim(MolecularSystem_instance%species(f_aux)%name),&
+               " in file lowdin.opints"
+          write(40) int(size(ints_mat_aux),8)
+          write(40) ints_mat_aux
+
+
+
+  end subroutine CosmoCore_nucleiPotentialQuantumCharges
+
+end module CosmoCore_
