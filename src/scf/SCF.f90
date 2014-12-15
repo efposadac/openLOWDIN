@@ -93,11 +93,16 @@ program SCF
      end if
 
      do i = 1, numberOfSpecies
+			 
+			 write(*,*)"entre a build2particlesmatrixmulti"
           
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
         call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
-
+				
+			 if (CONTROL_instance%COSMO) then
+				call WaveFunction_buildCosmo2Matrix(trim(nameOfSpecie))
+       end if
      end do
             
      auxValue = 0.0_8 

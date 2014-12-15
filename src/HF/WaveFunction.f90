@@ -61,9 +61,9 @@ module WaveFunction_
      type(vector) :: energyofmolecularorbital
 
 		 !! Cosmo Things
-     type(Matrix) :: electronPotentialNucleiCharges
-     type(Matrix) :: electronPotentialElectronCharges
-     type(Matrix) :: nucleiPotentialElectronCharges
+     type(Matrix) :: cosmo1
+     type(Matrix) :: cosmo2
+     type(Matrix) :: cosmo4
 
      
      !!**************************************************************
@@ -478,11 +478,11 @@ contains
 
 		 WaveFunction_instance( specieID )%cosmoEnergy = 0.5_8 * &
           (sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-          WaveFunction_instance( specieID )%electronPotentialNucleiCharges%values )+ &
+          WaveFunction_instance( specieID )%cosmo1%values )+ &
           sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-          WaveFunction_instance( specieID )%electronPotentialElectronCharges%values )+ &
+          WaveFunction_instance( specieID )%cosmo2%values )+ &
           sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-          WaveFunction_instance( specieID )%nucleiPotentialElectronCharges%values ))
+          WaveFunction_instance( specieID )%cosmo4%values ))
 		end if
     
 
@@ -553,6 +553,77 @@ contains
     call Matrix_copyConstructor( output, WaveFunction_instance(specieID)%transformationMatrix )
 
   end function WaveFunction_getTransformationMatrix
+
+	!!cosmo matrices construction
+
+  subroutine WaveFunction_cosmoHCoreMatrix(file, speciesID)
+    implicit none
+    
+    character(*), intent(in) :: file
+    integer, intent(in) :: speciesID
+    
+    integer :: unit
+    integer :: k, l, r, s
+    integer :: ParticleID, ParticleID_2
+    integer :: contractionID, contractionID_2
+    integer :: numberOfCartesiansOrbitals, numberOfCartesiansOrbitals_2
+    integer :: owner, owner_2
+    integer :: auxCharge
+    integer :: numberOfContractions
+    integer :: totalNumberOfContractions
+    character(10) :: arguments(2)
+
+    !! Open file
+    unit = 44
+    open(unit = unit, file=trim(file), status="old", form="unformatted")
+    
+    arguments(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))    
+
+    !! Get number of shells and number of cartesian contractions
+    numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
+    
+    !! Load electron potential vs clasical charges cosmo matrix
+    arguments(1) = "COSMO1"    
+    WaveFunction_instance( speciesID )%cosmo1 = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments)
+
+    
+    !! DEBUG
+    ! print *,"Matriz cosmo1: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    ! call Matrix_show( WaveFunction_instance(speciesID)%cosmo1 )
+    
+    !! Load clasical potential vs quantum charges cosmo matrix
+    arguments(1) = "COSMO4"
+   
+
+    WaveFunction_instance( speciesID )%cosmo4 = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments)    
+           
+    
+    !! DEBUG
+    ! print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    ! call Matrix_show( WaveFunction_instance(speciesID)%cosmo4 )
+    
+    close(44)    
+    
+    !! Build Hcore Matrix
+    if ( .not.allocated(WaveFunction_instance( speciesID )%HcoreMatrix%values ) ) then
+       
+       call Matrix_constructor( WaveFunction_instance( speciesID )%HcoreMatrix, &
+            int(totalNumberOfContractions,8), int(totalNumberOfContractions,8), Math_NaN )
+       
+    end if
+    
+    WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+         WaveFunction_instance(speciesID)%kineticMatrix%values + &
+         WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
+        
+    !! DEBUG
+!     print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+!     call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
+       
+  end subroutine WaveFunction_cosmoHcoreMatrix
 
 !   !<
 !   !! @brief Contruye una matriz de interaccion con un potencial externo

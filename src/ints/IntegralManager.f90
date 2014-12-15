@@ -47,7 +47,6 @@ module IntegralManager_
        IntegralManager_getMomentIntegrals, &
        IntegralManager_getInterRepulsionIntegrals, &
        IntegralManager_getIntraRepulsionIntegrals
-
   private :: &
        IntegralManager_getLabels
 
@@ -352,6 +351,11 @@ contains
        call CosmoCore_cmat(surface,cmatin)
 
        ! call Matrix_Show(cmatin)
+				! do i=1,120
+				! 	do j=i,120
+				! 		cmatin%values(j,i)=cmatin%values(i,j)
+				! 	end do
+				! end do
 
        !!do sobre las especies
 
@@ -427,7 +431,11 @@ contains
                                m = m + 1
                                integralValueCosmo(m,c)=integralValue(m)
                                !! debug
-                               ! write(37,'(F10.5)')integralValueCosmo(m,c)
+															 
+															 ! write(*,*)"cosmo integrals: m,k,l",m,k,l
+                               ! write(*,*)integralValueCosmo(m,c)
+                               
+															 ! write(37,'(F10.5)')integralValueCosmo(m,c)
                             end do
                          end do
 
@@ -450,8 +458,13 @@ contains
                             allocate(cosmoV(numberOfPointCharges))
                             cosmoV(:)=integralValueCosmo(m,:)
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges)
-                            ! write(*,*)"cosmo integrals: m,k,l",m,k,l
-                            write(70)integralValueCosmo(m,:)
+
+														! write(*,*)"cosmo integrals: m,k,l",m,k,l
+                            ! write(*,*)integralValueCosmo(m,:)
+														! write(*,*)"cosmo charges"
+                            ! write(*,*)qCharges
+														
+														write(70)integralValueCosmo(m,:)
                             write(80)qCharges
                          end do
                       end do
@@ -476,16 +489,19 @@ contains
 
           cosmoClasicalChargeFile="cosmo.clasical"
 
-					job="CLASICALCHVSQUANTUMPOT"
+					job="COSMO1"
+
+					write(40) job
+          write(40) MolecularSystem_instance%species(f)%name
 
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals,labels,f)
 
           !clasical vs quantum
           
+					
+					job="COSMO4"
 					write(40) job
           write(40) MolecularSystem_instance%species(f)%name
-					
-					job="QUANTUMCHVSCLASICALPOT"
 
           call CosmoCore_nucleiPotentialQuantumCharges(surface,cosmoQuantumChargeFile,totals,labels,f)
 
@@ -820,21 +836,25 @@ contains
     integer:: i, j, k
 
     auxLabelsOfContractions = 1
+		
+		write(*,*)"labels data from integral manager"
 
     k = 0
-
+		! write(*,*)size(specieSelected%particles)
     do i = 1, size(specieSelected%particles)
+
        do j = 1, size(specieSelected%particles(i)%basis%contraction)
 
           k = k + 1
 
           !!position for cartesian contractions
           labelsOfContractions(k) = auxLabelsOfContractions
-
           auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
+					! write(*,*)specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
 
        end do
     end do
+
 
   end function IntegralManager_getLabels
 

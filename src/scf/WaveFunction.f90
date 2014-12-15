@@ -62,9 +62,9 @@ module WaveFunction_
      type(Vector) :: molecularOrbitalsEnergy     
 
      !! Cosmo Things
-     type(Matrix) :: electronPotentialNucleiCharges
-     type(Matrix) :: electronPotentialElectronCharges
-     type(Matrix) :: nucleiPotentialElectronCharges
+     type(Matrix) :: cosmo1
+     type(Matrix) :: cosmo2
+     type(Matrix) :: cosmo4
      !!
      !!**************************************************************
 
@@ -88,6 +88,7 @@ module WaveFunction_
   end type WaveFunction
 
   type(WaveFunction), public, allocatable :: WaveFunction_instance(:)
+
 
 contains
 
@@ -127,6 +128,10 @@ contains
        WaveFunction_instance( speciesID )%nuclearElectronicCorrelationEnergy = 0.0_8
        WaveFunction_instance( speciesID )%numberOfIterations = 0 
 
+       !! Cosmo things
+       call Matrix_constructor( WaveFunction_instance(speciesID)%cosmo1, numberOfContractions, numberOfContractions, 0.0_8 )     
+       call Matrix_constructor( WaveFunction_instance(speciesID)%cosmo4,numberOfContractions, numberOfContractions, 0.0_8 )
+
        !! Load integrals form lowdin.wfn
        labels(1) = "OVERLAP"
        WaveFunction_instance(speciesID)%overlapMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -144,7 +149,25 @@ contains
        WaveFunction_instance(speciesID)%transformationMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
             columns= int(numberOfContractions,4), binary=.true., arguments=labels)
 
+       !! Cosmo things
+
+       if (CONTROL_instance%COSMO) then
+
+          labels(1) = "COSMO1"
+          WaveFunction_instance(speciesID)%cosmo1 = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+               columns= int(numberOfContractions,4), binary=.true., arguments=labels)
+          labels(1) = "COSMO4"
+          WaveFunction_instance(speciesID)%cosmo4 = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+               columns= int(numberOfContractions,4), binary=.true., arguments=labels)
+
+       end if
+
+
        if (  CONTROL_instance%DEBUG_SCFS) then
+          write(*,*) "Matriz cosmo1 "//trim(MolecularSystem_getNameOfSpecie(speciesID))
+          call Matrix_show(WaveFunction_instance(speciesID)%cosmo1)
+          write(*,*) "Matriz cosmo4 "//trim(MolecularSystem_getNameOfSpecie(speciesID))
+          call Matrix_show(WaveFunction_instance(speciesID)%cosmo4)
           write(*,*) "Matriz de Overlap "//trim(MolecularSystem_getNameOfSpecie(speciesID))
           call Matrix_show(WaveFunction_instance(speciesID)%overlapMatrix)
           write(*,*) "Matriz de Hcore "//trim(MolecularSystem_getNameOfSpecie(speciesID))
@@ -164,10 +187,8 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%waveFunctionCoefficients,numberOfContractions, numberOfContractions, 0.0_8 )
        call Vector_constructor( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, int(numberOfContractions) )
 
-       !! Cosmo things
-       call Matrix_constructor( WaveFunction_instance(speciesID)%electronPotentialNucleiCharges, numberOfContractions, numberOfContractions, 0.0_8 )     
-       call Matrix_constructor( WaveFunction_instance(speciesID)%electronPotentialElectronCharges, numberOfContractions, numberOfContractions, 0.0_8 )
-       call Matrix_constructor( WaveFunction_instance(speciesID)%nucleiPotentialElectronCharges,numberOfContractions, numberOfContractions, 0.0_8 )
+       !!cosmo things
+       call Matrix_constructor( WaveFunction_instance(speciesID)%cosmo2, numberOfContractions, numberOfContractions, 0.0_8 )
 
        WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .false.
 
@@ -214,6 +235,7 @@ contains
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
+
 
     !! This matrix is only calculated if there are more than one particle for speciesID or if the user want to calculate it.
     if ( MolecularSystem_getNumberOfParticles( speciesID ) > 1 .or. CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
@@ -566,13 +588,14 @@ contains
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
 
-    wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + wavefunction_instance(speciesID)%externalPotentialMatrix%values
     !! cosmo things
 
+
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
-         wavefunction_instance(speciesID)%electronPotentialNucleiCharges%values + &
-         wavefunction_instance(speciesID)%electronPotentialElectronCharges%values + &
-         wavefunction_instance(speciesID)%nucleiPotentialElectronCharges%values 
+         wavefunction_instance(speciesID)%cosmo1%values + &
+         wavefunction_instance(speciesID)%cosmo2%values + &
+         wavefunction_instance(speciesID)%cosmo4%values 
+
 
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + wavefunction_instance(speciesID)%twoParticlesMatrix%values
 
@@ -690,8 +713,8 @@ contains
             + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
 
     else if(CONTROL_instance%COSMO)then
-       
-			 wavefunction_instance(speciesID)%totalEnergyForSpecie = &
+
+       wavefunction_instance(speciesID)%totalEnergyForSpecie = &
             sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
             *  (( wavefunction_instance(speciesID)%hcoreMatrix%values ) &
             + 0.5_8 *wavefunction_instance(speciesID)%twoParticlesMatrix%values &
@@ -700,11 +723,11 @@ contains
 
        wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie + 0.5_8 * &
             (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
-            wavefunction_instance( speciesID )%electronPotentialNucleiCharges%values )+ &
+            wavefunction_instance( speciesID )%cosmo1%values )+ &
             sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
-            wavefunction_instance( speciesID )%electronPotentialElectronCharges%values )+ &
+            wavefunction_instance( speciesID )%cosmo2%values )+ &
             sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
-            wavefunction_instance( speciesID )%nucleiPotentialElectronCharges%values ))
+            wavefunction_instance( speciesID )%cosmo4%values ))
 
     else
 
@@ -2328,5 +2351,153 @@ contains
     call Exception_show( ex )
     call Exception_destructor( ex )
   end subroutine WaveFunction_exception
+
+  !! build cosmo 2 matrix 
+
+  subroutine WaveFunction_buildCosmo2Matrix(nameOfSpecie)
+    ! subroutine WaveFuction_getLabels(specieSelected,labelsOfContractions)
+    ! call WaveFunction_getLabels(MolecularSystem_instance%species(speciesID),labels)
+
+    character(*), optional :: nameOfSpecie
+    type(species) :: specieSelected
+    character(30) :: nameOfSpecieSelected
+    integer :: speciesID
+
+    integer, allocatable :: labels(:)
+		real(8), allocatable :: cosmo_int(:)
+		real(8), allocatable :: ints_mat_aux(:,:)
+		real(8), allocatable :: cosmo2_aux(:,:)
+
+
+    integer :: g,i,ii,h,hh,j,jj,k,l,m,o,p
+    integer :: iii,jjj,hhh,gg,ll,pp,oo
+
+    integer:: auxLabelsOfContractions
+    integer:: a, b, c
+
+
+    nameOfSpecieSelected = "E-"
+    if (present(nameOfSpecie))  nameOfSpecieSelected= trim(nameOfSpecie)
+    speciesID = MolecularSystem_getSpecieID(nameOfSpecie=trim(nameOfSpecieSelected))
+    specieSelected=MolecularSystem_instance%species(speciesID)
+
+    open(unit=110, file="cosmo_qq.int", status='old', form="unformatted")
+		read(110)m
+		write(*,*)"value from file"
+		write(*,*)m
+    
+		if(allocated(cosmo_int)) deallocate(cosmo_int)
+    allocate(cosmo_int(m))
+		
+		read(110)(cosmo_int(i),i=1,961)
+		close(unit=110)
+
+
+    if(allocated(labels)) deallocate(labels)
+    allocate(labels(MolecularSystem_instance%species(speciesID)%basisSetSize))
+
+    if(allocated(ints_mat_aux)) deallocate(ints_mat_aux)
+    allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID)))
+    
+		if(allocated(cosmo2_aux)) deallocate(cosmo2_aux)
+    allocate(cosmo2_aux(MolecularSystem_getTotalNumberOfContractions(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID)))
+
+
+    auxLabelsOfContractions = 1
+
+    c = 0
+    do a = 1, size(specieSelected%particles)
+       do b = 1, size(specieSelected%particles(a)%basis%contraction)
+
+          c = c + 1
+
+          !!position for cartesian contractions
+
+          labels(c) = auxLabelsOfContractions
+          auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(a)%basis%contraction(b)%numCartesianOrbital
+
+
+       end do
+    end do
+
+
+    call Matrix_show(wavefunction_instance(speciesID)%densityMatrix)
+
+		m = 0
+
+    ii = 0
+    do g = 1, size(MolecularSystem_instance%species(speciesID)%particles)
+       do h = 1, size(MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction)
+
+          hh = h
+          ii = ii + 1
+          jj = ii - 1
+
+          do i = g, size(MolecularSystem_instance%species(speciesID)%particles)
+             do j = hh, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
+
+                jj = jj + 1
+
+                !!saving integrals on Matrix
+                do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                   do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                      iii=0
+                      do gg = 1, size(MolecularSystem_instance%species(speciesID)%particles)
+                         do ll = 1, size(MolecularSystem_instance%species(speciesID)%particles(gg)%basis%contraction)
+
+                            hhh = ll
+                            iii = iii + 1
+                            jjj = iii - 1
+                            do p = gg, size(MolecularSystem_instance%species(speciesID)%particles)
+                               do o = hhh, size(MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction)
+                                  jjj = jjj + 1
+
+                                  !!saving integrals on Matrix
+                                  do pp = labels(iii), labels(iii) + (MolecularSystem_instance%species(speciesID)%particles(gg)%basis%contraction(ll)%numCartesianOrbital - 1)
+                                     do oo = labels(jjj), labels(jjj) + (MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction(o)%numCartesianOrbital - 1)
+                                        m = m + 1
+                                        
+																				ints_mat_aux(pp, oo) =(wavefunction_instance(speciesID)%densityMatrix%values(pp,oo))* cosmo_int(m)
+                                        ints_mat_aux(oo, pp) = ints_mat_aux(pp, oo)
+
+                                     end do
+                                  end do
+                               end do
+                               hhh = 1
+                            end do
+
+                         end do
+                      end do
+											do pp=1,size(ints_mat_aux,DIM=1)
+												do oo=1,size(ints_mat_aux,DIM=1)
+													write(*,*)ints_mat_aux(pp,oo),pp,oo
+													! cosmo2_aux(k,l)=cosmo2_aux(k,l)+ints_mat_aux(pp,oo)
+													! wavefunction_instance(speciesID)%cosmo2%values(k,l)=cosmo2_aux(k,l)
+													! wavefunction_instance(speciesID)%cosmo2%values(l,k)=wavefunction_instance(speciesID)%cosmo2%values(k,l)
+												end do
+											end do
+										! write(*,*)"elemento k,l;k,l"
+										! write(*,*)wavefunction_instance(speciesID)%cosmo2%values(k,l),k,l
+                   end do
+                end do
+             end do
+             hh = 1
+          end do
+       end do
+    end do
+
+
+    ! write(*,*)"m_2cosmo",m
+
+
+    ! write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Quantum potential vs clasical charges ",trim(MolecularSystem_instance%species(speciesID)%name),&
+    !      " in file lowdin.opints"
+    ! write(40) int(size(ints_mat_aux),8)
+    ! write(40) ints_mat_aux
+
+  end subroutine WaveFunction_buildCosmo2Matrix
+
+
+
 
 end module WaveFunction_

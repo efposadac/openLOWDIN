@@ -63,6 +63,9 @@ program HF
   integer :: nproc
   integer :: i
 
+	!!cosmo things
+  character(50) :: cosmoIntegralsFile
+
   job = ""
   call get_command_argument(1,value=job)
   job = trim(String_getUppercase(job))
@@ -142,6 +145,19 @@ program HF
      call WaveFunction_HCoreMatrix(trim(integralsFile), speciesID)
 
      !!**********************************************************
+     !! Builds Cosmo hcore integrals
+     !!
+     !! 
+     if(CONTROL_instance%COSMO)then
+			
+			cosmoIntegralsFile="cosmo.opints"
+			
+			call WaveFunction_cosmoHcoreMatrix(trim(cosmoIntegralsFile), speciesID)
+
+		 end if
+
+
+     !!**********************************************************
      !! Build Guess and first density matrix
      !!
      if ( MolecularSystem_instance%species(speciesID)%isElectron ) then
@@ -177,6 +193,16 @@ program HF
 
      arguments(1) = "TRANSFORMATION"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+     
+		 if(CONTROL_instance%COSMO)then
+     
+			 arguments(1) = "COSMO1"
+			 call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+			 
+			 arguments(1) = "COSMO4"
+			 call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+			
+		 end if
 
   end do
 

@@ -329,8 +329,7 @@ contains
     do i=1,ints
        cosmo_pot%values(i,1)=cosmo_ints(i)*-1
        do j=1,ints
-          cmatinv%values(i,j)=cmatinv%values(i,j)*lambda
-          cmatinvs(i,j)=cmatinv%values(i,j)
+          cmatinvs(i,j)=cmatinv%values(i,j)*lambda
        end do
     end do
 
@@ -353,7 +352,7 @@ contains
     implicit none
     character(100), intent(in):: integrals_file,charges_file
     integer, allocatable,intent(in),optional :: labels_aux(:)
-		integer,intent(in),optional :: f_aux
+    integer,intent(in),optional :: f_aux
 
     integer :: surface, charges, integrals
 
@@ -364,7 +363,7 @@ contains
 
     real(8), allocatable :: cosmo_int(:)
     integer :: i,j,k,l,m,n
-		integer :: ii,g,h,hh,jj
+    integer :: ii,g,h,hh,jj
 
     allocate (cosmo_int(integrals*charges))
     allocate (a_mat(surface,charges))
@@ -391,58 +390,67 @@ contains
     do n=1,integrals
        do k=1,charges
           cosmo_int(m)=dot_product(ints_mat(:,n),a_mat(:,k))
+					!! debug
+					! if(n==17.or.n==15) then
+					! 	  write(*,*)"value, n,k",n,k,cosmo_int(m)
+					! end if
           m=m+1
        end do
     end do
-
 
     close(unit=90)
     close(unit=100)
 
     if (charges==integrals)then
+		
+		write(26,*) cosmo_int
+    
+		open(unit=110, file="cosmo_qq.int", status='unknown', form="unformatted")
+				write(110) m-1
+        write(110) cosmo_int(:)
+		close(unit=110)
 
-       write(26,*) cosmo_int(:)
     else
-				allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
-          ii = 0
-          do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)
-             do h = 1, size(MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction)
+       allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+       ii = 0
+       do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)
+          do h = 1, size(MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction)
 
-                hh = h
-                ii = ii + 1
-                jj = ii - 1
+             hh = h
+             ii = ii + 1
+             jj = ii - 1
 
-                do i = g, size(MolecularSystem_instance%species(f_aux)%particles)
-                   do j = hh, size(MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction)
+             do i = g, size(MolecularSystem_instance%species(f_aux)%particles)
+                do j = hh, size(MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction)
 
-                      jj = jj + 1
+                   jj = jj + 1
 
 
-                      !!saving integrals on Matrix
-                      m = 0
-                      do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                         do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                            m = m + 1
+                   !!saving integrals on Matrix
+                   m = 0
+                   do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         m = m + 1
 
-                            ! write(*,*)"lowdin integrals: m,k,l",m,k,l
+                         ! write(*,*)"lowdin integrals: m,k,l",m,k,l
 
-                            ints_mat_aux(k, l) = cosmo_int(m)
-                            ints_mat_aux(l, k) = ints_mat_aux(k, l)
+                         ints_mat_aux(k, l) = cosmo_int(m)
+                         ints_mat_aux(l, k) = ints_mat_aux(k, l)
 
-                         end do
                       end do
-
                    end do
-                   hh = 1
-                end do
 
+                end do
+                hh = 1
              end do
+
           end do
-          write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Quantum potential vs clasical charges ",trim(MolecularSystem_instance%species(f_aux)%name),&
-               " in file lowdin.opints"
-          write(40) int(size(ints_mat_aux),8)
-          write(40) ints_mat_aux
-			
+       end do
+       write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Quantum potential vs clasical charges ",trim(MolecularSystem_instance%species(f_aux)%name),&
+            " in file cosmo.opints"
+       write(40) int(size(ints_mat_aux),8)
+       write(40) ints_mat_aux
+
     end if
 
 
@@ -515,8 +523,8 @@ contains
 
     type(surfaceSegment), intent(in) :: surface_aux
     integer, intent(in):: charges
-		integer, intent(in):: f_aux
-		integer, allocatable, intent(in) :: labels_aux(:)
+    integer, intent(in):: f_aux
+    integer, allocatable, intent(in) :: labels_aux(:)
 
     integer(8) :: np 
     integer:: segments,j,i,k,n
@@ -538,7 +546,7 @@ contains
     allocate (cosmo_int(charges))
     allocate (a_mat(segments,charges))
     allocate(clasical_positions(np,3))
-		allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+    allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
 
@@ -552,7 +560,7 @@ contains
 
     do k=1,charges
 
-    do i=1,np
+       do i=1,np
 
           clasical_charge%values(i,1)= MolecularSystem_instance%pointCharges(i)%charge
           clasical_positions(i,:)=MolecularSystem_instance%pointCharges(i)%origin(:)
@@ -562,47 +570,47 @@ contains
                   +(clasical_positions(i,2)-surface_aux%ys(j))**2 &
                   +(clasical_positions(i,3)-surface_aux%zs(j))**2))
           end do
+       end do
     end do
-    end do
 
-          ii = 0
-          do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)
-             do h = 1, size(MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction)
+    ii = 0
+    do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)
+       do h = 1, size(MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction)
 
-                hh = h
-                ii = ii + 1
-                jj = ii - 1
+          hh = h
+          ii = ii + 1
+          jj = ii - 1
 
-                do i = g, size(MolecularSystem_instance%species(f_aux)%particles)
-                   do j = hh, size(MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction)
+          do i = g, size(MolecularSystem_instance%species(f_aux)%particles)
+             do j = hh, size(MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction)
 
-                      jj = jj + 1
+                jj = jj + 1
 
 
-                      !!saving integrals on Matrix
-                      m = 0
-                      do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                         do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                            m = m + 1
+                !!saving integrals on Matrix
+                m = 0
+                do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                   do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                      m = m + 1
 
-                            ! write(*,*)"lowdin integrals: m,k,l",m,k,l
+                      ! write(*,*)"lowdin integrals: m,k,l",m,k,l
 
-                            ints_mat_aux(k, l) = cosmo_int(m)
-                            ints_mat_aux(l, k) = ints_mat_aux(k, l)
-
-                         end do
-                      end do
+                      ints_mat_aux(k, l) = cosmo_int(m)
+                      ints_mat_aux(l, k) = ints_mat_aux(k, l)
 
                    end do
-                   hh = 1
                 end do
 
              end do
+             hh = 1
           end do
-          write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Clasical potential vs quantum charges ",trim(MolecularSystem_instance%species(f_aux)%name),&
-               " in file lowdin.opints"
-          write(40) int(size(ints_mat_aux),8)
-          write(40) ints_mat_aux
+
+       end do
+    end do
+    write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Clasical potential vs quantum charges ",trim(MolecularSystem_instance%species(f_aux)%name),&
+         " in file lowdin.opints"
+    write(40) int(size(ints_mat_aux),8)
+    write(40) ints_mat_aux
 
 
 

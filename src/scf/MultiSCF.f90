@@ -204,7 +204,7 @@ contains
        call MultiSCF_iterateNonElectronicFullyByElectronicIteration()
        
     case( SCHEME_ELECTRONIC_FULLY_CONVERGED_BY_NONELECRONIC_ITERATION )
-
+       
        !! done single - multi
        call MultiSCF_iterateElectronicFullyByNonElectronicIteration()
        
@@ -219,7 +219,6 @@ contains
        call MultiSCF_iterateSimultaneous()
        
     case default
-       
        call MultiSCF_iterateElectronicFullyByNonElectronicIteration()
        
     end select
@@ -408,6 +407,8 @@ contains
     character(30) :: nameOfElectronicSpecie
     character(30) :: nameOfInitialSpecie
     real(8) :: tolerace
+
+		write(*,*)"entre a este esquema?"
     
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
     
@@ -442,6 +443,8 @@ contains
                            (SingleSCF_getNumberOfIterations(iteratorOfElectronicSpecie) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
                          
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie), nproc = MultiSCF_instance%nproc )
+												 
+
                          
                          !! At first iteration is not included the coupling operator.
                          if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
@@ -721,11 +724,15 @@ contains
        write (6,"(A10,A12,A25,A20)") "Iteration", "Energy", " Density Change","         DIIS Error "
        print *,"-----------------------------------------------------------------"
     end if
-    
+		
+		write(*,*)"entre al unique specie"
     do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
          ( SingleSCF_getNumberOfIterations(speciesID) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
        
        call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+												if (CONTROL_instance%COSMO) then
+													call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))
+												end if
        
        call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )
               
