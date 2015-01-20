@@ -65,6 +65,7 @@ program HF
 
 	!!cosmo things
   character(50) :: cosmoIntegralsFile
+	real(8) :: totalCosmoEnergy
 
   job = ""
   call get_command_argument(1,value=job)
@@ -306,6 +307,15 @@ program HF
      call Vector_getFromFile( elementsNum = numberOfContractions, &
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = WaveFunction_instance(speciesID)%energyofmolecularorbital )     
+     
+		 if(CONTROL_instance%COSMO)then
+     
+					arguments(1) = "COSMO2"
+					WaveFunction_instance(speciesID)%cosmo2 = &
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+		 end if
 
      !!Obtain energy components for species
      call WaveFunction_obtainEnergyComponents(speciesID)
@@ -323,6 +333,9 @@ program HF
        + totalQuantumPuntualInteractionEnergy &
        + totalCouplingEnergy &
        + totalExternalPotentialEnergy
+	totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
+
+	write(*,*)"totalCosmoEnergy",WaveFunction_instance(:)%cosmoEnergy
 
   close(wfnUnit)
 

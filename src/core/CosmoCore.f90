@@ -167,6 +167,7 @@ contains
     !!esta subrutina calcula las cargas clasicas a partir de
     !!a partir de las cargas clasicas (z), sus posiciones (pz)y 
     !!las posiciones de los segmentos superficiales (ps)
+		!! q_N
 
     implicit none
     type(surfaceSegment), intent(in) :: surface
@@ -195,6 +196,7 @@ contains
     !arreglo para las posiciones clasicas
     real(8), allocatable :: clasical_positions(:,:)
     real(8), allocatable :: q_clasical(:)
+    type(Matrix):: cmatinv_aux
 
     logical:: verifier
 
@@ -220,11 +222,12 @@ contains
     call Matrix_constructor(clasical_charge, np, 1)
     call Matrix_constructor(v, int(surface%sizeSurface,8), 1)
     call Matrix_constructor(q, int(surface%sizeSurface,8), 1)
+    call Matrix_constructor(cmatinv_aux, int(segments,8), int(segments,8))
 
 
     lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+0.5)
 
-    ! write(*,*) "esto es lambda", lambda
+    write(*,*) "esto es lambda", lambda
 
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 
@@ -269,16 +272,17 @@ contains
 
     do k=1,segments
        do j=k,segments
-          cmatinv%values(j,k)=lambda*cmatinv%values(j,k)
-          cmatinv%values(k,j)=cmatinv%values(j,k)
+          cmatinv_aux%values(j,k)=lambda*cmatinv%values(j,k)
+          cmatinv_aux%values(k,j)=cmatinv_aux%values(j,k)
        end do
     end do
 
-    q=Matrix_product(cmatinv,v)
+    q=Matrix_product(cmatinv_aux,v)
 
 
     do j=1,segments
        q_clasical(j)=q%values(j,1)
+			 ! write(*,*)q_clasical(j)
     end do
 
     write(77) q_clasical
@@ -292,6 +296,7 @@ contains
 
   subroutine CosmoCore_q_builder(cmatinv, cosmo_ints, ints, q_charges)
     implicit none
+		!! quantum charges
     !! que estructruras se usan?
     !! son tres: una matriz (la de integrales), el inverso de la matriz c y un
     !vector donde almacenar las cargas puntuales, a la vez se necesita que le

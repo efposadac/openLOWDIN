@@ -575,6 +575,7 @@ contains
 
     character(30) :: nameOfSpecieSelected
     integer :: speciesID
+		type(Matrix)::cosmoContribution
 
     nameOfSpecieSelected = "E-"    
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
@@ -592,9 +593,21 @@ contains
 
 
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
-         wavefunction_instance(speciesID)%cosmo1%values + &
-         wavefunction_instance(speciesID)%cosmo2%values + &
-         wavefunction_instance(speciesID)%cosmo4%values 
+         -0.5_8*(wavefunction_instance(speciesID)%cosmo1%values - &
+         wavefunction_instance(speciesID)%cosmo4%values)- &
+         wavefunction_instance(speciesID)%cosmo2%values
+
+		!! debug
+		Call Matrix_constructor(cosmoContribution, 7, 7, 0.0_8)
+
+		cosmoContribution%values=0.5_8*((wavefunction_instance(speciesID)%cosmo1%values + &
+         wavefunction_instance(speciesID)%cosmo4%values))+&
+         wavefunction_instance(speciesID)%cosmo2%values
+		write(*,*)"cosmo contribution"
+		call Matrix_show(cosmoContribution)
+
+		!!debug
+			
 
 
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + wavefunction_instance(speciesID)%twoParticlesMatrix%values
@@ -721,11 +734,11 @@ contains
             + wavefunction_instance(speciesID)%couplingMatrix%values)) &
             + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
 
-       wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie + 0.5_8 * &
+       wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie - 0.5_8 * &
             (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
             wavefunction_instance( speciesID )%cosmo1%values )+ &
             sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
-            wavefunction_instance( speciesID )%cosmo2%values )+ &
+            wavefunction_instance( speciesID )%cosmo2%values ))+ 0.5_8*( &
             sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
             wavefunction_instance( speciesID )%cosmo4%values ))
 
@@ -776,6 +789,23 @@ contains
                sum(  transpose(WaveFunction_instance( speciesID )%densityMatrix%values) &
                *  (  ( WaveFunction_instance( speciesID )%hcoreMatrix%values ) &
                + 0.5_8 * WaveFunction_instance( speciesID )%twoParticlesMatrix%values))
+
+    else if(CONTROL_instance%COSMO)then
+
+       wavefunction_instance(speciesID)%independentSpecieEnergy = &
+            sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
+            *  (( wavefunction_instance(speciesID)%hcoreMatrix%values ) &
+            + 0.5_8 *wavefunction_instance(speciesID)%twoParticlesMatrix%values &
+            + wavefunction_instance(speciesID)%couplingMatrix%values)) &
+            + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
+
+       wavefunction_instance( speciesID )%independentSpecieEnergy =wavefunction_instance( speciesID )%independentSpecieEnergy - 0.5_8 * &
+            (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+            wavefunction_instance( speciesID )%cosmo1%values )+ &
+            sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+            wavefunction_instance( speciesID )%cosmo2%values )) + 0.5_8*( &
+            sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+            wavefunction_instance( speciesID )%cosmo4%values ))
        else
 
           WaveFunction_instance( speciesID )%independentSpecieEnergy = &
@@ -806,7 +836,7 @@ contains
        call CosmoCore_nucleiPotentialNucleiCharges(surface_aux2,cosmoEnergy)
        totalEnergy=totalEnergy+cosmoEnergy
 
-       write(*,*)"cosmoEnergy",cosmoEnergy
+       write(*,*)"cosmo3Energy",cosmoEnergy
 
     end if
 
@@ -2383,8 +2413,8 @@ contains
 
     open(unit=110, file="cosmo_qq.int", status='old', form="unformatted")
 		read(110)m
-		write(*,*)"value from file"
-		write(*,*)m
+		! write(*,*)"value from file"
+		! write(*,*)m
     
 		if(allocated(cosmo_int)) deallocate(cosmo_int)
     allocate(cosmo_int(m))
@@ -2421,7 +2451,7 @@ contains
     end do
 
 
-    call Matrix_show(wavefunction_instance(speciesID)%densityMatrix)
+    ! call Matrix_show(wavefunction_instance(speciesID)%densityMatrix)
 
 		m = 0
 
@@ -2468,12 +2498,13 @@ contains
 
                          end do
                       end do
+											cosmo2_aux(k,l)=0.0
 											do pp=1,size(ints_mat_aux,DIM=1)
 												do oo=1,size(ints_mat_aux,DIM=1)
-													write(*,*)ints_mat_aux(pp,oo),pp,oo
-													! cosmo2_aux(k,l)=cosmo2_aux(k,l)+ints_mat_aux(pp,oo)
-													! wavefunction_instance(speciesID)%cosmo2%values(k,l)=cosmo2_aux(k,l)
-													! wavefunction_instance(speciesID)%cosmo2%values(l,k)=wavefunction_instance(speciesID)%cosmo2%values(k,l)
+													! write(*,*)ints_mat_aux(pp,oo),pp,oo
+													cosmo2_aux(k,l)=cosmo2_aux(k,l)+ints_mat_aux(pp,oo)
+													wavefunction_instance(speciesID)%cosmo2%values(k,l)=cosmo2_aux(k,l)
+													wavefunction_instance(speciesID)%cosmo2%values(l,k)=wavefunction_instance(speciesID)%cosmo2%values(k,l)
 												end do
 											end do
 										! write(*,*)"elemento k,l;k,l"
