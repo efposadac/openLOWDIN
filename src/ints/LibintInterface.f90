@@ -631,8 +631,8 @@ contains
                                   !      auxIntegrals(1)
 
                                else
-                                  ! write(*,*)"Pointer printing"
-                                  ! write(*,*)pi,pj,pk,pl
+                                  write(*,*)"Pointer printing"
+                                  write(*,*)aa,bb,rr,ss
                                   arraySsize(1) = arraySize
                                   
                                   LibintInterface_instance%libint%PrimQuartet = c_loc(primitiveQuartet)

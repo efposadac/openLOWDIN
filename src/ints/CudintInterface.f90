@@ -125,6 +125,7 @@ contains
     integer,target :: i, j, k, l !< contraction length iterators
     integer,pointer :: pi, pj, pk, pl !< pointer to contraction length iterators
     integer,pointer :: poi, poj, pok, pol !< pointer to contraction length iterators
+    integer :: cari, carj, cark, carl
     type(ContractedGaussian), allocatable :: contractions(:) !< Basis set for specie
 
     integer, allocatable :: contractionId(:)
@@ -320,7 +321,7 @@ contains
 
                 end if
 
-                if((contractions(a)%angularMoment + contractions(b)%angularMoment) < &
+                if((contractions(a)%angularMoment + contractions(b)%angularMoment) > &
                      (contractions(r)%angularMoment + contractions(s)%angularMoment)) then
 
                    aux = aa
@@ -396,6 +397,11 @@ contains
                             apr=pr
                             aps=ps
 
+                            cari = i
+                            carj = j
+                            cark = k
+                            carl = l
+
                             if( pa <= pb .and. pr <= ps .and. (pa*1000)+pb >= (pr*1000)+ps) then
 
                                aux = pa
@@ -405,6 +411,16 @@ contains
                                aux = pb
                                pb = ps
                                ps = aux
+
+                               aux = cari
+                               cari = cark
+                               cark = aux
+
+                               aux = carj
+                               carj = carl
+                               carl = aux
+                               
+                                                            
 
                             end if
 
