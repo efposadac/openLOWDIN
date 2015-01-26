@@ -631,8 +631,8 @@ contains
                                   !      auxIntegrals(1)
 
                                else
-                                  write(*,*)"Pointer printing"
-                                  write(*,*)aa,bb,rr,ss
+                                  ! write(*,*)"Pointer printing"
+                                  ! write(*,*)aa,bb,rr,ss
                                   arraySsize(1) = arraySize
                                   
                                   LibintInterface_instance%libint%PrimQuartet = c_loc(primitiveQuartet)
@@ -765,12 +765,12 @@ contains
                                      !! Descarted! (they are repeated)
                                   else
 
-                                     write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2, A3, F16.12)") &
-                                          "Contraida numero: ", &
-                                          contractionNumberdebug, &
-                                          " (", pa, ",", pb, "|", pr, ",", ps, ") ", &
-                                          " | ", &
-                                          integralsValue(m)
+                                     ! write(*,"(A20,I3,A2,I1,A1,I1,A1,I1,A1,I1,A2, A3, F16.12)") &
+                                     !      "Contraida numero: ", &
+                                     !      contractionNumberdebug, &
+                                     !      " (", pa, ",", pb, "|", pr, ",", ps, ") ", &
+                                     !      " | ", &
+                                     !      integralsValue(m)
                                                                          
                                      if(abs(integralsValue(m)) > 1.0D-10) then
 
