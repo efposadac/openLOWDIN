@@ -32,7 +32,7 @@ module IntegralManager_
   use MomentIntegrals_
   use KineticIntegrals_
   use LibintInterface_
-  use CudintInterface_
+  ! use CudintInterface_
   use RysQuadrature_
   use Matrix_
   use CosmoCore_
@@ -798,8 +798,8 @@ contains
        call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     case("LIBINT")
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
-    case("CUDINT")
-       call CudintInterface_computeIntraSpecies(speciesID)
+    ! case("CUDINT")
+    !    call CudintInterface_computeIntraSpecies(speciesID)
     case default
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     end select
