@@ -205,6 +205,7 @@ module CONTROL_
      !! Molecular Mechanics Options                                                        
      character(50) :: FORCE_FIELD
      logical :: ELECTROSTATIC_MM
+     logical :: CHARGES_MM
      logical :: PRINT_MM
 
      !!***************************************************** 
@@ -425,6 +426,7 @@ module CONTROL_
   !! Molecular Mechanics Options                                                        
   character(50) :: LowdinParameters_forceField
   logical :: LowdinParameters_electrostaticMM
+  logical :: LowdinParameters_chargesMM
   logical :: LowdinParameters_printMM
 
   !!*****************************************************                                                           
@@ -642,6 +644,7 @@ module CONTROL_
        !! Molecular Mechanics Options                                                        
        LowdinParameters_forceField,&
        LowdinParameters_electrostaticMM,&
+       LowdinParameters_chargesMM,&
        LowdinParameters_printMM,&
 
        !!*****************************************************                                                      
@@ -886,6 +889,7 @@ contains
     !! Molecular Mechanics Options                                                        
     LowdinParameters_forceField = "UFF"
     LowdinParameters_electrostaticMM = .false.
+    LowdinParameters_chargesMM = .false.
     LowdinParameters_printMM = .false.
 
     !!*****************************************************                                                       
@@ -1112,6 +1116,7 @@ contains
     !! Molecular Mechanics Options                                                        
     CONTROL_instance%FORCE_FIELD = "UFF"
     CONTROL_instance%ELECTROSTATIC_MM = .false.
+    CONTROL_instance%CHARGES_MM = .false. 
     CONTROL_instance%PRINT_MM = .false.
 
     !!*****************************************************  
@@ -1376,6 +1381,7 @@ contains
     !! Molecular Mechanics Options                                                        
     CONTROL_instance%FORCE_FIELD = LowdinParameters_forceField
     CONTROL_instance%ELECTROSTATIC_MM = LowdinParameters_electrostaticMM
+    CONTROL_instance%CHARGES_MM = LowdinParameters_chargesMM
     CONTROL_instance%PRINT_MM = LowdinParameters_printMM
     !!*****************************************************   
     !! Output Options                                                               
@@ -1604,6 +1610,7 @@ contains
     !! Molecular Mechanics Options                                                        
      LowdinParameters_forceField = CONTROL_instance%FORCE_FIELD
      LowdinParameters_electrostaticMM = CONTROL_instance%ELECTROSTATIC_MM
+     LowdinParameters_chargesMM = CONTROL_instance%CHARGES_MM
      LowdinParameters_printMM = CONTROL_instance%PRINT_MM
     !!*****************************************************      
     !! Output Options                               
@@ -1816,6 +1823,7 @@ contains
     !! Molecular Mechanics Options                                                        
     otherThis%FORCE_FIELD = this%FORCE_FIELD
     otherThis%ELECTROSTATIC_MM = this%ELECTROSTATIC_MM
+    otherThis%CHARGES_MM = this%CHARGES_MM
     otherThis%PRINT_MM = this%PRINT_MM
     !!***************************************************** 
     !! Output Options   

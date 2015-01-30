@@ -279,6 +279,7 @@ contains
     character(15):: InputParticle_name
     character(30):: InputParticle_basisSetName
     real(8):: InputParticle_origin(3)
+    real(8) :: InputParticle_charge
     character(3):: InputParticle_fixedCoordinates
     integer:: InputParticle_addParticles
     real(8):: InputParticle_multiplicity    
@@ -286,6 +287,7 @@ contains
     NAMELIST /InputParticle/ &
          InputParticle_name, &
          InputParticle_basisSetName, &
+         InputParticle_charge, &
          InputParticle_origin, &
          InputParticle_fixedCoordinates, &
          InputParticle_multiplicity, &
@@ -345,7 +347,8 @@ contains
              !! Counters for old species
              isNewSpecies = .false.
              !! Only are species those who have basis-set
-             if((trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
+             if((trim(InputParticle_basisSetName) /= "MM") .and. &
+                  (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
                 
                 !! For open-shell case electrons are alpha and beta
                 if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
@@ -370,7 +373,8 @@ contains
        !! Counters for new species
        if(isNewSpecies) then          
           !! Look for Quantum species
-          if((trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then 
+          if((trim(InputParticle_basisSetName) /= "MM") .and. &
+               (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then 
              
              !! For open-shell case electrons are alpha and beta
              if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
@@ -432,6 +436,7 @@ contains
        !! Setting defaults
        InputParticle_name = "NONE"
        InputParticle_basisSetName = "NONE"
+       InputParticle_charge=0.0_8
        InputParticle_origin=0.0_8
        InputParticle_fixedCoordinates = "NONE"
        InputParticle_multiplicity = 1.0_8
@@ -473,7 +478,8 @@ contains
        end if
        
        !! Load quantum species
-       if((trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
+       if((trim(InputParticle_basisSetName) /= "MM") .and. &
+            (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
 
           !! Locate specie
           do j = 1, numberOfQuantumSpecies          
@@ -534,13 +540,19 @@ contains
           
           !! Loads Point charges   
           counter = counter + 1
-          
+          !! Loads Molecular Mechanics Particle 
+          if(trim(InputParticle_basisSetName) == "MM") then
+             call Particle_load( MolecularSystem_instance%pointCharges(counter),&
+                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, id = counter, charge = inputParticle_charge)
+          else
           !! Loads Particle
-          call Particle_load( MolecularSystem_instance%pointCharges(counter),&
-               name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
-               origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-               multiplicity=inputParticle_multiplicity, id = counter)
-          
+             call Particle_load( MolecularSystem_instance%pointCharges(counter),&
+                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, id = counter)
+          end if
        end if
     end do
 

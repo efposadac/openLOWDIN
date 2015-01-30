@@ -168,7 +168,22 @@ if [ $extFile="lowdin" ]; then
 		};
 		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
 	}
-	END{ printf("\n&InputSystem\n\tInputSystem_numberOfParticles = %u\n",NR) }
+	END{}
+'| sed "s/,/./g" >> $nameFile.aux
+
+	systemSize=$(gawk "/GEOMETRY/,/END/" $nameFile | grep -v "GEOMETRY" | sed "s/=/ = /g" | gawk '{}END{printf(NR)}')
+	MMsystemSize=$(gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | sed "s/=/ = /g" | gawk '{}END{printf(NR)}')
+	totalSystemSize=`expr $systemSize + $MMsystemSize`
+	
+	gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",$1,$2)
+                if(NF==6){
+            		  printf("\tInputParticle_charge = %15.12E \n",$6)                       
+                         }
+		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
+	}
+	END{ printf("\n&InputSystem\n\tInputSystem_numberOfParticles = %u\n",'$totalSystemSize') }
 ' | sed "s/,/./g" >> $nameFile.aux
 	
 	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | sed "s/=/ = /g" | gawk \

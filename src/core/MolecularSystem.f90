@@ -90,6 +90,7 @@ module MolecularSystem_
        MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getSpecieID, &
        MolecularSystem_getPointChargesEnergy, &
+       MolecularSystem_getMMPointChargesEnergy, &
        MolecularSystem_getlabelsofcontractions
   
   !>Singleton
@@ -1086,6 +1087,34 @@ contains
      end do
      
    end function MolecularSystem_getPointChargesEnergy
+
+   function MolecularSystem_getMMPointChargesEnergy() result( output )
+     implicit none
+     real(8) :: output
+
+     integer :: i
+     integer :: j
+     real(8) :: deltaOrigin(3)
+     real(8) :: tmp
+
+     output =0.0_8
+     
+     do i=1, size( MolecularSystem_instance%pointCharges )
+        if(trim(MolecularSystem_instance%pointCharges(i)%nickname) == "PC") then
+           do j = i + 1 , size( MolecularSystem_instance%pointCharges )
+
+              deltaOrigin = MolecularSystem_instance%pointCharges(i)%origin &
+                   - MolecularSystem_instance%pointCharges(j)%origin
+
+              output=output + ( ( MolecularSystem_instance%pointCharges(i)%charge &
+                   * MolecularSystem_instance%pointCharges(j)%charge )&
+                   / sqrt( sum( deltaOrigin**2.0_8 ) ) )
+
+           end do
+        end if
+     end do
+
+   end function MolecularSystem_getMMPointChargesEnergy
    
    !>
    !! @brief returns an array of labels of all basis set of speciesID

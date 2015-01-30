@@ -74,7 +74,7 @@ contains
   !!      -Adapted for open shell systems, 2011. E. F. Posada
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
-  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id )
+  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
@@ -85,6 +85,7 @@ contains
     real(8), intent(in), optional :: multiplicity
     integer, intent(in), optional :: addParticles
     integer, intent(in) :: id
+    real(8), intent(in), optional :: charge
     
     type(AtomicElement) :: element
     type(ElementalParticle) :: eparticle
@@ -223,7 +224,7 @@ contains
           call Particle_setComponentFixed( this, varsToFix )
           
        !! Load quantum nuclei (of an atomic element)
-       else if( present(baseName) .and. trim(baseName) /= "DIRAC" ) then
+       else if( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM") then
 
           call Particle_build( this = this, &
                isQuantum = .true., &
@@ -271,46 +272,94 @@ contains
        
        !! Load Point charges (of an atomic element)
        else
-          
-          call Particle_build( this, &
-               isQuantum=.false., &
-               name=trim(elementSymbol), &
-               origin=auxOrigin, &
-               owner=id, &
-               nickname=trim(element%symbol))
-          
-          call Particle_setComponentFixed(this, varsToFix )
-          
-          this%basisSetName="DIRAC"
-          this%name = trim(name)
-          this%symbol = trim(elementSymbol)
-          this%charge = element%atomicNumber
-          this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
-               + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)
-          this%totalCharge = element%atomicNumber
-          this%internalSize = 1 + auxAdditionOfParticles
-          this%id = id
-          
-          if ( Math_isEven( INT( element%massicNumber ) ) ) then
+
+          if(present(baseName) .and. trim(baseName) == "MM" ) then
              
-             this%statistics = "BOSON"
-             if ( Math_isEven( INT( element%atomicNumber ) ) ) then
-                this%spin = 0.0_8
+             call Particle_build( this, &
+                  isQuantum=.false., &
+                  name=trim(elementSymbol), &
+                  origin=auxOrigin, &
+                  owner=id, &
+                  nickname=trim(element%symbol))
+
+             call Particle_setComponentFixed(this, varsToFix )
+
+             this%basisSetName="MM"
+             this%name = trim(name)
+             this%symbol = trim(elementSymbol)
+
+             if(CONTROL_instance%CHARGES_MM) then
+                this%charge = charge
+                this%totalCharge = charge
              else
-                this%spin = element%nuclearSpin
+                this%charge = element%atomicNumber
+                this%totalCharge = element%atomicNumber
              end if
-             
+             this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
+                  + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)
+
+             this%internalSize = 1 + auxAdditionOfParticles
+             this%id = id
+
+             if ( Math_isEven( INT( element%massicNumber ) ) ) then
+
+                this%statistics = "BOSON"
+                if ( Math_isEven( INT( element%atomicNumber ) ) ) then
+                   this%spin = 0.0_8
+                else
+                   this%spin = element%nuclearSpin
+                end if
+
+             else
+
+                this%statistics = "FERMION"
+                this%spin = element%nuclearSpin
+
+             end if
+
+
           else
-             
-             this%statistics = "FERMION"
-             this%spin = element%nuclearSpin
-             
-          end if
           
+             call Particle_build( this, &
+                  isQuantum=.false., &
+                  name=trim(elementSymbol), &
+                  origin=auxOrigin, &
+                  owner=id, &
+                  nickname=trim(element%symbol))
+
+             call Particle_setComponentFixed(this, varsToFix )
+
+             this%basisSetName="DIRAC"
+             this%name = trim(name)
+             this%symbol = trim(elementSymbol)
+             this%charge = element%atomicNumber
+             this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
+                  + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)
+             this%totalCharge = element%atomicNumber
+             this%internalSize = 1 + auxAdditionOfParticles
+             this%id = id
+
+             if ( Math_isEven( INT( element%massicNumber ) ) ) then
+
+                this%statistics = "BOSON"
+                if ( Math_isEven( INT( element%atomicNumber ) ) ) then
+                   this%spin = 0.0_8
+                else
+                   this%spin = element%nuclearSpin
+                end if
+
+             else
+
+                this%statistics = "FERMION"
+                this%spin = element%nuclearSpin
+
+             end if
+          
+          end if
        end if
        
     !! Load quantum elemental particles (is not an atomic element)
-    else if ( present(baseName) .and. trim(baseName) /= "DIRAC" ) then
+    else if ( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM") then
        
        call ElementalParticle_load( eparticle, trim(name) )
        
@@ -342,27 +391,55 @@ contains
        
    !! Load Point charges (elemental Particles)       
     else
-       
-       call ElementalParticle_load( eparticle, trim( name ) )
-       
-       call Particle_build( this, &
-            isQuantum=.false., &
-            name=trim(name), &
-            origin=auxOrigin, &
-            owner=id, &
-            nickname=trim(eparticle%symbol))
-       
-       call Particle_setComponentFixed(this, varsToFix )
-       
-       this%basisSetName="DIRAC"
-       this%name = eParticle%name
-       this%symbol = eParticle%symbol
-       this%charge = eParticle%charge
-       this%mass = eParticle%mass
-       this%totalCharge = eParticle%charge
-       this%internalSize = 1 + auxAdditionOfParticles
-       this%spin = eParticle%spin
-       this%id = id
+
+       if(present(baseName) .and. trim(baseName) == "MM" ) then
+          call ElementalParticle_load( eparticle, trim( name ) )
+
+          call Particle_build( this, &
+               isQuantum=.false., &
+               name=trim(name), &
+               origin=auxOrigin, &
+               owner=id, &
+               nickname=trim(eparticle%symbol))
+
+          call Particle_setComponentFixed(this, varsToFix )
+
+          this%basisSetName="MM"
+          this%name = eParticle%name
+          this%symbol = eParticle%symbol
+          if(CONTROL_instance%CHARGES_MM) then
+             this%charge = charge
+             this%totalCharge = charge
+          end if
+          this%mass = eParticle%mass
+          this%internalSize = 1 + auxAdditionOfParticles
+          this%spin = eParticle%spin
+          this%id = id
+          
+       else
+          
+          call ElementalParticle_load( eparticle, trim( name ) )
+
+          call Particle_build( this, &
+               isQuantum=.false., &
+               name=trim(name), &
+               origin=auxOrigin, &
+               owner=id, &
+               nickname=trim(eparticle%symbol))
+
+          call Particle_setComponentFixed(this, varsToFix )
+
+          this%basisSetName="DIRAC"
+          this%name = eParticle%name
+          this%symbol = eParticle%symbol
+          this%charge = eParticle%charge
+          this%mass = eParticle%mass
+          this%totalCharge = eParticle%charge
+          this%internalSize = 1 + auxAdditionOfParticles
+          this%spin = eParticle%spin
+          this%id = id
+          
+       end if
        
     end if
 
