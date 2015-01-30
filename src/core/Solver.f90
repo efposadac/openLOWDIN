@@ -97,15 +97,24 @@ contains
     implicit none
 
     !! Run HF program in RHF mode
-    call system("lowdin-HF.x RHF")
     
     select case(CONTROL_instance%METHOD)
               
     case("RHF")
 
-       return
+       call system("lowdin-HF.x RHF")
+       
+    case ("RHF-COSMO")
+       
+       call system("lowdin-cosmo.x")
+			 call system("lowdin-HF.x RHF")
+       write(*,*) CONTROL_instance%METHOD
        
     case('RHF-MP2')
+
+			 call system("lowdin-HF.x RHF")
+
+       call system("lowdin-integralsTransformation.x")
 
        call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
 
@@ -115,7 +124,13 @@ contains
        call system("lowdin-CI.x" )
 
     case('RHF-PT')
+			 
+			 call system("lowdin-HF.x RHF")
 
+       call system("lowdin-integralsTransformation.x")
+       
+			 call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+       
     case default
 
        call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
@@ -207,12 +222,12 @@ contains
        
        call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
             "At Solver module in UHFrun function")
-
+       
     end select
-
-
+    
+    
 !     type(Solver) :: this
-
+    
 !     call UHF_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_dipole( CalculateProperties_instance )

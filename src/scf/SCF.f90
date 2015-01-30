@@ -93,11 +93,16 @@ program SCF
      end if
 
      do i = 1, numberOfSpecies
+			 
+			 write(*,*)"entre a build2particlesmatrixmulti"
           
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
         call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
-
+				
+			 if (CONTROL_instance%COSMO) then
+				call WaveFunction_buildCosmo2Matrix(trim(nameOfSpecie))
+       end if
      end do
             
      auxValue = 0.0_8 
@@ -216,6 +221,7 @@ program SCF
 
      call MultiSCF_iterate( CONTROL_instance%ITERATION_SCHEME )
 
+
   end if
   
   close(wfnUnit)
@@ -249,6 +255,11 @@ program SCF
 
      labels(1) = "ORBITALS"
      call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, unit=wfnUnit, binary=.true., arguments = labels )
+			 
+			 if (CONTROL_instance%COSMO) then
+				labels(1) = "COSMO2"
+				call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
+       end if
 
   end do
   

@@ -59,6 +59,12 @@ module WaveFunction_
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: coefficientsofcombination
      type(vector) :: energyofmolecularorbital
+
+		 !! Cosmo Things
+     type(Matrix) :: cosmo1
+     type(Matrix) :: cosmo2
+     type(Matrix) :: cosmo4
+
      
      !!**************************************************************
 
@@ -74,6 +80,11 @@ module WaveFunction_
      real(8) :: repulsionEnergy
      real(8) :: couplingEnergy
      real(8) :: externalPotentialEnergy
+
+
+		 !! Cosmo Things
+
+     real(8) :: cosmoEnergy
 
      !!**************************************************************
 
@@ -109,6 +120,7 @@ contains
        WaveFunction_instance( speciesID )%repulsionEnergy = 0.0_8
        WaveFunction_instance( speciesID )%externalPotentialEnergy = 0.0_8
        WaveFunction_instance( speciesID )%couplingEnergy = 0.0_8
+       WaveFunction_instance( speciesID )%cosmoEnergy = 0.0_8
        
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions )
        
@@ -334,8 +346,8 @@ contains
     end if
     
     !! DEBUG
-!     print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-!     call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
+    print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
     
     !! Load N-Q- Attraction  Matrix
     arguments(1) = "ATTRACTION"
@@ -350,8 +362,8 @@ contains
          WaveFunction_instance( speciesID )%puntualInteractionMatrix%values * (-auxCharge)
     
     !! DEBUG
-!     print *,"Matriz de interaccion n-e: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-!     call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
+    print *,"Matriz de interaccion n-e: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
     
     close(34)    
     
@@ -368,8 +380,8 @@ contains
          WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
         
     !! DEBUG
-!     print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-!     call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
+    print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
        
   end subroutine WaveFunction_HCoreMatrix
 
@@ -455,6 +467,27 @@ contains
          WaveFunction_instance( specieID )%couplingEnergy
 
 
+		!! Cosmo energy calculation
+    
+
+    !! Calcula la energia COSMO	
+
+		if(CONTROL_instance%COSMO)then
+
+		 WaveFunction_instance( specieID )%cosmoEnergy =  &
+          (sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
+          WaveFunction_instance( specieID )%cosmo1%values ) + &
+					(sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
+					WaveFunction_instance( specieID )%cosmo4%values )))	+ &
+          0.5_8*(sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
+          WaveFunction_instance( specieID )%cosmo2%values ))
+		end if
+    
+
+
+
+
+
     ! print *, "__________________ ENERGY COMPONENTS _______________________"
     ! print *, "	Specie                       ", MolecularSystem_getNameOfSpecie( specieID )
     ! print *, "	Total Energy                =", WaveFunction_instance( specieID )%totalEnergyForSpecie
@@ -518,6 +551,77 @@ contains
     call Matrix_copyConstructor( output, WaveFunction_instance(specieID)%transformationMatrix )
 
   end function WaveFunction_getTransformationMatrix
+
+	!!cosmo matrices construction
+
+  subroutine WaveFunction_cosmoHCoreMatrix(file, speciesID)
+    implicit none
+    
+    character(*), intent(in) :: file
+    integer, intent(in) :: speciesID
+    
+    integer :: unit
+    integer :: k, l, r, s
+    integer :: ParticleID, ParticleID_2
+    integer :: contractionID, contractionID_2
+    integer :: numberOfCartesiansOrbitals, numberOfCartesiansOrbitals_2
+    integer :: owner, owner_2
+    integer :: auxCharge
+    integer :: numberOfContractions
+    integer :: totalNumberOfContractions
+    character(10) :: arguments(2)
+
+    !! Open file
+    unit = 44
+    open(unit = unit, file=trim(file), status="old", form="unformatted")
+    
+    arguments(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))    
+
+    !! Get number of shells and number of cartesian contractions
+    numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
+    
+    !! Load electron potential vs clasical charges cosmo matrix
+    arguments(1) = "COSMO1"    
+    WaveFunction_instance( speciesID )%cosmo1 = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments)
+
+    
+    !! DEBUG
+    print *,"Matriz cosmo1: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    call Matrix_show( WaveFunction_instance(speciesID)%cosmo1 )
+    
+    !! Load clasical potential vs quantum charges cosmo matrix
+    arguments(1) = "COSMO4"
+   
+
+    WaveFunction_instance( speciesID )%cosmo4 = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments)    
+           
+    
+    !! DEBUG
+    print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    call Matrix_show( WaveFunction_instance(speciesID)%cosmo4 )
+    
+    close(44)    
+    
+    !! Build Hcore Matrix
+    if ( .not.allocated(WaveFunction_instance( speciesID )%HcoreMatrix%values ) ) then
+       
+       call Matrix_constructor( WaveFunction_instance( speciesID )%HcoreMatrix, &
+            int(totalNumberOfContractions,8), int(totalNumberOfContractions,8), Math_NaN )
+       
+    end if
+    
+    WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+         WaveFunction_instance(speciesID)%kineticMatrix%values + &
+         WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
+        
+    !! DEBUG
+!     print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+!     call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
+       
+  end subroutine WaveFunction_cosmoHcoreMatrix
 
 !   !<
 !   !! @brief Contruye una matriz de interaccion con un potencial externo

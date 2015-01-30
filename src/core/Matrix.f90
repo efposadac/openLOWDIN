@@ -544,6 +544,7 @@ contains
 
     bbinary = .false.
     if(present(binary)) bbinary = binary
+
     
     if(bbinary) then
        

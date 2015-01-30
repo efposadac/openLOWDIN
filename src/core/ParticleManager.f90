@@ -78,13 +78,15 @@ module ParticleManager_
 !        ParticleManager_getLabelsOfContractions, &
         ParticleManager_getLabelsOfCentersOfOptimization, &
         ParticleManager_getChargesOfCentersOfOptimization, &
-!        ParticleManager_isQuantum, &
+        ParticleManager_isQuantum, &
 !        ParticleManager_isCenterOfOptimization, &
 !        ParticleManager_isComponentFixed, &
 !        ParticleManager_iterateSpecie, &
 !        ParticleManager_beginSpecie, &
 !        ParticleManager_endSpecie, &
 !        ParticleManager_rewindSpecies, &
+! 				ParticleManager_getOriginOfPuntualParticle, &
+!   			ParticleManager_getChargeOfPuntualParticle, &
         ParticleManager_setOrigin, &
         ParticleManager_setParticlesPositions, &
         ParticleManager_setOwner
@@ -1284,15 +1286,15 @@ contains
 !   !<
 !   !! @brief 	Indica si es una particula fija
 !   !>
-!   function ParticleManager_isQuantum( specieID) result( output )
-!     implicit none
-!     integer, intent(in) :: specieID
+   function ParticleManager_isQuantum( specieID) result( output )
+     implicit none
+     integer, intent(in) :: specieID
 
-!     logical :: output
+     logical :: output
 
-!     output = ParticleManager_instance%particlesPtr(specieID)%isQuantum
+     output = ParticleManager_instance(specieID)%particlePtr%isQuantum
 
-!   end function ParticleManager_isQuantum
+   end function ParticleManager_isQuantum
 
 !   !<
 !   !! @brief calcula la energia total para una especie especificada

@@ -26,12 +26,21 @@ Program Ints
   use IntegralManager_
   use String_
   use Stopwatch_
+  use CosmoCore_
+  use ParticleManager_
+
   implicit none
   
   character(50) :: job
   character(50) :: nprocs
   character(50) :: proc
   character(50) :: speciesName
+  
+	type(surfaceSegment) :: surface_aux
+!!Cosmo test
+	real(8) :: x,y,z
+	integer :: j
+!Cosmo test
 
   integer(8) :: nprocess
   integer(8) :: process
@@ -39,7 +48,7 @@ Program Ints
   job = ""  
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
-  
+
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
   call Stopwatch_start(lowdin_stopwatch)
@@ -85,6 +94,44 @@ Program Ints
      write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
      write(*, *) ""
      close(30)
+
+  case("COSMO")
+  call Stopwatch_start(lowdin_stopwatch)
+
+     write(*,"(A)")"----------------------------------------------------------------------"
+     write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
+     write(*,"(A)")"----------------------------------------------------------------------"
+     write(*,"(A)") "INFO: RUNNING IN COSMO MODE."
+     write(*,"(A)")" "
+
+		
+		 call CosmoCore_lines(surface_aux)
+		 call CosmoCore_filler(surface_aux)
+     
+		 !!Open file to store integrals
+     
+		 open(unit=40, file="cosmo.opints", status="unknown", form="unformatted")
+     
+		 !!write global info on output
+     write(40) size(MolecularSystem_instance%species)
+
+
+     !!Calculate cosmo integrals and charges
+
+		 call IntegralManager_getAttractionIntegrals(surface_aux)
+
+
+     !stop time
+
+     call Stopwatch_stop(lowdin_stopwatch)
+     
+		 write(*, *) ""
+     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*, *) ""
+		 close(40)
+		 
+
+		
      
   case("TWO_PARTICLE_R12_INTRA")
      
@@ -106,6 +153,8 @@ Program Ints
      
      !!Calculate attraction integrals (intra-species)
      call IntegralManager_getIntraRepulsionIntegrals(nprocess, process, speciesName, trim(CONTROL_instance%INTEGRAL_SCHEME))
+
+		 ! write(*,*)"nprocess,process,speciesName", nprocess, process, speciesName
      
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)

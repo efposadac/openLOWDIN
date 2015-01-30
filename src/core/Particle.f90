@@ -50,6 +50,8 @@ module Particle_
      real(8) :: mass			!< Masa asociada a la particula.
      real(8) :: spin			!< Especifica el espin de la particula
      real(8) :: totalCharge		!< Carga total asociada a la particula.
+     real(8) :: klamt			!< Radio de Klamt asociado a la particula
+     real(8) :: vanderWaalsRadio			!< Radio de vanderWaalsRadio asociado a la particula
      logical :: isQuantum		!< Indica comportamiento cuantico/puntual
      logical :: isDummy			!< Permite verificar si se trata de una particula virtual
      logical :: fixComponent(3)		!< Indica cual coordenada sera un parametro. (is fixed)
@@ -187,6 +189,8 @@ contains
                 this%mass = PhysicalConstants_ELECTRON_MASS
                 this%totalCharge = -element%atomicNumber
                 this%internalSize = element%atomicNumber + (auxMultiplicity-1)  + auxAdditionOfParticles             
+                this%klamt = element%klamt
+                this%vanderWaalsRadio = element%vanderWaalsRadio
                 this%statistics="FERMION"
                 this%spin = PhysicalConstants_SPIN_ELECTRON
                 this%id = id    
@@ -200,6 +204,8 @@ contains
                 this%mass = PhysicalConstants_ELECTRON_MASS
                 this%totalCharge = -element%atomicNumber
                 this%internalSize = element%atomicNumber - (auxMultiplicity-1)  + auxAdditionOfParticles             
+                this%klamt = element%klamt
+                this%vanderWaalsRadio = element%vanderWaalsRadio
                 this%statistics="FERMION"
                 this%spin = PhysicalConstants_SPIN_ELECTRON
                 this%id = id    
@@ -215,6 +221,8 @@ contains
              this%mass = PhysicalConstants_ELECTRON_MASS
              this%totalCharge = -element%atomicNumber
              this%internalSize = element%atomicNumber  + auxAdditionOfParticles
+             this%klamt = element%klamt
+             this%vanderWaalsRadio = element%vanderWaalsRadio
              this%statistics="FERMION"
              this%spin = PhysicalConstants_SPIN_ELECTRON
              this%id = id    
@@ -246,6 +254,8 @@ contains
                + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)          
           this%totalCharge = element%atomicNumber
           this%internalSize = 1  + auxAdditionOfParticles
+          this%klamt = element%klamt
+          this%vanderWaalsRadio = element%vanderWaalsRadio
           this%id = id    
           
           !! Identify statistics for this particle
@@ -605,6 +615,8 @@ contains
     write (6,"(T10,A16,F8.2)") "Charge        : ",this%charge
     write (6,"(T10,A16,F8.2)") "Mass          : ",this%mass
     write (6,"(T10,A16,F8.2)") "Spin          : ",this%spin
+    write (6,"(T10,A16,F8.2)") "Klamt radius  : ",this%klamt
+    write (6,"(T10,A16,F8.2)") "vanderWaals radius  : ",this%vanderWaalsRadio
     write (6,"(T10,A16,F8.2)") "Total charge  : ",this%totalCharge
     write (6,"(T10,A16,I8)") "Internal size : ",this%internalSize
     write (6,"(T10,A16,L8)") "Is dummy      : ",this%isDummy

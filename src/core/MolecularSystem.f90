@@ -398,6 +398,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                int(MolecularSystem_instance%species(i)%internalSize / 2), " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
+          write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        else
 
@@ -407,6 +408,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                MolecularSystem_instance%species(i)%internalSize, " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
+          write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        end if
        
@@ -527,6 +529,7 @@ contains
     implicit none
     
     integer i, j, k
+    character(100) :: title
     
     !!****************************************************************************
     !! CONTROL parameters on file.
@@ -605,6 +608,37 @@ contains
     end do
     
     close(40)
+    
+    !!****************************************************************************
+    !! Saving info for gepol program
+    !!
+	
+    call get_command_argument (1,value=title)
+		150 format (4(F10.5))
+		open(unit=41, file="gepol.xyzr",status="replace", form="formatted")
+
+		write(41,"(I8)") MolecularSystem_instance%numberOfPointCharges
+			do i = 1,MolecularSystem_instance%numberOfQuantumSpecies 	
+       	do j = 1, size(MolecularSystem_instance%species(i)%particles)
+          	write(41,150)&
+		  				MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
+		  				MolecularSystem_instance%species(i)%particles(j)%origin(2)*AMSTRONG, &
+		  				MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
+		  				MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
+       	end do
+    	end do
+
+		close(41)
+		
+		160 format (A,A)
+		open(unit=42, file="gepol.inp",status="replace", form="formatted")
+			write(42,160)"TITL=",trim(title)
+			write(42,160)"COOF=gepol.xyzr"
+			write(42,160)"VECF=vectors.vec"
+			write(42,160)"LPRIN"
+			write(42,160)"ESURF"
+		
+		close(42)
     
   end subroutine MolecularSystem_saveToFile
 

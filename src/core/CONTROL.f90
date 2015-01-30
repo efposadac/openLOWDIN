@@ -117,6 +117,16 @@ module CONTROL_
      logical :: MP_ONLY_ELECTRONIC_CORRECTION
 
      !!***************************************************************************
+     !! Parameter to control cosmo  
+     !!
+     logical :: COSMO
+	 	 real(8) :: COSMO_SOLVENT_DIALECTRIC
+	   integer :: COSMO_MIN_BEM
+	   integer :: COSMO_MAX_BEM
+	   real(8) :: COSMO_RSOLV
+
+     !!***************************************************************************
+
      !! Parameter to control the propagator theory module
      !!
      logical :: PT_ONLY_ONE_SPECIE_CORRECTION
@@ -338,6 +348,15 @@ module CONTROL_
   logical :: LowdinParameters_mpOnlyElectronicCorrection
 
   !!***************************************************************************
+  !! Parameter to control cosmo theory
+  !!
+  logical :: LowdinParameters_cosmo
+  real(8) :: LowdinParameters_cosmo_solvent_dialectric
+  integer :: LowdinParameters_cosmo_min_bem
+  integer :: LowdinParameters_cosmo_max_bem
+  real(8) :: LowdinParameters_cosmo_rsolv
+  
+  !!***************************************************************************
   !! Parameter to control the propagator theory module
   !!
   logical :: LowdinParameters_ptOnlyOneSpecieCorrection
@@ -557,6 +576,15 @@ module CONTROL_
        LowdinParameters_mpOnlyElectronicCorrection,&
        
        !!***************************************************************************
+       !! Parameter to control cosmo theory
+       !!
+       LowdinParameters_cosmo,& 
+       LowdinParameters_cosmo_solvent_dialectric,& 
+       LowdinParameters_cosmo_min_bem,&  
+       LowdinParameters_cosmo_max_bem,&  
+       LowdinParameters_cosmo_rsolv,& 
+       
+       !!***************************************************************************
        !! Parameter to control the propagator theory module
        !!
        LowdinParameters_ptOnlyOneSpecieCorrection,&
@@ -679,6 +707,7 @@ module CONTROL_
        LowdinParameters_potentialsDataBase,&
        LowdinParameters_elementalParticlesDataBase
 
+
   public :: &
        CONTROL_start, &
        CONTROL_load, &
@@ -800,6 +829,15 @@ contains
     LowdinParameters_mpOnlyElectronicCorrection = .false.
 
     !!***************************************************************************
+    !! Parameter to control cosmo theory
+    !!
+    LowdinParameters_cosmo = .false.
+    LowdinParameters_cosmo_solvent_dialectric = 78.4d+00
+    LowdinParameters_cosmo_min_bem = 2
+    LowdinParameters_cosmo_max_bem = 3
+    LowdinParameters_cosmo_rsolv =0.5d+00
+    
+    !!***************************************************************************
     !! Parameter to control the propagator theory module
     !!
     LowdinParameters_ptOnlyOneSpecieCorrection = .false.
@@ -907,11 +945,13 @@ contains
     LowdinParameters_MOFractionOccupation = 1.0_8
     LowdinParameters_ionizeMO = 0
     LowdinParameters_ionizeSpecie = "NONE"
+    LowdinParameters_exciteSpecie = "NONE"
+    LowdinParameters_numberOfCores = 1
     LowdinParameters_exciteSpecie = "NONE"     
     !$OMP PARALLEL
     LowdinParameters_numberOfCores = OMP_get_thread_num() + 1
     !$OMP END PARALLEL 
-    
+
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
     !!
@@ -1028,6 +1068,15 @@ contains
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = .false.
 
     !!***************************************************************************                                              
+    !! Parameter to control cosmo method                                                                                         
+    !!                                                                                                                         
+    CONTROL_instance%COSMO = .false.
+    CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= 78.4d+00 
+    CONTROL_instance%COSMO_MIN_BEM= 2
+    CONTROL_instance%COSMO_MAX_BEM= 3
+    CONTROL_instance%COSMO_RSOLV= 0.5d+00
+
+    !!***************************************************************************                                              
     !! Parameter to control the propagator theory module                                                                       
     !!                                                                                                                         
     CONTROL_instance%PT_ONLY_ONE_SPECIE_CORRECTION = .false.
@@ -1135,10 +1184,11 @@ contains
     CONTROL_instance%IONIZE_MO = 0
     CONTROL_instance%IONIZE_SPECIE = "NONE"
     CONTROL_instance%EXCITE_SPECIE = "NONE"                                                            
+    CONTROL_instance%NUMBER_OF_CORES = 1
     !$OMP PARALLEL
     CONTROL_instance%NUMBER_OF_CORES = OMP_get_thread_num() + 1
     !$OMP END PARALLEL 
-    
+
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   
     !!                                                                                                                         
@@ -1293,6 +1343,15 @@ contains
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = LowdinParameters_mpFrozenCoreBoundary
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = LowdinParameters_mpOnlyElectronicCorrection
                                                                                                                                                                                           
+    !!***************************************************************************      
+    !! Parameter to control cosmo method                                               
+    !!                                                                                 
+    CONTROL_instance%COSMO = LowdinParameters_cosmo
+  	CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= LowdinParameters_cosmo_solvent_dialectric
+  	CONTROL_instance%COSMO_MIN_BEM=LowdinParameters_cosmo_min_bem
+  	CONTROL_instance%COSMO_MAX_BEM=LowdinParameters_cosmo_max_bem
+  	CONTROL_instance%COSMO_RSOLV=LowdinParameters_cosmo_rsolv
+
     !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
     !!                                                                                 
@@ -1521,6 +1580,16 @@ contains
     LowdinParameters_mpOnlyElectronicCorrection = CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION
                                                                                                                                                                                           
     !!***************************************************************************      
+    !! Parameter to control cosmo method                                                 
+    !!                                                                                 
+    LowdinParameters_cosmo = CONTROL_instance%COSMO
+		LowdinParameters_cosmo_solvent_dialectric = CONTROL_instance%COSMO_SOLVENT_DIALECTRIC 
+		LowdinParameters_cosmo_min_bem = CONTROL_instance%COSMO_MIN_BEM
+  	LowdinParameters_cosmo_max_bem = CONTROL_instance%COSMO_MAX_BEM
+ 		LowdinParameters_cosmo_rsolv = CONTROL_instance%COSMO_RSOLV
+
+                                                                                                                                                                                          
+    !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
     !!                                                                                 
     LowdinParameters_ptOnlyOneSpecieCorrection = CONTROL_instance%PT_ONLY_ONE_SPECIE_CORRECTION
@@ -1745,6 +1814,15 @@ contains
     otherThis%MP_FROZEN_CORE_BOUNDARY = this%MP_FROZEN_CORE_BOUNDARY 
     otherThis%MP_ONLY_ELECTRONIC_CORRECTION = this%MP_ONLY_ELECTRONIC_CORRECTION 
     !!*****************************************************
+    !! Control de parametros de metodo cosmo
+    !!
+    otherThis%COSMO  = this%COSMO                   
+    otherThis%COSMO_SOLVENT_DIALECTRIC = this%COSMO_SOLVENT_DIALECTRIC
+    otherThis%COSMO_MIN_BEM = this%COSMO_MIN_BEM           
+    otherThis%COSMO_MAX_BEM = this%COSMO_MAX_BEM           
+    otherThis%COSMO_RSOLV = this%COSMO_RSOLV             
+
+    !!*****************************************************
     ! Control this for Propagator Theory= !! Control this for Propagator Theory
     !!
     otherThis%PT_ONLY_ONE_SPECIE_CORRECTION = this%PT_ONLY_ONE_SPECIE_CORRECTION 
@@ -1910,9 +1988,15 @@ contains
 
     end if
 
+    if(CONTROL_instance%COSMO) then
+
+       write (*,"(T10,A)") "COSMO:  T "
+
+    end if
+
     if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL .ne. "NONE" ) then
 
-       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+       write (*,"(T10,A,I5)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
 
     end if
 

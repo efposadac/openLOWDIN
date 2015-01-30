@@ -43,6 +43,8 @@ module InputManager_
      integer :: propagatorTheoryCorrection
      logical :: optimizeGeometry
      logical :: TDHF
+     logical :: cosmo		
+
   end type InputManager
 
   !> Singleton
@@ -168,6 +170,8 @@ contains
     integer:: InputTasks_propagatorTheoryCorrection
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
+    logical:: InputTasks_cosmo
+
     
     NAMELIST /InputTasks/ &
          InputTasks_method, &
@@ -175,7 +179,9 @@ contains
          InputTasks_mollerPlessetCorrection, &
          InputTasks_propagatorTheoryCorrection, &
          InputTasks_optimizeGeometry, &
-         InputTasks_TDHF
+         InputTasks_TDHF, &
+         InputTasks_cosmo		
+
     
     !! Setting defaults    
     InputTasks_method = "NONE"
@@ -184,6 +190,7 @@ contains
     InputTasks_propagatorTheoryCorrection = 0
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
+    InputTasks_cosmo= .false.	
     
     !! reload input file
     rewind(4)
@@ -202,6 +209,7 @@ contains
     Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
+    Input_instance%cosmo = InputTasks_cosmo	
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -241,6 +249,11 @@ contains
     if ( input_instance%TDHF ) then 
        CONTROL_instance%TDHF = .true.
     end if    
+    
+    if (input_instance%cosmo) then 	
+       CONTROL_instance%cosmo = .true.	
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
+    end if
     
     if( Input_instance%numberOfExternalPots > 0) then    
        CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL=.true.
