@@ -1,8 +1,6 @@
 #!/bin/bash
+#
 SRCMOD=$(ls [!_]*.f90)
-SRCMOD="$SRCMOD $(ls [!_]*.cpp)" 
-# SRCMOD="$SRCMOD $(ls [!_]*.c)" 
-SRCMOD="$SRCMOD $(ls [!_]*.cu)" 
 #
 rm -f makefile
 rm -f *.o 
@@ -13,28 +11,28 @@ cat > makefile << EOF
 TOPDIR=../../
 include \$(TOPDIR)/CONFIG
 
-TARGET=lowdin-ints.x
+TARGET=lowdin-MolecularMechanics.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
+INCI=-I\$(TOPDIR)src/ints/
 LDPATH=\$(TOPDIR)lib/lowdincore.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
 OBJECTS=$(for file in $SRCMOD 
           do
-            echo -e "${file%.*}.o \c"
+            echo -e "${file%.f90}.o \c"
           done
           ) 
 EOF
 echo -e "\n\$(TARGET) : \$(OBJECTS)" >> makefile
 echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(LDPATH) \$(LIBS)" >> makefile
 echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
-SRCMOD=$(ls [!_]*.f90)
-#Fortran
+#
 for file in $SRCMOD 
 do
-  echo -e "${file%.*}.o:\t${file} \c" >> makefile
-   for ifile in $INC
+  echo -e "${file%.f90}.o:\t${file} \c" >> makefile
+   for ifile in $INC 
    do
       inc=$(grep $ifile $file)
       if [[ -n $inc ]]
@@ -42,6 +40,15 @@ do
         echo -e "$ifile \c" >> makefile
       fi
    done
+   for ifile in $INCI 
+   do
+      inci=$(grep $ifile $file)
+      if [[ -n $inci ]]
+      then
+        echo -e "$ifile \c" >> makefile
+      fi
+   done
+
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
    do
      name=$(echo $mod)
@@ -54,30 +61,7 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) ${file}\n" >> makefile
-done
-#c++ sources
-SRCMOD=$(ls [!_]*.cpp)
-for file in $SRCMOD 
-do
-    echo -e "${file%.cpp}.o:\t${file} \c" >> makefile
-    echo -e "\n\t\$(CU) -c \$(INC) ${file}\n" >> makefile
-# \$(CFLAGS) ${file}\n" >> makefile
-done
-#
-#c sources
-# SRCMOD=$(ls [!_]*.c)
-# for file in $SRCMOD 
-# do
-#     echo -e "${file%.c}.o:\t${file} \c" >> makefile
-#     echo -e "\n\t\$(CU) -c \$(INC) ${file}\n" >> makefile
-# done
-#cuda sources
-SRCMOD=$(ls [!_]*.cu)
-for file in $SRCMOD 
-do
-    echo -e "${file%.cu}.o:\t${file} \c" >> makefile
-    echo -e "\n\t\$(CU) -c \$(INC) ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(FLAGS) ${file}\n" >> makefile
 done
 #
 cat >> makefile << EOF
