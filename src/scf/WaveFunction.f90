@@ -605,6 +605,16 @@ contains
          wavefunction_instance(speciesID)%cosmo2%values
 		write(*,*)"cosmo contribution"
 		call Matrix_show(cosmoContribution)
+		
+		! write(*,*)"cosmo1"
+		! call Matrix_show(wavefunction_instance(speciesID)%cosmo1)
+    !
+		! write(*,*)"cosmo2"
+		! call Matrix_show(wavefunction_instance(speciesID)%cosmo2)
+		!
+		! write(*,*)"cosmo4"
+		! call Matrix_show(wavefunction_instance(speciesID)%cosmo4)
+
 
 		!!debug
 			
@@ -2419,7 +2429,7 @@ contains
 		if(allocated(cosmo_int)) deallocate(cosmo_int)
     allocate(cosmo_int(m))
 		
-		read(110)(cosmo_int(i),i=1,961)
+		read(110)(cosmo_int(i),i=1,m)
 		close(unit=110)
 
 

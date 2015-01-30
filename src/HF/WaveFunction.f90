@@ -590,8 +590,8 @@ contains
 
     
     !! DEBUG
-    ! print *,"Matriz cosmo1: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    ! call Matrix_show( WaveFunction_instance(speciesID)%cosmo1 )
+    print *,"Matriz cosmo1: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    call Matrix_show( WaveFunction_instance(speciesID)%cosmo1 )
     
     !! Load clasical potential vs quantum charges cosmo matrix
     arguments(1) = "COSMO4"
@@ -602,8 +602,8 @@ contains
            
     
     !! DEBUG
-    ! print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    ! call Matrix_show( WaveFunction_instance(speciesID)%cosmo4 )
+    print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    call Matrix_show( WaveFunction_instance(speciesID)%cosmo4 )
     
     close(44)    
     

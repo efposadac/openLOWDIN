@@ -419,7 +419,9 @@ contains
                          point(1)%x  =surface%xs(c)
                          point(1)%y  =surface%ys(c)
                          point(1)%z  =surface%zs(c)
-                         ! write(*,*) point(c)%x,point(c)%y,point(c)%z
+												 if (c==1) then
+													write(*,*) point(c)%x,point(c)%y,point(c)%z
+												end if
                          !Calculating integrals for shell
 
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
@@ -432,10 +434,10 @@ contains
                                integralValueCosmo(m,c)=integralValue(m)
                                !! debug
 															 
-															 ! write(*,*)"cosmo integrals: m,k,l",m,k,l
-                               ! write(*,*)integralValueCosmo(m,c)
+															 write(*,*)"cosmo integrals: m,k,l",m,k,l
+                               write(*,*)integralValueCosmo(m,c)
                                
-															 ! write(37,'(F10.5)')integralValueCosmo(m,c)
+															 write(37,'(F10.5)')integralValueCosmo(m,c)
                             end do
                          end do
 

@@ -33,7 +33,7 @@ contains
     type(Matrix), intent(inout) :: cmatinv
 
 
-    call CosmoCore_caller()
+    ! call CosmoCore_caller()
     call CosmoCore_lines(surface)
     call CosmoCore_Filler(surface)
     call CosmoCore_cmat(surface,cmatinv)
@@ -50,7 +50,7 @@ contains
 
     cmd = "gepol.x < gepol.inp > gepol.out"
     call system(cmd) 
-    cmd = "rm gepol.out"
+    ! cmd = "rm gepol.out"
     call system(cmd) 
 
 
@@ -68,7 +68,8 @@ contains
 
     type(surfaceSegment), intent(inout) :: surface
 
-    cmd = "cat vectors.vec | grep '[^ ]' | wc -l > nlines.txt"
+
+    cmd = "cat *.sup | grep '[^ ]' | wc -l > nlines.txt"
     call system(cmd) 
     open(1,file='nlines.txt')
     read(1,*) n
@@ -76,6 +77,7 @@ contains
     call system(cmd)
     surface%sizeSurface=n
     return
+
 
   end subroutine CosmoCore_lines
 
@@ -99,12 +101,11 @@ contains
 
     ! write(*,*)"estamos adentro del filler"
 
-    ! llenado de surface con la información que está en vectors.vec
+    ! llenado de surface con la información que está en .vec
 
-
-100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
-    open(55,file='vectors.vec',status='unknown') 
-    read(55,100) (x(i),y(i),z(i),a(i),i=1,surface%sizeSurface)
+100 format (F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
+		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
+    read(55,*) (a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
 
     !asignando espacio en memoria para los parametros
 
@@ -115,13 +116,15 @@ contains
 
     ! write(*,*)"tipo superficie"
     !! llenando surface con la informacion leida
+			 write(*,*)"como lee los numeros"
 
+		write(*,*)"surface%sizeSurface",surface%sizeSurface
     do i=1,surface%sizeSurface        
        surface%xs(i)=x(i)/AMSTRONG
        surface%ys(i)=y(i)/AMSTRONG
        surface%zs(i)=z(i)/AMSTRONG
        surface%area(i)=a(i)/((AMSTRONG)**2)
-       ! write(*,100)surface%xs(i),surface%ys(i),surface%zs(i),surface%area(i)
+       write(*,*)surface%xs(i),surface%ys(i),surface%zs(i),surface%area(i)
     end do
 
   end subroutine CosmoCore_Filler
@@ -156,8 +159,14 @@ contains
        end do
     end do
 
+		write(*,*)"cmat"
+		call Matrix_show(cmat)
+
     ! calculando la matriz inversa
     cmat_inv=Matrix_inverse(cmat)
+
+		write(*,*)"cmat_inv"
+		call Matrix_show(cmat_inv)
 
   end subroutine CosmoCore_cmat
 
@@ -188,7 +197,8 @@ contains
 
     !!entero
 
-    integer(8) ::segments
+    integer(8) :: segments
+		real(8) :: q_verifier
 
     !! parametro lambda segun Su-Li
     real(8) :: lambda
@@ -205,6 +215,7 @@ contains
 
     verifier=.false.
     lambda=0.0
+		q_verifier=0.0
 
     ! write(*,*) "surfacesize", int(surface%sizeSurface,8)
 
@@ -283,12 +294,16 @@ contains
     do j=1,segments
        q_clasical(j)=q%values(j,1)
 			 ! write(*,*)q_clasical(j)
+			 q_verifier=q_verifier+q_clasical(j)
     end do
 
     write(77) q_clasical
 
-
     close(77)
+		
+		write(*,*) "q_verifier"
+
+		write(*,*) q_verifier
 
   end subroutine CosmoCore_clasical
 
@@ -414,6 +429,8 @@ contains
 				write(110) m-1
         write(110) cosmo_int(:)
 		close(unit=110)
+
+		write(*,*) m
 
     else
        allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
@@ -616,6 +633,8 @@ contains
          " in file lowdin.opints"
     write(40) int(size(ints_mat_aux),8)
     write(40) ints_mat_aux
+
+		write(*,*) ints_mat_aux(:,:)
 
 
 
