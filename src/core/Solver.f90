@@ -112,7 +112,7 @@ contains
        
     case('RHF-MP2')
 
-			 call system("lowdin-HF.x RHF")
+       call system("lowdin-HF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
 
@@ -120,16 +120,17 @@ contains
 
     case('RHF-CI')
 
+       call system("lowdin-HF.x RHF")
        call system("lowdin-integralsTransformation.x")
        call system("lowdin-CI.x" )
 
     case('RHF-PT')
 			 
-			 call system("lowdin-HF.x RHF")
+       call system("lowdin-HF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
        
-			 call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
        
     case default
 
@@ -210,13 +211,25 @@ contains
 
        
     case('UHF-CI')
-       
+
+       call system("lowdin-HF.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-CI.x" )
+
     case('UHF-MP2')
+       call system("lowdin-HF.x UHF")
+       !call system("lowdin-MOERI.x UHF")
+       !rfm call system("lowdin-EPT.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
        
     case('UHF-PT')
        call system("lowdin-HF.x UHF")
-       call system("lowdin-MOERI.x UHF")
+       !call system("lowdin-MOERI.x UHF")
        !rfm call system("lowdin-EPT.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+
        
     case default
        

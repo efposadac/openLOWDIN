@@ -346,8 +346,8 @@ contains
     end if
     
     !! DEBUG
-    print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
+!!   print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+!!    call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
     
     !! Load N-Q- Attraction  Matrix
     arguments(1) = "ATTRACTION"
@@ -362,8 +362,8 @@ contains
          WaveFunction_instance( speciesID )%puntualInteractionMatrix%values * (-auxCharge)
     
     !! DEBUG
-    print *,"Matriz de interaccion n-e: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
+!!    print *,"Matriz de interaccion n-e: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+!!    call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
     
     close(34)    
     
@@ -380,8 +380,8 @@ contains
          WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
         
     !! DEBUG
-    print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
+!!   print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+!!   call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
        
   end subroutine WaveFunction_HCoreMatrix
 
