@@ -116,15 +116,15 @@ contains
 
     ! write(*,*)"tipo superficie"
     !! llenando surface con la informacion leida
-			 write(*,*)"como lee los numeros"
-
-		write(*,*)"surface%sizeSurface",surface%sizeSurface
+		! 	 write(*,*)"como lee los numeros"
+    !
+		! write(*,*)"surface%sizeSurface",surface%sizeSurface
     do i=1,surface%sizeSurface        
        surface%xs(i)=x(i)/AMSTRONG
        surface%ys(i)=y(i)/AMSTRONG
        surface%zs(i)=z(i)/AMSTRONG
        surface%area(i)=a(i)/((AMSTRONG)**2)
-       write(*,*)surface%xs(i),surface%ys(i),surface%zs(i),surface%area(i)
+       ! write(*,*)surface%xs(i),surface%ys(i),surface%zs(i),surface%area(i)
     end do
 
   end subroutine CosmoCore_Filler
@@ -165,8 +165,8 @@ contains
     ! calculando la matriz inversa
     cmat_inv=Matrix_inverse(cmat)
 
-		write(*,*)"cmat_inv"
-		call Matrix_show(cmat_inv)
+		! write(*,*)"cmat_inv"
+		! call Matrix_show(cmat_inv)
 
   end subroutine CosmoCore_cmat
 
