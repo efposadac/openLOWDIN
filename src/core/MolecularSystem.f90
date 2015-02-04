@@ -38,6 +38,7 @@ module MolecularSystem_
   use MecanicProperties_
   use Matrix_
   use Vector_
+  use InternalCoordinates_
   implicit none
   
   type , public :: MolecularSystem
@@ -53,6 +54,7 @@ module MolecularSystem_
      type(Species), allocatable :: species(:)
      type(particle), allocatable :: pointCharges(:)
      type(particleManager), allocatable :: allParticles(:)
+     type(InternalCoordinates) :: intCoordinates
 
      type(MecanicProperties) :: mechanicalProp
      
@@ -68,6 +70,7 @@ module MolecularSystem_
        MolecularSystem_showInformation, &
        MolecularSystem_showParticlesInformation, &
        MolecularSystem_showCartesianMatrix, &
+       MolecularSystem_showZMatrix, &
        MolecularSystem_showDistanceMatrix, &
        MolecularSystem_saveToFile, &
        MolecularSystem_loadFromFile, &
@@ -89,6 +92,7 @@ module MolecularSystem_
        MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getSpecieID, &
        MolecularSystem_getPointChargesEnergy, &
+       MolecularSystem_getMMPointChargesEnergy, &
        MolecularSystem_getlabelsofcontractions
   
   !>Singleton
@@ -394,6 +398,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                int(MolecularSystem_instance%species(i)%internalSize / 2), " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
+          write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        else
 
@@ -403,6 +408,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                MolecularSystem_instance%species(i)%internalSize, " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
+          write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        end if
        
@@ -483,6 +489,20 @@ contains
     
   end subroutine MolecularSystem_showCartesianMatrix
 
+  
+  !>                      
+  !! @Construye y mustra una matriz Z de coordenadas internas
+  !> 
+  subroutine MolecularSystem_showZMatrix( this )
+    implicit none
+    type(MolecularSystem) :: this
+
+    call InternalCoordinates_constructor(  this%intCoordinates )
+    call InternalCoordinates_obtainCoordinates( this%intCoordinates )
+    call InternalCoordinates_destructor(  this%intCoordinates )
+
+  end subroutine MolecularSystem_showZMatrix
+
   !>
   !! @brief Imprime una matriz de distancias entre particulas presentes en el sistema
   subroutine MolecularSystem_showDistanceMatrix()
@@ -509,6 +529,7 @@ contains
     implicit none
     
     integer i, j, k
+    character(100) :: title
     
     !!****************************************************************************
     !! CONTROL parameters on file.
@@ -587,6 +608,37 @@ contains
     end do
     
     close(40)
+    
+    !!****************************************************************************
+    !! Saving info for gepol program
+    !!
+	
+    call get_command_argument (1,value=title)
+		150 format (4(F10.5))
+		open(unit=41, file="gepol.xyzr",status="replace", form="formatted")
+
+		write(41,"(I8)") MolecularSystem_instance%numberOfPointCharges
+			do i = 1,MolecularSystem_instance%numberOfQuantumSpecies 	
+       	do j = 1, size(MolecularSystem_instance%species(i)%particles)
+          	write(41,150)&
+		  				MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
+		  				MolecularSystem_instance%species(i)%particles(j)%origin(2)*AMSTRONG, &
+		  				MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
+		  				MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
+       	end do
+    	end do
+
+		close(41)
+		
+		160 format (A,A)
+		open(unit=42, file="gepol.inp",status="replace", form="formatted")
+			write(42,160)"TITL=",trim(title)
+			write(42,160)"COOF=gepol.xyzr"
+			write(42,160)"VECF=vectors.vec"
+			write(42,160)"LPRIN"
+			write(42,160)"ESURF"
+		
+		close(42)
     
   end subroutine MolecularSystem_saveToFile
 
@@ -1096,6 +1148,34 @@ contains
      end do
      
    end function MolecularSystem_getPointChargesEnergy
+
+   function MolecularSystem_getMMPointChargesEnergy() result( output )
+     implicit none
+     real(8) :: output
+
+     integer :: i
+     integer :: j
+     real(8) :: deltaOrigin(3)
+     real(8) :: tmp
+
+     output =0.0_8
+     
+     do i=1, size( MolecularSystem_instance%pointCharges )
+        if(trim(MolecularSystem_instance%pointCharges(i)%nickname) == "PC") then
+           do j = i + 1 , size( MolecularSystem_instance%pointCharges )
+
+              deltaOrigin = MolecularSystem_instance%pointCharges(i)%origin &
+                   - MolecularSystem_instance%pointCharges(j)%origin
+
+              output=output + ( ( MolecularSystem_instance%pointCharges(i)%charge &
+                   * MolecularSystem_instance%pointCharges(j)%charge )&
+                   / sqrt( sum( deltaOrigin**2.0_8 ) ) )
+
+           end do
+        end if
+     end do
+
+   end function MolecularSystem_getMMPointChargesEnergy
    
    !>
    !! @brief returns an array of labels of all basis set of speciesID

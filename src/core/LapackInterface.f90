@@ -39,6 +39,14 @@ module LapackInterface_
      end subroutine dsyev
 
      !>
+     !! @brief LInear
+     subroutine dgesv(N, NRHS, A, LDA, IPIV, B, LDB, INFO)
+       integer :: N, NRHS, LDA, LDB, INFO
+       real(8) :: A(LDA,*), B(*)
+       integer :: IPIV(*)
+     end subroutine dgesv
+
+     !>
      !! @brief Calcula todos los valores propios y opcionalmente los eigenvectores
      !! por la izquieda o derecha de una matriz cuadrada real y no-simetrica.
      !! Los eigenvectores se normalizan para tener norma euclidiana igual a 1

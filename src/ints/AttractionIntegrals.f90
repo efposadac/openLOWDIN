@@ -105,11 +105,15 @@ contains
   !!      -2013.02.04: E.F.Posada: change for use in opints
   !! @return  output: attraction integral of a shell (all combinations)
   !! @version 1.0
-  subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral)
+  subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral, isCosmo_aux)
     implicit none
     
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
     type(pointCharge), intent(in), allocatable :: point(:)
+
+		!!surface things
+		logical, optional, intent(in) :: isCosmo_aux
+
     integer, intent(in) :: npoints
     real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
 
@@ -141,6 +145,8 @@ contains
     
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexA, contractedGaussianA)
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexB, contractedGaussianB)
+		
+
 
     nprim1 = contractedGaussianA%length
     A(0) = contractedGaussianA%origin(1)
@@ -157,6 +163,7 @@ contains
     
     m = 0
 
+
     do p = 1, contractedGaussianA%numcartesianOrbital
        do q = 1, contractedGaussianB%numcartesianOrbital
 
@@ -167,7 +174,7 @@ contains
 
           exp2(0:nprim2-1) = contractedGaussianB%orbitalExponents(1:nprim2)
           nor2(0:nprim2-1) = contractedGaussianB%primNormalization(1:nprim2,q)
-             
+
           am1 = 0
           am2 = 0
 
@@ -175,10 +182,11 @@ contains
           am2(0:2) = angularMomentIndexB(1:3, q)
 
           call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral)
-          
+
+
           auxIntegral = auxIntegral * contractedGaussianA%contNormalization(p) &
                * contractedGaussianB%contNormalization(q)
-          
+
           integral(m) = auxIntegral
 
        end do
@@ -195,9 +203,9 @@ contains
        orbitalExponentsA, orbitalExponentsB, &
        contractionCoefficientsA, contractionCoefficientsB, &
        normalizationConstantsA, normalizationConstantsB, &
-       pointCharges, integralValue)
+       pointCharges, integralValue, isCosmo_aux2)
     implicit none
-
+		
     integer, intent(in) :: angularMomentindexA(0:3), angularMomentindexB(0:3)
     integer, intent(in) :: lengthA, lengthB
     integer, intent(in) :: numberOfPointCharges
@@ -207,6 +215,11 @@ contains
     real(8), intent(in) :: normalizationConstantsA(0:lengthA), normalizationConstantsB(0:lengthB)
     type(pointCharge), intent(in) :: pointCharges(0:numberOfPointCharges-1)
     real(8), intent(inout) :: integralValue
+		
+		!!cosmo things
+		logical,optional,intent(in) :: isCosmo_aux2
+		real(8), allocatable :: CosmoIntegrals(:,:)
+		!!
 
     real(8), allocatable :: AI0(:,:,:)
     real(8) :: PA(0:3), PB(0:3), PC(0:3), P(0:3)
@@ -237,7 +250,7 @@ contains
 
     if(allocated(AI0))deallocate(AI0)
     allocate(AI0(0:maxIndex, 0:maxIndex, 0:2*maxAngularMoment+1))
-
+		
     AI0 = 0.0_8
 
     AB2 = 0.0_8
@@ -275,6 +288,7 @@ contains
           PB(2) = P(2) - B(2)
 
           commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*zetaInv) * sqrt(Math_PI*zetaInv) * Math_PI * zetaInv * auxCoefficentA * auxCoefficentB * auxConstantA * auxConstantB
+					! write(*,*)"fragmentos y length a y b",numberOfPointCharges,lengthA,lengthB
 
           do atom = 0, numberOfPointCharges - 1
              
@@ -289,12 +303,14 @@ contains
              indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
 
              indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
-
-             integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+						 
+						 integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
 
           end do
+					! write(*,*) "se ha llamado obara-saika ",atom," veces"
        end do
     end do
+		! write(*,*)"finaliza_computePrimitives"
 
   end subroutine AttractionIntegrals_computePrimitive
 

@@ -44,7 +44,7 @@ module ParticleManager_
   integer, parameter :: LABELS_NUMERATED = 1
   !< }
   
-   public :: &
+  public :: &
         ParticleManager_show, &
 !        ParticleManager_getValuesOfFreeCoordinates, &
 !                ParticleManager_getPositionOfCenterOfOptimizacion, &
@@ -76,15 +76,17 @@ module ParticleManager_
 !        ParticleManager_getCenterOfMass, &
 !        ParticleManager_getCharge, &
 !        ParticleManager_getLabelsOfContractions, &
-         ParticleManager_getLabelsOfCentersOfOptimization, &
-         ParticleManager_getChargesOfCentersOfOptimization, &
-!        ParticleManager_isQuantum, &
+        ParticleManager_getLabelsOfCentersOfOptimization, &
+        ParticleManager_getChargesOfCentersOfOptimization, &
+        ParticleManager_isQuantum, &
 !        ParticleManager_isCenterOfOptimization, &
 !        ParticleManager_isComponentFixed, &
 !        ParticleManager_iterateSpecie, &
 !        ParticleManager_beginSpecie, &
 !        ParticleManager_endSpecie, &
 !        ParticleManager_rewindSpecies, &
+! 				ParticleManager_getOriginOfPuntualParticle, &
+!   			ParticleManager_getChargeOfPuntualParticle, &
         ParticleManager_setOrigin, &
         ParticleManager_setParticlesPositions, &
         ParticleManager_setOwner
@@ -386,14 +388,14 @@ contains
     j =0
 
     do i = 1, size(ParticleManager_instance)
-       
+
        if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
-          
+
           j = j + 1          
           output%values(j,:) = ParticleManager_instance(i)%particlePtr%origin
-
-       end if
        
+       end if
+    
     end do
 
   end function ParticleManager_getCartesianMatrixOfCentersOfOptimization
@@ -1218,7 +1220,8 @@ contains
 !   end function ParticleManager_getLabelsOfContractions
 
 
-
+  !>                                                                                                                  !! @brief Retorna las cargas asociadas a los centros de optimizacion. 24-02-2014 
+  !>
 
    function ParticleManager_getChargesOfCentersOfOptimization( fragmentNumber ) result( output )
      implicit none
@@ -1260,6 +1263,7 @@ contains
 
         end do
 
+    numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
 
      else
 
@@ -1279,23 +1283,18 @@ contains
 
    end function ParticleManager_getChargesOfCentersOfOptimization
 
-
-
-
-
-
 !   !<
 !   !! @brief 	Indica si es una particula fija
 !   !>
-!   function ParticleManager_isQuantum( specieID) result( output )
-!     implicit none
-!     integer, intent(in) :: specieID
+   function ParticleManager_isQuantum( specieID) result( output )
+     implicit none
+     integer, intent(in) :: specieID
 
-!     logical :: output
+     logical :: output
 
-!     output = ParticleManager_instance%particlesPtr(specieID)%isQuantum
+     output = ParticleManager_instance(specieID)%particlePtr%isQuantum
 
-!   end function ParticleManager_isQuantum
+   end function ParticleManager_isQuantum
 
 !   !<
 !   !! @brief calcula la energia total para una especie especificada

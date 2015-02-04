@@ -168,7 +168,22 @@ if [ $extFile="lowdin" ]; then
 		};
 		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
 	}
-	END{ printf("\n&InputSystem\n\tInputSystem_numberOfParticles = %u\n",NR) }
+	END{}
+'| sed "s/,/./g" >> $nameFile.aux
+
+	systemSize=$(gawk "/GEOMETRY/,/END/" $nameFile | grep -v "GEOMETRY" | sed "s/=/ = /g" | gawk '{}END{printf(NR)}')
+	MMsystemSize=$(gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | sed "s/=/ = /g" | gawk '{}END{printf(NR)}')
+	totalSystemSize=`expr $systemSize + $MMsystemSize`
+	
+	gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",$1,$2)
+                if(NF==6){
+            		  printf("\tInputParticle_charge = %15.12E \n",$6)                       
+                         }
+		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
+	}
+	END{ printf("\n&InputSystem\n\tInputSystem_numberOfParticles = %u\n",'$totalSystemSize') }
 ' | sed "s/,/./g" >> $nameFile.aux
 	
 	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
@@ -268,6 +283,7 @@ if [ $extFile="lowdin" ]; then
 	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.coeff $LOWDIN_SCRATCH/$nameFile &> /dev/null		
+	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	
 	if [ -e  $nameFile.gms.bs ]
 	then
@@ -303,12 +319,18 @@ if [ $extFile="lowdin" ]; then
 	then
 	    cp $LOWDIN_SCRATCH/$nameFile/*.out $currentPath
 	    cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
+	#		cp $LOWDIN_SCRATCH/$nameFile/*.xyzr $currentPath 
+	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
 	fi
 
 
-	#mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
-	#mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.mol* $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
+	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
+	# mv $LOWDIN_SCRATCH/$nameFile/*.mol* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2

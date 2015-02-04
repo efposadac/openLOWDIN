@@ -216,6 +216,7 @@ contains
     call ContractedGaussian_getAllAngularMomentIndex( angularMomentIndex, this)
     
     
+    ! write(*,*) "Normalization"
     do i = 1, this%length
        m = 1
        do j = 1, this%numCartesianOrbital
@@ -227,6 +228,7 @@ contains
                ((4.0_8*this%orbitalExponents(i))**this%angularMoment))
           m = m + 1
        end do
+          ! write(*,*) this%primNormalization(i,:)
     end do
     
   end subroutine ContractedGaussian_normalizePrimitive

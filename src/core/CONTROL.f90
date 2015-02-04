@@ -98,6 +98,7 @@ module CONTROL_
      logical :: CP_CORRECTION
      logical :: TDHF
      logical :: OPTIMIZE
+     logical :: FIRST_STEP
      logical :: OPTIMIZE_WITH_MP
      logical :: PROJECT_HESSIANE
 
@@ -116,6 +117,16 @@ module CONTROL_
      logical :: MP_ONLY_ELECTRONIC_CORRECTION
 
      !!***************************************************************************
+     !! Parameter to control cosmo  
+     !!
+     logical :: COSMO
+	 	 real(8) :: COSMO_SOLVENT_DIALECTRIC
+	   integer :: COSMO_MIN_BEM
+	   integer :: COSMO_MAX_BEM
+	   real(8) :: COSMO_RSOLV
+
+     !!***************************************************************************
+
      !! Parameter to control the propagator theory module
      !!
      logical :: PT_ONLY_ONE_SPECIE_CORRECTION
@@ -200,6 +211,17 @@ module CONTROL_
      integer :: CUBE_POINTS_DENSITY
      real(8) :: VOLUME_DENSITY_THRESHOLD
 
+     !!***************************************************** 
+     !! Molecular Mechanics Options                                                        
+     character(50) :: FORCE_FIELD
+     logical :: ELECTROSTATIC_MM
+     logical :: CHARGES_MM
+     logical :: PRINT_MM
+
+     !!***************************************************** 
+     !! Output Options                                                        
+     logical :: MOLDEN_FILE
+
      !!*****************************************************
      !! Properties Options
      logical :: CALCULATE_INTERPARTICLE_DISTANCES
@@ -221,6 +243,7 @@ module CONTROL_
      character(255) :: DATA_DIRECTORY="NONE"
      character(255) :: EXTERNAL_COMMAND="NONE"
      character(30) :: EXTERNAL_SOFTWARE_NAME="NONE"
+     character(255) :: UFF_PARAMETERS_DATABASE="NONE"
      character(255) :: ATOMIC_ELEMENTS_DATABASE="NONE"
      character(255) :: BASIS_SET_DATABASE="NONE"
      character(255) :: POTENTIALS_DATABASE="NONE"
@@ -325,6 +348,15 @@ module CONTROL_
   logical :: LowdinParameters_mpOnlyElectronicCorrection
 
   !!***************************************************************************
+  !! Parameter to control cosmo theory
+  !!
+  logical :: LowdinParameters_cosmo
+  real(8) :: LowdinParameters_cosmo_solvent_dialectric
+  integer :: LowdinParameters_cosmo_min_bem
+  integer :: LowdinParameters_cosmo_max_bem
+  real(8) :: LowdinParameters_cosmo_rsolv
+  
+  !!***************************************************************************
   !! Parameter to control the propagator theory module
   !!
   logical :: LowdinParameters_ptOnlyOneSpecieCorrection
@@ -408,6 +440,17 @@ module CONTROL_
   !!
   integer :: LowdinParameters_cubePointsDensity
   real(8) :: LowdinParameters_volumeDensityThreshold
+  
+  !!***************************************************** 
+  !! Molecular Mechanics Options                                                        
+  character(50) :: LowdinParameters_forceField
+  logical :: LowdinParameters_electrostaticMM
+  logical :: LowdinParameters_chargesMM
+  logical :: LowdinParameters_printMM
+
+  !!*****************************************************                                                           
+  !! Output Options                                                                                                 
+  logical :: LowdinParameters_moldenFile
 
   !!*****************************************************
   !! Properties Options
@@ -430,6 +473,7 @@ module CONTROL_
   character(255) :: LowdinParameters_dataDirectory
   character(255) :: LowdinParameters_externalCommand
   character(30) :: LowdinParameters_externalSoftwareName
+  character(255) :: LowdinParameters_uffParametersDataBase
   character(255) :: LowdinParameters_atomicElementsDataBase
   character(255) :: LowdinParameters_basisSetDataBase
   character(255) :: LowdinParameters_potentialsDataBase
@@ -532,6 +576,15 @@ module CONTROL_
        LowdinParameters_mpOnlyElectronicCorrection,&
        
        !!***************************************************************************
+       !! Parameter to control cosmo theory
+       !!
+       LowdinParameters_cosmo,& 
+       LowdinParameters_cosmo_solvent_dialectric,& 
+       LowdinParameters_cosmo_min_bem,&  
+       LowdinParameters_cosmo_max_bem,&  
+       LowdinParameters_cosmo_rsolv,& 
+       
+       !!***************************************************************************
        !! Parameter to control the propagator theory module
        !!
        LowdinParameters_ptOnlyOneSpecieCorrection,&
@@ -614,6 +667,17 @@ module CONTROL_
        !!
        LowdinParameters_cubePointsDensity,&
        LowdinParameters_volumeDensityThreshold,&
+
+       !!***************************************************** 
+       !! Molecular Mechanics Options                                                        
+       LowdinParameters_forceField,&
+       LowdinParameters_electrostaticMM,&
+       LowdinParameters_chargesMM,&
+       LowdinParameters_printMM,&
+
+       !!*****************************************************                                                      
+       !! Output Options                                                                                            
+       LowdinParameters_moldenFile,&
        
        !!*****************************************************
        !! Properties Options
@@ -637,10 +701,12 @@ module CONTROL_
        LowdinParameters_dataDirectory,&
        LowdinParameters_externalCommand,&
        LowdinParameters_externalSoftwareName,&
+       LowdinParameters_uffParametersDataBase,&
        LowdinParameters_atomicElementsDataBase,&
        LowdinParameters_basisSetDataBase,&
        LowdinParameters_potentialsDataBase,&
        LowdinParameters_elementalParticlesDataBase
+
 
   public :: &
        CONTROL_start, &
@@ -763,6 +829,15 @@ contains
     LowdinParameters_mpOnlyElectronicCorrection = .false.
 
     !!***************************************************************************
+    !! Parameter to control cosmo theory
+    !!
+    LowdinParameters_cosmo = .false.
+    LowdinParameters_cosmo_solvent_dialectric = 78.4d+00
+    LowdinParameters_cosmo_min_bem = 2
+    LowdinParameters_cosmo_max_bem = 3
+    LowdinParameters_cosmo_rsolv =0.5d+00
+    
+    !!***************************************************************************
     !! Parameter to control the propagator theory module
     !!
     LowdinParameters_ptOnlyOneSpecieCorrection = .false.
@@ -848,6 +923,17 @@ contains
     LowdinParameters_cubePointsDensity = 125
     LowdinParameters_volumeDensityThreshold = 1E-3
 
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    LowdinParameters_forceField = "UFF"
+    LowdinParameters_electrostaticMM = .false.
+    LowdinParameters_chargesMM = .false.
+    LowdinParameters_printMM = .false.
+
+    !!*****************************************************                                                       
+    !! Output Options          
+    LowdinParameters_moldenFile = .false.
+
     !!*****************************************************
     !! Properties Options
     LowdinParameters_calculateInterparticleDistances = .false.
@@ -859,11 +945,13 @@ contains
     LowdinParameters_MOFractionOccupation = 1.0_8
     LowdinParameters_ionizeMO = 0
     LowdinParameters_ionizeSpecie = "NONE"
+    LowdinParameters_exciteSpecie = "NONE"
+    LowdinParameters_numberOfCores = 1
     LowdinParameters_exciteSpecie = "NONE"     
     !$OMP PARALLEL
     LowdinParameters_numberOfCores = OMP_get_thread_num() + 1
     !$OMP END PARALLEL 
-    
+
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
     !!
@@ -871,6 +959,7 @@ contains
     LowdinParameters_dataDirectory = CONTROL_getDataDirectory()
     LowdinParameters_externalCommand = CONTROL_getExternalCommand()
     LowdinParameters_externalSoftwareName = CONTROL_getExternalSoftwareName()
+    LowdinParameters_uffParametersDataBase = "/dataBases/uffParameters.lib"
     LowdinParameters_atomicElementsDataBase = "/dataBases/atomicElements.lib"
     LowdinParameters_basisSetDataBase = "/basis/"
     LowdinParameters_potentialsDataBase = "/potentials/"
@@ -960,6 +1049,7 @@ contains
     CONTROL_instance%CP_CORRECTION = .false.
     CONTROL_instance%TDHF = .false.
     CONTROL_instance%OPTIMIZE = .false.
+    CONTROL_instance%FIRST_STEP = .true.
     CONTROL_instance%OPTIMIZE_WITH_MP = .false.
     CONTROL_instance%PROJECT_HESSIANE = .true.
 
@@ -967,8 +1057,8 @@ contains
     !! Parameter of atomic conectivity                                                                                         
     !!                                                                                                                         
     CONTROL_instance%BOND_DISTANCE_FACTOR = 1.3_8
-    CONTROL_instance%BOND_ANGLE_THRESHOLD = 170.0_8
-    CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = 170.0_8
+    CONTROL_instance%BOND_ANGLE_THRESHOLD = 180.0_8
+    CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = 180.0_8
 
     !!***************************************************************************                                              
     !! Parameter to control MPn theory                                                                                         
@@ -976,6 +1066,15 @@ contains
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = 1
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = 1
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = .false.
+
+    !!***************************************************************************                                              
+    !! Parameter to control cosmo method                                                                                         
+    !!                                                                                                                         
+    CONTROL_instance%COSMO = .false.
+    CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= 78.4d+00 
+    CONTROL_instance%COSMO_MIN_BEM= 2
+    CONTROL_instance%COSMO_MAX_BEM= 3
+    CONTROL_instance%COSMO_RSOLV= 0.5d+00
 
     !!***************************************************************************                                              
     !! Parameter to control the propagator theory module                                                                       
@@ -1062,6 +1161,17 @@ contains
     CONTROL_instance%CUBE_POINTS_DENSITY = 125
     CONTROL_instance%VOLUME_DENSITY_THRESHOLD = 1E-3
 
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    CONTROL_instance%FORCE_FIELD = "UFF"
+    CONTROL_instance%ELECTROSTATIC_MM = .false.
+    CONTROL_instance%CHARGES_MM = .false. 
+    CONTROL_instance%PRINT_MM = .false.
+
+    !!*****************************************************  
+    !! Output Options     
+    CONTROL_instance%MOLDEN_FILE = .false.
+
     !!*****************************************************                                                                    
     !! Properties Options                                                                                                      
     CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES = .false.
@@ -1074,10 +1184,11 @@ contains
     CONTROL_instance%IONIZE_MO = 0
     CONTROL_instance%IONIZE_SPECIE = "NONE"
     CONTROL_instance%EXCITE_SPECIE = "NONE"                                                            
+    CONTROL_instance%NUMBER_OF_CORES = 1
     !$OMP PARALLEL
     CONTROL_instance%NUMBER_OF_CORES = OMP_get_thread_num() + 1
     !$OMP END PARALLEL 
-    
+
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   
     !!                                                                                                                         
@@ -1085,6 +1196,7 @@ contains
     CONTROL_instance%DATA_DIRECTORY = CONTROL_getDataDirectory()
     CONTROL_instance%EXTERNAL_COMMAND = CONTROL_getExternalCommand()
     CONTROL_instance%EXTERNAL_SOFTWARE_NAME = CONTROL_getExternalSoftwareName()
+    CONTROL_instance%UFF_PARAMETERS_DATABASE = "/dataBases/uffParameters.lib"
     CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = "/dataBases/atomicElements.lib"
     CONTROL_instance%BASIS_SET_DATABASE = "/basis/"
     CONTROL_instance%POTENTIALS_DATABASE = "/potentials/"
@@ -1232,6 +1344,15 @@ contains
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = LowdinParameters_mpOnlyElectronicCorrection
                                                                                                                                                                                           
     !!***************************************************************************      
+    !! Parameter to control cosmo method                                               
+    !!                                                                                 
+    CONTROL_instance%COSMO = LowdinParameters_cosmo
+  	CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= LowdinParameters_cosmo_solvent_dialectric
+  	CONTROL_instance%COSMO_MIN_BEM=LowdinParameters_cosmo_min_bem
+  	CONTROL_instance%COSMO_MAX_BEM=LowdinParameters_cosmo_max_bem
+  	CONTROL_instance%COSMO_RSOLV=LowdinParameters_cosmo_rsolv
+
+    !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
     !!                                                                                 
     CONTROL_instance%PT_ONLY_ONE_SPECIE_CORRECTION = LowdinParameters_ptOnlyOneSpecieCorrection
@@ -1314,7 +1435,17 @@ contains
     !!                                                                                 
     CONTROL_instance%CUBE_POINTS_DENSITY = LowdinParameters_cubePointsDensity
     CONTROL_instance%VOLUME_DENSITY_THRESHOLD = LowdinParameters_volumeDensityThreshold
-                                                                                                                                                                                          
+                                                                                                                                
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    CONTROL_instance%FORCE_FIELD = LowdinParameters_forceField
+    CONTROL_instance%ELECTROSTATIC_MM = LowdinParameters_electrostaticMM
+    CONTROL_instance%CHARGES_MM = LowdinParameters_chargesMM
+    CONTROL_instance%PRINT_MM = LowdinParameters_printMM
+    !!*****************************************************   
+    !! Output Options                                                               
+    CONTROL_instance%MOLDEN_FILE = LowdinParameters_moldenFile
+                                                          
     !!*****************************************************                            
     !! Properties Options                                                              
     CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES = LowdinParameters_calculateInterparticleDistances
@@ -1336,6 +1467,7 @@ contains
     CONTROL_instance%DATA_DIRECTORY = LowdinParameters_dataDirectory
     CONTROL_instance%EXTERNAL_COMMAND = LowdinParameters_externalCommand
     CONTROL_instance%EXTERNAL_SOFTWARE_NAME = LowdinParameters_externalSoftwareName
+    CONTROL_instance%UFF_PARAMETERS_DATABASE = LowdinParameters_uffParametersDataBase
     CONTROL_instance%ATOMIC_ELEMENTS_DATABASE = LowdinParameters_atomicElementsDataBase
     CONTROL_instance%BASIS_SET_DATABASE = LowdinParameters_basisSetDataBase
     CONTROL_instance%POTENTIALS_DATABASE = LowdinParameters_potentialsDataBase
@@ -1448,6 +1580,16 @@ contains
     LowdinParameters_mpOnlyElectronicCorrection = CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION
                                                                                                                                                                                           
     !!***************************************************************************      
+    !! Parameter to control cosmo method                                                 
+    !!                                                                                 
+    LowdinParameters_cosmo = CONTROL_instance%COSMO
+		LowdinParameters_cosmo_solvent_dialectric = CONTROL_instance%COSMO_SOLVENT_DIALECTRIC 
+		LowdinParameters_cosmo_min_bem = CONTROL_instance%COSMO_MIN_BEM
+  	LowdinParameters_cosmo_max_bem = CONTROL_instance%COSMO_MAX_BEM
+ 		LowdinParameters_cosmo_rsolv = CONTROL_instance%COSMO_RSOLV
+
+                                                                                                                                                                                          
+    !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
     !!                                                                                 
     LowdinParameters_ptOnlyOneSpecieCorrection = CONTROL_instance%PT_ONLY_ONE_SPECIE_CORRECTION
@@ -1532,7 +1674,16 @@ contains
     !!                                                                                 
     LowdinParameters_cubePointsDensity = CONTROL_instance%CUBE_POINTS_DENSITY
     LowdinParameters_volumeDensityThreshold = CONTROL_instance%VOLUME_DENSITY_THRESHOLD
-                                                                                                                                                                                          
+
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+     LowdinParameters_forceField = CONTROL_instance%FORCE_FIELD
+     LowdinParameters_electrostaticMM = CONTROL_instance%ELECTROSTATIC_MM
+     LowdinParameters_chargesMM = CONTROL_instance%CHARGES_MM
+     LowdinParameters_printMM = CONTROL_instance%PRINT_MM
+    !!*****************************************************      
+    !! Output Options                               
+    LowdinParameters_moldenFile = CONTROL_instance%MOLDEN_FILE                                                                                                                                                                                          
     !!*****************************************************                            
     !! Properties Options                                                              
     LowdinParameters_calculateInterparticleDistances = CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES
@@ -1554,6 +1705,7 @@ contains
     LowdinParameters_dataDirectory = CONTROL_instance%DATA_DIRECTORY
     LowdinParameters_externalCommand = CONTROL_instance%EXTERNAL_COMMAND
     LowdinParameters_externalSoftwareName = CONTROL_instance%EXTERNAL_SOFTWARE_NAME
+    LowdinParameters_uffParametersDataBase = CONTROL_instance%UFF_PARAMETERS_DATABASE
     LowdinParameters_atomicElementsDataBase = CONTROL_instance%ATOMIC_ELEMENTS_DATABASE
     LowdinParameters_basisSetDataBase = CONTROL_instance%BASIS_SET_DATABASE
     LowdinParameters_potentialsDataBase = CONTROL_instance%POTENTIALS_DATABASE
@@ -1663,6 +1815,15 @@ contains
     otherThis%MP_FROZEN_CORE_BOUNDARY = this%MP_FROZEN_CORE_BOUNDARY 
     otherThis%MP_ONLY_ELECTRONIC_CORRECTION = this%MP_ONLY_ELECTRONIC_CORRECTION 
     !!*****************************************************
+    !! Control de parametros de metodo cosmo
+    !!
+    otherThis%COSMO  = this%COSMO                   
+    otherThis%COSMO_SOLVENT_DIALECTRIC = this%COSMO_SOLVENT_DIALECTRIC
+    otherThis%COSMO_MIN_BEM = this%COSMO_MIN_BEM           
+    otherThis%COSMO_MAX_BEM = this%COSMO_MAX_BEM           
+    otherThis%COSMO_RSOLV = this%COSMO_RSOLV             
+
+    !!*****************************************************
     ! Control this for Propagator Theory= !! Control this for Propagator Theory
     !!
     otherThis%PT_ONLY_ONE_SPECIE_CORRECTION = this%PT_ONLY_ONE_SPECIE_CORRECTION 
@@ -1737,6 +1898,15 @@ contains
     !!
     otherThis%CUBE_POINTS_DENSITY = this%CUBE_POINTS_DENSITY 
     otherThis%VOLUME_DENSITY_THRESHOLD = this%VOLUME_DENSITY_THRESHOLD 
+    !!***************************************************** 
+    !! Molecular Mechanics Options                                                        
+    otherThis%FORCE_FIELD = this%FORCE_FIELD
+    otherThis%ELECTROSTATIC_MM = this%ELECTROSTATIC_MM
+    otherThis%CHARGES_MM = this%CHARGES_MM
+    otherThis%PRINT_MM = this%PRINT_MM
+    !!***************************************************** 
+    !! Output Options   
+    otherThis%MOLDEN_FILE = this%MOLDEN_FILE
     !!*****************************************************
     !! Properties Options
     otherThis%CALCULATE_INTERPARTICLE_DISTANCES  = this%CALCULATE_INTERPARTICLE_DISTANCES  
@@ -1758,6 +1928,7 @@ contains
     otherThis%DATA_DIRECTORY = this%DATA_DIRECTORY 
     otherThis%EXTERNAL_COMMAND = this%EXTERNAL_COMMAND 
     otherThis%EXTERNAL_SOFTWARE_NAME = this%EXTERNAL_SOFTWARE_NAME 
+    otherThis%UFF_PARAMETERS_DATABASE = this%UFF_PARAMETERS_DATABASE 
     otherThis%ATOMIC_ELEMENTS_DATABASE = this%ATOMIC_ELEMENTS_DATABASE 
     otherThis%BASIS_SET_DATABASE = this%BASIS_SET_DATABASE 
     otherThis%POTENTIALS_DATABASE = this%POTENTIALS_DATABASE 
@@ -1802,13 +1973,29 @@ contains
 
     end if
 
+    if(CONTROL_instance%METHOD=="MM") then
+       write (*,"(T10,A)") "FORCE FIELD: "//trim(CONTROL_instance%FORCE_FIELD)
+       if(CONTROL_instance%ELECTROSTATIC_MM) then
+          write (*,"(T10,A)") "CALCULATE ELECTROSTATIC ENERGY: YES"
+          write (*,"(T10,A)") "PARTIAL CHARGES METHOD: EQeq(Extended Charge Equilibration)"
+       else
+          write (*,"(T10,A)") "CALCULATE ELECTROSTATIC ENERGY: NO"
+       end if
+    end if
+
     if(CONTROL_instance%MOLLER_PLESSET_CORRECTION>=2) then
 
        write (*,"(T10,A,I5)") "MOLLER PLESSET CORRECTION:  ",CONTROL_instance%MOLLER_PLESSET_CORRECTION
 
     end if
 
-    if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL .ne. "NONE" ) then
+    if(CONTROL_instance%COSMO) then
+
+       write (*,"(T10,A)") "COSMO:  T "
+
+    end if
+
+    if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
 
        write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
 
@@ -1906,17 +2093,19 @@ contains
 
     end if
 
-    write (*,"(T10,A,E15.5)") "NONELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE
-    write (*,"(T10,A,E15.5)") "NONELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
-    write (*,"(T10,A,E15.5)") "ELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE
-    write (*,"(T10,A,E15.5)") "ELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE
-    write (*,"(T10,A,E15.5)") "TOTAL ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%TOTAL_ENERGY_TOLERANCE
-    write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - NONELECTRONICS : ",CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
-    write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - ELECTRONICS : ",CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
-    write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - INTERSPECIES : ",CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS
-    write (*,"(T10,A)") "CRITERIUM OF CONVERGENCE: "//trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM)
-    write (*,"(T10,A)") "NONELECTRONIC DENSITY GUESS: "//trim(CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS)
-    write (*,"(T10,A)") "ELECTRONIC DENSITY GUESS: "//trim(CONTROL_instance%SCF_ELECTRONIC_TYPE_GUESS)
+    if(CONTROL_instance%METHOD/="MM") then
+       write (*,"(T10,A,E15.5)") "NONELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE
+       write (*,"(T10,A,E15.5)") "NONELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
+       write (*,"(T10,A,E15.5)") "ELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE
+       write (*,"(T10,A,E15.5)") "ELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE
+       write (*,"(T10,A,E15.5)") "TOTAL ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%TOTAL_ENERGY_TOLERANCE
+       write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - NONELECTRONICS : ",CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
+       write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - ELECTRONICS : ",CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
+       write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - INTERSPECIES : ",CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS
+       write (*,"(T10,A)") "CRITERIUM OF CONVERGENCE: "//trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM)
+       write (*,"(T10,A)") "NONELECTRONIC DENSITY GUESS: "//trim(CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS)
+       write (*,"(T10,A)") "ELECTRONIC DENSITY GUESS: "//trim(CONTROL_instance%SCF_ELECTRONIC_TYPE_GUESS)
+    end if
 
     if (CONTROL_instance%NO_SCF) write (*,"(T10,A)") "NO SCF WILL BE PERFORMED"
 
@@ -1928,29 +2117,31 @@ contains
 
     end if
 
-    write (*,"(T10,A,I5)") "SCHEME OF ITERATION: ",CONTROL_instance%ITERATION_SCHEME
-    write (*,"(T10,A)") "INTEGRAL DESTINY: "//trim(CONTROL_instance%INTEGRAL_DESTINY)
-    write (*,"(T10,A,I5)") "STACK SIZE FOR ERIS : ", CONTROL_instance%INTEGRAL_STACK_SIZE
+    if(CONTROL_instance%METHOD/="MM") then
+       write (*,"(T10,A,I5)") "SCHEME OF ITERATION: ",CONTROL_instance%ITERATION_SCHEME
+       write (*,"(T10,A)") "INTEGRAL DESTINY: "//trim(CONTROL_instance%INTEGRAL_DESTINY)
+       write (*,"(T10,A,I5)") "STACK SIZE FOR ERIS : ", CONTROL_instance%INTEGRAL_STACK_SIZE
 
-    select case(CONTROL_instance%CONVERGENCE_METHOD)
+       select case(CONTROL_instance%CONVERGENCE_METHOD)
 
-    case(1)
+       case(1)
 
-       write(*,"(T10,A)") "METHOD OF SCF CONVERGENCE: DAMPING"
+          write(*,"(T10,A)") "METHOD OF SCF CONVERGENCE: DAMPING"
 
-    case(2)
+       case(2)
 
-       write(*,"(T10,A)") "METHOD OF SCF CONVERGENCE: DIIS"
-       write(*,"(T10,A,E15.5)") "DIIS SWITCH THRESHOLD", CONTROL_instance%DIIS_SWITCH_THRESHOLD
-       write(*,"(T10,A,I5)") "DIIS DIMENSIONALITY: ", CONTROL_instance%DIIS_DIMENSIONALITY
+          write(*,"(T10,A)") "METHOD OF SCF CONVERGENCE: DIIS"
+          write(*,"(T10,A,E15.5)") "DIIS SWITCH THRESHOLD", CONTROL_instance%DIIS_SWITCH_THRESHOLD
+          write(*,"(T10,A,I5)") "DIIS DIMENSIONALITY: ", CONTROL_instance%DIIS_DIMENSIONALITY
 
-    case(4)
+       case(4)
 
-       write(*,"(T10,A)") "METHOD OF SCF CONVERGENCE: DAMPING/DIIS"
-       write(*,"(T10,A,E15.5)") "DIIS SWITCH THRESHOLD", CONTROL_instance%DIIS_SWITCH_THRESHOLD
-       write(*,"(T10,A,I5)") "DIIS DIMENSIONALITY: ", CONTROL_instance%DIIS_DIMENSIONALITY
+          write(*,"(T10,A)") "METHOD OF SCF CONVERGENCE: DAMPING/DIIS"
+          write(*,"(T10,A,E15.5)") "DIIS SWITCH THRESHOLD", CONTROL_instance%DIIS_SWITCH_THRESHOLD
+          write(*,"(T10,A,I5)") "DIIS DIMENSIONALITY: ", CONTROL_instance%DIIS_DIMENSIONALITY
 
-    end select
+       end select
+    end if
 
   end subroutine CONTROL_show
 
