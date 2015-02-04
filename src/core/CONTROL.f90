@@ -210,7 +210,7 @@ module CONTROL_
      !!
      real(8) :: MO_FRACTION_OCCUPATION
      integer :: IONIZE_MO
-     character(50) :: IONIZE_SPECIE
+     character(50) :: IONIZE_SPECIE(10)
      character(50) :: EXCITE_SPECIE
      integer :: NUMBER_OF_CORES
 
@@ -419,7 +419,7 @@ module CONTROL_
   !!
   real(8) :: LowdinParameters_MOFractionOccupation
   integer :: LowdinParameters_ionizeMO
-  character(50) :: LowdinParameters_ionizeSpecie
+  character(50) :: LowdinParameters_ionizeSpecie(10)
   character(50) :: LowdinParameters_exciteSpecie
   integer :: LowdinParameters_numberOfCores
 
@@ -1572,6 +1572,7 @@ contains
     implicit none
     type(CONTROL) :: this
     type(CONTROL) :: otherThis
+    integer :: i
 
     !!*****************************************************
     !! Variables para control de integrales
@@ -1820,12 +1821,15 @@ contains
 
     end if
 
-    if(trim(CONTROL_instance%IONIZE_SPECIE) /= "NONE") then 
+    if((CONTROL_instance%IONIZE_SPECIE(1)) /= "NONE") then 
 
        write (*,"(T10,A,I5)") "MOLECULAR ORBITAL TO BE IONIZED: ", CONTROL_instance%IONIZE_MO
-       write (*,"(T10,A,A)") "FOR SPECIE: ", trim(CONTROL_instance%IONIZE_SPECIE)
-       write (*,"(T10,A,ES15.5)") "IONIZED MOLECULAR ORBITAL OCCUPATION: ",CONTROL_instance%MO_FRACTION_OCCUPATION
-
+       do i = 1, size(CONTROL_instance%IONIZE_SPECIE)
+         if ( CONTROL_instance%IONIZE_SPECIE(i) /= "NONE" ) then
+         write (*,"(T10,A,A)") "FOR SPECIE0: ", (CONTROL_instance%IONIZE_SPECIE(i))
+         write (*,"(T10,A,ES15.5)") "IONIZED MOLECULAR ORBITAL OCCUPATION: ",CONTROL_instance%MO_FRACTION_OCCUPATION
+         end if
+      end do 
     end if
 
     if(CONTROL_instance%POLARIZATION_ORDER > 1) then 

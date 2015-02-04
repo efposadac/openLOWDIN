@@ -606,7 +606,7 @@ contains
     wavefunction_instance(speciesID)%densityMatrix%values = 0.0_8
     
     !! Segment for fractional occupations: 1
-    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(nameOfSpecieSelected) == trim(CONTROL_instance%IONIZE_SPECIE) ) then
+    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(nameOfSpecieSelected) == trim(CONTROL_instance%IONIZE_SPECIE(1)) ) then
        
        wavefunction_instance(speciesID)%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO) = &
             wavefunction_instance(speciesID)%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO)*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION)
@@ -628,7 +628,7 @@ contains
     wavefunction_instance(speciesID)%densityMatrix%values =  MolecularSystem_getEta( speciesID )  * wavefunction_instance(speciesID)%densityMatrix%values
     
     !! Segment for fractional occupations: 1
-    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(nameOfSpecieSelected) == trim(CONTROL_instance%IONIZE_SPECIE)) then
+    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(nameOfSpecieSelected) == trim(CONTROL_instance%IONIZE_SPECIE(1))) then
        
        wavefunction_instance(speciesID)%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO) = &
             wavefunction_instance(speciesID)%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO)/sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION)
