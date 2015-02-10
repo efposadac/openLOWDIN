@@ -435,8 +435,7 @@ contains
                                integralValueCosmo(m,c)=integralValue(m)
                                !! debug
 															 
-															 write(*,*)"cosmo integrals: m,k,l",m,k,l
-                               write(*,*)integralValueCosmo(m,c)
+                               ! write(*,*)integralValueCosmo(m,c)
                                
 															 write(37,'(F10.5)')integralValueCosmo(m,c)
                             end do
@@ -575,8 +574,8 @@ contains
                          do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                             m = m + 1
 
-                            ! write(*,*)"lowdin integrals: m,k,l",m,k,l
 
+														! write(*,*)"lowdin integrals: m,k,l",m,k,l
                             integralsMatrix(k, l) = integralValue(m)
                             integralsMatrix(l, k) = integralsMatrix(k, l)
 
@@ -850,7 +849,7 @@ contains
 
     auxLabelsOfContractions = 1
 		
-		write(*,*)"labels data from integral manager"
+		! write(*,*)"labels data from integral manager"
 
     k = 0
 		! write(*,*)size(specieSelected%particles)

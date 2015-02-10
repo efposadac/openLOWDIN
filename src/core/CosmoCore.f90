@@ -51,7 +51,9 @@ contains
     cmd = "gepol.x < gepol.inp > gepol.out"
     call system(cmd) 
     ! cmd = "rm gepol.out"
-    call system(cmd) 
+    call system(cmd)
+
+		write(*,*)"generada gepol surface"
 
 
   end subroutine CosmoCore_caller
@@ -77,6 +79,7 @@ contains
     call system(cmd)
     surface%sizeSurface=n
     return
+		write(*,*)"superficie segmentos",n
 
 
   end subroutine CosmoCore_lines
@@ -107,7 +110,11 @@ contains
 		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
     read(55,*) (a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
 
-    !asignando espacio en memoria para los parametros
+! 100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
+!     open(55,file='vectors.vec',status='unknown') 
+!     read(55,100) (x(i),y(i),z(i),a(i),i=1,surface%sizeSurface)
+
+		!asignando espacio en memoria para los parametros
 
     allocate(surface%xs(surface%sizeSurface))
     allocate(surface%ys(surface%sizeSurface))
@@ -119,13 +126,20 @@ contains
 		! 	 write(*,*)"como lee los numeros"
     !
 		! write(*,*)"surface%sizeSurface",surface%sizeSurface
-    do i=1,surface%sizeSurface        
-       surface%xs(i)=x(i)/AMSTRONG
-       surface%ys(i)=y(i)/AMSTRONG
-       surface%zs(i)=z(i)/AMSTRONG
-       surface%area(i)=a(i)/((AMSTRONG)**2)
-       ! write(*,*)surface%xs(i),surface%ys(i),surface%zs(i),surface%area(i)
-    end do
+			 ! write(*,*)"datos leidos"
+    ! do i=1,surface%sizeSurface        
+    !    surface%xs(i)=x(i)/AMSTRONG
+    !    surface%ys(i)=y(i)/AMSTRONG
+    !    surface%zs(i)=z(i)/AMSTRONG
+    !    surface%area(i)=a(i)/((AMSTRONG)**2)
+		! end do
+    
+		do i=1,surface%sizeSurface        
+       surface%xs(i)=x(i)
+       surface%ys(i)=y(i)
+       surface%zs(i)=z(i)
+       surface%area(i)=a(i)
+		end do
 
   end subroutine CosmoCore_Filler
 
@@ -148,19 +162,18 @@ contains
     call Matrix_constructor(cmat_inv, int(surface%sizeSurface,8), int(surface%sizeSurface,8))
 
     do i=1,surface%sizeSurface
-       do j=1,surface%sizeSurface
-          if (i==j) then
-             cmat%values(i,j)=3.8*surface%area(i)
-          else
-             cmat%values(i,j)=((sqrt((surface%xs(i)-surface%xs(j))**2+&
+			cmat%values(i,i)=1.07*sqrt(4*3.14159265/surface%area(i))
+		   
+       do j=i+1,surface%sizeSurface
+             cmat%values(i,j)=1/((sqrt((surface%xs(i)-surface%xs(j))**2+&
                   (surface%ys(i)-surface%ys(j))**2+&
-                  (surface%zs(i)-surface%zs(j))**2)))**-1
-          end if
+                  (surface%zs(i)-surface%zs(j))**2)))
+						 cmat%values(j,i)=cmat%values(i,j)
        end do
     end do
 
-		write(*,*)"cmat"
-		call Matrix_show(cmat)
+		! write(*,*)"cmat"
+		! call Matrix_show(cmat)
 
     ! calculando la matriz inversa
     cmat_inv=Matrix_inverse(cmat)
@@ -236,7 +249,7 @@ contains
     call Matrix_constructor(cmatinv_aux, int(segments,8), int(segments,8))
 
 
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+0.5)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
 
     write(*,*) "esto es lambda", lambda
 
@@ -272,6 +285,7 @@ contains
 
 
           do j=1,segments
+
              v%values(j,1)=v%values(j,1)+(clasical_charge%values(i,1)/sqrt((clasical_positions(i,1)-surface%xs(j))**2&
                   +(clasical_positions(i,2)-surface%ys(j))**2 &
                   +(clasical_positions(i,3)-surface%zs(j))**2))
@@ -280,20 +294,29 @@ contains
 
        end if
     end do
+		write(*,*)"potential"
+		call Matrix_show(v)
+			
 
     do k=1,segments
-       do j=k,segments
-          cmatinv_aux%values(j,k)=lambda*cmatinv%values(j,k)
-          cmatinv_aux%values(k,j)=cmatinv_aux%values(j,k)
+       do j=1,segments
+          cmatinv_aux%values(j,k)=cmatinv%values(j,k)
        end do
     end do
+		
 
-    q=Matrix_product(cmatinv_aux,v)
+      do i = 1, segments
+         q_clasical(i) = 0.0
+         do j = 1, segments
+          q_clasical(i) =q_clasical(i)+cmatinv_aux%values(i,j)*v%values(j,1)*lambda
+         end do
+			end do
 
 
+
+		write(*,*)"q_clasical"
     do j=1,segments
-       q_clasical(j)=q%values(j,1)
-			 ! write(*,*)q_clasical(j)
+			 write(*,*)q_clasical(j)
 			 q_verifier=q_verifier+q_clasical(j)
     end do
 
@@ -302,7 +325,6 @@ contains
     close(77)
 		
 		write(*,*) "q_verifier"
-
 		write(*,*) q_verifier
 
   end subroutine CosmoCore_clasical
@@ -311,6 +333,7 @@ contains
 
   subroutine CosmoCore_q_builder(cmatinv, cosmo_ints, ints, q_charges)
     implicit none
+
 		!! quantum charges
     !! que estructruras se usan?
     !! son tres: una matriz (la de integrales), el inverso de la matriz c y un
@@ -344,7 +367,7 @@ contains
     call Matrix_constructor(q_charge, int(ints,8), 1)
     call Matrix_constructor(cosmo_pot, int(ints,8), 1)
 
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+0.5)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
 
     do i=1,ints
        cosmo_pot%values(i,1)=cosmo_ints(i)*-1
@@ -383,7 +406,7 @@ contains
 
     real(8), allocatable :: cosmo_int(:)
     integer :: i,j,k,l,m,n
-    integer :: ii,g,h,hh,jj
+    integer :: ii,g,h,hh,jj,mm
 
     allocate (cosmo_int(integrals*charges))
     allocate (a_mat(surface,charges))
@@ -398,10 +421,18 @@ contains
     do n=1,integrals
        read(90)(ints_mat(i,n),i=1,surface)
     end do
+   
+	 write(*,*)"integrales"
+		do n=1,integrals
+       do k=1,charges
+				write(*,*)ints_mat(n,k)
+			end do
+		end do
 
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
     end do
+		
 
     !!calculo del producto punto
 
@@ -430,11 +461,11 @@ contains
         write(110) cosmo_int(:)
 		close(unit=110)
 
-		write(*,*) m
-
     else
+
        allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
        ii = 0
+			 mm = 1
        do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)
           do h = 1, size(MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction)
 
@@ -449,15 +480,13 @@ contains
 
 
                    !!saving integrals on Matrix
-                   m = 0
+
                    do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
                       do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                         m = m + 1
 
-                         ! write(*,*)"lowdin integrals: m,k,l",m,k,l
-
-                         ints_mat_aux(k, l) = cosmo_int(m)
+                         ints_mat_aux(k, l) = cosmo_int(mm)
                          ints_mat_aux(l, k) = ints_mat_aux(k, l)
+                         mm = mm + 1
 
                       end do
                    end do
@@ -595,6 +624,7 @@ contains
        end do
     end do
 
+    m = 0
     ii = 0
     do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)
        do h = 1, size(MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction)
@@ -610,7 +640,6 @@ contains
 
 
                 !!saving integrals on Matrix
-                m = 0
                 do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
                    do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                       m = m + 1
