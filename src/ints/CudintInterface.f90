@@ -46,7 +46,8 @@ module CudintInterface_
      integer*2, allocatable :: d(:)
      real(8), allocatable :: integrals(:)
   end type erisStack
- 
+  
+#ifdef CUDA 
   interface
 
      subroutine cuda_int_intraspecies (&
@@ -96,13 +97,13 @@ module CudintInterface_
     
  
   end interface
-
+#endif
   !> @brief Integrals Stack
   type(erisStack), private :: eris
   
 contains
   
-
+#ifdef CUDA
   subroutine CudintInterface_computeIntraSpecies(specieID)
     implicit none
     
@@ -671,7 +672,15 @@ contains
 
     
   end subroutine CudintInterface_computeIntraSpecies
-  
+#else
+  subroutine CudintInterface_computeIntraSpecies(specieID)
+    implicit none
+    integer, intent(in) :: specieID
+
+    write(6,"(A)") "ERROR: You need to compile LOWDIN with CUDA for use this function"
+    
+  end subroutine CudintInterface_computeIntraSpecies
+#endif
  !>
   !! @brief  Maneja excepciones de la clase
   subroutine CudintInterface_exception( typeMessage, description, debugDescription)
