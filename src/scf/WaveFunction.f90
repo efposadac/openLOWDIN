@@ -589,7 +589,7 @@ contains
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
 
-    !! cosmo things
+    !! cosmo fock matrix
 
 
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
@@ -742,13 +742,13 @@ contains
             + wavefunction_instance(speciesID)%couplingMatrix%values)) &
             + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
 
-       wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie - 0.5_8 * &
-            (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
-            wavefunction_instance( speciesID )%cosmo1%values )+ &
-            sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
-            wavefunction_instance( speciesID )%cosmo2%values ))+ 0.5_8*( &
-            sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
-            wavefunction_instance( speciesID )%cosmo4%values ))
+       ! wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie + 0.5_8 * &
+       !      (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+       !      wavefunction_instance( speciesID )%cosmo1%values )+ &
+       !      sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+       !      wavefunction_instance( speciesID )%cosmo2%values ))+ 0.5_8*( &
+       !      sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+       !      wavefunction_instance( speciesID )%cosmo4%values ))
 
     else
 
@@ -807,7 +807,7 @@ contains
             + wavefunction_instance(speciesID)%couplingMatrix%values)) &
             + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
 
-       wavefunction_instance( speciesID )%independentSpecieEnergy =wavefunction_instance( speciesID )%independentSpecieEnergy - 0.5_8 * &
+       wavefunction_instance( speciesID )%independentSpecieEnergy =wavefunction_instance( speciesID )%independentSpecieEnergy + 0.5_8 * &
             (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
             wavefunction_instance( speciesID )%cosmo1%values )+ &
             sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
@@ -853,7 +853,7 @@ contains
     !! Adds inter-electron species coupling energy
     electronicRepulsionEnergy = WaveFunction_getAlphaBetaRepulsion()
     !! Total Energy
-    totalEnergy = totalEnergy +  totalCouplingEnergy + electronicRepulsionEnergy
+    totalEnergy = totalEnergy +  totalCouplingEnergy + electronicRepulsionEnergy 
 
   end subroutine WaveFunction_obtainTotalEnergy
 

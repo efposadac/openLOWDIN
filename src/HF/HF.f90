@@ -343,8 +343,9 @@ program HF
        + totalExternalPotentialEnergy
 	totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
 
-	! write(*,*)"totalCosmoEnergy",WaveFunction_instance(:)%cosmoEnergy
-  close(wfnUnit)
+	write(*,*)"totalCosmoEnergy",WaveFunction_instance(:)%cosmoEnergy
+
+close(wfnUnit)
 
   !! Show results
   write(*,*) ""
