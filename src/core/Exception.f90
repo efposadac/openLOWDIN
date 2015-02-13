@@ -134,7 +134,7 @@ contains
        call Stopwatch_stop( lowdin_stopwatch )
        write(6, *)
        write(6,"(A16,ES10.2,A4)") "Enlapsed Time : ", lowdin_stopwatch%enlapsetTime ," (s)"
-       write(6,*) "Execution terminated ABNORMALLY at : ", trim( Stopwatch_getCurretData( lowdin_stopwatch ) )
+       write(6,*) "lowdin execution terminated ABNORMALLY at : ", trim( Stopwatch_getCurretData( lowdin_stopwatch ) )
        call Stopwatch_destructor( lowdin_stopwatch )
        stop
 

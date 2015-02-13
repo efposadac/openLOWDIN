@@ -725,7 +725,7 @@ contains
        print *,"-----------------------------------------------------------------"
     end if
 
-    write(*,*)"entre al unique specie"
+    ! write(*,*)"entre al unique specie"
     do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
          ( SingleSCF_getNumberOfIterations(speciesID) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 

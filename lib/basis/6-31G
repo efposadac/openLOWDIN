@@ -1,16 +1,36 @@
   6-31G  EMSL  Basis Set Exchange Library   7/12/12 9:24 PM 
- Elements                             References 
- H - He: W.J. Hehre, R. Ditchfield and J.A. Pople, J. Chem. Phys. 56, 
- Li - Ne: 2257 (1972).  Note: Li and B come from J.D. Dill and J.A. 
- Pople, J. Chem. Phys. 62, 2921 (1975). 
- Na - Ar: M.M. Francl, W.J. Petro, W.J. Hehre, J.S. Binkley, M.S. Gordon, 
- D.J. DeFrees and J.A. Pople, J. Chem. Phys. 77, 3654 (1982) 
- K  - Zn: V. Rassolov, J.A. Pople, M. Ratner and T.L. Windus, J. Chem. Phys. 
- 109, 1223 (1998) 
- Note: He and Ne are unpublished basis sets taken from the Gaussian 
- program 
+ ! Elements                             References 
+ ! H - He: W.J. Hehre, R. Ditchfield and J.A. Pople, J. Chem. Phys. 56, 
+ ! Li - Ne: 2257 (1972).  Note: Li and B come from J.D. Dill and J.A. 
+ ! Pople, J. Chem. Phys. 62, 2921 (1975). 
+ ! Na - Ar: M.M. Francl, W.J. Petro, W.J. Hehre, J.S. Binkley, M.S. Gordon, 
+ ! D.J. DeFrees and J.A. Pople, J. Chem. Phys. 77, 3654 (1982) 
+ ! K  - Zn: V. Rassolov, J.A. Pople, M. Ratner and T.L. Windus, J. Chem. Phys. 
+ ! 109, 1223 (1998) 
+ ! Note: He and Ne are unpublished basis sets taken from the Gaussian 
+ ! program 
   
 O-HYDROGEN H (6-31G) BASIS TYPE: 1
+# 
+2
+1 0 3
+18.73113700 0.03349460
+2.82539370 0.23472695
+0.64012170 0.81375733
+2 0 1
+0.16127780 1.00000000
+
+O-HYDROGEN EA- (6-31G) BASIS TYPE: 2
+# 
+2
+1 0 3
+18.73113700 0.03349460
+2.82539370 0.23472695
+0.64012170 0.81375733
+2 0 1
+0.16127780 1.00000000
+
+O-HYDROGEN EB- (6-31G) BASIS TYPE: 2
 # 
 2
 1 0 3

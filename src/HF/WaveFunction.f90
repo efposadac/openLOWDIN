@@ -148,14 +148,12 @@ contains
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
-    
+
     !! Get number of shells and number of cartesian contractions
     numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
-    
     WaveFunction_instance( speciesID )%overlapMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments)
-    
     close(34)
     
     !! DEBUG
@@ -348,8 +346,8 @@ contains
     end if
     
     !! DEBUG
-    print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
+!!   print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+!!    call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
     
     !! Load N-Q- Attraction  Matrix
     arguments(1) = "ATTRACTION"
@@ -364,8 +362,8 @@ contains
          WaveFunction_instance( speciesID )%puntualInteractionMatrix%values * (-auxCharge)
     
     !! DEBUG
-    print *,"Matriz de interaccion n-e: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
+!!    print *,"Matriz de interaccion n-e: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+!!    call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
     
     close(34)    
     
@@ -382,8 +380,8 @@ contains
          WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
         
     !! DEBUG
-    print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
+!!   print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+!!   call Matrix_show( WaveFunction_instance( speciesID )%HcoreMatrix )
        
   end subroutine WaveFunction_HCoreMatrix
 
@@ -469,20 +467,23 @@ contains
          WaveFunction_instance( specieID )%couplingEnergy
 
 
-		!! Cosmo energy calculation
-    
 
     !! Calcula la energia COSMO	
 
 		if(CONTROL_instance%COSMO)then
 
 		 WaveFunction_instance( specieID )%cosmoEnergy =  &
-          (sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-          WaveFunction_instance( specieID )%cosmo1%values ) + &
+         0.5_8* (sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * &
+          wavefunction_instance( specieid )%cosmo1%values )) +0.5_8 *  &
 					(sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-					WaveFunction_instance( specieID )%cosmo4%values )))	+ &
+					WaveFunction_instance( specieID )%cosmo4%values ))	+ &
           0.5_8*(sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
           WaveFunction_instance( specieID )%cosmo2%values ))
+		write(*,*)"cosmo energy",WaveFunction_instance( specieID )%cosmoEnergy 
+		write(*,*)"cosmo energy1",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo1%values )) 
+		write(*,*)"cosmo energy2",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo2%values )) 
+		write(*,*)"cosmo energy4",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo4%values )) 
+		
 		end if
     
 
@@ -601,7 +602,7 @@ contains
          unit=unit, binary=.true., arguments=arguments)    
            
     
-    !! DEBUG
+    ! !! DEBUG
     ! print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecie(speciesID))
     ! call Matrix_show( WaveFunction_instance(speciesID)%cosmo4 )
     

@@ -32,6 +32,7 @@ module IntegralManager_
   use MomentIntegrals_
   use KineticIntegrals_
   use LibintInterface_
+  ! use CudintInterface_
   use RysQuadrature_
   use Matrix_
   use CosmoCore_
@@ -370,10 +371,6 @@ contains
           open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
           open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
 
-          ! write(*,*)"species", f
-          ! write(70) job
-          ! write(70) MolecularSystem_instance%species(f)%name
-
           if(allocated(labels)) deallocate(labels)
           allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
           labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
@@ -419,7 +416,6 @@ contains
                          point(1)%x  =surface%xs(c)
                          point(1)%y  =surface%ys(c)
                          point(1)%z  =surface%zs(c)
-                         ! write(*,*) point(c)%x,point(c)%y,point(c)%z
                          !Calculating integrals for shell
 
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
@@ -430,12 +426,8 @@ contains
                             do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                                m = m + 1
                                integralValueCosmo(m,c)=integralValue(m)
-                               !! debug
-															 
-															 ! write(*,*)"cosmo integrals: m,k,l",m,k,l
-                               ! write(*,*)integralValueCosmo(m,c)
                                
-															 ! write(37,'(F10.5)')integralValueCosmo(m,c)
+															 write(37,'(F10.5)')integralValueCosmo(m,c)
                             end do
                          end do
 
@@ -457,13 +449,9 @@ contains
                             if(allocated(cosmoV)) deallocate(cosmoV)
                             allocate(cosmoV(numberOfPointCharges))
                             cosmoV(:)=integralValueCosmo(m,:)
+
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges)
 
-														! write(*,*)"cosmo integrals: m,k,l",m,k,l
-                            ! write(*,*)integralValueCosmo(m,:)
-														! write(*,*)"cosmo charges"
-                            ! write(*,*)qCharges
-														
 														write(70)integralValueCosmo(m,:)
                             write(80)qCharges
                          end do
@@ -481,6 +469,7 @@ contains
 
           close(80)
           close(70)
+
           !!quantum
           totals=total_aux
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals,totals)
@@ -572,8 +561,8 @@ contains
                          do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                             m = m + 1
 
-                            ! write(*,*)"lowdin integrals: m,k,l",m,k,l
 
+														! write(*,*)"lowdin integrals: m,k,l",m,k,l
                             integralsMatrix(k, l) = integralValue(m)
                             integralsMatrix(l, k) = integralsMatrix(k, l)
 
@@ -790,10 +779,13 @@ contains
 
     !! Calculate integrals (stored on disk)           
     select case (trim(String_getUppercase(trim(scheme))))
-    case("RYS")
+    
+		case("RYS")
        call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     case("LIBINT")
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
+    ! case("CUDINT")
+    !    call CudintInterface_computeIntraSpecies(speciesID)
     case default
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     end select
@@ -806,18 +798,25 @@ contains
   !! @version 1.0
   !! @par History
   !!      - 2013.03.05: Use Libint V 1.1.4
-  subroutine IntegralManager_getInterRepulsionIntegrals()
+  subroutine IntegralManager_getInterRepulsionIntegrals(scheme)
     implicit none
-
+    character(*) :: scheme    
     integer :: i, j
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
 
           !! Calculate integrals (stored on disk)       
-          call LibintInterface_computeInterSpecies( i, j, "ERIS" )
+          select case (trim(String_getUppercase(trim(scheme))))
+          case("LIBINT")
+             call LibintInterface_computeInterSpecies( i, j, "ERIS" )
+          ! case("CUDINT")
+          !    call CudintInterface_computeInterSpecies( i, j, "ERIS" )
+          case default
+             call LibintInterface_computeInterSpecies( i, j, "ERIS" )
+          end select
 
-       end do
+       end do       
     end do
 
   end subroutine IntegralManager_getInterRepulsionIntegrals
@@ -837,7 +836,7 @@ contains
 
     auxLabelsOfContractions = 1
 		
-		write(*,*)"labels data from integral manager"
+		! write(*,*)"labels data from integral manager"
 
     k = 0
 		! write(*,*)size(specieSelected%particles)

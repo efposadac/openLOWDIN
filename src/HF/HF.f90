@@ -59,6 +59,7 @@ program HF
   real(8) :: totalExternalPotentialEnergy
   real(8) :: electronicRepulsionEnergy
   real(8) :: puntualInteractionEnergy
+  real(8) :: puntualMMInteractionEnergy
   real(8) :: potentialEnergy
   integer :: nproc
   integer :: i
@@ -108,9 +109,8 @@ program HF
   inquire(file=trim(integralsFile), exist=existFile)
 
   if( existFile ) then
-
      open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
-
+      
      read(integralsUnit) numberOfSpecies
 
      if(MolecularSystem_instance%numberOfQuantumSpecies /= numberOfSpecies ) then
@@ -224,6 +224,13 @@ program HF
      write(*, "(A)")   " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2011   "
      write(*, "(A)")   " ----------------------------------------------------------------------"
 
+  case("CUDINT")
+     write(*,  "(A)")  " CUDA ERI Integrals Calculations has been implemented based on:         " 
+     write(*,  "(A)")  " Ufimtsev, I. S.; Martinez, T. J.; JCTC 2008, 4, 222           " 
+     write(*, "(A)")   " LOWDIN-CUDINT Implementation V. 1.0:  "
+     write(*, "(A)")   " Rodas, J. M.; Hernandez, R.; Zapata, A.; Galindo, J. F.; Reyes A. 2014   "
+     write(*, "(A)")   " ----------------------------------------------------------------------"
+     
   case default
      write(*,  "(A)")  " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
      write(*, "(A)")   " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2011   "
@@ -328,6 +335,7 @@ program HF
   totalQuantumPuntualInteractionEnergy = sum ( WaveFunction_instance(:)%puntualInteractionEnergy )
   totalExternalPotentialEnergy = sum ( WaveFunction_instance(:)%externalPotentialEnergy )             
   puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy()
+  puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy()
   potentialEnergy = totalRepulsionEnergy &
        + puntualInteractionEnergy &
        + totalQuantumPuntualInteractionEnergy &
@@ -337,7 +345,7 @@ program HF
 
 	write(*,*)"totalCosmoEnergy",WaveFunction_instance(:)%cosmoEnergy
 
-  close(wfnUnit)
+close(wfnUnit)
 
   !! Show results
   write(*,*) ""
@@ -395,14 +403,17 @@ program HF
   write(*,*) " COMPONENTS OF POTENTIAL ENERGY: "
   write(*,*) "-------------------------------"
   write(*,*) ""
-  write (6,"(T10,A28,F20.10)") "Fixed potential energy    = ", puntualInteractionEnergy
-  write (6,"(T10,A28,F20.10)") "Q/Fixed potential energy  = ", totalQuantumPuntualInteractionEnergy
-  write (6,"(T10,A28,F20.10)") "Coupling energy           = ", totalCouplingEnergy
-  write (6,"(T10,A28,F20.10)") "Repulsion energy          = ", totalRepulsionEnergy
-  write (6,"(T10,A28,F20.10)") "ExternalPotential energy  = ", totalExternalPotentialEnergy             
+  write (6,"(T10,A30,F20.10)") "Fixed potential energy    = ", puntualInteractionEnergy
+  if(CONTROL_instance%CHARGES_MM) then
+     write (6,"(T10,A30,F20.10)") "Self MM potential energy    = ", puntualMMInteractionEnergy
+  end if
+  write (6,"(T10,A30,F20.10)") "Q/Fixed potential energy  = ", totalQuantumPuntualInteractionEnergy
+  write (6,"(T10,A30,F20.10)") "Coupling energy           = ", totalCouplingEnergy
+  write (6,"(T10,A30,F20.10)") "Repulsion energy          = ", totalRepulsionEnergy
+  write (6,"(T10,A30,F20.10)") "ExternalPotential energy  = ", totalExternalPotentialEnergy             
   write (6,"(T10,A50)") "________________"
-  write (6,"(T10,A28,F20.10)") "Total potential energy = ", potentialEnergy
-
+  write (6,"(T10,A30,F20.10)") "Total potential energy = ", potentialEnergy
+             
   write(*,*) ""
   write(*,*) " Repulsion energy: "
   write(*,*) "------------------"

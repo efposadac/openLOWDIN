@@ -33,8 +33,9 @@ module BasisSet_
   end type BasisSet
   
   public :: &
-       BasisSet_load
-  
+       BasisSet_load, &
+       BasisSet_showInSimpleForm  
+
   private :: &
        BasisSet_exception
   
@@ -274,6 +275,26 @@ contains
     end do
 
   end subroutine BasisSet_showInCompactForm
+
+  !<
+  !! Define el destructor para clase
+  !!
+  !! @param thisPtr Funcion base
+  !>
+  subroutine BasisSet_showInSimpleForm( this, nameOfOwner, unidOfOutput )
+  	implicit none
+  	type(BasisSet) , intent(in) :: this
+  	character(*) ::nameOfOwner
+  	integer :: unidOfOutput
+  
+  	integer ::  i
+  	
+  	do i =1, this%length
+  		call ContractedGaussian_showInSimpleForm( this%contraction(i),unidOfOutput )
+  	end do
+  
+  end subroutine BasisSet_showInSimpleForm
+
 
   !>
   !! @brief Saves the basisSet structure to file.

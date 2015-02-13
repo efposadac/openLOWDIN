@@ -14,21 +14,22 @@
 SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
-	e-[O]   3-21G     0.000000      0.000000     -0.066575
-	e-[H]   3-21G     0.000000      0.754175      0.528381
-	e-[H]   3-21G     0.000000     -0.754174      0.528382
+	e-[O]   6-311G     0.000000      0.000000     -0.066575
+	e-[H]   6-311G     0.000000      0.754175      0.528381
+	e-[H]   6-311G     0.000000     -0.754174      0.528382
 	O        dirac     0.000000      0.000000     -0.066575
-	H_1      dirac     0.000000      0.754175      0.528381	
-	H_1      dirac     0.000000     -0.754174      0.528382  
+	H-a_1      Nakai-7-sp     0.000000      0.754175      0.528381	
+	H-b_1      Nakai-7-sp    0.000000     -0.754174      0.528382  
 END GEOMETRY
 
 TASKS
-	method = "RHF"
+	method = "UHF"
+	propagatorTheoryCorrection= 2
 END TASKS
 
 CONTROL
-	numberOfCores = 4
-	readCoefficients = F
+	numberOfCores=8
+	IonizeSpecie="H-A_1" "H-B_1"
 END CONTROL
 
 

@@ -151,7 +151,7 @@ contains
   subroutine PropagatorTheory_show()
     implicit NONE
     
-    integer :: i, j, p, q, m, n
+    integer :: i, j, p, q, m, n, z
     integer :: species1ID
     integer :: species2ID
     integer :: occupationNumber
@@ -197,9 +197,13 @@ contains
              write (6,"(T10,A40)") "-------------------------------------"
           end if
 
-          if (CONTROL_instance%IONIZE_SPECIE /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
-             species2ID= species1ID
+          if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
+             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
+             do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
+               if (CONTROL_instance%IONIZE_SPECIE(z) /= "NONE" ) then
+               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIE(z))
+               end if
+             end do 
           else
              species1ID=1
              species2ID=PropagatorTheory_instance%numberOfSpecies
@@ -273,9 +277,13 @@ contains
           write (*,"(T10,A60)") "LOWDIN implementation: J. Chem. Phys. 138, 194108 (2013)"
           write (*,"(T10,A64)") "---------------------------------------------------------------"
 
-          if (CONTROL_instance%IONIZE_SPECIE /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
-             species2ID= species1ID
+          if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
+             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
+             do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
+               if (CONTROL_instance%IONIZE_SPECIE(z) /= "NONE" ) then
+               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIE(z))
+               end if
+             end do 
           else
              species1ID=1
              species2ID=PropagatorTheory_instance%numberOfSpecies
@@ -335,6 +343,7 @@ contains
     integer :: pc, qc, rc, sc ! Indices for general orbitals of gamma (C) species
     integer :: idfHf, idaHf ! Counters for elements in fHf and aHf blocks
     integer :: i, j, k ! counters for species
+    integer :: z, zz
     integer :: m, n, o, p, q, ni, nc, limit, id1, id2, id3 ! auxiliar counters
     integer :: speciesAID, speciesBID, speciesCID
     integer :: species1ID, species2ID
@@ -398,15 +407,32 @@ contains
 
     !!! Defining for which species the correction will be applied
     
-    if (CONTROL_instance%IONIZE_SPECIE /= "NONE") then
-       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
-       species2ID= species1ID
-       m=1
-    else
-       species1ID=1
-       species2ID=PropagatorTheory_instance%numberOfSpecies
-       m = species2ID
-    end if
+!    if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
+!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
+!       species2ID= species1ID
+!       m=1
+!    else
+!       species1ID=1
+!       species2ID=PropagatorTheory_instance%numberOfSpecies
+!       m = species2ID
+!    end if
+
+      if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
+             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
+             zz = 0 
+             do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
+               if (CONTROL_instance%IONIZE_SPECIE(z) /= "NONE" ) then
+               zz = zz + 1
+               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIE(z))
+               end if
+             end do 
+             m = zz 
+          else
+             species1ID=1
+             species2ID=PropagatorTheory_instance%numberOfSpecies
+             m = species2ID
+          end if
+
 
     if (allocated(PropagatorTheory_instance%secondOrderCorrections)) deallocate(PropagatorTheory_instance%secondOrderCorrections)
     allocate(PropagatorTheory_instance%secondOrderCorrections(m))
@@ -445,7 +471,7 @@ contains
           PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
           PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
           n = 1
-       else if (CONTROL_instance%IONIZE_SPECIE /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+       else if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
           PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
           PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
           n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
@@ -519,7 +545,6 @@ contains
 !                  auxMatrix2(p), i, nameOfSpeciesA, p, nameOfSpeciesB )
              auxMatrix2(p)%values = auxMatrix2(p)%values * MolecularSystem_getCharge( i ) &
                   * MolecularSystem_getCharge( p )
-	     		
           end if
           
        end do
@@ -9505,8 +9530,8 @@ contains
 
     ! Defining for which species the correction will be applied
     
-    if (CONTROL_instance%IONIZE_SPECIE /= "NONE") then
-       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
+    if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
+       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
        species2ID= species1ID
        m=1
     else
@@ -9605,7 +9630,7 @@ contains
           PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
           PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
           n = 1
-       else if (CONTROL_instance%IONIZE_SPECIE /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+       else if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
           PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
           PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
           n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1

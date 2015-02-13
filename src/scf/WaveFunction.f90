@@ -589,11 +589,10 @@ contains
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
 
-    !! cosmo things 
-
+    !! cosmo fock matrix
 
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
-         +0.5_8*(wavefunction_instance(speciesID)%cosmo1%values + &
+         0.5_8*(wavefunction_instance(speciesID)%cosmo1%values + &
          wavefunction_instance(speciesID)%cosmo4%values)+ &
          wavefunction_instance(speciesID)%cosmo2%values
 
@@ -603,11 +602,6 @@ contains
 		cosmoContribution%values=0.5_8*((wavefunction_instance(speciesID)%cosmo1%values + &
          wavefunction_instance(speciesID)%cosmo4%values))+&
          wavefunction_instance(speciesID)%cosmo2%values
-		write(*,*)"cosmo contribution"
-		call Matrix_show(cosmoContribution)
-
-		!!debug
-			
 
 
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + wavefunction_instance(speciesID)%twoParticlesMatrix%values
@@ -660,8 +654,7 @@ contains
     wavefunction_instance(speciesID)%densityMatrix%values = 0.0_8
 
     !! Segment for fractional occupations: 1
-    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(nameOfSpecieSelected) == trim(CONTROL_instance%IONIZE_SPECIE) ) then
-
+    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(nameOfSpecieSelected) == trim(CONTROL_instance%IONIZE_SPECIE(1)) ) then
        wavefunction_instance(speciesID)%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO) = &
             wavefunction_instance(speciesID)%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO)*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION)
 
@@ -682,8 +675,7 @@ contains
     wavefunction_instance(speciesID)%densityMatrix%values =  MolecularSystem_getEta( speciesID )  * wavefunction_instance(speciesID)%densityMatrix%values
 
     !! Segment for fractional occupations: 1
-    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(nameOfSpecieSelected) == trim(CONTROL_instance%IONIZE_SPECIE)) then
-
+    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(nameOfSpecieSelected) == trim(CONTROL_instance%IONIZE_SPECIE(1))) then
        wavefunction_instance(speciesID)%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO) = &
             wavefunction_instance(speciesID)%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO)/sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION)
     end if
@@ -734,7 +726,7 @@ contains
             + wavefunction_instance(speciesID)%couplingMatrix%values)) &
             + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
 
-       wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie - 0.5_8 * &
+       wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie + 0.5_8 * &
             (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
             wavefunction_instance( speciesID )%cosmo1%values )+ &
             sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
@@ -799,7 +791,7 @@ contains
             + wavefunction_instance(speciesID)%couplingMatrix%values)) &
             + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
 
-       wavefunction_instance( speciesID )%independentSpecieEnergy =wavefunction_instance( speciesID )%independentSpecieEnergy - 0.5_8 * &
+       wavefunction_instance( speciesID )%independentSpecieEnergy =wavefunction_instance( speciesID )%independentSpecieEnergy + 0.5_8 * &
             (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
             wavefunction_instance( speciesID )%cosmo1%values )+ &
             sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
@@ -845,7 +837,7 @@ contains
     !! Adds inter-electron species coupling energy
     electronicRepulsionEnergy = WaveFunction_getAlphaBetaRepulsion()
     !! Total Energy
-    totalEnergy = totalEnergy +  totalCouplingEnergy + electronicRepulsionEnergy
+    totalEnergy = totalEnergy +  totalCouplingEnergy + electronicRepulsionEnergy 
 
   end subroutine WaveFunction_obtainTotalEnergy
 
@@ -2419,7 +2411,7 @@ contains
 		if(allocated(cosmo_int)) deallocate(cosmo_int)
     allocate(cosmo_int(m))
 		
-		read(110)(cosmo_int(i),i=1,961)
+		read(110)(cosmo_int(i),i=1,m)
 		close(unit=110)
 
 
@@ -2498,17 +2490,14 @@ contains
 
                          end do
                       end do
-											cosmo2_aux(k,l)=0.0
+											cosmo2_aux(k,l)=0.0_8
 											do pp=1,size(ints_mat_aux,DIM=1)
 												do oo=1,size(ints_mat_aux,DIM=1)
-													! write(*,*)ints_mat_aux(pp,oo),pp,oo
 													cosmo2_aux(k,l)=cosmo2_aux(k,l)+ints_mat_aux(pp,oo)
 													wavefunction_instance(speciesID)%cosmo2%values(k,l)=cosmo2_aux(k,l)
 													wavefunction_instance(speciesID)%cosmo2%values(l,k)=wavefunction_instance(speciesID)%cosmo2%values(k,l)
 												end do
 											end do
-										! write(*,*)"elemento k,l;k,l"
-										! write(*,*)wavefunction_instance(speciesID)%cosmo2%values(k,l),k,l
                    end do
                 end do
              end do
@@ -2516,15 +2505,6 @@ contains
           end do
        end do
     end do
-
-
-    ! write(*,*)"m_2cosmo",m
-
-
-    ! write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Quantum potential vs clasical charges ",trim(MolecularSystem_instance%species(speciesID)%name),&
-    !      " in file lowdin.opints"
-    ! write(40) int(size(ints_mat_aux),8)
-    ! write(40) ints_mat_aux
 
   end subroutine WaveFunction_buildCosmo2Matrix
 

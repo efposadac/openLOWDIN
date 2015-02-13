@@ -33,6 +33,8 @@ module String_
   public :: &
        String_getLowercase, &
        String_getUppercase, &
+       String_convertIntegerToString, &
+       String_convertRealToString, &
        String_findSubstring
   
 contains
@@ -188,6 +190,31 @@ contains
     end do
     
   end function String_convertVectorOfRealsToString
+
+  !<
+  ! @brief Conviete un entero en una cadena de caracteres
+  !<
+  function String_convertIntegerToString( integerValue ) result(output)
+          implicit none
+          integer, intent(in) :: integerValue
+          character(5):: output
+          
+          write (output,'(I5)') integerValue
+         output=adjustl(output)
+
+  end function String_convertIntegerToString
+
+  !<
+  ! @brief Conviete un real de doble precision en una cadena de caracteres
+  !<
+  function String_convertRealToString( realValue ) result(output)
+  	implicit none
+  	real(8), intent(in) :: realValue
+  	character(12):: output
+  
+  	write (output," (F12.4)") realValue
+  
+  end function String_convertRealToString
 
   !>
   !! @brief  Maneja excepciones de la clase

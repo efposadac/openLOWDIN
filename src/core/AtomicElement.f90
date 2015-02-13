@@ -58,8 +58,9 @@ module AtomicElement_
   
   public :: &
        AtomicElement_load, &
-       AtomicElement_show
-  
+       AtomicElement_show, &
+       AtomicElement_getCovalentRadius
+
 contains
     
   !>
@@ -253,6 +254,29 @@ contains
     print *,""
     
   end subroutine AtomicElement_show
+
+  function AtomicElement_getCovalentRadius( symbolOfElement ) result( output )
+		implicit none
+		character(*),  intent( in ) :: symbolOfElement
+		real(8)  :: output
+
+		type(AtomicElement) :: element
+		character(10) :: auxSymbol
+
+		! call AtomicElement_constructor( element )
+		auxSymbol=trim( symbolOfElement )
+
+		if (  scan( auxSymbol, "_" ) /= 0 ) then
+			auxSymbol = trim(auxSymbol(1: scan( auxSymbol, "_" ) - 1 ) )
+		end if
+
+		call AtomicElement_load( element, auxSymbol, 0 )
+		output = element%covalentRadius
+
+		! call AtomicElement_destructor(element)
+
+  end function AtomicElement_getCovalentRadius
+
   
   !>
   !! @brief  Maneja excepciones de la clase

@@ -58,24 +58,39 @@ contains
     
     lowdin_solver%withProperties = .false.
     
-    select case ( trim(lowdin_solver%methodName) )
-       
-      case('RHF')
-        call Solver_RHFRun( )
-      case('UHF')
-        call Solver_UHFRun( )
-      case('RKS')
-        call Solver_RKSRun( )
-      case('UKS')
-        call Solver_UKSRun( )
-      case default
-       
-        call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
-             "At Solver module in run function")
-        
-     end select
+    if(CONTROL_instance%OPTIMIZE) then
+       call system("lowdin-Optimizer.x")
+    else
+       select case ( trim(lowdin_solver%methodName) )
+
+       case('MM')
+          call Solver_MMRun( )
+       case('RHF')
+          call Solver_RHFRun( )
+       case('UHF')
+          call Solver_UHFRun( )
+       case('RKS')
+          call Solver_RKSRun( )
+       case('UKS')
+          call Solver_UKSRun( )
+       case default
+
+          call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
+               "At Solver module in run function")
+
+       end select
+    end if
      
    end subroutine Solver_run
+
+  !> @brief run Molecular Mechanics based calculation
+  subroutine Solver_MMRun( )
+    implicit none
+
+    !! Run Molecular Mechanics program with the force field selected
+    call system("lowdin-MolecularMechanics.x CONTROL_instance%FORCE_FIELD")
+    
+  end subroutine Solver_MMRun
   
   !> @brief run RHF-based calculation
   subroutine Solver_RHFRun( )
@@ -97,7 +112,7 @@ contains
        
     case('RHF-MP2')
 
-			 call system("lowdin-HF.x RHF")
+       call system("lowdin-HF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
 
@@ -105,13 +120,17 @@ contains
 
     case('RHF-CI')
 
+       call system("lowdin-HF.x RHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-CI.x" )
+
     case('RHF-PT')
 			 
-			 call system("lowdin-HF.x RHF")
+       call system("lowdin-HF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
        
-			 call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
        
     case default
 
@@ -183,30 +202,34 @@ contains
   subroutine Solver_UHFRun( )
     implicit none
 
-    call system("lowdin-HF.x RHF")
-
     select case(CONTROL_instance%METHOD)
        
     case("UHF")
-       
+
        !! Run HF program in RHF mode
        call system("lowdin-HF.x RHF")
+
        
+    case('UHF-CI')
+
+       call system("lowdin-HF.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-CI.x" )
+
     case('UHF-MP2')
+       call system("lowdin-HF.x UHF")
+       !call system("lowdin-MOERI.x UHF")
+       !rfm call system("lowdin-EPT.x UHF")
        call system("lowdin-integralsTransformation.x")
        call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
        
     case('UHF-PT')
-       
-       ! <<<<<<< head
-       !        call system("lowdin-HF.x UHF") ???
-       !        call system("lowdin-MOERI.x UHF") ???
-       ! ===========
-       
+       call system("lowdin-HF.x UHF")
+       !call system("lowdin-MOERI.x UHF")
+       !rfm call system("lowdin-EPT.x UHF")
        call system("lowdin-integralsTransformation.x")
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
-       ! >>>>>>> master
-       !rfm call system("lowdin-EPT.x UHF")
+
        
     case default
        
