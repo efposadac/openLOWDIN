@@ -589,12 +589,12 @@ contains
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
 
-    !! cosmo things
+    !! cosmo things 
 
 
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
-         -0.5_8*(wavefunction_instance(speciesID)%cosmo1%values - &
-         wavefunction_instance(speciesID)%cosmo4%values)- &
+         +0.5_8*(wavefunction_instance(speciesID)%cosmo1%values + &
+         wavefunction_instance(speciesID)%cosmo4%values)+ &
          wavefunction_instance(speciesID)%cosmo2%values
 
 		!! debug
