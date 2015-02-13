@@ -467,8 +467,6 @@ contains
          WaveFunction_instance( specieID )%couplingEnergy
 
 
-		!! Cosmo energy calculation
-    
 
     !! Calcula la energia COSMO	
 
@@ -486,11 +484,6 @@ contains
 		write(*,*)"cosmo energy2",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo2%values )) 
 		write(*,*)"cosmo energy4",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo4%values )) 
 		
-		write(*,*)"cosmo 4" 
-		call Matrix_show( WaveFunction_instance(specieid)%cosmo4 )
-    
-
-
 		end if
     
 
@@ -598,8 +591,8 @@ contains
 
     
     !! DEBUG
-    print *,"Matriz cosmo1: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    call Matrix_show( WaveFunction_instance(speciesID)%cosmo1 )
+    ! print *,"Matriz cosmo1: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    ! call Matrix_show( WaveFunction_instance(speciesID)%cosmo1 )
     
     !! Load clasical potential vs quantum charges cosmo matrix
     arguments(1) = "COSMO4"
@@ -609,9 +602,9 @@ contains
          unit=unit, binary=.true., arguments=arguments)    
            
     
-    !! DEBUG
-    print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    call Matrix_show( WaveFunction_instance(speciesID)%cosmo4 )
+    ! !! DEBUG
+    ! print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    ! call Matrix_show( WaveFunction_instance(speciesID)%cosmo4 )
     
     close(44)    
     

@@ -50,7 +50,7 @@ contains
 
     cmd = "gepol.x < gepol.inp > gepol.out"
     call system(cmd) 
-    ! cmd = "rm gepol.out"
+    cmd = "rm gepol.out"
     call system(cmd)
 
 		write(*,*)"generada gepol surface"
@@ -125,6 +125,7 @@ contains
     !! llenando surface con la informacion leida
 		! 	 write(*,*)"como lee los numeros"
     !
+		!! gepol matrix
 		! write(*,*)"surface%sizeSurface",surface%sizeSurface
 			 ! write(*,*)"datos leidos"
     ! do i=1,surface%sizeSurface        
@@ -146,7 +147,6 @@ contains
   !----------------------subroutines------------------------------
 
   subroutine CosmoCore_cmat(surface,cmat_inv)
-    ! subroutine CosmoTools_Cmatrix(surface)
     implicit none
 
     integer :: i, j
@@ -172,14 +172,10 @@ contains
        end do
     end do
 
-		! write(*,*)"cmat"
-		! call Matrix_show(cmat)
 
     ! calculando la matriz inversa
     cmat_inv=Matrix_inverse(cmat)
 
-		! write(*,*)"cmat_inv"
-		! call Matrix_show(cmat_inv)
 
   end subroutine CosmoCore_cmat
 
@@ -251,8 +247,7 @@ contains
 
     lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
 
-    write(*,*) "esto es lambda", lambda
-
+    !
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 
 
@@ -294,8 +289,9 @@ contains
 
        end if
     end do
-		write(*,*)"potential"
-		call Matrix_show(v)
+
+		! write(*,*)"potential"
+		! call Matrix_show(v)
 			
 
     do k=1,segments
@@ -314,18 +310,18 @@ contains
 
 
 
-		write(*,*)"q_clasical"
-    do j=1,segments
-			 write(*,*)q_clasical(j)
-			 q_verifier=q_verifier+q_clasical(j)
-    end do
+		! write(*,*)"q_clasical"
+    ! do j=1,segments
+		! 	 write(*,*)q_clasical(j)
+		! 	 q_verifier=q_verifier+q_clasical(j)
+    ! end do
 
     write(77) q_clasical
 
     close(77)
 		
-		write(*,*) "q_verifier"
-		write(*,*) q_verifier
+		! write(*,*) "q_verifier"
+		! write(*,*) q_verifier
 		
 		! write(*,*) "cmatinv clasical"
 		! call Matrix_show(cmatinv_aux)
@@ -381,21 +377,12 @@ contains
        end do
     end do
 
-
-		! write(*,*)"cmatinv quantum charges"
-    ! call Matrix_show(cmatinv)
-
     q_charge=Matrix_product(cmatinv,cosmo_pot)
-
-    ! call Matrix_show(q_charge)
 
     do i=1,ints
        q_charges(i)=q_charge%values(i,1)
     end do
-		write(*,*)"q_charges"
-    write(*,*)q_charges(:)
-
-
+    
 
   end subroutine CosmoCore_q_builder
   !----------------------subroutines------------------------------
@@ -431,12 +418,6 @@ contains
        read(90)(ints_mat(i,n),i=1,surface)
     end do
    
-	 write(*,*)"integrales"
-		do n=1,integrals
-       do k=1,charges
-				! write(*,*)ints_mat(n,k)
-			end do
-		end do
 
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
@@ -450,10 +431,6 @@ contains
     do n=1,integrals
        do k=1,charges
           cosmo_int(m)=dot_product(ints_mat(:,n),a_mat(:,k))
-					!! debug
-					! if(n==17.or.n==15) then
-					! 	  write(*,*)"value, n,k",n,k,cosmo_int(m)
-					! end if
           m=m+1
        end do
     end do
@@ -534,7 +511,7 @@ contains
 
     logical:: verifier
 
-
+		output=0.0_8
     verifier=.false.
     np=MolecularSystem_instance%numberOfParticles
     segments=int(surface%sizeSurface,8)
@@ -658,8 +635,6 @@ contains
                    do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                       m = m + 1
 
-                      write(*,*)"cosmo: m,k,l",m,k,l
-
                       ints_mat_aux(k, l) = cosmo_int(m)
                       ints_mat_aux(l, k) = ints_mat_aux(k, l)
 
@@ -676,16 +651,6 @@ contains
          " in file lowdin.opints"
     write(40) int(size(ints_mat_aux),8)
     write(40) ints_mat_aux
-
-		write(*,*)"ints_mat_aux"
-
-		do i=1,6
-			do j=1,6
-				write(*,*) ints_mat_aux(i,j),i,j
-			end do
-		end do
-
-
 
 
   end subroutine CosmoCore_nucleiPotentialQuantumCharges

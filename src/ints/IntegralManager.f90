@@ -371,10 +371,6 @@ contains
           open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
           open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
 
-          ! write(*,*)"species", f
-          ! write(70) job
-          ! write(70) MolecularSystem_instance%species(f)%name
-
           if(allocated(labels)) deallocate(labels)
           allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
           labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
@@ -420,9 +416,6 @@ contains
                          point(1)%x  =surface%xs(c)
                          point(1)%y  =surface%ys(c)
                          point(1)%z  =surface%zs(c)
-												 if (c==1) then
-													write(*,*) point(c)%x,point(c)%y,point(c)%z
-												end if
                          !Calculating integrals for shell
 
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
@@ -433,9 +426,6 @@ contains
                             do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                                m = m + 1
                                integralValueCosmo(m,c)=integralValue(m)
-                               !! debug
-															 
-                               ! write(*,*)integralValueCosmo(m,c)
                                
 															 write(37,'(F10.5)')integralValueCosmo(m,c)
                             end do
@@ -459,20 +449,11 @@ contains
                             if(allocated(cosmoV)) deallocate(cosmoV)
                             allocate(cosmoV(numberOfPointCharges))
                             cosmoV(:)=integralValueCosmo(m,:)
-														! write(*,*)"m en cosmo write",m
-
-														write(*,*)cosmoV(:)
 
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges)
 
-														! write(*,*)"cosmo integrals: m,k,l",m,k,l
-                            ! write(*,*)integralValueCosmo(m,:)
-														! write(*,*)"cosmo charges"
-                            ! write(*,*)qCharges
-														
 														write(70)integralValueCosmo(m,:)
                             write(80)qCharges
-														write(63,'(F10.5)')qCharges
                          end do
                       end do
 
@@ -488,6 +469,7 @@ contains
 
           close(80)
           close(70)
+
           !!quantum
           totals=total_aux
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals,totals)

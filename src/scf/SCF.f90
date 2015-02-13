@@ -94,7 +94,6 @@ program SCF
 
      do i = 1, numberOfSpecies
 			 
-			 write(*,*)"entre a build2particlesmatrixmulti"
           
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
