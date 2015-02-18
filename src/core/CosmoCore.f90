@@ -326,6 +326,9 @@ contains
 		
 		write(*,*) "q_verifier"
 		write(*,*) q_verifier
+		
+		! write(*,*) "cmatinv clasical"
+		! call Matrix_show(cmatinv_aux)
 
   end subroutine CosmoCore_clasical
 
@@ -340,6 +343,7 @@ contains
     !vector donde almacenar las cargas puntuales, a la vez se necesita que le
     !pase esa información al que calcula las integrales para que funcione la
     !cosa
+		
 
     real(8), allocatable, intent(inout) ::  cosmo_ints(:)
     real(8), allocatable ::  cmatinvs(:,:)
@@ -353,6 +357,7 @@ contains
     real(8) :: lambda
 
     integer ,intent(in) :: ints
+		!!cantidad de segmentos
 
     integer :: i,j
 
@@ -376,6 +381,10 @@ contains
        end do
     end do
 
+
+		! write(*,*)"cmatinv quantum charges"
+    ! call Matrix_show(cmatinv)
+
     q_charge=Matrix_product(cmatinv,cosmo_pot)
 
     ! call Matrix_show(q_charge)
@@ -383,8 +392,8 @@ contains
     do i=1,ints
        q_charges(i)=q_charge%values(i,1)
     end do
-
-    ! write(*,*)q_charges(:)
+		write(*,*)"q_charges"
+    write(*,*)q_charges(:)
 
 
 
@@ -425,7 +434,7 @@ contains
 	 write(*,*)"integrales"
 		do n=1,integrals
        do k=1,charges
-				write(*,*)ints_mat(n,k)
+				! write(*,*)ints_mat(n,k)
 			end do
 		end do
 
@@ -594,8 +603,9 @@ contains
     np=MolecularSystem_instance%numberOfPointCharges
     segments=int(surface_aux%sizeSurface,8)
 
-    allocate (cosmo_int(charges))
-    allocate (a_mat(segments,charges))
+
+    allocate(cosmo_int(charges))
+		allocate(a_mat(segments,charges))
     allocate(clasical_positions(np,3))
     allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
 
@@ -609,13 +619,17 @@ contains
 
     call Matrix_constructor(clasical_charge, np, 1)
 
-    do k=1,charges
+
+    cosmo_int(:)=0.0_8
+		
+		do k=1,charges
+
 
        do i=1,np
 
           clasical_charge%values(i,1)= MolecularSystem_instance%pointCharges(i)%charge
           clasical_positions(i,:)=MolecularSystem_instance%pointCharges(i)%origin(:)
-
+					
           do j=1,segments
              cosmo_int(k)=cosmo_int(k)+(clasical_charge%values(i,1)*a_mat(j,k)/sqrt((clasical_positions(i,1)-surface_aux%xs(j))**2&
                   +(clasical_positions(i,2)-surface_aux%ys(j))**2 &
@@ -644,7 +658,7 @@ contains
                    do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                       m = m + 1
 
-                      ! write(*,*)"lowdin integrals: m,k,l",m,k,l
+                      write(*,*)"cosmo: m,k,l",m,k,l
 
                       ints_mat_aux(k, l) = cosmo_int(m)
                       ints_mat_aux(l, k) = ints_mat_aux(k, l)
@@ -663,7 +677,14 @@ contains
     write(40) int(size(ints_mat_aux),8)
     write(40) ints_mat_aux
 
-		write(*,*) ints_mat_aux(:,:)
+		write(*,*)"ints_mat_aux"
+
+		do i=1,6
+			do j=1,6
+				write(*,*) ints_mat_aux(i,j),i,j
+			end do
+		end do
+
 
 
 

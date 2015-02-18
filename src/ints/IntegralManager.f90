@@ -459,6 +459,10 @@ contains
                             if(allocated(cosmoV)) deallocate(cosmoV)
                             allocate(cosmoV(numberOfPointCharges))
                             cosmoV(:)=integralValueCosmo(m,:)
+														! write(*,*)"m en cosmo write",m
+
+														write(*,*)cosmoV(:)
+
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges)
 
 														! write(*,*)"cosmo integrals: m,k,l",m,k,l
@@ -468,6 +472,7 @@ contains
 														
 														write(70)integralValueCosmo(m,:)
                             write(80)qCharges
+														write(63,'(F10.5)')qCharges
                          end do
                       end do
 
