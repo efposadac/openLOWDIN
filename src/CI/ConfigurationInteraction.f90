@@ -37,7 +37,6 @@ module ConfigurationInteraction_
   use MolecularSystem_
   use String_
   use IndexMap_
-  use dsyevvx_
   implicit none
 
   !>
