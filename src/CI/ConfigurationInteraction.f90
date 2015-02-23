@@ -388,6 +388,7 @@ contains
     implicit none
     type(ConfigurationInteraction) :: this
     integer :: i
+    integer :: m
  
     if ( ConfigurationInteraction_instance%isInstanced ) then
 
@@ -418,7 +419,9 @@ contains
   !! @param this 
   !<
   subroutine ConfigurationInteraction_run()
-    implicit none
+    implicit none 
+    integer :: m
+    real(8), allocatable :: eigenValues(:) 
 
     select case ( trim(ConfigurationInteraction_instance%level) )
 
@@ -431,21 +434,22 @@ contains
        print *, "-----------------------------------------------"
        print *, ""
 
+       print *, "  Building configurations"
        call ConfigurationInteraction_buildConfigurations()
 
        call ConfigurationInteraction_getTransformedIntegrals()
 
+       print *, "  Building hamiltonian"
        call ConfigurationInteraction_buildHamiltonianMatrix()
 
-	print *, "(ConfigurationInteraction_instance%hamiltonianMatrix%values", size(ConfigurationInteraction_instance%hamiltonianMatrix%values)
-
        call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, ConfigurationInteraction_instance%numberOfConfigurations)
-	print *, " ConfigurationInteraction_instance%eigenvalues,",size( ConfigurationInteraction_instance%eigenvalues%values) 
 
-       call Matrix_eigen (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-		flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations)
+       print *, "  Diagonalizing hamiltonian"
+       call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+		1, 1, & !! Only the first 
+		flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+
 !!       call diagonalize_matrix (ConfigurationInteraction_instance%hamiltonianMatrix%values, ConfigurationInteraction_instance%eigenvalues%values, ConfigurationInteraction_instance%numberOfConfigurations)
-
 
 !!      print *, "hamiltonianMatrix"
 !!        call Matrix_show (ConfigurationInteraction_instance%hamiltonianMatrix)
@@ -544,7 +548,7 @@ contains
           call Vector_constructor (order, numberOfSpecies, 0.0_8)
           order%values(i)=1
 
-          print *, "Building singles for specie ", trim(  MolecularSystem_getNameOfSpecie( i ) )
+          print *, "    -Building singles for specie ", trim(  MolecularSystem_getNameOfSpecie( i ) )
           !!Singles
           if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
              do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
@@ -589,7 +593,7 @@ contains
 
           !!Doubles of different species
           do j=i+1, numberOfSpecies
-             print *, "Building one/one doubles for species ", trim(  MolecularSystem_getNameOfSpecie( i ) ), " ", trim(  MolecularSystem_getNameOfSpecie( j ) )
+             print *, "    -Building one/one doubles for species ", trim(  MolecularSystem_getNameOfSpecie( i ) ), " ", trim(  MolecularSystem_getNameOfSpecie( j ) )
 
              call Vector_constructor (order, numberOfSpecies, 0.0_8)
              order%values(i)=1
@@ -622,6 +626,7 @@ contains
        call Vector_Destructor(occupiedCode)
        call Vector_Destructor(unoccupiedCode)
 
+       print *, "    Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
 
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
 
@@ -637,7 +642,7 @@ contains
 
        do i=1, numberOfSpecies
 
-          print *, "Building doubles for specie ", trim(  MolecularSystem_getNameOfSpecie( i ) )
+          print *, "    -Building doubles for specie ", trim(  MolecularSystem_getNameOfSpecie( i ) )
           !!Doubles of the same specie
           call Vector_constructor (order, numberOfSpecies, 0.0_8)
           order%values(i)=2
@@ -659,7 +664,7 @@ contains
 
        end do
 
-       print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
+       print *, "    Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
 
        call Vector_Destructor(order)
        call Vector_Destructor(occupiedCode)
@@ -1219,7 +1224,6 @@ contains
     close (wfnUnit)
 	call Matrix_destructor (hcoreMatrix)
         call Matrix_destructor (couplingMatrix)
-
 
   end subroutine ConfigurationInteraction_getTransformedIntegrals
 
