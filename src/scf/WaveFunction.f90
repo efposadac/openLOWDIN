@@ -2389,6 +2389,8 @@ contains
 		real(8), allocatable :: cosmo_int(:)
 		real(8), allocatable :: ints_mat_aux(:,:)
 		real(8), allocatable :: cosmo2_aux(:,:)
+		
+		real(8), allocatable :: qe(:)
 
 
     integer :: g,i,ii,h,hh,j,jj,k,l,m,o,p

@@ -33,7 +33,7 @@ contains
     type(Matrix), intent(inout) :: cmatinv
 
 
-    ! call CosmoCore_caller()
+    call CosmoCore_caller()
     call CosmoCore_lines(surface)
     call CosmoCore_Filler(surface)
     call CosmoCore_cmat(surface,cmatinv)
@@ -50,10 +50,10 @@ contains
 
     cmd = "gepol.x < gepol.inp > gepol.out"
     call system(cmd) 
-    cmd = "rm gepol.out"
+    ! cmd = "rm gepol.out"
     call system(cmd)
 
-		write(*,*)"generada gepol surface"
+		! write(*,*)"generada gepol surface"
 
 
   end subroutine CosmoCore_caller
@@ -71,7 +71,8 @@ contains
     type(surfaceSegment), intent(inout) :: surface
 
 
-    cmd = "cat *.sup | grep '[^ ]' | wc -l > nlines.txt"
+    ! cmd = "cat *.sup | grep '[^ ]' | wc -l > nlines.txt"
+    cmd = "cat vectors.vec | grep '[^ ]' | wc -l > nlines.txt"
     call system(cmd) 
     open(1,file='nlines.txt')
     read(1,*) n
@@ -79,7 +80,7 @@ contains
     call system(cmd)
     surface%sizeSurface=n
     return
-		write(*,*)"superficie segmentos",n
+		! write(*,*)"superficie segmentos",n
 
 
   end subroutine CosmoCore_lines
@@ -106,13 +107,13 @@ contains
 
     ! llenado de surface con la información que está en .vec
 
-100 format (F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
-		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
-    read(55,*) (a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
+! 100 format (F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
+! 		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
+!     read(55,*) (a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
 
-! 100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
-!     open(55,file='vectors.vec',status='unknown') 
-!     read(55,100) (x(i),y(i),z(i),a(i),i=1,surface%sizeSurface)
+100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
+    open(55,file='vectors.vec',status='unknown') 
+    read(55,100) (x(i),y(i),z(i),a(i),i=1,surface%sizeSurface)
 
 		!asignando espacio en memoria para los parametros
 
@@ -120,7 +121,14 @@ contains
     allocate(surface%ys(surface%sizeSurface))
     allocate(surface%zs(surface%sizeSurface))
     allocate(surface%area(surface%sizeSurface))
-
+		
+		! do i=1,surface%sizeSurface        
+    !    surface%xs(i)=x(i)
+    !    surface%ys(i)=y(i)
+    !    surface%zs(i)=z(i)
+    !    surface%area(i)=a(i)
+		! end do
+    !
     ! write(*,*)"tipo superficie"
     !! llenando surface con la informacion leida
 		! 	 write(*,*)"como lee los numeros"
@@ -128,19 +136,13 @@ contains
 		!! gepol matrix
 		! write(*,*)"surface%sizeSurface",surface%sizeSurface
 			 ! write(*,*)"datos leidos"
-    ! do i=1,surface%sizeSurface        
-    !    surface%xs(i)=x(i)/AMSTRONG
-    !    surface%ys(i)=y(i)/AMSTRONG
-    !    surface%zs(i)=z(i)/AMSTRONG
-    !    surface%area(i)=a(i)/((AMSTRONG)**2)
-		! end do
-    
-		do i=1,surface%sizeSurface        
-       surface%xs(i)=x(i)
-       surface%ys(i)=y(i)
-       surface%zs(i)=z(i)
-       surface%area(i)=a(i)
+    do i=1,surface%sizeSurface        
+       surface%xs(i)=x(i)/AMSTRONG
+       surface%ys(i)=y(i)/AMSTRONG
+       surface%zs(i)=z(i)/AMSTRONG
+       surface%area(i)=a(i)/((AMSTRONG)**2)
 		end do
+    
 
   end subroutine CosmoCore_Filler
 

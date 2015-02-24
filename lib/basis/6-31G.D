@@ -18,6 +18,16 @@
           109, 1223 (1998)  
            
           Note: He and Ne are unpublished basis sets taken from Gaussian. 
+
+O-HYDROGEN H (6-31G.D) BASIS TYPE: 1
+# 
+2
+1 0 3
+18.73113700 0.03349460
+2.82539370 0.23472695
+0.64012170 0.81375733
+2 0 1
+0.16127780 1.00000000
     
 O-LITHIUM LI (6-31G.D) BASIS TYPE: 1
 # 

@@ -636,6 +636,7 @@ contains
 			write(42,160)"COOF=gepol.xyzr"
 			write(42,160)"VECF=vectors.vec"
 			write(42,160)"LPRIN"
+			write(42,160)"NDIV=5"
 			write(42,160)"ESURF"
 		
 		close(42)
