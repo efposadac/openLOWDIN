@@ -99,6 +99,7 @@ module CONTROL_
      logical :: TDHF
      logical :: OPTIMIZE
      logical :: FIRST_STEP
+     logical :: LAST_STEP
      logical :: OPTIMIZE_WITH_MP
      logical :: PROJECT_HESSIANE
 
@@ -326,6 +327,7 @@ module CONTROL_
   logical :: LowdinParameters_minimizationWithSinglePoint
   logical :: LowdinParameters_useSymmetryInMatrices
   logical :: LowdinParameters_restartOptimization
+  logical :: LowdinParameters_lastStep
   logical :: LowdinParameters_optimizeWithCpCorrection
   logical :: LowdinParameters_cpCorrection
   logical :: LowdinParameters_TDHF
@@ -554,6 +556,7 @@ module CONTROL_
        LowdinParameters_minimizationWithSinglePoint,&
        LowdinParameters_useSymmetryInMatrices,&
        LowdinParameters_restartOptimization,&
+       LowdinParameters_lastStep,&
        LowdinParameters_optimizeWithCpCorrection,&
        LowdinParameters_cpCorrection,&
        LowdinParameters_TDHF,&
@@ -807,6 +810,7 @@ contains
     LowdinParameters_minimizationWithSinglePoint = .true.
     LowdinParameters_useSymmetryInMatrices = .false.
     LowdinParameters_restartOptimization = .false.
+    LowdinParameters_lastStep = .true.
     LowdinParameters_optimizeWithCpCorrection = .false.
     LowdinParameters_cpCorrection = .false.
     LowdinParameters_TDHF = .false.
@@ -1050,6 +1054,7 @@ contains
     CONTROL_instance%TDHF = .false.
     CONTROL_instance%OPTIMIZE = .false.
     CONTROL_instance%FIRST_STEP = .true.
+    CONTROL_instance%LAST_STEP = .true.
     CONTROL_instance%OPTIMIZE_WITH_MP = .false.
     CONTROL_instance%PROJECT_HESSIANE = .true.
 
@@ -1322,6 +1327,7 @@ contains
     CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT = LowdinParameters_minimizationWithSinglePoint
     CONTROL_instance%USE_SYMMETRY_IN_MATRICES = LowdinParameters_useSymmetryInMatrices
     CONTROL_instance%RESTART_OPTIMIZATION = LowdinParameters_restartOptimization
+    CONTROL_instance%LAST_STEP = LowdinParameters_lastStep
     CONTROL_instance%OPTIMIZE_WITH_CP_CORRECTION = LowdinParameters_optimizeWithCpCorrection
     CONTROL_instance%CP_CORRECTION = LowdinParameters_cpCorrection
     CONTROL_instance%TDHF = LowdinParameters_TDHF
@@ -1479,10 +1485,11 @@ contains
 
   !> 
   !! @brief Save all options in file
-  subroutine CONTROL_save( unit )
+  subroutine CONTROL_save( unit, lastStep )
     implicit none
     
     integer :: unit
+    logical, optional :: lastStep 
     
     !! Saving de control parameters on the name list.
     
@@ -1558,6 +1565,11 @@ contains
     LowdinParameters_minimizationWithSinglePoint = CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT
     LowdinParameters_useSymmetryInMatrices = CONTROL_instance%USE_SYMMETRY_IN_MATRICES
     LowdinParameters_restartOptimization = CONTROL_instance%RESTART_OPTIMIZATION
+    if(present(lastStep)) then
+       LowdinParameters_lastStep = lastStep
+    else
+       LowdinParameters_lastStep = CONTROL_instance%LAST_STEP
+    end if
     LowdinParameters_optimizeWithCpCorrection = CONTROL_instance%OPTIMIZE_WITH_CP_CORRECTION
     LowdinParameters_cpCorrection = CONTROL_instance%CP_CORRECTION
     LowdinParameters_TDHF = CONTROL_instance%TDHF
@@ -1796,6 +1808,7 @@ contains
     otherThis%MINIMIZATION_WITH_SINGLE_POINT = this%MINIMIZATION_WITH_SINGLE_POINT 
     otherThis%USE_SYMMETRY_IN_MATRICES = this%USE_SYMMETRY_IN_MATRICES 
     otherThis%RESTART_OPTIMIZATION = this%RESTART_OPTIMIZATION 
+    otherThis%LAST_STEP = this%LAST_STEP
     otherThis%OPTIMIZE_WITH_CP_CORRECTION = this%OPTIMIZE_WITH_CP_CORRECTION 
     otherThis%CP_CORRECTION = this%CP_CORRECTION 
     otherThis%TDHF = this%TDHF 

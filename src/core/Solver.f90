@@ -45,7 +45,7 @@ contains
   !! @brief Run the properly programs depending of the requested tasks
   subroutine Solver_run( )
     implicit none
-    
+
     if( String_findSubstring( trim(CONTROL_instance%METHOD), "-" ) > 1 ) then
 
        lowdin_solver%methodName = CONTROL_instance%METHOD(1: scan(CONTROL_instance%METHOD, "-") - 1)
@@ -57,29 +57,29 @@ contains
     end if
     
     lowdin_solver%withProperties = .false.
-    
-    if(CONTROL_instance%OPTIMIZE) then
-       call system("lowdin-Optimizer.x")
-    else
-       select case ( trim(lowdin_solver%methodName) )
 
-       case('MM')
-          call Solver_MMRun( )
-       case('RHF')
-          call Solver_RHFRun( )
-       case('UHF')
-          call Solver_UHFRun( )
-       case('RKS')
-          call Solver_RKSRun( )
-       case('UKS')
-          call Solver_UKSRun( )
-       case default
+    ! if(optimization) then
+    !    call system("lowdin-Optimizer.x")
+    ! else
+    select case ( trim(lowdin_solver%methodName) )
 
-          call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
-               "At Solver module in run function")
+    case('MM')
+       call Solver_MMRun( )
+    case('RHF')
+       call Solver_RHFRun( )
+    case('UHF')
+       call Solver_UHFRun( )
+    case('RKS')
+       call Solver_RKSRun( )
+    case('UKS')
+       call Solver_UKSRun( )
+    case default
 
-       end select
-    end if
+       call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
+            "At Solver module in run function")
+
+    end select
+    ! end if
      
    end subroutine Solver_run
 
@@ -107,8 +107,8 @@ contains
     case ("RHF-COSMO")
        
        call system("lowdin-cosmo.x")
-			 call system("lowdin-HF.x RHF")
-       write(*,*) CONTROL_instance%METHOD
+       call system("lowdin-HF.x RHF")
+       ! write(*,*) CONTROL_instance%METHOD
        
     case('RHF-MP2')
 

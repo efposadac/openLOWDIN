@@ -22,6 +22,7 @@
 !!   - <tt> 2013-02-28 </tt>: E. F. Posada ( efposadac@unal.edu.co )
 !!        -# Creacion del programa, depuracion y pruebas exahustivas
 Program Ints
+  use CONTROL_
   use MolecularSystem_
   use IntegralManager_
   use String_
@@ -35,12 +36,11 @@ Program Ints
   character(50) :: nprocs
   character(50) :: proc
   character(50) :: speciesName
-  
-	type(surfaceSegment) :: surface_aux
-!!Cosmo test
-	real(8) :: x,y,z
-	integer :: j
-!Cosmo test
+  type(surfaceSegment) :: surface_aux
+  !!Cosmo test
+  real(8) :: x,y,z
+  integer :: j
+  !Cosmo test
 
   integer(8) :: nprocess
   integer(8) :: process
@@ -63,11 +63,13 @@ Program Ints
 
   case("ONE_PARTICLE")
      
-     write(*,"(A)")"----------------------------------------------------------------------"
-     write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
-     write(*,"(A)")"----------------------------------------------------------------------"
-     write(*,"(A)") "INFO: RUNNING IN "//trim(job)//" MODE."
-     write(*,"(A)")" "
+     if(CONTROL_instance%LAST_STEP) then
+        write(*,"(A)")"----------------------------------------------------------------------"
+        write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
+        write(*,"(A)")"----------------------------------------------------------------------"
+        write(*,"(A)") "INFO: RUNNING IN "//trim(job)//" MODE."
+        write(*,"(A)")" "
+     end if
 
      !!Open file to store integrals
      open(unit=30, file="lowdin.opints", status="unknown", form="unformatted")
@@ -89,49 +91,46 @@ Program Ints
      
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
-     
-     write(*, *) ""
-     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
-     write(*, *) ""
+
+     if(CONTROL_instance%LAST_STEP) then     
+        write(*, *) ""
+        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*, *) ""
+     end if
      close(30)
 
   case("COSMO")
-  call Stopwatch_start(lowdin_stopwatch)
+     call Stopwatch_start(lowdin_stopwatch)
 
-     write(*,"(A)")"----------------------------------------------------------------------"
-     write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
-     write(*,"(A)")"----------------------------------------------------------------------"
-     write(*,"(A)") "INFO: RUNNING IN COSMO MODE."
-     write(*,"(A)")" "
+     if(CONTROL_instance%LAST_STEP) then
+        write(*,"(A)")"----------------------------------------------------------------------"
+        write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
+        write(*,"(A)")"----------------------------------------------------------------------"
+        write(*,"(A)") "INFO: RUNNING IN COSMO MODE."
+        write(*,"(A)")" "
+     end if
+     
+     
+     call CosmoCore_lines(surface_aux)
+     call CosmoCore_filler(surface_aux)
 
-		
-		 call CosmoCore_lines(surface_aux)
-		 call CosmoCore_filler(surface_aux)
-     
-		 !!Open file to store integrals
-     
-		 open(unit=40, file="cosmo.opints", status="unknown", form="unformatted")
-     
-		 !!write global info on output
+     !!Open file to store integrals
+
+     open(unit=40, file="cosmo.opints", status="unknown", form="unformatted")
+
+     !!write global info on output
      write(40) size(MolecularSystem_instance%species)
-
-
      !!Calculate cosmo integrals and charges
-
-		 call IntegralManager_getAttractionIntegrals(surface_aux)
-
-
+     call IntegralManager_getAttractionIntegrals(surface_aux)
      !stop time
-
      call Stopwatch_stop(lowdin_stopwatch)
      
-		 write(*, *) ""
-     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
-     write(*, *) ""
-		 close(40)
-		 
-
-		
+     if(CONTROL_instance%LAST_STEP) then
+        write(*, *) ""
+        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*, *) ""
+     end if
+     close(40)
      
   case("TWO_PARTICLE_R12_INTRA")
      
@@ -154,30 +153,33 @@ Program Ints
      !!Calculate attraction integrals (intra-species)
      call IntegralManager_getIntraRepulsionIntegrals(nprocess, process, speciesName, trim(CONTROL_instance%INTEGRAL_SCHEME))
 
-		 ! write(*,*)"nprocess,process,speciesName", nprocess, process, speciesName
+     ! write(*,*)"nprocess,process,speciesName", nprocess, process, speciesName
      
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
      
-      write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     if(CONTROL_instance%LAST_STEP) then
+        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     end if
 
    case("TWO_PARTICLE_R12_INTER")
       
       if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
-         
+
          !!Calculate attraction integrals (inter-species)
          call IntegralManager_getInterRepulsionIntegrals(trim(CONTROL_instance%INTEGRAL_SCHEME))
-         
+
          !stop time
          call Stopwatch_stop(lowdin_stopwatch)
+
+         if(CONTROL_instance%LAST_STEP) then
+            write(*, *) ""
+            write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+            write(*, *) ""
+         end if
+      end if
      
-         write(*, *) ""
-         write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
-         write(*, *) ""
-         
-     end if
-     
-  case("TWO_PARTICLE_F12")
+   case("TWO_PARTICLE_F12")
      
      stop "NOT IMPLEMENTED"
      

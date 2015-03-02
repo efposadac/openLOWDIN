@@ -57,6 +57,7 @@ do
         echo -e "$ifile \c" >> makefile
       fi
    done
+
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
    do
      name=$(echo $mod)
@@ -69,7 +70,7 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC)  \$(FLAGS) ${file}\n" >> makefile
 done
 #c++ sources
 SRCMOD=$(ls [!_]*.cpp)

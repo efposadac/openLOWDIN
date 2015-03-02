@@ -62,7 +62,6 @@ contains
   subroutine MMCommons_constructor(this)
     implicit none
     type(MolecularSystem) :: this
-    integer :: i
 
     call InternalCoordinates_constructor(  this%intCoordinates )
     call InternalCoordinates_obtainCoordinates(  this%intCoordinates )

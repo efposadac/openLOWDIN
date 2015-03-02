@@ -122,7 +122,7 @@ contains
     MolecularSystem_instance%numberOfPointCharges = numberOfPointCharges
     MolecularSystem_instance%numberOfQuantumSpecies = numberOfQuantumSpecies
     MolecularSystem_instance%numberOfParticles = sum(numberOfParticlesForSpecies) + numberOfPointCharges
-    
+
     !! Allocate memory for particles
     allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
 
@@ -168,7 +168,7 @@ contains
     !! Setting quantum species
     MolecularSystem_instance%numberOfQuantumParticles = 0
     MolecularSystem_instance%charge = 0
-    
+   
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        
        call Species_setSpecie(MolecularSystem_instance%species(i), speciesID = i)
@@ -398,7 +398,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                int(MolecularSystem_instance%species(i)%internalSize / 2), " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
-          write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
+          ! write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        else
 
@@ -408,7 +408,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                MolecularSystem_instance%species(i)%internalSize, " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
-          write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
+          ! write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        end if
        

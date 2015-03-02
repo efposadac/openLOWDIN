@@ -467,37 +467,29 @@ contains
          WaveFunction_instance( specieID )%couplingEnergy
 
 
-		!! Cosmo energy calculation
+    !! Cosmo energy calculation
     
-
+    
     !! Calcula la energia COSMO	
-
-		if(CONTROL_instance%COSMO)then
-
-		 WaveFunction_instance( specieID )%cosmoEnergy =  &
-         0.5_8* (sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * &
-          wavefunction_instance( specieid )%cosmo1%values )) +0.5_8 *  &
-					(sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-					WaveFunction_instance( specieID )%cosmo4%values ))	+ &
-          0.5_8*(sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-          WaveFunction_instance( specieID )%cosmo2%values ))
-		write(*,*)"cosmo energy",WaveFunction_instance( specieID )%cosmoEnergy 
-		write(*,*)"cosmo energy1",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo1%values )) 
-		write(*,*)"cosmo energy2",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo2%values )) 
-		write(*,*)"cosmo energy4",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo4%values )) 
-		
-		write(*,*)"cosmo 4" 
-		call Matrix_show( WaveFunction_instance(specieid)%cosmo4 )
     
+    if(CONTROL_instance%COSMO)then
 
+       WaveFunction_instance( specieID )%cosmoEnergy =  &
+            0.5_8* (sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * &
+            wavefunction_instance( specieid )%cosmo1%values )) +0.5_8 *  &
+            (sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
+            WaveFunction_instance( specieID )%cosmo4%values ))	+ &
+            0.5_8*(sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
+            WaveFunction_instance( specieID )%cosmo2%values ))
+       write(*,*)"cosmo energy",WaveFunction_instance( specieID )%cosmoEnergy 
+       write(*,*)"cosmo energy1",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo1%values )) 
+       write(*,*)"cosmo energy2",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo2%values )) 
+       write(*,*)"cosmo energy4",(sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * wavefunction_instance( specieid )%cosmo4%values )) 
 
-		end if
+       write(*,*)"cosmo 4" 
+       call Matrix_show( WaveFunction_instance(specieid)%cosmo4 )
+    end if
     
-
-
-
-
-
     ! print *, "__________________ ENERGY COMPONENTS _______________________"
     ! print *, "	Specie                       ", MolecularSystem_getNameOfSpecie( specieID )
     ! print *, "	Total Energy                =", WaveFunction_instance( specieID )%totalEnergyForSpecie

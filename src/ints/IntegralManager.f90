@@ -24,6 +24,7 @@
 !!        -# Creacion del modulo y metodos basado en APMO para su inclusion en Lowdin
 !!
 module IntegralManager_
+  use CONTROL_
   use String_
   use MolecularSystem_
   use ContractedGaussian_
@@ -138,8 +139,10 @@ contains
        end do
 
        !! Write integrals to file (unit 30)
-       write(*,"(A,I6,A,A,A)")" Stored ", size(integralsMatrix,DIM=1)**2," overlap integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-            " in file lowdin.opints"
+       if(CONTROL_instance%LAST_STEP) then
+          write(*,"(A,I6,A,A,A)")" Stored ", size(integralsMatrix,DIM=1)**2," overlap integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
+               " in file lowdin.opints"
+       end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
 
@@ -249,8 +252,10 @@ contains
        end do
 
        !!Write integrals to file (unit 30)
-       write(*,"(A,I6,A,A,A)")" Stored ", size(integralsMatrix,DIM=1)**2," kinetic integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-            " in file lowdin.opints"
+       if(CONTROL_instance%LAST_STEP) then
+          write(*,"(A,I6,A,A,A)")" Stored ", size(integralsMatrix,DIM=1)**2," kinetic integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
+               " in file lowdin.opints"
+       end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
 
@@ -597,8 +602,10 @@ contains
 
 
           !!Write integrals to file (unit 30)
-          write(*,"(A,I6,A,A,A)")" Stored ",size(integralsMatrix,DIM=1)**2," attraction integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-               " in file lowdin.opints"
+          if(CONTROL_instance%LAST_STEP) then
+             write(*,"(A,I6,A,A,A)")" Stored ",size(integralsMatrix,DIM=1)**2," attraction integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
+                  " in file lowdin.opints"
+          end if
           write(30) int(size(integralsMatrix),8)
           write(30) integralsMatrix
 
@@ -746,9 +753,11 @@ contains
 
        end do !! Done by component
 
-       write(*,"(A,I6,A,A,A)")" Stored ",(size(integralsMatrix,DIM=1)**2)*3,&
-            " Moment integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-            " in file lowdin.opints"
+       if(CONTROL_instance%LAST_STEP) then
+          write(*,"(A,I6,A,A,A)")" Stored ",(size(integralsMatrix,DIM=1)**2)*3,&
+               " Moment integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
+               " in file lowdin.opints"
+       end if
 
     end do !done! 
 

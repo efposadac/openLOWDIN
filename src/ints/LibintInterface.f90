@@ -381,8 +381,10 @@ contains
                            eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                            eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                            eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-                      write(6,"(A,I12,A,A)") "**Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
-                           trim(MolecularSystem_instance%species(specieID)%name)
+                      if(CONTROL_instance%LAST_STEP) then
+                         write(6,"(A,I12,A,A)") "**Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
+                              trim(MolecularSystem_instance%species(specieID)%name)
+                      end if
                       
                       ! close(69)
                       close(34)
@@ -842,8 +844,10 @@ contains
 
     close(34)
 
-    write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
-         trim(MolecularSystem_instance%species(specieID)%name)
+    if(CONTROL_instance%LAST_STEP) then
+       write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
+            trim(MolecularSystem_instance%species(specieID)%name)
+    end if
     
   end subroutine LibintInterface_computeIntraSpecies
   
@@ -1349,11 +1353,13 @@ contains
     specieID = auxSpecieID
     otherSpecieID = auxOtherSpecieID
     
-    write(*,"(A,I12,A,A)") " Stored ", &
-         auxCounter, &
-         " non-zero repulsion integrals between species: ", &
-         trim(MolecularSystem_instance%species(specieID)%name)//" / "//&
-         trim(MolecularSystem_instance%species(otherSpecieID)%name)
+    if(CONTROL_instance%LAST_STEP) then
+       write(*,"(A,I12,A,A)") " Stored ", &
+            auxCounter, &
+            " non-zero repulsion integrals between species: ", &
+            trim(MolecularSystem_instance%species(specieID)%name)//" / "//&
+            trim(MolecularSystem_instance%species(otherSpecieID)%name)
+    end if
 
     close(34)
     

@@ -32,6 +32,7 @@
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 program HF
+  use CONTROL_
   use WaveFunction_
   use MolecularSystem_
   use DensityMatrixSCFGuess_
@@ -64,30 +65,32 @@ program HF
   integer :: nproc
   integer :: i
 
-	!!cosmo things
+  !!cosmo things
   character(50) :: cosmoIntegralsFile
-	real(8) :: totalCosmoEnergy
+  real(8) :: totalCosmoEnergy
 
   job = ""
   call get_command_argument(1,value=job)
   job = trim(String_getUppercase(job))
-
-  write(*,"(A)")"----------------------------------------------------------------------"
-  write(*,"(A)")"** PROGRAM: HF (Hartree Fock).      Author: S.A. Gonzalez, E. Posada  "
-  write(*,"(A)")"----------------------------------------------------------------------"
-
-  write(*,"(A)") "INFO: RUNNING IN "//trim(job)//" MODE."
-  write(*,"(A)")" "
-
-  !!Start time
-  call Stopwatch_constructor(lowdin_stopwatch)
-  call Stopwatch_start(lowdin_stopwatch)
 
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+
+  if(CONTROL_instance%LAST_STEP) then
+     write(*,"(A)")"----------------------------------------------------------------------"
+     write(*,"(A)")"** PROGRAM: HF (Hartree Fock).      Author: S.A. Gonzalez, E. Posada  "
+     write(*,"(A)")"----------------------------------------------------------------------"
+
+     write(*,"(A)") "INFO: RUNNING IN "//trim(job)//" MODE."
+     write(*,"(A)")" "
+  end if
+
+  !!Start time
+  call Stopwatch_constructor(lowdin_stopwatch)
+  call Stopwatch_start(lowdin_stopwatch)
 
 
   call WaveFunction_constructor()
@@ -150,12 +153,12 @@ program HF
      !!
      !! 
      if(CONTROL_instance%COSMO)then
-			
-			cosmoIntegralsFile="cosmo.opints"
-			
-			call WaveFunction_cosmoHcoreMatrix(trim(cosmoIntegralsFile), speciesID)
 
-		 end if
+        cosmoIntegralsFile="cosmo.opints"
+
+        call WaveFunction_cosmoHcoreMatrix(trim(cosmoIntegralsFile), speciesID)
+
+     end if
 
 
      !!**********************************************************
@@ -195,15 +198,15 @@ program HF
      arguments(1) = "TRANSFORMATION"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
      
-		 if(CONTROL_instance%COSMO)then
-     
-			 arguments(1) = "COSMO1"
-			 call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-			 
-			 arguments(1) = "COSMO4"
-			 call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-			
-		 end if
+     if(CONTROL_instance%COSMO)then
+
+        arguments(1) = "COSMO1"
+        call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+
+        arguments(1) = "COSMO4"
+        call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+
+     end if
 
   end do
 
@@ -212,31 +215,33 @@ program HF
   !!**************************************************************************************************************************
   !! Calculate two-particle integrals (not building 2 particles and coupling matrix... those matrices are done by SCF program)
   !!
-  select case (trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME))))
+  if(CONTROL_instance%LAST_STEP) then
+     select case (trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME))))
 
-  case("RYS")
-     write(*,  "(A)")  " RYS QUADRATURE SCHEME                 " 
-     write(*, "(A)")   " LOWDIN-RYS Implementation V. 1.0   Guerrero R. D. ; Posada E. F. 2013 "
-     write(*, "(A)")   " ----------------------------------------------------------------------"
+     case("RYS")
+        write(*,  "(A)")  " RYS QUADRATURE SCHEME                 " 
+        write(*, "(A)")   " LOWDIN-RYS Implementation V. 1.0   Guerrero R. D. ; Posada E. F. 2013 "
+        write(*, "(A)")   " ----------------------------------------------------------------------"
 
-  case("LIBINT")
-     write(*,  "(A)")  " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
-     write(*, "(A)")   " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2011   "
-     write(*, "(A)")   " ----------------------------------------------------------------------"
+     case("LIBINT")
+        write(*,  "(A)")  " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
+        write(*, "(A)")   " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2011   "
+        write(*, "(A)")   " ----------------------------------------------------------------------"
 
-  case("CUDINT")
-     write(*,  "(A)")  " CUDA ERI Integrals Calculations has been implemented based on:         " 
-     write(*,  "(A)")  " Ufimtsev, I. S.; Martinez, T. J.; JCTC 2008, 4, 222           " 
-     write(*, "(A)")   " LOWDIN-CUDINT Implementation V. 1.0:  "
-     write(*, "(A)")   " Rodas, J. M.; Hernandez, R.; Zapata, A.; Galindo, J. F.; Reyes A. 2014   "
-     write(*, "(A)")   " ----------------------------------------------------------------------"
-     
-  case default
-     write(*,  "(A)")  " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
-     write(*, "(A)")   " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2011   "
-     write(*, "(A)")   " ----------------------------------------------------------------------"
+     case("CUDINT")
+        write(*,  "(A)")  " CUDA ERI Integrals Calculations has been implemented based on:         " 
+        write(*,  "(A)")  " Ufimtsev, I. S.; Martinez, T. J.; JCTC 2008, 4, 222           " 
+        write(*, "(A)")   " LOWDIN-CUDINT Implementation V. 1.0:  "
+        write(*, "(A)")   " Rodas, J. M.; Hernandez, R.; Zapata, A.; Galindo, J. F.; Reyes A. 2014   "
+        write(*, "(A)")   " ----------------------------------------------------------------------"
 
-  end select
+     case default
+        write(*,  "(A)")  " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
+        write(*, "(A)")   " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2011   "
+        write(*, "(A)")   " ----------------------------------------------------------------------"
+
+     end select
+  end if
 
   if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL ) then        
 
@@ -266,7 +271,9 @@ program HF
 
   end if
 
-  write(*,*) "DONE!"
+  if(CONTROL_instance%LAST_STEP) then
+     write(*,*) "DONE!"
+  end if
 
   !!
   !!***************************************************************************************************************
@@ -314,20 +321,21 @@ program HF
      call Vector_getFromFile( elementsNum = numberOfContractions, &
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = WaveFunction_instance(speciesID)%energyofmolecularorbital )     
-     
-		 if(CONTROL_instance%COSMO)then
-     
-					arguments(1) = "COSMO2"
-					WaveFunction_instance(speciesID)%cosmo2 = &
-          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-		 end if
+     if(CONTROL_instance%COSMO)then
+
+        arguments(1) = "COSMO2"
+        WaveFunction_instance(speciesID)%cosmo2 = &
+             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+             columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+     end if
 
      !!Obtain energy components for species
      call WaveFunction_obtainEnergyComponents(speciesID)
 
   end do
+
 
   !! Obtain energy compotents for whole system
   totalKineticEnergy = sum( WaveFunction_instance(:)%kineticEnergy)             
@@ -343,142 +351,147 @@ program HF
        + totalExternalPotentialEnergy
 	totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
 
-	write(*,*)"totalCosmoEnergy",WaveFunction_instance(:)%cosmoEnergy
+	! write(*,*)"totalCosmoEnergy",WaveFunction_instance(:)%cosmoEnergy
 
-close(wfnUnit)
+ close(wfnUnit)
 
   !! Show results
-  write(*,*) ""
-  write(*,*) " EIGENVALUES AND EIGENVECTORS: "
-  write(*,*) "=============================="
-  write(*,*) ""
-
-  do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies      
-
+  if(CONTROL_instance%LAST_STEP) then
      write(*,*) ""
-     write(*,*) " Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
-     write(*,*) "-----------------"
+     write(*,*) " EIGENVALUES AND EIGENVECTORS: "
+     write(*,*) "=============================="
      write(*,*) ""
 
-     call Matrix_show( WaveFunction_instance(speciesID)%coefficientsofcombination, &
-          rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
-          columnkeys = string_convertvectorofrealstostring( WaveFunction_instance(speciesID)%energyofmolecularorbital ),&
-          flags=WITH_BOTH_KEYS)
+     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies      
+
+        write(*,*) ""
+        write(*,*) " Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+        write(*,*) "-----------------"
+        write(*,*) ""
+
+        call Matrix_show( WaveFunction_instance(speciesID)%coefficientsofcombination, &
+             rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
+             columnkeys = string_convertvectorofrealstostring( WaveFunction_instance(speciesID)%energyofmolecularorbital ),&
+             flags=WITH_BOTH_KEYS)
+
+        write(*,*) ""
+        write(*,*) " end of eigenvectors "
+
+     end do
 
      write(*,*) ""
-     write(*,*) " end of eigenvectors "
+     write(*,*) " END OF EIGENVALUES AND EIGENVECTORS"
+     write(*,*) ""
 
-  end do
+     !!Shows Energy components
+     write(*,*) ""
+     write(*,*) " ENERGY COMPONENTS: "
+     write(*,*) "=================="
+     write(*,*) ""
+     write (6,"(T10,A28,F20.10)") "TOTAL KINETIC ENERGY      = ", sum(WaveFunction_instance(:)%kineticEnergy)
+     write (6,"(T10,A28,F20.10)") "TOTAL POTENTIAL ENERGY    = ", potentialEnergy
+     write (6,"(T10,A50)") "________________"
+     write (6,"(T10,A28,F20.12)") "TOTAL ENERGY = ", totalEnergy             
+     write(*,*) ""
+     write (6,"(T10,A28,F20.10)") "VIRIAL RATIO (V/T) = ", - ( potentialEnergy / totalKineticEnergy)
+     write(*,*) ""             
+     write(*,*) " COMPONENTS OF KINETIC ENERGY: "
+     write(*,*) "-----------------------------"
+     write(*,*) ""             
 
-  write(*,*) ""
-  write(*,*) " END OF EIGENVALUES AND EIGENVECTORS"
-  write(*,*) ""
+     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
 
-  !!Shows Energy components
-  write(*,*) ""
-  write(*,*) " ENERGY COMPONENTS: "
-  write(*,*) "=================="
-  write(*,*) ""
-  write (6,"(T10,A28,F20.10)") "TOTAL KINETIC ENERGY      = ", sum(WaveFunction_instance(:)%kineticEnergy)
-  write (6,"(T10,A28,F20.10)") "TOTAL POTENTIAL ENERGY    = ", potentialEnergy
-  write (6,"(T10,A50)") "________________"
-  write (6,"(T10,A28,F20.12)") "TOTAL ENERGY = ", totalEnergy             
-  write(*,*) ""
-  write (6,"(T10,A28,F20.10)") "VIRIAL RATIO (V/T) = ", - ( potentialEnergy / totalKineticEnergy)
-  write(*,*) ""             
-  write(*,*) " COMPONENTS OF KINETIC ENERGY: "
-  write(*,*) "-----------------------------"
-  write(*,*) ""             
+        write (6,"(T10,A8,A20,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name ), &
+             " Kinetic energy   = ", WaveFunction_instance(speciesID)%kineticEnergy
+     end do
 
-  do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-
-     write (6,"(T10,A8,A20,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name ), &
-          " Kinetic energy   = ", WaveFunction_instance(speciesID)%kineticEnergy
-  end do
-
-  write (6,"(T10,A50)") "________________"
-  write (6,"(T10,A28,F20.10)") "Total kinetic energy = ", totalKineticEnergy
-
-  write(*,*) ""
-  write(*,*) " COMPONENTS OF POTENTIAL ENERGY: "
-  write(*,*) "-------------------------------"
-  write(*,*) ""
-  write (6,"(T10,A30,F20.10)") "Fixed potential energy    = ", puntualInteractionEnergy
-  if(CONTROL_instance%CHARGES_MM) then
-     write (6,"(T10,A30,F20.10)") "Self MM potential energy    = ", puntualMMInteractionEnergy
-  end if
-  write (6,"(T10,A30,F20.10)") "Q/Fixed potential energy  = ", totalQuantumPuntualInteractionEnergy
-  write (6,"(T10,A30,F20.10)") "Coupling energy           = ", totalCouplingEnergy
-  write (6,"(T10,A30,F20.10)") "Repulsion energy          = ", totalRepulsionEnergy
-  write (6,"(T10,A30,F20.10)") "ExternalPotential energy  = ", totalExternalPotentialEnergy             
-  write (6,"(T10,A50)") "________________"
-  write (6,"(T10,A30,F20.10)") "Total potential energy = ", potentialEnergy
-             
-  write(*,*) ""
-  write(*,*) " Repulsion energy: "
-  write(*,*) "------------------"
-  write(*,*) ""
-
-  do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-
-     write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name ) // "/" // &
-          trim(MolecularSystem_instance%species(speciesID)%name ) // &
-          " Repulsion energy  ","= ", WaveFunction_instance(speciesID)%repulsionEnergy
-  end do
-
-  if(CONTROL_instance%IS_OPEN_SHELL) then
-
-     write (6,"(T10,A26,A2,F20.10)") "e-ALPHA" // "/" // &
-          "e-BETA" // " Repulsion energy  ","= ", electronicRepulsionEnergy
-  end if
-
-  write(*,*) ""
-  write(*,*) " Coupling energy: "
-  write(*,*) "----------------"
-  write(*,*) ""
-
-  do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-
-     write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
-          " Coupling energy  ","= ", WaveFunction_instance(speciesID)%couplingEnergy
-  end do
-
-  if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+     write (6,"(T10,A50)") "________________"
+     write (6,"(T10,A28,F20.10)") "Total kinetic energy = ", totalKineticEnergy
 
      write(*,*) ""
-     write(*,*) " External Potential energy: "
+     write(*,*) " COMPONENTS OF POTENTIAL ENERGY: "
+     write(*,*) "-------------------------------"
+     write(*,*) ""
+     write (6,"(T10,A30,F20.10)") "Fixed potential energy    = ", puntualInteractionEnergy
+     if(CONTROL_instance%CHARGES_MM) then
+        write (6,"(T10,A30,F20.10)") "Self MM potential energy    = ", puntualMMInteractionEnergy
+     end if
+     write (6,"(T10,A30,F20.10)") "Q/Fixed potential energy  = ", totalQuantumPuntualInteractionEnergy
+     write (6,"(T10,A30,F20.10)") "Coupling energy           = ", totalCouplingEnergy
+     write (6,"(T10,A30,F20.10)") "Repulsion energy          = ", totalRepulsionEnergy
+     write (6,"(T10,A30,F20.10)") "ExternalPotential energy  = ", totalExternalPotentialEnergy             
+     write (6,"(T10,A50)") "________________"
+     write (6,"(T10,A30,F20.10)") "Total potential energy = ", potentialEnergy
+
+     write(*,*) ""
+     write(*,*) " Repulsion energy: "
+     write(*,*) "------------------"
+     write(*,*) ""
+
+     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+
+        write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name ) // "/" // &
+             trim(MolecularSystem_instance%species(speciesID)%name ) // &
+             " Repulsion energy  ","= ", WaveFunction_instance(speciesID)%repulsionEnergy
+     end do
+
+     if(CONTROL_instance%IS_OPEN_SHELL) then
+
+        write (6,"(T10,A26,A2,F20.10)") "e-ALPHA" // "/" // &
+             "e-BETA" // " Repulsion energy  ","= ", electronicRepulsionEnergy
+     end if
+
+     write(*,*) ""
+     write(*,*) " Coupling energy: "
      write(*,*) "----------------"
      write(*,*) ""
 
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
 
-        write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name) // &
-             " Ext Pot energy  ","= ", WaveFunction_instance(speciesID)%externalPotentialEnergy
+        write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+             " Coupling energy  ","= ", WaveFunction_instance(speciesID)%couplingEnergy
      end do
 
+     if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+
+        write(*,*) ""
+        write(*,*) " External Potential energy: "
+        write(*,*) "----------------"
+        write(*,*) ""
+
+        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+
+           write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name) // &
+                " Ext Pot energy  ","= ", WaveFunction_instance(speciesID)%externalPotentialEnergy
+        end do
+
+     end if
+
+     write(*,*) ""
+     write(*,*) " Quantum/Fixed interaction energy: "
+     write(*,*) "-----------------------"
+     write(*,*) ""
+
+     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+
+        write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+             "/Fixed interact. energy ","= ", WaveFunction_instance(speciesID)%puntualInteractionEnergy
+     end do
+
+     write(*,*) ""
+     write(*,*) " END ENERGY COMPONENTS"
+     write(*,*) ""
   end if
-
-  write(*,*) ""
-  write(*,*) " Quantum/Fixed interaction energy: "
-  write(*,*) "-----------------------"
-  write(*,*) ""
-
-  do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-
-     write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
-          "/Fixed interact. energy ","= ", WaveFunction_instance(speciesID)%puntualInteractionEnergy
-  end do
-
-  write(*,*) ""
-  write(*,*) " END ENERGY COMPONENTS"
-  write(*,*) ""
 
   !stop time
   call Stopwatch_stop(lowdin_stopwatch)
 
-  write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time HF : ", lowdin_stopwatch%enlapsetTime ," (s)"
-  write(*, *) ""
+  if(CONTROL_instance%LAST_STEP) then
+     write(*, *) ""
+     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time HF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*, *) ""
+  end if
+
   close(30)
 
   !! not necessary for now...

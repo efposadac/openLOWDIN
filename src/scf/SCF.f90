@@ -278,9 +278,11 @@ program SCF
   !stop time
   call Stopwatch_stop(lowdin_stopwatch)
 
-  write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
-  write(*, *) ""
+  if(CONTROL_instance%LAST_STEP) then
+     write(*, *) ""
+     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*, *) ""
+  end if
 
   close(wfnUnit)
   

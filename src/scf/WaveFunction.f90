@@ -89,7 +89,6 @@ module WaveFunction_
 
   type(WaveFunction), public, allocatable :: WaveFunction_instance(:)
 
-
 contains
 
   !>
@@ -1855,55 +1854,55 @@ contains
 
 
 
-  !   !**
-  !   ! @brief Retorna la matriz  de coeficientes de combinacion
-  !   !
-  !   !**
-  !   function WaveFunction_getWaveFunctionCoefficients( nameOfSpecie ) result( output )
-  !     implicit none
-  !     character(*), optional :: nameOfSpecie
-  !     type(Matrix) ::  output
+  !**
+  ! @brief Retorna la matriz  de coeficientes de combinacion
+  !
+  !**
+  function WaveFunction_getWaveFunctionCoefficients( nameOfSpecie ) result( output )
+    implicit none
+    character(*), optional :: nameOfSpecie
+    type(Matrix) ::  output
 
-  !     character(30) :: nameOfSpecieSelected
-  !     integer :: speciesID
+    character(30) :: nameOfSpecieSelected
+    integer :: speciesID
 
-  !     nameOfSpecieSelected = "e-"
-  !     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
+    nameOfSpecieSelected = "E-"
+    if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
-  !     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
+    speciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
 
-  !     if ( allocated( WaveFunction_instance(speciesID)%wavefunction_instance(speciesID)%waveFunctionCoefficients%values) ) then
+    if ( allocated( WaveFunction_instance(speciesID)%waveFunctionCoefficients%values) ) then
 
-  !        call Matrix_copyConstructor( output, WaveFunction_instance(speciesID)%wavefunction_instance(speciesID)%waveFunctionCoefficients )
+       call Matrix_copyConstructor( output, WaveFunction_instance(speciesID)%waveFunctionCoefficients )
 
-  !     end if
+    end if
 
-  !   end function WaveFunction_getWaveFunctionCoefficients
+  end function WaveFunction_getWaveFunctionCoefficients
 
-  !   !**
-  !   ! @brief Retorna valores propios del sistema molecular
-  !   !
-  !   !**
-  !   function WaveFunction_getMolecularOrbitalsEnergy( nameOfSpecie ) result( output )
-  !     implicit none
-  !     character(*), optional :: nameOfSpecie
-  !     type(Vector) ::  output
+  !**
+  ! @brief Retorna valores propios del sistema molecular
+  !
+  !**
+  function WaveFunction_getMolecularOrbitalsEnergy( nameOfSpecie ) result( output )
+    implicit none
+    character(*), optional :: nameOfSpecie
+    type(Vector) ::  output
 
-  !     character(30) :: nameOfSpecieSelected
-  !     integer :: speciesID
+    character(30) :: nameOfSpecieSelected
+    integer :: speciesID
 
-  !     nameOfSpecieSelected = "e-"
-  !     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
+    nameOfSpecieSelected = "E-"
+    if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
-  !     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
+    speciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
 
-  !     if ( allocated( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values) ) then
+    if ( allocated( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values) ) then
 
-  !        call Vector_copyConstructor( output, WaveFunction_instance(speciesID)%molecularOrbitalsEnergy )
+       call Vector_copyConstructor( output, WaveFunction_instance(speciesID)%molecularOrbitalsEnergy )
 
-  !     end if
+    end if
 
-  !   end function WaveFunction_getMolecularOrbitalsEnergy
+  end function WaveFunction_getMolecularOrbitalsEnergy
 
 
   !   function WaveFunction_getValueForOrbitalAt( nameOfSpecie, orbitalNum, coordinate ) result(output)

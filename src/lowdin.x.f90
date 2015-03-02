@@ -28,9 +28,9 @@ program lowdin_
  use InputManager_
  use MolecularSystem_
  use MecanicProperties_
+ use GeometryOptimizer_
  use Solver_
  implicit none
-! logical, optional :: firstStep
 
  character(50) :: strAuxNumber
 
@@ -142,11 +142,12 @@ program lowdin_
  !!***************************************************************************
  !!        Running the properly solver for a selected method
  !!
- call Solver_run()
+ ! call Solver_run()
   
  ! if  (Parameters%OPTIMIZE .and. .not. Parameters%ELECTRONIC_WAVEFUNCTION_ANALYSIS &
  !      .and. .not.Parameters%ARE_THERE_DUMMY_ATOMS .and. .not. Parameters%CP_CORRECTION ) then
  
+
  !    call GeometryOptimizer_constructor( lowdin_geometryOptimizer, ssolver = lowdin_solver)
  !    call GeometryOptimizer_run( lowdin_geometryOptimizer )
  !    call GeometryOptimizer_destructor( lowdin_geometryOptimizer )
@@ -162,22 +163,26 @@ program lowdin_
  !    call TimeEvolution_constructor( lowdin_TimeEvolution, ssolver = lowdin_solver)
  !    call TimeEvolution_run( lowdin_TimeEvolution )
  !    call TimeEvolution_destructor( lowdin_TimeEvolution )
- 
- ! else
- 
- !    call Solver_run( lowdin_solver )
- 
- ! end if
+ !!Debug Mauricio Rodas
+ if ( CONTROL_instance%OPTIMIZE ) then 
+    call GeometryOptimizer_constructor( GeometryOptimizer_instance )
+    call GeometryOptimizer_run( GeometryOptimizer_instance )
+    call GeometryOptimizer_destructor( GeometryOptimizer_instance )
+ else
+    call Solver_run()
+ end if
 
  !!
  !!******************************************************************************
 
- call system("lowdin-CalcProp.x") 
 
- if ( CONTROL_instance%IS_THERE_OUTPUT ) then
-       write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
-       call system("lowdin-output.x"//trim(strAuxNumber))
- end if
+!!Propiedades Habilitar luego Mauricio Rodas
+ ! call system("lowdin-CalcProp.x") 
+
+ ! if ( CONTROL_instance%IS_THERE_OUTPUT ) then
+ !       write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
+ !       call system("lowdin-output.x" //trim(strAuxNumber))
+ ! end if
 
  !!Cleaning
  call MolecularSystem_destroy()
