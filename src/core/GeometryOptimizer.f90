@@ -485,10 +485,11 @@ contains
     if( .not. CONTROL_instance%ANALYTIC_GRADIENT ) then
        gradientVector = EnergyGradients_getNumericGradient( valuesOfIndependentVariables, GeometryOptimizer_getFunctionValue )
     else
-       do i=1, this_pointer%numberOfIndependVariables
-          gradientVector(i) = EnergyGradients_getDerivative(valuesOfIndependentVariables , [i], &
-               GeometryOptimizer_getFunctionValue )
-       end do
+!       do i=1, this_pointer%numberOfIndependVariables
+!          gradientVector(i) = EnergyGradients_getDerivative(valuesOfIndependentVariables , [i], &
+!               GeometryOptimizer_getFunctionValue )
+!       end do
+        call EnergyGradients_getDerivative(valuesOfIndependentVariables,  GeometryOptimizer_getFunctionValue, gradientVector )
     end if
 
     ! Debug Mauricio Rodas

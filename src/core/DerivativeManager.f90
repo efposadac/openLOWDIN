@@ -43,6 +43,8 @@ module DerivativeManager_
   ! use IndexMap_
   use MolecularSystem_
   use ContractedGaussian_
+  use KineticDerivatives_
+  use AttractionDerivatives_
   use Exception_
   use Math_
   use Matrix_
@@ -66,9 +68,9 @@ module DerivativeManager_
   public :: &
        DerivativeManager_constructor, &
        DerivativeManager_destructor, &
-       ! DerivativeManager_show, &
+                                ! DerivativeManager_show, &
        DerivativeManager_getElement!, &
-       ! DerivativeManager_getLabels
+  ! DerivativeManager_getLabels
 
   private
 contains
@@ -108,121 +110,99 @@ contains
   !               KINETIC_INTEGRALS, ATTRACTION_INTEGRALS, MOMENT_INTEGRALS, MOMENTUM_INTEGRALS,
   !               OVERLAP_DERIVATIVES, KINETIC_DERIVATIVES, ATTRACTION_DERIVATIVES
   !**
-  function DerivativeManager_getElement( thisID, i, j, k, l, nameOfSpecie, otherNameOfSpecie, nuclei, component  ) result ( output )
+  subroutine DerivativeManager_getElement( thisID, deriveVector, i, j, k, l, nameOfSpecie, otherNameOfSpecie, A, B )
     implicit none
     integer :: thisID
+    real(8), allocatable :: deriveVector(:)
     integer :: i
     integer :: j
     integer, optional :: k
     integer, optional :: l
     character(*), optional :: nameOfSpecie
     character(*), optional :: otherNameOfSpecie
-    integer, optional :: nuclei
-    integer, optional :: component
-    ! real(8), allocatable :: output(:)
-    real(8) :: output
+    integer, optional :: A
+    integer, optional :: B
+    !    integer, optional :: nuclei
+    !    integer, optional :: component
+    !    real(8) :: output
 
     type(ContractedGaussian), allocatable :: contractions(:)
     type(Exception) :: ex
     integer :: specieID
     integer :: otherSpecieID
     integer :: m
-    integer :: numCartesianOrbitalI
-    integer :: numCartesianOrbitalJ
+    integer :: contractionA_ID
+    integer :: contractionB_ID
+    integer :: cartesianA_ID
+    integer :: cartesianB_ID
     character(30) :: nameOfSpecieSelected
     real(8) :: auxCharge
-
+    real(8) :: mass
+    integer :: n, p, o
 
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= nameOfSpecie
     specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
+    mass = MolecularSystem_getMass( specieID )
 
     call MolecularSystem_getBasisSet(specieID, contractions)
 
-    ! numCartesianOrbitalI = contractions(i)%numCartesianOrbital
-    ! numCartesianOrbitalJ = contractions(j)%numCartesianOrbital
 
-    ! if(allocated(output)) deallocate(output)
-    ! allocate(output(numCartesianOrbitalI*numCartesianOrbitalJ))
+    select case (thisID)
 
-    output = 0.0_8
+    case( KINETIC_DERIVATIVES )
 
-    ! write(*,"(A,I,A2,I,A4,I,A2,I)") "Numero de orbitales cartesianos i y j: ", i, ": ", numCartesianOrbitalI, " -> ", j, ": ", numCartesianOrbitalJ
+       call KineticDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)!!/mass
 
-    ! select case (thisID)
+    case( ATTRACTION_DERIVATIVES )
 
+       call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID)
 
-    ! case( OVERLAP_DERIVATIVES )
+       !            case( OVERLAP_DERIVATIVES )
+       !
+       !                output = ContractedGaussian_overlapDerivative( &
+       !                    ParticleManager_getContractionPtr( specieID,  numberOfContraction = i ), &
+       !                    ParticleManager_getContractionPtr( specieID,  numberOfContraction = j ), nuclei, component )
+       !
 
-    !    output = ContractedGaussian_overlapDerivative( &
-    !         ParticleManager_getContractionPtr( specieID,  numberOfContraction = i ), &
-    !         ParticleManager_getContractionPtr( specieID,  numberOfContraction = j ), nuclei, component )
+       !
+       !            case( REPULSION_DERIVATIVES )
+       !
+       !                if ( present(k) .and. present(l) ) then
+       !
+       !                    specieID = ParticleManager_getSpecieID( nameOfSpecie = trim( nameOfSpecie ) )
+       !                    otherSpecieID = ParticleManager_getSpecieID( nameOfSpecie = trim( otherNameOfSpecie ) )
+       !                    output = ContractedGaussian_repulsionDerivative( &
+       !                        ParticleManager_getContractionPtr( specieID,  numberOfContraction=i), &
+       !                        ParticleManager_getContractionPtr( specieID,  numberOfContraction=j), &
+       !                        ParticleManager_getContractionPtr( otherSpecieID,  numberOfContraction=k), &
+       !                        ParticleManager_getContractionPtr( otherSpecieID,  numberOfContraction=l), &
+       !                        nuclei, component )
+       !                    output = output * ( ParticleManager_getCharge( specieID ) &
+       !                        * ParticleManager_getCharge( specieID ) )
+       !
+       !                else
+       !
+       !                    call Exception_constructor( ex , ERROR )
+       !                    call Exception_setDebugDescription( ex, "Class object IntegralManager in the getElement(i,j) function" )
+       !                    call Exception_setDescription( ex, "" )
+       !                    call Exception_show( ex )
+       !                end if
+       !
+    case default
 
-    ! case( KINETIC_DERIVATIVES )
+       !       output = 0.0_8
 
-    !    !                output = ContractedGaussian_kineticDerivative( &
-    !    !                    ParticleManager_getContractionPtr( specieID,  numberOfContraction=i ), &
-    !    !                    ParticleManager_getContractionPtr( specieID,  numberOfContraction=j ), nuclei, component ) / &
-    !    !                    ParticleManager_getMass( specieID )
+       call Exception_constructor( ex , WARNING )
+       call Exception_setDebugDescription( ex, "Class object DerivativeManager in the get(i) function" )
+       call Exception_setDescription( ex, "This ID hasn't been defined, returning zero value" )
+       call Exception_show( ex )
 
-    ! case( ATTRACTION_DERIVATIVES )
+       return
 
-    !    !                output = 0.0_8
-    !    !
-    !    !                auxCharge = ParticleManager_getCharge( specieID )
-    !    !
-    !    !                do m=1, ParticleManager_getNumberOfPuntualParticles()
-    !    !
-    !    !                    output = output + ContractedGaussian_attractionDerivative( &
-    !    !                            ParticleManager_getContractionPtr( specieID,  numberOfContraction=i ), &
-    !    !                            ParticleManager_getContractionPtr( specieID,  numberOfContraction=j ), &
-    !    !                            ParticleManager_getOriginOfPuntualParticle( m ), nuclei, component, &
-    !    !                            ParticleManager_getOwnerOfPuntualParticle( m ) ) * &
-    !    !                            auxCharge * ParticleManager_getChargeOfPuntualParticle( m )
-    !    !                end do
+    end select
 
-    ! case( REPULSION_DERIVATIVES )
-
-    !    !                if ( present(k) .and. present(l) ) then
-    !    !
-    !    !                    specieID = ParticleManager_getSpecieID( nameOfSpecie = trim( nameOfSpecie ) )
-    !    !
-    !    !                    otherSpecieID = ParticleManager_getSpecieID( nameOfSpecie = trim( otherNameOfSpecie ) )
-    !    !
-    !    !                    output = ContractedGaussian_repulsionDerivative( &
-    !    !                            ParticleManager_getContractionPtr( specieID,  numberOfContraction=i), &
-    !    !                            ParticleManager_getContractionPtr( specieID,  numberOfContraction=j), &
-    !    !                            ParticleManager_getContractionPtr( otherSpecieID,  numberOfContraction=k), &
-    !    !                            ParticleManager_getContractionPtr( otherSpecieID,  numberOfContraction=l), &
-    !    !                            nuclei, component )
-    !    !
-    !    !                    output = output * ( ParticleManager_getCharge( specieID ) &
-    !    !                                * ParticleManager_getCharge( specieID ) )
-
-    !    !                else
-    !    !
-    !    !                    call Exception_constructor( ex , ERROR )
-    !    !                    call Exception_setDebugDescription( ex, "Class object IntegralManager in the getElement(i,j) function" )
-    !    !                    call Exception_setDescription( ex, "" )
-    !    !                    call Exception_show( ex )
-    !    !
-    !    !                end if
-
-    ! case default
-
-    !    output = 0.0_8
-
-    !    call Exception_constructor( ex , WARNING )
-    !    call Exception_setDebugDescription( ex, "Class object IntegralManager in the get(i) function" )
-    !    call Exception_setDescription( ex, "This ID hasn't been defined, returning zero value" )
-    !    call Exception_show( ex )
-
-    !    return
-
-    ! end select
-
-
-  end function DerivativeManager_getElement
+  end subroutine DerivativeManager_getElement
 
   ! !<
   ! !! @brief Devuelve los indices necesarios para guardar integrales
