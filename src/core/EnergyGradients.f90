@@ -714,24 +714,18 @@ contains
   subroutine EnergyGradients_calculateAnalyticUncoupledFirstDerivative(gradientVector)
     implicit none
     real(8), intent(inout) :: gradientVector(:)
-
     character(30) :: nameOfSpecie
     type(ContractedGaussian), allocatable :: contractions(:)
     integer :: numberOfContractions
-    real(8), allocatable :: auxVector(:), auxVector2(:)
-    !    integer :: nucleiAndComponent(2)
+    real(8), allocatable :: auxVector(:), auxVector2(:), auxVector3(:)
     integer :: specieIterator
     integer :: ocupationNumber
-    integer(8) :: orderOfMatrix
-    !    real(8), allocatable :: energyDerivative(:)
-    !    real(8), allocatable :: repulsionDerivativeComponent(:)
-    !    real(8), allocatable :: auxMatrix(:,:)
-    !    real(8), allocatable :: otherAuxMatrix(:,:)
+    integer :: orderOfMatrix
     type(Matrix) :: matrixOfEigenvectors
+    type(Matrix) :: densityMatrix
     type(Vector) :: vectorOfEigenvalues
-    !    real(8), allocatable :: derivativeOfHcoreMatrix(:,:)
-    !    real(8), allocatable :: derivativeOfOverlapMatrix(:,:)
-    !    real(8), allocatable :: derivativeOfRepulsionVector(:)
+    type(Matrix) :: auxWeightDensity
+    type(Matrix) :: weightDensityMatrix
     integer(8) :: numberOfIntegrals
     integer :: i
     integer :: j
@@ -747,7 +741,7 @@ contains
     real(8) :: perm, distance, cubeDistance, Zi, Zj, Vval
     real(8) :: deltaOrigin(3)
     integer, allocatable ::  labelsOfContractions(:)
-    real(8), allocatable :: auxNuclear(:,:), auxKinetic(:,:), auxPotential(:,:)
+    real(8), allocatable :: auxNuclear(:,:), auxKinetic(:,:), auxPotential(:,:), auxOverlap(:,:), auxCoulomb(:,:), auxExchange(:,:)
     integer, allocatable :: auxOwnerId(:)
     character(50) :: wfnFile
     integer :: wfnUnit
@@ -756,13 +750,7 @@ contains
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
-    !! Activar esto luego para congelar dimensiones
-    !    nucleiAndComponent= ParticleManager_getCenterOfOptimization( EnergyGradients_instance%components(1) )
 
-    ! if ( ParticleManager_isComponentFixed( nucleiAndComponent(1),nucleiAndComponent(2) ) ) then
-    !    output=0.0_8
-    !    return
-    ! end if
     numberOfOptimizationCenters = ParticleManager_getNumberOfCentersOfOptimization()
 
     if(allocated(auxNuclear)) deallocate(auxNuclear)
@@ -774,12 +762,24 @@ contains
     if(allocated(auxPotential)) deallocate(auxPotential)
     allocate(auxPotential(numberOfOptimizationCenters,3))
 
+    if(allocated(auxOverlap)) deallocate(auxOverlap)
+    allocate(auxOverlap(numberOfOptimizationCenters,3))
+
+    if(allocated(auxCoulomb)) deallocate(auxCoulomb)
+    allocate(auxCoulomb(numberOfOptimizationCenters,3))
+
+    if(allocated(auxExchange)) deallocate(auxExchange)
+    allocate(auxExchange(numberOfOptimizationCenters,3))
+
     if(allocated(auxOwnerId)) deallocate(auxOwnerId)
     allocate(auxOwnerId(size(ParticleManager_instance)))
 
     auxNuclear = 0.0_8
     auxKinetic = 0.0_8
     auxPotential = 0.0_8
+    auxOverlap = 0.0_8
+    auxCoulomb = 0.0_8
+    auxExchange = 0.0_8
     auxOwnerId = 0
 
     j = 1
@@ -792,14 +792,7 @@ contains
        end if
     end do
 
-
-    !    allocate( energyDerivative( MolecularSystem_instance%numberOfQuantumSpecies ) )
-    !    allocate( repulsionDerivativeComponent( MolecularSystem_instance%numberOfQuantumSpecies ) )
-
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-
-    ! call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalE, arguments=["TOTALENERGY"])
-    ! write(*,"(A,f20.12)") "Energia en optimizador: ", totalE
 
     do specieIterator=1, MolecularSystem_instance%numberOfQuantumSpecies
 
@@ -818,14 +811,16 @@ contains
        nameOfSpecie = trim(MolecularSystem_instance%species(specieIterator)%symbol)
        orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(specieIterator)
 
-       !       write(*,"(A,I)") "Total number of contractions: ", orderOfMatrix
-
        ocupationNumber = MolecularSystem_getOcupationNumber( specieIterator )
-       write(*,"(A,I)") "ocupationNumber: ", ocupationNumber
+
        arguments(2) = MolecularSystem_getNameOfSpecie(specieIterator)
 
-       !       arguments(1) = "COEFFICIENTS"
        arguments(1) = "DENSITY"
+       densityMatrix = &
+            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
+            columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+
+       arguments(1) = "COEFFICIENTS"
        matrixOfEigenvectors = &
             Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
             columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
@@ -835,32 +830,29 @@ contains
             unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
             output = vectorOfEigenvalues )
 
-       !! Debug Mauricio Rodas
-       ! write(*,"(A,A)") "Especie enoptimizador: ", nameOfSpecie
-       ! do i=1, size(vectorOfEigenvalues%values)
-       !    write(*,"(A,f20.12)") "Eigenvalues OPT: ", vectorOfEigenvalues%values(i)
-       ! end do
+       call Matrix_constructor(auxWeightDensity, int(orderOfMatrix,8), int(ocupationNumber,8))
 
-       !!*******************************************************************
-       !! Matrices temporales para almacenamiento de derivadas
-       !! de integrales de orbitales atomicos
-       !!
-       !            allocate( auxMatrix(orderOfMatrix, orderOfMatrix) )
-       !            allocate( otherAuxMatrix(orderOfMatrix, orderOfMatrix) )
-       !
-       !            allocate( derivativeOfHcoreMatrix(orderOfMatrix, orderOfMatrix) )
-       !            derivativeOfHcoreMatrix = Math_NaN
-       !
-       !            allocate( derivativeOfOverlapMatrix(orderOfMatrix, orderOfMatrix) )
-       !            derivativeOfOverlapMatrix = Math_NaN
-       !
-       !            !! Calcula el numero de integrales que se almacenaran dentro de la matriz dada
-       !            numberOfIntegrals = ( orderOfMatrix    *  ( ( orderOfMatrix + 1.0_8) / 2.0_8 ) ) ** 2.0_8
-       !            allocate( derivativeOfRepulsionVector(numberOfIntegrals) )
-       !            derivativeOfRepulsionVector = Math_NaN
-       !
-       !            energyDerivative(specieIterator) = 0.0_8
-       !            output=0.0_8
+       do i=1, orderOfMatrix
+          do j=1, ocupationNumber
+             auxWeightDensity%values(i,j) = matrixOfEigenvectors%values(i,j)*vectorOfEigenvalues%values(j)
+          end do
+       end do
+
+       call Matrix_constructor(weightDensityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8))
+
+       !! OJO esto solo es para RHF, para UHF hay que separar los orbitales alpha y beta
+       weightDensityMatrix = Matrix_multiplication("N","T",&
+            orderOfMatrix,&
+            orderOfMatrix,&
+            ocupationNumber,&
+            2.0_8,&
+            matrixOfEigenvectors,&
+            orderOfMatrix,&
+            auxWeightDensity,&
+            orderOfMatrix,&
+            1.0_8,&
+            orderOfMatrix)
+
        gradientVector = 0.0_8
 
        write(*,"(A)") "----------------------------------------------------------------"
@@ -907,10 +899,6 @@ contains
              numCartesianQ = contractions(Q)%numCartesianOrbital  !! nQ
              centerA = auxOwnerId(contractions(P)%owner) !! aP
              centerB = auxOwnerId(contractions(Q)%owner) !! aQ
-             !             write(*,"(A)") "----------------------------------------------------------------"
-             !             write(*,"(A,I,A,I,A,I)")"nP: ", numCartesianP, " oP: ", labelsOfContractions(P), " ap: ", centerA
-             !             write(*,"(A,I,A,I,A,I)")"nQ: ", numCartesianQ, " oQ: ", labelsOfContractions(Q), " aQ: ", centerB
-             !             write(*,"(A)") "----------------------------------------------------------------"
 
              if (P == Q) then
                 perm = 1.0
@@ -921,79 +909,60 @@ contains
              i = 0
              do pIter = 0, numCartesianP - 1
                 do qIter = 0, numCartesianQ - 1
-                   !                    write(*,"(A)") "        Px                        "
-                   !                    write(*,"(A)") "----------------------------------------------------------------"
-                   !                    write(*,"(A,I,A,I,A,I)")"pIter: ", pIter, " oP: ", labelsOfContractions(P), " pIter + oP: ", pIter + labelsOfContractions(P)
-                   !                    write(*,"(A,I,A,I,A,I)")"qIter: ", qIter, " oQ: ", labelsOfContractions(Q), " qIter + oQ: ", qIter + labelsOfContractions(Q)
+
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
-                   !                    write(*,"(f17.12)") matrixOfEigenvectors%values(u,v)
-                   auxKinetic(centerA,1) = auxKinetic(centerA,1) + perm*matrixOfEigenvectors%values(u,v)*auxVector(i)
+                   auxKinetic(centerA,1) = auxKinetic(centerA,1) + perm*densityMatrix%values(u,v)*auxVector(i)
                    i = i + 1
                 end do
              end do
 
              do pIter = 0, numCartesianP - 1
                 do qIter = 0, numCartesianQ - 1
-                   !                    write(*,"(A)") "        Py                        "
-                   !                    write(*,"(A)") "----------------------------------------------------------------"
-                   !                    write(*,"(A,I,A,I,A,I)")"pIter: ", pIter, " oP: ", labelsOfContractions(P), " pIter + oP: ", pIter + labelsOfContractions(P)
-                   !                    write(*,"(A,I,A,I,A,I)")"qIter: ", qIter, " oQ: ", labelsOfContractions(Q), " qIter + oQ: ", qIter + labelsOfContractions(Q)
+
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
-                   auxKinetic(centerA,2) = auxKinetic(centerA,2) + perm*matrixOfEigenvectors%values(u,v)*auxVector(i)
+                   auxKinetic(centerA,2) = auxKinetic(centerA,2) + perm*densityMatrix%values(u,v)*auxVector(i)
                    i = i + 1
                 end do
              end do
 
              do pIter = 0, numCartesianP - 1
                 do qIter = 0, numCartesianQ - 1
-                   !                    write(*,"(A)") "        Pz                        "
-                   !                    write(*,"(A)") "----------------------------------------------------------------"
-                   !                    write(*,"(A,I,A,I,A,I)")"pIter: ", pIter, " oP: ", labelsOfContractions(P), " pIter + oP: ", pIter + labelsOfContractions(P)
-                   !                    write(*,"(A,I,A,I,A,I)")"qIter: ", qIter, " oQ: ", labelsOfContractions(Q), " qIter + oQ: ", qIter + labelsOfContractions(Q)
+
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
-                   auxKinetic(centerA,3) = auxKinetic(centerA,3) + perm*matrixOfEigenvectors%values(u,v)*auxVector(i)
+                   auxKinetic(centerA,3) = auxKinetic(centerA,3) + perm*densityMatrix%values(u,v)*auxVector(i)
                    i = i + 1
                 end do
              end do
 
              do pIter = 0, numCartesianP - 1
                 do qIter = 0, numCartesianQ - 1
-                   !                    write(*,"(A)") "        Qx                        "
-                   !                    write(*,"(A)") "----------------------------------------------------------------"
-                   !                    write(*,"(A,I,A,I,A,I)")"pIter: ", pIter, " oP: ", labelsOfContractions(P), " pIter + oP: ", pIter + labelsOfContractions(P)
-                   !                    write(*,"(A,I,A,I,A,I)")"qIter: ", qIter, " oQ: ", labelsOfContractions(Q), " qIter + oQ: ", qIter + labelsOfContractions(Q)
+
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
-                   auxKinetic(centerB,1) = auxKinetic(centerB,1) + perm*matrixOfEigenvectors%values(u,v)*auxVector(i)
+                   auxKinetic(centerB,1) = auxKinetic(centerB,1) + perm*densityMatrix%values(u,v)*auxVector(i)
                    i = i + 1
                 end do
              end do
 
              do pIter = 0, numCartesianP - 1
                 do qIter = 0, numCartesianQ - 1
-                   !                    write(*,"(A)") "        Qy                        "
-                   !                    write(*,"(A)") "----------------------------------------------------------------"
-                   !                    write(*,"(A,I,A,I,A,I)")"pIter: ", pIter, " oP: ", labelsOfContractions(P), " pIter + oP: ", pIter + labelsOfContractions(P)
-                   !                    write(*,"(A,I,A,I,A,I)")"qIter: ", qIter, " oQ: ", labelsOfContractions(Q), " qIter + oQ: ", qIter + labelsOfContractions(Q)
+
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
-                   auxKinetic(centerB,2) = auxKinetic(centerB,2) + perm*matrixOfEigenvectors%values(u,v)*auxVector(i)
+                   auxKinetic(centerB,2) = auxKinetic(centerB,2) + perm*densityMatrix%values(u,v)*auxVector(i)
                    i = i + 1
                 end do
              end do
 
              do pIter = 0, numCartesianP - 1
                 do qIter = 0, numCartesianQ - 1
-                   !                    write(*,"(A)") "        Qz                        "
-                   !                    write(*,"(A)") "----------------------------------------------------------------"
-                   !                    write(*,"(A,I,A,I,A,I)")"pIter: ", pIter, " oP: ", labelsOfContractions(P), " pIter + oP: ", pIter + labelsOfContractions(P)
-                   !                    write(*,"(A,I,A,I,A,I)")"qIter: ", qIter, " oQ: ", labelsOfContractions(Q), " qIter + oQ: ", qIter + labelsOfContractions(Q)
+
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
-                   auxKinetic(centerB,3) = auxKinetic(centerB,3) + perm*matrixOfEigenvectors%values(u,v)*auxVector(i)
+                   auxKinetic(centerB,3) = auxKinetic(centerB,3) + perm*densityMatrix%values(u,v)*auxVector(i)
                    i = i + 1
                 end do
              end do
@@ -1007,7 +976,6 @@ contains
        write(*,"(A)") "----------------------------------------------------------------"
 
 
-
        write(*,"(A)") "----------------------------------------------------------------"
        write(*,"(A)") " Gradientes de Potencial"
        write(*,"(A)") "----------------------------------------------------------------"
@@ -1018,10 +986,6 @@ contains
              numCartesianQ = contractions(Q)%numCartesianOrbital  !! nQ
              centerA = auxOwnerId(contractions(P)%owner) !! aP
              centerB = auxOwnerId(contractions(Q)%owner) !! aQ
-             !             write(*,"(A)") "----------------------------------------------------------------"
-             !             write(*,"(A,I,A,I,A,I)")"nP: ", numCartesianP, " oP: ", labelsOfContractions(P), " ap: ", centerA
-             !             write(*,"(A,I,A,I,A,I)")"nQ: ", numCartesianQ, " oQ: ", labelsOfContractions(Q), " aQ: ", centerB
-             !             write(*,"(A)") "----------------------------------------------------------------"
 
              if (P == Q) then
                 perm = 1.0
@@ -1031,10 +995,6 @@ contains
 
              call DerivativeManager_getElement( ATTRACTION_DERIVATIVES, &
                   auxVector2, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerA, B=centerB )
-             ! write(*,"(A,I)") "Derivadas de potential, size: ", size(auxVector2)
-             ! do i=0, size(auxVector2) - 1
-             !    write(*,"(f17.12)") auxVector2(i)
-             ! end do
 
              i = 0
              j = 0
@@ -1047,19 +1007,18 @@ contains
                    do qIter = 0, numCartesianQ - 1
                       u = pIter + labelsOfContractions(P)
                       v = qIter + labelsOfContractions(Q)
-                      Vval = perm*matrixOfEigenvectors%values(u,v)
-                      ! write(*,"(f17.12)") Vval
-                      ! write(*,"(A,I,3(A,F17.12))") "Atom: ", A, " x: ", auxPotential(A,1), " y: ", auxPotential(A,2), " z: ", auxPotential(A,3)
+                      Vval = perm*densityMatrix%values(u,v)
+
                       auxPotential(A,1) = auxPotential(A,1) + Vval*auxVector2(i)
-                      ! write(*,"(I,2x,f17.12)") i, auxVector2(i)
+
                       i = i + 1
                       auxPotential(A,2) = auxPotential(A,2) + Vval*auxVector2(j)
-                      ! write(*,"(I,2x,f17.12)") i, auxVector2(i)
+
                       j = j + 1
                       auxPotential(A,3) = auxPotential(A,3) + Vval*auxVector2(k)
-                      ! write(*,"(I,2x,f17.12)") i, auxVector2(i)
+
                       k = k + 1
-                      ! write(*,"(A,I,3(A,F17.12))") "Atom: ", A, " x: ", auxPotential(A,1), " y: ", auxPotential(A,2), " z: ", auxPotential(A,3)
+
                    end do
                 end do
              end do
@@ -1071,229 +1030,116 @@ contains
        write(*,"(3(f17.12))") auxPotential(3,1), auxPotential(3,2), auxPotential(3,3)
        write(*,"(A)") "----------------------------------------------------------------"
 
-       !!
-       !!*******************************************************************
+       write(*,"(A)") "----------------------------------------------------------------"
+       write(*,"(A)") " Gradientes de Overlap"
+       write(*,"(A)") "----------------------------------------------------------------"
+       !! Overlap Gradients
+       do P = 1, numberOfContractions
+          do Q = 1, P
+             call DerivativeManager_getElement( OVERLAP_DERIVATIVES, auxVector3, i=P, j=Q, nameOfSpecie=nameOfSpecie )
 
-       !! Algoritmo provisional, debe emplearse esquema factorizado eficiente
-       !! de A New Dimension to Quantum Chemistry - Analytic Derivatives Methods pp.58
-       !! eliminado para propositos de depuracion
+             numCartesianP = contractions(P)%numCartesianOrbital  !! nP
+             numCartesianQ = contractions(Q)%numCartesianOrbital  !! nQ
+             centerA = auxOwnerId(contractions(P)%owner) !! aP
+             centerB = auxOwnerId(contractions(Q)%owner) !! aQ
 
-       !       do i=1 , ocupationNumber
-       !          !!CONVERTIR EN UN UNICO CICLO
-       !          do u = 1, orderOfMatrix
-       !             do v = 1, orderOfMatrix
-       !
-       !                energyDerivative(specieIterator) = energyDerivative(specieIterator) &
-       !                     + matrixOfEigenvectors%values(u,i) &
-       !                     * matrixOfEigenvectors%values(v,i) &
-       !                     * ( dHcore(u,v) )!EL ) es provisional &
-       !                     !- dOverlap(u,v) &
-       !                     !* vectorOfEigenvalues%values(i) )
-       !
-       !             end do
-       !          end do
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       !       end do
+             if (P == Q) then
+                perm = 1.0
+             else
+                perm = 2.0
+             end if
 
-       !        energyDerivative( specieIterator ) = ParticleManager_getLambda( specieIterator ) * energyDerivative( specieIterator )
+             i = 0
+             do pIter = 0, numCartesianP - 1
+                do qIter = 0, numCartesianQ - 1
 
-       !        repulsionDerivativeComponent(specieIterator) = 0.0_8
+                   u = pIter + labelsOfContractions(P)
+                   v = qIter + labelsOfContractions(Q)
+                   auxOverlap(centerA,1) = auxOverlap(centerA,1) - perm*weightDensityMatrix%values(u,v)*auxVector3(i)
+                   i = i + 1
+                end do
+             end do
 
-       !        !               do i=1, ocupationNumber
-       !        !                   do j=1, ocupationNumber
-       !        !                       do u=1, orderOfMatrix
-       !        !                           do v=1, orderOfMatrix
-       !        !                               do r=1, orderOfMatrix
-       !        !                                   do s=1, orderOfMatrix
-       !        !
-       !        !                                       repulsionDerivativeComponent(specieIterator) = repulsionDerivativeComponent(specieIterator) &
-       !        !                                           + ( ParticleManager_getEta( nameOfSpecie)  * matrixOfEigenvectors%values(v,i) &
-       !        !                                           * matrixOfEigenvectors%values(r,j) &
-       !        !                                           + ParticleManager_getKappa( nameOfSpecie)  * matrixOfEigenvectors%values(r,i) &
-       !        !                                           * matrixOfEigenvectors%values(v,j) )&
-       !        !                                           * matrixOfEigenvectors%values(s,j) &
-       !        !                                           * matrixOfEigenvectors%values(u,i) &
-       !        !                                           * dRepulsion( u,v,r,s )
-       !        !
-       !        !                                   end do
-       !        !                               end do
-       !        !                           end do
-       !        !                       end do
-       !        !                   end do
-       !        !               end do
+             do pIter = 0, numCartesianP - 1
+                do qIter = 0, numCartesianQ - 1
 
-       !        !!
-       !        !! Se debe garantizar que kappa sea negativo  y eta positivo para emplear las siguientes expresiones
-       !        !!  en caso contrario se debe descomentar el bloque anterior
-       !        !!
-       !        auxMatrix=( ( abs( ParticleManager_getEta( specieIterator ) ) )**0.5_8  )  * matrixOfEigenvectors%values
-       !        otherAuxMatrix=( ( abs( ParticleManager_getKappa( specieIterator ) ) )**0.5_8 )  * matrixOfEigenvectors%values
+                   u = pIter + labelsOfContractions(P)
+                   v = qIter + labelsOfContractions(Q)
+                   auxOverlap(centerA,2) = auxOverlap(centerA,2) - perm*weightDensityMatrix%values(u,v)*auxVector3(i)
+                   i = i + 1
+                end do
+             end do
 
-       !        do i=1, ocupationNumber
-       !           do j=1, ocupationNumber
-       !              !!CONVERTIR EN UN UNICO CICLO
-       !              do u=1, orderOfMatrix
-       !                 do v=1, orderOfMatrix
-       !                    do r=1, orderOfMatrix
-       !                       do s=1, orderOfMatrix
+             do pIter = 0, numCartesianP - 1
+                do qIter = 0, numCartesianQ - 1
 
-       !                          repulsionDerivativeComponent(specieIterator) = repulsionDerivativeComponent(specieIterator) &
-       !                               + ( auxMatrix(v,i) * auxMatrix(r,j) - otherAuxMatrix(r,i) * otherAuxMatrix(v,j) ) &
-       !                               * matrixOfEigenvectors%values(s,j) &
-       !                               * matrixOfEigenvectors%values(u,i) &
-       !                               * dRepulsion( u,v,r,s )
+                   u = pIter + labelsOfContractions(P)
+                   v = qIter + labelsOfContractions(Q)
+                   auxOverlap(centerA,3) = auxOverlap(centerA,3) - perm*weightDensityMatrix%values(u,v)*auxVector3(i)
+                   i = i + 1
+                end do
+             end do
 
-       !                       end do
-       !                    end do
-       !                 end do
-       !              end do
-       ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       !           end do
-       !        end do
+             do pIter = 0, numCartesianP - 1
+                do qIter = 0, numCartesianQ - 1
 
-       !        repulsionDerivativeComponent( specieIterator ) =    0.5_8 * ParticleManager_getLambda( specieIterator ) &
-       !             * repulsionDerivativeComponent( specieIterator) &
-       !             * ParticleManager_getCharge( specieID=specieIterator )**2.0
+                   u = pIter + labelsOfContractions(P)
+                   v = qIter + labelsOfContractions(Q)
+                   auxOverlap(centerB,1) = auxOverlap(centerB,1) - perm*weightDensityMatrix%values(u,v)*auxVector3(i)
+                   i = i + 1
+                end do
+             end do
 
-       !        energyDerivative( specieIterator ) = energyDerivative( specieIterator ) + repulsionDerivativeComponent( specieIterator )
+             do pIter = 0, numCartesianP - 1
+                do qIter = 0, numCartesianQ - 1
 
-       !        deallocate( auxMatrix )
-       !        deallocate( otherAuxMatrix )
-       !        deallocate( derivativeOfHcoreMatrix )
-       !        deallocate( derivativeOfOverlapMatrix )
-       !        deallocate( derivativeOfRepulsionVector )
+                   u = pIter + labelsOfContractions(P)
+                   v = qIter + labelsOfContractions(Q)
+                   auxOverlap(centerB,2) = auxOverlap(centerB,2) - perm*weightDensityMatrix%values(u,v)*auxVector3(i)
+                   i = i + 1
+                end do
+             end do
+
+             do pIter = 0, numCartesianP - 1
+                do qIter = 0, numCartesianQ - 1
+
+                   u = pIter + labelsOfContractions(P)
+                   v = qIter + labelsOfContractions(Q)
+                   auxOverlap(centerB,3) = auxOverlap(centerB,3) - perm*weightDensityMatrix%values(u,v)*auxVector3(i)
+                   i = i + 1
+                end do
+             end do
+
+          end do
+       end do
+
+       write(*,"(3(f17.12))") auxOverlap(1,1), auxOverlap(1,2), auxOverlap(1,3)
+       write(*,"(3(f17.12))") auxOverlap(2,1), auxOverlap(2,2), auxOverlap(2,3)
+       write(*,"(3(f17.12))") auxOverlap(3,1), auxOverlap(3,2), auxOverlap(3,3)
+       write(*,"(A)") "----------------------------------------------------------------"
+
+       write(*,"(A)") "----------------------------------------------------------------"
+       write(*,"(A)") " Gradientes de Coulomb"
+       write(*,"(A)") "----------------------------------------------------------------"
+
+
+       write(*,"(3(f17.12))") auxCoulomb(1,1), auxCoulomb(1,2), auxCoulomb(1,3)
+       write(*,"(3(f17.12))") auxCoulomb(2,1), auxCoulomb(2,2), auxCoulomb(2,3)
+       write(*,"(3(f17.12))") auxCoulomb(3,1), auxCoulomb(3,2), auxCoulomb(3,3)
+       write(*,"(A)") "----------------------------------------------------------------"
+
+       write(*,"(A)") "----------------------------------------------------------------"
+       write(*,"(A)") " Gradientes de Intercambio"
+       write(*,"(A)") "----------------------------------------------------------------"
+       write(*,"(3(f17.12))") auxExchange(1,1), auxExchange(1,2), auxExchange(1,3)
+       write(*,"(3(f17.12))") auxExchange(2,1), auxExchange(2,2), auxExchange(2,3)
+       write(*,"(3(f17.12))") auxExchange(3,1), auxExchange(3,2), auxExchange(3,3)
+       write(*,"(A)") "----------------------------------------------------------------"
+
 
     end do
 
     close(wfnUnit)
-    !     output = sum( energyDerivative )
-    !     deallocate( energyDerivative )
-    !     deallocate( repulsionDerivativeComponent )
-
-    !     !#######################################################################################################################
-    !  contains !!! Derivatives
-!!!!! PILAS!!!!!
-    !
-    !    !! Cineticas y de atraccion nucleo-electron
-    !    function dHcore(index_i, index_j) result( output )
-    !      implicit none
-    !      real(8) :: output
-    !      integer :: index_i
-    !      integer :: index_j
-    !
-    !
-    !      if ( isNaN( derivativeOfHcoreMatrix( index_i, index_j ) ) ) then
-    !         output = DerivativeManager_getElement( KINETIC_DERIVATIVES, i=index_i, j=index_j, &
-    !              nameOfSpecie=nameOfSpecie, &
-    !              nuclei = nucleiAndComponent(1), &
-    !              component = nucleiAndComponent(2)  )
-    !         !                        output = output + &
-    !         !                            DerivativeManager_getElement( ATTRACTION_DERIVATIVES, i=index_i, j=index_j, nameOfSpecie=nameOfSpecie,&
-    !         !                            nuclei = nucleiAndComponent(1), component = nucleiAndComponent(2)  )
-    !         !
-    !         !                        derivativeOfHcoreMatrix(index_i, index_j) = output
-    !         !                        derivativeOfHcoreMatrix(index_j, index_i) = output
-    !
-    !      else
-    !
-    !         output = derivativeOfHcoreMatrix(index_i, index_j)
-    !         output = 0.0_8
-    !
-    !      end if
-    !
-    !    end function dHcore
-
-    !     !!Overlap
-    !     function dOverlap(index_i, index_j) result( output )
-    !       implicit none
-    !       real(8) :: output
-    !       real(8), allocatable :: out(:)
-    !       integer :: index_i
-    !       integer :: index_j
-    !       integer :: numCartesianOrbitalI
-    !       integer :: numCartesianOrbitalJ
-    !       integer :: i, j, specieID
-    !       integer :: counter, numberOfContractions
-    !       integer, allocatable :: labelsOfContractions(:)
-
-    !       if ( isNaN( derivativeOfOverlapMatrix( index_i, index_j) ) ) then
-
-    !          specieID= ParticleManager_getSpecieID( nameOfSpecie=trim(nameOfSpecie ) )
-
-    !          numberOfContractions = ParticleManager_getTotalNumberOfContractions( specieID )
-
-    !          numCartesianOrbitalI = ContractedGaussian_getNumberOfCartesianOrbitals(ParticleManager_getContractionPtr( specieID,  numberOfContraction=i ))
-    !          numCartesianOrbitalJ = ContractedGaussian_getNumberOfCartesianOrbitals(ParticleManager_getContractionPtr( specieID,  numberOfContraction=j ))
-
-    !          !! Get contractions labels for integrals index
-    !          if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
-    !          allocate(labelsOfContractions(numberOfContractions))
-
-    !          labelsOfContractions = DerivativeManager_getLabels(specieID, numberOfContractions)
-
-    !          if(allocated(out)) deallocate(out)
-    !          allocate(out( numCartesianOrbitalI * numCartesianOrbitalJ ))
-
-    !          out = 0.0_8
-
-    !          out = DerivativeManager_getElement( OVERLAP_DERIVATIVES, i=index_i, j=index_j, nameOfSpecie=nameOfSpecie, &
-    !               nuclei = nucleiAndComponent(1), component = nucleiAndComponent(2)  )
-
-    !          counter = 0
-    !          do i = labelsOfContractions(index_i), labelsOfContractions(index_i) + (numCartesianOrbitalI - 1)
-    !             do j = labelsOfContractions(index_j), labelsOfContractions(index_j) + (numCartesianOrbitalJ - 1)
-
-    !                counter = counter + 1
-    !                derivativeOfOverlapMatrix( i, j ) = out(counter)
-    !                derivativeOfOverlapMatrix( j, i ) = out(counter)
-
-    !             end do
-    !          end do
-
-    !          output = derivativeOfOverlapMatrix( index_i, index_j )
-
-    !       else
-
-    !          output = derivativeOfOverlapMatrix(index_i, index_j)
-
-    !       end if
-
-    !     end function dOverlap
-
-    !     !Repulsion (usar LIBINT)
-    !     function dRepulsion(index_u, index_v, index_r, index_s) result( output )
-    !       implicit none
-    !       integer :: index_u
-    !       integer :: index_v
-    !       integer :: index_r
-    !       integer :: index_s
-    !       real(8) :: output
-
-    !       integer(8) :: indexOfIntegral
-
-    !       indexOfIntegral = IndexMap_tensorR4ToVector(index_u,index_v,index_r,index_s, int(orderOfMatrix), int(orderOfMatrix) )
-
-    !       if ( isNaN( derivativeOfRepulsionVector( indexOfIntegral ) ) ) then
-
-    !          output = ContractedGaussian_repulsionDerivative( &
-
-    !               ParticleManager_instance%particlesPtr(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_u)%particleID)%basis%contractions(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_u)%contractionIDInParticle), &
-    !               ParticleManager_instance%particlesPtr(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_v)%particleID)%basis%contractions(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_v)%contractionIDInParticle), &
-    !               ParticleManager_instance%particlesPtr(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_r)%particleID)%basis%contractions(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_r)%contractionIDInParticle), &
-    !               ParticleManager_instance%particlesPtr(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_s)%particleID)%basis%contractions(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_s)%contractionIDInParticle), &
-
-    !               nucleiAndComponent(1), nucleiAndComponent(2) )
-
-    !          derivativeOfRepulsionVector( indexOfIntegral) = output
-
-    !       else
-
-    !          output = derivativeOfRepulsionVector( indexOfIntegral )
-
-    !       end if
-
-    !     end function dRepulsion
-
 
   end subroutine EnergyGradients_calculateAnalyticUncoupledFirstDerivative
 

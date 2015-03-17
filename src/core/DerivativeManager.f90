@@ -45,6 +45,7 @@ module DerivativeManager_
   use ContractedGaussian_
   use KineticDerivatives_
   use AttractionDerivatives_
+  use OverlapDerivatives_
   use Exception_
   use Math_
   use Matrix_
@@ -143,7 +144,7 @@ contains
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= nameOfSpecie
     specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
-    mass = MolecularSystem_getMass( specieID )
+    ! mass = MolecularSystem_getMass( specieID )
 
     call MolecularSystem_getBasisSet(specieID, contractions)
 
@@ -152,19 +153,16 @@ contains
 
     case( KINETIC_DERIVATIVES )
 
-       call KineticDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)!!/mass
+       call KineticDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)
 
     case( ATTRACTION_DERIVATIVES )
 
        call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID)
 
-       !            case( OVERLAP_DERIVATIVES )
-       !
-       !                output = ContractedGaussian_overlapDerivative( &
-       !                    ParticleManager_getContractionPtr( specieID,  numberOfContraction = i ), &
-       !                    ParticleManager_getContractionPtr( specieID,  numberOfContraction = j ), nuclei, component )
-       !
-
+    case( OVERLAP_DERIVATIVES )
+       
+       call OverlapDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)
+       
        !
        !            case( REPULSION_DERIVATIVES )
        !

@@ -83,6 +83,16 @@ module LapackInterface_
        integer :: INFO, LDA, LDU, LDVT, LWORK, M, N
        real(8) :: A(  LDA,  *  ),  S( * ), U( LDU, * ), VT(LDVT, * ), WORK( * )
      end subroutine dgesvd
+
+     !>                                                                         
+     !! @brief Calcula la descomposicion en valore simples de una matriz real de MxN 
+     subroutine dgemm(TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
+       character :: TRANSA, TRANSB
+       integer :: M, N, K
+       integer :: LDA, LDB, LDC
+       real(8) :: A(LDA,*), B(LDB,*), C(LDC,*)
+       real(8) :: ALPHA, BETA
+     end subroutine dgemm
      
   end interface
   

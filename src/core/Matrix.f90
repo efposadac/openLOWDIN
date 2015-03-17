@@ -40,6 +40,8 @@
 !!        -# Adapta el modulo para usar la libreria MAGMA-CUDA y acelerar en GPUs
 !!   - <tt> 2015-02-22 </tt> Jorge Charry ( jacharrym@unal.edu.co )
 !!        -# Adapt the module to the Lapack routine DSYEVX. 
+!!   - <tt> 2015-03-17 </tt> Mauricio Rodas ( jmrodasr@unal.edu.co )
+!!        -# Create the new routine for compute matrix-matrix operation using DGEMM of lapack
 
 
 module Matrix_
@@ -138,6 +140,7 @@ module Matrix_
        Matrix_getTransPose, &
        Matrix_factorizeLU, &
        Matrix_trace, &
+       Matrix_multiplication, &
        Matrix_product, &
        Matrix_plus, &
        Matrix_pow, &
@@ -1878,6 +1881,26 @@ contains
     end do
 
   end function Matrix_trace
+
+  !>
+  !! @brief perform one of the matrix-matrix operations
+  !! @author J.M. Rodas, 2015
+  !! C = alpha*op( A )*op( B ) + beta*C, using DGEMM of Lapack 
+  function Matrix_multiplication( TRANSA, TRANSB, M, N, K, ALPHA, matrixA, LDA, matrixB, LDB, BETA, LDC ) result ( matrixC )
+    implicit none
+    type(Matrix), intent(in) :: matrixA 
+    type(Matrix), intent(in) :: matrixB
+    character, intent(in) :: TRANSA, TRANSB
+    integer, intent(in) :: M, N, K, LDA, LDB, LDC
+    real(8), intent(in) :: ALPHA, BETA
+    type(Matrix) :: matrixC
+    integer :: i
+
+    call Matrix_constructor(matrixC, int(LDC,8), int(N,8))
+
+    call dgemm(TRANSA, TRANSB, M, N, K, ALPHA, matrixA%values, LDA, matrixB%values, LDB, BETA, matrixC%values, LDC)
+   
+  end function Matrix_multiplication
 
   !>
   !! @brief Multiplica dos matrices
