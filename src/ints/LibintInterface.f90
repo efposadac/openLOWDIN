@@ -293,8 +293,6 @@ contains
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
     numberOfPrimitives = MolecularSystem_getTotalNumberOfContractions(specieID)
 
-
-
     !! Get number of shells and cartesian contractions
     numberOfContractions = size(contractions)
     totalNumberOfContractions = MolecularSystem_instance%species(SpecieID)%basisSetSize

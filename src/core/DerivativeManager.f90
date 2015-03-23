@@ -34,18 +34,12 @@ module DerivativeManager_
 #ifdef intel
   use IFPORT
 #endif
-  ! use ExternalPotential_
-  ! use InterPotential_
-  ! use InterPotential_Manager_
-  ! use ParticleManager_
-  ! use LibintInterface_
-  ! use LibintInterface2_
-  ! use IndexMap_
   use MolecularSystem_
   use ContractedGaussian_
   use KineticDerivatives_
   use AttractionDerivatives_
   use OverlapDerivatives_
+  use RepulsionDerivatives_
   use Exception_
   use Math_
   use Matrix_
@@ -160,36 +154,21 @@ contains
        call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID)
 
     case( OVERLAP_DERIVATIVES )
-       
-       call OverlapDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)
-       
-       !
-       !            case( REPULSION_DERIVATIVES )
-       !
-       !                if ( present(k) .and. present(l) ) then
-       !
-       !                    specieID = ParticleManager_getSpecieID( nameOfSpecie = trim( nameOfSpecie ) )
-       !                    otherSpecieID = ParticleManager_getSpecieID( nameOfSpecie = trim( otherNameOfSpecie ) )
-       !                    output = ContractedGaussian_repulsionDerivative( &
-       !                        ParticleManager_getContractionPtr( specieID,  numberOfContraction=i), &
-       !                        ParticleManager_getContractionPtr( specieID,  numberOfContraction=j), &
-       !                        ParticleManager_getContractionPtr( otherSpecieID,  numberOfContraction=k), &
-       !                        ParticleManager_getContractionPtr( otherSpecieID,  numberOfContraction=l), &
-       !                        nuclei, component )
-       !                    output = output * ( ParticleManager_getCharge( specieID ) &
-       !                        * ParticleManager_getCharge( specieID ) )
-       !
-       !                else
-       !
-       !                    call Exception_constructor( ex , ERROR )
-       !                    call Exception_setDebugDescription( ex, "Class object IntegralManager in the getElement(i,j) function" )
-       !                    call Exception_setDescription( ex, "" )
-       !                    call Exception_show( ex )
-       !                end if
-       !
-    case default
 
-       !       output = 0.0_8
+       call OverlapDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)
+
+    case( REPULSION_DERIVATIVES )
+
+       if ( present(k) .and. present(l) ) then
+          call RepulsionDerivatives_getDerive( contractions, i, j, k, l, deriveVector, specieID)
+       else
+          call Exception_constructor( ex , ERROR )
+          call Exception_setDebugDescription( ex, "Class object DerivativeManager in the getElement(i,j) function" )
+          call Exception_setDescription( ex, "For repulsion derivatives is necessary four indices (p,q|r,s)" )
+          call Exception_show( ex )
+       end if
+
+    case default
 
        call Exception_constructor( ex , WARNING )
        call Exception_setDebugDescription( ex, "Class object DerivativeManager in the get(i) function" )

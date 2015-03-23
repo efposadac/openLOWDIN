@@ -80,6 +80,8 @@ module MolecularSystem_
        MolecularSystem_getTotalNumberOfContractions, &
        MolecularSystem_getBasisSet, &
        MolecularSystem_getMaxAngularMoment, &
+       MolecularSystem_getMaxNumberofPrimitives, &
+       MolecularSystem_getMaxNumberofCartesians, &
        MolecularSystem_getOcupationNumber, &
        MolecularSystem_getCharge, &
        MolecularSystem_getMass, &
@@ -972,6 +974,52 @@ contains
      
    end function MolecularSystem_getMaxAngularMoment
 
+   !> @brief find de maximun number of primitives for specieID, necessary for derive with libint
+   !! @author J.M. Rodas 2015
+   !! @version 1.0
+   function MolecularSystem_getMaxNumberofPrimitives(specieID) result(output)
+     implicit none
+     
+     integer :: specieID
+     integer :: output
+     
+     integer :: i, j
+     
+     output = -1
+     
+     do i = 1, size(MolecularSystem_instance%species(specieID)%particles)
+        do j = 1, size(MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction)
+           
+           output = max(output, MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction(j)%length)
+           
+        end do
+     end do
+
+   end function MolecularSystem_getMaxNumberofPrimitives
+
+   !> @brief find de maximun number of primitives for specieID, necessary for derive with libint
+   !! @author J.M. Rodas 2015
+   !! @version 1.0
+   function MolecularSystem_getMaxNumberofCartesians(specieID) result(output)
+     implicit none
+     
+     integer :: specieID
+     integer :: output
+     
+     integer :: i, j
+     
+     output = -1
+     
+     do i = 1, size(MolecularSystem_instance%species(specieID)%particles)
+        do j = 1, size(MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction)
+           
+           output = max(output, MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction(j)%numCartesianOrbital)
+           
+        end do
+     end do
+
+   end function MolecularSystem_getMaxNumberofCartesians
+     
    !> @brief Returns the occupation number of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0

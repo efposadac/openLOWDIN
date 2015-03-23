@@ -34,6 +34,7 @@ module EnergyGradients_
 #endif
   use CONTROL_
   use Matrix_
+  use MatrixInteger_
   use Vector_
   use MolecularSystem_
   use ParticleManager_
@@ -717,10 +718,11 @@ contains
     character(30) :: nameOfSpecie
     type(ContractedGaussian), allocatable :: contractions(:)
     integer :: numberOfContractions
-    real(8), allocatable :: auxVector(:), auxVector2(:), auxVector3(:)
+    real(8), allocatable :: auxVector(:), auxVector2(:), auxVector3(:), auxVector4(:)
     integer :: specieIterator
     integer :: ocupationNumber
     integer :: orderOfMatrix
+    type(MatrixInteger) :: shellPairs
     type(Matrix) :: matrixOfEigenvectors
     type(Matrix) :: densityMatrix
     type(Vector) :: vectorOfEigenvalues
@@ -732,9 +734,10 @@ contains
     integer :: k
     integer :: u
     integer :: v
-    integer :: r
-    integer :: s
-    integer :: P, Q, pIter, qIter, auxIter, A
+    ! integer :: r
+    ! integer :: s
+    integer :: npairs, npairs2, pqrsIter
+    integer :: P, Q, R, S, PQ, RS, pIter, qIter, auxIter, A
     integer :: numCartesianP, numCartesianQ
     integer :: centerA, centerB
     integer :: numberOfOptimizationCenters
@@ -1121,7 +1124,26 @@ contains
        write(*,"(A)") "----------------------------------------------------------------"
        write(*,"(A)") " Gradientes de Coulomb"
        write(*,"(A)") "----------------------------------------------------------------"
+       !! Coulomb and Exchange Gradients
+       call EnergyGradients_getShellPairs(numberOfContractions, shellPairs)
+       npairs = size(shellPairs%values,DIM=1)
+       npairs2 = npairs*npairs
+       
+       do pqrsIter = 0, npairs2 - 1
+          PQ = pqrsIter/npairs
+          RS = mod(pqrsIter,npairs)
 
+          if (RS.gt.PQ) cycle
+
+          P = shellPairs%values(PQ+1,1)
+          Q = shellPairs%values(PQ+1,2)
+          R = shellPairs%values(RS+1,1)
+          S = shellPairs%values(RS+1,2)
+
+          ! write(*,"(A,I,A,I,A,I,A,I,A)") "(",P,",",Q,"|",R,",",S,")"
+          call DerivativeManager_getElement( REPULSION_DERIVATIVES, auxVector4, i=P, j=Q, k=R, l=S, nameOfSpecie=nameOfSpecie )
+
+       end do
 
        write(*,"(3(f17.12))") auxCoulomb(1,1), auxCoulomb(1,2), auxCoulomb(1,3)
        write(*,"(3(f17.12))") auxCoulomb(2,1), auxCoulomb(2,2), auxCoulomb(2,3)
@@ -1355,6 +1377,38 @@ contains
   !             end do
 
   !         end function EnergyGradients_calculateFistDerivativeOfPuntualEnergy
+
+
+  !>
+  !! @brief This routine returns the derivative indices of ket (a,b|
+  !! @author Mauricio Rodas 2015
+  !<
+  subroutine EnergyGradients_getShellPairs(numberOfContractions, output)
+    implicit none
+    integer, intent(in) :: numberOfContractions
+    type(MatrixInteger) :: output
+    integer :: P, Q, pairsCount, iter
+
+    call MatrixInteger_constructor(output, 1, 2)
+
+    pairsCount = 0
+    do P = 1, numberOfContractions
+       do Q = 1, P
+          if(pairsCount == 0) then
+             output%values(1,1) = P
+             output%values(1,2) = Q
+          else
+             iter = 0
+             iter = pairsCount + 1
+             call MatrixInteger_addRow(output)
+             output%values(iter,1) = P
+             output%values(iter,2) = Q
+          end if
+          pairsCount = pairsCount + 1
+       end do
+    end do
+
+  end subroutine EnergyGradients_getShellPairs
 
   !>
   !! @brief  Maneja excepciones de la clase
