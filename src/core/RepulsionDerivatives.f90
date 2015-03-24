@@ -53,7 +53,7 @@ module RepulsionDerivatives_
 
   !>
   !! pointers to array functions on  libint.a, libderiv.a y libr12.a
-  type(c_funptr), dimension(0:4,0:4,0:4,0:4), bind(c) :: build_deriv1_eri
+  type(c_funptr), dimension(0:3,0:3,0:3,0:3), bind(c) :: build_deriv1_eri
   
   interface
 
@@ -177,14 +177,10 @@ contains
 
        call RepulsionDerivatives_initLibIntBase()
        call RepulsionDerivatives_initLibDerivBase()
-       maxAngMoment_c = RepulsionDerivatives_instance%maxAngularMoment
-       numberOfPrimitives_c = 1!RepulsionDerivatives_instance%numberOfPrimitives
-       numberOfCartesians_c = maxAngMoment_c*maxAngMoment_c*maxAngMoment_c*maxAngMoment_c!RepulsionDerivatives_instance%numberOfCartesians
 
-       libIntStorage_c = RepulsionDerivatives_initLibInt(&
-            RepulsionDerivatives_instance%libint, &
-            maxAngMoment_c, &
-            1)
+       maxAngMoment_c = RepulsionDerivatives_instance%maxAngularMoment
+       numberOfPrimitives_c = RepulsionDerivatives_instance%numberOfPrimitives
+       numberOfCartesians_c = maxAngMoment_c*maxAngMoment_c*maxAngMoment_c*maxAngMoment_c
 
        libDerivStorage_c = RepulsionDerivatives_initLibDeriv1(&
             RepulsionDerivatives_instance%libderiv, &
@@ -192,27 +188,7 @@ contains
             numberOfPrimitives_c, &
             numberOfCartesians_c)
 
-       ! storage = RepulsionDerivatives_libDerivStorage(&
-       !      maxAngMoment_c, &
-       !      numberOfPrimitives_c, &
-       !      numberOfCartesians_c)
-
-       ! call RepulsionDerivatives_initLibInt(&
-       !      RepulsionDerivatives_instance%libint, &
-       !      maxAngMoment_c, &
-       !      numberOfPrimitives_c)
-
-       ! call RepulsionDerivatives_initLibDeriv1(&
-       !      RepulsionDerivatives_instance%libderiv, &
-       !      maxAngMoment_c, &
-       !      numberOfPrimitives_c, &
-       !      numberOfCartesians_c)
-
-       ! call RepulsionDerivatives_initLibDeriv1(&
-       !      RepulsionDerivatives_instance%libderiv, &
-       !      maxAngMoment_c, &
-       !      numberOfPrimitives_c, &
-       !      numberOfCartesians_c)
+       print*, "LibDerivStorage: ", libDerivStorage_c
 
        RepulsionDerivatives_instance%libintStorage = libIntStorage_c
        RepulsionDerivatives_instance%libderivStorage = libDerivStorage_c
@@ -477,7 +453,7 @@ contains
 
     write(*,"(A)") "Contraida:"
     ! write(*,"(3(A,I))") "maxam: ",  maxAngularMoment, " maxnprim: ", maxNPrimSize, " maxncart: ", maxNCartSize
-    write(*,"(A,I,A,I,A,I,A,I,A)") "(",aa,",",bb,"|",rr,",",ss,")"
+    !write(*,"(A,I,A,I,A,I,A,I,A)") "(",aa,",",bb,"|",rr,",",ss,")"
     !! Si los offsets son necesarios hay que ponerlos aqui
     am1 = this(aa)%angularMoment
     am2 = this(bb)%angularMoment
@@ -591,10 +567,10 @@ contains
                 ! end do
                 ! arraySsize(1) = arraySize
 
-                RepulsionDerivatives_instance%libderiv%PrimQuartet = c_loc(primitiveQuartet)
+                RepulsionDerivatives_instance%libderiv%PrimQuartet = c_loc(primitiveQuartet) !ok
 
                 write(*,"(A)") "-----------------------------------------"
-                write(*,"(A,I)") "Array Size: ", arraySsize(1)
+                write(*,"(A,I8)") "Array Size: ", arraySsize(1)
                 write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",pa,",",pb,"|",pr,",",ps,")"
                 write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",am1,",",am2,"|",am3,",",am4,")"
                 write(*,"(A)") "-----------------------------------------"
@@ -602,26 +578,26 @@ contains
                 ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%PrimQuartet%oo2n
                 ! write(*,"(A)") "-----------------------------------------"
                 ! RepulsionDerivatives_instance%libderiv%PrimQuartet(numberOfPrimitives) = c_loc(primitiveQuartet)
-                call c_f_procpointer(build_deriv1_eri(am1,am2,am3,am4), pBuild)
+                call c_f_procpointer(build_deriv1_eri(am4,am3,am2,am1), pBuild)
 
                 write(*,"(A)") " Pase el llamado al c_f_procpointer"
 
                 call pBuild(RepulsionDerivatives_instance%libderiv,1)
 
                 write(*,"(A)") " Pase el llamado al pBuild"
-                ! write(*,"(A)") "-----------------------------------------"
+
+                write(*,"(A)") "-----------------------------------------"
                 do k=1,12
                    if(k==4 .or. k==5 .or. k==6) cycle
-                   resultPc = RepulsionDerivatives_instance%libderiv%ABCD(k)
-                   ! write(*,"(f17.12)") RepulsionDerivatives_instance%libderiv%ABCD(k)
-                   call c_f_pointer(resultPc, temporalPtr, arraySsize)
+                    resultPc = RepulsionDerivatives_instance%libderiv%ABCD(k)
+                    call c_f_pointer(resultPc, temporalPtr, arraySsize)
+                   
                    do i=1,arraySsize(1)
-                      integralsPtr => temporalPtr
-                      write(*,"(f17.12)") integralsPtr(i)
+                      write(*,"(2I, f17.12)") k, i, temporalPtr(i)
                       ! work_forces(i,k) = tmp_data(i)
                    end do
                 end do
-                ! write(*,"(A)") "-----------------------------------------"
+                write(*,"(A)") "-----------------------------------------"
                 !! Get numbers from memory!
                 ! arraySsize(1) = 3_8
 

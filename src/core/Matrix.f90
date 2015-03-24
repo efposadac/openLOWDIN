@@ -2494,7 +2494,7 @@ contains
 
     Bsize = rowsB
 
-    call Matrix_constructor( Baux, 1, Bsize)
+    call Matrix_constructor( Baux, int(1,8), Bsize)
     
     do i=1, rowsB
        Baux%values(i,1) = B(i)

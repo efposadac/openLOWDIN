@@ -60,27 +60,27 @@ module RepulsionDerivativesTypes_
   !>
   !!@brief libint.h structure
   type, bind(c) :: lib_int
-     type(c_ptr)     :: int_stack
+     type(c_ptr)  :: int_stack
      type(c_ptr)     :: PrimQuartet
      real(c_double)  :: AB(3)
      real(c_double)  :: CD(3)
-     type(c_ptr)     :: vrr_classes(9,9)
-     type(c_ptr)     :: vrr_stack
+     type(c_ptr)  :: vrr_classes(9,9)
+     type(c_ptr)  :: vrr_stack
   end type lib_int
 
   !>
   !!@brief libderiv.h structure
   type, bind(c) :: lib_deriv
-     type(c_ptr)     :: int_stack
-     type(c_ptr)     :: PrimQuartet
-     type(c_ptr)     :: zero_stack
-     type(c_ptr)     :: ABCD(12+144)
-     real(c_double)  :: AB(3)
-     real(c_double)  :: CD(3)
-     type(c_ptr)     :: deriv_classes(12,9,9)
-     type(c_ptr)     :: deriv2_classes(144,9,9)
-     type(c_ptr)     :: dvrr_classes(9,9)
-     type(c_ptr)     :: dvrr_stack
+     type(c_ptr) :: int_stack
+     type(c_ptr)    :: PrimQuartet
+     type(c_ptr) :: zero_stack
+     type(c_ptr) :: ABCD(12+144)
+     real(c_double) :: AB(3)
+     real(c_double) :: CD(3)
+     type(c_ptr) :: deriv_classes(12,7,7)
+     type(c_ptr) :: deriv2_classes(144,7,7)
+     type(c_ptr) :: dvrr_classes(7,7)
+     type(c_ptr) :: dvrr_stack
   end type lib_deriv
   
 end module RepulsionDerivativesTypes_

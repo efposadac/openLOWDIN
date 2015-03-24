@@ -14,7 +14,7 @@ TARGET=gepol.x
 LDR=\$(FC)
 #INC=-I\$(TOPDIR)src/lowdincore/
 #LDPATH=\$(TOPDIR)lib/lowdincore.a
-FLAGS=-traceback -g -debug
+FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
 OBJECTS=$(for file in $SRCMOD 

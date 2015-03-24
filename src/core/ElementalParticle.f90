@@ -82,7 +82,7 @@ contains
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), exist=existFile)
     
     if ( existFile ) then
-       
+
        !! Open library
        open(unit=10, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), status="old", form="formatted" )
               

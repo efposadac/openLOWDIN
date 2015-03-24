@@ -36,12 +36,12 @@ module LibintInterfaceTypes_
   !>
   !!@brief libint.h structure
   type, bind(c) :: lib_int
-     type(c_ptr)     :: int_stack
+     type(c_ptr)  :: int_stack
      type(c_ptr)     :: PrimQuartet
      real(c_double)  :: AB(3)
      real(c_double)  :: CD(3)
-     type(c_ptr)     :: vrr_classes(9,9)
-     type(c_ptr)     :: vrr_stack
+     type(c_ptr)  :: vrr_classes(9,9)
+     type(c_ptr)  :: vrr_stack
   end type lib_int
   
   !> @brief libint.h structure

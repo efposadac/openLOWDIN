@@ -243,9 +243,9 @@ contains
     allocate(q_clasical(segments))
 
     !llamando al constructor de matrices, creando matrices unidimensionales
-    call Matrix_constructor(clasical_charge, np, 1)
-    call Matrix_constructor(v, int(surface%sizeSurface,8), 1)
-    call Matrix_constructor(q, int(surface%sizeSurface,8), 1)
+    call Matrix_constructor(clasical_charge, np, 1_8)
+    call Matrix_constructor(v, int(surface%sizeSurface,8), 1_8)
+    call Matrix_constructor(q, int(surface%sizeSurface,8), 1_8)
     call Matrix_constructor(cmatinv_aux, int(segments,8), int(segments,8))
 
 
@@ -267,7 +267,7 @@ contains
        ! write(*,*)"testest",verifier, i
 
 
-       if (verifier == .false.)	then
+       if (verifier .eqv. .false.)	then
           ! write(*,*)"particula clasica", i
 
 
@@ -369,13 +369,13 @@ contains
     if(allocated(cmatinvs)) deallocate(cmatinvs)
     allocate(cmatinvs(int(ints,8),int(ints,8)))
 
-    call Matrix_constructor(q_charge, int(ints,8), 1)
-    call Matrix_constructor(cosmo_pot, int(ints,8), 1)
+    call Matrix_constructor(q_charge, int(ints,8), 1_8)
+    call Matrix_constructor(cosmo_pot, int(ints,8), 1_8)
 
     lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
 
     do i=1,ints
-       cosmo_pot%values(i,1)=cosmo_ints(i)*-1
+       cosmo_pot%values(i,1)=cosmo_ints(i)*(-1)
        do j=1,ints
           cmatinvs(i,j)=cmatinv%values(i,j)*lambda
        end do
@@ -548,14 +548,14 @@ contains
     close(77)
 
 
-    call Matrix_constructor(clasical_charge, np, 1)
+    call Matrix_constructor(clasical_charge, np, int(1,8))
 
 
     do i=1,np
 
        verifier = ParticleManager_instance(i)%particlePtr%isQuantum
 
-       if (verifier == .false.)	then
+       if (verifier .eqv. .false.)	then
 
 
           clasical_charge%values(i,1)= ParticleManager_instance(i)%particlePtr%totalCharge
@@ -617,7 +617,7 @@ contains
 
     close(unit=100)
 
-    call Matrix_constructor(clasical_charge, np, 1)
+    call Matrix_constructor(clasical_charge, np, int(1,8))
 
 
     cosmo_int(:)=0.0_8

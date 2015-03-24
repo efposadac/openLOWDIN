@@ -349,7 +349,7 @@ contains
     control = 0
     contractionNumberdebug = 0
     totalIntegralswithP = 0
-   ! write(*,*) "Starting and ending", starting, ending
+    ! write(*,*) "Starting and ending", starting, ending
     !!Start Calculating integrals for each shell
     ! write(*,*) "Number of Contractions Libint: ", numberOfContractions
     do a = 1, numberOfContractions

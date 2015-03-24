@@ -138,7 +138,7 @@ contains
     allocate( this%connectivity( this%numberOfVertices ) )
 
     
-    call Matrix_constructor( auxIonizationPotentials, size1, 9 )
+    call Matrix_constructor( auxIonizationPotentials, size1, 9_8 )
 
     this%cartesianMatrix = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
     
@@ -183,7 +183,7 @@ contains
 
        do i=1,this%numberOfVertices
           size2 = ionizationSize(i)
-          call Matrix_constructor( this%ionizationPotential(i), 1, size2 )
+          call Matrix_constructor( this%ionizationPotential(i), 1_8, size2 )
           do j=1,ionizationSize(i)
              this%ionizationPotential(i)%values(1,j) = auxIonizationPotentials%values(i,j)
           end do

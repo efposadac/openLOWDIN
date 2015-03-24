@@ -483,11 +483,11 @@ contains
 
        if (nameOfSpeciesA=="E-ALPHA".or.nameOfSpeciesA=="E-BETA") then
           
-          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 8, 0.0_8)
+          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 
        else 
 
-          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 4, 0.0_8)
+          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 4_8, 0.0_8)
 
        end if
 
@@ -589,18 +589,18 @@ contains
                 vectorSize1 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA * virtualNumberOfSpeciesA
                 vectorSize2 = occupationNumberOfSpeciesA * occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
 
-                call Matrix_constructor(selfEnergy2ph(j), 2, vectorSize1, 0.0_8)
+                call Matrix_constructor(selfEnergy2ph(j), 2_8, vectorSize1, 0.0_8)
                 
                 if (occupationNumberOfSpeciesA>1) then
                    
-                   call Matrix_constructor(selfEnergy2hp(j), 2, vectorSize2, 0.0_8)
+                   call Matrix_constructor(selfEnergy2hp(j), 2_8, vectorSize2, 0.0_8)
 
                 end if
 
                 if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
 
                    vectorSize3 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
-                   call Matrix_constructor(selfEnergyhp(j), 2, vectorSize2, 0.0_8)
+                   call Matrix_constructor(selfEnergyhp(j), 2_8, vectorSize2, 0.0_8)
 
                 end if
 
@@ -692,13 +692,13 @@ contains
                 vectorSize1 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesA * virtualNumberOfSpeciesB
                 vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
 
-                call Matrix_constructor(selfEnergy2ph(j), 2, vectorSize1, 0.0_8)
-                call Matrix_constructor(selfEnergy2hp(j), 2, vectorSize2, 0.0_8)
+                call Matrix_constructor(selfEnergy2ph(j), 2_8, vectorSize1, 0.0_8)
+                call Matrix_constructor(selfEnergy2hp(j), 2_8, vectorSize2, 0.0_8)
 
                 if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
 
                    vectorSize3 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesB
-                   call Matrix_constructor(selfEnergyhp(j), 2, vectorSize3, 0.0_8)
+                   call Matrix_constructor(selfEnergyhp(j), 2_8, vectorSize3, 0.0_8)
 
                 end if
 
@@ -9640,7 +9640,7 @@ contains
           n = 2
        end if
 
-       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8, 0.0_8)
+       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 
        !**************************************************************************
        !	Storing of denominators and numerators in the corresponding vectors
@@ -10376,8 +10376,8 @@ contains
                 vectorSize1 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA * virtualNumberOfSpeciesA
                 vectorSize2 = occupationNumberOfSpeciesA * occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
                 
-                call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-                call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+                call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+                call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
                 
                 id1 = 0
                 id2 = 0
@@ -10564,8 +10564,8 @@ contains
                    vectorSize1 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesA * virtualNumberOfSpeciesB
                    vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
                    
-                   call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-                   call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+                   call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+                   call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
                    
                    id1 = 0
                    id2 = 0
