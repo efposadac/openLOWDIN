@@ -50,7 +50,7 @@ program SCF
   !! Open file for wfn
   wfnUnit = 30
   wfnFile = "lowdin.wfn"
-  
+
   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
   !!Start time
@@ -72,18 +72,18 @@ program SCF
   numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
 
   if( numberOfSpecies > 1 ) then
-     
+
      iterationScheme(0) = "NONELECRONIC FULLY CONVERGED BY ELECTRONIC ITERATION"
      iterationScheme(1) = "ELECTRONIC FULLY CONVERGED BY NONELECRONIC ITERATION"
      iterationScheme(2) = "SPECIES FULLY CONVERGED INDIVIDIALLY"
      iterationScheme(3) = "SIMULTANEOUS"
-     
+
      write(*,"(A)") "INFO: RUNNING "//trim(iterationScheme(CONTROL_instance%ITERATION_SCHEME))//" SCHEME."
      write(*,"(A)")" "
 
      !! Multi-species SCF
      status = SCF_GLOBAL_CONVERGENCE_CONTINUE      
-     
+
      if ( .not. CONTROL_instance%OPTIMIZE .or. CONTROL_instance%DEBUG_SCFS ) then
         write(*,*) "Begin Multi-Species SCF calculation:"
         write(*,*) ""
@@ -93,38 +93,38 @@ program SCF
      end if
 
      do i = 1, numberOfSpecies
-			 
-          
+
+
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
         call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
-				
-			 if (CONTROL_instance%COSMO) then
-				call WaveFunction_buildCosmo2Matrix(trim(nameOfSpecie))
-       end if
+
+        if (CONTROL_instance%COSMO) then
+           call WaveFunction_buildCosmo2Matrix(trim(nameOfSpecie))
+        end if
      end do
-            
+
      auxValue = 0.0_8 
      do while( status == SCF_GLOBAL_CONVERGENCE_CONTINUE .and. &
           MultiSCF_getNumberOfIterations() <= CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS )
-        
+
         call MultiSCF_iterate( CONTROL_instance%ITERATION_SCHEME )
         deltaEnergy = auxValue-MultiSCF_getLastEnergy()
-        
+
         if ( .not.CONTROL_instance%OPTIMIZE .or. CONTROL_instance%DEBUG_SCFS ) then
            write (6,"(I5,F20.10,F20.10)") MultiSCF_getNumberOfIterations(), &
                 MultiSCF_getLastEnergy(),deltaEnergy
         end if
-        
+
         status = MultiSCF_testEnergyChange(CONTROL_instance%TOTAL_ENERGY_TOLERANCE  )
         auxValue = MultiSCF_getLastEnergy()
-        
+
      end do
-     
+
      print *,""
      print *,"...end Multi-Species SCF calculation"
      print *,""
-     
+
      !! Multi-species SCF if HPG was instanced
      if (CONTROL_instance%HARTREE_PRODUCT_GUESS) then
 
@@ -184,15 +184,15 @@ program SCF
               print *,"-----------------------------------------------------------------"
               write (*,"(A10,A12,A25,A20)") "Iteration", "Energy", " Density Change","         DIIS Error "
               print *,"-----------------------------------------------------------------"
-              
-             do i=1, numberOfIterations-1
+
+              do i=1, numberOfIterations-1
 
                  call List_iterate( WaveFunction_instance(speciesID)%energySCF )
                  call List_iterate( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements )
                  call List_iterate( WaveFunction_instance(speciesID)%diisError )
-                diisError =List_current( WaveFunction_instance(speciesID)%diisError )
+                 diisError =List_current( WaveFunction_instance(speciesID)%diisError )
 
-                convergenceType = ""
+                 convergenceType = ""
 
                  if ( diisError > CONTROL_instance%DIIS_SWITCH_THRESHOLD ) convergenceType = "*"
 
@@ -222,7 +222,7 @@ program SCF
 
 
   end if
-  
+
   close(wfnUnit)
 
   !!**********************************************************
@@ -230,19 +230,19 @@ program SCF
   !!
   open(unit=wfnUnit, file=trim(wfnFile), status="replace", form="unformatted")
   rewind(wfnUnit)
-  
+
   labels = ""
 
   do speciesID = 1, numberOfSpecies
 
      labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
-     
+
      labels(1) = "TWOPARTICLES"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%twoParticlesMatrix, unit=wfnUnit, binary=.true., arguments = labels )  
 
      labels(1) = "COUPLING"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%couplingMatrix, unit=wfnUnit, binary=.true., arguments = labels )  
-     
+
      labels(1) = "COEFFICIENTS"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, unit=wfnUnit, binary=.true., arguments = labels )
 
@@ -254,26 +254,30 @@ program SCF
 
      labels(1) = "ORBITALS"
      call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, unit=wfnUnit, binary=.true., arguments = labels )
-			 
-			 if (CONTROL_instance%COSMO) then
-				labels(1) = "COSMO2"
-				call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
-       end if
+
+     if (CONTROL_instance%COSMO) then
+        labels(1) = "COSMO2"
+        call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
+        labels(1) = "COSMOCOUPLING"
+        call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmoCoupling, unit=wfnUnit, binary=.true., arguments = labels )  
+     end if
 
   end do
-  
+
   !!**********************************************************
   !! Save Some energies
   !!
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%totalEnergy, arguments=["TOTALENERGY"])
+  
+	call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%cosmo3Energy, arguments=["COSMO3ENERGY"])
 
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%totalCouplingEnergy, arguments=["COUPLINGENERGY"])
 
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%electronicRepulsionEnergy, arguments=["COUPLING-E-"])
 
- call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MolecularSystem_getPointChargesEnergy(), arguments=["PUNTUALINTERACTIONENERGY"])
-  
-  
+  call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MolecularSystem_getPointChargesEnergy(), arguments=["PUNTUALINTERACTIONENERGY"])
+
+
   !stop time
   call Stopwatch_stop(lowdin_stopwatch)
 
@@ -282,5 +286,5 @@ program SCF
   write(*, *) ""
 
   close(wfnUnit)
-  
+
 end program SCF

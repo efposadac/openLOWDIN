@@ -59,6 +59,10 @@ Program Ints
   !!Load the system in lowdin.bas format
   call MolecularSystem_loadFromFile( "LOWDIN.BAS" )
   
+  !!Load the system in lowdin.sys format
+  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+ 
+
   select case(trim(job))
 
   case("ONE_PARTICLE")
