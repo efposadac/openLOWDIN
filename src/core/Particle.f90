@@ -226,7 +226,6 @@ contains
              this%statistics="FERMION"
              this%spin = PhysicalConstants_SPIN_ELECTRON
              this%id = id    
-             
           end if
           
           call Particle_setComponentFixed( this, varsToFix )

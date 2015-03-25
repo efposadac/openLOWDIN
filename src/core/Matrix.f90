@@ -1889,7 +1889,7 @@ contains
 
     call Matrix_constructor( output, int(size(this%values, DIM=1),8), int(size(otherMatrix%values, DIM=2),8) )
     output%values = matmul( this%values, otherMatrix%values )
-
+		
   end function Matrix_product
 
   !>

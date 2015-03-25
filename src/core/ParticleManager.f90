@@ -1143,23 +1143,23 @@ contains
 !   end function ParticleManager_getCenterOfMass
 
 
-!   !<
-!   !! @brief 	Retorna la carga de la especie solicitada
-!   !>
-!   function ParticleManager_getCharge( specieID, iterator) result( output )
-!     implicit none
-!     integer, optional :: specieID
-
-!     integer, optional :: iterator
-!     real(8) :: output
-
-!     if (present(iterator) ) then
-!        output = ParticleManager_instance%particlesPtr(iterator)%charge
-!     else
-!        output = real( Map_getValue( ParticleManager_instance%charge, iterator=specieID), 8 )
-!     end if
-
-!   end function ParticleManager_getCharge
+  !<
+  !! @brief 	Retorna la carga de la especie solicitada
+  !>
+  ! function ParticleManager_getCharge( specieID, iterator) result( output )
+  !   implicit none
+  !   integer, optional :: specieID
+  !
+  !   integer, optional :: iterator
+  !   real(8) :: output
+  !
+  !   if (present(iterator) ) then
+  !      output = ParticleManager_instance%particlesPtr(iterator)%charge
+  !   else
+  !      output = real( Map_getValue( ParticleManager_instance%charge, iterator=specieID), 8 )
+  !   end if
+  !
+  ! end function ParticleManager_getCharge
 
 !   !<
 !   !! @brief 	Retorna las etiquetas de las contracciones gaussianas asociadas al
