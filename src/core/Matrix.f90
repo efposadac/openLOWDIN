@@ -38,6 +38,8 @@
 !!        -# Reescribe y adapta el modulo para su inclusion en Lowdin
 !!   - <tt> 2014-02-12 </tt> Mauricio Rodas ( jmrodasr@unal.edu.co )
 !!        -# Adapta el modulo para usar la libreria MAGMA-CUDA y acelerar en GPUs
+!!   - <tt> 2015-02-22 </tt> Jorge Charry ( jacharrym@unal.edu.co )
+!!        -# Adapt the module to the Lapack routine DSYEVX. 
 
 
 module Matrix_
@@ -128,6 +130,7 @@ module Matrix_
        Matrix_isPositiveDefinited, &
        Matrix_orthogonalize, &
        Matrix_eigen, &
+       Matrix_eigen_select, &
        Matrix_svd, &
        Matrix_symmetrize, &
        Matrix_solveLinearEquation, &
@@ -1355,7 +1358,7 @@ contains
 
 ! #else
 
-  subroutine Matrix_eigen( this, eigenValues, eigenVectors, flags, m, dm )
+ subroutine Matrix_eigen( this, eigenValues, eigenVectors, flags, m, dm )
     implicit none
     type(Matrix), intent(in) :: this
     type(Vector), intent(inout) :: eigenValues
@@ -1446,6 +1449,142 @@ contains
     end if
 
   end subroutine Matrix_eigen
+
+!>
+!! @brief Matrix_eigen_select
+!!  -- LAPACK driver routine (version 3.2) --
+!!  DSYEVX computes selected eigenvalues and, optionally, eigenvectors
+!!  of a real symmetric matrix A.  Eigenvalues and eigenvectors can be
+!!  selected by specifying either a range of values or a range of indices
+!!  for the desired eigenvalues. 
+!! For further information, visit http://www.netlib.org/lapack/double/dsyevx.f
+!! @warning Implemented only to compute eigenvalues. 
+
+  subroutine Matrix_eigen_select( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method	 )
+    implicit none
+    type(Matrix), intent(in) :: this
+    type(Vector), intent(inout) :: eigenValues
+    type(Matrix), intent(inout), optional :: eigenVectors
+    integer, intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
+								  !! of the eigenvalues to be computed. Start at 1
+    integer, intent(in), optional :: flags
+    integer, intent(in), optional :: dm
+    real(8), intent(in), optional :: m(:,:)
+    integer, intent(in), optional :: method
+    integer :: lengthWorkSpace
+    integer :: matrixSize
+    integer :: infoProcess
+    real(8), allocatable :: workSpace(:)
+    type(Matrix) :: eigenVectorsTmp
+    integer :: i
+    real(8) :: vl, vu			!! If RANGE='V', the lower and upper bounds of the interval to be searched for eigenvalues.
+    real(8) :: abstol
+    integer :: m_dsyevx 		!! The total number of eigenvalues found.
+    integer, allocatable :: iFail(:)  
+
+    !!Negative ABSTOL means using the default value
+    abstol = -1.0
+
+    matrixSize = size( this%values, DIM=1 )
+    if (allocated (iFail) ) deallocate (iFail)
+    allocate (iFail(matrixSize))
+
+    if( flags == SYMMETRIC ) then
+
+       !! Determina la longitud adecuada del vector de trabajo
+       lengthWorkSpace=3*matrixSize-1
+
+       !! Crea el vector de trabajo
+       allocate( workSpace( lengthWorkSpace ) )
+
+       if( present( eigenVectors ) ) then
+
+          if (present ( dm ) ) then
+             eigenvectors%values = m
+          else	
+
+             eigenVectors%values=this%values
+
+          end if
+
+             call Matrix_exception( ERROR, "Diagonalization method not implemented yet",&
+                  "Class object Matrix in the eigen_select" )
+       else
+
+          !! Crea la matriz que almacenara los vectores propios
+!!          call Matrix_copyConstructor( eigenVectorsTmp, this )
+
+          lengthWorkSpace = -1
+          !! calculates the optimal size of the WORK array
+          call dsyevx( &
+               COMPUTE_EIGENVALUES, &
+	       "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+	       vl, vu, &
+    	       smallestEigenValue, largestEigenValue, &
+	       abstol, &
+	       m_dsyevx, &
+               eigenValues%values, &
+	       matrixSize, matrixSize, &				 
+               workSpace, &
+               lengthWorkSpace, &
+               infoProcess, &
+	       ifail, infoProcess )
+
+          lengthWorkSpace = int(workSpace(1))
+
+	  !! Crea el vector de trabajo
+	  if (allocated(workSpace)) deallocate(workSpace)
+          allocate( workSpace( lengthWorkSpace ) )
+
+          !! Calcula valores propios de la matriz de entrada
+          call dsyevx( &
+               COMPUTE_EIGENVALUES, &
+	       "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+	       vl, vu, &
+    	       smallestEigenValue, largestEigenValue, &
+	       abstol, &
+	       m_dsyevx, &
+               eigenValues%values, &
+	       matrixSize, matrixSize, &				 
+               workSpace, &
+               lengthWorkSpace, &
+               infoProcess, &
+	       ifail, infoProcess )
+
+          call Matrix_destructor( eigenVectorsTmp )
+
+       end if
+
+       !! Determina la ocurrencia de errores
+       if ( infoProcess /= 0 )  then
+
+          call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+
+       end if
+
+       do i=1,size(eigenValues%values)
+          if( eigenValues%values(i) == Math_NaN ) then
+
+             call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+          end if
+       end do
+
+
+       !! libera memoria separada para vector de trabajo
+       deallocate(workSpace)
+
+    end if
+
+  end subroutine Matrix_eigen_select
+
 
 ! #endif
 

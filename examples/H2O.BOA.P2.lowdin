@@ -28,7 +28,7 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores=8
+	numberOfCores=4
 END CONTROL
 
 
