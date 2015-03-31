@@ -213,7 +213,7 @@ contains
     write (6,"(T20,A25)") "GRADIENT: HARTREE/BOHR"
     write (6,"(A10,A16,A20,A20)") "Particle","dE/dx","dE/dy","dE/dz"
     k=1
-    do i = 1, totalNumberOfParticles!ParticleManager_getTotalNumberOfParticles()
+    do i = 1, totalNumberOfParticles
 
        if ( ParticleManager_isCenterOfOptimization( i ) .and. k < size(gradient)) then
 
@@ -245,7 +245,7 @@ contains
 
     print   *,""
     print *, " BEGIN GEOMETRY OPTIMIZATION: "
-    print *,"============================"
+    print *,"------------------------------------------------------------"
     print   *,""
     isMinumum = .false.
     lastStep = .false.

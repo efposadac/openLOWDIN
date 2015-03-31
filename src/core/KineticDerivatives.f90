@@ -168,7 +168,7 @@ contains
                       Iy = 0.0_8
                       Iz = 0.0_8
                       ! x on center i
-                      Ix = Ix + 2.0*angularMomentA*KineticDerivatives_int(x, y, z, auxExponentA, l1+1, m1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
+                      Ix = Ix + 2.0*auxExponentA*KineticDerivatives_int(x, y, z, auxExponentA, l1+1, m1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
                       if(l1>0) then
                          Ix = Ix - l1 * KineticDerivatives_int(x, y, z, auxExponentA, l1-1, m1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
                       end if
@@ -212,7 +212,7 @@ contains
 
        end do
     end do
-
+    ! write(*,"(A)") "----------------------------------------"
    ! write(*,"(A)") "Derivadas de cinetica"
    ! do i = 0, 6*ssize - 1
    !    write(*,"(f12.8)") deriveValue(i)

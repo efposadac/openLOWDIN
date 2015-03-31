@@ -36,8 +36,8 @@ module RepulsionDerivatives_
   use CONTROL_
   use, intrinsic :: iso_c_binding
   implicit none
-  
-! #define contr(n,m) contractions(n)%contractions(m)
+
+#define contr(n,m) contractions(n)%contractions(m)
   
   !> @brief Type for libint/c++ library
   type, public :: RepulsionDerivatives
@@ -50,6 +50,11 @@ module RepulsionDerivatives_
      type(lib_int) :: libint
      type(lib_deriv) :: libderiv
   end type RepulsionDerivatives
+
+  !> @brief type for convenence
+  type, private :: auxBasis
+     type(ContractedGaussian), allocatable :: contractions(:) !< Basis set for specie
+  end type auxBasis
 
   !>
   !! pointers to array functions on  libint.a, libderiv.a y libr12.a
@@ -127,7 +132,6 @@ module RepulsionDerivatives_
        use, intrinsic :: iso_c_binding
        implicit none
        
-       ! type(c_ptr) :: RepulsionDerivatives_buildLibDeriv
        type(lib_deriv) :: libderiv
        integer(kind=c_int), value :: numberOfPrimitives
        
@@ -146,9 +150,6 @@ module RepulsionDerivatives_
   
   !> @brief Singleton lock
   type(RepulsionDerivatives), public :: RepulsionDerivatives_instance
-
-!   !> @brief Integrals Stack
-!   type(erisStack), private :: eris
 
 contains
   
@@ -188,8 +189,6 @@ contains
             numberOfPrimitives_c, &
             numberOfCartesians_c)
 
-       print*, "LibDerivStorage: ", libDerivStorage_c
-
        RepulsionDerivatives_instance%libintStorage = libIntStorage_c
        RepulsionDerivatives_instance%libderivStorage = libDerivStorage_c
           
@@ -225,30 +224,10 @@ contains
     
   end subroutine RepulsionDerivatives_destructor
 
-  ! !>
-  ! !! @brief Muestra informacion del objeto (una sola vez)
-  ! !! @author E. F. Posada, 2010
-  ! !! @version 2.0
-  ! subroutine RepulsionDerivatives_show()
-  !   implicit none
-
-  !   write(*,  "(A)")  " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
-  !   write(*, "(A)")   " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2011   "
-  !   write(*, "(A)")   " ----------------------------------------------------------------------"
-  !   write(*, "(A)" )  " LIBINT parameters: "
-  !   !write(*, "(A, T44,A)")  " work ", trim(RepulsionDerivatives_instance%job)
-  !   !write(*, "(A, T44,A)")  " Storage ", "DISK"
-  !   write(*, "(A, T43,I5)") " Stack size", CONTROL_instance%INTEGRAL_STACK_SIZE
-  !   !write(*, "(A, T43,I5)") " maxAngularMoment", RepulsionDerivatives_instance%maxAngularMoment
-  !   write(*, "(A, T38,I10)") " number of primitives", RepulsionDerivatives_instance%numberOfPrimitives
-  !   write(*, "(A, T38,I10/)")" Memory required (in words)", RepulsionDerivatives_instance%libintStorage
-
-  ! end subroutine RepulsionDerivatives_show
-
 
   !>
-  !! @brief calculate eris using libint library for all basis set (intra-specie)
-  !! @author E. F. Posada, 2010
+  !! @brief calculate derivative eris using libint library for all basis set (intra-specie)
+  !! @author J.M. Rodas 2015
   !! @version 2.0
   !! @info Tested
   subroutine RepulsionDerivatives_getDerive(this, a, b, r, s, deriveValue, specieID)
@@ -257,74 +236,69 @@ contains
     integer, intent(in) :: a, b, r, s, specieID
     real(8), allocatable :: deriveValue(:)
     
-    integer :: maxAngularMoment !x
-    integer :: sumAngularMoment !x
-    integer :: numberOfPrimitives !x
-    integer :: maxNumberOfPrimitives !x
-    integer :: maxNumberOfCartesians !x
-    integer :: maxNPrimSize, maxNCartSize !x
-    logical :: p12, p34, p13p24 !x
-    integer :: aa, bb, rr, ss !< permuted iterators (LIBINT) !x
+    integer :: maxAngularMoment
+    integer :: sumAngularMoment
+    integer :: numberOfPrimitives
+    integer :: maxNumberOfPrimitives 
+    integer :: maxNumberOfCartesians 
+    integer :: maxNPrimSize, maxNCartSize
+    logical :: p12, p34, p13p24
+    integer :: aa, bb, rr, ss !< permuted iterators (LIBINT) 
     integer :: am1, am2, am3, am4
-    integer :: pa, pb, pr, ps !< labels index !x
+    integer :: pa, pb, pr, ps !< labels index
     real(8) :: auxExponentA, auxCoefficientA, auxContConstantA, auxPrimConstantA, c1
     real(8) :: auxExponentB, auxCoefficientB, auxContConstantB, auxPrimConstantB, c2
     real(8) :: auxExponentR, auxCoefficientR, auxContConstantR, auxPrimConstantR, c3
     real(8) :: auxExponentS, auxCoefficientS, auxContConstantS, auxPrimConstantS, c4
-    ! integer :: apa, apb, apr, aps !< labels index
-    ! integer :: ii, jj, kk, ll !< cartesian iterators for primitives and contractions
-    integer :: aux, order !<auxiliary index !x
+    real(8), allocatable :: workForces(:,:), work(:,:)
+    integer :: aux !<auxiliary index
     integer :: arraySsize(1)
+    integer :: arraySize
     integer :: counter, auxCounter
-
     integer(8) :: control
-
     integer,target :: i, j, k, l !< contraction length iterators
-    integer,pointer :: pi, pj, pk, pl !< pointer to contraction length iterators !x
-    integer,pointer :: poi, poj, pok, pol !< pointer to contraction length iterators !x
-
-    real(8), dimension(:), pointer :: integralsPtr !< pointer to C array of integrals
+    integer :: nc1, nc2, nc3, nc4
+    real(8), dimension(:), pointer :: derivativesPtr !< pointer to C array of derivatives
     real(c_double), dimension(:), pointer :: temporalPtr
 
-    real(8), allocatable :: auxIntegrals(:) !<array with permuted integrals aux!
-    real(8), allocatable :: integralsValue (:) !<array with permuted integrals
-    real(8), allocatable :: incompletGamma(:) !<array with incomplete gamma integrals !x
+    real(8), allocatable :: incompletGamma(:) !<array with incomplete gamma integrals
 
-    real(8) :: P(3), Q(3), W(3), AB(3), CD(3), PQ(3) !<geometric values that appear in gaussian product !x
-    real(8) :: zeta, ooz, oo2z, nu, oon, oo2n, oo2zn, rho !< exponents... that appear in gaussian product !x
-    real(8) :: s1234, s12, s34, AB2, CD2, PQ2 !<geometric quantities that appear in gaussian product !x
-    real(8) :: incompletGammaArgument !x   
-    
-    character(50) :: fileNumber
-    integer(8) :: ssize
-
+    real(8) :: P(3), Q(3), W(3), AB(3), CD(3), PQ(3) !<geometric values that appear in gaussian product
+    real(8) :: zeta, ooz, oo2z, nu, oon, oo2n, oo2zn, rho !< exponents... that appear in gaussian product
+    real(8) :: s1234, s12, s34, AB2, CD2, PQ2 !<geometric quantities that appear in gaussian product
+    real(8) :: incompletGammaArgument
+    integer :: bufferOffsets(0:3)
     type(prim_data), target :: primitiveQuartet !<Primquartet object needed by LIBINT
     type(c_ptr) :: resultPc !< array of integrals from C (LIBINT)
     procedure(RepulsionDerivatives_buildLibDeriv), pointer :: pBuild !<procedure to calculate eris on LIBINT !x
     
-    integer :: contractionNumberdebug, primitiveCounterdebug, contractionNumberperOrbital, totalIntegralswithP
-
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
     maxNumberOfPrimitives = MolecularSystem_getMaxNumberofPrimitives(specieID)
     maxNumberOfCartesians = MolecularSystem_getMaxNumberofCartesians(specieID)
     maxNPrimSize = maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives
     maxNCartSize = maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians
 
-
     arraySsize(1) = this(a)%numCartesianOrbital * &
          this(b)%numCartesianOrbital * &
          this(r)%numCartesianOrbital * &
          this(s)%numCartesianOrbital
 
+
+    arraySize = arraySsize(1)
     sumAngularMoment = this(a)%angularMoment + this(b)%angularMoment + this(r)%angularMoment + this(s)%angularMoment
 
-    ! if(allocated(incompletGamma)) deallocate(incompletGamma)
-    ! allocate(incompletGamma(0:maxAngularMoment+1))
-    if(allocated(incompletGamma)) deallocate(incompletGamma)
-    allocate(incompletGamma(0:sumAngularMoment+1))
+    if(allocated(workForces)) deallocate(workForces)
+    allocate(workForces(arraySize,12))
 
-    ! if(allocated(primitiveQuartet)) deallocate(primitiveQuartet)
-    ! allocate(primitiveQuartet(maxNumberOfPrimitives))
+    if(allocated(work)) deallocate(work)
+    allocate(work(arraySize,12))
+
+    work = 0.0_8
+
+    if(allocated(incompletGamma)) deallocate(incompletGamma)
+    allocate(incompletGamma(0:maxAngularMoment+1))
+    ! if(allocated(incompletGamma)) deallocate(incompletGamma)
+    ! allocate(incompletGamma(0:sumAngularMoment+1))
 
     ! Libderiv constructor (solo una vez)
     if( RepulsionDerivatives_isInstanced() ) then
@@ -337,29 +311,10 @@ contains
        !call RepulsionDerivatives_show()
     end if
 
-    if(allocated(deriveValue)) deallocate(deriveValue)
-    allocate(deriveValue(0:6*9))
-
-    deriveValue = 0.0_8
-
-    order = 0
-
     aa = a
     bb = b
     rr = r
     ss = s
-
-    !!pointer to permuted index under a not permuted loop                                                                               
-    pi => i
-    pj => j
-    pk => k
-    pl => l
-
-    !!pointer to not permuted index under a permuted loop                                                                               
-    poi => i
-    poj => j
-    pok => k
-    pol => l
 
     p12 = .false.
     p34 = .false.
@@ -369,13 +324,6 @@ contains
        aa = b
        bb = a
 
-       pi => j
-       pj => i
-
-       poi => j
-       poj => i
-
-       order = order + 1
        p12 = .true.
     end if
 
@@ -383,13 +331,6 @@ contains
        rr = s
        ss = r
 
-       pk => l
-       pl => k
-
-       pok => l
-       pol => k
-
-       order = order + 3
        p34 = .true.
     end if
 
@@ -402,59 +343,74 @@ contains
        bb = ss
        ss = aux
        p13p24 = .true.
-       
-       select case(order)
-       case(0)
-          pi => k
-          pj => l
-          pk => i
-          pl => j
-
-          poi => k
-          poj => l
-          pok => i
-          pol => j
-
-       case(1)
-          pi => k
-          pj => l
-          pk => j
-          pl => i
-
-          poi => l
-          poj => k
-          pok => i
-          pol => j
-
-       case(3)
-          pi => l
-          pj => k
-          pk => i
-          pl => j
-
-          poi => k
-          poj => l
-          pok => j
-          pol => i
-
-       case(4)
-          pi => l
-          pj => k
-          pk => j
-          pl => i
-
-          poi => l
-          poj => k
-          pok => j
-          pol => i
-
-       end select
     end if
 
-    write(*,"(A)") "Contraida:"
+    if(p12) then
+        if(p34) then
+            if(p13p24) then
+                ! (AB|CD) -> (DC|BA)
+                bufferOffsets(0) = 9 
+                bufferOffsets(1) = 6
+                bufferOffsets(2) = 3 
+                bufferOffsets(3) = 0
+            else
+                ! (AB|CD) -> (BA|DC)
+                bufferOffsets(0) = 3 
+                bufferOffsets(1) = 0
+                bufferOffsets(2) = 9 
+                bufferOffsets(3) = 6
+            end if
+        else
+            if(p13p24) then
+                ! (AB|CD) -> (CD|BA)
+                bufferOffsets(0) = 6 
+                bufferOffsets(1) = 9
+                bufferOffsets(2) = 3 
+                bufferOffsets(3) = 0
+            else
+                ! (AB|CD) -> (BA|CD)
+                bufferOffsets(0) = 3 
+                bufferOffsets(1) = 0
+                bufferOffsets(2) = 6 
+                bufferOffsets(3) = 9
+            end if
+        end if
+    else
+        if(p34) then
+            if(p13p24) then
+                ! (AB|CD) -> (DC|AB)
+                bufferOffsets(0) = 9 
+                bufferOffsets(1) = 6
+                bufferOffsets(2) = 0 
+                bufferOffsets(3) = 3
+            else
+                ! (AB|CD) -> (AB|DC)
+                bufferOffsets(0) = 0 
+                bufferOffsets(1) = 3
+                bufferOffsets(2) = 9 
+                bufferOffsets(3) = 6
+            end if
+        else
+            if(p13p24) then
+                ! (AB|CD) -> (CD|AB)
+                bufferOffsets(0) = 6 
+                bufferOffsets(1) = 9
+                bufferOffsets(2) = 0 
+                bufferOffsets(3) = 3
+            else
+                ! (AB|CD) -> (AB|CD)
+                bufferOffsets(0) = 0 
+                bufferOffsets(1) = 3
+                bufferOffsets(2) = 6 
+                bufferOffsets(3) = 9
+            end if
+        end if
+    end if
+
+    ! write(*,"(A)") "Contraida:"
     ! write(*,"(3(A,I))") "maxam: ",  maxAngularMoment, " maxnprim: ", maxNPrimSize, " maxncart: ", maxNCartSize
     !write(*,"(A,I,A,I,A,I,A,I,A)") "(",aa,",",bb,"|",rr,",",ss,")"
-    !! Si los offsets son necesarios hay que ponerlos aqui
+
     am1 = this(aa)%angularMoment
     am2 = this(bb)%angularMoment
     am3 = this(rr)%angularMoment
@@ -520,7 +476,7 @@ contains
                 primitiveQuartet%U(1:3,1)= P - this(aa)%origin
                 primitiveQuartet%U(1:3,2)= P - this(bb)%origin
 
-                s12 = ((Math_PI*ooz)**1.5_8) * exp(-auxExponentA*auxExponentB*ooz*AB2)!*c1*c2
+                s12 = ((Math_PI*ooz)**1.5_8) * exp(-auxExponentA*auxExponentB*ooz*AB2)*c1*c2
 
                 nu = auxExponentR + auxExponentS
                 oon = 1.0_8/nu
@@ -551,623 +507,783 @@ contains
                 primitiveQuartet%twozeta_d = 2.0 * auxExponentS
 
                 incompletGammaArgument = rho*PQ2
-                ! call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
-                call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+1))
+                call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
+                ! call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+1))
 
-                s34 = ((Math_PI*oon)**1.5_8) * exp(-auxExponentR*auxExponentS*oon*CD2)!*c3*c4
+                s34 = ((Math_PI*oon)**1.5_8) * exp(-auxExponentR*auxExponentS*oon*CD2)*c3*c4
 
                 s1234 = 2.0_8*sqrt(rho/Math_PI) * s12 * s34
 
-                do i=1, sumAngularMoment+1
-                   primitiveQuartet%F(i) = incompletGamma(i-1)*s1234
-                end do
-
-                ! do i=1, maxAngularMoment+1
+                ! do i=1, sumAngularMoment+1
                 !    primitiveQuartet%F(i) = incompletGamma(i-1)*s1234
                 ! end do
+
+                ! write(*,"(A)") "-----------------------------------------"
+                ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
+                ! do i=1,3
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,1)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,2)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,3)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,4)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,5)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,6)
+                ! end do
+
+                do i=0, maxAngularMoment+1
+                   primitiveQuartet%F(i+1) = incompletGamma(i)*s1234
+                   ! write(*,"(A1,I1,A,f17.12)") "F", i, " : ", primitiveQuartet%F(i+1)
+                end do
+                ! write(*,"(A)") "-----------------------------------------"
                 ! arraySsize(1) = arraySize
 
                 RepulsionDerivatives_instance%libderiv%PrimQuartet = c_loc(primitiveQuartet) !ok
 
-                write(*,"(A)") "-----------------------------------------"
-                write(*,"(A,I8)") "Array Size: ", arraySsize(1)
-                write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",pa,",",pb,"|",pr,",",ps,")"
-                write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",am1,",",am2,"|",am3,",",am4,")"
-                write(*,"(A)") "-----------------------------------------"
+                ! write(*,"(A)") "-----------------------------------------"
+                ! ! write(*,"(A,I8)") "Array Size: ", arraySsize(1)
+                ! ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",pa,",",pb,"|",pr,",",ps,")"
+                ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
+                ! write(*,"(A,f17.12)") "oo2z : ", primitiveQuartet%oo2z
+                ! write(*,"(A,f17.12)") "oo2n : ", primitiveQuartet%oo2n 
+                ! write(*,"(A,f17.12)") "oo2zn : ", primitiveQuartet%oo2zn
+                ! write(*,"(A,f17.12)") "poz : ", primitiveQuartet%poz
+                ! write(*,"(A,f17.12)") "pon : ", primitiveQuartet%pon
+                ! write(*,"(A,f22.8)") "a : ", primitiveQuartet%twozeta_a 
+                ! write(*,"(A,f22.8)") "b : ", primitiveQuartet%twozeta_b 
+                ! write(*,"(A,f22.8)") "c : ", primitiveQuartet%twozeta_c 
+                ! write(*,"(A,f22.8)") "d : ", primitiveQuartet%twozeta_d 
+                ! write(*,"(A)") "-----------------------------------------"
                 ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%PrimQuartet%oo2z
                 ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%PrimQuartet%oo2n
                 ! write(*,"(A)") "-----------------------------------------"
                 ! RepulsionDerivatives_instance%libderiv%PrimQuartet(numberOfPrimitives) = c_loc(primitiveQuartet)
                 call c_f_procpointer(build_deriv1_eri(am4,am3,am2,am1), pBuild)
 
-                write(*,"(A)") " Pase el llamado al c_f_procpointer"
-
                 call pBuild(RepulsionDerivatives_instance%libderiv,1)
 
-                write(*,"(A)") " Pase el llamado al pBuild"
 
-                write(*,"(A)") "-----------------------------------------"
+                workForces = 0.0_8
+                ! write(*,"(A)") "-----------------------------------------"
+                ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
                 do k=1,12
                    if(k==4 .or. k==5 .or. k==6) cycle
                     resultPc = RepulsionDerivatives_instance%libderiv%ABCD(k)
                     call c_f_pointer(resultPc, temporalPtr, arraySsize)
                    
-                   do i=1,arraySsize(1)
-                      write(*,"(2I, f17.12)") k, i, temporalPtr(i)
-                      ! work_forces(i,k) = tmp_data(i)
-                   end do
-                end do
-                write(*,"(A)") "-----------------------------------------"
-                !! Get numbers from memory!
-                ! arraySsize(1) = 3_8
+                    derivativesPtr => temporalPtr
+                    
+                    do i=1,arraySsize(1)
+                       workForces(i,k) = derivativesPtr(i)
+                       ! write(*,"(2I, 2f17.12)") k, i, derivativesPtr(i), workForces(i,k)
+                    end do
+                 end do
 
+                 do k=4,6
+                    do i=1,arraySsize(1)
+                       workForces(i,k) = 0.0_8
+                    end do
+                 end do
+                 
                 
-                ! integralsPtr => temporalPtr
-                
-                ! call c_f_pointer(resultPc, temporalPtr, 1)
-
-                ! integralsPtr => temporalPtr
-                
-                numberOfPrimitives = numberOfPrimitives + 1
+                 do k=1,12
+                    do i=1, arraySsize(1)
+                       work(i,k) = work(i,k) + workForces(i,k)
+                    end do
+                 end do
+                 ! write(*,"(A)") "-----------------------------------------"
+                 numberOfPrimitives = numberOfPrimitives + 1
              end do
           end do
        end do
     end do
 
-    ! call c_f_procpointer(build_deriv1_eri(am1,am2,am3,am4), pBuild)
+    call RepulsionDerivatives_reordering1(bufferOffsets, work, deriveValue, arraySsize(1))
 
-    ! write(*,"(A)") " Pase el llamado al c_f_procpointer"
+    if (p12 .or. p34 .or. p13p24) then
+       nc1 =  this(aa)%numCartesianOrbital
+       nc2 =  this(bb)%numCartesianOrbital
+       nc3 =  this(rr)%numCartesianOrbital
+       nc4 =  this(ss)%numCartesianOrbital
+       call RepulsionDerivatives_permute(nc1,nc2,nc3,nc4, p12, p34, p13p24, arraySsize(1), deriveValue)
+    end if
 
-    ! call pBuild(RepulsionDerivatives_instance%libderiv,numberOfPrimitives-1)
 
-    ! write(*,"(A)") " Pase el llamado al pBuild"
-    ! write(*,"(A)") "-----------------------------------------"
-    ! do k=1,12
-    !    if(k==4 .or. k==5 .or. k==6) cycle
-    !    resultPc = RepulsionDerivatives_instance%libderiv%ABCD(k)
-    !    ! write(*,"(f17.12)") RepulsionDerivatives_instance%libderiv%ABCD(k)
-    !    call c_f_pointer(resultPc, temporalPtr, arraySsize)
-    !    do i=1,arraySsize(1)
-    !       integralsPtr => temporalPtr
-    !       write(*,"(f17.12)") integralsPtr(i)
-    !       ! work_forces(i,k) = tmp_data(i)
-    !    end do
-    ! end do
-
-    ! call c_f_procpointer(build_deriv1_eri(am1,am2,am3,am4), pBuild)
-    
-    ! call pBuild(RepulsionDerivatives_instance%libderiv,(numberOfPrimitives-1))
-
-    ! build_deriv1_eri[am1][am2][am3][am4](&libderiv_, nprim);
-    ! call build_deriv1_eri(am1,am2,am3,am4)
-    ! do i=1, 166
-    !    write(*,"(f17.12)") RepulsionDerivatives_instance%libderiv%ABCD(i)
-    ! end do    
-    ! write(*,"(A)") "Antes de llamar a libint"
-!(RepulsionDerivatives_instance%libderiv, numberOfPrimitives-1))
+    ! if (p12 .or. p34 .or. p13p24) then
+    !    call RepulsionDerivatives_permute(this, aa, bb, rr, ss, p12, p34, p13p24, arraySsize(1), deriveValue)
+    ! end if
 
     ! write(*,"(A)") "-----------------------------------------"
-    ! do i=1, 166
-    !    write(*,"(f17.12)") RepulsionDerivatives_instance%libderiv%ABCD(i)
+    ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",a,",",b,"|",r,",",s,")"
+    ! do k=0,9*arraySsize(1) - 1
+    !    write(*,"(I2,f17.12)") k, deriveValue(k)
     ! end do
-    write(*,"(A)") "-----------------------------------------"
-    ! write(*,"(A)") "Despues de llamar a libint"
+    ! ! do k=1,12
+    ! !    do i=1,arraySsize(1)
+    ! !       write(*,"(I2,I2,f17.12)") k, 1, work(i,k)
+    ! !    end do
+    ! ! end do
+    ! write(*,"(A)") "-----------------------------------------"
 
   end subroutine RepulsionDerivatives_getDerive
-  
+
   !>
-  !! @brief calculate eris using libint library for all basis set (inter-species)
-  !! @author E. F. Posada, 2010
+  !! @brief calculate derivative eris using libint library for all basis set (inter-specie)
+  !! @author J.M. Rodas 2015
   !! @version 2.0
-  ! subroutine RepulsionDerivatives_computeInterSpecies(specieID, otherSpecieID, job, isInterSpecies, isCouplingA, isCouplingB)
-  !   implicit none
+  !! @info Tested
+  subroutine RepulsionDerivatives_getInterDerive(a, b, r, s, deriveValue, specieID, otherSpecieID)
+    implicit none
+    integer, intent(in) :: a, b, r, s
+    integer :: specieID
+    integer :: otherSpecieID
+    real(8), allocatable :: deriveValue(:)
+    
+    type(auxBasis) :: contractions(2)
+    integer :: maxAngularMoment
+    integer :: sumAngularMoment
+    integer :: numberOfPrimitives
+    integer :: maxNumberOfPrimitives 
+    integer :: maxNumberOfCartesians 
+    integer :: maxNPrimSize, maxNCartSize
+    logical :: p12, p34, p13p24
+    integer :: aa, bb, rr, ss !< permuted iterators (LIBINT) 
+    integer :: am1, am2, am3, am4
+    integer :: pa, pb, pr, ps !< labels index
+    real(8) :: auxExponentA, auxCoefficientA, auxContConstantA, auxPrimConstantA, c1
+    real(8) :: auxExponentB, auxCoefficientB, auxContConstantB, auxPrimConstantB, c2
+    real(8) :: auxExponentR, auxCoefficientR, auxContConstantR, auxPrimConstantR, c3
+    real(8) :: auxExponentS, auxCoefficientS, auxContConstantS, auxPrimConstantS, c4
+    real(8), allocatable :: workForces(:,:), work(:,:)
+    integer :: aux !<auxiliary index
+    integer :: arraySsize(1)
+    integer :: arraySize
+    integer :: counter, auxCounter
+    integer(8) :: control
+    integer,target :: i, j, k, l !< contraction length iterators
+    integer :: nc1, nc2, nc3, nc4
+    integer :: pSpecieID, pOtherSpecieID !! pointer to species ID
 
-  !   integer,target :: specieID
-  !   integer,target :: otherSpecieID
-  !   character(*), intent(in) :: job
-  !   logical, optional :: isInterSpecies
-  !   logical, optional :: isCouplingA
-  !   logical, optional :: isCouplingB
-    
-  !   logical :: interSpecies
-  !   logical :: couplingA
-  !   logical :: couplingB
-    
-  !   integer :: auxSpecieID
-  !   integer :: auxOtherSpecieID    
-  !   integer :: totalNumberOfContractions
-  !   integer :: otherTotalNumberOfContractions
-  !   integer :: numberOfContractions
-  !   integer :: otherNumberOfContractions
-  !   integer :: numberOfPrimitives
-  !   integer :: maxAngularMoment
-  !   integer :: sumAngularMoment
-  !   integer :: arraySize !! number of cartesian orbitals for maxAngularMoment
-  !   integer :: n,u,m !! auxiliary itetators
-  !   integer :: aa, bb, rr, ss !! permuted iterators (LIBINT)
-  !   integer :: a, b, r, s !! not permuted iterators (original)
-  !   integer*2 :: pa, pb, pr, ps !! labels index
-  !   integer :: ii, jj, kk, ll !! cartesian iterators for contractions and contractions
-  !   integer :: aux, order !!auxiliary index
-  !   integer :: arraySsize(1)
-  !   integer :: sizeTotal
-  !   integer :: auxIndex
-  !   integer :: counter, auxCounter
-    
-  !   integer,target :: i, j, k, l !! contraction length iterators
-  !   integer,pointer :: pi, pj, pk, pl !! pointer to contraction length iterators
-  !   integer,pointer :: poi, poj, pok, pol !! pointer to contraction length iterators
-  !   integer, pointer :: pSpecieID, pOtherSpecieID !! pointer to species ID
-  !   integer, allocatable :: labelsOfContractions(:) !! cartesian position of contractions in all basis set
-  !   integer, allocatable :: otherLabelsOfContractions(:) !! cartesian position of contractions in all basis set
+    real(8), dimension(:), pointer :: derivativesPtr !< pointer to C array of derivatives
+    real(c_double), dimension(:), pointer :: temporalPtr
 
-  !   real(8), dimension(:), pointer :: integralsPtr !! pointer to C array of integrals
-  !   real(8), dimension(:), pointer :: temporalPtr
+    real(8), allocatable :: incompletGamma(:) !<array with incomplete gamma integrals
 
-  !   real(8), allocatable :: auxIntegrals(:) !!array with permuted integrals aux!
-  !   real(8), allocatable :: integralsValue (:) !!array with permuted integrals
-  !   real(8), allocatable :: incompletGamma(:) !!array with incomplete gamma integrals
+    real(8) :: P(3), Q(3), W(3), AB(3), CD(3), PQ(3) !<geometric values that appear in gaussian product
+    real(8) :: zeta, ooz, oo2z, nu, oon, oo2n, oo2zn, rho !< exponents... that appear in gaussian product
+    real(8) :: s1234, s12, s34, AB2, CD2, PQ2 !<geometric quantities that appear in gaussian product
+    real(8) :: incompletGammaArgument
+    integer :: bufferOffsets(0:3)
+    type(prim_data), target :: primitiveQuartet !<Primquartet object needed by LIBINT
+    type(c_ptr) :: resultPc !< array of integrals from C (LIBINT)
+    procedure(RepulsionDerivatives_buildLibDeriv), pointer :: pBuild !<procedure to calculate eris on LIBINT !x
     
-  !   real(8) :: P(3), Q(3), W(3), AB(3), CD(3), PQ(3) !!geometric values that appear in gaussian product
-  !   real(8) :: zeta, eta, rho !! exponents... that appear in gaussian product
-  !   real(8) :: s1234, s12, s34, AB2, CD2, PQ2 !!geometric quantities that appear in gaussian product
-  !   real(8) :: incompletGammaArgument
-    
-  !   type(auxBasis) :: contractions(2)
-  !   type(prim_data), target :: primitiveQuartet !!Primquartet object needed by LIBINT
-  !   type(c_ptr) :: resultPc !! array of integrals from C (LIBINT)
-  !   procedure(RepulsionDerivatives_buildLibInt), pointer :: pBuild !!procedure to calculate eris on LIBINT
-    
-  !   interSpecies = .true.
-  !   couplingA = .false.
-  !   couplingB = .false.
-    
-  !   if(present(isInterSpecies)) interSpecies = isInterSpecies
-  !   if(present(isCouplingA)) couplingA = isCouplingA
-  !   if(present(isCouplingB)) couplingB = isCouplingB
-    
-  !   !! open file for integrals
-  !   open(UNIT=34,FILE=trim(MolecularSystem_instance%species(specieID)%name)//"."//trim(MolecularSystem_instance%species(otherSpecieID)%name)//".ints", &
-  !        STATUS='REPLACE', ACCESS='SEQUENTIAL', FORM='Unformatted')
-    
-  !   !! Get basisSet
-  !   call MolecularSystem_getBasisSet(specieID, contractions(1)%contractions)
-  !   call MolecularSystem_getBasisSet(otherSpecieID, contractions(2)%contractions)
-    
-  !   !! Get number of shells and cartesian contractions
-  !   numberOfContractions = size(contractions(1)%contractions)
-  !   totalNumberOfContractions = MolecularSystem_instance%species(SpecieID)%basisSetSize
+    maxAngularMoment = max(MolecularSystem_getMaxAngularMoment(specieID), MolecularSystem_getMaxAngularMoment(otherSpecieID))
+    maxNumberOfPrimitives = max(MolecularSystem_getMaxNumberofPrimitives(specieID), MolecularSystem_getMaxNumberofPrimitives(otherSpecieID))
+    maxNumberOfCartesians = max(MolecularSystem_getMaxNumberofCartesians(specieID), MolecularSystem_getMaxNumberofCartesians(otherSpecieID))
+    maxNPrimSize = maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives
+    maxNCartSize = maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians
 
-  !   !! Get number of shells and cartesian contractions (other specie)
-  !   otherNumberOfContractions = size(contractions(2)%contractions)
-  !   otherTotalNumberOfContractions = MolecularSystem_instance%species(otherSpecieID)%basisSetSize
-    
-  !   !! Libint constructor (solo una vez)
-  !   maxAngularMoment = max(MolecularSystem_getMaxAngularMoment(specieID), MolecularSystem_getMaxAngularMoment(otherSpecieID))
-  !   numberOfPrimitives = MolecularSystem_getTotalNumberOfContractions(specieID) + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
-    
-  !   if( .not. RepulsionDerivatives_isInstanced() ) then
-  !      call RepulsionDerivatives_constructor( maxAngularMoment, numberOfPrimitives, trim(job))
-  !      call RepulsionDerivatives_show()
-  !   end if
-    
-  !   !! allocating space for integrals just one time (do not put it inside do loop!!!)
-  !   arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
-    
-  !   sizeTotal = ((totalNumberOfContractions *(totalNumberOfContractions + 1 ))/2) * ((otherTotalNumberOfContractions *(otherTotalNumberOfContractions + 1 ))/2)
-    
-  !   !! Get contractions labels for integrals index
-  !   if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
-  !   allocate(labelsOfContractions(numberOfContractions))
-    
-  !   !!Real labels for contractions
-  !   aux = 1
-  !   do i = 1, numberOfContractions
-  !      labelsOfContractions(i) = aux
-  !      aux = aux + contractions(1)%contractions(i)%numCartesianOrbital
-  !   end do
+    call MolecularSystem_getBasisSet(specieID, contractions(1)%contractions)
+    call MolecularSystem_getBasisSet(otherSpecieID, contractions(2)%contractions)
 
-  !   !! Get contractions labels for integrals index (other specie)
-  !   if (allocated(otherLabelsOfContractions)) deallocate(otherLabelsOfContractions)
-  !   allocate(otherLabelsOfContractions(otherNumberOfContractions))
+    arraySsize(1) =contractions(1)%contractions(a)%numCartesianOrbital * &
+         contractions(1)%contractions(b)%numCartesianOrbital * &
+         contractions(2)%contractions(r)%numCartesianOrbital * &
+         contractions(2)%contractions(s)%numCartesianOrbital
 
-  !   !!Real labels for contractions (other specie)
-  !   aux = 1
-  !   do i = 1, otherNumberOfContractions
-  !      otherLabelsOfContractions(i) = aux
-  !      aux = aux + contractions(2)%contractions(i)%numCartesianOrbital
-  !   end do
+    arraySize = arraySsize(1)
     
-  !   !! Allocating some space
-  !   if(allocated(incompletGamma)) deallocate(incompletGamma)
-  !   if(allocated(auxIntegrals)) deallocate(auxIntegrals)
-  !   if(allocated(integralsValue)) deallocate(integralsValue)
+    sumAngularMoment =  contractions(1)%contractions(a)%angularMoment + &
+         contractions(1)%contractions(b)%angularMoment + &
+         contractions(2)%contractions(r)%angularMoment + &
+         contractions(2)%contractions(s)%angularMoment
 
-  !   allocate(incompletGamma(0:MaxAngularMoment*4))    
-  !   allocate(auxIntegrals(arraySize* arraySize* arraySize * arraySize))
-  !   allocate(integralsValue(arraySize* arraySize* arraySize* arraySize))
+    if(allocated(workForces)) deallocate(workForces)
+    allocate(workForces(arraySize,12))
 
+    if(allocated(work)) deallocate(work)
+    allocate(work(arraySize,12))
+
+    work = 0.0_8
+
+    if(allocated(incompletGamma)) deallocate(incompletGamma)
+    allocate(incompletGamma(0:maxAngularMoment+1))
+    ! if(allocated(incompletGamma)) deallocate(incompletGamma)
+    ! allocate(incompletGamma(0:sumAngularMoment+1))
+
+    ! Libderiv constructor (solo una vez)
+    if( RepulsionDerivatives_isInstanced() ) then
+       call RepulsionDerivatives_destructor()
+    end if
     
-  !   counter = 0
-  !   auxCounter = 0
+    if( .not. RepulsionDerivatives_isInstanced() ) then
+       call RepulsionDerivatives_constructor(sumAngularMoment,maxNPrimSize,maxNCartSize)
+       !! DEBUG
+       !call RepulsionDerivatives_show()
+    end if
+
+    aa = a
+    bb = b
+    rr = r
+    ss = s
+
+    p12 = .false.
+    p34 = .false.
+    p13p24 = .false.
+
+    pSpecieID = 1
+    pOtherSpecieID = 2
     
-  !   auxSpecieID = specieID
-  !   auxOtherSpecieID = otherSpecieID
+    if(contractions(1)%contractions(a)%angularMoment .lt. contractions(1)%contractions(b)%angularMoment) then
+       aa = b
+       bb = a
 
-  !   specieID = 1
-  !   otherSpecieID = 2
-    
-  !   !!Start Calculating integrals for each shell
-  !   do a = 1, numberOfContractions
-  !      do b = a, numberOfContractions
-  !         do r = 1 , otherNumberOfContractions
-  !            do s = r,  otherNumberOfContractions
-                
-  !               !!Calcula el momento angular total
-  !               sumAngularMoment =  contractions(1)%contractions(a)%angularMoment + &
-  !                    contractions(1)%contractions(b)%angularMoment + &
-  !                    contractions(2)%contractions(r)%angularMoment + &
-  !                    contractions(2)%contractions(s)%angularMoment
-                
-  !               !! Calcula el tamano del arreglo de integrales para la capa (ab|rs)
-  !               arraySize = contractions(1)%contractions(a)%numCartesianOrbital * &
-  !                    contractions(1)%contractions(b)%numCartesianOrbital * &
-  !                    contractions(2)%contractions(r)%numCartesianOrbital * &
-  !                    contractions(2)%contractions(s)%numCartesianOrbital
-                
-  !               !! For (ab|rs)  ---> RESTRICTION a>b && r>s && r+s > a+b
-  !               aux = 0
-  !               order = 0
+       p12 = .true.
+    end if
 
-  !               !! permuted index
-  !               aa = a
-  !               bb = b
-  !               rr = r
-  !               ss = s
-                
-  !               !!pointer to permuted index under a not permuted loop
-  !               pi => i
-  !               pj => j
-  !               pk => k
-  !               pl => l
-                
-  !               !!pointer to not permuted index under a permuted loop
-  !               poi => i
-  !               poj => j
-  !               pok => k
-  !               pol => l
+    if(contractions(2)%contractions(r)%angularMoment .lt. contractions(2)%contractions(s)%angularMoment) then
+       rr = s
+       ss = r
 
-  !               !!Pointer to specie ID
-  !               pSpecieID => specieID
-  !               pOtherSpecieID => otherSpecieID
-                
-  !               if (contractions(1)%contractions(a)%angularMoment < contractions(1)%contractions(b)%angularMoment) then
+       p34 = .true.
+    end if
 
-  !                  aa = b
-  !                  bb = a
+    if((contractions(1)%contractions(a)%angularMoment + contractions(1)%contractions(b)%angularMoment) .gt. &
+         (contractions(2)%contractions(r)%angularMoment + contractions(2)%contractions(s)%angularMoment)) then
+       aux = aa
+       aa = rr
+       rr = aux
+
+       aux = bb
+       bb = ss
+       ss = aux
+
+
+       pSpecieID = 2
+       pOtherSpecieID = 1
+       p13p24 = .true.
+    end if
+
+    if(p12) then
+        if(p34) then
+            if(p13p24) then
+                ! (AB|CD) -> (DC|BA)
+                bufferOffsets(0) = 9 
+                bufferOffsets(1) = 6
+                bufferOffsets(2) = 3 
+                bufferOffsets(3) = 0
+            else
+                ! (AB|CD) -> (BA|DC)
+                bufferOffsets(0) = 3 
+                bufferOffsets(1) = 0
+                bufferOffsets(2) = 9 
+                bufferOffsets(3) = 6
+            end if
+        else
+            if(p13p24) then
+                ! (AB|CD) -> (CD|BA)
+                bufferOffsets(0) = 6 
+                bufferOffsets(1) = 9
+                bufferOffsets(2) = 3 
+                bufferOffsets(3) = 0
+            else
+                ! (AB|CD) -> (BA|CD)
+                bufferOffsets(0) = 3 
+                bufferOffsets(1) = 0
+                bufferOffsets(2) = 6 
+                bufferOffsets(3) = 9
+            end if
+        end if
+    else
+        if(p34) then
+            if(p13p24) then
+                ! (AB|CD) -> (DC|AB)
+                bufferOffsets(0) = 9 
+                bufferOffsets(1) = 6
+                bufferOffsets(2) = 0 
+                bufferOffsets(3) = 3
+            else
+                ! (AB|CD) -> (AB|DC)
+                bufferOffsets(0) = 0 
+                bufferOffsets(1) = 3
+                bufferOffsets(2) = 9 
+                bufferOffsets(3) = 6
+            end if
+        else
+            if(p13p24) then
+                ! (AB|CD) -> (CD|AB)
+                bufferOffsets(0) = 6 
+                bufferOffsets(1) = 9
+                bufferOffsets(2) = 0 
+                bufferOffsets(3) = 3
+            else
+                ! (AB|CD) -> (AB|CD)
+                bufferOffsets(0) = 0 
+                bufferOffsets(1) = 3
+                bufferOffsets(2) = 6 
+                bufferOffsets(3) = 9
+            end if
+        end if
+    end if
+
+    ! write(*,"(A)") "Contraida:"
+    ! write(*,"(3(A,I))") "maxam: ",  maxAngularMoment, " maxnprim: ", maxNPrimSize, " maxncart: ", maxNCartSize
+    !write(*,"(A,I,A,I,A,I,A,I,A)") "(",aa,",",bb,"|",rr,",",ss,")"
+
+    am1 = contr(pSpecieID,aa)%angularMoment
+    am2 = contr(pSpecieID,bb)%angularMoment
+    am3 = contr(pOtherSpecieID,rr)%angularMoment
+    am4 = contr(pOtherSpecieID,ss)%angularMoment
+   
+    !!Distancias AB, CD
+    AB = contr(pSpecieID,aa)%origin - contr(pSpecieID,bb)%origin
+    CD = contr(pOtherSpecieID,rr)%origin - contr(pOtherSpecieID,ss)%origin
+
+    AB2 = dot_product(AB, AB)
+    CD2 = dot_product(CD, CD)    
+
+    ! Asigna valores a la estrucutra Libderiv
+    RepulsionDerivatives_instance%libderiv%AB = AB
+    RepulsionDerivatives_instance%libderiv%CD = CD
+    ! write(*,"(A)") "----------------------------------------"
+    ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
+    ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A6,I1,A1,I1,A1,I1,A1,I1,A1)") "(",am1,",",am2,"|",am3,",",am4,") -> (",am4,",",am3,"|",am2,",",am1,")"
+    ! write(*,"(A)") "-----------------------------------------"
+    ! write(*,"(A,3(F17.12))") "AB: ", AB(:)
+    ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%AB(:)
+    ! write(*,"(A)") "-----------------------------------------"
+
+    numberOfPrimitives = 1
+
+    do pa=1, contr(pSpecieID,aa)%length
+       do pb=1, contr(pSpecieID,bb)%length
+          do pr=1, contr(pOtherSpecieID,rr)%length
+             do ps=1, contr(pOtherSpecieID,ss)%length
+                auxExponentS = contr(pOtherSpecieID,ss)%orbitalExponents(ps)
+                auxCoefficientS = contr(pOtherSpecieID,ss)%contractionCoefficients(ps)
+                auxPrimConstantS = contr(pOtherSpecieID,ss)%primNormalization(ps,1)
+                auxContConstantS = contr(pOtherSpecieID,ss)%contNormalization(1)
+                c4 = auxCoefficientS*auxPrimConstantS*auxContConstantS
+
+                auxExponentR = contr(pOtherSpecieID,rr)%orbitalExponents(pr)
+                auxCoefficientR = contr(pOtherSpecieID,rr)%contractionCoefficients(pr)
+                auxPrimConstantR = contr(pOtherSpecieID,rr)%primNormalization(pr,1)
+                auxContConstantR = contr(pOtherSpecieID,rr)%contNormalization(1)
+                c3 = auxCoefficientR*auxPrimConstantR*auxContConstantR
+
+                auxExponentB = contr(pSpecieID,bb)%orbitalExponents(pb)
+                auxCoefficientB = contr(pSpecieID,bb)%contractionCoefficients(pb)
+                auxPrimConstantB = contr(pSpecieID,bb)%primNormalization(pb,1)
+                auxContConstantB = contr(pSpecieID,bb)%contNormalization(1)
+                c2 = auxCoefficientB*auxPrimConstantB*auxContConstantB
+
+
+                auxExponentA = contr(pSpecieID,aa)%orbitalExponents(pa)
+                auxCoefficientA = contr(pSpecieID,aa)%contractionCoefficients(pa)
+                auxPrimConstantA = contr(pSpecieID,aa)%primNormalization(pa,1)
+                auxContConstantA = contr(pSpecieID,aa)%contNormalization(1)
+                c1 = auxCoefficientA*auxPrimConstantA*auxContConstantA
+
+                zeta = auxExponentA + auxExponentB
+                ooz = 1.0_8/zeta
+                oo2z = 1.0_8/(2.0_8*zeta)
+
+                P = (auxExponentA*contr(pSpecieID,aa)%origin + auxExponentB*contr(pSpecieID,bb)%origin)*ooz
+
+                primitiveQuartet%U(1:3,1)= P - contr(pSpecieID,aa)%origin
+                primitiveQuartet%U(1:3,2)= P - contr(pSpecieID,bb)%origin
+
+                s12 = ((Math_PI*ooz)**1.5_8) * exp(-auxExponentA*auxExponentB*ooz*AB2)*c1*c2
+
+                nu = auxExponentR + auxExponentS
+                oon = 1.0_8/nu
+                oo2n = 1.0_8/(2.0_8*nu)
+                oo2zn = 1.0_8/(2.0_8*(zeta+nu))
+                rho = (zeta*nu)/(zeta+nu)
+
+                Q = (auxExponentR*contr(pOtherSpecieID,rr)%origin + auxExponentS*contr(pOtherSpecieID,ss)%origin)*oon
+                primitiveQuartet%U(1:3,3)= Q - contr(pOtherSpecieID,rr)%origin
+                primitiveQuartet%U(1:3,4)= Q - contr(pOtherSpecieID,ss)%origin
+
+                PQ = P - Q
+                PQ2 = dot_product(PQ, PQ)
+
+                W  = ((zeta * P) + (nu * Q)) / (zeta + nu)
+
+                primitiveQuartet%U(1:3,5)= (W - P)
+                primitiveQuartet%U(1:3,6)= (W - Q)
+                               
+                primitiveQuartet%oo2z = oo2z
+                primitiveQuartet%oo2n = oo2n
+                primitiveQuartet%oo2zn = oo2zn
+                primitiveQuartet%poz = rho * ooz
+                primitiveQuartet%pon = rho * oon
+                primitiveQuartet%twozeta_a = 2.0 * auxExponentA
+                primitiveQuartet%twozeta_b = 2.0 * auxExponentB
+                primitiveQuartet%twozeta_c = 2.0 * auxExponentR
+                primitiveQuartet%twozeta_d = 2.0 * auxExponentS
+
+                incompletGammaArgument = rho*PQ2
+                call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
+                ! call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+1))
+
+                s34 = ((Math_PI*oon)**1.5_8) * exp(-auxExponentR*auxExponentS*oon*CD2)*c3*c4
+
+                s1234 = 2.0_8*sqrt(rho/Math_PI) * s12 * s34
+
+                ! do i=1, sumAngularMoment+1
+                !    primitiveQuartet%F(i) = incompletGamma(i-1)*s1234
+                ! end do
+
+                ! write(*,"(A)") "-----------------------------------------"
+                ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
+                ! do i=1,3
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,1)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,2)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,3)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,4)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,5)
+                !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,6)
+                ! end do
+
+                do i=0, maxAngularMoment+1
+                   primitiveQuartet%F(i+1) = incompletGamma(i)*s1234
+                   ! write(*,"(A1,I1,A,f17.12)") "F", i, " : ", primitiveQuartet%F(i+1)
+                end do
+                ! write(*,"(A)") "-----------------------------------------"
+                ! arraySsize(1) = arraySize
+
+                RepulsionDerivatives_instance%libderiv%PrimQuartet = c_loc(primitiveQuartet) !ok
+
+                ! write(*,"(A)") "-----------------------------------------"
+                ! ! write(*,"(A,I8)") "Array Size: ", arraySsize(1)
+                ! ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",pa,",",pb,"|",pr,",",ps,")"
+                ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
+                ! write(*,"(A,f17.12)") "oo2z : ", primitiveQuartet%oo2z
+                ! write(*,"(A,f17.12)") "oo2n : ", primitiveQuartet%oo2n 
+                ! write(*,"(A,f17.12)") "oo2zn : ", primitiveQuartet%oo2zn
+                ! write(*,"(A,f17.12)") "poz : ", primitiveQuartet%poz
+                ! write(*,"(A,f17.12)") "pon : ", primitiveQuartet%pon
+                ! write(*,"(A,f22.8)") "a : ", primitiveQuartet%twozeta_a 
+                ! write(*,"(A,f22.8)") "b : ", primitiveQuartet%twozeta_b 
+                ! write(*,"(A,f22.8)") "c : ", primitiveQuartet%twozeta_c 
+                ! write(*,"(A,f22.8)") "d : ", primitiveQuartet%twozeta_d 
+                ! write(*,"(A)") "-----------------------------------------"
+                ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%PrimQuartet%oo2z
+                ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%PrimQuartet%oo2n
+                ! write(*,"(A)") "-----------------------------------------"
+                ! RepulsionDerivatives_instance%libderiv%PrimQuartet(numberOfPrimitives) = c_loc(primitiveQuartet)
+                call c_f_procpointer(build_deriv1_eri(am4,am3,am2,am1), pBuild)
+
+                call pBuild(RepulsionDerivatives_instance%libderiv,1)
+
+
+                workForces = 0.0_8
+                ! write(*,"(A)") "-----------------------------------------"
+                ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
+                do k=1,12
+                   if(k==4 .or. k==5 .or. k==6) cycle
+                    resultPc = RepulsionDerivatives_instance%libderiv%ABCD(k)
+                    call c_f_pointer(resultPc, temporalPtr, arraySsize)
                    
-  !                  pi => j
-  !                  pj => i
+                    derivativesPtr => temporalPtr
+                    
+                    do i=1,arraySsize(1)
+                       workForces(i,k) = derivativesPtr(i)
+                       ! write(*,"(2I, 2f17.12)") k, i, derivativesPtr(i), workForces(i,k)
+                    end do
+                 end do
 
-  !                  poi => j
-  !                  poj => i
-
-  !                  order = order + 1
-  !               end if
+                 do k=4,6
+                    do i=1,arraySsize(1)
+                       workForces(i,k) = 0.0_8
+                    end do
+                 end do
+                 
                 
-  !               if (contractions(2)%contractions(r)%angularMoment < contractions(2)%contractions(s)%angularMoment) then
-                   
-  !                  rr = s
-  !                  ss = r
+                 do k=1,12
+                    do i=1, arraySsize(1)
+                       work(i,k) = work(i,k) + workForces(i,k)
+                    end do
+                 end do
+                 ! write(*,"(A)") "-----------------------------------------"
+                 numberOfPrimitives = numberOfPrimitives + 1
+             end do
+          end do
+       end do
+    end do
 
-  !                  pk => l
-  !                  pl => k
+    call RepulsionDerivatives_reordering1(bufferOffsets, work, deriveValue, arraySsize(1))
 
-  !                  pok => l
-  !                  pol => k
+    if (p12 .or. p34 .or. p13p24) then
+       nc1 =  contr(pSpecieID,aa)%numCartesianOrbital
+       nc2 =  contr(pSpecieID,bb)%numCartesianOrbital
+       nc3 =  contr(pOtherSpecieID,rr)%numCartesianOrbital
+       nc4 =  contr(pOtherSpecieID,ss)%numCartesianOrbital
+       call RepulsionDerivatives_permute(nc1,nc2,nc3,nc4, p12, p34, p13p24, arraySsize(1), deriveValue)
+    end if
 
-  !                  order = order + 3
+    ! write(*,"(A)") "-----------------------------------------"
+    ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",a,",",b,"|",r,",",s,")"
+    ! do k=0,9*arraySsize(1) - 1
+    !    write(*,"(I2,f17.12)") k, deriveValue(k)
+    ! end do
+    ! ! do k=1,12
+    ! !    do i=1,arraySsize(1)
+    ! !       write(*,"(I2,I2,f17.12)") k, 1, work(i,k)
+    ! !    end do
+    ! ! end do
+    ! write(*,"(A)") "-----------------------------------------"
 
-  !               end if
+  end subroutine RepulsionDerivatives_getInterDerive
+  
 
-  !               if((contractions(1)%contractions(a)%angularMoment + contractions(1)%contractions(b)%angularMoment) > &
-  !                    (contractions(2)%contractions(r)%angularMoment + contractions(2)%contractions(s)%angularMoment)) then
-                   
-  !                  aux = aa
-  !                  aa = rr
-  !                  rr = aux
-
-  !                  aux = bb
-  !                  bb = ss
-  !                  ss = aux
-
-  !                  pSpecieID => otherSpecieID
-  !                  pOtherSpecieID => specieID
-
-  !                  select case(order)
-  !                  case(0)
-  !                     pi => k
-  !                     pj => l
-  !                     pk => i
-  !                     pl => j
-
-  !                     poi => k
-  !                     poj => l
-  !                     pok => i
-  !                     pol => j
-
-  !                  case(1)
-  !                     pi => k
-  !                     pj => l
-  !                     pk => j
-  !                     pl => i
-
-  !                     poi => l
-  !                     poj => k
-  !                     pok => i
-  !                     pol => j
-
-  !                  case(3)
-  !                     pi => l
-  !                     pj => k
-  !                     pk => i
-  !                     pl => j
-
-  !                     poi => k
-  !                     poj => l
-  !                     pok => j
-  !                     pol => i
-
-  !                  case(4)
-  !                     pi => l
-  !                     pj => k
-  !                     pk => j
-  !                     pl => i
-
-  !                     poi => l
-  !                     poj => k
-  !                     pok => j
-  !                     pol => i
-
-  !                  end select
-
-  !                  order = order + 5
-
-  !               end if
-
-  !               !!************************************
-  !               !! Calculate iteratively contractions
-  !               !!
-
-  !               !!Distancias AB, CD
-  !               AB = contr(pSpecieID,aa)%origin - contr(pSpecieID,bb)%origin
-  !               CD = contr(pOtherSpecieID,rr)%origin - contr(pOtherSpecieID,ss)%origin
-
-  !               AB2 = dot_product(AB, AB)
-  !               CD2 = dot_product(CD, CD)
-
-  !               !! Asigna valores a la estrucutra Libint
-  !               RepulsionDerivatives_instance%libint%AB = AB
-  !               RepulsionDerivatives_instance%libint%CD = CD
-
-  !               !!start :)
-  !               integralsValue(1:arraySize) = 0.0_8
-
-  !               !! not-permuted loop
-  !               do l = 1, contractions(otherSpecieID)%contractions(s)%length
-  !                  do k = 1, contractions(otherSpecieID)%contractions(r)%length
-  !                     do j = 1, contractions(specieID)%contractions(b)%length
-  !                        do i = 1, contractions(specieID)%contractions(a)%length
-
-  !                           !!LIBINT PRIMQUARTET
-
-  !                           !!Exponentes
-                            
-  !                           zeta = contr(pSpecieID,aa)%orbitalExponents(pi) + &
-  !                                contr(pSpecieID,bb)%orbitalExponents(pj)
-
-  !                           eta =  contr(pOtherSpecieID,rr)%orbitalExponents(pk) + &
-  !                                contr(pOtherSpecieID,ss)%orbitalExponents(pl)
-
-  !                           rho  = (zeta * eta) / (zeta + eta) !Exponente reducido ABCD
-
-  !                           !!prim_data.U
-  !                           P  = (( contr(pSpecieID,aa)%orbitalExponents(pi) * contr(pSpecieID,aa)%origin ) + &
-  !                                ( contr(pSpecieID,bb)%orbitalExponents(pj) * contr(pSpecieID,bb)%origin )) / zeta
-
-  !                           Q  = (( contr(pOtherSpecieID,rr)%orbitalExponents(pk) * contr(pOtherSpecieID,rr)%origin ) + &
-  !                                ( contr(pOtherSpecieID,ss)%orbitalExponents(pl) * contr(pOtherSpecieID,ss)%origin )) / eta
-                            
-  !                           W  = ((zeta * P) + (eta * Q)) / (zeta + eta)
-                            
-  !                           PQ = P - Q
-                            
-  !                           primitiveQuartet%U(1:3,1)= (P - contr(pSpecieID,aa)%origin)
-  !                           primitiveQuartet%U(1:3,3)= (Q - contr(pOtherSpecieID,rr)%origin)
-  !                           primitiveQuartet%U(1:3,5)= (W - P)
-  !                           primitiveQuartet%U(1:3,6)= (W - Q)
-
-  !                           !!Distancias ABCD(PQ2)
-  !                           PQ2 = dot_product(PQ, PQ)
-
-  !                           !!Evalua el argumento de la funcion gamma incompleta
-  !                           incompletGammaArgument = rho*PQ2
-
-  !                           !!Overlap Factor
-  !                           s12 = ((Math_PI/zeta)**1.5_8) * exp(-(( contr(pSpecieID,aa)%orbitalExponents(pi) * &
-  !                                contr(pSpecieID,bb)%orbitalExponents(pj)) / zeta) * AB2)
-
-  !                           s34 = ((Math_PI/ eta)**1.5_8) * exp(-(( contr(pOtherSpecieID,rr)%orbitalExponents(pk) * &
-  !                                contr(pOtherSpecieID,ss)%orbitalExponents(pl)) /  eta) * CD2)
-
-  !                           s1234 = sqrt(rho/Math_PI) * s12 * s34
-
-  !                           call Math_fgamma0(sumAngularMoment,incompletGammaArgument,incompletGamma(0:sumAngularMoment))
-
-  !                           !!prim_data.F
-  !                           primitiveQuartet%F(1:sumAngularMoment+1) = 2.0_8 * incompletGamma(0:sumAngularMoment) * s1234
-
-  !                           !!Datos restantes para prim.U
-  !                           primitiveQuartet%oo2z = (0.5_8 / zeta)
-  !                           primitiveQuartet%oo2n = (0.5_8 / eta)
-  !                           primitiveQuartet%oo2zn = (0.5_8 / (zeta + eta))
-  !                           primitiveQuartet%poz = (rho/zeta)
-  !                           primitiveQuartet%pon = (rho/eta)
-  !                           primitiveQuartet%oo2p = (0.5_8 / rho)
-
-  !                           if(arraySize == 1) then
-                               
-  !                              auxIntegrals(1) = primitiveQuartet%F(1)
-
-  !                           else
+  subroutine RepulsionDerivatives_reordering1(bufferOffsets, prederivatives, deriveValue, size)
+    implicit none
+    integer, intent(in) :: bufferOffsets(0:3)
+    real(8), allocatable, intent(in) :: prederivatives(:,:)
+    real(8), allocatable, intent(inout) :: deriveValue(:)
+    integer, intent(in) :: size
+    integer :: A, B, C, D
+    integer :: i
 
 
-  !                              arraySsize(1) = arraySize
-                               
-  !                              RepulsionDerivatives_instance%libint%PrimQuartet = c_loc(primitiveQuartet)
+    if(allocated(deriveValue)) deallocate(deriveValue)
+    allocate(deriveValue(0:(size*9 - 1)))
 
-  !                              !! calculate integrals (finally)                               
-  !                              call c_f_procpointer(build_eri( contr(pOtherSpecieID,ss)%angularMoment , &
-  !                                   contr(pOtherSpecieID,rr)%angularMoment , &
-  !                                   contr(pSpecieID,bb)%angularMoment , &
-  !                                   contr(pSpecieID,aa)%angularMoment), pBuild)
-                               
-  !                              resultPc = pBuild(RepulsionDerivatives_instance%libint,1)
+    deriveValue = 0.0_8
 
-  !                              !! Get numbers from memory!
-  !                              call c_f_pointer(resultPc, temporalPtr, arraySsize)
-                               
-  !                              integralsPtr => temporalPtr
-                               
-  !                              !! Copy to fortran casting
-  !                              auxIntegrals(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy
-
-  !                           end if !!done by contractions
-
-  !                           !!Normalize by primitive
-  !                           m = 0
-  !                           do ii = 1, contr(pSpecieID,aa)%numCartesianOrbital
-  !                              do jj = 1, contr(pSpecieID,bb)%numCartesianOrbital
-  !                                 do kk = 1, contr(pOtherSpecieID,rr)%numCartesianOrbital
-  !                                    do ll = 1, contr(pOtherSpecieID,ss)%numCartesianOrbital
-  !                                       m = m + 1
-  !                                       auxIntegrals(m) = auxIntegrals(m) &
-  !                                            * contr(pSpecieID,aa)%primNormalization(pi,ii) &
-  !                                            * contr(pSpecieID,bb)%primNormalization(pj,jj) &
-  !                                            * contr(pOtherSpecieID,rr)%primNormalization(pk,kk) &
-  !                                            * contr(pOtherSpecieID,ss)%primNormalization(pl,ll)
-  !                                    end do
-  !                                 end do
-  !                              end do
-  !                           end do !! done by primitives
-                            
-  !                           auxIntegrals(1:arraySize) = auxIntegrals(1:arraySize) &
-  !                                * contr(pSpecieID,aa)%contractionCoefficients(pi) &
-  !                                * contr(pSpecieID,bb)%contractionCoefficients(pj) &
-  !                                * contr(pOtherSpecieID,rr)%contractionCoefficients(pk) &
-  !                                * contr(pOtherSpecieID,ss)%contractionCoefficients(pl)
-
-  !                           integralsValue(1:arraySize) = integralsValue(1:arraySize) + auxIntegrals(1:arraySize)
-
-  !                        end do
-  !                     end do
-  !                  end do
-  !               end do !!done Integral of pair of shells
-
-  !               !!normalize by contraction
-  !               m = 0
-  !               do ii = 1,  contr(pSpecieID,aa)%numCartesianOrbital
-  !                  do jj = 1,  contr(pSpecieID,bb)%numCartesianOrbital
-  !                     do kk = 1,  contr(pOtherSpecieID,rr)%numCartesianOrbital
-  !                        do ll = 1, contr(pOtherSpecieID,ss)%numCartesianOrbital
-  !                           m = m + 1
-
-  !                           integralsValue(m) = integralsValue(m) &
-  !                                * contr(pSpecieID,aa)%contNormalization(ii) &
-  !                                * contr(pSpecieID,bb)%contNormalization(jj) &
-  !                                * contr(pOtherSpecieID,rr)%contNormalization(kk) &
-  !                                * contr(pOtherSpecieID,ss)%contNormalization(ll)
-  !                        end do
-  !                     end do
-  !                  end do
-  !               end do !! done by cartesian of contractions
-                
-  !               !!write to disk
-  !               m = 0
-  !               do i = 1, contr(pSpecieID,aa)%numCartesianOrbital
-  !                  do j = 1, contr(pSpecieID,bb)%numCartesianOrbital
-  !                     do k = 1, contr(pOtherSpecieID,rr)%numCartesianOrbital
-  !                        do l = 1, contr(pOtherSpecieID,ss)%numCartesianOrbital
-
-  !                           m = m + 1
-
-  !                           !! index not permuted
-  !                           pa=labelsOfContractions(a)+poi-1
-  !                           pb=labelsOfContractions(b)+poj-1
-  !                           pr=otherLabelsOfContractions(r)+pok-1
-  !                           ps=otherLabelsOfContractions(s)+pol-1
-
-  !                           if( pa <= pb .and. pr <= ps ) then
-
-  !                              if(abs(integralsValue(m)) > 1.0D-10) then
-                                  
-  !                                 counter = counter + 1
-  !                                 auxCounter = auxCounter + 1
-                                  
-  !                                 eris%a(counter) = pa
-  !                                 eris%b(counter) = pb
-  !                                 eris%c(counter) = pr
-  !                                 eris%d(counter) = ps
-  !                                 eris%integrals(counter) = integralsValue(m)
-
-  !                              end if
-
-                               
-  !                              if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
-
-  !                                 write(34) eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-  !                                      eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-  !                                      eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-                                  
-  !                                 counter = 0
-
-  !                              end if
-  !                           end if !! Stack control
-
-  !                        end do
-  !                     end do
-  !                  end do
-  !               end do !! Done write to disk
-                
-  !            end do
-  !            u=r+1
-  !         end do
-  !      end do
-  !   end do !! done by basis set
-
-  !   eris%a(counter+1) = -1
-  !   eris%b(counter+1) = -1
-  !   eris%c(counter+1) = -1
-  !   eris%d(counter+1) = -1
-  !   eris%integrals(counter+1) = 0.0_8	       
+    do i=0, 3
+       if(bufferOffsets(i) == 0) then
+          A = 3*i + 1
+       end if
+       if(bufferOffsets(i) == 3) then 
+          B = 3*i + 1
+       end if
+       if(bufferOffsets(i) == 6) then 
+          C = 3*i + 1
+       end if
+       if(bufferOffsets(i) == 9) then 
+          D = 3*i + 1
+       end if
+    end do
     
-  !   write(34) eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-  !        eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+    if(bufferOffsets(1)==0) then
+       do i = 0, size - 1
+          deriveValue(i+0*size) = deriveValue(i+0*size) - prederivatives(i+1,B+0) - prederivatives(i+1,C+0) - prederivatives(i+1,D+0) !Ax
+          deriveValue(i+1*size) = deriveValue(i+1*size) - prederivatives(i+1,B+1) - prederivatives(i+1,C+1) - prederivatives(i+1,D+1) !Ay
+          deriveValue(i+2*size) = deriveValue(i+2*size) - prederivatives(i+1,B+2) - prederivatives(i+1,C+2) - prederivatives(i+1,D+2) !Az
+          deriveValue(i+3*size) = deriveValue(i+3*size) + prederivatives(i+1,C+0) !Cx
+          deriveValue(i+4*size) = deriveValue(i+4*size) + prederivatives(i+1,C+1) !Cy
+          deriveValue(i+5*size) = deriveValue(i+5*size) + prederivatives(i+1,C+2) !Cz
+          deriveValue(i+6*size) = deriveValue(i+6*size) + prederivatives(i+1,D+0) !Dx
+          deriveValue(i+7*size) = deriveValue(i+7*size) + prederivatives(i+1,D+1) !Dy
+          deriveValue(i+8*size) = deriveValue(i+8*size) + prederivatives(i+1,D+2) !Dz
+       end do
+    else if(bufferOffsets(1)==6) then
+       do i = 0, size - 1
+          deriveValue(i+0*size) = deriveValue(i+0*size) + prederivatives(i+1,A+0) !Ax
+          deriveValue(i+1*size) = deriveValue(i+1*size) + prederivatives(i+1,A+1) !Ay
+          deriveValue(i+2*size) = deriveValue(i+2*size) + prederivatives(i+1,A+2) !Az
+          deriveValue(i+3*size) = deriveValue(i+3*size) - prederivatives(i+1,A+0) - prederivatives(i+1,B+0) - prederivatives(i+1,D+0) !Cx
+          deriveValue(i+4*size) = deriveValue(i+4*size) - prederivatives(i+1,A+1) - prederivatives(i+1,B+1) - prederivatives(i+1,D+1) !Cy
+          deriveValue(i+5*size) = deriveValue(i+5*size) - prederivatives(i+1,A+2) - prederivatives(i+1,B+2) - prederivatives(i+1,D+2) !Cz
+          deriveValue(i+6*size) = deriveValue(i+6*size) + prederivatives(i+1,D+0) !Dx
+          deriveValue(i+7*size) = deriveValue(i+7*size) + prederivatives(i+1,D+1) !Dy
+          deriveValue(i+8*size) = deriveValue(i+8*size) + prederivatives(i+1,D+2) !Dz
+       end do
+    else if(bufferOffsets(1)==9) then
+       do i = 0, size - 1
+          deriveValue(i+0*size) = deriveValue(i+0*size) + prederivatives(i+1,A+0) !Ax
+          deriveValue(i+1*size) = deriveValue(i+1*size) + prederivatives(i+1,A+1) !Ay
+          deriveValue(i+2*size) = deriveValue(i+2*size) + prederivatives(i+1,A+2) !Az
+          deriveValue(i+3*size) = deriveValue(i+3*size) + prederivatives(i+1,C+0) !Cx
+          deriveValue(i+4*size) = deriveValue(i+4*size) + prederivatives(i+1,C+1) !Cy
+          deriveValue(i+5*size) = deriveValue(i+5*size) + prederivatives(i+1,C+2) !Cz
+          deriveValue(i+6*size) = deriveValue(i+6*size) - prederivatives(i+1,A+0) - prederivatives(i+1,B+0) - prederivatives(i+1,C+0) !Dx
+          deriveValue(i+7*size) = deriveValue(i+7*size) - prederivatives(i+1,A+1) - prederivatives(i+1,B+1) - prederivatives(i+1,C+1) !Dy
+          deriveValue(i+8*size) = deriveValue(i+8*size) - prederivatives(i+1,A+2) - prederivatives(i+1,B+2) - prederivatives(i+1,C+2) !Dz
+       end do
+    else
+       do i = 0, size - 1
+          deriveValue(i+0*size) = deriveValue(i+0*size) + prederivatives(i+1,A+0) !Ax
+          deriveValue(i+1*size) = deriveValue(i+1*size) + prederivatives(i+1,A+1) !Ay
+          deriveValue(i+2*size) = deriveValue(i+2*size) + prederivatives(i+1,A+2) !Az
+          deriveValue(i+3*size) = deriveValue(i+3*size) + prederivatives(i+1,C+0) !Cx
+          deriveValue(i+4*size) = deriveValue(i+4*size) + prederivatives(i+1,C+1) !Cy
+          deriveValue(i+5*size) = deriveValue(i+5*size) + prederivatives(i+1,C+2) !Cz
+          deriveValue(i+6*size) = deriveValue(i+6*size) + prederivatives(i+1,D+0) !Dx
+          deriveValue(i+7*size) = deriveValue(i+7*size) + prederivatives(i+1,D+1) !Dy
+          deriveValue(i+8*size) = deriveValue(i+8*size) + prederivatives(i+1,D+2) !Dz
+       end do
+    end if
+  end subroutine RepulsionDerivatives_reordering1
 
-  !   specieID = auxSpecieID
-  !   otherSpecieID = auxOtherSpecieID
-    
-  !   if(CONTROL_instance%LAST_STEP) then
-  !      write(*,"(A,I12,A,A)") " Stored ", &
-  !           auxCounter, &
-  !           " non-zero repulsion integrals between species: ", &
-  !           trim(MolecularSystem_instance%species(specieID)%name)//" / "//&
-  !           trim(MolecularSystem_instance%species(otherSpecieID)%name)
-  !   end if
+  subroutine RepulsionDerivatives_permute(nbf1, nbf2, nbf3, nbf4, p12, p34, p13p24, size, deriveValue)
+    implicit none
+    ! type(ContractedGaussian), intent(in):: this(:)
+    ! integer, intent(in) :: a, b, r, s
+    integer, intent(in) :: nbf1, nbf2, nbf3, nbf4
+    logical, intent(in) :: p12, p34, p13p24
+    integer, intent(in) :: size
+    real(8), allocatable, intent(inout) :: deriveValue(:)
+    integer :: bf1, bf2, bf3, bf4, derivIter
+    integer :: f1, f2, f3, f4
+    integer :: newPtr, auxIter
+    real(8), allocatable :: auxDerivatives(:)
 
-  !   close(34)
-    
-  ! end subroutine RepulsionDerivatives_computeInterSpecies
+
+    if(allocated(auxDerivatives)) deallocate(auxDerivatives)
+    allocate(auxDerivatives(0:(size*9 - 1)))
+
+    auxDerivatives = deriveValue
+    deriveValue = 0.0_8
+
+    ! nbf1 =  this(a)%numCartesianOrbital
+    ! nbf2 =  this(b)%numCartesianOrbital
+    ! nbf3 =  this(r)%numCartesianOrbital
+    ! nbf4 =  this(s)%numCartesianOrbital
+
+    do derivIter=0, 8
+       if (.not.p13p24) then
+          if (p12) then
+             if (p34) then
+                f1=nbf2
+                f2=nbf1
+                f3=nbf4
+                f4=nbf3
+                auxIter = 0
+                ! (a,b|r,s) -> (b,a|s,r)
+                do bf2=0, f2-1
+                   do bf1=0,f1-1
+                      do bf4=0, f4-1
+                         do bf3=0, f3-1
+                            newPtr = ((bf1*f2 + bf2)*f3 + bf3)*f4 + bf4
+                            deriveValue(newPtr+derivIter*size) = auxDerivatives(auxIter+derivIter*size)
+                            auxIter = auxIter + 1
+                         end do
+                      end do
+                   end do
+                end do
+             else
+                f1=nbf2
+                f2=nbf1
+                f3=nbf3
+                f4=nbf4
+                auxIter = 0
+                ! (a,b|r,s) -> (b,a|r,s)
+                do bf2=0, f2-1
+                   do bf1=0, f1-1
+                      do bf3=0, f3-1
+                         do bf4=0, f4-1
+                            newPtr = ((bf1*f2 + bf2)*f3 + bf3)*f4 + bf4
+                            deriveValue(newPtr+derivIter*size) = auxDerivatives(auxIter+derivIter*size)
+                            auxIter = auxIter + 1
+                         end do
+                      end do
+                   end do
+                end do
+             end if
+          else
+             f1=nbf1
+             f2=nbf2
+             f3=nbf4
+             f4=nbf3
+             auxIter = 0
+             ! (a,b|r,s) -> (a,b|s,r)
+             do bf1=0, f1-1
+                do bf2=0, f2-1
+                   do bf4=0, f4-1
+                      do bf3=0, f3-1
+                         newPtr = ((bf1*f2 + bf2)*f3 + bf3)*f4 + bf4
+                         deriveValue(newPtr+derivIter*size) = auxDerivatives(auxIter+derivIter*size)
+                         auxIter = auxIter + 1
+                      end do
+                   end do
+                end do
+             end do
+          end if
+       else
+          if (p12) then
+             if (p34) then
+                f1=nbf4
+                f2=nbf3
+                f3=nbf2
+                f4=nbf1
+                auxIter = 0
+                ! (a,b|r,s) -> (s,r|b,a)
+                do bf4=0, f4-1
+                   do bf3=0,f3-1
+                      do bf2=0, f2-1
+                         do bf1=0, f1-1
+                            newPtr = ((bf1*f2 + bf2)*f3 + bf3)*f4 + bf4
+                            deriveValue(newPtr+derivIter*size) = auxDerivatives(auxIter+derivIter*size)
+                            auxIter = auxIter + 1
+                         end do
+                      end do
+                   end do
+                end do
+             else
+                f1=nbf4
+                f2=nbf3
+                f3=nbf1
+                f4=nbf2
+                auxIter = 0
+                ! (a,b|r,s) -> (s,r|a,b)
+                do bf3=0, f3-1
+                   do bf4=0, f4-1
+                      do bf2=0, f2-1
+                         do bf1=0, f1-1
+                            newPtr = ((bf1*f2 + bf2)*f3 + bf3)*f4 + bf4
+                            deriveValue(newPtr+derivIter*size) = auxDerivatives(auxIter+derivIter*size)
+                            auxIter = auxIter + 1
+                         end do
+                      end do
+                   end do
+                end do
+             end if
+          else
+             if (p34) then
+                f1=nbf3
+                f2=nbf4
+                f3=nbf2
+                f4=nbf1
+                auxIter = 0
+                ! (a,b|r,s) -> (r,s|b,a)
+                do bf4=0, f4-1
+                   do bf3=0, f3-1
+                      do bf1=0, f1-1
+                         do bf2=0, f2-1
+                            newPtr = ((bf1*f2 + bf2)*f3 + bf3)*f4 + bf4
+                            deriveValue(newPtr+derivIter*size) = auxDerivatives(auxIter+derivIter*size)
+                            auxIter = auxIter + 1
+                         end do
+                      end do
+                   end do
+                end do
+             else
+                f1=nbf3
+                f2=nbf4
+                f3=nbf1
+                f4=nbf2
+                auxIter = 0
+                ! (a,b|r,s) -> (r,s|a,b)
+                do bf3=0, f3-1
+                   do bf4=0, f4-1
+                      do bf1=0, f1-1
+                         do bf2=0, f2-1
+                            newPtr = ((bf1*f2 + bf2)*f3 + bf3)*f4 + bf4
+                            deriveValue(newPtr+derivIter*size) = auxDerivatives(auxIter+derivIter*size)
+                            auxIter = auxIter + 1
+                         end do
+                      end do
+                   end do
+                end do
+             end if
+          end if
+       end if
+    end do
+
+  end subroutine RepulsionDerivatives_permute
 
   !>
   !! @brief Indica si el objeto ha sido instanciado o no

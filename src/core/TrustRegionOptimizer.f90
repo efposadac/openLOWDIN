@@ -287,7 +287,7 @@ contains
 
        !! Muestra el estimado actual de la minimizacion
        write(*,"(T10,A21,I5)") "NUMBER OF ITERATION: ", 0
-       write(*,"(T10,A20)") "===================="
+       write(*,"(T10,A20)") "-----------------------------------------------------"
        write(*,"(A1)") " "
        call showFunction( this%variables%values, this%gradient%values, this%functionValue )
        write(*,"(T10,A19,F12.7)") "RMS GRADIENT     = ", TrustRegionOptimizer_getGradient(this)
@@ -301,7 +301,7 @@ contains
     this%numberOfIteration = this%numberOfIteration +1
 
     write (*,"(T10,A21,I5)") "NUMBER OF ITERATION: ", this%realNumberOfIteration
-    write(*,"(T10,A20)") "===================="
+    write(*,"(T10,A20)") "-----------------------------------------------------------"
     write(*,"(A1)") " "
 
     if ( this%realNumberOfIteration <= this%maximumNumberOfIterations ) then

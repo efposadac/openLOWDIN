@@ -974,7 +974,7 @@ contains
      
    end function MolecularSystem_getMaxAngularMoment
 
-   !> @brief find de maximun number of primitives for specieID, necessary for derive with libint
+   !> @brief find the maximun number of primitives for specieID, necessary for derive with libint
    !! @author J.M. Rodas 2015
    !! @version 1.0
    function MolecularSystem_getMaxNumberofPrimitives(specieID) result(output)

@@ -53,6 +53,7 @@ module DerivativeManager_
   integer, parameter, public :: MOMENT_DERIVATIVES        = 10
   integer, parameter, public :: MOMENTUM_DERIVATIVES      = 11
   integer, parameter, public :: REPULSION_DERIVATIVES     = 12
+  integer, parameter, public :: TWOPARTICLE_REPULSION_DERIVATIVES = 13
 
 
   type, public :: DerivativeManager
@@ -117,28 +118,23 @@ contains
     character(*), optional :: otherNameOfSpecie
     integer, optional :: A
     integer, optional :: B
-    !    integer, optional :: nuclei
-    !    integer, optional :: component
-    !    real(8) :: output
-
     type(ContractedGaussian), allocatable :: contractions(:)
+    type(ContractedGaussian), allocatable :: otherContractions(:)
     type(Exception) :: ex
     integer :: specieID
     integer :: otherSpecieID
-    integer :: m
-    integer :: contractionA_ID
-    integer :: contractionB_ID
-    integer :: cartesianA_ID
-    integer :: cartesianB_ID
     character(30) :: nameOfSpecieSelected
-    real(8) :: auxCharge
-    real(8) :: mass
-    integer :: n, p, o
 
     nameOfSpecieSelected = "E-"
-    if ( present( nameOfSpecie ) )  nameOfSpecieSelected= nameOfSpecie
+    if ( present( nameOfSpecie ) ) then
+       nameOfSpecieSelected= nameOfSpecie
+    end if
     specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
-    ! mass = MolecularSystem_getMass( specieID )
+    call MolecularSystem_getBasisSet(specieID, contractions)
+
+    if ( present( otherNameOfSpecie ) ) then
+       otherSpecieID = MolecularSystem_getSpecieID( nameOfSpecie=otherNameOfSpecie )
+    end if
 
     call MolecularSystem_getBasisSet(specieID, contractions)
 
@@ -167,6 +163,9 @@ contains
           call Exception_setDescription( ex, "For repulsion derivatives is necessary four indices (p,q|r,s)" )
           call Exception_show( ex )
        end if
+
+    case( TWOPARTICLE_REPULSION_DERIVATIVES )
+       call RepulsionDerivatives_getInterDerive(i, j, k, l, deriveVector, specieID, otherSpecieID)
 
     case default
 
