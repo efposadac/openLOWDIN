@@ -456,6 +456,8 @@ contains
 
     !!calculo del producto punto
 
+		cosmo_int(:)=0.0_8
+
 
     m=1
     do n=1,integrals
@@ -533,12 +535,12 @@ contains
           write(110) cosmo_int(:)
           close(unit=110)
 
-          write(*,*)"same specie inner product",MolecularSystem_instance%species(f_aux)%name
+          write(*,*)"same specie inner product",MolecularSystem_instance%species(f_aux)%name,m-1
 
        end if
 
     else	
-					write(*,*)trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)
+					! write(*,*)trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)
 
 					! write(*,*)"(ints_mat(:,n)"
           ! write(*,*)ints_mat(:,:)
@@ -551,7 +553,9 @@ contains
        write(110) m-1
        write(110) cosmo_int(:)
        close(unit=110)
-       write(*,*)"other species inner product :",trim(MolecularSystem_instance%species(f_aux)%name),trim(MolecularSystem_instance%species(g_aux)%name)
+       write(*,*)"other species inner product :",trim(MolecularSystem_instance%species(f_aux)%name),"charges ,",trim(MolecularSystem_instance%species(g_aux)%name)," potentials",m-1
+			 write(*,*)"m values",cosmo_int(:)
+			 write(*,*)cosmo_int(:)
 
 
     end if

@@ -432,13 +432,10 @@ contains
                             do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                                m = m + 1
 
-                               ! write(*,*)"integralValue(m)"
-                               ! write(*,*)integralValue(m)
 
 															 integralValueCosmo(m,c)=integralValue(m)*(-MolecularSystem_getCharge(f))
 
                                
-															 ! write(37,'(F10.5)')integralValueCosmo(m,c)
                             end do
                          end do
 

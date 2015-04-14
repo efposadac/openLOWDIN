@@ -1012,6 +1012,7 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = .false.
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = .false.
     CONTROL_instance%DEBUG_SCFS = .false.
+    ! CONTROL_instance%DEBUG_SCFS = .true.
 
     !!***************************************************************************                                              
     !! Hartree-Fock options                                                                                                    

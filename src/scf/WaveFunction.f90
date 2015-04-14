@@ -591,43 +591,44 @@ contains
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%hcoreMatrix%values
 
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"MATRIZ DE FOCK 1: "//trim(nameOfSpecieSelected)
+       print *,"MATRIZ DE FOCK 1 (hcore): "//trim(nameOfSpecieSelected)
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
 
     !! cosmo fock matrix
-
+			
+		!!full coupling
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
          0.5_8*(wavefunction_instance(speciesID)%cosmo1%values + &
          wavefunction_instance(speciesID)%cosmo4%values)+ &
          wavefunction_instance(speciesID)%cosmo2%values + &
          wavefunction_instance(speciesID)%cosmoCoupling%values 
     
+		!!half coupling
+		! wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
+    !      0.5_8*(wavefunction_instance(speciesID)%cosmo1%values + &
+    !      wavefunction_instance(speciesID)%cosmo4%values)+ &
+    !      wavefunction_instance(speciesID)%cosmo2%values +0.5_8*( &
+    !      wavefunction_instance(speciesID)%cosmoCoupling%values) 
+
+    !!without coupling
 		! wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
     !      0.5_8*(wavefunction_instance(speciesID)%cosmo1%values + &
     !      wavefunction_instance(speciesID)%cosmo4%values)+ &
     !      wavefunction_instance(speciesID)%cosmo2%values
 		
 
-    !! debug
-    Call Matrix_constructor(cosmoContribution, 7, 7, 0.0_8)
-
-    cosmoContribution%values=0.5_8*((wavefunction_instance(speciesID)%cosmo1%values + &
-         wavefunction_instance(speciesID)%cosmo4%values)+&
-         wavefunction_instance(speciesID)%cosmo2%values)
-
-
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + wavefunction_instance(speciesID)%twoParticlesMatrix%values
 
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"MATRIZ DE FOCK 2: "//trim(nameOfSpecieSelected)
+       print *,"MATRIZ DE FOCK 2 (+ two particles): "//trim(nameOfSpecieSelected)
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
     
 		wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + wavefunction_instance(speciesID)%couplingMatrix%values
 
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"MATRIZ DE FOCK 3: "//trim(nameOfSpecieSelected)
+       print *,"MATRIZ DE FOCK 3 (+ coupling): "//trim(nameOfSpecieSelected)
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
 
@@ -750,6 +751,14 @@ contains
             wavefunction_instance( speciesID )%cosmo4%values ) + &
             sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
             wavefunction_instance( speciesID )%cosmoCoupling%values ))
+       
+			 ! wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie + 0.5_8 * &
+       !      (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+       !      wavefunction_instance( speciesID )%cosmo1%values )+ &
+       !      sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+       !      wavefunction_instance( speciesID )%cosmo2%values ) + &
+       !      sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+       !      wavefunction_instance( speciesID )%cosmo4%values )) 
 
     else
 
@@ -817,6 +826,14 @@ contains
                wavefunction_instance( speciesID )%cosmo4%values ) + &
                sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
                wavefunction_instance( speciesID )%cosmoCoupling%values))
+          
+					! wavefunction_instance( speciesID )%independentSpecieEnergy =wavefunction_instance( speciesID )%independentSpecieEnergy + 0.5_8 * &
+          !      (sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+          !      wavefunction_instance( speciesID )%cosmo1%values )+ &
+          !      sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+          !      wavefunction_instance( speciesID )%cosmo2%values ) +  &
+          !      sum( transpose( WaveFunction_instance( speciesID )%densityMatrix%values ) * &
+          !      wavefunction_instance( speciesID )%cosmo4%values)) 
 						
 
        else
@@ -2531,9 +2548,12 @@ contains
           end do
        end do
     end do
+    
+		if (  CONTROL_instance%DEBUG_SCFS) then
+   write(*,*) "COSMO 2 matrix for: ", trim(nameOfSpecieSelected)
+   call Matrix_show(wavefunction_instance(speciesID)%cosmo2)
+    end if
 
-   ! write(*,*) "cosmo 2 matrix for: ", trim(nameOfSpecieSelected)
-   ! call Matrix_show(wavefunction_instance(speciesID)%cosmo2)
 
 
   end subroutine WaveFunction_buildCosmo2Matrix
@@ -2606,7 +2626,6 @@ contains
 
     if( MolecularSystem_getNumberOfQuantumSpecies() > 1 ) then
 
-       wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
 
        do speciesIterator = 1, MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -2615,12 +2634,13 @@ contains
           OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
           otherSpecieSelected=MolecularSystem_instance%species(otherSpecieID)
 
-          !! Restringe suma de terminos repulsivos de la misma especie.
           if ( otherSpecieID /= currentSpecieID ) then
+					! write(*,*)"hola other and current", otherSpecieID,currentSpecieID 
 
+						 wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
 
-             ! open(unit=110, file=trim(nameOfOtherSpecie)//trim(nameOfSpecieSelected)//"_qq.cup", status='old', form="unformatted")
-             open(unit=110, file=trim(nameOfSpecieSelected)//trim(nameOfOtherSpecie)//"_qq.cup", status='old', form="unformatted")
+             open(unit=110, file=trim(nameOfOtherSpecie)//trim(nameOfSpecieSelected)//"_qq.cup", status='old', form="unformatted")
+             ! open(unit=110, file=trim(nameOfSpecieSelected)//trim(nameOfOtherSpecie)//"_qq.cup", status='old', form="unformatted")
              read(110)m
 
              if(allocated(cosmo_int)) deallocate(cosmo_int)
@@ -2649,6 +2669,7 @@ contains
 
                    otherlabels(c) = otherAuxLabelsOfContractions
                    otherAuxLabelsOfContractions = otherAuxLabelsOfContractions + otherSpecieSelected%particles(a)%basis%contraction(b)%numCartesianOrbital
+
                 end do
              end do
 
@@ -2661,8 +2682,6 @@ contains
 
              if(allocated(cosmoCoup_aux)) deallocate(cosmoCoup_aux)
              allocate(cosmoCoup_aux(MolecularSystem_getTotalNumberOfContractions(currentSpecieID), MolecularSystem_getTotalNumberOfContractions(currentSpecieID)))
-
-             otherAuxLabelsOfContractions = 1
 
 
              m = 0
@@ -2690,6 +2709,7 @@ contains
                                      hhh = ll
                                      iii = iii + 1
                                      jjj = iii - 1
+
                                      do p = gg, size(MolecularSystem_instance%species(otherSpecieID)%particles)
                                         do o = hhh, size(MolecularSystem_instance%species(otherSpecieID)%particles(p)%basis%contraction)
                                            jjj = jjj + 1
@@ -2699,13 +2719,14 @@ contains
                                               do oo = otherlabels(jjj), otherlabels(jjj) + (MolecularSystem_instance%species(otherSpecieID)%particles(p)%basis%contraction(o)%numCartesianOrbital - 1)
                                                  m = m + 1
 
-																								 ! write(*,*)"m,cosmo_int(m)",m,cosmo_int(m)
+																								 ! write(*,*)"m,cosmo_int(m),P_element,pp,oo",m,cosmo_int(m),wavefunction_instance(otherSpecieID)%densityMatrix%values(pp,oo),pp,oo
 
                                                  ints_mat_aux(pp, oo) =(wavefunction_instance(otherSpecieID)%densityMatrix%values(pp,oo))* cosmo_int(m)
                                                  ints_mat_aux(oo, pp) = ints_mat_aux(pp, oo)
 
                                               end do
                                            end do
+
                                         end do
                                         hhh = 1
                                      end do
@@ -2727,20 +2748,22 @@ contains
                    end do
                 end do
              end do
+		!! debug
+
+    write(*,*)"cosmo Coupling = "//trim(nameofSpecieSelected)
+
+    call Matrix_show(wavefunction_instance(currentSpecieID)%cosmoCoupling)
+
+		write(*,*)"cosmo density matrix used = "//trim(nameOfOtherSpecie)
+
+    call Matrix_show(wavefunction_instance(otherSpecieID)%densityMatrix)
 
           end if
        end do
-    end if
+    
+    
+		end if
 
-    !! debug
-
-    ! write(*,*)"cosmo Coupling = "//trim(nameofSpecieSelected)
-    !
-    ! call Matrix_show(wavefunction_instance(currentSpecieID)%cosmoCoupling)
-    !
-		! write(*,*)"cosmo density matrix used = "//trim(nameOfOtherSpecie)
-    !
-    ! call Matrix_show(wavefunction_instance(otherSpecieID)%densityMatrix)
 
 
   end subroutine WaveFunction_buildCosmoCoupling
