@@ -77,6 +77,7 @@ module CONTROL_
      logical :: ONLY_ELECTRONIC_EFFECT
      logical :: ELECTRONIC_WAVEFUNCTION_ANALYSIS
      logical :: IS_OPEN_SHELL
+     logical :: GET_GRADIENTS
 
      !!***************************************************************************
      !! Parameter to control geometry optimization
@@ -310,6 +311,7 @@ module CONTROL_
   logical :: LowdinParameters_onlyElectronicEffect
   logical :: LowdinParameters_electronicWaveFunctionAnalysis
   logical :: LowdinParameters_isOpenShell
+  logical :: LowdinParameters_getGradients
 
   !!***************************************************************************
   !! Parameter to control geometry optimization
@@ -539,6 +541,7 @@ module CONTROL_
        LowdinParameters_onlyElectronicEffect,&
        LowdinParameters_electronicWaveFunctionAnalysis,&
        LowdinParameters_isOpenShell, &
+       LowdinParameters_getGradients, &
 
        !!***************************************************************************
        !! Parameter to control geometry optimization
@@ -793,6 +796,7 @@ contains
     LowdinParameters_onlyElectronicEffect = .false.
     LowdinParameters_electronicWaveFunctionAnalysis = .false.
     LowdinParameters_isOpenShell = .false.
+    LowdinParameters_getGradients = .false.
 
     !!***************************************************************************
     !! Parameter to control geometry optimization
@@ -1032,6 +1036,7 @@ contains
     CONTROL_instance%ONLY_ELECTRONIC_EFFECT = .false.
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = .false.
     CONTROL_instance%IS_OPEN_SHELL = .false.
+    CONTROL_instance%GET_GRADIENTS = .false.
 
     !!***************************************************************************                                              
     !! Parameter to control geometry optimization                                                                              
@@ -1310,7 +1315,7 @@ contains
     CONTROL_instance%ONLY_ELECTRONIC_EFFECT = LowdinParameters_onlyElectronicEffect
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = LowdinParameters_electronicWaveFunctionAnalysis
     CONTROL_instance%IS_OPEN_SHELL = LowdinParameters_isOpenShell
-                                                                                                                                                                                          
+    CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients                                                                                                                                                                                          
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1548,6 +1553,7 @@ contains
     LowdinParameters_onlyElectronicEffect = CONTROL_instance%ONLY_ELECTRONIC_EFFECT
     LowdinParameters_electronicWaveFunctionAnalysis = CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS
     LowdinParameters_isOpenShell = CONTROL_instance%IS_OPEN_SHELL
+    LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
                                                                                                                                                                                           
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
@@ -1590,17 +1596,16 @@ contains
     LowdinParameters_mpCorrection = CONTROL_instance%MOLLER_PLESSET_CORRECTION
     LowdinParameters_mpFrozenCoreBoundary = CONTROL_instance%MP_FROZEN_CORE_BOUNDARY
     LowdinParameters_mpOnlyElectronicCorrection = CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! Parameter to control cosmo method                                                 
     !!                                                                                 
     LowdinParameters_cosmo = CONTROL_instance%COSMO
-		LowdinParameters_cosmo_solvent_dialectric = CONTROL_instance%COSMO_SOLVENT_DIALECTRIC 
-		LowdinParameters_cosmo_min_bem = CONTROL_instance%COSMO_MIN_BEM
-  	LowdinParameters_cosmo_max_bem = CONTROL_instance%COSMO_MAX_BEM
- 		LowdinParameters_cosmo_rsolv = CONTROL_instance%COSMO_RSOLV
+    LowdinParameters_cosmo_solvent_dialectric = CONTROL_instance%COSMO_SOLVENT_DIALECTRIC 
+    LowdinParameters_cosmo_min_bem = CONTROL_instance%COSMO_MIN_BEM
+    LowdinParameters_cosmo_max_bem = CONTROL_instance%COSMO_MAX_BEM
+    LowdinParameters_cosmo_rsolv = CONTROL_instance%COSMO_RSOLV
 
-                                                                                                                                                                                          
     !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
     !!                                                                                 
@@ -1615,9 +1620,7 @@ contains
     LowdinParameters_ptIterationMethod2Limit = CONTROL_instance%PT_ITERATION_METHOD_2_LIMIT
     LowdinParameters_ptIterationScheme = CONTROL_instance%PT_ITERATION_SCHEME
     LowdinParameters_ptMaxNumberOfPolesSearched = CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED
-                                                                                                                                                                                          
-                                                                                  
-                                                                                       
+
     !!***************************************************************************      
     !! Control print level and units                                                   
     !!                                                                                 
@@ -1792,6 +1795,7 @@ contains
     otherThis%ONLY_ELECTRONIC_EFFECT = this%ONLY_ELECTRONIC_EFFECT 
     otherThis%ELECTRONIC_WAVEFUNCTION_ANALYSIS = this%ELECTRONIC_WAVEFUNCTION_ANALYSIS 
     otherThis%IS_OPEN_SHELL = this%IS_OPEN_SHELL    
+    otherThis%GET_GRADIENTS = this%GET_GRADIENTS    
     !!***************************************************************************
     !! Parametros para control de proceso de minimizacion multidimensional
     !!

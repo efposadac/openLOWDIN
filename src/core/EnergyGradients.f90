@@ -46,6 +46,20 @@ module EnergyGradients_
   implicit none
   ! use omp_lib
 
+  type, public :: Gradients
+
+     real(8), allocatable :: kinetic(:)
+     real(8), allocatable :: attraction(:)
+     real(8), allocatable :: overlap(:)
+     real(8), allocatable :: coulomb(:)
+     real(8), allocatable :: exchange(:)
+     real(8), allocatable :: nuclear(:)
+     real(8), allocatable :: coupling(:)
+     real(8), allocatable :: total(:)
+     
+  end type Gradients
+
+
   type, public :: EnergyGradients
 
      character(30) :: name
@@ -57,6 +71,7 @@ module EnergyGradients_
      type(Vector) pointsOfEvaluation
      integer, allocatable :: components(:)
      logical :: derivativeWithMP
+     type(Gradients) :: gradients 
 
   end type EnergyGradients
 
@@ -76,7 +91,8 @@ module EnergyGradients_
                                 ! EnergyGradients_setNumericStepSize, &
        EnergyGradients_getDerivative, &
        EnergyGradients_getAnalyticDerivative, &
-       EnergyGradients_getNumericGradient!, &
+       EnergyGradients_getNumericGradient, &
+       EnergyGradients_show
   ! EnergyGradients_getNumericDerivative, &
   ! EnergyGradients_getTypeGradient, &
   ! EnergyGradients_isInstanced
@@ -87,12 +103,14 @@ contains
   !**
   subroutine EnergyGradients_constructor()
     implicit none
+    
 
     EnergyGradients_instance%name = ""
     EnergyGradients_instance%isIntanced = .true.
     EnergyGradients_instance%isAnalytic = CONTROL_instance%ANALYTIC_GRADIENT
     EnergyGradients_instance%deltaX = CONTROL_instance%NUMERICAL_DERIVATIVE_DELTA
     EnergyGradients_instance%derivativeWithMP = CONTROL_instance%OPTIMIZE_WITH_MP
+    EnergyGradients_instance%order = 1
 
   end subroutine EnergyGradients_constructor
 
@@ -107,6 +125,27 @@ contains
     EnergyGradients_instance%isIntanced = .false.
 
   end subroutine EnergyGradients_destructor
+
+  subroutine EnergyGradients_show()
+    implicit none
+    integer :: numberOfOptimizationCenters
+    integer :: i,j,k
+
+    numberOfOptimizationCenters = ParticleManager_getNumberOfCentersOfOptimization()
+
+
+    write(*,"(A)") "----------------------------------------------------"
+    write(*,"(A)") "            ENERGY GRADIENTS(HARTREE/BOHR)          "
+    write(*,"(A)") "        dE/dx            dE/dy            dE/dz     "
+    write(*,"(A)") "----------------------------------------------------"
+    do i=0, numberOfOptimizationCenters-1
+       j = i*numberOfOptimizationCenters + 1
+       k = i*numberOfOptimizationCenters + 3
+       write(*,"(3F17.12)") EnergyGradients_instance%gradients%total(j:k)
+    end do
+    
+
+  end subroutine EnergyGradients_show
 
   !         !**
   !         ! @brief Ajusta el nombre del minimizador empleado
@@ -192,10 +231,10 @@ contains
     ! write(*,"(A)") "Componenetes de entrada"
     ! do i=1, size(components)
     !    write(*,"(I)") EnergyGradients_instance%components(i)
-    !    write(*,"(A)") "-------------------------"
-    !    do j=1, size(evaluationPoint%values)
-    !       write(*,"(f12.8)") evaluationPoint%values(j)
-    !    end do
+       ! write(*,"(A)") "-------------------------"
+       ! do j=1, size(evaluationPoint%values)
+       !    write(*,"(f12.8)") evaluationPoint%values(j)
+       ! end do
     ! end do
     ! write(*,"(A)") "-------------------------"
 
@@ -203,6 +242,7 @@ contains
 
     ! if ( EnergyGradients_instance%isAnalytic ) then
     call EnergyGradients_getAnalyticDerivative(gradientVector)
+
     ! else
     ! if( EnergyGradients_instance%derivativeWithMP .and. CONTROL_instance%MOLLER_PLESSET_CORRECTION==2) then
     !    output = EnergyGradients_gradientWithMP()
@@ -316,45 +356,84 @@ contains
   !**
   subroutine EnergyGradients_getAnalyticDerivative(gradientVector)
     implicit none
-    real(8), intent(inout) :: gradientVector(:)
+    real(8), intent(inout), optional :: gradientVector(:)
+    ! real(8), allocatable :: auxGradient(:)
     type(Exception) :: ex
     integer :: numberOfOptimizationCenters
+    type(Vector) :: geometry
     integer :: i,j,k 
-    real(8), allocatable :: auxNuclear(:,:), auxCoupling(:,:)
+    ! real(8), allocatable :: auxNuclear(:,:), auxCoupling(:,:)
 
     numberOfOptimizationCenters = ParticleManager_getNumberOfCentersOfOptimization()
 
-    if(allocated(auxCoupling)) deallocate(auxCoupling)
-    allocate(auxCoupling(numberOfOptimizationCenters,3))
+    ! geometry = ParticleManager_getPositionOfCenterOfOptimizacion()
 
-    auxCoupling = 0.0_8
+    ! write(*,"(A,I)") "Number of opt: ", numberOfOptimizationCenters
+    ! write(*,"(3F17.12)") geometry%values(1:3)
+    ! write(*,"(3F17.12)") geometry%values(4:6)
+    ! write(*,"(3F17.12)") geometry%values(7:9)
+
+
+    if(allocated(EnergyGradients_instance%gradients%coupling)) deallocate(EnergyGradients_instance%gradients%coupling)
+    allocate(EnergyGradients_instance%gradients%coupling(numberOfOptimizationCenters*3))
+
+    if(allocated(EnergyGradients_instance%gradients%total)) deallocate(EnergyGradients_instance%gradients%total)
+    allocate(EnergyGradients_instance%gradients%total(numberOfOptimizationCenters*3))
+
+
+    EnergyGradients_instance%gradients%coupling = 0.0_8
+
 
     if ( EnergyGradients_instance%order == 1 ) then
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes Totales"
-       write(*,"(A)") "----------------------------------------------------------------"
-       call EnergyGradients_calculateAnalyticUncoupledFirstDerivative(gradientVector)
-       write(*,"(A)") " Uncoupled calculados ..."
-       ! if ( MolecularSystem_instance%numberOfQuantumSpecies > 1) then
-       !    call EnergyGradients_calculateAnalyticCouplingFirstDerivative(auxCoupling)
-       ! end if
-       ! write(*,"(A)") " Coupled calculados ..."
+       call EnergyGradients_calculateAnalyticUncoupledFirstDerivative()
 
-       call EnergyGradients_calculateFistDerivativeOfPuntualEnergy(auxNuclear)
-       write(*,"(A)") " Nuclear calculados ..."
+       if ( MolecularSystem_instance%numberOfQuantumSpecies > 1) then
+          call EnergyGradients_calculateAnalyticCouplingFirstDerivative()
+       end if
+
+       call EnergyGradients_calculateFistDerivativeOfPuntualEnergy()
+
        k=1
        do i=1, numberOfOptimizationCenters
           do j=1,3
-             gradientVector(k) = gradientVector(k) + auxNuclear(i,j) + auxCoupling(i,j)
+             EnergyGradients_instance%gradients%total(k) = EnergyGradients_instance%gradients%total(k) + &
+                  EnergyGradients_instance%gradients%nuclear(k) + EnergyGradients_instance%gradients%coupling(k)
+             if(present(gradientVector)) then
+                gradientVector(k) = EnergyGradients_instance%gradients%total(k)
+             end if
              k = k + 1
           end do
        end do
 
-       write(*,"(3(f17.12))") gradientVector(1), gradientVector(2), gradientVector(3)
-       write(*,"(3(f17.12))") gradientVector(4), gradientVector(5), gradientVector(6)
-       write(*,"(3(f17.12))") gradientVector(7), gradientVector(8), gradientVector(9)
-       write(*,"(A)") "----------------------------------------------------------------"
+       if(present(gradientVector)) then
+          ! write(*,"(A)") "----------------------------------------------------------------"
+          ! write(*,"(A)") " Gradientes Totales"
+          ! write(*,"(A)") "----------------------------------------------------------------"
+          ! write(*,"(3(f17.12))") gradientVector(1), gradientVector(2), gradientVector(3)
+          ! write(*,"(3(f17.12))") gradientVector(4), gradientVector(5), gradientVector(6)
+          ! write(*,"(3(f17.12))") gradientVector(7), gradientVector(8), gradientVector(9)
+          ! write(*,"(A)") "----------------------------------------------------------------"
+       else
+          call EnergyGradients_show()
+          ! write(*,"(A)") "----------------------------------------------------------------"
+          ! write(*,"(A)") " Gradientes Totales"
+          ! write(*,"(A)") "----------------------------------------------------------------"
+          ! write(*,"(3(f17.12))") EnergyGradients_instance%gradients%total(1), EnergyGradients_instance%gradients%total(2), EnergyGradients_instance%gradients%total(3)
+          ! write(*,"(3(f17.12))") EnergyGradients_instance%gradients%total(4), EnergyGradients_instance%gradients%total(5), EnergyGradients_instance%gradients%total(6)
+          ! write(*,"(3(f17.12))") EnergyGradients_instance%gradients%total(7), EnergyGradients_instance%gradients%total(8), EnergyGradients_instance%gradients%total(9)
+          ! write(*,"(A)") "----------------------------------------------------------------"
+       end if
+
+       ! deallocate(EnergyGradients_instance%gradients%total)
+       ! deallocate(EnergyGradients_instance%gradients%nuclear)
+       ! deallocate(EnergyGradients_instance%gradients%kinetic)
+       ! deallocate(EnergyGradients_instance%gradients%attraction)
+       ! deallocate(EnergyGradients_instance%gradients%overlap)
+       ! deallocate(EnergyGradients_instance%gradients%coupling)
+       ! deallocate(EnergyGradients_instance%gradients%coulomb)
+       ! deallocate(EnergyGradients_instance%gradients%exchange)
+    
 
     else
 
@@ -738,9 +817,9 @@ contains
   !               acoplamiento interspecie
   ! 16/07/2012: revisada para implementacion de derivadas analiticas para cualquier momento angular (Edwin Posada)
   !**
-  subroutine EnergyGradients_calculateAnalyticUncoupledFirstDerivative(gradientVector)
+  subroutine EnergyGradients_calculateAnalyticUncoupledFirstDerivative()
     implicit none
-    real(8), intent(inout) :: gradientVector(:)
+    ! real(8), allocatable :: gradientVector(:)
     character(30) :: nameOfSpecie
     type(ContractedGaussian), allocatable :: contractions(:)
     integer :: numberOfContractions
@@ -754,10 +833,12 @@ contains
     type(Vector) :: vectorOfEigenvalues
     type(Matrix) :: auxWeightDensity
     type(Matrix) :: weightDensityMatrix
+    type(Matrix) :: twoParticles
     integer(8) :: numberOfIntegrals
     integer :: i
     integer :: j
     integer :: k
+    integer :: l
     integer :: u
     integer :: v
     integer :: x
@@ -765,9 +846,9 @@ contains
     integer :: npairs, npairs2, pqrsIter
     integer :: P, Q, R, S, PQ, RS, pIter, qIter, rIter, sIter, auxIter, A, stride
     integer :: numCartesianP, numCartesianQ, numCartesianR, numCartesianS
-    integer :: centerP, centerQ, centerR, centerS
+    integer :: centerP, centerQ, centerR, centerS, center
     integer :: numberOfOptimizationCenters, delta
-    real(8) :: perm, Vval, JKval
+    real(8) :: perm, Vval, JKval, mass
     real(8) :: Duv, Dxy
     real(8) :: Ax, Ay, Az, Bx, By, Bz, Cx, Cy, Cz, Dx, Dy, Dz
     integer, allocatable :: labelsOfContractions(:)
@@ -777,6 +858,9 @@ contains
     integer :: wfnUnit
     character(50) :: arguments(20)
     real(8) :: charge
+    real(8) :: eta, lambda, kappa
+    integer :: deltasum
+    real(8) :: matrixSum, derivativesum
 
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
@@ -784,29 +868,9 @@ contains
 
     numberOfOptimizationCenters = ParticleManager_getNumberOfCentersOfOptimization()
 
-    if(allocated(auxKinetic)) deallocate(auxKinetic)
-    allocate(auxKinetic(numberOfOptimizationCenters,3))
-
-    if(allocated(auxPotential)) deallocate(auxPotential)
-    allocate(auxPotential(numberOfOptimizationCenters,3))
-
-    if(allocated(auxOverlap)) deallocate(auxOverlap)
-    allocate(auxOverlap(numberOfOptimizationCenters,3))
-
-    if(allocated(auxCoulomb)) deallocate(auxCoulomb)
-    allocate(auxCoulomb(numberOfOptimizationCenters,3))
-
-    if(allocated(auxExchange)) deallocate(auxExchange)
-    allocate(auxExchange(numberOfOptimizationCenters,3))
-
     if(allocated(auxOwnerId)) deallocate(auxOwnerId)
     allocate(auxOwnerId(size(ParticleManager_instance)))
 
-    auxKinetic = 0.0_8
-    auxPotential = 0.0_8
-    auxOverlap = 0.0_8
-    auxCoulomb = 0.0_8
-    auxExchange = 0.0_8
     auxOwnerId = 0
 
     j = 1
@@ -819,12 +883,59 @@ contains
        end if
     end do
 
+    if(allocated(EnergyGradients_instance%gradients%kinetic)) deallocate(EnergyGradients_instance%gradients%kinetic)
+    allocate(EnergyGradients_instance%gradients%kinetic(numberOfOptimizationCenters*3))
+       
+    if(allocated(EnergyGradients_instance%gradients%attraction)) deallocate(EnergyGradients_instance%gradients%attraction)
+    allocate(EnergyGradients_instance%gradients%attraction(numberOfOptimizationCenters*3))
+       
+    if(allocated(EnergyGradients_instance%gradients%overlap)) deallocate(EnergyGradients_instance%gradients%overlap)
+    allocate(EnergyGradients_instance%gradients%overlap(numberOfOptimizationCenters*3))
+
+    if(allocated(EnergyGradients_instance%gradients%coulomb)) deallocate(EnergyGradients_instance%gradients%coulomb)
+    allocate(EnergyGradients_instance%gradients%coulomb(numberOfOptimizationCenters*3))
+
+    if(allocated(EnergyGradients_instance%gradients%exchange)) deallocate(EnergyGradients_instance%gradients%exchange)
+    allocate(EnergyGradients_instance%gradients%exchange(numberOfOptimizationCenters*3))
+
+    ! if(allocated(EnergyGradients_instance%gradients%total)) deallocate(EnergyGradients_instance%gradients%total)
+    ! allocate(EnergyGradients_instance%gradients%total(numberOfOptimizationCenters*3))
+
+    EnergyGradients_instance%gradients%total = 0.0_8
+    EnergyGradients_instance%gradients%kinetic = 0.0_8
+    EnergyGradients_instance%gradients%attraction = 0.0_8
+    EnergyGradients_instance%gradients%overlap = 0.0_8
+    EnergyGradients_instance%gradients%coulomb = 0.0_8
+    EnergyGradients_instance%gradients%exchange = 0.0_8
+
+
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
     do specieIterator=1, MolecularSystem_instance%numberOfQuantumSpecies
+
+       if(allocated(auxKinetic)) deallocate(auxKinetic)
+       allocate(auxKinetic(numberOfOptimizationCenters,3))
        
+       if(allocated(auxPotential)) deallocate(auxPotential)
+       allocate(auxPotential(numberOfOptimizationCenters,3))
+       
+       if(allocated(auxOverlap)) deallocate(auxOverlap)
+       allocate(auxOverlap(numberOfOptimizationCenters,3))
+
+       if(allocated(auxCoulomb)) deallocate(auxCoulomb)
+       allocate(auxCoulomb(numberOfOptimizationCenters,3))
+
+       if(allocated(auxExchange)) deallocate(auxExchange)
+       allocate(auxExchange(numberOfOptimizationCenters,3))
+
+       auxKinetic = 0.0_8
+       auxPotential = 0.0_8
+       auxOverlap = 0.0_8
+       auxCoulomb = 0.0_8
+       auxExchange = 0.0_8       
        
        call MolecularSystem_getBasisSet(specieIterator, contractions)
+
        numberOfContractions = MolecularSystem_getNumberOfContractions(specieIterator)
 
        if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
@@ -838,7 +949,16 @@ contains
 
        nameOfSpecie = trim(MolecularSystem_instance%species(specieIterator)%symbol)
        orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(specieIterator)
-       write(*,"(A,A,A,I)")"Especie: ", trim(nameOfSpecie), " size: ", numberOfContractions
+
+       ! write(*,"(A,A,A,I)")"Especie: ", trim(nameOfSpecie), " size: ", numberOfContractions
+       ! write(*,"(A,I)") "Order: ", orderOfMatrix
+       ! do i = 1, numberOfContractions
+       !    write(*,"(A,I)") "ID: ", contractions(i)%id
+       !    write(*,"(A,I)") "Length: ", contractions(i)%length
+       !    write(*,"(A,I)") "am: ", contractions(i)%angularMoment
+       !    write(*,"(A,I)") "nc: ", contractions(i)%numCartesianOrbital
+       !    write(*,"(A,I)") "owner: ", contractions(i)%owner
+       ! end do
        ocupationNumber = MolecularSystem_getOcupationNumber( specieIterator )
 
        arguments(2) = MolecularSystem_getNameOfSpecie(specieIterator)
@@ -848,10 +968,17 @@ contains
             Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
             columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
 
+       ! densityMatrix%values = transpose(densityMatrix%values) 
+
        arguments(1) = "COEFFICIENTS"
        matrixOfEigenvectors = &
             Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
             columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+
+       ! arguments(1) = "COUPLING"
+       ! twoParticles = &
+       !      Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
+       !      columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
 
        arguments(1) = "ORBITALS"
        call Vector_getFromFile( elementsNum = int(orderOfMatrix,4), &
@@ -859,6 +986,16 @@ contains
             output = vectorOfEigenvalues )
 
        call Matrix_constructor(auxWeightDensity, int(orderOfMatrix,8), int(ocupationNumber,8))
+
+       matrixSum = 0.0_8
+       do i=1, orderOfMatrix
+          do j=1, orderOfMatrix
+             matrixSum = matrixSum + densityMatrix%values(i,j)
+          end do
+       end do
+       ! write(*,"(A,F17.12)") "Suma de la matriz densidad: ", matrixSum
+
+
 
        do i=1, orderOfMatrix
           do j=1, ocupationNumber
@@ -881,17 +1018,27 @@ contains
             1.0_8,&
             orderOfMatrix)
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes Cineticos"
-       write(*,"(A)") "----------------------------------------------------------------"
-       do i=1, numberOfContractions
-          write(*,"(A,I)") "owner: ", contractions(i)%owner
-       end do
-       !! Kinetic Gradients
+       mass = 0.0_8
+       mass = MolecularSystem_getMass(specieIterator)
+       charge = MolecularSystem_getCharge(specieIterator)
+       eta = MolecularSystem_getEta(specieIterator)
+       lambda = MolecularSystem_getLambda(specieIterator)
+       kappa = MolecularSystem_getKappa(specieIterator)
+
+
+       ! write(*,"(A,F12.8)") "lambda: ", lambda
+       ! write(*,"(A,F12.8)") "kappa: ", kappa
+       ! write(*,"(A,F12.8)") "eta: ", eta
+
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes Cineticos"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! do i=1, numberOfContractions
+       !    write(*,"(A,I)") "owner: ", owner
+       ! end do
+       ! Kinetic Gradients
        do P = 1, numberOfContractions
           do Q = 1, P
-             call DerivativeManager_getElement( KINETIC_DERIVATIVES, auxVector, i=P, j=Q, nameOfSpecie=nameOfSpecie )
-
              numCartesianP = contractions(P)%numCartesianOrbital  !! nP
              numCartesianQ = contractions(Q)%numCartesianOrbital  !! nQ
              centerP = auxOwnerId(contractions(P)%owner) !! aP
@@ -902,7 +1049,14 @@ contains
              else
                 perm = 2.0
              end if
+             
+             perm = (perm/mass)
              ! write(*,"(A1,I1,A1,I1,A1)") "(", P, "|", Q, ")"
+             ! write(*,"(A,I1,A,I1)") "CenterP: ", centerP, " centerQ: ", centerQ
+             ! write(*,"(A,f12.8)") "Scal: ", 1.0/mass
+
+             call DerivativeManager_getElement( KINETIC_DERIVATIVES, auxVector, i=P, j=Q, nameOfSpecie=nameOfSpecie )
+
              i = 0
              do pIter = 0, numCartesianP - 1
                 do qIter = 0, numCartesianQ - 1
@@ -910,7 +1064,7 @@ contains
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
                    auxKinetic(centerP,1) = auxKinetic(centerP,1) + perm*densityMatrix%values(u,v)*auxVector(i)
-                   ! write(*,"(A,f17.12)") "Kinetic Vector: ", auxVector(i)
+                   !write(*,"(A,3f17.12)") "Kinetic Vector Px: ", auxKinetic(centerP,1), auxVector(i), densityMatrix%values(u,v)
                    i = i + 1
                 end do
              end do
@@ -921,7 +1075,7 @@ contains
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
                    auxKinetic(centerP,2) = auxKinetic(centerP,2) + perm*densityMatrix%values(u,v)*auxVector(i)
-                   ! write(*,"(A,f17.12)") "Kinetic Vector: ", auxVector(i)
+                   !write(*,"(A,3f17.12)") "Kinetic Vector Py: ", auxKinetic(centerP,2), auxVector(i), densityMatrix%values(u,v)
                    i = i + 1
                 end do
              end do
@@ -932,7 +1086,7 @@ contains
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
                    auxKinetic(centerP,3) = auxKinetic(centerP,3) + perm*densityMatrix%values(u,v)*auxVector(i)
-                   ! write(*,"(A,f17.12)") "Kinetic Vector: ", auxVector(i)
+                   !write(*,"(A,3f17.12)") "Kinetic Vector Pz: ", auxKinetic(centerP,3), auxVector(i), densityMatrix%values(u,v)
                    i = i + 1
                 end do
              end do
@@ -943,7 +1097,7 @@ contains
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
                    auxKinetic(centerQ,1) = auxKinetic(centerQ,1) + perm*densityMatrix%values(u,v)*auxVector(i)
-                   ! write(*,"(A,f17.12)") "Kinetic Vector: ", auxVector(i)
+                   !write(*,"(A,3f17.12)") "Kinetic Vector Qx: ", auxKinetic(centerQ,1), auxVector(i), densityMatrix%values(u,v)
                    i = i + 1
                 end do
              end do
@@ -954,7 +1108,7 @@ contains
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
                    auxKinetic(centerQ,2) = auxKinetic(centerQ,2) + perm*densityMatrix%values(u,v)*auxVector(i)
-                   ! write(*,"(A,f17.12)") "Kinetic Vector: ", auxVector(i)
+                   !write(*,"(A,3f17.12)") "Kinetic Vector Qy: ", auxKinetic(centerQ,2), auxVector(i), densityMatrix%values(u,v)
                    i = i + 1
                 end do
              end do
@@ -965,23 +1119,25 @@ contains
                    u = pIter + labelsOfContractions(P)
                    v = qIter + labelsOfContractions(Q)
                    auxKinetic(centerQ,3) = auxKinetic(centerQ,3) + perm*densityMatrix%values(u,v)*auxVector(i)
-                   ! write(*,"(A,f17.12)") "Kinetic Vector: ", auxVector(i)
+                   !write(*,"(A,3f17.12)") "Kinetic Vector Qz: ", auxKinetic(centerQ,3), auxVector(i), densityMatrix%values(u,v)
                    i = i + 1
                 end do
              end do
              ! write(*,"(A)") "----------------------------------------------------------------"
+             ! write(*,"(A,3f17.12)") "Kinetic Vector final: ", auxKinetic(centerQ,:)
+             ! write(*,"(A)") "----------------------------------------------------------------"
           end do
        end do
+       
+       ! write(*,"(3(f17.12))") auxKinetic(1,1), auxKinetic(1,2), auxKinetic(1,3)
+       ! write(*,"(3(f17.12))") auxKinetic(2,1), auxKinetic(2,2), auxKinetic(2,3)
+       ! write(*,"(3(f17.12))") auxKinetic(3,1), auxKinetic(3,2), auxKinetic(3,3)
+       ! write(*,"(A)") "----------------------------------------------------------------"
 
-       write(*,"(3(f17.12))") auxKinetic(1,1), auxKinetic(1,2), auxKinetic(1,3)
-       write(*,"(3(f17.12))") auxKinetic(2,1), auxKinetic(2,2), auxKinetic(2,3)
-       write(*,"(3(f17.12))") auxKinetic(3,1), auxKinetic(3,2), auxKinetic(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
 
-
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes de Potencial"
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Potencial"
+       ! write(*,"(A)") "----------------------------------------------------------------"
        !! Potential Gradients
        do P = 1, numberOfContractions
           do Q = 1, P
@@ -996,48 +1152,71 @@ contains
                 perm = 2.0
              end if
 
-             write(*,"(A,I,A,I)") "Centro P: ", centerP, " owner: ", contractions(P)%owner
-             write(*,"(A,I,A,I)") "Centro Q: ", centerQ, " owner: ", contractions(Q)%owner
+             ! write(*,"(A1,I1,A1,I1,A1)") "(", P, "|", Q, ")"
+             ! write(*,"(A,I,A,I)") "Centro P: ", centerP, " owner: ", contractions(P)%owner
+             ! write(*,"(A,I,A,I)") "Centro Q: ", centerQ, " owner: ", contractions(Q)%owner
              call DerivativeManager_getElement( ATTRACTION_DERIVATIVES, &
                   auxVector2, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerP, B=centerQ )
-
+             ! write(*,"(A)") "---------------------------------------------------------------------------------------"
              i = 0
              j = 0
              k = 0
+             center = 1
+             ! A = 1
+             ! do l = 1, size(ParticleManager_instance)
+             !    if(ParticleManager_instance(l)%particlePtr%isCenterOfOptimization) then
+             !       if(ParticleManager_instance(l)%particlePtr%isQuantum) then
+             !          auxPotential(center,1) = 0.0_8
+             !          auxPotential(center,2) = 0.0_8
+             !          auxPotential(center,3) = 0.0_8
+             !          center = center + 1
+             !          A = A + 1
+             !       else
              do A=1, numberOfOptimizationCenters
                 i = 3*(A-1)*numCartesianP*numCartesianQ + 0*numCartesianP*numCartesianQ
                 j = 3*(A-1)*numCartesianP*numCartesianQ + 1*numCartesianP*numCartesianQ
                 k = 3*(A-1)*numCartesianP*numCartesianQ + 2*numCartesianP*numCartesianQ
+                ! write(*,"(A,I2,I2,3I3)") "center: ", center, A, i, j, k
                 do pIter = 0, numCartesianP - 1
                    do qIter = 0, numCartesianQ - 1
                       u = pIter + labelsOfContractions(P)
                       v = qIter + labelsOfContractions(Q)
                       Vval = perm*densityMatrix%values(u,v)
 
-                      auxPotential(A,1) = auxPotential(A,1) + Vval*auxVector2(i)
+                      auxPotential(center,1) = auxPotential(center,1) + Vval*auxVector2(i)
+                      ! write(*,"(A,3f17.12)") "Potencial Vector x: ", auxPotential(center,1), Vval, auxVector2(i)
 
                       i = i + 1
-                      auxPotential(A,2) = auxPotential(A,2) + Vval*auxVector2(j)
+                      auxPotential(center,2) = auxPotential(center,2) + Vval*auxVector2(j)
+                      ! write(*,"(A,3f17.12)") "Potencial Vector y: ", auxPotential(center,2), Vval, auxVector2(j)
 
                       j = j + 1
-                      auxPotential(A,3) = auxPotential(A,3) + Vval*auxVector2(k)
+                      auxPotential(center,3) = auxPotential(center,3) + Vval*auxVector2(k)
+                      ! write(*,"(A,3f17.12)") "Potencial Vector z: ", auxPotential(center,3), Vval, auxVector2(k)
 
                       k = k + 1
 
                    end do
                 end do
+                ! A = A + 1
+                center = center + 1
+                !    end if
+                ! end if
              end do
+             ! write(*,"(A)") "================================================================"
+             ! write(*,"(3(f17.12))") auxPotential(1,1), auxPotential(1,2), auxPotential(1,3)
+             ! write(*,"(A)") "================================================================"
           end do
        end do
 
-       write(*,"(3(f17.12))") auxPotential(1,1), auxPotential(1,2), auxPotential(1,3)
-       write(*,"(3(f17.12))") auxPotential(2,1), auxPotential(2,2), auxPotential(2,3)
-       write(*,"(3(f17.12))") auxPotential(3,1), auxPotential(3,2), auxPotential(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(3(f17.12))") auxPotential(1,1), auxPotential(1,2), auxPotential(1,3)
+       ! write(*,"(3(f17.12))") auxPotential(2,1), auxPotential(2,2), auxPotential(2,3)
+       ! write(*,"(3(f17.12))") auxPotential(3,1), auxPotential(3,2), auxPotential(3,3)
+       ! write(*,"(A)") "----------------------------------------------------------------"
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes de Overlap"
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Overlap"
+       ! write(*,"(A)") "----------------------------------------------------------------"
        !! Overlap Gradients
        do P = 1, numberOfContractions
           do Q = 1, P
@@ -1118,19 +1297,20 @@ contains
           end do
        end do
 
-       write(*,"(3(f17.12))") auxOverlap(1,1), auxOverlap(1,2), auxOverlap(1,3)
-       write(*,"(3(f17.12))") auxOverlap(2,1), auxOverlap(2,2), auxOverlap(2,3)
-       write(*,"(3(f17.12))") auxOverlap(3,1), auxOverlap(3,2), auxOverlap(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(3(f17.12))") auxOverlap(1,1), auxOverlap(1,2), auxOverlap(1,3)
+       ! write(*,"(3(f17.12))") auxOverlap(2,1), auxOverlap(2,2), auxOverlap(2,3)
+       ! write(*,"(3(f17.12))") auxOverlap(3,1), auxOverlap(3,2), auxOverlap(3,3)
+       ! write(*,"(A)") "----------------------------------------------------------------"
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes de Coulomb"
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Coulomb"
+       ! write(*,"(A)") "----------------------------------------------------------------"
        !! Coulomb and Exchange Gradients
        call EnergyGradients_getShellPairs(numberOfContractions, shellPairs)
        npairs = size(shellPairs%values,DIM=1)
        npairs2 = npairs*npairs
        
+       deltasum = 0
        do pqrsIter = 0, npairs2 - 1
           PQ = pqrsIter/npairs
           RS = mod(pqrsIter,npairs)
@@ -1141,8 +1321,9 @@ contains
           Q = shellPairs%values(PQ+1,2)
           R = shellPairs%values(RS+1,1)
           S = shellPairs%values(RS+1,2)
-
-          ! write(*,"(A,I,A,I,A,I,A,I,A)") "(",P,",",Q,"|",R,",",S,")"
+          ! write(*,"(A)") "Contraida:"
+          ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",P,",",Q,"|",R,",",S,")"
+          ! write(*,"(A)") "Primitivas:"
           call DerivativeManager_getElement( REPULSION_DERIVATIVES, auxVector4, i=P, j=Q, k=R, l=S, nameOfSpecie=nameOfSpecie )
 
           numCartesianP = contractions(P)%numCartesianOrbital
@@ -1155,17 +1336,20 @@ contains
           centerR = auxOwnerId(contractions(R)%owner)
           centerS = auxOwnerId(contractions(S)%owner)
 
-          perm = 1.0
+          perm = 1.0_8
           if (P /= Q) then
-             perm = perm*2.0
+             perm = perm*2.0_8
           end if
           if (R /= S) then
-             perm = perm*2.0
+             perm = perm*2.0_8
           end if
           if (PQ /= RS) then
-             perm = perm*2.0
+             perm = perm*2.0_8
           end if
-
+          
+          deltasum = deltasum + perm
+          perm = perm*0.5_8
+          
           stride = numCartesianP*numCartesianQ*numCartesianR*numCartesianS
 
           Ax = 0.0_8
@@ -1181,6 +1365,15 @@ contains
           Dy = 0.0_8
           Dz = 0.0_8
           delta = 0
+
+
+          ! derivativesum = 0.0_8
+          ! do i=1, stride*9
+          !    derivativesum = derivativesum + auxVector4(i)
+          ! end do
+
+          ! write(*,"(A,F17.12)") "Suma derivadas: ", derivativesum
+
           do pIter=0, numCartesianP-1
              do qIter=0, numCartesianQ-1
                 do rIter=0, numCartesianR-1
@@ -1191,22 +1384,34 @@ contains
                       y = sIter + labelsOfContractions(S)
                       Duv = densityMatrix%values(u,v)
                       Dxy = densityMatrix%values(x,y)
-                      JKval = perm*Duv*Dxy
+                      JKval = perm*Duv*Dxy*eta
+                      !write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",pIter,",",qIter,"|",rIter,",",sIter,")"
+                      !write(*,"(A3,I2,A4,I2,A4,I2,A4,I2)") "u: ", u, " v: ", v," x: ", x," y: ", y
+                      !write(*,"(2(A,F17.12))") "Duv: ", Duv, " Dxy: ", Dxy
                       Ax = Ax + JKval * auxVector4(0 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Ax: ", Ax, auxVector4(0 * stride + delta)
                       Ay = Ay + JKval * auxVector4(1 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Ay: ", Ay, auxVector4(1 * stride + delta)
                       Az = Az + JKval * auxVector4(2 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Az: ", Az, auxVector4(2 * stride + delta)
                       Cx = Cx + JKval * auxVector4(3 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Cx: ", Cx, auxVector4(3 * stride + delta)
                       Cy = Cy + JKval * auxVector4(4 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Cy: ", Cy, auxVector4(4 * stride + delta)
                       Cz = Cz + JKval * auxVector4(5 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Cz: ", Cz, auxVector4(5 * stride + delta)
                       Dx = Dx + JKval * auxVector4(6 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Dx: ", Dx, auxVector4(6 * stride + delta)
                       Dy = Dy + JKval * auxVector4(7 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Dy: ", Dy, auxVector4(7 * stride + delta)
                       Dz = Dz + JKval * auxVector4(8 * stride + delta)
+                      !write(*,"(A,2F17.12)") "Dz: ", Dz, auxVector4(8 * stride + delta)
+                      !write(*,"(A)") "---------------------------"
                       delta = delta + 1
                    end do
                 end do
              end do
           end do
-
           Bx = -(Ax + Cx + Dx)
           By = -(Ay + Cy + Dy)
           Bz = -(Az + Cz + Dz)
@@ -1223,6 +1428,25 @@ contains
           auxCoulomb(centerS,1) = auxCoulomb(centerS,1) + Dx
           auxCoulomb(centerS,2) = auxCoulomb(centerS,2) + Dy
           auxCoulomb(centerS,3) = auxCoulomb(centerS,3) + Dz
+
+          ! write(*,"(A,F17.12)") "valor: ", auxCoulomb(1,3)
+
+          ! write(*,"(A,A4,3F17.12)") "A: ", " -> ", Ax, Ay, Az
+          ! write(*,"(A,A4,3F17.12)") "B: ", " -> ", Bx, By, Bz
+          ! write(*,"(A,A4,3F17.12)") "C: ", " -> ", Cx, Cy, Cz
+          ! write(*,"(A,A4,3F17.12)") "D: ", " -> ", Dx, Dy, Dz
+          ! write(*,"(A)") "---------------------------"
+
+
+
+          ! deltasum = deltasum + delta
+          ! write(*,"(A)") "---------------------------"
+          ! write(*,"(A,I1,A4,3F17.12)") "Centro: ", centerP, " -> ", auxCoulomb(centerP,:)
+          ! write(*,"(A,I1,A4,3F17.12)") "Centro: ", centerQ, " -> ", auxCoulomb(centerQ,:)
+          ! write(*,"(A,I1,A4,3F17.12)") "Centro: ", centerR, " -> ", auxCoulomb(centerR,:)
+          ! write(*,"(A,I1,A4,3F17.12)") "Centro: ", centerS, " -> ", auxCoulomb(centerS,:)
+          ! write(*,"(A,I)") "delta: ", delta
+          ! write(*,"(A)") "---------------------------"
 
           Ax = 0.0_8
           Ay = 0.0_8
@@ -1258,7 +1482,6 @@ contains
                       Duv = densityMatrix%values(u,y)*0.5_8
                       Dxy = densityMatrix%values(v,x)*0.5_8
                       JKval = JKval + perm*Duv*Dxy
-                      JKval = JKval*0.5_8
                       Ax = Ax + JKval * auxVector4(0 * stride + delta)
                       Ay = Ay + JKval * auxVector4(1 * stride + delta)
                       Az = Az + JKval * auxVector4(2 * stride + delta)
@@ -1291,34 +1514,58 @@ contains
           auxExchange(centerS,3) = auxExchange(centerS,3) + Dz
 
        end do
+      
+       auxCoulomb = auxCoulomb*charge*charge*0.5
+       auxExchange = auxExchange*charge*charge*kappa*0.5
 
-       charge = MolecularSystem_getCharge(specieIterator)
+       ! write(*,"(3(f17.12))") auxCoulomb(1,1), auxCoulomb(1,2), auxCoulomb(1,3)
+       ! write(*,"(3(f17.12))") auxCoulomb(2,1), auxCoulomb(2,2), auxCoulomb(2,3)
+       ! write(*,"(3(f17.12))") auxCoulomb(3,1), auxCoulomb(3,2), auxCoulomb(3,3)
+       ! write(*,"(A)") "----------------------------------------------------------------"
+
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Intercambio"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(3(f17.12))") auxExchange(1,1), auxExchange(1,2), auxExchange(1,3)
+       ! write(*,"(3(f17.12))") auxExchange(2,1), auxExchange(2,2), auxExchange(2,3)
+       ! write(*,"(3(f17.12))") auxExchange(3,1), auxExchange(3,2), auxExchange(3,3)
+       ! write(*,"(A)") "----------------------------------------------------------------"
        
-       auxCoulomb = auxCoulomb*0.5_8*charge*charge
-       auxExchange = auxExchange*(-0.5_8)*charge*charge
+       ! write(*,"(A,I)") "delta: ", deltasum
 
-       write(*,"(3(f17.12))") auxCoulomb(1,1), auxCoulomb(1,2), auxCoulomb(1,3)
-       write(*,"(3(f17.12))") auxCoulomb(2,1), auxCoulomb(2,2), auxCoulomb(2,3)
-       write(*,"(3(f17.12))") auxCoulomb(3,1), auxCoulomb(3,2), auxCoulomb(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
-
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes de Intercambio"
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(3(f17.12))") auxExchange(1,1), auxExchange(1,2), auxExchange(1,3)
-       write(*,"(3(f17.12))") auxExchange(2,1), auxExchange(2,2), auxExchange(2,3)
-       write(*,"(3(f17.12))") auxExchange(3,1), auxExchange(3,2), auxExchange(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
-       
        k=1
        do i=1, numberOfOptimizationCenters
           do j=1,3
-             gradientVector(k) = gradientVector(k) + auxKinetic(i,j) + auxPotential(i,j) + auxOverlap(i,j) + auxCoulomb(i,j) + auxExchange(i,j)
+             EnergyGradients_instance%gradients%total(k) = EnergyGradients_instance%gradients%total(k) + auxKinetic(i,j) + auxPotential(i,j) + auxOverlap(i,j) + auxCoulomb(i,j) + auxExchange(i,j)
+             EnergyGradients_instance%gradients%kinetic(k) = EnergyGradients_instance%gradients%kinetic(k) + auxKinetic(i,j)
+             EnergyGradients_instance%gradients%attraction(k) = EnergyGradients_instance%gradients%attraction(k) + auxPotential(i,j)
+             EnergyGradients_instance%gradients%overlap(k) = EnergyGradients_instance%gradients%overlap(k) + auxOverlap(i,j)
+             EnergyGradients_instance%gradients%coulomb(k) = EnergyGradients_instance%gradients%coulomb(k) + auxCoulomb(i,j)
+             EnergyGradients_instance%gradients%exchange(k) = EnergyGradients_instance%gradients%Exchange(k) + auxExchange(i,j)
              k = k + 1
           end do
        end do
 
+    deallocate(auxKinetic) 
+    deallocate(auxPotential)
+    deallocate(auxOverlap)
+    deallocate(auxCoulomb)
+    deallocate(auxExchange)
+    deallocate(auxVector) 
+    deallocate(auxVector2)
+    deallocate(auxVector3)
+    deallocate(auxVector4)
+    deallocate(labelsOfContractions)
+
+    call Matrix_destructor(matrixOfEigenvectors)
+    call Matrix_destructor(densityMatrix)
+    call Vector_destructor(vectorOfEigenvalues)
+    call Matrix_destructor(auxWeightDensity)
+    call Matrix_destructor(weightDensityMatrix)
+
     end do
+    
+    deallocate(auxOwnerId)
 
     close(wfnUnit)
 
@@ -1328,9 +1575,9 @@ contains
   ! @brief  Calcula la primera derivada analitica para la matriz de Fock sin incluir el termino de
   !               acoplamiento interspecie
   !**
-  subroutine EnergyGradients_calculateAnalyticCouplingFirstDerivative(output)
+  subroutine EnergyGradients_calculateAnalyticCouplingFirstDerivative()
     implicit none
-    real(8), intent(inout), allocatable :: output(:,:)
+    real(8), allocatable :: output(:,:)
     integer :: specieIterator, otherSpecieIterator
     type(ContractedGaussian), allocatable :: contractions(:)
     type(ContractedGaussian), allocatable :: otherContractions(:)
@@ -1339,7 +1586,7 @@ contains
     character(30) :: nameOfSpecie, otherNameOfSpecie
     real(8), allocatable :: auxVector(:)
     integer :: numberOfOptimizationCenters
-    integer :: i, j
+    integer :: i, j, k
     integer, allocatable :: auxOwnerId(:)
     integer :: pIter, qIter, rIter, sIter, stride, delta
     integer :: u, v, x, y
@@ -1538,133 +1785,24 @@ contains
        end do
     end do
 
+       k=1
+       do i=1, numberOfOptimizationCenters
+          do j=1,3
+             EnergyGradients_instance%gradients%coupling(k) = output(i,j)
+             k = k + 1
+          end do
+       end do
+   
+    ! write(*,"(A)") "----------------------------------------------------------------"
+    ! write(*,"(A)") " Gradientes de Acoplamiento"
+    ! write(*,"(A)") "----------------------------------------------------------------"
+    ! write(*,"(3(f17.12))") output(1,1), output(1,2), output(1,3)
+    ! write(*,"(3(f17.12))") output(2,1), output(2,2), output(2,3)
+    ! write(*,"(3(f17.12))") output(3,1), output(3,2), output(3,3)
+    ! write(*,"(A)") "----------------------------------------------------------------"
+
     close(wfnUnit)
 
-
-  !   nucleiAndComponent = ParticleManager_getCenterOfOptimization( EnergyGradients_instance%components(1) )
-
-  !   if ( ParticleManager_isComponentFixed( nucleiAndComponent(1),nucleiAndComponent(2) ) ) then
-  !      output=0.0_8
-  !      return
-  !   end if
-
-  !   iteratorOfMatrix =  ParticleManager_getNumberOfQuantumSpecies() &
-  !        * ( ParticleManager_getNumberOfQuantumSpecies() - 1 ) / 2
-
-  !   allocate( derivativeOfRepulsionVector(iteratorOfMatrix) )
-
-  !   couplingEnergyDerivative = 0.0_8
-  !   iteratorOfMatrix = 0
-
-  !   do specieIterator = 1 , ParticleManager_getNumberOfQuantumSpecies()
-
-  !      !! Obtiene vectores propios para una de las especies
-  !      nameOfSpecie =  ParticleManager_getNameOfSpecie( specieIterator )
-
-  !      matrixOfEigenvectors = MolecularSystem_instance%getWaveFunctionCoefficients( trim(nameOfSpecie) )
-
-  !      orderOfMatrix = ParticleManager_getNumberOfContractions( specieIterator )
-  !      ocupationNumber = ParticleManager_getOcupationNumber( specieIterator )
-  !      lambda =ParticleManager_getLambda( specieIterator )
-
-
-  !      do otherSpecieIterator = specieIterator + 1, ParticleManager_getNumberOfQuantumSpecies()
-
-  !         iteratorOfMatrix = iteratorOfMatrix + 1
-
-  !         !! Obtiene vectores propios para otra especie
-  !         nameOfOtherSpecie =  ParticleManager_getNameOfSpecie( otherSpecieIterator )
-
-  !         otherMatrixOfEigenvectors = MolecularSystem_instance%getWaveFunctionCoefficients( trim(nameOfOtherSpecie) )
-
-  !         orderOfOtherMatrix = ParticleManager_getNumberOfContractions( otherSpecieIterator )
-  !         otherOcupationNumber = ParticleManager_getOcupationNumber( otherSpecieIterator )
-  !         otherLambda =ParticleManager_getLambda( otherSpecieIterator )
-  !         auxCouplingEnergyDerivative=0.0_8
-
-  !         do a=1, ocupationNumber
-  !            do b=1,otherOcupationNumber
-
-  !               !!CONVERTIR EN UN UNICO CICLO
-  !               !!**************************************************************
-  !               !! Suma derivadas de  la energia iterativamente sobre pares especies.
-  !               !!
-  !               do u = 1 , orderOfMatrix
-  !                  do v = 1 , orderOfMatrix
-  !                     do r = 1 , orderOfOtherMatrix
-  !                        do s = 1 , orderOfOtherMatrix
-
-  !                           auxCouplingEnergyDerivative = auxCouplingEnergyDerivative &
-  !                                + ( matrixOfEigenvectors%values(u,a) * matrixOfEigenvectors%values(v,a) &
-  !                                * otherMatrixOfEigenvectors%values(r,b) * otherMatrixOfEigenvectors%values(s,b) &
-  !                                * dRepulsion( u,v,r,s )  )
-
-  !                        end do
-  !                     end do
-  !                  end do
-  !               end do
-  !               !!**************************************************************
-
-  !            end do
-  !         end do
-
-  !         couplingEnergyDerivative = couplingEnergyDerivative + auxCouplingEnergyDerivative &
-  !              * ParticleManager_getCharge( specieID=specieIterator ) &
-  !              * ParticleManager_getCharge( specieID=otherSpecieIterator )  * lambda * otherLambda
-
-  !      end do
-
-  !   end do
-  !   !!***************************************************************************
-
-  !   output = couplingEnergyDerivative
-
-  !   do a=1, size(derivativeOfRepulsionVector)
-  !      call Matrix_destructor( derivativeOfRepulsionVector(a) )
-  !   end do
-  !   deallocate( derivativeOfRepulsionVector )
-
-  ! contains
-
-  !   function dRepulsion(index_u, index_v, index_r, index_s) result( output )
-  !     implicit none
-  !     integer :: index_u
-  !     integer :: index_v
-  !     integer :: index_r
-  !     integer :: index_s
-  !     real(8) :: output
-  !     integer(8) :: numberOfIntegrals
-
-  !     integer(8) :: indexOfIntegral
-
-  !     if ( .not.allocated( derivativeOfRepulsionVector(iteratorOfMatrix)%values ) ) then
-
-  !        numberOfIntegrals =     ( orderOfMatrix    *   ( orderOfMatrix + 1.0_8) / 2.0_8 ) * &
-  !             ( orderOfOtherMatrix * ( orderOfOtherMatrix + 1.0_8 ) / 2.0_8 )
-  !        call Matrix_constructor( derivativeOfRepulsionVector(iteratorOfMatrix), numberOfIntegrals, 1_8, Math_NaN )
-
-  !     end if
-
-  !     indexOfIntegral =   IndexMap_tensorR4ToVector(index_u,index_v,index_r,index_s, orderOfMatrix, orderOfOtherMatrix )
-
-  !     if ( isNaN( derivativeOfRepulsionVector( iteratorOfMatrix )%values(indexOfIntegral, 1 ) ) ) then
-
-  !        output = ContractedGaussian_repulsionDerivative( &
-  !             ParticleManager_instance%particlesPtr(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_u)%particleID)%basis%contractions(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_u)%contractionIDInParticle), &
-  !             ParticleManager_instance%particlesPtr(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_v)%particleID)%basis%contractions(ParticleManager_instance%idsOfContractionsForSpecie(specieIterator)%contractionID(index_v)%contractionIDInParticle), &
-  !             ParticleManager_instance%particlesPtr(ParticleManager_instance%idsOfContractionsForSpecie(otherSpecieIterator)%contractionID(index_r)%particleID)%basis%contractions(ParticleManager_instance%idsOfContractionsForSpecie(otherSpecieIterator)%contractionID(index_r)%contractionIDInParticle), &
-  !             ParticleManager_instance%particlesPtr(ParticleManager_instance%idsOfContractionsForSpecie(otherSpecieIterator)%contractionID(index_s)%particleID)%basis%contractions(ParticleManager_instance%idsOfContractionsForSpecie(otherSpecieIterator)%contractionID(index_s)%contractionIDInParticle), &
-  !             nucleiAndComponent(1), nucleiAndComponent(2) )
-
-  !        derivativeOfRepulsionVector( iteratorOfMatrix )%values(indexOfIntegral, 1 ) = output
-
-  !     else
-
-  !        output = derivativeOfRepulsionVector( iteratorOfMatrix )%values(indexOfIntegral, 1 )
-
-  !     end if
-
-  !   end function dRepulsion
 
   end subroutine EnergyGradients_calculateAnalyticCouplingFirstDerivative
   
@@ -1672,10 +1810,10 @@ contains
   ! @brief Retorna la componente de la derivada anlitica asociada a las particulas puntuales del sistema
   !
   !**
-  subroutine EnergyGradients_calculateFistDerivativeOfPuntualEnergy(output)
+  subroutine EnergyGradients_calculateFistDerivativeOfPuntualEnergy()
     implicit none
-    real(8), intent(out), allocatable :: output(:,:)
-    integer :: i,j
+    real(8), allocatable :: output(:,:)
+    integer :: i,j,k
     integer, allocatable :: ownerId(:)
     real(8) :: distance, cubeDistance
     real(8) :: deltaOrigin(3)
@@ -1686,12 +1824,18 @@ contains
     numberOfOptimizationCenters = ParticleManager_getNumberOfCentersOfOptimization()
 
     if(allocated(ownerId)) deallocate(ownerId)
-    allocate(ownerId(size(ParticleManager_instance)))
+    allocate(ownerId(size( MolecularSystem_instance%pointCharges )))
 
     if(allocated(output)) deallocate(output)
     allocate(output(numberOfOptimizationCenters,3))
 
+    if(allocated(EnergyGradients_instance%gradients%nuclear)) deallocate(EnergyGradients_instance%gradients%nuclear)
+    allocate(EnergyGradients_instance%gradients%nuclear(numberOfOptimizationCenters*3))
+
+    EnergyGradients_instance%gradients%nuclear = 0.0_8
+
     j = 1
+
     do i = 1, size(ParticleManager_instance)
        if(ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
           ownerId(i) = j
@@ -1708,10 +1852,12 @@ contains
     !! Nuclear Gradients
     output = 0.0_8
     do i = 1, size(ParticleManager_instance)
+       if(ParticleManager_instance(i)%particlePtr%isQuantum) cycle
        if(ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
           auxIter = ownerId(i)
 
           do j = 1, size(ParticleManager_instance)
+             if(ParticleManager_instance(j)%particlePtr%isQuantum) cycle
              if(ParticleManager_instance(j)%particlePtr%isCenterOfOptimization) then
                 if(i .NE. j) then
                    deltaOrigin = ParticleManager_instance(i)%particlePtr%origin - ParticleManager_instance(j)%particlePtr%origin
@@ -1727,6 +1873,14 @@ contains
              end if
           end do
        end if
+    end do
+
+    k=1
+    do i=1, numberOfOptimizationCenters
+       do j=1,3
+          EnergyGradients_instance%gradients%nuclear(k) = output(i,j)
+          k = k + 1
+       end do
     end do
 
     ! write(*,"(3(f17.12))") output(1,1), output(1,2), output(1,3)

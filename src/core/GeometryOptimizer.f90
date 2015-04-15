@@ -109,7 +109,13 @@ contains
     this%isInitialExecution=.true.
     initialGeometry = ParticleManager_getPositionOfCenterOfOptimizacion()
 
+    ! write(*,"(3F17.12)") initialGeometry%values(1:3)
+    ! write(*,"(3F17.12)") initialGeometry%values(4:6)
+    ! write(*,"(3F17.12)") initialGeometry%values(7:9)
+
     this%numberOfIndependVariables = size( initialGeometry%values )
+
+    call EnergyGradients_constructor()
 
     ! call Input_Parameters_copyConstructor(this%LOWDIN_bkp, Parameters)
     call Hessians_constructor( hessiansInfo )
@@ -141,7 +147,6 @@ contains
 
     end select
 
-    call EnergyGradients_constructor()
     call Matrix_destructor(initialHessian)
     call Vector_destructor(initialGeometry)
     call Hessians_destructor( hessiansInfo)
@@ -344,7 +349,7 @@ contains
     write(6,*) ""
     call MolecularSystem_showCartesianMatrix()
     call MolecularSystem_showDistanceMatrix()
-    call MolecularSystem_showZMatrix( MolecularSystem_instance )
+    ! call MolecularSystem_showZMatrix( MolecularSystem_instance )
 
     ! !! Realiza un calculo final en la geometria de equilibrio
     CONTROL_instance%OPTIMIZE=.false.
@@ -367,7 +372,6 @@ contains
     print *,"END GEOMETRY OPTIMIZATION "
     print *,""
 
-    ! this%solverPtr%withProperties=.true.
     call Solver_run()
 
   end subroutine GeometryOptimizer_run
@@ -482,6 +486,11 @@ contains
     call Vector_constructor( valuesOfIndependentVariables, size(evaluationPoint) )
     valuesOfIndependentVariables%values = evaluationPoint
 
+    ! write(*,"(A)") "Dentro de GeometryOptimizer_getGradient"
+    ! do i=1, size(evaluationPoint)
+    !    write(*,"(F17.12)") valuesOfIndependentVariables%values(i)
+    ! end do
+
     if( .not. CONTROL_instance%ANALYTIC_GRADIENT ) then
        gradientVector = EnergyGradients_getNumericGradient( valuesOfIndependentVariables, GeometryOptimizer_getFunctionValue )
     else
@@ -489,16 +498,17 @@ contains
 !          gradientVector(i) = EnergyGradients_getDerivative(valuesOfIndependentVariables , [i], &
 !               GeometryOptimizer_getFunctionValue )
 !       end do
-        call EnergyGradients_getDerivative(valuesOfIndependentVariables,  GeometryOptimizer_getFunctionValue, gradientVector )
+       call EnergyGradients_getDerivative(valuesOfIndependentVariables,  GeometryOptimizer_getFunctionValue, gradientVector )
     end if
 
     ! Debug Mauricio Rodas
     ! sizeGradients = size(gradientVector) 
-    ! write(*,"(A)") "Gradientes numericos"
+    ! write(*,"(A)") "Gradientes"
     ! do i=1, sizeGradients
     !    write(*,"(f20.12)") gradientVector(i)
     ! end do
     ! print *,""
+
     call Vector_destructor( valuesOfIndependentVariables )
 
   end subroutine GeometryOptimizer_getGradient

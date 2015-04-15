@@ -216,7 +216,7 @@ contains
     call ContractedGaussian_getAllAngularMomentIndex( angularMomentIndex, this)
     
     
-    ! write(*,*) "Normalization"
+    ! write(*,*) "Normalization" 
     do i = 1, this%length
        m = 1
        do j = 1, this%numCartesianOrbital

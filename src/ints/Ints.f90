@@ -24,6 +24,7 @@
 Program Ints
   use CONTROL_
   use MolecularSystem_
+  use EnergyGradients_
   use IntegralManager_
   use String_
   use Stopwatch_
@@ -58,6 +59,8 @@ Program Ints
   
   !!Load the system in lowdin.bas format
   call MolecularSystem_loadFromFile( "LOWDIN.BAS" )
+
+  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
   
   select case(trim(job))
 
@@ -178,7 +181,13 @@ Program Ints
             write(*, *) ""
          end if
       end if
-     
+
+   case("GET_GRADIENTS")
+
+      call EnergyGradients_constructor()
+      call EnergyGradients_getAnalyticDerivative()
+      ! write(*,"(A)") "Lo logramos" 
+
    case("TWO_PARTICLE_F12")
      
      stop "NOT IMPLEMENTED"

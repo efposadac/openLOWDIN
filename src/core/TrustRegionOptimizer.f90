@@ -313,11 +313,20 @@ contains
        call projectGradientFunction( this%gradient%values, this%gradientProjectedOnExtDegrees%values )
 
        ! !! Proyecta los grados de libetad externos de la hesiana
+       ! write(*,"(T10,A20)") "Matriz hesiana"
+       ! call Matrix_show(this%hessiane)
+       ! write(*,"(T10,A20)") "-----------------------------------------------------------"
+
        call projectHessianeFunction( this%hessiane%values, this%hessianeProjected%values )
+       ! write(*,"(T10,A20)") "Matriz hesiana proyectada"
+       ! call Matrix_show(this%hessianeProjected)
+       ! write(*,"(T10,A20)") "-----------------------------------------------------------"
 
        ! !! Calcula la nueva direccion de busqueda
        call TrustRegionOptimizer_calculateStep(this)
+
        call TrustRegionOptimizer_predictedChangeOfFunction( this )
+
        call TrustRegionOptimizer_updateTrustRadio( this )
 
        !           if (this%isSuitableStep) then
@@ -331,6 +340,7 @@ contains
 
        !! Calcula el valor de la funcion y el gradiente
        this%functionValue = functionValue( this%variables%values )
+
        call gradientOfFunction( this%variables%values, this%gradient%values )
 
        !! Muestra el estimado actual de la minimizacion
@@ -532,7 +542,14 @@ contains
 
     allocate( auxMatrix(this%numberOfVariables,this%numberOfVariables) )
     allocate( auxVector(this%numberOfVariables) )
+
+    ! write(*,"(T10,A20)") "Matriz hesiana asym"
+    ! call Matrix_show(this%hessianeProjected)
+    ! write(*,"(T10,A20)") "-----------------------------------------------------------"
     call Matrix_symmetrize( this%hessianeProjected, 'L' )
+    ! write(*,"(T10,A20)") "Matriz hesiana sym"
+    ! call Matrix_show(this%hessianeProjected)
+    ! write(*,"(T10,A20)") "-----------------------------------------------------------"
 
     !! Calcula vectores y valores propios, acotando los ultimos entre el rango (1E-8,1E3)
     call Matrix_eigenProperties(this%hessianeProjected)
@@ -541,7 +558,6 @@ contains
     !! Ordena los vectores propios de manera que los grados translacionales y rotaciones
     !! queden al final
     !!***********************
-
     j=0
     numberOfTransAndRot=0
     auxMatrix=0.0
@@ -563,6 +579,8 @@ contains
           this%hessianeProjected%eigenValues(j)=this%hessianeProjected%eigenValues(i)
        end if
     end do
+
+
     this%hessianeProjected%eigenVectors(:,j+1:this%numberOfVariables)=auxMatrix(:,1:numberOfTransAndRot)
     this%hessianeProjected%eigenValues(j+1:this%numberOfVariables)=auxVector(1:numberOfTransAndRot)
 

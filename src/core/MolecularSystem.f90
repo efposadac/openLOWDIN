@@ -1266,7 +1266,7 @@ contains
      end do
      
    end function MolecularSystem_getlabelsofcontractions
-   
+
    !>
    !! @brief  Maneja excepciones de la clase
    subroutine MolecularSystem_exception( typeMessage, description, debugDescription)

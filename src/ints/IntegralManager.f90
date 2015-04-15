@@ -524,7 +524,6 @@ contains
 
        numberOfPointCharges = MolecularSystem_instance%numberOfPointCharges
 
-
        !! Allocating memory for point charges objects
        if(allocated(point)) deallocate(point)
        allocate(point(0:numberOfPointCharges - 1))

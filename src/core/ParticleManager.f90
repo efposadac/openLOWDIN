@@ -141,9 +141,13 @@ contains
     integer :: particleID
 
     do particleID = 1, size(ParticleManager_instance)
-       do i = 1, particleID - 1
+       do i = 1, particleID! - 1 Es necesario revisar si la misma particula es cuantica para asignar el owner
+          
+          !! ojo esto es necesario para determinar correctamente el owner cuando son particulas diferentes a electrones
+          if(particleID == i) then
+             call Particle_setOwner(ParticleManager_instance(i)%particlePtr, owner = particleID )
 
-          if( abs( ParticleManager_instance(i)%particlePtr%origin(1) - ParticleManager_instance(particleID)%particlePtr%origin(1) ) &
+          else if( abs( ParticleManager_instance(i)%particlePtr%origin(1) - ParticleManager_instance(particleID)%particlePtr%origin(1) ) &
                < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
                abs( ParticleManager_instance(i)%particlePtr%origin(2) - ParticleManager_instance(particleID)%particlePtr%origin(2) ) &
                < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
@@ -157,7 +161,6 @@ contains
              !!
              if ( ParticleManager_instance(particleID)%particlePtr%mass  > ParticleManager_instance(i)%particlePtr%mass )	then
 
-
                 call Particle_setOwner(ParticleManager_instance(i)%particlePtr, owner = particleID )
                 ParticleManager_instance(particleID)%particlePtr%isCenterOfOptimization =.true.
                 ParticleManager_instance(i)%particlePtr%isCenterOfOptimization =.false.
@@ -165,7 +168,6 @@ contains
                 call Particle_removeChilds( ParticleManager_instance(i)%particlePtr )
 
              else
-
                 call Particle_setOwner( ParticleManager_instance(particleID)%particlePtr, &
                      owner= ParticleManager_instance(i)%particlePtr%owner )
                 call Particle_removeChilds( ParticleManager_instance(particleID)%particlePtr )

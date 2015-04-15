@@ -75,6 +75,8 @@ contains
     integer :: l1, m1, n1
     integer :: l2, m2, n2
     real(8) :: Ix, Iy, Iz
+    real(8) :: Jx, Jy, Jz
+    real(8) :: lambda
     ! real(8) :: commonA, commonB, commonC
 
     angularMomentA = this(indexA)%angularMoment
@@ -83,6 +85,8 @@ contains
     lengthB = this(indexB)%length
 
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
+
+    lambda = MolecularSystem_getLambda(specieID)
 
     do i = 1, 3
        originA(i-1) = this(indexA)%origin(i)
@@ -167,34 +171,88 @@ contains
                       Ix = 0.0_8
                       Iy = 0.0_8
                       Iz = 0.0_8
-                      ! x on center i
-                      Ix = Ix + 2.0*auxExponentA*KineticDerivatives_int(x, y, z, auxExponentA, l1+1, m1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
+                      Jx = 0.0_8
+                      Jy = 0.0_8
+                      Jz = 0.0_8
+                      ! ! x on center i
+                      ! Ix = Ix + lambda*auxExponentA*KineticDerivatives_int(x, y, z, auxExponentA, l1+1, m1, n1, auxExponentB, l2, m2, n2)*commonPreFactor
+                      ! if(l1>0) then
+                      !    Ix = Ix - l1 * KineticDerivatives_int(x, y, z, auxExponentA, l1-1, m1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
+                      ! end if
+                      ! ! write(*,"(A,f12.8)") "Ix: ", Ix
+                      ! ! y on center i
+                      ! Iy = Iy +  lambda*auxExponentA*KineticDerivatives_int(x, y, z, auxExponentA, l1, m1+1, n1, auxExponentB, l2, m2, n2)*commonPreFactor
+                      ! if (m1>0) then
+                      !    Iy = Iy - m1 * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1-1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
+                      ! end if
+                      ! ! write(*,"(A,f12.8)") "Iy: ", Iy
+                      ! ! z on center i
+                      ! Iz = Iz +  lambda * auxExponentA * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1+1, auxExponentB, l2, m2, n2) * commonPreFactor
+                      ! if (n1>0) then
+                      !    Iz = Iz - n1 * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1-1, auxExponentB, l2, m2, n2) * commonPreFactor
+                      ! end if
+                      ! ! write(*,"(A,f12.8)") "Iz: ", Iz
+!---------------------------------------------------------------------------------------------
+! Esto es nuevo buscando corregir la cinetica
+!---------------------------------------------------------------------------------------------
+                      Ix = Ix + lambda*auxExponentA*KineticDerivatives_int(x, y, z, auxExponentA, l1+1, m1, n1, auxExponentB, l2, m2, n2)*commonPreFactor
                       if(l1>0) then
-                         Ix = Ix - l1 * KineticDerivatives_int(x, y, z, auxExponentA, l1-1, m1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
+                         Ix = Ix - KineticDerivatives_int(x, y, z, auxExponentA, l1-1, m1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
                       end if
                       ! write(*,"(A,f12.8)") "Ix: ", Ix
                       ! y on center i
-                      Iy = Iy +  2.0 * auxExponentA * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1+1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
+                      Iy = Iy +  lambda*auxExponentA*KineticDerivatives_int(x, y, z, auxExponentA, l1, m1+1, n1, auxExponentB, l2, m2, n2)*commonPreFactor
                       if (m1>0) then
-                         Iy = Iy - m1 * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1-1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
+                         Iy = Iy - KineticDerivatives_int(x, y, z, auxExponentA, l1, m1-1, n1, auxExponentB, l2, m2, n2) * commonPreFactor
                       end if
                       ! write(*,"(A,f12.8)") "Iy: ", Iy
                       ! z on center i
-                      Iz = Iz +  2.0 * auxExponentA * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1+1, auxExponentB, l2, m2, n2) * commonPreFactor
+                      Iz = Iz +  lambda*auxExponentA * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1+1, auxExponentB, l2, m2, n2) * commonPreFactor
                       if (n1>0) then
-                         Iz = Iz - n1 * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1-1, auxExponentB, l2, m2, n2) * commonPreFactor
+                         Iz = Iz - KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1-1, auxExponentB, l2, m2, n2) * commonPreFactor
                       end if
                       ! write(*,"(A,f12.8)") "Iz: ", Iz
 
+                      ! x on center j
+                      Jx = Jx + lambda*auxExponentB*KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1, auxExponentB, l2+1, m2, n2)*commonPreFactor
+                      if(l2>0) then
+                         Jx = Jx - KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1, auxExponentB, l2-1, m2, n2) * commonPreFactor
+                      end if
+                      ! write(*,"(A,f12.8)") "Jx: ", Jx
+                      ! y on center j
+                      Jy = Jy +  lambda*auxExponentB*KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1, auxExponentB, l2, m2+1, n2)*commonPreFactor
+                      if (m2>0) then
+                         Jy = Jy - KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1, auxExponentB, l2, m2-1, n2) * commonPreFactor
+                      end if
+                      ! write(*,"(A,f12.8)") "Jy: ", Jy
+                      ! z on center j
+                      Jz = Jz +  lambda*auxExponentB * KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1, auxExponentB, l2, m2, n2+1) * commonPreFactor
+                      if (n2>0) then
+                         Jz = Jz - KineticDerivatives_int(x, y, z, auxExponentA, l1, m1, n1, auxExponentB, l2, m2, n2-1) * commonPreFactor
+                      end if
+                      ! write(*,"(A,f12.8)") "Jz: ", Jz
+
+
                       ! write(*,"(A)") "----------------------------------------"
                       deriveValue(center_i + (0*ssize) + ao12) = deriveValue(center_i + (0*ssize) + ao12) + Ix
-                      deriveValue(center_j + (0*ssize) + ao12) = deriveValue(center_j + (0*ssize) + ao12) - Ix
+                      deriveValue(center_j + (0*ssize) + ao12) = deriveValue(center_j + (0*ssize) + ao12) + Jx
 
                       deriveValue(center_i + (1*ssize) + ao12) = deriveValue(center_i + (1*ssize) + ao12) + Iy
-                      deriveValue(center_j + (1*ssize) + ao12) = deriveValue(center_j + (1*ssize) + ao12) - Iy
+                      deriveValue(center_j + (1*ssize) + ao12) = deriveValue(center_j + (1*ssize) + ao12) + Jy
 
                       deriveValue(center_i + (2*ssize) + ao12) = deriveValue(center_i + (2*ssize) + ao12) + Iz
-                      deriveValue(center_j + (2*ssize) + ao12) = deriveValue(center_j + (2*ssize) + ao12) - Iz
+                      deriveValue(center_j + (2*ssize) + ao12) = deriveValue(center_j + (2*ssize) + ao12) + Jz
+!---------------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------------
+
+                      ! deriveValue(center_i + (0*ssize) + ao12) = deriveValue(center_i + (0*ssize) + ao12) + Ix
+                      ! deriveValue(center_j + (0*ssize) + ao12) = deriveValue(center_j + (0*ssize) + ao12) - Ix
+
+                      ! deriveValue(center_i + (1*ssize) + ao12) = deriveValue(center_i + (1*ssize) + ao12) + Iy
+                      ! deriveValue(center_j + (1*ssize) + ao12) = deriveValue(center_j + (1*ssize) + ao12) - Iy
+
+                      ! deriveValue(center_i + (2*ssize) + ao12) = deriveValue(center_i + (2*ssize) + ao12) + Iz
+                      ! deriveValue(center_j + (2*ssize) + ao12) = deriveValue(center_j + (2*ssize) + ao12) - Iz
 
 
 !                      write(*,"(f17.12)") deriveValue(center_i + ao12 )
@@ -213,10 +271,10 @@ contains
        end do
     end do
     ! write(*,"(A)") "----------------------------------------"
-   ! write(*,"(A)") "Derivadas de cinetica"
-   ! do i = 0, 6*ssize - 1
-   !    write(*,"(f12.8)") deriveValue(i)
-   ! end do
+    ! write(*,"(A)") "Derivadas de cinetica"
+    ! do i = 0, 6*ssize - 1
+    !    write(*,"(f12.8)") deriveValue(i)
+    ! end do
 
   end subroutine KineticDerivatives_getDerive
 

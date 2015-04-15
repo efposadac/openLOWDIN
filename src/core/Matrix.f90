@@ -1377,7 +1377,7 @@ contains
     type(Matrix) :: eigenVectorsTmp
     integer :: i
 
-
+    
     matrixSize = size( this%values, DIM=1 )
 
     if( flags == SYMMETRIC ) then
@@ -1395,7 +1395,7 @@ contains
           else	
 
              eigenVectors%values=this%values
-
+             
           end if
 
           !! Calcula valores propios de la matriz de entrada
@@ -1409,7 +1409,6 @@ contains
                workSpace, &
                lengthWorkSpace, &
                infoProcess )
-
 
        else
           !! Crea la matriz que almacenara los vectores propios

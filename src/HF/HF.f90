@@ -73,6 +73,7 @@ program HF
   call get_command_argument(1,value=job)
   job = trim(String_getUppercase(job))
 
+  write(*,"(A)") trim(job)
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
@@ -282,6 +283,12 @@ program HF
 
   write(arguments(1),*) nproc
   call system("lowdin-SCF.x "//trim(arguments(1)))
+
+  if( .not.CONTROL_instance%OPTIMIZE .and. CONTROL_instance%GET_GRADIENTS ) then        
+
+     call system(" lowdin-ints.x GET_GRADIENTS")
+
+  end if
 
   !! Open file for wavefunction
   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")

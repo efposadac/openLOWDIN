@@ -271,10 +271,13 @@ contains
     type(prim_data), target :: primitiveQuartet !<Primquartet object needed by LIBINT
     type(c_ptr) :: resultPc !< array of integrals from C (LIBINT)
     procedure(RepulsionDerivatives_buildLibDeriv), pointer :: pBuild !<procedure to calculate eris on LIBINT !x
+    real(8) :: lambda, derivativesum
     
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
     maxNumberOfPrimitives = MolecularSystem_getMaxNumberofPrimitives(specieID)
     maxNumberOfCartesians = MolecularSystem_getMaxNumberofCartesians(specieID)
+    lambda = MolecularSystem_getLambda(specieID)
+
     maxNPrimSize = maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives
     maxNCartSize = maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians
 
@@ -287,18 +290,15 @@ contains
     arraySize = arraySsize(1)
     sumAngularMoment = this(a)%angularMoment + this(b)%angularMoment + this(r)%angularMoment + this(s)%angularMoment
 
-    if(allocated(workForces)) deallocate(workForces)
-    allocate(workForces(arraySize,12))
-
     if(allocated(work)) deallocate(work)
     allocate(work(arraySize,12))
 
     work = 0.0_8
 
-    if(allocated(incompletGamma)) deallocate(incompletGamma)
-    allocate(incompletGamma(0:maxAngularMoment+1))
     ! if(allocated(incompletGamma)) deallocate(incompletGamma)
-    ! allocate(incompletGamma(0:sumAngularMoment+1))
+    ! allocate(incompletGamma(0:maxAngularMoment+1))
+    if(allocated(incompletGamma)) deallocate(incompletGamma)
+    allocate(incompletGamma(0:sumAngularMoment+2))
 
     ! Libderiv constructor (solo una vez)
     if( RepulsionDerivatives_isInstanced() ) then
@@ -439,50 +439,59 @@ contains
     numberOfPrimitives = 1
 
     do pa=1, this(aa)%length
+       auxExponentA = this(aa)%orbitalExponents(pa)
+       auxCoefficientA = this(aa)%contractionCoefficients(pa)
+       auxPrimConstantA = this(aa)%primNormalization(pa,1)
+       auxContConstantA = this(aa)%contNormalization(1)
+       c1 = auxCoefficientA*auxPrimConstantA*auxContConstantA
+       ! write(*,"(A,F17.12,A,F17.12)") "a1: ", auxExponentA, " c1: ", c1
        do pb=1, this(bb)%length
+          auxExponentB = this(bb)%orbitalExponents(pb)
+          auxCoefficientB = this(bb)%contractionCoefficients(pb)
+          auxPrimConstantB = this(bb)%primNormalization(pb,1)
+          auxContConstantB = this(bb)%contNormalization(1)
+          c2 = auxCoefficientB*auxPrimConstantB*auxContConstantB
+          ! write(*,"(A,F17.12,A,F17.12)") "a2: ", auxExponentB, " c2: ", c2
+          zeta = auxExponentA + auxExponentB
+          ooz = 1.0_8/zeta
+          oo2z = 1.0_8/(2.0_8*zeta)
+
+          ! write(*,"(A,3F17.12)") "A: ", this(aa)%origin
+          ! write(*,"(A,3F17.12)") "B: ", this(bb)%origin
+
+          P = (auxExponentA*this(aa)%origin + auxExponentB*this(bb)%origin)*ooz
+
+          ! write(*,"(A,3F17.12)") "PA: ", P - this(aa)%origin
+          ! write(*,"(A,3F17.12)") "PB: ", P - this(bb)%origin
+
+          primitiveQuartet%U(1:3,1)= P - this(aa)%origin
+          primitiveQuartet%U(1:3,2)= P - this(bb)%origin
+
+          s12 = ((Math_PI*ooz)**1.5_8) * exp(-auxExponentA*auxExponentB*ooz*AB2)*c1*c2
+
           do pr=1, this(rr)%length
+             auxExponentR = this(rr)%orbitalExponents(pr)
+             auxCoefficientR = this(rr)%contractionCoefficients(pr)
+             auxPrimConstantR = this(rr)%primNormalization(pr,1)
+             auxContConstantR = this(rr)%contNormalization(1)
+             c3 = auxCoefficientR*auxPrimConstantR*auxContConstantR
+             ! write(*,"(A,F17.12,A,F17.12)") "a3: ", auxExponentR, " c3: ", c3
              do ps=1, this(ss)%length
                 auxExponentS = this(ss)%orbitalExponents(ps)
                 auxCoefficientS = this(ss)%contractionCoefficients(ps)
                 auxPrimConstantS = this(ss)%primNormalization(ps,1)
                 auxContConstantS = this(ss)%contNormalization(1)
                 c4 = auxCoefficientS*auxPrimConstantS*auxContConstantS
-
-                auxExponentR = this(rr)%orbitalExponents(pr)
-                auxCoefficientR = this(rr)%contractionCoefficients(pr)
-                auxPrimConstantR = this(rr)%primNormalization(pr,1)
-                auxContConstantR = this(rr)%contNormalization(1)
-                c3 = auxCoefficientR*auxPrimConstantR*auxContConstantR
-
-                auxExponentB = this(bb)%orbitalExponents(pb)
-                auxCoefficientB = this(bb)%contractionCoefficients(pb)
-                auxPrimConstantB = this(bb)%primNormalization(pb,1)
-                auxContConstantB = this(bb)%contNormalization(1)
-                c2 = auxCoefficientB*auxPrimConstantB*auxContConstantB
-
-
-                auxExponentA = this(aa)%orbitalExponents(pa)
-                auxCoefficientA = this(aa)%contractionCoefficients(pa)
-                auxPrimConstantA = this(aa)%primNormalization(pa,1)
-                auxContConstantA = this(aa)%contNormalization(1)
-                c1 = auxCoefficientA*auxPrimConstantA*auxContConstantA
-
-                zeta = auxExponentA + auxExponentB
-                ooz = 1.0_8/zeta
-                oo2z = 1.0_8/(2.0_8*zeta)
-
-                P = (auxExponentA*this(aa)%origin + auxExponentB*this(bb)%origin)*ooz
-
-                primitiveQuartet%U(1:3,1)= P - this(aa)%origin
-                primitiveQuartet%U(1:3,2)= P - this(bb)%origin
-
-                s12 = ((Math_PI*ooz)**1.5_8) * exp(-auxExponentA*auxExponentB*ooz*AB2)*c1*c2
+                ! write(*,"(A,F17.12,A,F17.12)") "a4: ", auxExponentS, " c4: ", c4
 
                 nu = auxExponentR + auxExponentS
                 oon = 1.0_8/nu
                 oo2n = 1.0_8/(2.0_8*nu)
                 oo2zn = 1.0_8/(2.0_8*(zeta+nu))
                 rho = (zeta*nu)/(zeta+nu)
+
+                ! write(*,"(A,3F17.12)") "R: ", this(rr)%origin
+                ! write(*,"(A,3F17.12)") "S: ", this(ss)%origin
 
                 Q = (auxExponentR*this(rr)%origin + auxExponentS*this(ss)%origin)*oon
                 primitiveQuartet%U(1:3,3)= Q - this(rr)%origin
@@ -507,16 +516,17 @@ contains
                 primitiveQuartet%twozeta_d = 2.0 * auxExponentS
 
                 incompletGammaArgument = rho*PQ2
-                call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
-                ! call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+1))
+                ! call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
+                call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+2))
 
                 s34 = ((Math_PI*oon)**1.5_8) * exp(-auxExponentR*auxExponentS*oon*CD2)*c3*c4
 
-                s1234 = 2.0_8*sqrt(rho/Math_PI) * s12 * s34
+                s1234 = lambda*sqrt(rho/Math_PI) * s12 * s34
 
-                ! do i=1, sumAngularMoment+1
-                !    primitiveQuartet%F(i) = incompletGamma(i-1)*s1234
-                ! end do
+                do i=0, sumAngularMoment+2
+                   primitiveQuartet%F(i+1) = incompletGamma(i)*s1234
+                   ! write(*,"(A1,I1,A,f17.12)") "F", i, " : ", primitiveQuartet%F(i+1)
+                end do
 
                 ! write(*,"(A)") "-----------------------------------------"
                 ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
@@ -529,18 +539,18 @@ contains
                 !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,6)
                 ! end do
 
-                do i=0, maxAngularMoment+1
-                   primitiveQuartet%F(i+1) = incompletGamma(i)*s1234
-                   ! write(*,"(A1,I1,A,f17.12)") "F", i, " : ", primitiveQuartet%F(i+1)
-                end do
+                ! do i=0, maxAngularMoment+1
+                !    primitiveQuartet%F(i+1) = incompletGamma(i)*s1234
+                !    write(*,"(A1,I1,A,f17.12)") "F", i, " : ", primitiveQuartet%F(i+1)
+                ! end do
                 ! write(*,"(A)") "-----------------------------------------"
                 ! arraySsize(1) = arraySize
 
                 RepulsionDerivatives_instance%libderiv%PrimQuartet = c_loc(primitiveQuartet) !ok
 
                 ! write(*,"(A)") "-----------------------------------------"
-                ! ! write(*,"(A,I8)") "Array Size: ", arraySsize(1)
-                ! ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",pa,",",pb,"|",pr,",",ps,")"
+                ! write(*,"(A,I8)") "Array Size: ", arraySsize(1)
+                ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",pa,",",pb,"|",pr,",",ps,")"
                 ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
                 ! write(*,"(A,f17.12)") "oo2z : ", primitiveQuartet%oo2z
                 ! write(*,"(A,f17.12)") "oo2n : ", primitiveQuartet%oo2n 
@@ -559,7 +569,9 @@ contains
                 call c_f_procpointer(build_deriv1_eri(am4,am3,am2,am1), pBuild)
 
                 call pBuild(RepulsionDerivatives_instance%libderiv,1)
-
+                
+                if(allocated(workForces)) deallocate(workForces)
+                allocate(workForces(arraySize,12))
 
                 workForces = 0.0_8
                 ! write(*,"(A)") "-----------------------------------------"
@@ -572,7 +584,9 @@ contains
                     derivativesPtr => temporalPtr
                     
                     do i=1,arraySsize(1)
-                       workForces(i,k) = derivativesPtr(i)
+                       if(abs(derivativesPtr(i)) > 1.0D-12) then
+                          workForces(i,k) = derivativesPtr(i)
+                       end if
                        ! write(*,"(2I, 2f17.12)") k, i, derivativesPtr(i), workForces(i,k)
                     end do
                  end do
@@ -589,6 +603,8 @@ contains
                        work(i,k) = work(i,k) + workForces(i,k)
                     end do
                  end do
+
+                 deallocate(workForces)
                  ! write(*,"(A)") "-----------------------------------------"
                  numberOfPrimitives = numberOfPrimitives + 1
              end do
@@ -596,7 +612,20 @@ contains
        end do
     end do
 
+    ! do k=1,12
+    !    do i=1, arraySsize(1)
+    !       write(*,"(F17.12)") work(i,k)
+    !    end do
+    ! end do
+    ! write(*,"(A)") "-----------------------------------------"
+
     call RepulsionDerivatives_reordering1(bufferOffsets, work, deriveValue, arraySsize(1))
+
+    ! do k=0,9*arraySsize(1)-1
+    !    write(*,"(F17.12)") deriveValue(k)
+    ! end do
+    ! write(*,"(A)") "-----------------------------------------"
+
 
     if (p12 .or. p34 .or. p13p24) then
        nc1 =  this(aa)%numCartesianOrbital
@@ -605,6 +634,13 @@ contains
        nc4 =  this(ss)%numCartesianOrbital
        call RepulsionDerivatives_permute(nc1,nc2,nc3,nc4, p12, p34, p13p24, arraySsize(1), deriveValue)
     end if
+
+    ! derivativesum = 0.0_8
+    ! do i=0, arraySsize(1)*9-1
+    !    derivativesum = derivativesum + deriveValue(i)
+    ! end do
+
+    ! write(*,"(A,F17.12)") "Suma derivadas: ", derivativesum
 
 
     ! if (p12 .or. p34 .or. p13p24) then
@@ -705,10 +741,10 @@ contains
 
     work = 0.0_8
 
-    if(allocated(incompletGamma)) deallocate(incompletGamma)
-    allocate(incompletGamma(0:maxAngularMoment+1))
     ! if(allocated(incompletGamma)) deallocate(incompletGamma)
-    ! allocate(incompletGamma(0:sumAngularMoment+1))
+    ! allocate(incompletGamma(0:maxAngularMoment+1))
+    if(allocated(incompletGamma)) deallocate(incompletGamma)
+    allocate(incompletGamma(0:sumAngularMoment+2))
 
     ! Libderiv constructor (solo una vez)
     if( RepulsionDerivatives_isInstanced() ) then
@@ -923,8 +959,8 @@ contains
                 primitiveQuartet%twozeta_d = 2.0 * auxExponentS
 
                 incompletGammaArgument = rho*PQ2
-                call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
-                ! call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+1))
+                ! call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
+                call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+2))
 
                 s34 = ((Math_PI*oon)**1.5_8) * exp(-auxExponentR*auxExponentS*oon*CD2)*c3*c4
 
@@ -945,7 +981,7 @@ contains
                 !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,6)
                 ! end do
 
-                do i=0, maxAngularMoment+1
+                do i=0, sumAngularMoment+2
                    primitiveQuartet%F(i+1) = incompletGamma(i)*s1234
                    ! write(*,"(A1,I1,A,f17.12)") "F", i, " : ", primitiveQuartet%F(i+1)
                 end do

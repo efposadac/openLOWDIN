@@ -67,6 +67,7 @@ contains
     integer :: l1, m1, n1
     integer :: l2, m2, n2
     real(8) :: Ix, Iy, Iz
+    real(8) :: lambda
 
     angularMomentA = this(indexA)%angularMoment
     angularMomentB = this(indexB)%angularMoment
@@ -74,6 +75,7 @@ contains
     lengthB = this(indexB)%length
 
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
+    lambda = MolecularSystem_getLambda(specieID)
 
     do i = 1, 3
        originA(i-1) = this(indexA)%origin(i)
@@ -148,7 +150,7 @@ contains
                       Iz = 0.0_8
 
                       ! x on center i
-                      Ix = Ix + 2.0*auxExponentA*commonPreFactor*x(l1+1,l2)*y(m1,m2)*z(n1,n2)
+                      Ix = Ix + lambda*auxExponentA*commonPreFactor*x(l1+1,l2)*y(m1,m2)*z(n1,n2)
                       ! write(*,"(A,I17.12,4(A,f17.12))") "am1: ", auxExponentA, "x: ", x(l1+1,l2), " y: ", y(m1,m2), " z: ", z(n1,n2), " Ix: ", Ix
                       if (l1>0) then
                          Ix = Ix - l1*commonPreFactor*x(l1-1,l2)*y(m1,m2)*z(n1,n2)
@@ -156,7 +158,7 @@ contains
                       end if
                       
                       ! y on center i 
-                      Iy = Iy + 2.0*auxExponentA*commonPreFactor*x(l1,l2)*y(m1+1,m2)*z(n1,n2)
+                      Iy = Iy + lambda*auxExponentA*commonPreFactor*x(l1,l2)*y(m1+1,m2)*z(n1,n2)
                       ! write(*,"(A,I17.12,4(A,f17.12))") "am1: ", auxExponentA, "x: ", x(l1,l2), "y: ", y(m1+1,m2), "z: ", z(n1,n2), " Iy: ", Iy
                       if (m1>0) then
                          Iy = Iy - m1*commonPreFactor*x(l1,l2)*y(m1-1,m2)*z(n1,n2)
@@ -164,7 +166,7 @@ contains
                       end if
                       
                       ! z on center i 
-                      Iz = Iz + 2.0*auxExponentA*commonPreFactor*x(l1,l2)*y(m1,m2)*z(n1+1,n2)
+                      Iz = Iz + lambda*auxExponentA*commonPreFactor*x(l1,l2)*y(m1,m2)*z(n1+1,n2)
                       ! write(*,"(A,I17.12,4(A,f17.12))") "am1: ", auxExponentA, "x: ", x(l1,l2), "y: ", y(m1,m2), "z: ", z(n1+1,n2), " Iz: ", Iz
                       if (n1>0) then
                          Iz = Iz - n1*commonPreFactor*x(l1,l2)*y(m1,m2)*z(n1-1,n2)
