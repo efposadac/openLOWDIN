@@ -40,6 +40,8 @@
 !!        -# Adapta el modulo para usar la libreria MAGMA-CUDA y acelerar en GPUs
 !!   - <tt> 2015-02-22 </tt> Jorge Charry ( jacharrym@unal.edu.co )
 !!        -# Adapt the module to the Lapack routine DSYEVX. 
+!!   - <tt> 2015-04-20 </tt> Jorge Charry ( jacharrym@unal.edu.co )
+!!        -# Implement the swap rows routine. 
 
 
 module Matrix_
@@ -765,6 +767,20 @@ contains
     type(Matrix), intent(inout) :: this
     integer, intent(in) :: i
     integer, intent(in) :: j
+    real(8), allocatable :: value1(:)
+    real(8), allocatable :: value2(:)
+
+    if (allocated(value1)) deallocate(value1)
+    allocate (value1(size(this%values,dim=2)) )
+    if (allocated(value2)) deallocate(value2)
+    allocate (value2(size(this%values,dim=2)) )
+
+
+    value1 = this%values(i,:) 
+    value2 = this%values(j,:) 
+
+    this%values(i,:) = value2
+    this%values(j,:) = value1
 
   end subroutine Matrix_swapRows
 
@@ -801,6 +817,7 @@ contains
     type(Matrix), intent(inout) :: this
     integer, intent(in) :: i
     integer, intent(in) :: j
+
 
   end subroutine Matrix_swapColumns
 
