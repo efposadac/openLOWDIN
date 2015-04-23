@@ -600,9 +600,9 @@ contains
 
              if (CONTROL_instance%COSMO) then
                 call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))
-                ! if(SingleSCF_getNumberOfIterations( iteratorOfSpecie ) > 0) then
+	                if(SingleSCF_getNumberOfIterations( iteratorOfSpecie ) > 0) then
                 call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
-                ! end if
+                end if
              end if
 
              !! At first iteration is not included the coupling operator.

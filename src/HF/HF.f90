@@ -345,6 +345,7 @@ program HF
 					
 					! write(*,*)"cosmo coupling wf hf"
 					! call Matrix_show(WaveFunction_instance(speciesID)%cosmoCoupling)
+					call WaveFunction_quantumTotalCharge(speciesID)
 
 		 end if
 
@@ -372,7 +373,6 @@ program HF
   if(CONTROL_instance%COSMO) then
 		write(*,*)"totalCosmoEnergy",totalCosmoEnergy
 		write(*,*)"cosmo3energy",cosmo3Energy
-
 
 		potentialEnergy=potentialEnergy+totalCosmoEnergy+cosmo3Energy
 
