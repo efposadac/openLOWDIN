@@ -67,6 +67,7 @@ module WaveFunction_
      type(Matrix) :: cosmo2
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
+		 real(8) :: cosmoChargeValue
 
      !!
      !!**************************************************************
@@ -163,6 +164,8 @@ contains
           labels(1) = "COSMO4"
           WaveFunction_instance(speciesID)%cosmo4 = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
                columns= int(numberOfContractions,4), binary=.true., arguments=labels)
+
+					WaveFunction_instance(speciesID)%cosmoChargeValue=0.0_8
 
        end if
 
@@ -2418,8 +2421,6 @@ contains
   !! build cosmo 2 matrix 
 
   subroutine WaveFunction_buildCosmo2Matrix(nameOfSpecie)
-    ! subroutine WaveFuction_getLabels(specieSelected,labelsOfContractions)
-    ! call WaveFunction_getLabels(MolecularSystem_instance%species(speciesID),labels)
 
     character(*), optional :: nameOfSpecie
     type(species) :: specieSelected
@@ -2446,12 +2447,14 @@ contains
     speciesID = MolecularSystem_getSpecieID(nameOfSpecie=trim(nameOfSpecieSelected))
     specieSelected=MolecularSystem_instance%species(speciesID)
 
+
     open(unit=110, file=trim(nameOfSpecieSelected)//"_qq.inn", status='old', form="unformatted")
     read(110)m
 
 
     if(allocated(cosmo_int)) deallocate(cosmo_int)
     allocate(cosmo_int(m))
+
 
     read(110)(cosmo_int(i),i=1,m)
     close(unit=110)
@@ -2548,6 +2551,7 @@ contains
           end do
        end do
     end do
+
     
 		if (  CONTROL_instance%DEBUG_SCFS) then
    write(*,*) "COSMO 2 matrix for: ", trim(nameOfSpecieSelected)

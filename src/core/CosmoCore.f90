@@ -320,19 +320,16 @@ contains
     end do
 
 
-
-    ! write(*,*)"q_clasical"
-    ! do j=1,segments
-    ! 	 write(*,*)q_clasical(j)
-    ! 	 q_verifier=q_verifier+q_clasical(j)
-    ! end do
+    do j=1,segments
+    	 q_verifier=q_verifier+q_clasical(j)
+    end do
 
     write(77) q_clasical
 
     close(77)
 
-    ! write(*,*) "q_verifier"
-    ! write(*,*) q_verifier
+    write(*,*) "Cosmo Classical Charges value"
+    write(*,*) q_verifier
 
     ! write(*,*) "cmatinv clasical"
     ! call Matrix_show(cmatinv_aux)
@@ -366,6 +363,7 @@ contains
     integer :: specieid
     integer :: charge
 
+
     character(30) :: specieName
 
     integer ,intent(in) :: ints
@@ -374,6 +372,7 @@ contains
     integer :: i,j
 
     ! primero se multiplica cmatinv por el lambda y luego por el vector
+
 
     if(allocated(q_charges)) deallocate(q_charges)
     allocate(q_charges(ints))
@@ -405,6 +404,11 @@ contains
     end do
 
     write(78,*)q_charges(:)
+
+
+
+		
+
 		! write(*,*)"quantum charges",specieName
 		! write(*,*)q_charges(:)
 
@@ -432,6 +436,7 @@ contains
     real(8), allocatable :: cosmo_int(:)
     integer :: i,j,k,l,m,n
     integer :: ii,g,h,hh,jj,mm
+		
 
     allocate (cosmo_int(integrals*charges))
     allocate (a_mat(surface,charges))
@@ -452,8 +457,7 @@ contains
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
     end do
-
-
+			 
     !!calculo del producto punto
 
 		cosmo_int(:)=0.0_8
@@ -528,7 +532,7 @@ contains
           write(40) ints_mat_aux
 
 				else
-          
+
 
           open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//"_qq.inn", status='unknown', form="unformatted")
           write(110) m-1
@@ -536,6 +540,23 @@ contains
           close(unit=110)
 
           write(*,*)"same specie inner product",MolecularSystem_instance%species(f_aux)%name,m-1
+    
+		ints_mat(:,:)=1.0_8
+
+    m=1
+    do n=1,integrals
+       do k=1,charges
+          cosmo_int(m)=dot_product(ints_mat(:,n),a_mat(:,k))
+          m=m+1
+       end do
+    end do
+
+	
+    open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//"_qq.chr", status='unknown', form="unformatted")
+    write(110) m-1
+    write(110) cosmo_int(:)
+    close(unit=110)
+		write(*,*)"charge file ordenado :",trim(MolecularSystem_instance%species(f_aux)%name)//"_qq.chr"
 
        end if
 
@@ -554,13 +575,9 @@ contains
        write(110) cosmo_int(:)
        close(unit=110)
        write(*,*)"other species inner product :",trim(MolecularSystem_instance%species(f_aux)%name),"charges ,",trim(MolecularSystem_instance%species(g_aux)%name)," potentials",m-1
-			 write(*,*)"m values",cosmo_int(:)
-			 write(*,*)cosmo_int(:)
 
 
     end if
-
-
 
   end subroutine CosmoCore_q_int_builder
 

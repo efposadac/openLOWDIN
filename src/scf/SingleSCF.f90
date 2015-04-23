@@ -229,7 +229,7 @@ contains
        call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
 
        WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .true.
-			 
+
 
     end if
     !!

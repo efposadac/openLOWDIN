@@ -483,6 +483,7 @@ contains
           totals(f)=total_aux
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(f),f,f)
 
+
           !!clasical vs clasical
 
           cosmoClasicalChargeFile="cosmo.clasical"
