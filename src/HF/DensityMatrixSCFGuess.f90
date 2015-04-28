@@ -61,7 +61,7 @@ contains
     !!Verifica el archivo que contiene los coeficientes para una especie dada
     if ( CONTROL_instance%READ_COEFFICIENTS ) then
        
-       inquire(FILE = trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//".vec", EXIST = existFile )
+       inquire(FILE = "lowdin.vec", EXIST = existFile )
        
     end if
     
@@ -239,6 +239,13 @@ contains
     integer :: numberOfContractions
     integer :: ocupationNumber
     integer :: i, j, k
+    character(50) :: wfnFile
+    character(50) :: arguments(20)
+    integer :: wfnUnit
+    
+    wfnFile = "lowdin.vec"
+    wfnUnit = 30
+
     
     orderOfMatrix = MolecularSystem_getTotalnumberOfContractions( speciesID )
     nameOfSpecie = MolecularSystem_instance%species(speciesID)%name
@@ -248,10 +255,24 @@ contains
     
     ocupationNumber = MolecularSystem_instance%species(speciesID)%ocupationNumber
     
-    vectors = Matrix_getFromFile(orderOfMatrix, orderOfMatrix, &
-         file=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//".vec", binary = .false.)
+!    vectors = Matrix_getFromFile(orderOfMatrix, orderOfMatrix, &
+!         file=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//".vec", binary = .false.)
+
+    !! Open file for wavefunction
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+     arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+     arguments(1) = "COEFFICIENTS"
     
-    call Matrix_constructor( densityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
+    call Matrix_constructor( vectors, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
+
+     vectors = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
+          columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+
+    close(wfnUnit)
+
+    call matrix_constructor( densitymatrix, int(orderofmatrix,8), int(orderofmatrix,8), 0.0_8 )
+
     
     do i = 1 , orderOfMatrix
        do j = 1 , orderOfMatrix

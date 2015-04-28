@@ -197,6 +197,13 @@ contains
     logical :: existFile
     logical :: internalActualizeDensityMatrix 
 
+    character(50) :: wfnFile
+    character(50) :: arguments(20)
+    integer :: wfnUnit
+    
+    wfnFile = "lowdin.vec"
+    wfnUnit = 30
+
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
@@ -425,14 +432,23 @@ contains
        !!**********************************************************************************************
 
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
-       if ( CONTROL_instance%NO_SCF) then
+       if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS > 1 ) then
           if ( CONTROL_instance%READ_COEFFICIENTS ) then
-             inquire(FILE = trim(nameOfSpecieSelected)//".vec", EXIST = existFile )
+             inquire(FILE = "lowdin.vec", EXIST = existFile )
 
              if ( existFile) then
 
-                WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(int(numberOfContractions,4), int(numberOfContractions,4), &
-                     file = trim(nameOfSpecie)//".vec", binary = .false.)
+
+	    !! Open file for wavefunction
+	    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+	     arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+	     arguments(1) = "COEFFICIENTS"
+	    
+             WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+		  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+	    close(wfnUnit)
 
              end if
           end if
