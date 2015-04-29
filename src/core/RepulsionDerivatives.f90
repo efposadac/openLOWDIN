@@ -276,7 +276,7 @@ contains
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
     maxNumberOfPrimitives = MolecularSystem_getMaxNumberofPrimitives(specieID)
     maxNumberOfCartesians = MolecularSystem_getMaxNumberofCartesians(specieID)
-    lambda = MolecularSystem_getLambda(specieID)
+    lambda = 2.0_8!MolecularSystem_getLambda(specieID)
 
     maxNPrimSize = maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives
     maxNCartSize = maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians

@@ -75,7 +75,7 @@ contains
     lengthB = this(indexB)%length
 
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
-    lambda = MolecularSystem_getLambda(specieID)
+    lambda = 2.0_8!MolecularSystem_getLambda(specieID)
 
     do i = 1, 3
        originA(i-1) = this(indexA)%origin(i)

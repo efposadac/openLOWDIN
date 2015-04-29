@@ -91,7 +91,7 @@ contains
     ! maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
     maxAngularMoment = angularMomentA + angularMomentB + 1
     chargeSpecie = MolecularSystem_getCharge(specieID)
-    lambda = MolecularSystem_getLambda(specieID)
+    lambda = 2.0_8!MolecularSystem_getLambda(specieID)
 
     recurSize = maxAngularMoment + 4
     recurSize = (recurSize - 1)*recurSize*(recurSize + 1) + 1
@@ -158,7 +158,8 @@ contains
     do i = 1, size(ParticleManager_instance)
        if(ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
           if(ParticleManager_instance(i)%particlePtr%isQuantum) then
-             pointCharges(j,0) = 0.0_8
+             pointCharges(j,0) = 0.0_8!ParticleManager_instance(i)%particlePtr%charge
+             write(*,"(A,F17.12)") "Carga nucleo q: ", pointCharges(j,0)
              pointCharges(j,1) = ParticleManager_instance(i)%particlePtr%origin(1)
              pointCharges(j,2) = ParticleManager_instance(i)%particlePtr%origin(2)
              pointCharges(j,3) = ParticleManager_instance(i)%particlePtr%origin(3)
@@ -188,6 +189,8 @@ contains
           auxContConstantB = this(indexB)%contNormalization(1)
           c2 = auxCoefficientB*auxPrimConstantB*auxContConstantB
           
+
+          write(*,"(A,f,A,f)") "expA: ", auxExponentA, " expB:", auxExponentB
           !! Debug Mauricio Rodas
           ! write(*,"(A,f,A,f,A,f)") "coefA: ", auxCoefficientA, " PrimA:", auxPrimConstantA, " contA: ", auxContConstantA
           ! write(*,"(A,f,A,f,A,f)") "coefB: ", auxCoefficientB, " PrimB:", auxPrimConstantB, " contB: ", auxContConstantB
@@ -196,7 +199,7 @@ contains
           gamma = auxExponentA + auxExponentB
           ! write(*,"(A,F17.12)") "gamma: ", gamma
           gammaInv = 1.0/gamma
-          ! write(*,"(A,F17.12)") "gammaInv: ", gammaInv
+          write(*,"(A,F17.12)") "gammaInv: ", gammaInv
 
 
           P(0)  = (auxExponentA*originA(0) + auxExponentB*originB(0))*gammaInv
@@ -214,7 +217,7 @@ contains
           commonPreFactor = commonPreFactor * sqrt(Math_PI*gammaInv)
           ! write(*,"(A,F17.12)") "common: ", commonPreFactor
           commonPreFactor = commonPreFactor * Math_PI * gammaInv*c1*c2
-          ! write(*,"(A,F17.12)") "common: ", commonPreFactor
+          write(*,"(A,F17.12)") "common: ", commonPreFactor
 
           ! center = 0
           ! do i = 1, size(ParticleManager_instance)
