@@ -943,7 +943,7 @@ contains
        nameOfSpecie = trim(MolecularSystem_instance%species(specieIterator)%symbol)
        orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(specieIterator)
 
-       write(*,"(A,A,A,I)")"Especie: ", trim(nameOfSpecie), " size: ", numberOfContractions
+       ! write(*,"(A,A,A,I)")"Especie: ", trim(nameOfSpecie), " size: ", numberOfContractions
        ! write(*,"(A,I)") "Order: ", orderOfMatrix
        ! do i = 1, numberOfContractions
        !    write(*,"(A,I)") "ID: ", contractions(i)%id
@@ -1023,9 +1023,9 @@ contains
        ! write(*,"(A,F12.8)") "kappa: ", kappa
        ! write(*,"(A,F12.8)") "eta: ", eta
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes Cineticos"
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes Cineticos"
+       ! write(*,"(A)") "----------------------------------------------------------------"
        ! do i=1, numberOfContractions
        !    write(*,"(A,I)") "owner: ", owner
        ! end do
@@ -1128,15 +1128,15 @@ contains
           end do
        end do
        
-       write(*,"(3(f17.12))") auxKinetic(1,1), auxKinetic(1,2), auxKinetic(1,3)
-       write(*,"(3(f17.12))") auxKinetic(2,1), auxKinetic(2,2), auxKinetic(2,3)
+       ! write(*,"(3(f17.12))") auxKinetic(1,1), auxKinetic(1,2), auxKinetic(1,3)
+       ! write(*,"(3(f17.12))") auxKinetic(2,1), auxKinetic(2,2), auxKinetic(2,3)
        ! write(*,"(3(f17.12))") auxKinetic(3,1), auxKinetic(3,2), auxKinetic(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
 
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes de Potencial"
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Potencial"
+       ! write(*,"(A)") "----------------------------------------------------------------"
        !! Potential Gradients
        do P = 1, numberOfContractions
           do Q = 1, P
@@ -1208,14 +1208,14 @@ contains
           end do
        end do
 
-       write(*,"(3(f17.12))") auxPotential(1,1), auxPotential(1,2), auxPotential(1,3)
-       write(*,"(3(f17.12))") auxPotential(2,1), auxPotential(2,2), auxPotential(2,3)
+       ! write(*,"(3(f17.12))") auxPotential(1,1), auxPotential(1,2), auxPotential(1,3)
+       ! write(*,"(3(f17.12))") auxPotential(2,1), auxPotential(2,2), auxPotential(2,3)
        ! write(*,"(3(f17.12))") auxPotential(3,1), auxPotential(3,2), auxPotential(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes de Overlap"
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Overlap"
+       ! write(*,"(A)") "----------------------------------------------------------------"
        !! Overlap Gradients
        do P = 1, numberOfContractions
           do Q = 1, P
@@ -1296,14 +1296,14 @@ contains
           end do
        end do
 
-       write(*,"(3(f17.12))") auxOverlap(1,1), auxOverlap(1,2), auxOverlap(1,3)
-       write(*,"(3(f17.12))") auxOverlap(2,1), auxOverlap(2,2), auxOverlap(2,3)
+       ! write(*,"(3(f17.12))") auxOverlap(1,1), auxOverlap(1,2), auxOverlap(1,3)
+       ! write(*,"(3(f17.12))") auxOverlap(2,1), auxOverlap(2,2), auxOverlap(2,3)
        ! write(*,"(3(f17.12))") auxOverlap(3,1), auxOverlap(3,2), auxOverlap(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes de Coulomb"
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Coulomb"
+       ! write(*,"(A)") "----------------------------------------------------------------"
        !! Coulomb and Exchange Gradients
        call EnergyGradients_getShellPairs(numberOfContractions, shellPairs)
        npairs = size(shellPairs%values,DIM=1)
@@ -1383,7 +1383,7 @@ contains
                       y = sIter + labelsOfContractions(S)
                       Duv = densityMatrix%values(u,v)
                       Dxy = densityMatrix%values(x,y)
-                      JKval = perm*Duv*Dxy*eta
+                      JKval = perm*Duv*Dxy*2.0_8!eta
                       !write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",pIter,",",qIter,"|",rIter,",",sIter,")"
                       !write(*,"(A3,I2,A4,I2,A4,I2,A4,I2)") "u: ", u, " v: ", v," x: ", x," y: ", y
                       !write(*,"(2(A,F17.12))") "Duv: ", Duv, " Dxy: ", Dxy
@@ -1517,18 +1517,18 @@ contains
        auxCoulomb = auxCoulomb*charge*charge*0.5
        auxExchange = auxExchange*charge*charge*kappa*0.5
 
-       write(*,"(3(f17.12))") auxCoulomb(1,1), auxCoulomb(1,2), auxCoulomb(1,3)
-       write(*,"(3(f17.12))") auxCoulomb(2,1), auxCoulomb(2,2), auxCoulomb(2,3)
+       ! write(*,"(3(f17.12))") auxCoulomb(1,1), auxCoulomb(1,2), auxCoulomb(1,3)
+       ! write(*,"(3(f17.12))") auxCoulomb(2,1), auxCoulomb(2,2), auxCoulomb(2,3)
        ! write(*,"(3(f17.12))") auxCoulomb(3,1), auxCoulomb(3,2), auxCoulomb(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
 
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(A)") " Gradientes de Intercambio"
-       write(*,"(A)") "----------------------------------------------------------------"
-       write(*,"(3(f17.12))") auxExchange(1,1), auxExchange(1,2), auxExchange(1,3)
-       write(*,"(3(f17.12))") auxExchange(2,1), auxExchange(2,2), auxExchange(2,3)
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Intercambio"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(3(f17.12))") auxExchange(1,1), auxExchange(1,2), auxExchange(1,3)
+       ! write(*,"(3(f17.12))") auxExchange(2,1), auxExchange(2,2), auxExchange(2,3)
        ! write(*,"(3(f17.12))") auxExchange(3,1), auxExchange(3,2), auxExchange(3,3)
-       write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") "----------------------------------------------------------------"
        
        ! write(*,"(A,I)") "delta: ", deltasum
 
@@ -1577,6 +1577,7 @@ contains
   subroutine EnergyGradients_calculateAnalyticCouplingFirstDerivative()
     implicit none
     real(8), allocatable :: output(:,:)
+    real(8), allocatable :: auxoutput(:,:)
     integer :: specieIterator, otherSpecieIterator
     type(ContractedGaussian), allocatable :: contractions(:)
     type(ContractedGaussian), allocatable :: otherContractions(:)
@@ -1611,6 +1612,9 @@ contains
 
     if(allocated(output)) deallocate(output)
     allocate(output(numberOfOptimizationCenters,3))
+
+    if(allocated(auxoutput)) deallocate(auxoutput)
+    allocate(auxoutput(numberOfOptimizationCenters,3))
 
     if(allocated(auxOwnerId)) deallocate(auxOwnerId)
     allocate(auxOwnerId(size(ParticleManager_instance)))
@@ -1660,7 +1664,8 @@ contains
 
        do otherSpecieIterator = specieIterator + 1, MolecularSystem_instance%numberOfQuantumSpecies
           
-          write(*,*) 'Iteradores acoplamiento: ', otherSpecieIterator, specieIterator
+          auxoutput = 0.0_8
+          ! write(*,*) 'Iteradores acoplamiento: ', otherSpecieIterator, specieIterator
 
           call MolecularSystem_getBasisSet(otherSpecieIterator, otherContractions)
           otherNumberOfContractions = MolecularSystem_getNumberOfContractions(otherSpecieIterator)
@@ -1698,7 +1703,7 @@ contains
                            nameOfSpecie=nameOfSpecie, &
                            otherNameOfSpecie=otherNameOfSpecie )
 
-                      write(*,*) 'shell: ', P,Q,R,S
+                      ! write(*,*) 'shell: ', P,Q,R,S
 
                       numCartesianP = contractions(P)%numCartesianOrbital
                       numCartesianQ = contractions(Q)%numCartesianOrbital
@@ -1710,8 +1715,8 @@ contains
                       centerR = auxOwnerId(otherContractions(R)%owner)
                       centerS = auxOwnerId(otherContractions(S)%owner)
 
-                      write(*,*) 'CENTROS'
-                      write(*,*) centerP, centerQ, centerR, centerS
+                      ! write(*,*) 'CENTROS'
+                      ! write(*,*) centerP, centerQ, centerR, centerS
 
                       perm = 1.0
                       if (P /= Q) then
@@ -1769,29 +1774,42 @@ contains
                       By = -(Ay + Cy + Dy)
                       Bz = -(Az + Cz + Dz)
 
-                      write(*,*) 'x', Ax, Bx, Cx, Dx
-                      write(*,*) 'y', Ay, By, Cy, Dy
-                      write(*,*) 'z', Az, Bz, Cz, Dz
+                      ! write(*,*) 'x', Ax, Bx, Cx, Dx
+                      ! write(*,*) 'y', Ay, By, Cy, Dy
+                      ! write(*,*) 'z', Az, Bz, Cz, Dz
 
-                      output(centerP,1) = output(centerP,1) + Ax
-                      output(centerP,2) = output(centerP,2) + Ay
-                      output(centerP,3) = output(centerP,3) + Az
-                      output(centerQ,1) = output(centerQ,1) + Bx
-                      output(centerQ,2) = output(centerQ,2) + By
-                      output(centerQ,3) = output(centerQ,3) + Bz
-                      output(centerR,1) = output(centerR,1) + Cx
-                      output(centerR,2) = output(centerR,2) + Cy
-                      output(centerR,3) = output(centerR,3) + Cz
-                      output(centerS,1) = output(centerS,1) + Dx
-                      output(centerS,2) = output(centerS,2) + Dy
-                      output(centerS,3) = output(centerS,3) + Dz
+                      auxoutput(centerP,1) = auxoutput(centerP,1) + Ax
+                      auxoutput(centerP,2) = auxoutput(centerP,2) + Ay
+                      auxoutput(centerP,3) = auxoutput(centerP,3) + Az
+                      auxoutput(centerQ,1) = auxoutput(centerQ,1) + Bx
+                      auxoutput(centerQ,2) = auxoutput(centerQ,2) + By
+                      auxoutput(centerQ,3) = auxoutput(centerQ,3) + Bz
+                      auxoutput(centerR,1) = auxoutput(centerR,1) + Cx
+                      auxoutput(centerR,2) = auxoutput(centerR,2) + Cy
+                      auxoutput(centerR,3) = auxoutput(centerR,3) + Cz
+                      auxoutput(centerS,1) = auxoutput(centerS,1) + Dx
+                      auxoutput(centerS,2) = auxoutput(centerS,2) + Dy
+                      auxoutput(centerS,3) = auxoutput(centerS,3) + Dz
 
                    end do
                 end do
              end do
           end do
 
-          output = output*charge*otherCharge!*lambda*otherLambda
+          auxoutput = auxoutput*charge*otherCharge!*lambda*otherLambda
+          
+          ! write(*,"(A)") "----------------------------------------------------------------"
+          ! write(*,"(A)") " Gradientes de Acoplamiento"
+          ! write(*,*) specieIterator, otherSpecieIterator
+          ! write(*,"(A)") "----------------------------------------------------------------"
+          ! write(*,"(3(f17.12))") auxoutput(1,1), auxoutput(1,2), auxoutput(1,3)
+          ! write(*,"(3(f17.12))") auxoutput(2,1), auxoutput(2,2), auxoutput(2,3)
+          ! write(*,"(3(f17.12))") auxoutput(3,1), auxoutput(3,2), auxoutput(3,3)
+          ! write(*,"(A)") "----------------------------------------------------------------"
+
+
+          output = output + auxoutput
+          
        end do
     end do
 
@@ -1803,13 +1821,13 @@ contains
           end do
        end do
    
-    write(*,"(A)") "----------------------------------------------------------------"
-    write(*,"(A)") " Gradientes de Acoplamiento"
-    write(*,"(A)") "----------------------------------------------------------------"
-    write(*,"(3(f17.12))") output(1,1), output(1,2), output(1,3)
-    write(*,"(3(f17.12))") output(2,1), output(2,2), output(2,3)
+    ! write(*,"(A)") "----------------------------------------------------------------"
+    ! write(*,"(A)") " Gradientes de Acoplamiento"
+    ! write(*,"(A)") "----------------------------------------------------------------"
+    ! write(*,"(3(f17.12))") output(1,1), output(1,2), output(1,3)
+    ! write(*,"(3(f17.12))") output(2,1), output(2,2), output(2,3)
     ! write(*,"(3(f17.12))") output(3,1), output(3,2), output(3,3)
-    write(*,"(A)") "----------------------------------------------------------------"
+    ! write(*,"(A)") "----------------------------------------------------------------"
 
     close(wfnUnit)
 
@@ -1856,9 +1874,9 @@ contains
     end do
 
 
-    write(*,"(A)") "----------------------------------------------------------------"
-    write(*,"(A)") " Gradientes Nucleares"
-    write(*,"(A)") "----------------------------------------------------------------"
+    ! write(*,"(A)") "----------------------------------------------------------------"
+    ! write(*,"(A)") " Gradientes Nucleares"
+    ! write(*,"(A)") "----------------------------------------------------------------"
     !! Nuclear Gradients
     output = 0.0_8
     do i = 1, size(ParticleManager_instance)
@@ -1893,10 +1911,10 @@ contains
        end do
     end do
 
-    write(*,"(3(f17.12))") output(1,1), output(1,2), output(1,3)
-    write(*,"(3(f17.12))") output(2,1), output(2,2), output(2,3)
+    ! write(*,"(3(f17.12))") output(1,1), output(1,2), output(1,3)
+    ! write(*,"(3(f17.12))") output(2,1), output(2,2), output(2,3)
     ! write(*,"(3(f17.12))") output(3,1), output(3,2), output(3,3)
-    write(*,"(A)") "----------------------------------------------------------------"
+    ! write(*,"(A)") "----------------------------------------------------------------"
 
   end subroutine EnergyGradients_calculateFistDerivativeOfPuntualEnergy
 

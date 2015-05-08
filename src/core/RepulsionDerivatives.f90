@@ -521,7 +521,7 @@ contains
 
                 s34 = ((Math_PI*oon)**1.5_8) * exp(-auxExponentR*auxExponentS*oon*CD2)*c3*c4
 
-                s1234 = lambda*sqrt(rho/Math_PI) * s12 * s34
+                s1234 = 2.0_8*sqrt(rho/Math_PI) * s12 * s34
 
                 do i=0, sumAngularMoment+2
                    primitiveQuartet%F(i+1) = incompletGamma(i)*s1234

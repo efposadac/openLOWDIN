@@ -151,8 +151,8 @@ contains
 
           ao12 = 0.0_8
          ! write(*,"(A)") "----------------------------------------"
-         write(*,"(A)") "   Valores previos de las derivadas     "
-         write(*,"(A,f)") "Common prefactor: ", commonPreFactor
+         ! write(*,"(A)") "   Valores previos de las derivadas     "
+         ! write(*,"(A,f)") "Common prefactor: ", commonPreFactor
          ! write(*,"(A,f)") "Common A: ", commonA
          ! write(*,"(A,f)") "Common B: ", commonB
          ! write(*,"(A,f)") "Common C: ", commonC
