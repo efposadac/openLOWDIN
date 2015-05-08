@@ -53,6 +53,6 @@ distclean::
 	rm -rf $(TOPDIR)/doc/latex
 
 test::
-	cd $(TOPDIR)/examples/ && sh runtest.sh
+	cd $(TOPDIR)/test/ && sh runtest.sh
 
 
