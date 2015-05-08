@@ -840,7 +840,7 @@ contains
     !! Parameter to control cosmo theory
     !!
     LowdinParameters_cosmo = .false.
-    LowdinParameters_cosmo_solvent_dialectric = 78.4d+00
+    LowdinParameters_cosmo_solvent_dialectric = 78.3553d+00
     LowdinParameters_cosmo_min_bem = 2
     LowdinParameters_cosmo_max_bem = 3
     LowdinParameters_cosmo_rsolv =0.5d+00
@@ -1020,6 +1020,7 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = .false.
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = .false.
     CONTROL_instance%DEBUG_SCFS = .false.
+    ! CONTROL_instance%DEBUG_SCFS = .true.
 
     !!***************************************************************************                                              
     !! Hartree-Fock options                                                                                                    
@@ -1081,7 +1082,7 @@ contains
     !! Parameter to control cosmo method                                                                                         
     !!                                                                                                                         
     CONTROL_instance%COSMO = .false.
-    CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= 78.4d+00 
+    CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= 78.3553d+00 
     CONTROL_instance%COSMO_MIN_BEM= 2
     CONTROL_instance%COSMO_MAX_BEM= 3
     CONTROL_instance%COSMO_RSOLV= 0.5d+00

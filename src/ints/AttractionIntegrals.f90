@@ -105,14 +105,11 @@ contains
   !!      -2013.02.04: E.F.Posada: change for use in opints
   !! @return  output: attraction integral of a shell (all combinations)
   !! @version 1.0
-  subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral, isCosmo_aux)
+  subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral)
     implicit none
     
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
     type(pointCharge), intent(in), allocatable :: point(:)
-
-		!!surface things
-		logical, optional, intent(in) :: isCosmo_aux
 
     integer, intent(in) :: npoints
     real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
@@ -203,7 +200,7 @@ contains
        orbitalExponentsA, orbitalExponentsB, &
        contractionCoefficientsA, contractionCoefficientsB, &
        normalizationConstantsA, normalizationConstantsB, &
-       pointCharges, integralValue, isCosmo_aux2)
+       pointCharges, integralValue )
     implicit none
 		
     integer, intent(in) :: angularMomentindexA(0:3), angularMomentindexB(0:3)
@@ -216,10 +213,6 @@ contains
     type(pointCharge), intent(in) :: pointCharges(0:numberOfPointCharges-1)
     real(8), intent(inout) :: integralValue
 		
-		!!cosmo things
-		logical,optional,intent(in) :: isCosmo_aux2
-		real(8), allocatable :: CosmoIntegrals(:,:)
-		!!
 
     real(8), allocatable :: AI0(:,:,:)
     real(8) :: PA(0:3), PB(0:3), PC(0:3), P(0:3)

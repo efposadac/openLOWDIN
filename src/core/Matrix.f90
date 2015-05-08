@@ -42,8 +42,8 @@
 !!        -# Adapt the module to the Lapack routine DSYEVX. 
 !!   - <tt> 2015-03-17 </tt> Mauricio Rodas ( jmrodasr@unal.edu.co )
 !!        -# Create the new routine for compute matrix-matrix operation using DGEMM of lapack
-
-
+!!   - <tt> 2015-04-20 </tt> Jorge Charry ( jacharrym@unal.edu.co )
+!!        -# Implement the swap rows routine. 
 module Matrix_
   use CONTROL_
   use Exception_
@@ -768,6 +768,20 @@ contains
     type(Matrix), intent(inout) :: this
     integer, intent(in) :: i
     integer, intent(in) :: j
+    real(8), allocatable :: value1(:)
+    real(8), allocatable :: value2(:)
+
+    if (allocated(value1)) deallocate(value1)
+    allocate (value1(size(this%values,dim=2)) )
+    if (allocated(value2)) deallocate(value2)
+    allocate (value2(size(this%values,dim=2)) )
+
+
+    value1 = this%values(i,:) 
+    value2 = this%values(j,:) 
+
+    this%values(i,:) = value2
+    this%values(j,:) = value1
 
   end subroutine Matrix_swapRows
 
@@ -804,6 +818,7 @@ contains
     type(Matrix), intent(inout) :: this
     integer, intent(in) :: i
     integer, intent(in) :: j
+
 
   end subroutine Matrix_swapColumns
 
@@ -1911,7 +1926,7 @@ contains
 
     call Matrix_constructor( output, int(size(this%values, DIM=1),8), int(size(otherMatrix%values, DIM=2),8) )
     output%values = matmul( this%values, otherMatrix%values )
-
+		
   end function Matrix_product
 
   !>

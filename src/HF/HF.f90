@@ -68,6 +68,7 @@ program HF
   !!cosmo things
   character(50) :: cosmoIntegralsFile
   real(8) :: totalCosmoEnergy
+  real(8) :: cosmo3Energy
 
   job = ""
   call get_command_argument(1,value=job)
@@ -137,6 +138,7 @@ program HF
 
   do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
+
      !!**********************************************************
      !! Builds Hcore
      !!
@@ -154,13 +156,9 @@ program HF
      !!
      !! 
      if(CONTROL_instance%COSMO)then
-
         cosmoIntegralsFile="cosmo.opints"
-
         call WaveFunction_cosmoHcoreMatrix(trim(cosmoIntegralsFile), speciesID)
-
      end if
-
 
      !!**********************************************************
      !! Build Guess and first density matrix
@@ -173,17 +171,21 @@ program HF
         call Matrix_destructor(auxDensity)
 
      else
+		
 
         auxDensity=DensityMatrixSCFGuess_getGuess( CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS, speciesID )
 
         call WaveFunction_setDensityMatrix(  auxDensity, speciesID )
         call Matrix_destructor(auxDensity)
+			
 
      end if
+		 
 
      !!**********************************************************
      !! Save matrices to lowdin.wfn file
      !!
+
      arguments = ""
      arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
 
@@ -198,20 +200,23 @@ program HF
 
      arguments(1) = "TRANSFORMATION"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+		 
      
      if(CONTROL_instance%COSMO)then
-
+        
         arguments(1) = "COSMO1"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-
+			 
         arguments(1) = "COSMO4"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-
+				
      end if
 
   end do
+	
 
   close(wfnUnit)
+	
 
   !!**************************************************************************************************************************
   !! Calculate two-particle integrals (not building 2 particles and coupling matrix... those matrices are done by SCF program)
@@ -247,6 +252,7 @@ program HF
   if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL ) then        
 
      call system(" lowdin-ints.x TWO_PARTICLE_F12")
+		 
 
   else        
 
@@ -289,12 +295,12 @@ program HF
      call system(" lowdin-ints.x GET_GRADIENTS")
 
   end if
-
   !! Open file for wavefunction
   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
   !! Load results...
   call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalEnergy, arguments=["TOTALENERGY"])
+  call Vector_getFromFile(unit=wfnUnit, binary=.true., value=cosmo3Energy, arguments=["COSMO3ENERGY"])
   call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalCouplingEnergy, arguments=["COUPLINGENERGY"])
   call Vector_getFromFile(unit=wfnUnit, binary=.true., value=electronicRepulsionEnergy, arguments=["COUPLING-E-"])
 
@@ -329,12 +335,23 @@ program HF
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = WaveFunction_instance(speciesID)%energyofmolecularorbital )     
 
+     
      if(CONTROL_instance%COSMO)then
 
         arguments(1) = "COSMO2"
         WaveFunction_instance(speciesID)%cosmo2 = &
              Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+        arguments(1) = "COSMOCOUPLING"
+        WaveFunction_instance(speciesID)%cosmoCoupling = &
+             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+             columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+        ! write(*,*)"cosmo coupling wf hf"
+        ! call Matrix_show(WaveFunction_instance(speciesID)%cosmoCoupling)
+        call WaveFunction_quantumTotalCharge(speciesID)
+
 
      end if
 
@@ -358,7 +375,13 @@ program HF
        + totalExternalPotentialEnergy
 	totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
 
-	! write(*,*)"totalCosmoEnergy",WaveFunction_instance(:)%cosmoEnergy
+ if(CONTROL_instance%COSMO) then
+    write(*,*)"totalCosmoEnergy",totalCosmoEnergy
+    write(*,*)"cosmo3energy",cosmo3Energy
+
+    potentialEnergy=potentialEnergy+totalCosmoEnergy+cosmo3Energy
+
+ end if
 
  close(wfnUnit)
 

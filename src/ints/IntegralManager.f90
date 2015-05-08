@@ -328,7 +328,10 @@ contains
     type(Matrix) :: cmatin
     real(8) ::  cosmoPotInt
 
-    integer :: b,d,totals,total_aux
+    integer :: b,d,total_aux
+
+    integer, allocatable ::  totals(:)
+
 
     a=0
 
@@ -349,6 +352,9 @@ contains
        if(allocated(point)) deallocate(point)
        allocate(point(1:numberOfPointCharges))
        ! write(*,*) "remplazadas por estas"
+       
+			 if(allocated(totals)) deallocate(totals)
+       allocate(totals(size(MolecularSystem_instance%species)))
 
        write(40) job
 
@@ -375,10 +381,6 @@ contains
 
           open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
           open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
-
-          ! write(*,*)"species", f
-          ! write(70) job
-          ! write(70) MolecularSystem_instance%species(f)%name
 
           if(allocated(labels)) deallocate(labels)
           allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
@@ -414,21 +416,18 @@ contains
 
                       b=MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital
                       d=MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital
-                      totals=b*d
+                      totals(f)=b*d
 
-                      total_aux=total_aux+totals
-
+                      total_aux=total_aux+totals(f)
 
                       do c = 1, numberOfPointCharges
                          ! do sobre las cargas puntuales 
-                         point(1)%charge = 1.0
+                         point(1)%charge = 1.0 
                          point(1)%x  =surface%xs(c)
                          point(1)%y  =surface%ys(c)
                          point(1)%z  =surface%zs(c)
-												 if (c==1) then
-													write(*,*) point(c)%x,point(c)%y,point(c)%z
-												end if
                          !Calculating integrals for shell
+
 
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
                               MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue)
@@ -437,12 +436,11 @@ contains
                          do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
                             do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                                m = m + 1
-                               integralValueCosmo(m,c)=integralValue(m)
-                               !! debug
-															 
-                               ! write(*,*)integralValueCosmo(m,c)
+
+
+															 integralValueCosmo(m,c)=integralValue(m)*(-MolecularSystem_getCharge(f))
+
                                
-															 write(37,'(F10.5)')integralValueCosmo(m,c)
                             end do
                          end do
 
@@ -464,20 +462,11 @@ contains
                             if(allocated(cosmoV)) deallocate(cosmoV)
                             allocate(cosmoV(numberOfPointCharges))
                             cosmoV(:)=integralValueCosmo(m,:)
-														! write(*,*)"m en cosmo write",m
 
-														write(*,*)cosmoV(:)
+                            call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
 
-                            call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges)
-
-														! write(*,*)"cosmo integrals: m,k,l",m,k,l
-                            ! write(*,*)integralValueCosmo(m,:)
-														! write(*,*)"cosmo charges"
-                            ! write(*,*)qCharges
-														
 														write(70)integralValueCosmo(m,:)
                             write(80)qCharges
-														write(63,'(F10.5)')qCharges
                          end do
                       end do
 
@@ -493,9 +482,12 @@ contains
 
           close(80)
           close(70)
+
           !!quantum
-          totals=total_aux
-          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals,totals)
+
+          totals(f)=total_aux
+          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(f),f,f)
+
 
           !!clasical vs clasical
 
@@ -506,7 +498,7 @@ contains
 					write(40) job
           write(40) MolecularSystem_instance%species(f)%name
 
-          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals,labels,f)
+          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals(f),f,f,labels)
 
           !clasical vs quantum
           
@@ -515,10 +507,34 @@ contains
 					write(40) job
           write(40) MolecularSystem_instance%species(f)%name
 
-          call CosmoCore_nucleiPotentialQuantumCharges(surface,cosmoQuantumChargeFile,totals,labels,f)
+          call CosmoCore_nucleiPotentialQuantumCharges(surface,cosmoQuantumChargeFile,totals(f),labels,f)
 
        end do
        !! end do especies
+			
+			 
+			if( MolecularSystem_getNumberOfQuantumSpecies() > 1 ) then
+				 
+				 
+			do f = 1, size(MolecularSystem_instance%species)
+				do g= 1, size(MolecularSystem_instance%species)
+					
+          !! do all possible combinations of potentials and charges.
+
+          if ( f /= g ) then
+
+
+          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
+          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+
+          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
+
+					end if
+				end do
+			end do
+				
+			end if
+
 
     else
 
@@ -584,7 +600,7 @@ contains
                             m = m + 1
 
 
-														! write(*,*)"lowdin integrals: m,k,l",m,k,l
+														! write(*,*)"lowdin integrals:f, m,k,l, integral value",f,m,k,l,integralValue(m)
                             integralsMatrix(k, l) = integralValue(m)
                             integralsMatrix(l, k) = integralsMatrix(k, l)
 

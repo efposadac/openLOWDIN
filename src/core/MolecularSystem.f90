@@ -33,7 +33,6 @@ module MolecularSystem_
   use Exception_
   use Units_
   use Particle_
-  use ParticleManager_
   use Species_
   use MecanicProperties_
   use Matrix_
@@ -617,10 +616,11 @@ contains
 	
     call get_command_argument (1,value=title)
 		150 format (4(F10.5))
-		open(unit=41, file="gepol.xyzr",status="replace", form="formatted")
+		open(unit=41, file="gepol.xyzr",status="replace",form="formatted")
 
-		write(41,"(I8)") MolecularSystem_instance%numberOfPointCharges
 			do i = 1,MolecularSystem_instance%numberOfQuantumSpecies 	
+				if (MolecularSystem_instance%species(i)%isElectron== .true.) then
+				write(41,"(I8)") size(MolecularSystem_instance%species(i)%particles)
        	do j = 1, size(MolecularSystem_instance%species(i)%particles)
           	write(41,150)&
 		  				MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
@@ -628,8 +628,8 @@ contains
 		  				MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
 		  				MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
        	end do
+				end if
     	end do
-
 		close(41)
 		
 		160 format (A,A)
@@ -638,7 +638,8 @@ contains
 			write(42,160)"COOF=gepol.xyzr"
 			write(42,160)"VECF=vectors.vec"
 			write(42,160)"LPRIN"
-			write(42,160)"ESURF"
+			write(42,160)"NDIV=5"
+			! write(42,160)"ESURF"
 		
 		close(42)
     

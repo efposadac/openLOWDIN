@@ -46,6 +46,8 @@ module OutputBuilder_
   !!        -# Adapts this module to Lowdin2 to generate the molden input
   !!   - <tt> 10-31-2014 </tt>:  Jorge Charry ( jacharry@unal.edu.co )
   !!        -# Adapts fully this module to Lowdin2 
+  !!   - <tt> 04-20-2015 </tt>:  Jorge Charry ( jacharry@unal.edu.co )
+  !!        -# Reorder the coefficients matrix according to the molden format
   !!   - <tt> MM-DD-YYYY </tt>:  authorOfChange ( email@server )
   !!        -# description
   !!
@@ -227,6 +229,8 @@ contains
      end select
    end subroutine OutputBuilder_buildOutput
 
+
+
   subroutine OutputBuilder_writeMoldenFile(this)
     implicit none
     type(OutputBuilder) :: this
@@ -254,8 +258,12 @@ contains
     character(50) :: wfnFile
     integer :: numberOfContractions
     character(50) :: arguments(20)
+    character(19) , allocatable :: labelsOfContractions(:)
+    integer :: counter, auxcounter
+    character(6) :: nickname
+    character(4) :: shellCode
+    character(2) :: space
 
-    
     auxString="speciesName"
 
     wfnFile = "lowdin.wfn"
@@ -283,7 +291,7 @@ contains
         do l=1,MolecularSystem_getNumberOfQuantumSpecies()
            auxString=MolecularSystem_getNameOfSpecie( l )
            specieID = MolecularSystem_getSpecieID(auxString)
-           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".mol"
+           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
            open(10,file=this%fileName,status='replace',action='write')
            write(10,"(A)") "[Molden Format]"
            write(10,"(A)") "[Atoms] AU"
@@ -376,7 +384,51 @@ contains
                 unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                 output = energyOfMolecularOrbital )
 
+           !! Build a vector of labels of contractions
+	   if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+           allocate(labelsOfContractions(numberOfContractions))
 
+           labelsOfContractions =  MolecularSystem_getlabelsofcontractions( specieID )
+
+           !! Swap some columns according to the molden format
+           do k=1,size(coefficientsOfCombination%values,dim=1)
+		!! Take the shellcode
+                read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+
+		!! Reorder the D functions
+                !! counter:  1,  2,  3,  4,  5,  6
+                !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+                !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+                !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+                !!  2-4, 3-5, 5-6
+
+		if ( shellcode == "Dxx" ) then 
+		    auxcounter = counter
+		    !! Swap XY and YY
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+		    !! Swap XZ and ZZ
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+		    !! Swap YZ and XZ'
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+                end if
+
+		!! Reorder the F functions
+                !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+                !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+                !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+
+             	if ( shellcode == "Fxxx" ) then 
+		    auxcounter = counter
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+
+                end if
+
+	    end do
 
            do j=1,size(energyOfMolecularOrbital%values)
               write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital%values(j)

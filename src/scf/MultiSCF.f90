@@ -72,6 +72,10 @@ module MultiSCF_
      real(8) :: totalCouplingEnergy
      real(8) :: electronicRepulsionEnergy
 
+		 !! Cosmo
+     real(8) :: cosmo3Energy
+
+
   end type MultiSCF
 
   type(MultiSCF), public, target :: MultiSCF_instance
@@ -132,6 +136,7 @@ contains
     end if
 
     MultiSCF_instance%totalEnergy = 0.0_8
+    MultiSCF_instance%cosmo3Energy = 0.0_8
     MultiSCF_instance%totalCouplingEnergy = 0.0_8
     MultiSCF_instance%electronicRepulsionEnergy = 0.0_8
 
@@ -302,6 +307,13 @@ contains
 
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie), nproc = MultiSCF_instance%nproc )
 
+                         if (CONTROL_instance%COSMO) then
+                            call  WaveFunction_buildCosmo2Matrix( trim(nameOfElectronicSpecie))
+                            if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
+                               call WaveFunction_buildCosmoCoupling( trim(nameOfElectronicSpecie) )
+                            end if
+                         end if
+
                          !! At first iteration is not included the coupling operator.
                          if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
                             call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
@@ -369,7 +381,8 @@ contains
              call WaveFunction_obtainTotalEnergy(&
                   MultiSCF_instance%totalEnergy, &
                   MultiSCF_instance%totalCouplingEnergy, &
-                  MultiSCF_instance%electronicRepulsionEnergy)
+                  MultiSCF_instance%electronicRepulsionEnergy, &
+                  MultiSCF_instance%cosmo3Energy )
 
              call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
              MultiSCF_instance%numberOfIterations = MultiSCF_instance%numberOfIterations + 1              
@@ -388,7 +401,8 @@ contains
        call WaveFunction_obtainTotalEnergy(&
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
-            MultiSCF_instance%electronicRepulsionEnergy)
+            MultiSCF_instance%electronicRepulsionEnergy, &
+            MultiSCF_instance%cosmo3Energy )
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
 
@@ -408,7 +422,6 @@ contains
     character(30) :: nameOfInitialSpecie
     real(8) :: tolerace
 
-    write(*,*)"entre a este esquema?"
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
@@ -444,12 +457,22 @@ contains
 
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie), nproc = MultiSCF_instance%nproc )
 
-
-
                          !! At first iteration is not included the coupling operator.
                          if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
                             call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
                          end if
+
+                         call Matrix_show(wavefunction_instance(iteratorOfSpecie)%couplingMatrix)
+
+
+                         if (CONTROL_instance%COSMO) then
+                            call  WaveFunction_buildCosmo2Matrix( trim(nameOfElectronicSpecie))
+                            if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
+                               call WaveFunction_buildCosmoCoupling( trim(nameOfElectronicSpecie) )
+                            end if
+                         end if
+
+
 
                          !! Build Fock Matrix
                          call WaveFunction_buildFockMatrix( trim(nameOfElectronicSpecie) )
@@ -513,7 +536,8 @@ contains
              call WaveFunction_obtainTotalEnergy(&
                   MultiSCF_instance%totalEnergy, &
                   MultiSCF_instance%totalCouplingEnergy, &
-                  MultiSCF_instance%electronicRepulsionEnergy)
+                  MultiSCF_instance%electronicRepulsionEnergy, &
+									MultiSCF_instance%cosmo3Energy)
 
              call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
              MultiSCF_instance%numberOfIterations = MultiSCF_instance%numberOfIterations + 1              
@@ -532,7 +556,8 @@ contains
        call WaveFunction_obtainTotalEnergy(&
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
-            MultiSCF_instance%electronicRepulsionEnergy)
+            MultiSCF_instance%electronicRepulsionEnergy, &
+						MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
 
@@ -550,6 +575,8 @@ contains
     real(8) :: tolerace
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
+
+    write(*,*)"entre a SpecieFullyConvergedIndividually"
 
     iteratorOfSpecie = 1
     nameOfSpecie = MolecularSystem_getNameOfSpecie(iteratorOfSpecie)
@@ -570,6 +597,13 @@ contains
                (SingleSCF_getNumberOfIterations( iteratorOfSpecie ) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
              call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+
+             if (CONTROL_instance%COSMO) then
+                call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))
+	                if(SingleSCF_getNumberOfIterations( iteratorOfSpecie ) > 0) then
+                call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
+                end if
+             end if
 
              !! At first iteration is not included the coupling operator.
              if(SingleSCF_getNumberOfIterations( iteratorOfSpecie ) > 0) then
@@ -609,7 +643,8 @@ contains
        call WaveFunction_obtainTotalEnergy(&
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
-            MultiSCF_instance%electronicRepulsionEnergy)
+            MultiSCF_instance%electronicRepulsionEnergy, &
+						MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
        MultiSCF_instance%numberOfIterations = MultiSCF_instance%numberOfIterations + 1       
@@ -623,7 +658,8 @@ contains
        call WaveFunction_obtainTotalEnergy(&
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
-            MultiSCF_instance%electronicRepulsionEnergy)
+            MultiSCF_instance%electronicRepulsionEnergy, &
+						MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
 
@@ -669,7 +705,8 @@ contains
        call WaveFunction_obtainTotalEnergy(&
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
-            MultiSCF_instance%electronicRepulsionEnergy)
+            MultiSCF_instance%electronicRepulsionEnergy, &
+						MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)             
        MultiSCF_instance%numberOfIterations = MultiSCF_instance%numberOfIterations + 1
@@ -685,7 +722,8 @@ contains
        call WaveFunction_obtainTotalEnergy(&
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
-            MultiSCF_instance%electronicRepulsionEnergy)
+            MultiSCF_instance%electronicRepulsionEnergy, &
+						MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)             
 
@@ -730,13 +768,13 @@ contains
          ( SingleSCF_getNumberOfIterations(speciesID) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
        call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
-       
-			 if (CONTROL_instance%COSMO) then
+
+       if (CONTROL_instance%COSMO) then
           call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))
+          call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
        end if
 
        call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )
-
        call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
 
        waveFunction_instance(speciesID)%wasBuiltFockMatrix = .true.
