@@ -513,6 +513,13 @@ program HF
      write(*,*) ""
   end if
 
+  !!save virial
+  open(unit=wfnUnit, file=trim(wfnFile), status="old", position="append", form="unformatted")
+
+      call Vector_writeToFile(unit=wfnUnit, binary=.true., value=- ( potentialEnergy / totalKineticEnergy) , arguments=["VIRIAL"])
+
+  close(wfnUnit)
+
   !stop time
   call Stopwatch_stop(lowdin_stopwatch)
 
