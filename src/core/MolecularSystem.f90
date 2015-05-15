@@ -619,7 +619,7 @@ contains
 		open(unit=41, file="gepol.xyzr",status="replace",form="formatted")
 
 			do i = 1,MolecularSystem_instance%numberOfQuantumSpecies 	
-				if (MolecularSystem_instance%species(i)%isElectron== .true.) then
+				if (MolecularSystem_instance%species(i)%isElectron .eqv. .true.) then
 				write(41,"(I8)") size(MolecularSystem_instance%species(i)%particles)
        	do j = 1, size(MolecularSystem_instance%species(i)%particles)
           	write(41,150)&

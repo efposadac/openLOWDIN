@@ -139,7 +139,7 @@ fi
 if [ "$FC" = "ifort" ] ; then
     LAPACK_LIBS="-mkl"
 else
-    LAPACK_LIBS="-llapack"
+    LAPACK_LIBS="-lblas -llapack"
 fi
 
 if [ "$CUDAFLAGS" = "yes" ] ; then

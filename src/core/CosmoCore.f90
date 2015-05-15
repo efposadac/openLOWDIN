@@ -378,8 +378,8 @@ contains
     allocate(q_charges(ints))
 
     call Matrix_constructor(cmatinvs, int(ints,8), int(ints,8))
-    call Matrix_constructor(q_charge, int(ints,8), 1)
-    call Matrix_constructor(cosmo_pot, int(ints,8), 1)
+    call Matrix_constructor(q_charge, int(ints,8), 1_8)
+    call Matrix_constructor(cosmo_pot, int(ints,8), 1_8)
 
     specieName=MolecularSystem_getNameOfSpecie(specieid)
 
