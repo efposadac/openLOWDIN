@@ -281,7 +281,8 @@ c       In old version of MRCC, occ=0 if occupations are specified
         goto 9910
       end if
       if(abs(dble(nchar)-sumocc).gt.0.001d0)then
-        call chkcharge(nchar,sumocc,iprog,ifc4,iecp,ierr)
+!!Lowdin	For multispecies calculation the charge is different, so we don't need to check the charge
+!!        call chkcharge(nchar,sumocc,iprog,ifc4,iecp,ierr)
         if(ierr.ne.0)goto 9910
       end if
 cccccc this bug has been fixed by a modified version of libr/reorderdf.f

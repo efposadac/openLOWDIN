@@ -290,6 +290,7 @@ contains
     character(6) :: nickname
     character(4) :: shellCode
     character(2) :: space
+    integer :: totalNumberOfParticles, n
 
     auxString="speciesName"
 
@@ -316,6 +317,9 @@ contains
 
 
         do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+
+	   totalNumberOfParticles = 0
+
            auxString=MolecularSystem_getNameOfSpecie( l )
            specieID = MolecularSystem_getSpecieID(auxString)
            this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
@@ -336,6 +340,7 @@ contains
 
 !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
 
+		totalNumberOfParticles = totalNumberOfParticles + 1
 #ifdef intel
                  write (10,"(A,I,I,<3>F15.8)") trim(symbol), j,&
                       int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), origin(1), origin(2), origin(3)
@@ -362,6 +367,8 @@ contains
 
               if( .not.wasPress) then
                  m=m+1
+
+		totalNumberOfParticles = totalNumberOfParticles + 1
                  origin=localizationOfCenters%values(k,:)
 !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
                  symbol=labels(k)
@@ -375,8 +382,9 @@ contains
 
            end do
 
-           
-           
+!          print *, "totalNumberOfParticles ", totalNumberOfParticles
+!         print *, "particles for specie", size(MolecularSystem_instance%species(l)%particles)
+
            write(10,"(A)") "[GTO]"
            j=0
            do i=1,size(MolecularSystem_instance%species(l)%particles)
@@ -388,6 +396,16 @@ contains
                  call BasisSet_showInSimpleForm( MolecularSystem_instance%species(l)%particles(i)%basis,&
                       trim(MolecularSystem_instance%species(l)%particles(i)%nickname),10 )
                  write(10,*) ""
+
+		if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+
+			do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+				write(10,"(I3,I2)") j+n,0
+				write(10,"(A,I1,F5.2)") "s  ",1,1.00
+				write(10,"(ES19.10,ES19.10)") 0.00,0.00
+				write(10,*) ""
+			end do 
+		end if
 !              end if
 
            end do
@@ -469,8 +487,13 @@ contains
               end if
               do k=1,size(coefficientsOfCombination%values,dim=1)
                  write(10,"(I4,F15.6)") k,coefficientsOfCombination%values(k,j)
-
               end do
+
+		if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+			do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+                 		write(10,"(I4,F15.6)") k-1+n,0.0_8
+			end do
+		end if
 
            end do
 
