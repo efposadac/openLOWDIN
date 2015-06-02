@@ -15,7 +15,7 @@ TARGET=lowdin-output.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 WHF=-I\$(TOPDIR)src/HF/
-LDPATH=\$(TOPDIR)lib/lowdincore.a
+LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libmolden2aim.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 

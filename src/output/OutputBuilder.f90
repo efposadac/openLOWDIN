@@ -72,11 +72,22 @@ module OutputBuilder_
        OutputBuilder_destructor, &
        OutputBuilder_show, &
        OutputBuilder_writeMoldenFile, &
+       OutputBuilder_generateAIMFiles, &
+       OutputBuilder_generateExtendedWfnFile, &
        OutputBuilder_buildOutput, &
        OutputBuilder_make2DGraph, &
        OutputBuilder_make3DGraph
   private		
 
+interface 
+
+    subroutine Molden2AIM(inputFileName,totalEnergy,virial)
+      implicit none  
+      character(50) :: inputFileName
+      real(8) :: totalEnergy, virial
+    end subroutine Molden2AIM
+
+end interface 
 
 contains
 
@@ -195,14 +206,30 @@ contains
      implicit none
      type(OutputBuilder) :: this
 
-!         print *, "this ", this%type
-
      select case( this%type )
 
      case ( "moldenFile") 
         call OutputBuilder_writeMoldenFile (this)
 
-     case ( "densityPlot") 
+     case ( "wfnFile") 
+        call OutputBuilder_writeMoldenFile (this)
+        call OutputBuilder_generateAIMFiles (this)
+
+    case ( "NBO47File") 
+        call OutputBuilder_writeMoldenFile (this)
+        call OutputBuilder_generateAIMFiles (this)
+
+    case ( "wfxFile" ) 
+
+        call OutputBuilder_writeMoldenFile (this)
+        call OutputBuilder_generateAIMFiles (this)
+
+    case ( "extendedwfnFile") 
+        call OutputBuilder_writeMoldenFile (this)
+        call OutputBuilder_generateAIMFiles (this)
+        call OutputBuilder_generateExtendedWfnFile (this)
+
+    case ( "densityPlot") 
         if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
         if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
 !
@@ -263,6 +290,7 @@ contains
     character(6) :: nickname
     character(4) :: shellCode
     character(2) :: space
+    integer :: totalNumberOfParticles, n
 
     auxString="speciesName"
 
@@ -289,6 +317,9 @@ contains
 
 
         do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+
+	   totalNumberOfParticles = 0
+
            auxString=MolecularSystem_getNameOfSpecie( l )
            specieID = MolecularSystem_getSpecieID(auxString)
            this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
@@ -309,6 +340,7 @@ contains
 
 !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
 
+		totalNumberOfParticles = totalNumberOfParticles + 1
 #ifdef intel
                  write (10,"(A,I,I,<3>F15.8)") trim(symbol), j,&
                       int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), origin(1), origin(2), origin(3)
@@ -335,6 +367,8 @@ contains
 
               if( .not.wasPress) then
                  m=m+1
+
+		totalNumberOfParticles = totalNumberOfParticles + 1
                  origin=localizationOfCenters%values(k,:)
 !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
                  symbol=labels(k)
@@ -348,8 +382,9 @@ contains
 
            end do
 
-           
-           
+!          print *, "totalNumberOfParticles ", totalNumberOfParticles
+!         print *, "particles for specie", size(MolecularSystem_instance%species(l)%particles)
+
            write(10,"(A)") "[GTO]"
            j=0
            do i=1,size(MolecularSystem_instance%species(l)%particles)
@@ -361,6 +396,16 @@ contains
                  call BasisSet_showInSimpleForm( MolecularSystem_instance%species(l)%particles(i)%basis,&
                       trim(MolecularSystem_instance%species(l)%particles(i)%nickname),10 )
                  write(10,*) ""
+
+		if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+
+			do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+				write(10,"(I3,I2)") j+n,0
+				write(10,"(A,I1,F5.2)") "s  ",1,1.00
+				write(10,"(ES19.10,ES19.10)") 0.00,0.00
+				write(10,*) ""
+			end do 
+		end if
 !              end if
 
            end do
@@ -442,8 +487,13 @@ contains
               end if
               do k=1,size(coefficientsOfCombination%values,dim=1)
                  write(10,"(I4,F15.6)") k,coefficientsOfCombination%values(k,j)
-
               end do
+
+		if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+			do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+                 		write(10,"(I4,F15.6)") k-1+n,0.0_8
+			end do
+		end if
 
            end do
 
@@ -457,6 +507,120 @@ contains
 !     end if
 
   end subroutine OutputBuilder_writeMoldenFile
+  
+  !**
+  ! @brief Call the molden2aim library to generate the wfn, wfx or NBO47 files from a molden file.
+  !**
+
+  subroutine OutputBuilder_generateAIMFiles (this)
+    implicit none
+    type(OutputBuilder) :: this
+    type(MolecularSystem) :: MolecularSystemInstance
+    character(50) :: auxString
+    character(50) :: initialSettingsFile
+    character(50) :: moldenFileName
+    integer :: l
+    character(50) :: wfnFile
+    character(2) :: wfnStatus, wfxStatus, nboStatus
+    character(10) :: extension
+    character(50) :: arguments(20)
+    integer :: wfnUnit
+    real(8) :: totalEnergy, virial
+
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+    initialSettingsFile = "m2a.ini"
+
+    select case (this%type) 
+    	case ( "wfnFile" )
+	  wfnStatus="1"
+	  nboStatus="-1"
+	  wfxStatus="-1"
+    	  extension=".wfn"
+     	case ( "NBO47File" )
+	  wfnStatus="-1"
+	  nboStatus="1"
+	  wfxStatus="-1"
+	  extension=".47"
+    	case ( "wfxFile" ) 
+	  wfnStatus="-1"
+	  nboStatus="-1"
+  	  wfxStatus="1"
+	  extension=".wfx"
+	case ( "extendedwfnFile" )
+	  wfnStatus="1"
+	  nboStatus="-1"
+	  wfxStatus="-1"
+	  extension=".wfn"
+    end select
+
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+      call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalEnergy, arguments=["TOTALENERGY"])
+      call Vector_getFromFile(unit=wfnUnit, binary=.true., value=virial, arguments=["VIRIAL"])
+    close(wfnUnit)
+    open (35,file=initialSettingsFile,status='unknown',action='write')
+      write(35,"(A)") " ######################################################################## "
+      Write(35,"(A)") " #  In the following 6 parameters "
+      Write(35,"(A)") " #     >0:  always performs the operation without asking the user "
+      Write(35,"(A)") " #     =0:  asks the user whether to perform the operation "
+      Write(35,"(A)") " #     <0:  always neglect the operation without asking the user "
+      Write(35,"(A)") " molden=1           ! Generating a standard Molden file in Cart. function "
+      Write(35,"(A)") " wfn="//wfnStatus//"              ! Generating a WFN file "
+      Write(35,"(A)") " wfncheck=-1         ! Checking normalization for WFN "
+      Write(35,"(A)") " wfx="//wfxStatus//"             ! Generating a WFX file (not implemented) "
+      Write(35,"(A)") " wfxcheck=-1        ! Checking normalization for WFX (not implemented) "
+      Write(35,"(A)") " nbo="//nboStatus//"              ! Generating a NBO .47 file "
+      Write(35,"(A)") " nbocheck=-1         ! Checking normalization for NBO's .47 "
+      Write(35,"(A)") " ######################################################################## "
+      Write(35,"(A)") " #  Which quantum chemistry program is used to generate the MOLDEN file? "
+      Write(35,"(A)") " #  1: ORCA "
+      Write(35,"(A)") " #  5: ACES2 "
+      Write(35,"(A)") " #  0: other programs "
+      Write(35,"(A)") " # "
+      Write(35,"(A)") " #  If non-zero value is given "
+      Write(35,"(A)") " # "
+      Write(35,"(A)") " program=0 "
+      Write(35,"(A)") " ######################################################################## "
+      Write(35,"(A)") " #  Which orbirals will be printed in the WFN/WFX file? "
+      Write(35,"(A)") " # =0: print only the orbitals with occ. number > 5.0d-8 "
+      Write(35,"(A)") " # <0: print only the orbitals with occ. number > 0.1 (debug only) "
+      Write(35,"(A)") " # >0: print all the orbitals "
+      Write(35,"(A)") " iallmo=1 "
+      Write(35,"(A)") " ######################################################################## "
+      Write(35,"(A)") " #  Print supporting information or not "
+      Write(35,"(A)") " # =0: print "
+      Write(35,"(A)") " nosupp=-1 "
+      Write(35,"(A)") " ######################################################################## "
+      Write(35,"(A)") " #  The following parameters are used only for debugging. "
+      Write(35,"(A)") " clear=1            ! delete temporary files (1) or not (0) "
+      Write(35,"(A)") " ######################################################################## "
+    close(35)
+      
+    do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+        auxString=MolecularSystem_getNameOfSpecie( l )
+        moldenFileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
+        call Molden2AIM(moldenFileName, totalEnergy, virial)
+    end do
+
+    !! Just for printing information 
+    this%fileName = trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//extension//" and .molden"
+ 
+  end subroutine OutputBuilder_generateAIMFiles
+
+!! For future implementation
+
+  subroutine OutputBuilder_generateExtendedWfnFile (this)
+    implicit none
+    type(OutputBuilder) :: this
+    integer :: l
+    character(50) :: initialWfnFile
+    character(50) :: auxString
+
+    do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+        auxString=MolecularSystem_getNameOfSpecie( l )
+    end do
+
+  end subroutine OutputBuilder_generateExtendedWfnFile
 
   ! subroutine OutputBuilder_getCube(this )
   !   implicit none
