@@ -49,8 +49,8 @@ program IntegralsTransformation
 
   character(50) :: job
   integer :: numberOfSpecies
-  integer :: i, j
-  integer :: specieID, otherSpecieID
+  integer :: i, j, z
+  integer :: specieID, otherSpecieID, species1ID, species2ID
   integer :: numberOfContractions
   integer :: numberOfContractionsOfOtherSpecie
   character(10) :: nameOfSpecies
@@ -65,6 +65,8 @@ program IntegralsTransformation
   character(50) :: arguments(2)
   integer :: wfnUnit
   integer :: numberOfQuantumSpecies
+  logical :: transformThisSpecies
+  logical :: transformTheseSpecies
 
   wfnFile = "lowdin.wfn"
   wfnUnit = 20
@@ -104,69 +106,98 @@ program IntegralsTransformation
    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
    rewind(wfnUnit)
 
+
   numberOfQuantumSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-  do i=1, numberOfQuantumSpecies
-
+    do i=1, numberOfQuantumSpecies
+  
         nameOfSpecies = trim( MolecularSystem_getNameOfSpecie( i ) )
 
-        if ( .not.CONTROL_instance%OPTIMIZE ) then
-            write (6,"(T2,A)")"Integrals transformation for: "//trim(nameOfSpecies)
-         end if
+        !! For PT = 2 there is no need to transform integrals for all species"
+        if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+          transformThisSpecies = .False.
+          do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
+            if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIE(z) )  then
+              transformThisSpecies = .True.
+            end if
+          end do
+        else 
+          transformThisSpecies = .True.
+        end if
 
-        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
-         arguments(2) = MolecularSystem_getNameOfSpecie(i)
-
-         arguments(1) = "COEFFICIENTS"
-
-         eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-        
-        arguments(1) = "ORBITALS"
-         call Vector_getFromFile( elementsNum = numberOfContractions, &
-              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
-              output = eigenValues )     
-         
-         specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
-         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
-
-        call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer, &
-             eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
-
-        !!*******************************************************************************************
-        !! Calculo de correcion se segundo orden para interaccion entre particulas de especie diferente
-        !!
-        if ( numberOfQuantumSpecies > 1 ) then
-                do j = i + 1 , numberOfQuantumSpecies
-
-                        nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
-                
-                        if ( .not.CONTROL_instance%OPTIMIZE ) then
-                           write (6,"(T2,A)") "Inter-species integrals transformation for: "//trim(nameOfSpecies)//"/"//trim(nameOfOtherSpecie)
-                        end if
-
-                        numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
-
-                        arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
-
-                        arguments(1) = "COEFFICIENTS"
-                        eigenVecOtherSpecie = &
-                                Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
-                                columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
-
-                        arguments(1) = "ORBITALS"
-                        call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
-                             unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
-                             output = eigenValuesOfOtherSpecie )     
-
-                        call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
-                             eigenVec, eigenVecOtherSpecie, &
-                             auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
-
-                end do
+          if ( .not.CONTROL_instance%OPTIMIZE .and. transformThisSpecies) then
+              write (6,"(T2,A)")"Integrals transformation for: "//trim(nameOfSpecies)
            end if
+  
+          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
+           arguments(2) = MolecularSystem_getNameOfSpecie(i)
+  
+           arguments(1) = "COEFFICIENTS"
+  
+           eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          
+          arguments(1) = "ORBITALS"
+           call Vector_getFromFile( elementsNum = numberOfContractions, &
+                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+                output = eigenValues )     
+           
+           specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
+  
 
-   end do
+          if ( transformThisSpecies == .True. ) then
+            call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer, &
+                 eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
+          end if
+          !!*******************************************************************************************
+          !! Calculo de correcion se segundo orden para interaccion entre particulas de especie diferente
+          !!
+          if ( numberOfQuantumSpecies > 1 ) then
+                  do j = i + 1 , numberOfQuantumSpecies
+                          
+                          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
+
+                          !! For PT = 2 there is no need to transform integrals for all species"
+                          if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+                            transformTheseSpecies = .False.
+                            do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
+                              if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIE(z) .or. &
+                                   nameOfOtherSpecie == CONTROL_instance%IONIZE_SPECIE(z) )  then
+                                transformTheseSpecies = .True.
+                              end if
+                            end do
+                          else 
+                            transformTheseSpecies = .True.
+                          end if
+                  
+                          if ( .not.CONTROL_instance%OPTIMIZE .and. transformTheseSpecies ) then
+                             write (6,"(T2,A)") "Inter-species integrals transformation for: "//trim(nameOfSpecies)//"/"//trim(nameOfOtherSpecie)
+                          end if
+  
+                          numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
+  
+                          arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+  
+                          arguments(1) = "COEFFICIENTS"
+                          eigenVecOtherSpecie = &
+                                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
+                                  columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+  
+                          arguments(1) = "ORBITALS"
+                          call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
+                               unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+                               output = eigenValuesOfOtherSpecie )     
+  
+
+                          if ( transformTheseSpecies == .True. ) then
+                            call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+                          end if 
+                  end do
+           end if
+     end do
 
   !!stop time
   call Stopwatch_stop(lowdin_stopwatch)

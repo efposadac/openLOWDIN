@@ -301,6 +301,7 @@ if [ $extFile="lowdin" ]; then
 	echo "" >> $nameFile.out
 	
 	cp $nameFile.lowdin $LOWDIN_SCRATCH/$nameFile
+	mv $nameFile $LOWDIN_SCRATCH/$nameFile
 	cp lowdin.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	echo "" >> $nameFile.out
 	mv $nameFile.out $LOWDIN_SCRATCH/$nameFile
