@@ -232,13 +232,13 @@ contains
     case ( "densityPlot") 
         if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
         if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
+
+!    case ( "densityCube") 
+!       call OutputBuilder_getCube(this)
 !
-!     case ( "densityCube") 
-!        call OutputBuilder_getCube(this)
-!
-!     case ( "orbitalPlot") 
-!        if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
-!        if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
+     case ( "orbitalPlot") 
+        if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
+        if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
 !
 !     case ( "orbitalCube") 
 !        call OutputBuilder_getCube(this)
@@ -622,132 +622,132 @@ contains
 
   end subroutine OutputBuilder_generateExtendedWfnFile
 
-  ! subroutine OutputBuilder_getCube(this )
-  !   implicit none
-  !   type(output) :: this
-  !   character(50) :: outputID
-  !   real(8):: cubeSize
-  !   character(50) :: orbitalNum
-
-  !   integer :: i, j, k, n, w, natom
-  !   integer :: atomicCharge
-  !   integer :: specieID
-  !   real(8) :: numberOfSteps(3)
-  !   real(8) :: step(3)
-  !   real(8) :: lowerLimit(3)
-  !   real(8), allocatable :: val(:), val2(:)
-  !   real(8) :: coordinate(3)
-
-  !   !Writes Gaussian Cube 
-  !   this%fileName=""
-  !   this%fileName2=""
-  !   outputID=String_convertIntegerToString(this%outputID)
-  !   specieID= ParticleManager_getSpecieID( nameOfSpecie=this%specie)
-
-  !   if (.not. allocated(CalculateProperties_instance%densityCube) ) call CalculateProperties_buildDensityCubesLimits(CalculateProperties_instance)
-
-  !   if  (this%type .eq. "densityCube" .and. .not. CalculateProperties_instance%densityCube(specieID)%areValuesCalculated ) then
-  !      call CalculateProperties_buildDensityCubes(CalculateProperties_instance)
-  !   end if
-
-  !   lowerLimit=CalculateProperties_instance%densityCube(specieID)%lowerLimit%values
-  !   numberOfSteps=CalculateProperties_instance%densityCube(specieID)%numberOfPoints%values
-  !   step=CalculateProperties_instance%densityCube(specieID)%stepSize%values
-
-  !   allocate (val (int(numberOfSteps(3))) , val2(int(numberOfSteps(3))))
-
-  !   select case( this%type )
-  !   case ( "densityCube") 
-  !      this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".dens.cub"
-  !      open(10,file=this%fileName,status='replace',action='write')
-
-  !   case ( "orbitalCube") 
-  !      orbitalNum=String_convertIntegerToString(this%orbital)
-  !      this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".orb"//trim(orbitalNum)//".cub"
-  !      open(10,file=this%fileName,status='replace',action='write')
-
-  !   case ( "fukuiCube") 
-  !      this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".fkpos.cub"
-  !      this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".fkneg.cub"
-
-  !      open(10,file=this%fileName,status='replace',action='write')
-  !      open(11,file=this%fileName2,status='replace',action='write')
-
-  !   case default
-  !      call OutputBuilder_exception(ERROR, "The output cube type you requested has not been implemented yet", "OutputBuilder_getCube" )
-
-  !   end select
-
-  !   do n=1, size(ParticleManager_instance%particlesPtr)
-  !      if ( trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-" .or. &
-  !           trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
-  !           ParticleManager_instance%particlesPtr(k)%isQuantum ) then
-  !         natom = natom +1
-  !      end if
-  !   end do
-
-  !   write (10,"(A)") "Gaussian Cube generated with Lowdin Software"
-  !   write (10,"(A)") this%fileName
-  !   write (10,"(I8,F20.8,F20.8,F20.8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3)
-  !   write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(1)), step(1), 0.0, 0.0
-  !   write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(2)), 0.0, step(2), 0.0
-  !   write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(3)), 0.0, 0.0, step(3)
-  !   do n=1, size(ParticleManager_instance%particlesPtr)
-  !      if ( trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-" .or. &
-  !           trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
-  !           ParticleManager_instance%particlesPtr(n)%isQuantum ) then
-  !         atomicCharge=-ParticleManager_instance%particlesPtr(n)%totalCharge
-  !         write (10, "(I8,F20.8,F20.8,F20.8,F20.8)") &
-  !              atomicCharge, 0.0, ParticleManager_instance%particlesPtr(n)%origin(1:3)
-  !      end if
-  !   end do
-
-  !   if  (this%type .eq. "fukuiCube") then
-  !      write (11,"(A)") "Gassian Cube generated with Lowdin Software"
-  !      write (11,"(A)") this%fileName2
-  !      write (11,"(I8,F20.8,F20.8,F20.8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3)
-  !      write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(1)), step(1), 0.0, 0.0
-  !      write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(2)), 0.0, step(2), 0.0
-  !      write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(3)), 0.0, 0.0, step(3)
-  !      do n=1, size(ParticleManager_instance%particlesPtr)
-  !         if ( trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-" .or. &
-  !              trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
-  !              ParticleManager_instance%particlesPtr(n)%isQuantum ) then
-  !            atomicCharge=-ParticleManager_instance%particlesPtr(n)%totalCharge
-  !            write (11, "(I8,F20.8,F20.8,F20.8,F20.8)") &
-  !                 atomicCharge, 0.0, ParticleManager_instance%particlesPtr(n)%origin(1:3)
-  !         end if
-  !      end do
-  !   end if
-    
-  !   do i=1,numberOfSteps(1)
-  !      coordinate(1)=lowerLimit(1)+(i-1)*step(1)
-  !      do j=1, numberOfSteps(2)
-  !         coordinate(2)=lowerLimit(2)+(j-1)*step(2)
-  !         do k=1, numberOfSteps(3)
-  !            coordinate(3)=lowerLimit(3)+(k-1)*step(3)
-  !            select case (this%type)                   
-  !            case ( "densityCube") 
-  !               val(k)=CalculateProperties_instance%densityCube(specieID)%values(i,j,k)
-  !            case ( "orbitalCube") 
-  !               val(k)=MolecularSystem_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
-  !            case ( "fukuiCube") 
-  !               val(k)=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
-  !               val2(k)=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
-  !            case default
-  !            end select
-  !         end do
-  !         write(10,*) ( val(w) , w=1,numberOfSteps(3) )
-  !         if (this%type .eq. "fukuiCube") write(11,*) ( val2(w) , w=1,numberOfSteps(3) )
-  !      end do
-  !   end do
-
-  !   deallocate (val, val2)
-
-  !   close(10)
-  !   if  (this%type .eq. "fukuiCube" ) close(11)
-
-  ! end subroutine OutputBuilder_getCube
+!!   subroutine OutputBuilder_getCube(this )
+!!     implicit none
+!!     type(output) :: this
+!!     character(50) :: outputID
+!!     real(8):: cubeSize
+!!     character(50) :: orbitalNum
+!!
+!!     integer :: i, j, k, n, w, natom
+!!     integer :: atomicCharge
+!!     integer :: specieID
+!!     real(8) :: numberOfSteps(3)
+!!     real(8) :: step(3)
+!!     real(8) :: lowerLimit(3)
+!!     real(8), allocatable :: val(:), val2(:)
+!!     real(8) :: coordinate(3)
+!!
+!!     !Writes Gaussian Cube 
+!!     this%fileName=""
+!!     this%fileName2=""
+!!     outputID=String_convertIntegerToString(this%outputID)
+!!     specieID= MolecularSystem_getSpecieID( nameOfSpecie=this%specie)
+!!
+!!     if (.not. allocated(CalculateProperties_instance%densityCube) ) call CalculateProperties_buildDensityCubesLimits(CalculateProperties_instance)
+!!
+!!     if  (this%type .eq. "densityCube" .and. .not. CalculateProperties_instance%densityCube(specieID)%areValuesCalculated ) then
+!!        call CalculateProperties_buildDensityCubes(CalculateProperties_instance)
+!!     end if
+!!
+!!     lowerLimit=CalculateProperties_instance%densityCube(specieID)%lowerLimit%values
+!!     numberOfSteps=CalculateProperties_instance%densityCube(specieID)%numberOfPoints%values
+!!     step=CalculateProperties_instance%densityCube(specieID)%stepSize%values
+!!
+!!     allocate (val (int(numberOfSteps(3))) , val2(int(numberOfSteps(3))))
+!!
+!!     select case( this%type )
+!!     case ( "densityCube") 
+!!        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".dens.cub"
+!!        open(10,file=this%fileName,status='replace',action='write')
+!!
+!!!!     case ( "orbitalCube") 
+!!!!        orbitalNum=String_convertIntegerToString(this%orbital)
+!!!!        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".orb"//trim(orbitalNum)//".cub"
+!!!!        open(10,file=this%fileName,status='replace',action='write')
+!!!!
+!!!!     case ( "fukuiCube") 
+!!!!        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".fkpos.cub"
+!!!!        this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".fkneg.cub"
+!!
+!!!!        open(10,file=this%fileName,status='replace',action='write')
+!!!!        open(11,file=this%fileName2,status='replace',action='write')
+!!
+!!     case default
+!!        call OutputBuilder_exception(ERROR, "The output cube type you requested has not been implemented yet", "OutputBuilder_getCube" )
+!!
+!!     end select
+!!
+!!     do n=1, size(MolecularSystem_instance%particlesPtr)
+!!        if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-" .or. &
+!!             trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
+!!             MolecularSystem_instance%particlesPtr(k)%isQuantum ) then
+!!           natom = natom +1
+!!        end if
+!!     end do
+!!
+!!     write (10,"(A)") "Gaussian Cube generated with Lowdin Software"
+!!     write (10,"(A)") this%fileName
+!!     write (10,"(I8,F20.8,F20.8,F20.8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3)
+!!     write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(1)), step(1), 0.0, 0.0
+!!     write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(2)), 0.0, step(2), 0.0
+!!     write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(3)), 0.0, 0.0, step(3)
+!!     do n=1, size(MolecularSystem_instance%particlesPtr)
+!!        if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-" .or. &
+!!             trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
+!!             MolecularSystem_instance%particlesPtr(n)%isQuantum ) then
+!!           atomicCharge=-MolecularSystem_instance%particlesPtr(n)%totalCharge
+!!           write (10, "(I8,F20.8,F20.8,F20.8,F20.8)") &
+!!                atomicCharge, 0.0, MolecularSystem_instance%particlesPtr(n)%origin(1:3)
+!!        end if
+!!     end do
+!!
+!!     if  (this%type .eq. "fukuiCube") then
+!!        write (11,"(A)") "Gassian Cube generated with Lowdin Software"
+!!        write (11,"(A)") this%fileName2
+!!        write (11,"(I8,F20.8,F20.8,F20.8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3)
+!!        write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(1)), step(1), 0.0, 0.0
+!!        write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(2)), 0.0, step(2), 0.0
+!!        write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(3)), 0.0, 0.0, step(3)
+!!        do n=1, size(MolecularSystem_instance%particlesPtr)
+!!           if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-" .or. &
+!!                trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
+!!                MolecularSystem_instance%particlesPtr(n)%isQuantum ) then
+!!              atomicCharge=-MolecularSystem_instance%particlesPtr(n)%totalCharge
+!!              write (11, "(I8,F20.8,F20.8,F20.8,F20.8)") &
+!!                   atomicCharge, 0.0, MolecularSystem_instance%particlesPtr(n)%origin(1:3)
+!!           end if
+!!        end do
+!!     end if
+!!   
+!!     do i=1,numberOfSteps(1)
+!!        coordinate(1)=lowerLimit(1)+(i-1)*step(1)
+!!        do j=1, numberOfSteps(2)
+!!           coordinate(2)=lowerLimit(2)+(j-1)*step(2)
+!!           do k=1, numberOfSteps(3)
+!!              coordinate(3)=lowerLimit(3)+(k-1)*step(3)
+!!              select case (this%type)                   
+!!              case ( "densityCube") 
+!!                 val(k)=CalculateProperties_instance%densityCube(specieID)%values(i,j,k)
+!!!!             case ( "orbitalCube") 
+!!!!                 val(k)=MolecularSystem_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+!!!!              case ( "fukuiCube") 
+!!!!                 val(k)=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
+!!!!                 val2(k)=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
+!!              case default
+!!              end select
+!!           end do
+!!           write(10,*) ( val(w) , w=1,numberOfSteps(3) )
+!!           if (this%type .eq. "fukuiCube") write(11,*) ( val2(w) , w=1,numberOfSteps(3) )
+!!        end do
+!!     end do
+!!
+!!     deallocate (val, val2)
+!!
+!!     close(10)
+!!     if  (this%type .eq. "fukuiCube" ) close(11)
+!!
+!!   end subroutine OutputBuilder_getCube
 
    subroutine OutputBuilder_get3DPlot(this)
      type(OutputBuilder) :: this
@@ -825,7 +825,7 @@ contains
            case ( "densityPlot") 
               val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
            case ( "orbitalPlot") 
-!!              val=MolecularSystem_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+              val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
            case ( "fukuiPlot") 
 !!              val=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
 !!              val2=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
@@ -920,7 +920,7 @@ contains
         case ( "densityPlot") 
            val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
         case ( "orbitalPlot") 
-!!           val=MolecularSystem_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+           val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
         case ( "fukuiPlot") 
 !!           val=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
 !!           val2=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
