@@ -72,6 +72,7 @@ module OutputBuilder_
        OutputBuilder_destructor, &
        OutputBuilder_show, &
        OutputBuilder_writeMoldenFile, &
+       OutputBuilder_VecGamessFile, &
        OutputBuilder_generateAIMFiles, &
        OutputBuilder_generateExtendedWfnFile, &
        OutputBuilder_buildOutput, &
@@ -211,6 +212,9 @@ contains
      case ( "moldenFile") 
         call OutputBuilder_writeMoldenFile (this)
 
+     case ("VecGamessFile")
+        call OutputBuilder_VecGamessFile (this)
+        
      case ( "wfnFile") 
         call OutputBuilder_writeMoldenFile (this)
         call OutputBuilder_generateAIMFiles (this)
@@ -507,6 +511,154 @@ contains
 !     end if
 
   end subroutine OutputBuilder_writeMoldenFile
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!GAMESS .VEC FILE LAURA 
+
+  subroutine OutputBuilder_VecGamessFile(this)
+    implicit none
+    type(OutputBuilder) :: this
+    type(MolecularSystem) :: MolecularSystemInstance
+
+    integer :: i
+    integer :: j
+    integer :: k
+    integer :: l
+    integer :: m
+    integer :: specieID
+    logical :: wasPress
+    character(10) :: auxString
+    character(10) :: symbol
+    real(8) :: origin(3)
+    real(8), allocatable :: charges(:)
+    type(Matrix) :: localizationOfCenters
+    type(Matrix) :: auxMatrix
+    type(Matrix) :: coefficientsOfcombination
+    character(10),allocatable :: labels(:)
+    integer :: wfnUnit
+    character(50) :: wfnFile
+    integer :: numberOfContractions
+    character(50) :: arguments(20)
+    character(19) , allocatable :: labelsOfContractions(:)
+    integer :: counter, auxcounter
+    character(6) :: nickname
+    character(4) :: shellCode
+    character(2) :: space
+    integer :: totalNumberOfParticles, n
+
+    auxString="speciesName"
+
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+
+!! Open file for wavefunction                                                                                     
+        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+        do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+
+	   auxString=MolecularSystem_getNameOfSpecie( l )
+
+           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".vec"
+
+           open(29,file=this%fileName,status='replace',action='write')
+           
+           specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
+           arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
+ 
+           arguments(1) = "COEFFICIENTS"
+           coefficientsOfcombination = &
+                Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+           !! Build a vector of labels of contractions
+	   if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+           allocate(labelsOfContractions(numberOfContractions))
+
+           labelsOfContractions =  MolecularSystem_getlabelsofcontractions( specieID )
+
+           !! Swap some columns according to the molden format
+           do k=1,size(coefficientsOfCombination%values,dim=1)
+		!! Take the shellcode
+                read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+
+		!! Reorder the D functions
+                !! counter:  1,  2,  3,  4,  5,  6
+                !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+                !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+                !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+                !!  2-4, 3-5, 5-6
+
+		if ( shellcode == "Dxx" ) then 
+		    auxcounter = counter
+		    !! Swap XY and YY
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+		    !! Swap XZ and ZZ
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+		    !! Swap YZ and XZ'
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+                end if
+
+		!! Reorder the F functions
+                !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+                !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+                !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+                !! Gamess:  XXX, YYY, ZZZ, XXY, XXZ, XYY, YYZ, XZZ, YZZ, XYZ
+                
+             	if ( shellcode == "Fxxx" ) then 
+		    auxcounter = counter
+                    call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+             	    call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+4)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+6)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+                end if
+
+	    end do
+
+             do i =1, numberOfContractions
+                j =1
+                write (29,"(I3,I3)",advance='no') i,j
+                do m=1,numberOfContractions
+                   if (mod(m,5)==0) then
+                      write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
+                      j=j+1
+                      if (m<numberOfContractions) then
+                         write (29,"(I3,I3)",advance='no') i,j
+                      end if
+                   else
+                      write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
+                   end if
+                end do
+                 write (29, "(A)", advance='yes')" "
+                if (m<numberOfContractions) then
+                   !   write (29,"(A)", advance='no')" "
+                    write (29,"(A)")" "
+                end if
+                
+             end do
+
+           close(29)
+        end do
+
+!        call Matrix_destructor( localizationOfCenters )
+!        call Matrix_destructor( auxMatrix )
+!        deallocate(labels)
+
+!     end if
+
+      call OutputBuilder_exception(WARNING, "The order of the coefficients only works until F orbitals", "OutputBuilder_VecGamessFile" )
+        
+  end subroutine OutputBuilder_VecGamessFile
+
+  !!!!!!!!!!END GAMESS .VEC FILE
+
+
   
   !**
   ! @brief Call the molden2aim library to generate the wfn, wfx or NBO47 files from a molden file.
