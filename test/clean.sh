@@ -10,3 +10,6 @@ rm *.molden
 rm *.47
 rm *.wfn
 rm *.wfx
+rm *.orb*
+rm *.eps
+rm *.gnp
