@@ -144,7 +144,19 @@ contains
        write(*,"(3F17.12)") EnergyGradients_instance%gradients%total(j:k)
     end do
     
+    if(CONTROL_instance%AMBER_FILE) then
+       !! Results for Amber package
+       !!
+       
+       !! open file
+       open(unit=45, file="low2amber.dat", status="replace", form="formatted")
 
+       !!save all options
+       write(45,*) "Este es un archivo de prueba"
+       close(45)
+    end if
+
+    
   end subroutine EnergyGradients_show
 
   !         !**
@@ -374,15 +386,17 @@ contains
     ! write(*,"(3F17.12)") geometry%values(7:9)
 
 
+
+    write(*,"(A,I)") "prueba 1"
     if(allocated(EnergyGradients_instance%gradients%coupling)) deallocate(EnergyGradients_instance%gradients%coupling)
     allocate(EnergyGradients_instance%gradients%coupling(numberOfOptimizationCenters*3))
-
+    write(*,"(A,I)") "prueba 2"
     if(allocated(EnergyGradients_instance%gradients%total)) deallocate(EnergyGradients_instance%gradients%total)
     allocate(EnergyGradients_instance%gradients%total(numberOfOptimizationCenters*3))
 
 
+    EnergyGradients_instance%gradients%total = 0.0_8
     EnergyGradients_instance%gradients%coupling = 0.0_8
-
 
     if ( EnergyGradients_instance%order == 1 ) then
 
@@ -894,7 +908,7 @@ contains
     ! if(allocated(EnergyGradients_instance%gradients%total)) deallocate(EnergyGradients_instance%gradients%total)
     ! allocate(EnergyGradients_instance%gradients%total(numberOfOptimizationCenters*3))
 
-    EnergyGradients_instance%gradients%total = 0.0_8
+    ! EnergyGradients_instance%gradients%total = 0.0_8
     EnergyGradients_instance%gradients%kinetic = 0.0_8
     EnergyGradients_instance%gradients%attraction = 0.0_8
     EnergyGradients_instance%gradients%overlap = 0.0_8
@@ -1813,13 +1827,13 @@ contains
        end do
     end do
 
-       k=1
-       do i=1, numberOfOptimizationCenters
-          do j=1,3
-             EnergyGradients_instance%gradients%coupling(k) = output(i,j)
-             k = k + 1
-          end do
+    k=1
+    do i=1, numberOfOptimizationCenters
+       do j=1,3
+          EnergyGradients_instance%gradients%coupling(k) = output(i,j)
+          k = k + 1
        end do
+    end do
    
     ! write(*,"(A)") "----------------------------------------------------------------"
     ! write(*,"(A)") " Gradientes de Acoplamiento"

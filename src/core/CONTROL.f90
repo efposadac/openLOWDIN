@@ -223,6 +223,7 @@ module CONTROL_
      !!***************************************************** 
      !! Output Options                                                        
      logical :: MOLDEN_FILE
+     logical :: AMBER_FILE
 
      !!*****************************************************
      !! Properties Options
@@ -455,6 +456,7 @@ module CONTROL_
   !!*****************************************************                                                           
   !! Output Options                                                                                                 
   logical :: LowdinParameters_moldenFile
+  logical :: LowdinParameters_amberFile
 
   !!*****************************************************
   !! Properties Options
@@ -684,6 +686,7 @@ module CONTROL_
        !!*****************************************************                                                      
        !! Output Options                                                                                            
        LowdinParameters_moldenFile,&
+       LowdinParameters_amberFile,&       
        
        !!*****************************************************
        !! Properties Options
@@ -941,6 +944,7 @@ contains
     !!*****************************************************                                                       
     !! Output Options          
     LowdinParameters_moldenFile = .false.
+    LowdinParameters_amberFile = .false.    
 
     !!*****************************************************
     !! Properties Options
@@ -1182,6 +1186,7 @@ contains
     !!*****************************************************  
     !! Output Options     
     CONTROL_instance%MOLDEN_FILE = .false.
+    CONTROL_instance%AMBER_FILE = .false.    
 
     !!*****************************************************                                                                    
     !! Properties Options                                                                                                      
@@ -1457,6 +1462,7 @@ contains
     !!*****************************************************   
     !! Output Options                                                               
     CONTROL_instance%MOLDEN_FILE = LowdinParameters_moldenFile
+    CONTROL_instance%AMBER_FILE = LowdinParameters_amberFile    
                                                           
     !!*****************************************************                            
     !! Properties Options                                                              
@@ -1699,7 +1705,9 @@ contains
      LowdinParameters_printMM = CONTROL_instance%PRINT_MM
     !!*****************************************************      
     !! Output Options                               
-    LowdinParameters_moldenFile = CONTROL_instance%MOLDEN_FILE                                                                                                                                                                                          
+    LowdinParameters_moldenFile = CONTROL_instance%MOLDEN_FILE
+    LowdinParameters_amberFile = CONTROL_instance%AMBER_FILE     
+     
     !!*****************************************************                            
     !! Properties Options                                                              
     LowdinParameters_calculateInterparticleDistances = CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES
@@ -1925,6 +1933,7 @@ contains
     !!***************************************************** 
     !! Output Options   
     otherThis%MOLDEN_FILE = this%MOLDEN_FILE
+    otherThis%AMBER_FILE = this%AMBER_FILE    
     !!*****************************************************
     !! Properties Options
     otherThis%CALCULATE_INTERPARTICLE_DISTANCES  = this%CALCULATE_INTERPARTICLE_DISTANCES  

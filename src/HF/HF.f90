@@ -292,7 +292,7 @@ program HF
 
   if( .not.CONTROL_instance%OPTIMIZE .and. CONTROL_instance%GET_GRADIENTS ) then        
 
-     call system(" lowdin-ints.x GET_GRADIENTS")
+     call system("lowdin-ints.x GET_GRADIENTS")
 
   end if
   !! Open file for wavefunction
