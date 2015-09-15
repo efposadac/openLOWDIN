@@ -72,6 +72,7 @@ module OutputBuilder_
        OutputBuilder_destructor, &
        OutputBuilder_show, &
        OutputBuilder_writeMoldenFile, &
+       OutputBuilder_VecGamessFile, &
        OutputBuilder_generateAIMFiles, &
        OutputBuilder_generateExtendedWfnFile, &
        OutputBuilder_buildOutput, &
@@ -211,6 +212,9 @@ contains
      case ( "moldenFile") 
         call OutputBuilder_writeMoldenFile (this)
 
+     case ("VecGamessFile")
+        call OutputBuilder_VecGamessFile (this)
+        
      case ( "wfnFile") 
         call OutputBuilder_writeMoldenFile (this)
         call OutputBuilder_generateAIMFiles (this)
@@ -232,13 +236,13 @@ contains
     case ( "densityPlot") 
         if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
         if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
+
+!    case ( "densityCube") 
+!       call OutputBuilder_getCube(this)
 !
-!     case ( "densityCube") 
-!        call OutputBuilder_getCube(this)
-!
-!     case ( "orbitalPlot") 
-!        if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
-!        if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
+     case ( "orbitalPlot") 
+        if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
+        if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
 !
 !     case ( "orbitalCube") 
 !        call OutputBuilder_getCube(this)
@@ -507,6 +511,154 @@ contains
 !     end if
 
   end subroutine OutputBuilder_writeMoldenFile
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!GAMESS .VEC FILE LAURA 
+
+  subroutine OutputBuilder_VecGamessFile(this)
+    implicit none
+    type(OutputBuilder) :: this
+    type(MolecularSystem) :: MolecularSystemInstance
+
+    integer :: i
+    integer :: j
+    integer :: k
+    integer :: l
+    integer :: m
+    integer :: specieID
+    logical :: wasPress
+    character(10) :: auxString
+    character(10) :: symbol
+    real(8) :: origin(3)
+    real(8), allocatable :: charges(:)
+    type(Matrix) :: localizationOfCenters
+    type(Matrix) :: auxMatrix
+    type(Matrix) :: coefficientsOfcombination
+    character(10),allocatable :: labels(:)
+    integer :: wfnUnit
+    character(50) :: wfnFile
+    integer :: numberOfContractions
+    character(50) :: arguments(20)
+    character(19) , allocatable :: labelsOfContractions(:)
+    integer :: counter, auxcounter
+    character(6) :: nickname
+    character(4) :: shellCode
+    character(2) :: space
+    integer :: totalNumberOfParticles, n
+
+    auxString="speciesName"
+
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+
+!! Open file for wavefunction                                                                                     
+        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+        do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+
+	   auxString=MolecularSystem_getNameOfSpecie( l )
+
+           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".vec"
+
+           open(29,file=this%fileName,status='replace',action='write')
+           
+           specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
+           arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
+ 
+           arguments(1) = "COEFFICIENTS"
+           coefficientsOfcombination = &
+                Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+           !! Build a vector of labels of contractions
+	   if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+           allocate(labelsOfContractions(numberOfContractions))
+
+           labelsOfContractions =  MolecularSystem_getlabelsofcontractions( specieID )
+
+           !! Swap some columns according to the molden format
+           do k=1,size(coefficientsOfCombination%values,dim=1)
+		!! Take the shellcode
+                read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+
+		!! Reorder the D functions
+                !! counter:  1,  2,  3,  4,  5,  6
+                !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+                !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+                !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+                !!  2-4, 3-5, 5-6
+
+		if ( shellcode == "Dxx" ) then 
+		    auxcounter = counter
+		    !! Swap XY and YY
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+		    !! Swap XZ and ZZ
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+		    !! Swap YZ and XZ'
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+                end if
+
+		!! Reorder the F functions
+                !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+                !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+                !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+                !! Gamess:  XXX, YYY, ZZZ, XXY, XXZ, XYY, YYZ, XZZ, YZZ, XYZ
+                
+             	if ( shellcode == "Fxxx" ) then 
+		    auxcounter = counter
+                    call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+             	    call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+4)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+6)
+	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+                end if
+
+	    end do
+
+             do i =1, numberOfContractions
+                j =1
+                write (29,"(I3,I3)",advance='no') i,j
+                do m=1,numberOfContractions
+                   if (mod(m,5)==0) then
+                      write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
+                      j=j+1
+                      if (m<numberOfContractions) then
+                         write (29,"(I3,I3)",advance='no') i,j
+                      end if
+                   else
+                      write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
+                   end if
+                end do
+                 write (29, "(A)", advance='yes')" "
+                if (m<numberOfContractions) then
+                   !   write (29,"(A)", advance='no')" "
+                    write (29,"(A)")" "
+                end if
+                
+             end do
+
+           close(29)
+        end do
+
+!        call Matrix_destructor( localizationOfCenters )
+!        call Matrix_destructor( auxMatrix )
+!        deallocate(labels)
+
+!     end if
+
+      call OutputBuilder_exception(WARNING, "The order of the coefficients only works until F orbitals", "OutputBuilder_VecGamessFile" )
+        
+  end subroutine OutputBuilder_VecGamessFile
+
+  !!!!!!!!!!END GAMESS .VEC FILE
+
+
   
   !**
   ! @brief Call the molden2aim library to generate the wfn, wfx or NBO47 files from a molden file.
@@ -622,132 +774,132 @@ contains
 
   end subroutine OutputBuilder_generateExtendedWfnFile
 
-  ! subroutine OutputBuilder_getCube(this )
-  !   implicit none
-  !   type(output) :: this
-  !   character(50) :: outputID
-  !   real(8):: cubeSize
-  !   character(50) :: orbitalNum
-
-  !   integer :: i, j, k, n, w, natom
-  !   integer :: atomicCharge
-  !   integer :: specieID
-  !   real(8) :: numberOfSteps(3)
-  !   real(8) :: step(3)
-  !   real(8) :: lowerLimit(3)
-  !   real(8), allocatable :: val(:), val2(:)
-  !   real(8) :: coordinate(3)
-
-  !   !Writes Gaussian Cube 
-  !   this%fileName=""
-  !   this%fileName2=""
-  !   outputID=String_convertIntegerToString(this%outputID)
-  !   specieID= ParticleManager_getSpecieID( nameOfSpecie=this%specie)
-
-  !   if (.not. allocated(CalculateProperties_instance%densityCube) ) call CalculateProperties_buildDensityCubesLimits(CalculateProperties_instance)
-
-  !   if  (this%type .eq. "densityCube" .and. .not. CalculateProperties_instance%densityCube(specieID)%areValuesCalculated ) then
-  !      call CalculateProperties_buildDensityCubes(CalculateProperties_instance)
-  !   end if
-
-  !   lowerLimit=CalculateProperties_instance%densityCube(specieID)%lowerLimit%values
-  !   numberOfSteps=CalculateProperties_instance%densityCube(specieID)%numberOfPoints%values
-  !   step=CalculateProperties_instance%densityCube(specieID)%stepSize%values
-
-  !   allocate (val (int(numberOfSteps(3))) , val2(int(numberOfSteps(3))))
-
-  !   select case( this%type )
-  !   case ( "densityCube") 
-  !      this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".dens.cub"
-  !      open(10,file=this%fileName,status='replace',action='write')
-
-  !   case ( "orbitalCube") 
-  !      orbitalNum=String_convertIntegerToString(this%orbital)
-  !      this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".orb"//trim(orbitalNum)//".cub"
-  !      open(10,file=this%fileName,status='replace',action='write')
-
-  !   case ( "fukuiCube") 
-  !      this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".fkpos.cub"
-  !      this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".fkneg.cub"
-
-  !      open(10,file=this%fileName,status='replace',action='write')
-  !      open(11,file=this%fileName2,status='replace',action='write')
-
-  !   case default
-  !      call OutputBuilder_exception(ERROR, "The output cube type you requested has not been implemented yet", "OutputBuilder_getCube" )
-
-  !   end select
-
-  !   do n=1, size(ParticleManager_instance%particlesPtr)
-  !      if ( trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-" .or. &
-  !           trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
-  !           ParticleManager_instance%particlesPtr(k)%isQuantum ) then
-  !         natom = natom +1
-  !      end if
-  !   end do
-
-  !   write (10,"(A)") "Gaussian Cube generated with Lowdin Software"
-  !   write (10,"(A)") this%fileName
-  !   write (10,"(I8,F20.8,F20.8,F20.8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3)
-  !   write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(1)), step(1), 0.0, 0.0
-  !   write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(2)), 0.0, step(2), 0.0
-  !   write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(3)), 0.0, 0.0, step(3)
-  !   do n=1, size(ParticleManager_instance%particlesPtr)
-  !      if ( trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-" .or. &
-  !           trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
-  !           ParticleManager_instance%particlesPtr(n)%isQuantum ) then
-  !         atomicCharge=-ParticleManager_instance%particlesPtr(n)%totalCharge
-  !         write (10, "(I8,F20.8,F20.8,F20.8,F20.8)") &
-  !              atomicCharge, 0.0, ParticleManager_instance%particlesPtr(n)%origin(1:3)
-  !      end if
-  !   end do
-
-  !   if  (this%type .eq. "fukuiCube") then
-  !      write (11,"(A)") "Gassian Cube generated with Lowdin Software"
-  !      write (11,"(A)") this%fileName2
-  !      write (11,"(I8,F20.8,F20.8,F20.8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3)
-  !      write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(1)), step(1), 0.0, 0.0
-  !      write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(2)), 0.0, step(2), 0.0
-  !      write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(3)), 0.0, 0.0, step(3)
-  !      do n=1, size(ParticleManager_instance%particlesPtr)
-  !         if ( trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-" .or. &
-  !              trim(ParticleManager_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
-  !              ParticleManager_instance%particlesPtr(n)%isQuantum ) then
-  !            atomicCharge=-ParticleManager_instance%particlesPtr(n)%totalCharge
-  !            write (11, "(I8,F20.8,F20.8,F20.8,F20.8)") &
-  !                 atomicCharge, 0.0, ParticleManager_instance%particlesPtr(n)%origin(1:3)
-  !         end if
-  !      end do
-  !   end if
-    
-  !   do i=1,numberOfSteps(1)
-  !      coordinate(1)=lowerLimit(1)+(i-1)*step(1)
-  !      do j=1, numberOfSteps(2)
-  !         coordinate(2)=lowerLimit(2)+(j-1)*step(2)
-  !         do k=1, numberOfSteps(3)
-  !            coordinate(3)=lowerLimit(3)+(k-1)*step(3)
-  !            select case (this%type)                   
-  !            case ( "densityCube") 
-  !               val(k)=CalculateProperties_instance%densityCube(specieID)%values(i,j,k)
-  !            case ( "orbitalCube") 
-  !               val(k)=MolecularSystem_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
-  !            case ( "fukuiCube") 
-  !               val(k)=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
-  !               val2(k)=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
-  !            case default
-  !            end select
-  !         end do
-  !         write(10,*) ( val(w) , w=1,numberOfSteps(3) )
-  !         if (this%type .eq. "fukuiCube") write(11,*) ( val2(w) , w=1,numberOfSteps(3) )
-  !      end do
-  !   end do
-
-  !   deallocate (val, val2)
-
-  !   close(10)
-  !   if  (this%type .eq. "fukuiCube" ) close(11)
-
-  ! end subroutine OutputBuilder_getCube
+!!   subroutine OutputBuilder_getCube(this )
+!!     implicit none
+!!     type(output) :: this
+!!     character(50) :: outputID
+!!     real(8):: cubeSize
+!!     character(50) :: orbitalNum
+!!
+!!     integer :: i, j, k, n, w, natom
+!!     integer :: atomicCharge
+!!     integer :: specieID
+!!     real(8) :: numberOfSteps(3)
+!!     real(8) :: step(3)
+!!     real(8) :: lowerLimit(3)
+!!     real(8), allocatable :: val(:), val2(:)
+!!     real(8) :: coordinate(3)
+!!
+!!     !Writes Gaussian Cube 
+!!     this%fileName=""
+!!     this%fileName2=""
+!!     outputID=String_convertIntegerToString(this%outputID)
+!!     specieID= MolecularSystem_getSpecieID( nameOfSpecie=this%specie)
+!!
+!!     if (.not. allocated(CalculateProperties_instance%densityCube) ) call CalculateProperties_buildDensityCubesLimits(CalculateProperties_instance)
+!!
+!!     if  (this%type .eq. "densityCube" .and. .not. CalculateProperties_instance%densityCube(specieID)%areValuesCalculated ) then
+!!        call CalculateProperties_buildDensityCubes(CalculateProperties_instance)
+!!     end if
+!!
+!!     lowerLimit=CalculateProperties_instance%densityCube(specieID)%lowerLimit%values
+!!     numberOfSteps=CalculateProperties_instance%densityCube(specieID)%numberOfPoints%values
+!!     step=CalculateProperties_instance%densityCube(specieID)%stepSize%values
+!!
+!!     allocate (val (int(numberOfSteps(3))) , val2(int(numberOfSteps(3))))
+!!
+!!     select case( this%type )
+!!     case ( "densityCube") 
+!!        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".dens.cub"
+!!        open(10,file=this%fileName,status='replace',action='write')
+!!
+!!!!     case ( "orbitalCube") 
+!!!!        orbitalNum=String_convertIntegerToString(this%orbital)
+!!!!        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".orb"//trim(orbitalNum)//".cub"
+!!!!        open(10,file=this%fileName,status='replace',action='write')
+!!!!
+!!!!     case ( "fukuiCube") 
+!!!!        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".fkpos.cub"
+!!!!        this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".fkneg.cub"
+!!
+!!!!        open(10,file=this%fileName,status='replace',action='write')
+!!!!        open(11,file=this%fileName2,status='replace',action='write')
+!!
+!!     case default
+!!        call OutputBuilder_exception(ERROR, "The output cube type you requested has not been implemented yet", "OutputBuilder_getCube" )
+!!
+!!     end select
+!!
+!!     do n=1, size(MolecularSystem_instance%particlesPtr)
+!!        if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-" .or. &
+!!             trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
+!!             MolecularSystem_instance%particlesPtr(k)%isQuantum ) then
+!!           natom = natom +1
+!!        end if
+!!     end do
+!!
+!!     write (10,"(A)") "Gaussian Cube generated with Lowdin Software"
+!!     write (10,"(A)") this%fileName
+!!     write (10,"(I8,F20.8,F20.8,F20.8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3)
+!!     write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(1)), step(1), 0.0, 0.0
+!!     write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(2)), 0.0, step(2), 0.0
+!!     write (10,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(3)), 0.0, 0.0, step(3)
+!!     do n=1, size(MolecularSystem_instance%particlesPtr)
+!!        if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-" .or. &
+!!             trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
+!!             MolecularSystem_instance%particlesPtr(n)%isQuantum ) then
+!!           atomicCharge=-MolecularSystem_instance%particlesPtr(n)%totalCharge
+!!           write (10, "(I8,F20.8,F20.8,F20.8,F20.8)") &
+!!                atomicCharge, 0.0, MolecularSystem_instance%particlesPtr(n)%origin(1:3)
+!!        end if
+!!     end do
+!!
+!!     if  (this%type .eq. "fukuiCube") then
+!!        write (11,"(A)") "Gassian Cube generated with Lowdin Software"
+!!        write (11,"(A)") this%fileName2
+!!        write (11,"(I8,F20.8,F20.8,F20.8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3)
+!!        write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(1)), step(1), 0.0, 0.0
+!!        write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(2)), 0.0, step(2), 0.0
+!!        write (11,"(I8,F20.8,F20.8,F20.8)") int(numberOfSteps(3)), 0.0, 0.0, step(3)
+!!        do n=1, size(MolecularSystem_instance%particlesPtr)
+!!           if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-" .or. &
+!!                trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "e-ALPHA" .and. &
+!!                MolecularSystem_instance%particlesPtr(n)%isQuantum ) then
+!!              atomicCharge=-MolecularSystem_instance%particlesPtr(n)%totalCharge
+!!              write (11, "(I8,F20.8,F20.8,F20.8,F20.8)") &
+!!                   atomicCharge, 0.0, MolecularSystem_instance%particlesPtr(n)%origin(1:3)
+!!           end if
+!!        end do
+!!     end if
+!!   
+!!     do i=1,numberOfSteps(1)
+!!        coordinate(1)=lowerLimit(1)+(i-1)*step(1)
+!!        do j=1, numberOfSteps(2)
+!!           coordinate(2)=lowerLimit(2)+(j-1)*step(2)
+!!           do k=1, numberOfSteps(3)
+!!              coordinate(3)=lowerLimit(3)+(k-1)*step(3)
+!!              select case (this%type)                   
+!!              case ( "densityCube") 
+!!                 val(k)=CalculateProperties_instance%densityCube(specieID)%values(i,j,k)
+!!!!             case ( "orbitalCube") 
+!!!!                 val(k)=MolecularSystem_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+!!!!              case ( "fukuiCube") 
+!!!!                 val(k)=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
+!!!!                 val2(k)=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
+!!              case default
+!!              end select
+!!           end do
+!!           write(10,*) ( val(w) , w=1,numberOfSteps(3) )
+!!           if (this%type .eq. "fukuiCube") write(11,*) ( val2(w) , w=1,numberOfSteps(3) )
+!!        end do
+!!     end do
+!!
+!!     deallocate (val, val2)
+!!
+!!     close(10)
+!!     if  (this%type .eq. "fukuiCube" ) close(11)
+!!
+!!   end subroutine OutputBuilder_getCube
 
    subroutine OutputBuilder_get3DPlot(this)
      type(OutputBuilder) :: this
@@ -825,7 +977,7 @@ contains
            case ( "densityPlot") 
               val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
            case ( "orbitalPlot") 
-!!              val=MolecularSystem_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+              val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
            case ( "fukuiPlot") 
 !!              val=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
 !!              val2=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
@@ -920,7 +1072,7 @@ contains
         case ( "densityPlot") 
            val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
         case ( "orbitalPlot") 
-!!           val=MolecularSystem_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+           val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
         case ( "fukuiPlot") 
 !!           val=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
 !!           val2=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  

@@ -118,7 +118,16 @@ contains
 
        call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
 
-    case('RHF-CI')
+    case ("RHF-MP2-COSMO")
+       
+       call system("lowdin-cosmo.x")
+       call system("lowdin-HF.x RHF")
+
+       call system("lowdin-integralsTransformation.x")
+
+       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+    
+		case('RHF-CI')
 
        call system("lowdin-HF.x RHF")
        call system("lowdin-integralsTransformation.x")

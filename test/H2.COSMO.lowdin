@@ -23,6 +23,7 @@ END GEOMETRY
 TASKS
 	method = "RHF"
   cosmo=T
+	mollerPlessetCorrection = 2
 END TASKS
 
 CONTROL

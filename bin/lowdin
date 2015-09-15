@@ -144,7 +144,9 @@ if [ $extFile="lowdin" ]; then
 	###############################################
 
 	gawk "/CONTROL/,/END/" $nameFile | grep -v "CONTROL" | sed "s/=/ = /g" | gawk \
-	    ' BEGIN{printf("\n&LowdinParameters\n")} { printf("\tLowdinParameters_%s = %s %s %s %s\n",$1,$3,$4,$5,$6)} END{printf("/\n") } ' > $nameFile.aux
+	    ' BEGIN{printf("\n&LowdinParameters\n")} { printf("\tLowdinParameters_%s =",$1)
+		for (i=1;i<=NF-2;i++) {printf("%s ",$(i+2))} 
+		printf("\n") } END{printf("/\n") } ' > $nameFile.aux
 	
 	gawk "/TASKS/,/END/" $nameFile | grep -v "TASKS" | sed "s/=/ = /g" | gawk \
 	    ' BEGIN{printf("\n&InputTasks\n")} {printf("\tInputTasks_%s = %s\n",$1,$3)}  END{printf("/\n")} ' >> $nameFile.aux
@@ -301,6 +303,7 @@ if [ $extFile="lowdin" ]; then
 	echo "" >> $nameFile.out
 	
 	cp $nameFile.lowdin $LOWDIN_SCRATCH/$nameFile
+	mv $nameFile $LOWDIN_SCRATCH/$nameFile
 	cp lowdin.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	echo "" >> $nameFile.out
 	mv $nameFile.out $LOWDIN_SCRATCH/$nameFile
@@ -319,7 +322,7 @@ if [ $extFile="lowdin" ]; then
 	if [ -e $nameFile.out ]
 	then
 	    cp $LOWDIN_SCRATCH/$nameFile/*.out $currentPath
-	    # cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
+	    cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.xyzr $currentPath 
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
 	fi
@@ -332,14 +335,14 @@ if [ $extFile="lowdin" ]; then
 	#mv $LOWDIN_SCRATCH/$nameFile/*.47 $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
-	#mv $LOWDIN_SCRATCH/$nameFile/*.molden $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.molden $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
-	#mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
-        #mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
-        # mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
-        #mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.coeff $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*coup $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.com $currentPath &> 2

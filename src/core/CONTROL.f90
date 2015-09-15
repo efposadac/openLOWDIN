@@ -235,7 +235,7 @@ module CONTROL_
      !!
      real(8) :: MO_FRACTION_OCCUPATION
      integer :: IONIZE_MO
-     character(50) :: IONIZE_SPECIE(10)
+     character(50) :: IONIZE_SPECIE(50)
      character(50) :: EXCITE_SPECIE
      integer :: NUMBER_OF_CORES
 
@@ -468,7 +468,7 @@ module CONTROL_
   !!
   real(8) :: LowdinParameters_MOFractionOccupation
   integer :: LowdinParameters_ionizeMO
-  character(50) :: LowdinParameters_ionizeSpecie(10)
+  character(50) :: LowdinParameters_ionizeSpecie(50)
   character(50) :: LowdinParameters_exciteSpecie
   integer :: LowdinParameters_numberOfCores
 

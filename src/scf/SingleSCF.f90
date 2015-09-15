@@ -432,7 +432,7 @@ contains
        !!**********************************************************************************************
 
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
-       if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS > 1 ) then
+       if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS <= 2 ) then
           if ( CONTROL_instance%READ_COEFFICIENTS ) then
              inquire(FILE = "lowdin.vec", EXIST = existFile )
 
