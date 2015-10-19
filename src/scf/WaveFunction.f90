@@ -2752,6 +2752,8 @@ contains
                 end do
              end do
 		!! debug
+		
+		if (  CONTROL_instance%DEBUG_SCFS) then
 
     write(*,*)"cosmo Coupling = "//trim(nameofSpecieSelected)
 
@@ -2761,6 +2763,7 @@ contains
 
     call Matrix_show(wavefunction_instance(otherSpecieID)%densityMatrix)
 
+    end if
           end if
        end do
     
