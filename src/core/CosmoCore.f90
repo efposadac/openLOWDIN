@@ -404,11 +404,7 @@ contains
        q_charges(i)=q_charge%values(i,1)
     end do
 
-    write(78,*)q_charges(:)
-
-
-
-		
+    ! write(78,*)q_charges(:)
 
 		! write(*,*)"quantum charges",specieName
 		! write(*,*)q_charges(:)
