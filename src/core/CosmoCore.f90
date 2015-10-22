@@ -321,7 +321,7 @@ contains
 
 
     do j=1,segments
-    	 q_verifier=q_verifier+q_clasical(j)
+       q_verifier=q_verifier+q_clasical(j)
     end do
 
     write(77) q_clasical
@@ -406,8 +406,8 @@ contains
 
     ! write(78,*)q_charges(:)
 
-		! write(*,*)"quantum charges",specieName
-		! write(*,*)q_charges(:)
+    ! write(*,*)"quantum charges",specieName
+    ! write(*,*)q_charges(:)
 
 
   end subroutine CosmoCore_q_builder
@@ -433,14 +433,21 @@ contains
     real(8), allocatable :: cosmo_int(:)
     integer :: i,j,k,l,m,n
     integer :: ii,g,h,hh,jj,mm
-		
 
-    allocate (cosmo_int(integrals*charges))
+    ! write(*,*)"integrals times charges",(integrals*charges),"integrals ",	integrals_file, "charges ", charges_file
+
+    ! if(allocated(cosmo_int)) deallocate(cosmo_int)
+    ! allocate (cosmo_int(integrals*charges))
+
+    if(allocated(a_mat)) deallocate(a_mat)
     allocate (a_mat(surface,charges))
+
+    if(allocated(ints_mat)) deallocate(ints_mat)
     allocate (ints_mat(surface,integrals))
 
     open(unit=90, file=trim(integrals_file), status='old', form="unformatted") 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
+    open(unit=115, file='cosmo_int_new', status='new', form="unformatted")
 
 
     !!lectura de los archivos
@@ -454,23 +461,26 @@ contains
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
     end do
-			 
+
     !!calculo del producto punto
 
-		cosmo_int(:)=0.0_8
+    cosmo_int(:)=0.0_8
 
 
     m=1
     do n=1,integrals
        do k=1,charges
-          cosmo_int(m)=dot_product(ints_mat(:,n),a_mat(:,k))
+          write(115) dot_product(ints_mat(:,n),a_mat(:,k))
           m=m+1
        end do
     end do
 
+    close(unit=115)
+
 
     close(unit=90)
     close(unit=100)
+    open(unit=115, file='cosmo_int_new', status='old', form="unformatted")
 
 
     if (f_aux == g_aux) then
@@ -500,7 +510,9 @@ contains
                       do k = labels_aux(ii), labels_aux(ii) + (MolecularSystem_instance%species(f_aux)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
                          do l = labels_aux(jj), labels_aux(jj) + (MolecularSystem_instance%species(f_aux)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
 
-                            ints_mat_aux(k, l) = cosmo_int(mm)
+                            ! ints_mat_aux(k, l) = cosmo_int(mm)
+                            read(115) ints_mat_aux(k, l) 
+
                             ints_mat_aux(l, k) = ints_mat_aux(k, l)
                             mm = mm + 1
 
@@ -514,67 +526,79 @@ contains
              end do
           end do
 
-					
+
 
           write(*,"(A,I6,A,A,A)")" Stored ",size(ints_mat_aux,DIM=1)**2," Quantum potential vs clasical charges ",trim(MolecularSystem_instance%species(f_aux)%name),&
                " in file cosmo.opints"
-					
-					! write(*,*)"quantum potential",trim(MolecularSystem_instance%species(f_aux)%name)
+
+          ! write(*,*)"quantum potential",trim(MolecularSystem_instance%species(f_aux)%name)
           ! write(*,*)ints_mat(:,:)
           !
-					! write(*,*)"clasical charges"
+          ! write(*,*)"clasical charges"
           ! write(*,*)a_mat(:,:)
-          
-					write(40) int(size(ints_mat_aux),8)
+
+          write(40) int(size(ints_mat_aux),8)
           write(40) ints_mat_aux
 
-				else
+       else
 
 
           open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//"_qq.inn", status='unknown', form="unformatted")
           write(110) m-1
-          write(110) cosmo_int(:)
+          do n=1,integrals
+             do k=1,charges
+                write(110) dot_product(ints_mat(:,n),a_mat(:,k))
+             end do
+          end do
+          ! write(110) cosmo_int(:)
           close(unit=110)
 
           write(*,*)"same specie inner product",MolecularSystem_instance%species(f_aux)%name,m-1
-    
-		ints_mat(:,:)=1.0_8
 
-    m=1
-    do n=1,integrals
-       do k=1,charges
-          cosmo_int(m)=dot_product(ints_mat(:,n),a_mat(:,k))
-          m=m+1
-       end do
-    end do
+          ! ints_mat(:,:)=1.0_8
 
-	
-    open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//"_qq.chr", status='unknown', form="unformatted")
-    write(110) m-1
-    write(110) cosmo_int(:)
-    close(unit=110)
-		write(*,*)"charge file ordenado :",trim(MolecularSystem_instance%species(f_aux)%name)//"_qq.chr"
-
+          ! m=1
+          ! do n=1,integrals
+          !    do k=1,charges
+          !       cosmo_int(m)=dot_product(ints_mat(:,n),a_mat(:,k))
+          !       m=m+1
+          !    end do
+          ! end do
+          !
+	  !
+          ! open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//"_qq.chr", status='unknown', form="unformatted")
+          ! write(110) m-1
+          ! write(110) cosmo_int(:)
+          ! close(unit=110)
+          ! write(*,*)"charge file ordenado :",trim(MolecularSystem_instance%species(f_aux)%name)//"_qq.chr"
+          !
        end if
 
     else	
-					! write(*,*)trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)
+       ! write(*,*)trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)
 
-					! write(*,*)"(ints_mat(:,n)"
-          ! write(*,*)ints_mat(:,:)
-          !
-					! write(*,*)"a_mat(:,k))"
-          ! write(*,*)a_mat(:,:)
-          !
+       ! write(*,*)"(ints_mat(:,n)"
+       ! write(*,*)ints_mat(:,:)
+       !
+       ! write(*,*)"a_mat(:,k))"
+       ! write(*,*)a_mat(:,:)
+       !
 
        open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)//"_qq.cup", status='unknown', form="unformatted")
        write(110) m-1
-       write(110) cosmo_int(:)
+       do n=1,integrals
+          do k=1,charges
+             write(110) dot_product(ints_mat(:,n),a_mat(:,k))
+          end do
+       end do
+       ! write(110) cosmo_int(:)
        close(unit=110)
        write(*,*)"other species inner product :",trim(MolecularSystem_instance%species(f_aux)%name),"charges ,",trim(MolecularSystem_instance%species(g_aux)%name)," potentials",m-1
 
 
     end if
+
+    close(unit=115,status='delete')
 
   end subroutine CosmoCore_q_int_builder
 

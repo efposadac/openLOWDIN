@@ -484,7 +484,6 @@ contains
           close(70)
 
           !!quantum
-
           totals(f)=total_aux
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(f),f,f)
 

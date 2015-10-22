@@ -462,7 +462,7 @@ contains
                             call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
                          end if
 
-                         call Matrix_show(wavefunction_instance(iteratorOfSpecie)%couplingMatrix)
+                         ! call Matrix_show(wavefunction_instance(iteratorOfSpecie)%couplingMatrix)
 
 
                          if (CONTROL_instance%COSMO) then

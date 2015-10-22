@@ -46,7 +46,7 @@ else
     CU="nvcc"
     CFLAGS="-g -O2 -D intel"
     CPPFLAGS="-g -O2 -D intel"
-    FCFLAGS="-fopenmp -O2 -D intel -fpic -no-vec -openmp -fpp "
+    FCFLAGS="-fopenmp -O2 -D intel -fpic -no-vec -openmp -fpp -mcmodel=large "
     LAPACK_LIBS="-mkl"
     STDCPP_LIBS="-lstdc++"
     GSL_LIBS="-lgsl -lgslcblas"
@@ -109,26 +109,26 @@ fi
 if [ "$FLAGS" = "1" ] ; then
     
     if [ "$FC" = "ifort" ] ; then
-	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp $addflagsCuda"
+	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp -mcmodel=large $addflagsCuda"
     else
-	FCFLAGS="-Ofast -fopenmp -D gfortran -fpic -cpp  -ffree-line-length-none -fno-range-check $addflagsCuda"
+	FCFLAGS="-Ofast -fopenmp -D gfortran -fpic -cpp  -ffree-line-length-none -fno-range-check -mcmodel=large $addflagsCuda"
     fi
 fi
 
 if [ "$FLAGS" = "2" ] ; then
     if [ "$FC" = "ifort" ] ; then
-	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended $addflagsCuda" 
+	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended -mcmodel=large $addflagsCuda " 
     else
-	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check $addflagsCuda"
+	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check -mcmodel=large $addflagsCuda"
     fi
 fi
 
 if [ "$FLAGS" = "3" ] ; then
     if [ "$FC" = "ifort" ] ; then	
-	FCFLAGS="-static -static-intel -static-libgcc -O3 -D intel -fpic -no-vec -fpp -openmp -traceback -g -debug extended $addflagsCuda"
+	FCFLAGS="-static -static-intel -static-libgcc -O3 -D intel -fpic -no-vec -fpp -openmp -traceback -g -debug extended  $addflagsCuda"
     else
 	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
-	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check $addflagsCuda"
+	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check  $addflagsCuda"
     fi
 fi
 
