@@ -576,8 +576,6 @@ contains
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
-    write(*,*)"entre a SpecieFullyConvergedIndividually"
-
     iteratorOfSpecie = 1
     nameOfSpecie = MolecularSystem_getNameOfSpecie(iteratorOfSpecie)
 
