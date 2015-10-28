@@ -140,6 +140,15 @@ contains
        call system("lowdin-integralsTransformation.x")
        
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+    
+		case ("RHF-PT-COSMO")
+       
+       call system("lowdin-cosmo.x")
+       call system("lowdin-HF.x RHF")
+
+       call system("lowdin-integralsTransformation.x")
+
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
        
     case default
 

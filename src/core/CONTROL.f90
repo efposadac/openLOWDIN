@@ -2029,8 +2029,8 @@ contains
     if((CONTROL_instance%IONIZE_SPECIE(1)) /= "NONE") then 
 
        write (*,"(T10,A,I5)") "MOLECULAR ORBITAL TO BE IONIZED: ", CONTROL_instance%IONIZE_MO
-	print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
-	print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
+	! print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
+	! print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
        do i = 1, size(CONTROL_instance%IONIZE_SPECIE)
          if ( CONTROL_instance%IONIZE_SPECIE(i) /= "NONE" ) then
          write (*,"(T10,A,A)") "FOR SPECIE0: ", (CONTROL_instance%IONIZE_SPECIE(i))
