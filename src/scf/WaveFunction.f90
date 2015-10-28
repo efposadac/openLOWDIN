@@ -2632,6 +2632,8 @@ contains
 
 
     if( MolecularSystem_getNumberOfQuantumSpecies() > 1 ) then
+             
+			wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
 
 
        do speciesIterator = 1, MolecularSystem_getNumberOfQuantumSpecies()
@@ -2642,9 +2644,10 @@ contains
           otherSpecieSelected=MolecularSystem_instance%species(otherSpecieID)
 
           if ( otherSpecieID /= currentSpecieID ) then
+
              ! write(*,*)"hola other and current", otherSpecieID,currentSpecieID 
 
-             wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
+      !      wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
 
              open(unit=110, file=trim(nameOfOtherSpecie)//trim(nameOfSpecieSelected)//"_qq.cup", status='old', form="unformatted")
              ! open(unit=110, file=trim(nameOfSpecieSelected)//trim(nameOfOtherSpecie)//"_qq.cup", status='old', form="unformatted")
@@ -2734,14 +2737,13 @@ contains
 
                                   end do
                                end do
+															 ! write(*,*)"m ", m
                                cosmoCoup_aux(k,l)=0.0_8
                                do pp=1,size(ints_mat_aux,DIM=1)
                                   do oo=1,size(ints_mat_aux,DIM=1)
                                      cosmoCoup_aux(k,l)=cosmoCoup_aux(k,l)+ints_mat_aux(pp,oo)
                                   end do
                                end do
-                               wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)=cosmoCoup_aux(k,l)+wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
-                               wavefunction_instance(currentSpecieID)%cosmoCoupling%values(l,k)=wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
                             end do
                          end do
                       end do
@@ -2749,6 +2751,15 @@ contains
                    end do
                 end do
              end do
+                               do k=1,size(cosmoCoup_aux,DIM=1)
+                                  do l=k,size(cosmoCoup_aux,DIM=1)
+																		wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)=cosmoCoup_aux(k,l)+wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
+																		wavefunction_instance(currentSpecieID)%cosmoCoupling%values(l,k)=wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
+                                  end do
+                               end do
+
+
+
              !! debug
 
              if (  CONTROL_instance%DEBUG_SCFS) then
@@ -2756,8 +2767,8 @@ contains
                 write(*,*)"cosmo Coupling = "//trim(nameofSpecieSelected)
 
                 call Matrix_show(wavefunction_instance(currentSpecieID)%cosmoCoupling)
-
-		write(*,*)"cosmo density matrix used = "//trim(nameOfOtherSpecie)
+								
+								write(*,*)"cosmo density matrix used = "//trim(nameOfOtherSpecie)
 
                 call Matrix_show(wavefunction_instance(otherSpecieID)%densityMatrix)
 

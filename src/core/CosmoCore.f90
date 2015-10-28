@@ -466,7 +466,7 @@ contains
 
     cosmo_int(:)=0.0_8
 
-
+		!!sumatoria sobre los i segmentos
     m=1
     do n=1,integrals
        do k=1,charges
@@ -583,7 +583,7 @@ contains
        ! write(*,*)"a_mat(:,k))"
        ! write(*,*)a_mat(:,:)
        !
-
+			 write(*,*)"integrals", integrals, " charges ", charges
        open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)//"_qq.cup", status='unknown', form="unformatted")
        write(110) m-1
        do n=1,integrals
