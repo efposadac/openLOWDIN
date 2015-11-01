@@ -127,11 +127,17 @@ contains
 
        call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
     
-		case('RHF-CI')
+    case('RHF-CI')
 
        call system("lowdin-HF.x RHF")
        call system("lowdin-integralsTransformation.x")
        call system("lowdin-CI.x" )
+
+    case('RHF-CC')
+
+       call system("lowdin-HF.x RHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-CC.x" )
 
     case('RHF-PT')
 			 

@@ -1,0 +1,1886 @@
+!!******************************************************************************
+!!
+!!		HERE WE GO !!
+!!
+!!******************************************************************************
+
+module CoupledCluster_
+  use Exception_
+  use Matrix_
+  use Vector_
+  use Coupled_
+  use ReadTransformedIntegrals_
+  use MolecularSystem_
+  use String_
+  use IndexMap_
+  implicit none
+
+  !>
+  !! @brief Coupled Interaction Module, works in spin orbitals
+  !!
+  !! @author Alejandro
+  !!
+  !! <b> Creation data : </b> 2015
+  !!
+  !! <b> History change: </b>
+  !!
+  !!
+  !<
+  type, public :: CoupledCluster
+     logical :: isInstanced
+     integer :: numberOfSpecies
+     type(matrix) :: hamiltonianMatrix
+!     integer :: numberOfCouplings
+     type(vector) :: numberOfOccupiedOrbitals
+     type(vector) :: numberOfOrbitals
+     type(Vector) :: energyCorrectionOfSecondOrder
+     type(Vector) :: mp2Coupling
+     type(vector) :: eigenvalues
+     type(vector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
+     real(8) :: mp2Correction
+     real(8) :: ccsdCorrection
+     real(8) :: secondOrderCorrection
+!     real(8) :: coupledClusterSDCorrection
+     type(vector) :: coupledClusterSDCorrection
+     type(matrix), allocatable :: fourCenterIntegrals(:,:)
+     type(matrix), allocatable :: twoCenterIntegrals(:)
+!     type(coupled), allocatable :: couplings(:)
+     real(8) :: totalEnergy
+
+     character(20) :: level
+
+  end type CoupledCluster
+
+  type, public :: HartreeFock
+        real(8) :: totalEnergy
+        real(8) :: puntualInteractionEnergy
+        type(matrix) :: coefficientsofcombination 
+        type(matrix) :: HcoreMatrix 
+  end type HartreeFock
+  
+  type(CoupledCluster) :: CoupledCluster_instance
+  type(HartreeFock) :: HartreeFock_instance
+
+  public :: &
+       CoupledCluster_constructor, &
+       CoupledCluster_destructor, &
+!       CoupledCluster_getTotalEnergy, &
+       CoupledCluster_run, &
+       CoupledCluster_show
+
+  private		
+contains
+
+
+  !>
+  !! @brief Constructor por omision
+  !!
+  !! @param this
+  !<
+  subroutine CoupledCluster_constructor(level)
+    implicit none
+    character(*) :: level
+
+!    integer :: numberOfSpecies
+!    integer :: i,j,m,n,p,q,c
+!    integer :: isLambdaEqual1
+!    type(vector) :: order
+!    type(vector) :: occupiedCode
+!    type(vector) :: unoccupiedCode
+!    real(8) :: totalEnergy
+!
+!    character(50) :: wfnFile
+!    integer :: wfnUnit
+!    character(50) :: nameOfSpecie
+!    integer :: numberOfContractions
+!    character(50) :: arguments(2)
+!
+!    wfnFile = "lowdin.wfn"
+!    wfnUnit = 20
+!
+!    !! Open file for wavefunction
+!    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+!
+!    !! Load results...
+!    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%totalEnergy, &
+!         arguments=["TOTALENERGY"])
+!    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%puntualInteractionEnergy, &
+!         arguments=["PUNTUALINTERACTIONENERGY"])
+!
+!    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+!    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
+!
+!    do i=1, numberOfSpecies
+!        nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+!        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
+!
+!        arguments(2) = nameOfSpecie
+!        arguments(1) = "HCORE"
+!        HartreeFock_instance%HcoreMatrix  = &
+!                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+!                  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+!
+!        arguments(1) = "COEFFICIENTS"
+!        HartreeFock_instance%coefficientsofcombination = &
+!                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+!                  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+!
+!!         arguments(1) = "ORBITALS"
+!!         call Vector_getFromFile( elementsNum = numberOfContractions, &
+!!              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+!!              output = eigenValues )
+!
+!
+!
+!    end do
+!
+    CoupledCluster_instance%isInstanced=.true.
+    CoupledCluster_instance%level=level
+! Not necessary... maybe    
+!    CoupledCluster_instance%numberOfCouplings=0
+
+!    call Vector_constructor (CoupledCluster_instance%numberOfOccupiedOrbitals, numberOfSpecies)
+!    call Vector_constructor (CoupledCluster_instance%numberOfOrbitals, numberOfSpecies)
+!    call Vector_constructor (CoupledCluster_instance%lambda, numberOfSpecies)
+
+!    do i=1, numberOfSpecies
+       !! We are working in spin orbitals not in spatial orbitals!
+!       CoupledCluster_instance%lambda%values(i) = MolecularSystem_getLambda( i )
+!       CoupledCluster_instance%numberOfOccupiedOrbitals%values(i)=MolecularSystem_getOcupationNumber( i )* CoupledCluster_instance%lambda%values(i)
+!       CoupledCluster_instance%numberOfOrbitals%values(i)=MolecularSystem_getTotalNumberOfContractions( i )* CoupledCluster_instance%lambda%values(i)
+       !!Uneven occupation number = alpha
+       !!Even occupation number = beta     
+!    end do
+
+!    close(wfnUnit)
+
+  end subroutine CoupledCluster_constructor
+
+
+  !>
+  !! @brief Destructor por omision
+  !!
+  !! @param this
+  !<
+  subroutine CoupledCluster_destructor()
+    implicit none
+
+    CoupledCluster_instance%isInstanced=.false.
+
+  end subroutine CoupledCluster_destructor
+
+  !>
+  !! @brief Muestra informacion del objeto
+  !!
+  !! @param this 
+  !<
+  subroutine CoupledCluster_show()
+    implicit none
+    type(CoupledCluster) :: this
+    integer :: i,j,k
+    integer :: numberOfSpecies
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+ 
+    if ( CoupledCluster_instance%isInstanced ) then
+
+       print *,""
+       print *," POST HARTREE-FOCK CALCULATION"
+       print *," COUPLED CLUSTER THEORY:"
+       print *,"=============================="
+       print *,""
+       write (6,"(T10,A30, A5)") "LEVEL = ", CoupledCluster_instance%level
+       write (6,"(T10,A30, F20.12)") "HF ENERGY = ", HartreeFock_instance%totalEnergy
+       write (6,"(T10,A30, F20.12)") "MP2 CORR. ENERGY = ", CoupledCluster_instance%secondOrderCorrection
+       write (6,"(T10,A30, F20.12)") "CCSD CORR. ENERGY = ", CoupledCluster_instance%ccsdCorrection
+       write (6,"(T10,A30, F20.12)") "============================================================"
+       write (6,"(T10,A30, F20.12)") "Total Energy (HF+CCSD) = ", HartreeFock_instance%totalEnergy+CoupledCluster_instance%ccsdCorrection
+    
+
+	if ( numberOfSpecies > 1 ) then
+
+       print *,""
+       print *,""
+       print *," COUPLED CLUSTER THEORY FOR DIFF. SPECIES"
+       print *,"========================================="
+       print *,""
+       print *,""
+       print *,""
+
+!                    k=0
+!                    do i=1, numberOfSpecies
+!                         do j=i+1, numberOfSpecies
+!                                   k=k+1
+!                                   write (*,'(T10,A30,A8,A4,ES16.8)') "MP2 Corr.{", &
+!                                             trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
+!					"} = ", CoupledCluster_instance%mp2Coupling%values(k)
+!                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
+!                                             trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
+!					"} = ", CoupledCluster_instance%coupledClusterSDCorrection%values(k)
+!                         end do
+!                    end do
+
+	end if
+
+       print *,""
+       print *,""
+       print *,""
+       print *,""
+
+    else 
+
+    end if
+
+  end subroutine CoupledCluster_show
+
+  !>
+  !! @brief Muestra informacion del objeto
+  !!
+  !! @param this 
+  !<
+  subroutine CoupledCluster_run()
+    implicit none 
+    integer :: m
+    real(8), allocatable :: eigenValues(:) 
+
+    select case ( trim(CoupledCluster_instance%level) )
+
+    case ( "CCSD" )
+
+       print *, ""
+       print *, ""
+       print *, "==============================================="
+       print *, "|            BEGIN CCSD CALCULATION           |"
+       print *, "-----------------------------------------------"
+       print *, ""
+
+	print *, "  ________________________________________________ "
+	print *, " |Initial Guess... From MP2 Calculation           |"
+	print *, " |------------------------------------------------|"
+	print *, " |Iteration of Coupled Cluster intermediates . . .|"
+	print *, " |------------------------------------------------|"
+	print *, " |Computing CCSD Energy...                        |"
+	print *, " |________________________________________________|"
+	print *, ""
+	print *, "Patience is not the ability to wait, but the ability to keep a good attitude while waiting... Or just destroy the computer."
+
+	call CoupledCluster_iterateIntermediates()
+
+       
+       print *,""
+       print *, "-----------------------------------------------"
+       print *, "|              END CCSD CALCULATION           |"
+       print *, "==============================================="
+       print *, ""
+
+    case default
+
+       call CoupledCluster_exception( ERROR, "Coupled interactor constructor", "Correction level not implemented")
+
+    end select
+
+
+  end subroutine CoupledCluster_run
+
+ !>
+  !! @brief Calculation of the intermediates
+  !!
+  !<
+ subroutine CoupledCluster_iterateIntermediates()
+   implicit none
+
+   integer :: numberOfSpecies
+   integer :: a,b,c,d
+   integer :: aa,bb,cc,dd
+   integer :: i,j,k,l,p,q,r,s,h,t
+   integer :: ii,jj,kk,ll,pp,qq,rr,ss,hh,tt
+   integer(8) :: x,y,z,auxIndex,auxIndex2
+   integer :: e,f,m,n,iii,jjj,aaa,bbb
+   integer :: ee,mm,nn,fff
+   integer :: speciesID
+   integer :: otherSpeciesID
+   character(10) :: nameOfSpecie
+   character(10) :: nameOfOtherSpecie
+   integer :: electronsID
+   integer :: numberOfParticles
+   integer :: numberOfOtherSpecieParticles
+   integer :: ocupationNumber
+   integer :: ocupationNumberOfOtherSpecie
+   integer :: numberOfContractions
+   integer :: numberOfContractionsOfOtherSpecie
+   integer(8) :: numberOfOrbitals
+   integer(8) :: numberOfSpatialOrbitals
+   integer :: numberOfOtherSpecieOrbitals
+   integer :: numberOfOtherSpecieSpatialOrbitals
+   integer, allocatable :: spin(:)
+   integer, allocatable :: spatialOrbital(:)
+   type(Vector) :: eigenValues, ff
+   type(Vector) :: eigenValuesOfOtherSpecie, otherff
+   type(Matrix) :: auxMatrix!   type(TransformIntegrals) :: repulsionTransformer
+   real(8) :: lambda
+   real(8) :: lambdaOfOtherSpecie
+   real(8) :: kappa !positive or negative exchange
+   real(8) :: charge
+   real(8) :: TwoParticlesEnergy, ECCSD, DECC, OLDCC, auxECCSD, ECCSD1, ECCSD2
+   real(8) :: otherSpecieCharge
+   real(8) :: independentEnergyCorrection
+   real(8) :: mp2CouplingCorrection
+   real(8) :: auxVal,auxVal1,auxVal2,value1,value2
+   real(8) :: auxVal_A
+   real(8) :: auxVal_B
+   type(Matrix) :: eigenVec, eigenVec1, Fs
+   type(Matrix) :: eigenVecOtherSpecie, eigenVecOtherSpecie1, otherFs
+!   real(8), allocatable :: ff(:)
+   real(8), allocatable :: Ts(:,:),Fae(:,:),Fmi(:,:),Fme(:,:),Dai(:,:),TsNew(:,:)
+   real(8), allocatable :: auxTs(:,:),auxFae(:,:),auxFmi(:,:),auxFme(:,:),auxDai(:,:),auxTsNew(:,:)
+   real(8), allocatable :: otherTs(:,:),otherFae(:,:),otherFmi(:,:),otherFme(:,:),otherDai(:,:),otherTsNew(:,:)
+   real(8), allocatable :: Td(:,:,:,:), spinints(:,:,:,:), Dabij(:,:,:,:), taus(:,:,:,:), tau(:,:,:,:), Wmnij(:,:,:,:), Wabef(:,:,:,:), Wmbej(:,:,:,:), TdNew(:,:,:,:)
+   real(8), allocatable :: otherTd(:,:,:,:), otherspinints(:,:,:,:), otherDabij(:,:,:,:), othertaus(:,:,:,:), auxspinints(:,:,:,:), auxTd(:,:,:,:)
+   real(8), allocatable :: othertau(:,:,:,:), otherWmnij(:,:,:,:), otherWabef(:,:,:,:), otherWmbej(:,:,:,:), otherTdNew(:,:,:,:)
+   real(8), allocatable :: auxWmnij(:,:,:,:), auxWabef(:,:,:,:), auxWmbej(:,:,:,:)
+   real(8), allocatable :: auxTdNew(:,:,:,:), auxtau(:,:,:,:), auxtaus(:,:,:,:), auxDabij(:,:,:,:)
+   type(Matrix), allocatable :: auxMatrix1(:,:)
+   character(50) :: wfnFile
+   character(50) :: arguments(2)
+   integer :: wfnUnit
+
+
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+
+    !! Open file for wavefunction
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+    !! Load results...
+    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%totalEnergy, &
+         arguments=["TOTALENERGY"])
+    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%puntualInteractionEnergy, &
+         arguments=["PUNTUALINTERACTIONENERGY"])
+
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+
+!!******************************************************************************************************************************
+!! Begin CCSD calculation same specie. 
+!!******************************************************************************************************************************
+
+!	speciesID=1 !!! FOR NOW, only electrons 
+    do speciesID=1, numberOfSpecies
+	numberOfParticles = MolecularSystem_getNumberOfParticles(speciesID)
+
+    if ( numberOfParticles > 1 ) then
+
+	lambda=MolecularSystem_getLambda(speciesID) !Particles per orbital
+        kappa=MolecularSystem_getKappa(speciesID) !exchange sign
+        charge=MolecularSystem_getCharge(speciesID)
+    	ocupationNumber = MolecularSystem_getOcupationNumber(speciesID)
+	numberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
+        numberOfOrbitals = numberOfContractions*lambda
+        numberOfSpatialOrbitals = (numberOfOrbitals/lambda)*2 !Twice the dimension of spatial orbitals
+
+!
+         arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+
+    	!! Read transformed integrals from file
+        call ReadTransformedIntegrals_readOneSpecies( speciesID, auxMatrix)
+
+         arguments(1) = "ORBITALS"
+         call Vector_getFromFile( elementsNum = numberOfContractions, &
+              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+              output = eigenValues )
+
+	call Matrix_diagonalConstructor (eigenVec, eigenValues) ! put MO energies in diagonal array (eigenVec) 
+	call Vector_constructor (ff,numberOfContractions*2,0.0_8)
+
+	a=0
+	b=0
+	do x=1, numberOfContractions
+		a=a+1
+		do i=1, 2
+			b=b+1
+			ff%values(b) = eigenValues%values(a)
+		end do
+	end do
+
+	call Matrix_diagonalConstructor (Fs, ff)
+
+	
+	! Inital guess for T2, initial guess for the cluster amplitudes are the Moller-Plesset first-order perturbed wave function.
+	! t_i^a=0 ; t_{ij}^{ab}= <ij||ab>/(E_i + E_j - E_a - E_b)
+
+	call Vector_constructor( CoupledCluster_instance%coupledClusterSDCorrection, numberOfSpecies)
+	call Vector_constructor( CoupledCluster_instance%energyCorrectionOfSecondOrder, numberOfSpecies)
+
+	do a=1, ocupationNumber
+		do b=1, ocupationNumber
+			do i=ocupationNumber+1, numberOfContractions
+				do j=i, numberOfContractions
+					auxIndex = IndexMap_tensorR4ToVector(a,i,b,j, numberOfContractions)
+					auxVal_A= auxMatrix%values(auxIndex, 1)
+
+						if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
+
+                                                        if ( j>i ) then
+
+                                                                if (a==b) then
+
+                                                                        if( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+
+                                                                                independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A**2.0  &
+                                                                                * ( lambda  -  1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                                                - eigenValues%values(i) - eigenValues%values(j) )
+
+                                                                        end if
+
+                                                                else
+
+                                                                        auxIndex = IndexMap_tensorR4ToVector(i, b, j, a, numberOfContractions )
+                                                                        auxVal_B= auxMatrix%values(auxIndex, 1)
+
+                                                                        independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A  &
+                                                                        * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                                        - eigenValues%values(i) - eigenValues%values(j) )
+
+                                                                end if
+
+                                                        else if ( a==b .and. i==j ) then
+
+                                                                if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+
+                                                                        independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0_8  &
+                                                                                * ( lambda - 1.0_8 ) / ( 2.0_8*( eigenValues%values(a)-eigenValues%values(i)))
+
+                                                                end if
+
+                                                        else
+
+                                                                if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+                                                                        independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0  &
+                                                                                * ( lambda  - 1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                                                - eigenValues%values(i) - eigenValues%values(j) )
+                                                                end if
+
+                                                        end if
+                                                end if
+
+
+                                        end do
+                                end do
+                        end do
+
+		end do
+
+                CoupledCluster_instance%energyCorrectionOfSecondOrder%values(speciesID) = independentEnergyCorrection &
+                        * ( ( MolecularSystem_getCharge( speciesID ) )**4.0_8 )
+
+		!! Suma las correcciones de energia para especies independientes
+		CoupledCluster_instance%secondOrderCorrection = sum( CoupledCluster_instance%energyCorrectionOfSecondOrder%values ) !MP2 Corr. Energy
+
+
+!!! From scratch...
+
+	numberOfContractions=numberOfContractions*2
+
+        if (allocated(spinints)) deallocate (spinints)
+        allocate(spinints(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        spinints(:,:,:,:) = 0.0_8
+        
+        do p=1, numberOfContractions
+                do q=1, numberOfContractions
+                        do r=1, numberOfContractions
+                                do s=1, numberOfContractions
+                                        value1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,numberOfContractions/2)
+                                        auxVal_A= auxMatrix%values(value1, 1)
+                                        value2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,numberOfContractions/2)
+                                        auxVal_B= auxMatrix%values(value2, 1)
+                                        auxVal1 = auxVal_A * (mod(p,2) == mod(r,2)) * (mod(q,2) == mod(s,2))
+                                        auxVal2 = auxVal_B * (mod(p,2) == mod(s,2)) * (mod(q,2) == mod(r,2))
+                                        spinints(p,q,r,s) = auxVal1 - auxVal2 !! p+1 o p-1? Revisar
+!					write (*,*) spinints(p,q,r,s)
+                                end do
+                        end do
+                end do
+        end do
+
+
+!!!! Initial guesses T1 and T2
+
+        if (allocated(Ts)) deallocate (Ts)
+        allocate(Ts(numberOfContractions,numberOfContractions))
+        Ts(:,:) = 0.0_8
+
+        if (allocated(Td)) deallocate (Td)
+        allocate(Td(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        Td(:,:,:,:) = 0.0_8
+
+        if (allocated(taus)) deallocate (taus)
+        allocate(taus(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        taus(:,:,:,:) = 0.0_8
+
+        if (allocated(tau)) deallocate (tau)
+        allocate(tau(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        tau(:,:,:,:) = 0.0_8
+
+        do a=numberOfParticles+1, numberOfContractions
+                do b=numberOfParticles+1, numberOfContractions
+                        do i=1, numberOfParticles
+                                do j=1, numberOfParticles
+                                        Td(a,b,i,j) = Td(a,b,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+                                        taus(a,b,i,j) = Td(a,b,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
+                                        tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
+!			                  write(*,*) Td(a,b,i,j), taus(a,b,i,j), tau(a,b,i,j)
+                                end do
+                        end do
+                end do
+        end do
+
+!!!! End Initial Guesses
+
+!!!! Make denominator arrays Dai, Dabij
+
+        !! Equation 12 from Stanton
+
+        if (allocated(Dai)) deallocate (Dai)
+        allocate(Dai(numberOfContractions,numberOfContractions))
+        Dai(:,:) = 0.0_8
+
+        do a=numberOfParticles+1, numberOfContractions
+                do i=1, numberOfParticles
+                        Dai(a,i) = Fs%values(i,i) - Fs%values(a,a)
+!			write(*,*) a,i,Dai(a,i)
+                end do
+        end do
+        
+        !! Equation 13 from Stanton
+
+        if (allocated(Dabij)) deallocate (Dabij)
+        allocate(Dabij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        Dabij(:,:,:,:) = 0.0_8
+
+
+        do a=numberOfParticles+1, numberOfContractions
+                do b=numberOfParticles+1, numberOfContractions
+                        do i=1, numberOfParticles
+                                do j=1, numberOfParticles
+                                        Dabij(a,b,i,j) = Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)
+!					write(*,*) a,b,i,j,Dabij(a,b,i,j)
+                                end do
+                        end do
+                end do
+        end do
+
+!!!! End Denominators
+
+!!!! Main Loop
+
+  ECCSD = 0.0_8
+  DECC = 1.0_8 
+!  OLDCC = 0 
+
+!   do while (OLDCC < 5)
+  do while (DECC >= 1.0D-8)
+!	OLDCC = OLDCC + 1
+	OLDCC = ECCSD
+
+
+	if (allocated(Fae)) deallocate (Fae)
+        allocate(Fae(numberOfContractions,numberOfContractions))
+	Fae=0.0_8
+	if (allocated(Fmi)) deallocate (Fmi)
+        allocate(Fmi(numberOfContractions,numberOfContractions))
+	Fmi=0.0_8
+	if (allocated(Fme)) deallocate (Fme)
+        allocate(Fme(numberOfContractions,numberOfContractions))
+	Fme=0.0_8
+
+	if (allocated(Wmnij)) deallocate (Wmnij)
+        allocate(Wmnij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+	Wmnij=0.0_8
+	if (allocated(Wabef)) deallocate (Wabef)
+        allocate(Wabef(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+	Wabef=0.0_8
+	if (allocated(Wmbej)) deallocate (Wmbej)
+        allocate(Wmbej(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+	Wmbej=0.0_8
+
+	if (allocated(TsNew)) deallocate (TsNew)
+	allocate(TsNew(numberOfContractions,numberOfContractions))
+	TsNew=0.0_8
+	if (allocated(TdNew)) deallocate (TdNew)
+        allocate(TdNew(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+	TdNew=0.0_8
+
+
+
+!!!! Intermediates
+
+	!! Equation 3
+
+	do a=numberOfParticles+1, numberOfContractions
+		do e=numberOfParticles+1, numberOfContractions
+			Fae(a,e) = (1 + (a==e))*Fs%values(a,e)
+			do m=1, numberOfParticles
+				Fae(a,e) = Fae(a,e) + (-0.5*Fs%values(m,e)*Ts(a,m))
+				do f=numberOfParticles+1, numberOfContractions
+					Fae(a,e) = Fae(a,e) + Ts(f,m)*spinints(m,a,f,e)
+					do n=1, numberOfParticles
+						Fae(a,e) = Fae(a,e) + (-0.5*taus(a,f,m,n)*spinints(m,n,e,f))
+!						write(*,*) a,e,Fae(a,e)
+					end do
+				end do
+			end do
+		end do
+	end do
+
+!	write(*,*) numberOfContractions
+!	write(*,*) Fae
+
+	!! Equation 4
+
+	do m=1, numberOfParticles
+		do i=1, numberOfParticles
+			Fmi(m,i) = (1 + (m==i))*Fs%values(m,i)
+			do e=numberOfParticles+1, numberOfContractions
+				Fmi(m,i) = Fmi(m,i) + 0.5*Ts(e,i)*Fs%values(m,e)
+				do n=1, numberOfParticles
+					Fmi(m,i) = Fmi(m,i) + Ts(e,n)*spinints(m,n,i,e)
+					do f=numberOfParticles+1, numberOfContractions
+						Fmi(m,i) = Fmi(m,i) + 0.5*taus(e,f,i,n)*spinints(m,n,e,f)
+					end do
+				end do
+			end do
+		end do
+	end do
+
+
+	!! Equation 5
+
+	do m=1, numberOfParticles
+		do e=numberOfParticles+1, numberOfContractions
+			Fme(m,e) = Fs%values(m,e)
+			do n=1, numberOfParticles
+				do f=numberOfParticles+1, numberOfContractions
+				Fme(m,e) = Fme(m,e) + Ts(f,n)*spinints(m,n,e,f)
+				end do
+			end do
+		end do
+	end do
+
+	!! Equation 6
+
+	do m=1, numberOfParticles
+		do n=1, numberOfParticles
+			do i=1, numberOfParticles
+				do j=1, numberOfParticles
+					Wmnij(m,n,i,j) = spinints(m,n,i,j)
+					do e=numberOfParticles+1, numberOfContractions
+						Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + (Ts(e,j)*spinints(m,n,i,e)-Ts(e,i)*spinints(m,n,j,e))
+						do f=numberOfParticles+1, numberOfContractions
+							Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + 0.25*tau(e,f,i,j)*spinints(m,n,e,f)
+						end do
+					end do
+				end do
+			end do
+		end do
+	end do
+
+	!! Equation 7
+
+	do a=numberOfParticles+1, numberOfContractions
+		do b=numberOfParticles+1, numberOfContractions
+			do e=numberOfParticles+1, numberOfContractions
+				do f=numberOfParticles+1, numberOfContractions
+					Wabef(a,b,e,f) = spinints(a,b,e,f)
+					do m=1, numberOfParticles
+						Wabef(a,b,e,f) = Wabef(a,b,e,f) + (-Ts(b,m)*spinints(a,m,e,f)+Ts(a,m)*spinints(b,m,e,f))
+						do n=1, numberOfParticles
+							Wabef(a,b,e,f) = Wabef(a,b,e,f) + 0.25*tau(a,b,m,n)*spinints(m,n,e,f)
+						end do
+					end do
+				end do
+			end do
+		end do
+	end do
+
+	!! Equation 8
+
+	do m=1, numberOfParticles
+		do b=numberOfParticles+1, numberOfContractions
+			do e=numberOfParticles+1, numberOfContractions
+				do j=1, numberOfParticles
+					Wmbej(m,b,e,j) = spinints(m,b,e,j)
+					do f=numberOfParticles+1, numberOfContractions
+						Wmbej(m,b,e,j) = Wmbej(m,b,e,j) + Ts(f,j)*spinints(m,b,e,f)
+					end do
+					do n=1, numberOfParticles
+						Wmbej(m,b,e,j) = Wmbej(m,b,e,j) + (-Ts(b,n)*spinints(m,n,e,f))
+						do f=numberOfParticles+1, numberOfContractions
+							Wmbej(m,b,e,j) = Wmbej(m,b,e,j) + -(0.5*Td(f,b,j,n)+Ts(f,j)*Ts(b,n))*spinints(m,n,e,f)
+						end do
+					end do
+				end do
+			end do
+		end do
+	end do
+
+!!!! End Intermediates
+
+
+auxECCSD = 0.0_8
+
+	do i=1, numberOfParticles
+		do a=numberOfParticles+1, numberOfContractions
+			auxECCSD = auxECCSD + Fs%values(i,a)*Ts(a,i)
+			do j=1, numberOfParticles
+				do b=numberOfParticles+1, numberOfContractions
+					auxECCSD = auxECCSD + (0.25*spinints(i,j,a,b)*Td(a,b,i,j)+0.5*spinints(i,j,a,b)*Ts(a,i)*Ts(b,j))
+		!			write(*,*) auxECCSD
+				end do
+			end do
+		end do
+	end do
+  ECCSD = auxECCSD
+	
+  DECC = abs( ECCSD - OLDCC )
+
+!   write (*,*) ECCSD 
+!  write(*,*) ECCSD, OLDCC, DECC
+
+!!!! Let's make T1 and T2 (the new ones) 
+
+	!! Equation 1
+		
+	do a=numberOfParticles+1, numberOfContractions
+		do i=1, numberOfParticles
+			TsNew(a,i) = Fs%values(i,a)
+			do e=numberOfParticles+1, numberOfContractions
+				TsNew(a,i) = TsNew(a,i) + Ts(e,i)*Fae(a,e)
+			end do
+			do m=1, numberOfParticles
+				TsNew(a,i) = TsNew(a,i) + (-Ts(a,m)*Fmi(m,i))
+				do e=numberOfParticles+1, numberOfContractions
+					TsNew(a,i) = TsNew(a,i) + Td(a,e,i,m)*Fme(m,e)
+					do f=numberOfParticles+1, numberOfContractions
+						TsNew(a,i) = TsNew(a,i) + (-0.5*Td(e,f,i,m)*spinints(m,a,e,f))
+					end do
+					do n=1, numberOfParticles
+						TsNew(a,i) = TsNew(a,i) + (-0.5*Td(a,e,m,n)*spinints(n,m,e,i))
+					end do
+				end do
+			end do
+			do n=1,numberOfParticles
+				do f=numberOfParticles+1, numberOfContractions
+					TsNew(a,i) = TsNew(a,i) + (-Ts(f,n)*spinints(n,a,i,f))
+				end do
+			end do
+			TsNew(a,i) = TsNew(a,i)/Dai(a,i)
+			Ts(a,i) = TsNew(a,i)
+!			write(*,*) a,i,Ts(a,i),TsNew(a,i)
+		end do
+	end do
+
+!write (*,*) Ts(:,:)
+			
+	!! Equation 2
+
+	
+	do a=numberOfParticles+1, numberOfContractions
+		do b=numberOfParticles+1, numberOfContractions
+			do i=1, numberOfParticles
+				do j=1, numberOfParticles
+
+					TdNew(a,b,i,j) = TdNew(a,b,i,j) + spinints(i,j,a,b)
+					do e=numberOfParticles+1, numberOfContractions
+						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (Td(a,e,i,j)*Fae(b,e)-Td(b,e,i,j)*Fae(a,e))
+						do m=1, numberOfParticles
+							TdNew(a,b,i,j) = TdNew(a,b,i,j) + (-0.5*Td(a,e,i,j)*Ts(b,m)*Fme(m,e)+0.5*Td(a,e,i,j)*Ts(a,m)*Fme(m,e)) 
+						end do
+					end do
+					do m=1, numberOfParticles
+						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (-Td(a,b,i,m)*Fmi(m,j)+Td(a,b,j,m)*Fmi(m,i))
+						do e=numberOfParticles+1, numberOfContractions
+							TdNew(a,b,i,j) = TdNew(a,b,i,j) + (-0.5*Td(a,b,i,m)*Ts(e,j)*Fme(m,e)+0.5*Td(a,b,i,m)*Ts(e,i)*Fme(m,e))
+						end do
+					end do
+					do e=numberOfParticles+1, numberOfContractions
+						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (Ts(e,i)*spinints(a,b,e,j)-Ts(e,j)*spinints(a,b,e,i))
+						do f=numberOfParticles+1, numberOfContractions
+							TdNew(a,b,i,j) = TdNew(a,b,i,j) + 0.5*tau(e,f,i,j)*Wabef(a,b,e,f)
+						end do
+					end do
+					do m=1, numberOfParticles
+						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (-Ts(a,m)*spinints(m,b,i,j)+Ts(b,m)*spinints(m,a,i,j))
+						do e=numberOfParticles+1, numberOfContractions
+							TdNew(a,b,i,j) = TdNew(a,b,i,j) + Td(a,e,i,m)*Wmbej(m,b,e,j) - Ts(e,i)*Ts(a,m)*spinints(m,b,e,j) + -Td(a,e,j,m)*Wmbej(m,b,e,i) + Ts(e,j)*Ts(a,m)*spinints(m,b,e,i) + -Td(b,e,i,m)*Wmbej(m,a,e,j) - Ts(e,i)*Ts(b,m)*spinints(m,a,e,j) + Td(b,e,j,m)*Wmbej(m,a,e,i) - Ts(e,j)*Ts(b,m)*spinints(m,a,e,i)
+						end do
+						do n=1, numberOfParticles
+							TdNew(a,b,i,j) = TdNew(a,b,i,j) + 0.5*tau(a,b,m,n)*Wmnij(m,n,i,j)
+						end do
+					end do
+					TdNew(a,b,i,j) = TdNew(a,b,i,j)/Dabij(a,b,i,j)
+					Td(a,b,i,j) = TdNew(a,b,i,j)
+                                        taus(a,b,i,j) = Td(a,b,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
+                                        tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
+				end do
+			end do
+		end do
+	end do
+
+
+
+!!!! End New T1 and T2
+
+
+ end do !! Main Loop
+
+	CoupledCluster_instance%coupledClusterSDCorrection%values( speciesID ) = ECCSD ! CCSD Correlation Energy
+
+
+	end if !! If numberOfParticles > 1	
+
+	CoupledCluster_instance%ccsdCorrection = sum( CoupledCluster_instance%coupledClusterSDCorrection%values ) !CCSD Corr. Energy
+!	write(*,*) speciesID, CoupledCluster_instance%coupledClusterSDCorrection%values( speciesID )  
+
+ end do !! Species
+
+	if (allocated(Ts)) deallocate (Ts)
+        if (allocated(Td)) deallocate (Td)
+        if (allocated(taus)) deallocate (taus)
+        if (allocated(tau)) deallocate (tau)
+	if (allocated(Fae)) deallocate (Fae)
+	if (allocated(Fmi)) deallocate (Fmi)
+	if (allocated(Fme)) deallocate (Fme)
+	if (allocated(Wmnij)) deallocate (Wmnij)
+	if (allocated(Wabef)) deallocate (Wabef)
+	if (allocated(Wmbej)) deallocate (Wmbej)
+	if (allocated(TsNew)) deallocate (TsNew)
+	if (allocated(TdNew)) deallocate (TdNew)
+	call Vector_destructor (ff)
+	call Matrix_destructor (Fs)
+	call Matrix_destructor (auxMatrix)
+
+!!*********************************************************************************************************************************
+!! End CCSD calculation same specie!
+!!*********************************************************************************************************************************
+
+!!*********************************************************************************************************************************
+!! Begin CCSD Calculation different species
+!!*********************************************************************************************************************************
+
+if ( numberOfSpecies > 1 ) then
+
+mp2CouplingCorrection = 0.0_8
+m = 0
+
+print *, " "
+print *, " "
+print *, " |------------------------------------------------|"
+print *, " |Calculating CCSD corr. for different species....|"
+print *, " |------------------------------------------------|"
+
+
+f = numberOfSpecies * ( numberOfSpecies-1 ) / 2
+
+call Vector_constructor( CoupledCluster_instance%mp2Coupling, f)
+
+
+  do i=1, numberOfSpecies
+
+     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
+     arguments(2) = trim(MolecularSystem_getNameOfSpecie(i))
+
+     arguments(1) = "COEFFICIENTS"
+     eigenVec = &
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+             columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+     arguments(1) = "ORBITALS"
+     call Vector_getFromFile( elementsNum = numberOfContractions, &
+          unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+          output = eigenValues )
+
+     nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+     speciesID =MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecie) )
+     ocupationNumber = MolecularSystem_getOcupationNumber( i )
+     numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
+     lambda = MolecularSystem_getlambda( i )
+
+     do j = i + 1, numberOfSpecies
+        m = m + 1
+
+
+        numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
+
+        arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+
+        arguments(1) = "COEFFICIENTS"
+        eigenVecOtherSpecie = &
+             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
+             columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+
+        arguments(1) = "ORBITALS"
+        call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
+             unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+             output = eigenValuesOfOtherSpecie )
+
+
+        numberOfParticles = MolecularSystem_getNumberOfParticles(i)
+        numberOfOtherSpecieParticles = MolecularSystem_getNumberOfParticles(j)
+        nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
+        otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
+        ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( j )
+
+        lambdaOfOtherSpecie = MolecularSystem_instance%species(j)%lambda
+
+	!! Read transformed integrals from file
+        call ReadTransformedIntegrals_readTwoSpecies( speciesID, otherSpeciesID, auxMatrix)
+	 auxMatrix%values = auxMatrix%values * MolecularSystem_getCharge( speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+
+
+	do a=1, ocupationNumber
+           do p=1,ocupationNumberOfOtherSpecie
+              do r=ocupationNumber+1, numberOfContractions
+                 do t=ocupationNumberOfOtherSpecie+1, numberOfContractionsOfOtherSpecie
+
+                    auxIndex = IndexMap_tensorR4ToVector(a,r,p,t, numberOfContractions, &
+                         numberOfContractionsOfOtherSpecie )
+
+                    mp2CouplingCorrection = mp2CouplingCorrection + ( ( auxMatrix%values(auxIndex,1) )**2.0_8 ) / (eigenValues%values(a) + eigenValuesOfOtherSpecie%values(p)-eigenValues%values(r)-eigenValuesOfOtherSpecie%values(t) )
+                 end do
+              end do
+           end do
+        end do
+
+        CoupledCluster_instance%mp2Coupling%values(m)= ( lambda * lambdaOfOtherSpecie * mp2CouplingCorrection )
+
+!end do !!! Number Of Species
+!end do !!! 
+
+
+!!! From Scratch
+
+	call Matrix_diagonalConstructor (eigenVec1, eigenValues) ! put MO energies in diagonal array (eigenVec) 
+        call Vector_constructor (ff,numberOfContractions*2,0.0_8)
+
+        a=0
+        b=0
+        do x=1, numberOfContractions
+                a=a+1
+                do h=1, 2
+                        b=b+1
+                        ff%values(b) = eigenValues%values(a)
+                end do
+        end do
+
+        call Matrix_diagonalConstructor (Fs, ff)
+
+	call Matrix_diagonalConstructor (eigenVecOtherSpecie1, eigenValuesOfOtherSpecie) ! put MO energies in diagonal array (eigenVec) 
+        call Vector_constructor (otherff,numberOfContractionsOfOtherSpecie*2,0.0_8)
+
+        a=0
+        b=0
+        do x=1, numberOfContractionsOfOtherSpecie
+                a=a+1
+                do h=1, 2
+                        b=b+1
+                        otherff%values(b) = eigenValuesOfOtherSpecie%values(a)
+                end do
+        end do
+
+        call Matrix_diagonalConstructor (otherFs, otherff)
+
+	numberOfContractions=numberOfContractions*2
+
+        if (allocated(spinints)) deallocate (spinints)
+        allocate(spinints(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+
+        do p=1, numberOfContractions
+                do q=1, numberOfContractions
+                        do r=1, numberOfContractions
+                                do s=1, numberOfContractions
+                                        value1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,numberOfContractions/2)
+                                        auxVal_A= auxMatrix%values(value1, 1)
+                                        value2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,numberOfContractions/2)
+                                        auxVal_B= auxMatrix%values(value2, 1)
+                                        auxVal1 = auxVal_A * (mod(p,2) == mod(r,2)) * (mod(q,2) == mod(s,2))
+                                        auxVal2 = auxVal_B * (mod(p,2) == mod(s,2)) * (mod(q,2) == mod(r,2))
+                                        spinints(p,q,r,s) = auxVal1 - auxVal2 !! p+1 o p-1? Revisar
+                                end do
+                        end do
+                end do
+        end do
+
+	numberOfContractionsOfOtherSpecie=numberOfContractionsOfOtherSpecie*2
+
+        if (allocated(otherspinints)) deallocate (otherspinints)
+        allocate(otherspinints(numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie))
+
+        do p=1, numberOfContractionsOfOtherSpecie
+                do q=1, numberOfContractionsOfOtherSpecie
+                        do r=1, numberOfContractionsOfOtherSpecie
+                                do s=1, numberOfContractionsOfOtherSpecie
+                                        value1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,numberOfContractionsOfOtherSpecie/2)
+                                        auxVal_A= auxMatrix%values(value1, 1)
+                                        value2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,numberOfContractionsOfOtherSpecie/2)
+                                        auxVal_B= auxMatrix%values(value2, 1)
+                                        auxVal1 = auxVal_A * (mod(p,2) == mod(r,2)) * (mod(q,2) == mod(s,2))
+                                        auxVal2 = auxVal_B * (mod(p,2) == mod(s,2)) * (mod(q,2) == mod(r,2))
+                                        otherspinints(p,q,r,s) = auxVal1 - auxVal2 
+!					write(*,*) otherspinints(p,q,r,s)
+                                end do
+                        end do
+                end do
+        end do
+
+        if (allocated(auxspinints)) deallocate (auxspinints)
+        allocate(auxspinints(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+
+
+	!!!! TEST for combined spinints
+!	call ReadTransformedIntegrals_readTwoSpecies( speciesID, otherSpeciesID, auxspinints)
+        do p=1, numberOfContractions
+                do q=1, numberOfContractionsOfOtherSpecie
+                        do r=1, numberOfContractions
+                                do s=1, numberOfContractionsOfOtherSpecie
+                                        value1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,numberOfContractions/2, numberOfContractionsOfOtherSpecie/2)
+                                        auxVal_A= auxMatrix%values(value1, 1)
+                                        auxVal1 = auxVal_A * (mod(p,2) == mod(r,2)) * (mod(q,2) == mod(s,2))
+                                        auxspinints(p,q,r,s) = auxVal1
+                                end do
+                        end do
+                end do
+        end do
+
+
+!!!! Initial guesses T1 and T2
+
+        if (allocated(Ts)) deallocate (Ts)
+        allocate(Ts(numberOfContractions,numberOfContractions))
+        Ts(:,:) = 0.0_8
+
+        if (allocated(Td)) deallocate (Td)
+        allocate(Td(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        Td(:,:,:,:) = 0.0_8
+
+        if (allocated(taus)) deallocate (taus)
+        allocate(taus(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        taus(:,:,:,:) = 0.0_8
+
+        if (allocated(tau)) deallocate (tau)
+        allocate(tau(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        tau(:,:,:,:) = 0.0_8
+
+        do a=numberOfParticles+1, numberOfContractions
+                do b=numberOfParticles+1, numberOfContractions
+                        do ii=1, numberOfParticles
+                                do jj=1, numberOfParticles
+                                        Td(a,b,ii,jj) = Td(a,b,ii,jj) + (spinints(ii,jj,a,b)/(Fs%values(ii,ii)+Fs%values(jj,jj)-Fs%values(a,a)-Fs%values(b,b)))
+                                        taus(a,b,ii,jj) = Td(a,b,ii,jj) + 0.5*(Ts(a,ii)*Ts(b,jj) - Ts(b,ii)*Ts(a,jj))
+                                        tau(a,b,ii,jj) = Td(a,b,ii,jj) + Ts(a,ii)*Ts(b,jj) - Ts(b,ii)*Ts(a,jj)
+!			                  write(*,*) a,b,i,j,Td(a,b,i,j)
+                                end do
+                        end do
+                end do
+        end do
+
+        if (allocated(otherTs)) deallocate (otherTs)
+        allocate(otherTs(numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie))
+        otherTs(:,:) = 0.0_8
+        
+	if (allocated(auxTs)) deallocate (auxTs)
+        allocate(auxTs(numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxTs(:,:) = 0.0_8
+
+        if (allocated(otherTd)) deallocate (otherTd)
+        allocate(otherTd(numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie))
+        otherTd(:,:,:,:) = 0.0_8
+
+        if (allocated(auxTd)) deallocate (auxTd)
+        allocate(auxTd(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxTd(:,:,:,:) = 0.0_8
+
+        if (allocated(othertaus)) deallocate (othertaus)
+        allocate(othertaus(numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie))
+        othertaus(:,:,:,:) = 0.0_8
+
+        if (allocated(othertau)) deallocate (othertau)
+        allocate(othertau(numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie))
+        othertau(:,:,:,:) = 0.0_8
+        
+	if (allocated(auxtaus)) deallocate (auxtaus)
+        allocate(auxtaus(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxtaus(:,:,:,:) = 0.0_8
+
+        if (allocated(auxtau)) deallocate (auxtau)
+        allocate(auxtau(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxtau(:,:,:,:) = 0.0_8
+
+        do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+                do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+                        do ii=1, numberOfOtherSpecieParticles
+                                do jj=1, numberOfOtherSpecieParticles
+                                        otherTd(a,b,ii,jj) = otherTd(a,b,ii,jj) + (otherspinints(ii,jj,a,b)/(otherFs%values(ii,ii)+otherFs%values(jj,jj)-otherFs%values(a,a)-otherFs%values(b,b)))
+                                        othertaus(a,b,ii,jj) = otherTd(a,b,ii,jj) + 0.5*(otherTs(a,ii)*otherTs(b,jj) - otherTs(b,ii)*otherTs(a,jj))
+                                        othertau(a,b,ii,jj) = otherTd(a,b,ii,jj) + otherTs(a,ii)*otherTs(b,jj) - otherTs(b,ii)*otherTs(a,jj)
+!			                  write(*,*) a,b,ii,jj,otherTd(a,b,i,j)
+                                end do
+                        end do
+                end do
+        end do
+
+	!!! TEST for combined Td auxTd
+
+        do aa=numberOfParticles+1, numberOfContractions
+                do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+                        do ii=1, numberOfParticles
+                                do iii=1, numberOfOtherSpecieParticles
+                                        auxTd(aa,aaa,ii,iii) = auxTd(aa,aaa,ii,iii) + (auxspinints(ii,iii,aa,aaa)/(Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)))
+                                        auxtaus(aa,aaa,ii,iii) = auxTd(aa,aaa,ii,iii) + 0.5*(Ts(aa,ii)*otherTs(aaa,iii)) ! Eliminated crossed t1 terms
+                                        auxtau(aa,aaa,ii,iii) = auxTd(aa,aaa,ii,iii) + Ts(aa,ii)*otherTs(aaa,iii) ! same here
+!			                  write(*,*) auxTd(aa,aaa,ii,iii)
+                                end do
+                        end do
+                end do
+        end do
+
+
+!!!! End Initial Guesses
+
+!!!! Make denominator arrays Dai, Dabij
+ 
+         !! Equation 12 from Stanton
+ 
+!         if (allocated(Dai)) deallocate (Dai)
+!         allocate(Dai(numberOfContractions,numberOfContractions))
+!         Dai(:,:) = 0.0_8
+! 
+!         do a=numberOfParticles+1, numberOfContractions
+!                 do ii=1, numberOfParticles
+!                         Dai(a,ii) = Fs%values(ii,ii) - Fs%values(a,a)
+! !                       write(*,*) a,i,Dai(a,i)
+!                 end do
+!         end do
+!
+!         if (allocated(otherDai)) deallocate (otherDai)
+!         allocate(otherDai(numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie))
+!         otherDai(:,:) = 0.0_8
+! 
+!         do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                 do ii=1, numberOfOtherSpecieParticles
+!                         otherDai(a,ii) = otherFs%values(ii,ii) - otherFs%values(a,a)
+! !                       write(*,*) a,i,Dai(a,i)
+!                 end do
+!         end do
+! 
+!         if (allocated(auxDai)) deallocate (auxDai)
+!         allocate(auxDai(numberOfContractions,numberOfContractionsOfOtherSpecie))
+!         auxDai(:,:) = 0.0_8
+! 
+!         do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                 do ii=1, numberOfOtherSpecieParticles
+!                         otherDai(a,ii) = otherFs%values(ii,ii) - otherFs%values(a,a)
+! !                       write(*,*) a,i,Dai(a,i)
+!                 end do
+!         end do
+
+	!! Equation 13 from Stanton
+ 
+!        if (allocated(Dabij)) deallocate (Dabij)
+!        allocate(Dabij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+!        Dabij(:,:,:,:) = 0.0_8
+!
+!
+!        do a=numberOfParticles+1, numberOfContractions
+!                do b=numberOfParticles+1, numberOfContractions
+!                        do ii=1, numberOfParticles
+!                                do jj=1, numberOfParticles
+!                                        Dabij(a,b,ii,jj) = Fs%values(ii,ii)+Fs%values(jj,jj)-Fs%values(a,a)-Fs%values(b,b)
+!!					write(*,*) a,b,i,j,Dabij(a,b,i,j)
+!                                end do
+!                        end do
+!                end do
+!        end do
+!
+! 
+!         if (allocated(otherDabij)) deallocate (otherDabij)
+!         allocate(otherDabij(numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie))
+!         otherDabij(:,:,:,:) = 0.0_8
+! 
+!         do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                 do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                         do ii=1, numberOfOtherSpecieParticles
+!                                 do jj=1, numberOfOtherSpecieParticles
+!                                         otherDabij(a,b,ii,jj) = otherFs%values(ii,ii)+otherFs%values(jj,jj)-otherFs%values(a,a)-otherFs%values(b,b)
+!!                                         write(*,*) a,b,ii,jj,Dabij(a,b,i,j)
+!                                 end do
+!                         end do
+!                 end do
+!         end do
+!
+         if (allocated(auxDabij)) deallocate (auxDabij)
+         allocate(auxDabij(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+         auxDabij(:,:,:,:) = 0.0_8
+
+         do aa=numberOfParticles+1, numberOfContractions
+                 do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+                         do ii=1, numberOfParticles
+                                 do iii=1, numberOfOtherSpecieParticles
+                                         auxDabij(aa,aaa,ii,iii) = Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)
+!                                         write(*,*) a,b,ii,jj,Dabij(a,b,i,j)
+                                 end do
+                         end do
+                 end do
+         end do
+
+ !!!! End Denominators
+
+
+!!! Loop
+
+  auxECCSD = 0.0_8
+  DECC = 1.0_8
+  h = 0
+!  do while (DECC >= 1.0D-8)
+  do while (h<50)
+	h=h+1
+        OLDCC = auxECCSD
+
+
+
+!!!!! Intermediates for different particles
+
+	if (allocated(Fae)) deallocate (Fae)
+        allocate(Fae(numberOfContractions,numberOfContractions))
+        Fae=0.0_8
+        if (allocated(Fmi)) deallocate (Fmi)
+        allocate(Fmi(numberOfContractions,numberOfContractions))
+        Fmi=0.0_8
+        if (allocated(Fme)) deallocate (Fme)
+        allocate(Fme(numberOfContractions,numberOfContractions))
+        Fme=0.0_8
+
+        if (allocated(Wmnij)) deallocate (Wmnij)
+        allocate(Wmnij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        Wmnij=0.0_8
+        if (allocated(Wabef)) deallocate (Wabef)
+        allocate(Wabef(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        Wabef=0.0_8
+        if (allocated(Wmbej)) deallocate (Wmbej)
+        allocate(Wmbej(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        Wmbej=0.0_8
+
+        if (allocated(TsNew)) deallocate (TsNew)
+        allocate(TsNew(numberOfContractions,numberOfContractions))
+        TsNew=0.0_8
+        if (allocated(TdNew)) deallocate (TdNew)
+        allocate(TdNew(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        TdNew=0.0_8
+
+
+        if (allocated(auxFae)) deallocate (auxFae)
+        allocate(auxFae(numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxFae=0.0_8
+        if (allocated(auxFmi)) deallocate (auxFmi)
+        allocate(auxFmi(numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxFmi=0.0_8
+        if (allocated(auxFme)) deallocate (auxFme)
+        allocate(auxFme(numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxFme=0.0_8
+
+        if (allocated(auxWmnij)) deallocate (auxWmnij)
+        allocate(auxWmnij(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxWmnij=0.0_8
+        if (allocated(auxWabef)) deallocate (auxWabef)
+        allocate(auxWabef(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxWabef=0.0_8
+        if (allocated(auxWmbej)) deallocate (auxWmbej)
+        allocate(auxWmbej(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxWmbej=0.0_8
+
+        if (allocated(auxTsNew)) deallocate (auxTsNew)
+        allocate(auxTsNew(numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxTsNew=0.0_8
+        if (allocated(auxTdNew)) deallocate (auxTdNew)
+        allocate(auxTdNew(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        auxTdNew=0.0_8
+
+
+	!! Equation 3
+
+!	do a=numberOfParticles+1, numberOfContractions
+!		do e=numberOfParticles+1, numberOfContractions
+!			do aa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!				do ee=numberOfParticles+1, numberOfContractions
+!				auxFae(a,e) = (1 + (a==e))*Fs%values(a,e)
+!				auxFae(a,e) = auxFae(a,e) + (1 + (a==e))*otherFs%values(aa,ee)
+!					do m=1, numberOfParticles
+!					do mm=1, numberOfOtherSpecieParticles
+!						auxFae(a,e) = auxFae(a,e) + (-0.5*Fs%values(m,e)*Ts(a,m))
+!						auxFae(a,e) = auxFae(a,e) + (-0.5*otherFs%values(mm,ee)*otherTs(aa,mm))
+!						do f=numberOfParticles+1, numberOfContractions
+!						do fff=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!							auxFae(a,e) = auxFae(a,e) + Ts(f,m)*spinints(m,a,f,e)
+!							auxFae(a,e) = auxFae(a,e) + otherTs(fff,mm)*otherspinints(mm,aa,fff,ee)
+!							do n=1, numberOfParticles
+!							do nn=1, numberOfOtherSpecieParticles
+!								auxFae(a,e) = auxFae(a,e) + (-0.5*taus(a,f,m,n)*spinints(m,n,e,f))
+!								auxFae(a,e) = auxFae(a,e) + (-0.5*othertaus(aa,fff,mm,nn)*otherspinints(mm,nn,ee,fff))
+!							end do
+!							end do
+!						end do
+!						end do
+!					end do
+!					end do
+!				end do
+!			end do
+!		end do
+!	end do
+!	write(*,*) auxFae
+!
+!        do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!             do e=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                     auxFae(a,e) = auxFae(a,e) + (1 + (a==e))*otherFs%values(a,e)
+!                     do m=1, numberOfOtherSpecieParticles
+!                             auxFae(a,e) = auxFae(a,e) + (-0.5*otherFs%values(m,e)*otherTs(a,m))
+!                             do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                                     auxFae(a,e) = auxFae(a,e) + otherTs(f,m)*otherspinints(m,a,f,e)
+!                                     do n=1, numberOfOtherSpecieParticles
+!                                             auxFae(a,e) = auxFae(a,e) + (-0.5*othertaus(a,f,m,n)*otherspinints(m,n,e,f))
+!!                                             write(*,*) auxFae(a,e)
+!                                     end do
+!                             end do
+!                     end do
+!             end do
+!        end do
+
+	!! Equation 4
+
+
+	
+!
+!	do m=1, numberOfParticles
+!		do ii=1, numberOfParticles
+!			do mm=1, numberOfOtherSpecieParticles
+!				do iii=1, numberOfOtherSpecieParticles
+!					auxFmi(m,ii) = (1 + (m==ii))*Fs%values(m,ii)
+!					auxFmi(m,ii) = auxFmi(m,ii) + (1 + (mm==iii))*otherFs%values(mm,iii)
+!						do e=numberOfParticles+1, numberOfContractions
+!						do ee=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!							auxFmi(m,ii) = auxFmi(m,ii) + 0.5*Ts(e,ii)*Fs%values(m,e)
+!							auxFmi(m,ii) = auxFmi(m,ii) + 0.5*otherTs(ee,iii)*otherFs%values(mm,ee)
+!								do n=1, numberOfParticles
+!								do nn=1, numberOfOtherSpecieParticles
+!									auxFmi(m,ii) = auxFmi(m,ii) + Ts(e,n)*spinints(m,n,ii,e)
+!									auxFmi(m,ii) = auxFmi(m,ii) + otherTs(ee,nn)*otherspinints(mm,nn,iii,ee)
+!										do f=numberOfParticles+1, numberOfContractions
+!										do fff=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!											auxFmi(m,ii) = auxFmi(m,ii) + 0.5*taus(e,f,ii,n)*spinints(m,n,e,f)
+!											auxFmi(m,ii) = auxFmi(m,ii) + 0.5*othertaus(ee,fff,iii,nn)*otherspinints(mm,nn,ee,fff)
+!										end do
+!										end do
+!								end do
+!								end do
+!						end do
+!						end do					
+!				end do
+!			end do
+!		end do
+!	end do
+	!write(*,*) auxFmi
+!
+!	do m=1, numberOfOtherSpecieParticles
+!             do ii=1, numberOfOtherSpecieParticles
+!                     otherFmi(m,ii) = (1 + (m==ii))*otherFs%values(m,ii)
+!                     do e=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                             otherFmi(m,ii) = otherFmi(m,ii) + 0.5*otherTs(e,ii)*otherFs%values(m,e)
+!                             do n=1, numberOfOtherSpecieParticles
+!                                     otherFmi(m,ii) = otherFmi(m,ii) + otherTs(e,n)*otherspinints(m,n,ii,e)
+!                                     do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                                             otherFmi(m,ii) = otherFmi(m,ii) + 0.5*taus(e,f,ii,n)*otherspinints(m,n,e,f)
+!                                     end do  
+!                             end do  
+!                     end do  
+!             end do  
+!	end do 
+!
+	!! Equation 5
+
+!	do m=1, numberOfParticles
+!		do e=numberOfParticles+1, numberOfContractions
+!			Fme(m,e) = Fs%values(m,e)
+!			do n=1, numberOfParticles
+!				do f=numberOfParticles+1, numberOfContractions
+!				Fme(m,e) = Fme(m,e) + Ts(f,n)*spinints(m,n,e,f)
+!				end do
+!			end do
+!		end do
+!	end do
+!
+!	do m=1, numberOfOtherSpecieParticles
+!             do e=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                     otherFme(m,e) = otherFs%values(m,e)
+!                     do n=1, numberOfOtherSpecieParticles
+!                             do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                             otherFme(m,e) = otherFme(m,e) + otherTs(f,n)*otherspinints(m,n,e,f)
+!                             end do          
+!                     end do                  
+!             end do                                  
+!	end do     
+!
+	!! Equation 6
+
+!	do m=1, numberOfParticles
+!		do n=1, numberOfParticles
+!			do ii=1, numberOfParticles
+!				do jj=1, numberOfParticles
+!					Wmnij(m,n,ii,jj) = spinints(m,n,ii,jj)
+!					do e=numberOfParticles+1, numberOfContractions
+!						Wmnij(m,n,ii,jj) = Wmnij(m,n,ii,jj) + (Ts(e,jj)*spinints(m,n,ii,e)-Ts(e,ii)*spinints(m,n,jj,e))
+!						do f=numberOfParticles+1, numberOfContractions
+!							Wmnij(m,n,ii,jj) = Wmnij(m,n,ii,jj) + 0.25*tau(e,f,ii,jj)*spinints(m,n,e,f)
+!						end do
+!					end do
+!				end do
+!			end do
+!		end do
+!	end do
+!
+	do m=1, numberOfParticles
+		do n=1, numberOfOtherSpecieParticles
+			do ii=1, numberOfParticles
+				do jj=1, numberOfOtherSpecieParticles
+					auxWmnij(m,n,ii,jj) = auxspinints(m,n,ii,jj)
+					do e=numberOfParticles+1, numberOfContractions
+						do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+							auxWmnij(m,n,ii,jj) = auxWmnij(m,n,ii,jj) + 0.25*auxtau(e,f,ii,jj)*auxspinints(m,n,e,f)
+						end do
+					end do
+				end do
+			end do
+		end do
+	end do
+
+
+!	!! Equation 7
+!
+!	do a=numberOfParticles+1, numberOfContractions
+!		do b=numberOfParticles+1, numberOfContractions
+!			do e=numberOfParticles+1, numberOfContractions
+!				do f=numberOfParticles+1, numberOfContractions
+!					Wabef(a,b,e,f) = spinints(a,b,e,f)
+!					do m=1, numberOfParticles
+!						Wabef(a,b,e,f) = Wabef(a,b,e,f) + (-Ts(b,m)*spinints(a,m,e,f)+Ts(a,m)*spinints(b,m,e,f))
+!						do n=1, numberOfParticles
+!							Wabef(a,b,e,f) = Wabef(a,b,e,f) + 0.25*tau(a,b,m,n)*spinints(m,n,e,f)
+!						end do
+!					end do
+!				end do
+!			end do
+!		end do
+!	end do
+
+	do a=numberOfParticles+1, numberOfContractions
+		do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+			do e=numberOfParticles+1, numberOfContractions
+				do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+					auxWabef(a,b,e,f) = auxspinints(a,b,e,f)
+					do m=1, numberOfParticles
+						do n=1, numberOfOtherSpecieParticles
+							auxWabef(a,b,e,f) = auxWabef(a,b,e,f) + 0.25*auxtau(a,b,m,n)*auxspinints(m,n,e,f)
+						end do
+					end do
+				end do
+			end do
+		end do
+	end do
+
+
+!	!! Equation 8
+
+	do m=1, numberOfParticles
+		do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+			do e=numberOfParticles+1, numberOfContractions
+				do jj=1, numberOfOtherSpecieParticles
+					auxWmbej(m,b,e,jj) = auxspinints(m,b,e,jj)
+					do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+						auxWmbej(m,b,e,jj) = auxWmbej(m,b,e,jj) + otherTs(f,jj)*auxspinints(m,b,e,f)
+					end do
+					do n=1, numberOfParticles
+						auxWmbej(m,b,e,jj) = auxWmbej(m,b,e,jj) + (-Ts(b,n)*auxspinints(m,n,e,f))
+						do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+							auxWmbej(m,b,e,jj) = auxWmbej(m,b,e,jj) + -(0.5*auxTd(f,b,jj,n)+otherTs(f,jj)*Ts(b,n))*auxspinints(m,n,e,f)
+						end do
+					end do
+				end do
+			end do
+		end do
+	end do !!!! REVISAR ESTE TERMINO
+
+!!!! End Intermediates for different particles
+
+ !!!! Begin Energy Calculation
+
+	ECCSD1 = 0.0_8
+	ECCSD2 = 0.0_8
+	auxECCSD = 0.0_8
+ 
+!         do ii=1, numberOfParticles
+!                 do a=numberOfParticles+1, numberOfContractions
+!                         ECCSD1 = ECCSD1 + Fs%values(ii,a)*Ts(a,ii)
+!                         do jj=1, numberOfParticles
+!                                 do b=numberOfParticles+1, numberOfContractions
+!                                         ECCSD1 = ECCSD1 + (0.25*spinints(ii,jj,a,b)*Td(a,b,ii,jj)+0.5*spinints(ii,jj,a,b)*Ts(a,ii)*Ts(b,jj))
+!!					write (*,*) "CC electron", ECCSD1
+!                                 end do
+!                         end do
+!                 end do
+!         end do
+!
+!
+!
+!         do ii=1, numberOfOtherSpecieParticles
+!                 do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                         ECCSD2 = ECCSD2 + otherFs%values(ii,a)*otherTs(a,ii)
+!                         do jj=1, numberOfOtherSpecieParticles
+!                                 do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                                         ECCSD2 = ECCSD2 + (0.25*otherspinints(ii,jj,a,b)*otherTd(a,b,ii,jj)+0.5*otherspinints(ii,jj,a,b)*otherTs(a,ii)*otherTs(b,jj))
+!!					write (*,*) "CC positron", ECCSD2
+!                                 end do
+!                         end do
+!                 end do
+!         end do
+!
+	!!! TEST for CCSD combined
+
+!        	do ii=1, numberOfParticles
+!                	do aa=numberOfParticles+1, numberOfContractions
+!                        auxECCSD = auxECCSD + Fs%values(ii,aa)*auxTs(aa,ii)
+!			end do
+!		end do
+!        	do ii=1, numberOfOtherSpecieParticles
+!                	do aa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!                        auxECCSD = auxECCSD + otherFs%values(ii,aa)*auxTs(aa,ii)
+!			end do
+!		end do
+
+
+         do ii=1, numberOfParticles
+                 do aa=numberOfParticles+1, numberOfContractions
+                         do iii=1, numberOfOtherSpecieParticles
+                                 do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+                                         auxECCSD = auxECCSD + (0.25*auxspinints(ii,iii,aa,aaa)*auxTd(aa,aaa,ii,iii)+0.5*auxspinints(ii,iii,aa,aaa)*Ts(aa,ii)*otherTs(aaa,iii))
+                                 end do
+                         end do
+                 end do
+         end do
+
+write (*,*) "CC inter", auxECCSD
+
+  DECC = abs( auxECCSD - OLDCC )
+!
+!	write (*,*) "CC electron", ECCSD1
+!	write (*,*) "CC other", ECCSD2
+!	write (*,*) "CC e-/other", auxECCSD
+!
+!!!! End Energy Calculation
+
+
+!!!! Let's make T1 and T2 (the new ones) 
+
+	!! Equation 1
+		
+!	do a=numberOfParticles+1, numberOfContractions
+!		do ii=1, numberOfParticles
+!			TsNew(a,ii) = Fs%values(ii,a)
+!			do e=numberOfParticles+1, numberOfContractions
+!				TsNew(a,ii) = TsNew(a,ii) + Ts(e,ii)*Fae(a,e)
+!			end do
+!			do m=1, numberOfParticles
+!				TsNew(a,ii) = TsNew(a,ii) + (-Ts(a,m)*Fmi(m,ii))
+!				do e=numberOfParticles+1, numberOfContractions
+!					TsNew(a,ii) = TsNew(a,ii) + Td(a,e,ii,m)*Fme(m,e)
+!					do f=numberOfParticles+1, numberOfContractions
+!						TsNew(a,ii) = TsNew(a,ii) + (-0.5*Td(e,f,ii,m)*spinints(m,a,e,f))
+!					end do
+!					do n=1, numberOfParticles
+!						TsNew(a,ii) = TsNew(a,ii) + (-0.5*Td(a,e,m,n)*spinints(n,m,e,ii))
+!					end do
+!				end do
+!			end do
+!			do n=1,numberOfParticles
+!				do f=numberOfParticles+1, numberOfContractions
+!					TsNew(a,ii) = TsNew(a,ii) + (-Ts(f,n)*spinints(n,a,ii,f))
+!				end do
+!			end do
+!			TsNew(a,ii) = TsNew(a,ii)/Dai(a,ii)
+!			Ts(a,ii) = TsNew(a,ii)
+!!			write(*,*) a,i,Ts(a,i),TsNew(a,i)
+!		end do
+!	end do
+!
+!!write (*,*) Ts(:,:)
+!			
+	!! Equation 2
+
+	
+	do a=numberOfParticles+1, numberOfContractions
+		do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+			do ii=1, numberOfParticles
+				do jj=1, numberOfOtherSpecieParticles
+					auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + auxspinints(ii,jj,a,b)
+!					do e=numberOfParticles+1, numberOfContractions
+!						TdNew(a,b,ii,jj) = TdNew(a,b,ii,jj) + (Td(a,e,ii,jj)*Fae(b,e)-Td(b,e,ii,jj)*Fae(a,e))
+!						do m=1, numberOfParticles
+!							TdNew(a,b,ii,jj) = TdNew(a,b,ii,jj) + (-0.5*Td(a,e,ii,jj)*Ts(b,m)*Fme(m,e)+0.5*Td(a,e,ii,jj)*Ts(a,m)*Fme(m,e)) 
+!						end do
+!					end do
+!					do m=1, numberOfParticles
+!						TdNew(a,b,ii,jj) = TdNew(a,b,ii,jj) + (-Td(a,b,ii,m)*Fmi(m,jj)+Td(a,b,jj,m)*Fmi(m,ii))
+!						do e=numberOfParticles+1, numberOfContractions
+!							TdNew(a,b,ii,jj) = TdNew(a,b,ii,jj) + (-0.5*Td(a,b,ii,m)*Ts(e,j)*Fme(m,e)+0.5*Td(a,b,ii,m)*Ts(e,ii)*Fme(m,e))
+!						end do
+!					end do
+					do e=numberOfParticles+1, numberOfContractions
+!						auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + (Ts(e,ii)*spinints(a,b,e,jj)-Ts(e,jj)*spinints(a,b,e,ii))
+						do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+							auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + 0.5*auxtau(e,f,ii,jj)*auxWabef(a,b,e,f)
+						end do
+					end do
+					do m=1, numberOfParticles
+!						auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + (-Ts(a,m)*spinints(m,b,ii,jj)+Ts(b,m)*spinints(m,a,ii,jj))
+!						do e=numberOfParticles+1, numberOfContractions
+!							auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + Td(a,e,ii,m)*Wmbej(m,b,e,jj) - Ts(e,ii)*Ts(a,m)*spinints(m,b,e,jj) + -Td(a,e,jj,m)*Wmbej(m,b,e,ii) + Ts(e,jj)*Ts(a,m)*spinints(m,b,e,ii) + -Td(b,e,ii,m)*Wmbej(m,a,e,jj) - Ts(e,ii)*Ts(b,m)*spinints(m,a,e,jj) + Td(b,e,jj,m)*Wmbej(m,a,e,ii) - Ts(e,jj)*Ts(b,m)*spinints(m,a,e,ii)
+!						end do
+						do n=1, numberOfOtherSpecieParticles
+							auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + 0.5*auxtau(a,b,m,n)*auxWmnij(m,n,ii,jj)
+						end do
+					end do
+					auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj)/auxDabij(a,b,ii,jj)
+					auxTd(a,b,ii,jj) = auxTdNew(a,b,ii,jj)
+!                                        auxtaus(a,b,ii,jj) = auxTd(a,b,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj) - Ts(b,ii)*Ts(a,jj))
+!                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*Ts(b,jj) - Ts(b,ii)*Ts(a,jj)
+                                        auxtaus(a,b,ii,jj) = auxTd(a,b,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj))
+                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*Ts(b,jj)
+
+				end do
+			end do
+		end do
+	end do
+
+end do !! Loop
+
+      end do !! Number Of
+  end do     !! Species
+!
+!	call Matrix_destructor(auxMatrix)
+!	CoupledCluster_instance%mp2Correction = sum ( CoupledCluster_instance%mp2Coupling%values )
+!	CoupledCluster_instance%ccsdCorrection = auxECCSD
+
+
+end if
+
+!!*********************************************************************************************************************************
+!! End CCSD Calculation different species
+!!*********************************************************************************************************************************
+
+   close(wfnUnit)
+
+
+
+ end subroutine CoupledCluster_iterateIntermediates
+ 
+
+ 
+ !**
+ ! @ Returns final energy (with CCSD correction)
+ !**
+
+! function CoupledCluster_getTotalEnergy() result(output)
+!	implicit none
+!	real(8) :: output
+!
+!	output = CoupledCluster_instance%totalEnergy
+!
+! end function CoupledCluster_getTotalEnergy
+
+  !>
+  !! @brief Muestra informacion del objeto
+  !!
+  !! @param this 
+  !<
+  subroutine CoupledCluster_getTransformedIntegrals()
+    implicit none
+
+!    type(TransformIntegrals) :: repulsionTransformer
+    integer :: numberOfSpecies
+    integer :: i,j,m,n,mu,nu
+    integer :: specieID
+    integer :: otherSpecieID
+    character(10) :: nameOfSpecie
+    character(10) :: nameOfOtherSpecie
+    integer :: ocupationNumber
+    integer :: ocupationNumberOfOtherSpecie
+    integer :: numberOfContractions
+    integer :: numberOfContractionsOfOtherSpecie
+    type(Matrix) :: auxMatrix
+    type(Matrix) :: molecularCouplingMatrix
+    type(Matrix) :: molecularExtPotentialMatrix
+    type(Matrix) :: couplingMatrix
+    type(Matrix) :: hcoreMatrix
+    type(Matrix) :: coefficients
+
+    character(50) :: wfnFile
+    character(50) :: arguments(20)
+    integer :: wfnUnit
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    allocate(CoupledCluster_instance%twoCenterIntegrals(numberOfSpecies))
+    allocate(CoupledCluster_instance%fourCenterIntegrals(numberOfSpecies,numberOfSpecies))
+
+!    print *,""
+!    print *,"BEGIN INTEGRALS TRANFORMATION:"
+!    print *,"========================================"
+!    print *,""
+!    print *,"--------------------------------------------------"
+!    print *,"    Algorithm Four-index integral tranformation"
+!    print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
+!    print *,"  Computer Physics Communications, 2005, 166, 58-65"
+!    print *,"--------------------------------------------------"
+!    print *,""
+!
+!    call TransformIntegrals_constructor( repulsionTransformer )
+
+    do i=1, numberOfSpecies
+        nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+        specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
+        ocupationNumber = MolecularSystem_getOcupationNumber( i )
+        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
+
+!        write (6,"(T10,A)")"ONE PARTICLE INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)
+        call Matrix_constructor (CoupledCluster_instance%twoCenterIntegrals(i), int(numberOfContractions,8), int(numberOfContractions,8) )
+        call Matrix_constructor (hcoreMatrix,int(numberOfContractions,8), int(numberOfContractions,8))
+        call Matrix_constructor (couplingMatrix,int(numberOfContractions,8), int(numberOfContractions,8))
+
+        hcoreMatrix  = HartreeFock_instance%HcoreMatrix 
+
+!        hcoreMatrix%values = WaveFunction_HF_instance( specieID )%IndependentParticleMatrix%values
+
+        !! Open file for wavefunction
+
+        wfnFile = "lowdin.wfn"
+        wfnUnit = 20
+
+        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+        arguments(2) = MolecularSystem_getNameOfSpecie(i)
+        arguments(1) = "COEFFICIENTS"
+
+        coefficients = &
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+        arguments(1) = "HCORE"
+
+        hcoreMatrix = &
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+        do m=1,numberOfContractions
+          do n=m, numberOfContractions
+             do mu=1, numberOfContractions
+                do nu=1, numberOfContractions
+                    CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n) = &
+                        CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n) + &
+                        coefficients%values(mu,m)* &
+                        coefficients%values(nu,n)* &
+                        hcoreMatrix%values(mu,nu)
+                end do
+             end do
+          end do
+       end do
+
+!! Not implemented yet
+!!       if( WaveFunction_HF_instance( specieID )%isThereExternalPotential ) then
+!!          do m=1,numberOfContractions
+!!             do n=m, numberOfContractions
+!!                do mu=1, numberOfContractions
+!!                   do nu=1, numberOfContractions
+!!                      CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n) = &
+!!                           CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n) + &
+!!                           WaveFunction_HF_instance( specieID )%waveFunctionCoefficients%values(mu,m)* &
+!!                           WaveFunction_HF_instance( specieID )%waveFunctionCoefficients%values(nu,n) * &
+!!                           WaveFunction_HF_instance( specieID )%ExternalPotentialMatrix%values(mu,nu)
+!!                   end do
+!!                end do
+!!             end do
+!!          end do
+!!       end if
+
+       do m=1,numberOfContractions
+          do n=m, numberOfContractions
+             CoupledCluster_instance%twoCenterIntegrals(i)%values(n,m)=&
+                  CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n)
+          end do
+       end do
+          
+       ! print *, "Independent Particle"
+       ! call Matrix_show ( CoupledCluster_instance%twoCenterIntegrals(i) )
+
+!       write (6,"(T10,A)")"TWO PARTICLES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)
+!       print *,""
+
+!       call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer, MolecularSystem_getEigenvectors(specieID), &
+!            CoupledCluster_instance%fourCenterIntegrals(i,i), specieID, trim(nameOfSpecie) )
+
+        call ReadTransformedIntegrals_readOneSpecies( specieID, CoupledCluster_instance%fourCenterIntegrals(i,i)   )
+
+       if ( numberOfSpecies > 1 ) then
+          do j = 1 , numberOfSpecies
+             if ( i .ne. j) then
+                nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
+                otherSpecieID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
+                ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( j )
+                numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
+
+!                write (6,"(T10,A)") "INTER-SPECIES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)//"/"//trim(nameOfOtherSpecie)
+!                print *,""
+
+!                call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
+!                     MolecularSystem_getEigenVectors(i), MolecularSystem_getEigenVectors(j), &
+!                     CoupledCluster_instance%fourCenterIntegrals(i,j), specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
+
+                 call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, &
+                         CoupledCluster_instance%fourCenterIntegrals(i,j) )
+
+             end if
+          end do
+       end if
+    end do
+!    print *,"END INTEGRALS TRANFORMATION:"
+    close (wfnUnit)
+	call Matrix_destructor (hcoreMatrix)
+        call Matrix_destructor (couplingMatrix)
+
+  end subroutine CoupledCluster_getTransformedIntegrals
+
+  !>
+  !! @brief  Maneja excepciones de la clase
+  !<
+  subroutine CoupledCluster_exception( typeMessage, description, debugDescription)
+    implicit none
+    integer :: typeMessage
+    character(*) :: description
+    character(*) :: debugDescription
+
+    type(Exception) :: ex
+
+    call Exception_constructor( ex , typeMessage )
+    call Exception_setDebugDescription( ex, debugDescription )
+    call Exception_setDescription( ex, description )
+    call Exception_show( ex )
+    call Exception_destructor( ex )
+
+  end subroutine CoupledCluster_exception
+
+end module CoupledCluster_
