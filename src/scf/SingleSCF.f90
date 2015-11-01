@@ -438,22 +438,34 @@ contains
 
              if ( existFile) then
 
+	       arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+	       arguments(1) = "COEFFICIENTS"
 
-	    !! Open file for wavefunction
-	    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+               if ( CONTROL_instance%READ_COEFFICIENTS_IN_BINARY ) then
 
-	     arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-	     arguments(1) = "COEFFICIENTS"
-	    
-             WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-		  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+	        !! Open file for wavefunction
+	        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-	    close(wfnUnit)
+                 WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
+                      rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
+                      arguments=arguments(1:2))
+
+               else 
+                 !! Open file for wavefunction
+                 open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+           
+                 WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
+                    rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
+                    arguments=arguments(1:2))
+               end if
+
+   	       close(wfnUnit)
 
              end if
           end if
        end if
 
+       !! Not implemented yet
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
        if ( CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS) then
           if ( CONTROL_instance%READ_COEFFICIENTS ) then

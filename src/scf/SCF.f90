@@ -34,11 +34,11 @@ program SCF
   integer :: nproc
   integer :: numberOfSpecies
   integer :: status
-  integer :: wfnUnit
+  integer :: wfnUnit, vecUnit
   integer :: speciesID
   integer :: numberOfIterations
   character(50) :: string
-  character(50) :: wfnFile
+  character(50) :: wfnFile, vecFile
   character(30) :: nameOfSpecie
   character(30) :: labels(2)
   character(100) :: iterationScheme(0:3)
@@ -262,6 +262,25 @@ program SCF
 
   end do
 
+  if ( .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+        labels = ""
+        !! Open file for wfn
+        vecUnit = 36
+        vecFile = "lowdin-plain.vec"
+        open(unit=vecUnit, file=trim(vecFile), status="replace", form="formatted")
+
+                do speciesID = 1, numberOfSpecies
+
+                  labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+                  labels(1) = "COEFFICIENTS"
+                  call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
+                   unit=vecUnit, binary=.false., arguments = labels)
+
+                end do 
+
+        close (vecUnit)
+
+   end if
   !!**********************************************************
   !! Save Some energies
   !!

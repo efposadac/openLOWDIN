@@ -327,6 +327,7 @@ if [ $extFile="lowdin" ]; then
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
 	fi
 
+	mv $LOWDIN_SCRATCH/$nameFile/lowdin-plain.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
@@ -350,7 +351,7 @@ if [ $extFile="lowdin" ]; then
 	# mv $LOWDIN_SCRATCH/$nameFile/*.kin $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
-	# rm -rf $LOWDIN_SCRATCH/$nameFile
+	rm -rf $LOWDIN_SCRATCH/$nameFile
 	
     else
 		echo $1 ", this file does not exist. "

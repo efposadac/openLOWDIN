@@ -13,3 +13,4 @@ rm *.wfx
 rm *.orb*
 rm *.eps
 rm *.gnp
+rm *.vec
