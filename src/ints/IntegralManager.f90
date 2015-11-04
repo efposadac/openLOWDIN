@@ -817,10 +817,12 @@ contains
 
     if( ending > ssize ) ending = ssize
 
+    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
+
     !! Calculate integrals (stored on disk)           
     select case (trim(String_getUppercase(trim(scheme))))
     
-		case("RYS")
+    case("RYS")
        call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     case("LIBINT")
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )

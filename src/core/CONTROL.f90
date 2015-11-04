@@ -162,6 +162,11 @@ module CONTROL_
      !!
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
 
+     !!***************************************************************************
+     !! CCSD Parameters
+     !!
+     character(20) :: COUPLED_CLUSTER_LEVEL
+
      !!*****************************************************
      !! Parameter to general control
      !!
@@ -236,7 +241,7 @@ module CONTROL_
      !!
      real(8) :: MO_FRACTION_OCCUPATION
      integer :: IONIZE_MO
-     character(50) :: IONIZE_SPECIE(50)
+     character(50) :: IONIZE_SPECIE(10)
      character(50) :: EXCITE_SPECIE
      integer :: NUMBER_OF_CORES
 
@@ -396,6 +401,11 @@ module CONTROL_
   !!
   character(20) :: LowdinParameters_configurationInteractionLevel
 
+  !!***************************************************************************
+  !! CCSD
+  !! 
+  character(20) :: LowdinParameters_coupledClusterLevel
+
   !!*****************************************************
   !! Parameter to general control
   !!
@@ -470,7 +480,7 @@ module CONTROL_
   !!
   real(8) :: LowdinParameters_MOFractionOccupation
   integer :: LowdinParameters_ionizeMO
-  character(50) :: LowdinParameters_ionizeSpecie(50)
+  character(50) :: LowdinParameters_ionizeSpecie(10)
   character(50) :: LowdinParameters_exciteSpecie
   integer :: LowdinParameters_numberOfCores
 
@@ -626,7 +636,12 @@ module CONTROL_
        !! CISD - FCI
        !!
        LowdinParameters_configurationInteractionLevel,&
-       
+
+       !!***************************************************************************
+       !! CCSD 
+       !!
+       LowdinParameters_coupledClusterLevel,&
+
        !!*****************************************************
        !! Parameter to general control
        !!
@@ -886,6 +901,11 @@ contains
     !!
     LowdinParameters_configurationInteractionLevel = "NONE"
 
+    !!***************************************************************************
+    !! CCSD
+    !!
+    LowdinParameters_coupledClusterLevel = "NONE"
+
     !!*****************************************************
     !! Parameter to general control
     !!
@@ -995,7 +1015,7 @@ contains
     CONTROL_instance%TV = 1.0E-6
     CONTROL_instance%INTEGRAL_THRESHOLD = 1.0E-10
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
-    CONTROL_instance%INTEGRAL_DESTINY = "MEMORY" !! "MEMORY" or "DISK"
+    CONTROL_instance%INTEGRAL_DESTINY = "MEMORY" !! "MEMORY", "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
 
     !!***************************************************************************
@@ -1128,6 +1148,11 @@ contains
     !! CISD - FCI                                                                                                              
     !!                                                                                                                         
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "NONE"
+
+    !!***************************************************************************                                              
+    !! CCSD                                                                                                              
+    !!                                                                                                                         
+    CONTROL_instance%COUPLED_CLUSTER_LEVEL = "NONE"
 
     !!*****************************************************                                                                    
     !! Parameter to general control                                                                                            
@@ -1407,6 +1432,11 @@ contains
     !!                                                                                 
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
                                                                                                                                                                                           
+    !!***************************************************************************      
+    !! CCSD                                                                       
+    !!                                                                                 
+    CONTROL_instance%COUPLED_CLUSTER_LEVEL = LowdinParameters_coupledClusterLevel
+
     !!*****************************************************                            
     !! Parameter to general control                                                    
     !!                                                                                 
@@ -1651,6 +1681,11 @@ contains
     !! CISD - FCI                                                                      
     !!                                                                                 
     LowdinParameters_configurationInteractionLevel = CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+ 
+    !!***************************************************************************      
+    !! CCSD                                                                      
+    !!                                                                                 
+    LowdinParameters_coupledClusterLevel = CONTROL_instance%COUPLED_CLUSTER_LEVEL
                                                                                                                                                                                           
     !!*****************************************************                            
     !! Parameter to general control                                                    
@@ -1885,6 +1920,10 @@ contains
     !! CISD - FCI
     !!
     otherThis%CONFIGURATION_INTERACTION_LEVEL = this%CONFIGURATION_INTERACTION_LEVEL 
+    !!***************************************************************************
+    !! CCSD
+    !!
+    otherThis%COUPLED_CLUSTER_LEVEL = this%COUPLED_CLUSTER_LEVEL 
     !!*****************************************************
     !! Parametros de control general
     !!
@@ -2035,6 +2074,11 @@ contains
 
     end if
 
+    if(CONTROL_instance%COUPLED_CLUSTER_LEVEL /= "NONE" ) then
+
+       write (*,"(T10,A,A)") "COUPLED CLUSTER LEVEL:  ", CONTROL_instance%COUPLED_CLUSTER_LEVEL
+
+    end if
 
     if(CONTROL_instance%PT_ORDER>=2) then
 
@@ -2045,8 +2089,8 @@ contains
     if((CONTROL_instance%IONIZE_SPECIE(1)) /= "NONE") then 
 
        write (*,"(T10,A,I5)") "MOLECULAR ORBITAL TO BE IONIZED: ", CONTROL_instance%IONIZE_MO
-	! print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
-	! print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
+	print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
+	print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
        do i = 1, size(CONTROL_instance%IONIZE_SPECIE)
          if ( CONTROL_instance%IONIZE_SPECIE(i) /= "NONE" ) then
          write (*,"(T10,A,A)") "FOR SPECIE0: ", (CONTROL_instance%IONIZE_SPECIE(i))

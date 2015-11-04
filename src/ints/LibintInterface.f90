@@ -36,6 +36,9 @@ module LibintInterface_
   use, intrinsic :: iso_c_binding
   implicit none
   
+  public :: &
+  LibintInterface_directIntraSpecies
+
 #define contr(n,m) contractions(n)%contractions(m)
   
   !> @brief Type for libint/c++ library
@@ -1362,6 +1365,685 @@ contains
     close(34)
     
   end subroutine LibintInterface_computeInterSpecies
+
+  !>
+  !! @brief calculate eris using libint library for all basis set (intra-specie)
+  !! @author E. F. Posada, 2010
+  !! @version 2.0
+  !! @info Tested
+  subroutine LibintInterface_directIntraSpecies(specieID, job, starting, ending, process, densityMatrix, twoParticlesMatrix, factor)
+    implicit none
+    
+    character(*), intent(in) :: job
+    integer, intent(in) :: specieID
+    integer(8), intent(in) :: starting
+    integer(8), intent(in) :: ending
+    integer, intent(in) :: process
+
+    type(matrix), intent(inout):: twoParticlesMatrix
+    type(matrix), intent(in) :: densityMatrix
+    real(8), intent(in) :: factor
+    real(8) :: coulomb,exchange
+    
+    integer :: numberOfContractions
+    integer :: totalNumberOfContractions
+    integer :: numberOfPrimitives
+    integer :: maxAngularMoment
+    integer :: sumAngularMoment
+    integer :: arraySize !< number of cartesian orbitals for maxAngularMoment
+    integer :: n,u,m !< auxiliary itetators
+    integer :: aa, bb, rr, ss !< permuted iterators (LIBINT)
+    integer :: a, b, r, s !< not permuted iterators (original)
+    integer :: pa, pb, pr, ps !< labels index
+    integer :: apa, apb, apr, aps !< labels index
+    integer :: ii, jj, kk, ll !< cartesian iterators for primitives and contractions
+    integer :: aux, order !<auxiliary index
+    integer :: arraySsize(1)
+    integer :: counter, auxCounter
+
+    integer(8) :: control
+
+    integer,target :: i, j, k, l !< contraction length iterators
+    integer,pointer :: pi, pj, pk, pl !< pointer to contraction length iterators
+    integer,pointer :: poi, poj, pok, pol !< pointer to contraction length iterators
+
+    integer, allocatable :: labelsOfContractions(:) !< cartesian position of contractions in all basis set
+
+    real(8), dimension(:), pointer :: integralsPtr !< pointer to C array of integrals
+    real(8), dimension(:), pointer :: temporalPtr
+
+    real(8), allocatable :: auxIntegrals(:) !<array with permuted integrals aux!
+    real(8), allocatable :: integralsValue (:) !<array with permuted integrals
+    real(8), allocatable :: incompletGamma(:) !<array with incomplete gamma integrals
+
+    real(8) :: P(3), Q(3), W(3), AB(3), CD(3), PQ(3) !<geometric values that appear in gaussian product
+    real(8) :: zeta, eta, rho !< exponents... that appear in gaussian product
+    real(8) :: s1234, s12, s34, AB2, CD2, PQ2 !<geometric quantities that appear in gaussian product
+    real(8) :: incompletGammaArgument    
+    
+    character(50) :: fileNumber
+    integer(8) :: ssize
+
+    type(ContractedGaussian), allocatable :: contractions(:) !< Basis set for specie
+    type(prim_data), target :: primitiveQuartet !<Primquartet object needed by LIBINT
+    type(c_ptr) :: resultPc !< array of integrals from C (LIBINT)
+    procedure(LibintInterface_buildLibInt), pointer :: pBuild !<procedure to calculate eris on LIBINT
+    
+    integer :: contractionNumberdebug, primitiveCounterdebug, contractionNumberperOrbital, totalIntegralswithP
+
+    write(fileNumber,*) process
+    fileNumber = trim(adjustl(fileNumber))
+
+    
+!!    !! open file for integrals
+!!    open(UNIT=34,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(specieID)%name)//".ints", &
+!!         STATUS='UNKNOWN', ACCESS='SEQUENTIAL', FORM='Unformatted')
+
+    !! Get basisSet
+    call MolecularSystem_getBasisSet(specieID, contractions)
+    maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
+    numberOfPrimitives = MolecularSystem_getTotalNumberOfContractions(specieID)
+
+    !! Get number of shells and cartesian contractions
+    numberOfContractions = size(contractions)
+    totalNumberOfContractions = MolecularSystem_instance%species(SpecieID)%basisSetSize
+
+    ssize = (numberOfContractions * (numberOfContractions + 1))/2
+    ssize = (ssize * (ssize + 1))/2
+
+    !! Libint constructor (solo una vez)
+    if( LibintInterface_isInstanced() ) then
+       call LibintInterface_destructor()
+    end if
+    
+    if( .not. LibintInterface_isInstanced() ) then
+       call LibintInterface_constructor( maxAngularMoment, numberOfPrimitives, trim(job))
+       !! DEBUG
+       !call LibintInterface_show()
+    end if
+
+    !! Get contractions labels for integrals index
+    if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+    allocate(labelsOfContractions(numberOfContractions))
+
+    !!Real labels for contractions
+    aux = 1
+    do i = 1, numberOfContractions
+       !!position for cartesian contractions
+       labelsOfContractions(i) = aux
+       aux = aux + contractions(i)%numCartesianOrbital          
+    end do
+
+    !! allocating space for integrals just one time (do not put it inside do loop!!!)
+    arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
+
+    if(allocated(incompletGamma)) deallocate(incompletGamma)
+    if(allocated(auxIntegrals)) deallocate(auxIntegrals)
+    if(allocated(integralsValue)) deallocate(integralsValue)
+    
+    allocate(auxIntegrals(arraySize* arraySize* arraySize * arraySize))
+    allocate(integralsValue(arraySize* arraySize* arraySize* arraySize))
+    allocate(incompletGamma(0:MaxAngularMoment*4))
+
+    counter = 0
+    auxCounter = 0    
+    control = 0
+    contractionNumberdebug = 0
+    totalIntegralswithP = 0
+
+    do a = 1, numberOfContractions
+       n = a
+       do b = a, numberOfContractions
+          u = b
+          do r = n , numberOfContractions
+             do s = u,  numberOfContractions
+                                
+!!                contractionNumberdebug = contractionNumberdebug + 1
+!!                control = control + 1                 
+
+!!                if( control >= starting ) then                    
+                   
+!!                   if (control > ending) then
+                      
+!!                      counter = counter + 1
+!!                      eris%a(counter) = -1
+!!                      eris%b(counter) = -1
+!!                      eris%c(counter) = -1
+!!                      eris%d(counter) = -1
+!!                      eris%integrals(counter) = 0.0_8
+                      
+!!                      write(34) &
+!!                           eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!                           eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!                           eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!                           eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!                           eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+!!                      if(CONTROL_instance%LAST_STEP) then
+!!                         write(6,"(A,I12,A,A)") "**Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
+!!                              trim(MolecularSystem_instance%species(specieID)%name)
+!!                      end if
+                      
+                      ! close(69)
+!!                      close(34)
+
+!!                      return
+                      
+!!                   end if
+                
+                   ! Calcula el momento angular total
+                   sumAngularMoment =  contractions(a)%angularMoment + &
+                        contractions(b)%angularMoment + &
+                        contractions(r)%angularMoment + &
+                        contractions(s)%angularMoment
+                   
+                   !!Calcula el tamano del arreglo de integrales para la capa (ab|rs)
+                   arraySize = contractions(a)%numCartesianOrbital * &
+                        contractions(b)%numCartesianOrbital * &
+                        contractions(r)%numCartesianOrbital * &
+                        contractions(s)%numCartesianOrbital
+
+                   !!For (ab|rs)  ---> RESTRICTION a>b && r>s && r+s > a+b
+                   aux = 0
+                   order = 0
+                   
+                   !!permuted index
+                   aa = a
+                   bb = b
+                   rr = r
+                   ss = s
+                   
+                   !!pointer to permuted index under a not permuted loop
+                   pi => i
+                   pj => j
+                   pk => k
+                   pl => l
+                   
+                   !!pointer to not permuted index under a permuted loop
+                   poi => i
+                   poj => j
+                   pok => k
+                   pol => l
+                   
+                   if (contractions(a)%angularMoment < contractions(b)%angularMoment) then
+                      
+                      aa = b
+                      bb = a
+                      
+                      pi => j
+                      pj => i
+                      
+                      poi => j
+                      poj => i
+                      
+                      order = order + 1
+                      
+                   end if
+                   
+                   if (contractions(r)%angularMoment < contractions(s)%angularMoment) then
+                      
+                      rr = s
+                      ss = r
+                      
+                      pk => l
+                      pl => k
+                      
+                      pok => l
+                      pol => k
+                      
+                      order = order + 3
+                      
+                   end if
+                   
+                   if((contractions(a)%angularMoment + contractions(b)%angularMoment) > &
+                        (contractions(r)%angularMoment + contractions(s)%angularMoment)) then
+                      
+                      aux = aa
+                      aa = rr
+                      rr = aux
+                      
+                      aux = bb
+                      bb = ss
+                      ss = aux
+                      
+                      select case(order)
+                      case(0)
+                         pi => k
+                         pj => l
+                         pk => i
+                         pl => j
+                         
+                         poi => k
+                         poj => l
+                         pok => i
+                         pol => j
+                         
+                      case(1)
+                         pi => k
+                         pj => l
+                         pk => j
+                         pl => i
+                         
+                         poi => l
+                         poj => k
+                         pok => i
+                         pol => j
+                         
+                      case(3)
+                         pi => l
+                         pj => k
+                         pk => i
+                         pl => j
+                         
+                         poi => k
+                         poj => l
+                         pok => j
+                         pol => i
+                         
+                      case(4)
+                         pi => l
+                         pj => k
+                         pk => j
+                         pl => i
+                         
+                         poi => l
+                         poj => k
+                         pok => j
+                         pol => i
+                         
+                      end select
+                      
+                   end if
+                   
+                   !!************************************
+                   !! Calculate iteratively primitives
+                   !!
+                   
+                   !!Distancias AB, CD
+                   AB = contractions(aa)%origin - contractions(bb)%origin
+                   CD = contractions(rr)%origin - contractions(ss)%origin
+                   
+                   AB2 = dot_product(AB, AB)
+                   CD2 = dot_product(CD, CD)
+                   
+                   !!Asigna valores a la estrucutra Libint
+                   LibintInterface_instance%libint%AB = AB
+                   LibintInterface_instance%libint%CD = CD
+                   
+                   !!start :)
+                   integralsValue(1:arraySize) = 0.0_8
+                   
+                   primitiveCounterdebug = 0
+                   do l = 1, contractions(s)%length
+                      do k = 1, contractions(r)%length
+                         do j = 1, contractions(b)%length
+                            do i = 1, contractions(a)%length
+                               
+                               primitiveCounterdebug = primitiveCounterdebug + 1
+                               !!LIBINT PRIMQUARTET
+                               
+                               !!Exponentes
+                               zeta = contractions(aa)%orbitalExponents(pi) + &
+                                    contractions(bb)%orbitalExponents(pj)
+                               
+                               eta =  contractions(rr)%orbitalExponents(pk) + &
+                                    contractions(ss)%orbitalExponents(pl)
+                               
+                               rho  = (zeta * eta) / (zeta + eta) !Exponente reducido ABCD
+                               
+                               !!prim_data.U
+                               P  = (( contractions(aa)%orbitalExponents(pi) * contractions(aa)%origin ) + &
+                                    ( contractions(bb)%orbitalExponents(pj) * contractions(bb)%origin )) / zeta
+                               
+                               Q  = (( contractions(rr)%orbitalExponents(pk) * contractions(rr)%origin ) + &
+                                    ( contractions(ss)%orbitalExponents(pl) * contractions(ss)%origin )) / eta
+                               
+                               W  = ((zeta * P) + (eta * Q)) / (zeta + eta)
+                               
+                               PQ = P - Q
+                               
+                               primitiveQuartet%U(1:3,1)= (P - contractions(aa)%origin)
+                               primitiveQuartet%U(1:3,3)= (Q - contractions(rr)%origin)
+                               primitiveQuartet%U(1:3,5)= (W - P)
+                               primitiveQuartet%U(1:3,6)= (W - Q)
+                               
+                               !!Distancias ABCD(PQ2)
+                               PQ2 = dot_product(PQ, PQ)
+                               
+                               !!Evalua el argumento de la funcion gamma incompleta
+                               incompletGammaArgument = rho*PQ2
+                               
+                               !!Overlap Factor
+                               s12 = ((Math_PI/zeta)**1.5_8) * exp(-(( contractions(aa)%orbitalExponents(pi) * &
+                                    contractions(bb)%orbitalExponents(pj)) / zeta) * AB2)
+                               
+                               s34 = ((Math_PI/ eta)**1.5_8) * exp(-(( contractions(rr)%orbitalExponents(pk) * &
+                                    contractions(ss)%orbitalExponents(pl)) /  eta) * CD2)
+                               
+                               s1234 = sqrt(rho/Math_PI) * s12 * s34
+                               
+                               !!Screening
+                               if(abs(s1234) < 1.0D-12) cycle
+                               
+                               call Math_fgamma0(sumAngularMoment,incompletGammaArgument,incompletGamma(0:sumAngularMoment))
+                               
+                               
+                               !!prim_data.F
+                               primitiveQuartet%F(1:sumAngularMoment+1) = 2.0_8 * incompletGamma(0:sumAngularMoment) * s1234
+
+                               !!Datos restantes para prim.U
+                               primitiveQuartet%oo2z = (0.5_8 / zeta)
+                               primitiveQuartet%oo2n = (0.5_8 / eta)
+                               primitiveQuartet%oo2zn = (0.5_8 / (zeta + eta))
+                               primitiveQuartet%poz = (rho/zeta)
+                               primitiveQuartet%pon = (rho/eta)
+                               primitiveQuartet%oo2p = (0.5_8 / rho)
+                               
+                               if(arraySize == 1) then
+
+                                  auxIntegrals(1) = primitiveQuartet%F(1)
+
+                               else
+
+                                  arraySsize(1) = arraySize
+                                  
+                                  LibintInterface_instance%libint%PrimQuartet = c_loc(primitiveQuartet)
+                                  
+                                  call c_f_procpointer(build_eri( contractions(ss)%angularMoment , &
+                                       contractions(rr)%angularMoment , &
+                                       contractions(bb)%angularMoment , &
+                                       contractions(aa)%angularMoment), pBuild)
+                                  
+                                  resultPc = pBuild(LibintInterface_instance%libint,1)
+
+                                  call c_f_pointer(resultPc, temporalPtr, arraySsize)
+                                  
+                                  integralsPtr => temporalPtr
+                                  
+                                  auxIntegrals(1:arraySize) = integralsPtr(1:arraySize)
+                               end if !!done by contractions
+
+                                                                                      
+                               !!Normalize by primitive
+                               m = 0
+                               do ii = 1, contractions(aa)%numCartesianOrbital
+                                  do jj = 1, contractions(bb)%numCartesianOrbital
+                                     do kk = 1, contractions(rr)%numCartesianOrbital
+                                        do ll = 1, contractions(ss)%numCartesianOrbital
+                                           m = m + 1
+                                           auxIntegrals(m) = auxIntegrals(m) &
+                                                * contractions(aa)%primNormalization(pi,ii) &
+                                                * contractions(bb)%primNormalization(pj,jj) &
+                                                * contractions(rr)%primNormalization(pk,kk) &
+                                                * contractions(ss)%primNormalization(pl,ll)
+                                        end do
+                                     end do
+                                  end do
+                               end do !! done by cartesian of contractions                               
+                               
+                               auxIntegrals(1:arraySize) = auxIntegrals(1:arraySize) &
+                                    * contractions(aa)%contractionCoefficients(pi) &
+                                    * contractions(bb)%contractionCoefficients(pj) &
+                                    * contractions(rr)%contractionCoefficients(pk) &
+                                    * contractions(ss)%contractionCoefficients(pl)                                                             
+
+                               integralsValue(1:arraySize) = integralsValue(1:arraySize) + auxIntegrals(1:arraySize)
+                               
+                            end do
+                         end do
+                      end do
+                   end do !!done integral by shell                
+                   
+
+                   !!normalize by shell
+                   m = 0
+                   contractionNumberperOrbital = 0
+                   ! write(*,*) "Con numero cartesian Orbital"
+                   do ii = 1,  contractions(aa)%numCartesianOrbital
+                      do jj = 1,  contractions(bb)%numCartesianOrbital
+                         do kk = 1,  contractions(rr)%numCartesianOrbital
+                            do ll = 1, contractions(ss)%numCartesianOrbital
+                               m = m + 1
+                               contractionNumberperOrbital = contractionNumberperOrbital + 1
+                               integralsValue(m) = integralsValue(m) &
+                                    * contractions(aa)%contNormalization(ii) &
+                                    * contractions(bb)%contNormalization(jj) &
+                                    * contractions(rr)%contNormalization(kk) &
+                                    * contractions(ss)%contNormalization(ll)                            
+                            end do
+                         end do
+                      end do
+                   end do !! done by shell                                         
+                   totalIntegralswithP = totalIntegralswithP + contractionNumberperOrbital
+                   !!write to disk
+                   m = 0
+                   do i = 1, contractions(aa)%numCartesianOrbital
+                      do j = 1, contractions(bb)%numCartesianOrbital
+                         do k = 1, contractions(rr)%numCartesianOrbital
+                            do l = 1, contractions(ss)%numCartesianOrbital
+                               
+                               m = m + 1
+
+                               !! index not permuted
+                               pa=labelsOfContractions(a)+poi-1
+                               pb=labelsOfContractions(b)+poj-1
+                               pr=labelsOfContractions(r)+pok-1
+                               ps=labelsOfContractions(s)+pol-1
+                               
+                               apa=pa
+                               apb=pb
+                               apr=pr
+                               aps=ps
+                               
+                               if( pa <= pb .and. pr <= ps .and. (pa*1000)+pb >= (pr*1000)+ps) then
+                                  
+                                  aux = pa
+                                  pa = pr
+                                  pr = aux
+                                  
+                                  aux = pb
+                                  pb = ps
+                                  ps = aux
+                                  
+                               end if
+                               
+                               if( pa <= pb .and. pr <= ps ) then
+                                  
+                                  if (  (apa /= pa .or. apb/=pb .or. apr/=pr .or. aps/=ps) .and. ( b==s ) ) then
+                                     
+                                     !! Descarted! (they are repeated)
+                                  else
+
+!!                                     if(abs(integralsValue(m)) > 1.0D-10) then
+
+                                        counter = counter + 1
+                                        auxCounter = auxCounter + 1
+                                        
+!!                                        eris%a(counter) = pa
+!!                                        eris%b(counter) = pb
+!!                                        eris%c(counter) = pr
+!!                                        eris%d(counter) = ps
+!!                                        eris%integrals(counter) = integralsValue(m)
+!!                                     end if
+                                     
+!!                                     if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
+
+!!                                        write(34) &
+!!                                             eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!                                             eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!                                             eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!                                             eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!                                             eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+!!
+!!                                        counter = 0
+!!                                        
+!!                                     end if
+                                  coulomb = densityMatrix%values(pr,ps)*integralsValue(m)
+
+                                  !!*****************************************************************************
+                                  !! 	Adiciona aportes debidos al operador de coulomb
+                                  !!*****
+                                  if( pa == pr .and. pb == ps ) then
+
+                                     twoParticlesMatrix%values(pa,pb) = &
+                                          twoParticlesMatrix%values(pa,pb) + coulomb
+
+                                     if( pr /= ps ) then
+
+                                        twoParticlesMatrix%values(pa,pb) = &
+                                             twoParticlesMatrix%values(pa,pb) + coulomb
+
+                                     end if
+
+                                  else
+
+                                     twoParticlesMatrix%values(pa,pb) = &
+                                          twoParticlesMatrix%values(pa,pb) + coulomb
+
+                                     if( pr /= ps ) then
+
+                                        twoParticlesMatrix%values(pa,pb) = &
+                                             twoParticlesMatrix%values(pa,pb) + coulomb
+
+                                     end if
+
+                                     coulomb = densityMatrix%values(pa,pb)*integralsValue(m)
+
+                                     twoParticlesMatrix%values(pr,ps) = &
+                                          twoParticlesMatrix%values(pr,ps) + coulomb
+
+                                     if ( pa /= pb ) then
+
+                                        twoParticlesMatrix%values( pr, ps ) = &
+                                             twoParticlesMatrix%values( pr, ps ) + coulomb
+
+                                     end if
+
+                                  end if
+
+                                  !!
+                                  !!*****************************************************************************
+
+                                  !!*****************************************************************************
+                                  !! 	Adicionaa aportess debidoss al operadorr de intercambio
+                                  !!*****
+                                  if( pr /= ps ) then
+
+                                     exchange =densityMatrix%values(pb,ps)*integralsValue(m)* factor
+
+                                     twoParticlesMatrix%values( pa, pr ) = &
+                                          twoParticlesMatrix%values( pa, pr ) + exchange
+
+                                     if( pa == pr .and. pb /= ps ) then
+
+                                        twoParticlesMatrix%values( pa, pr ) = &
+                                             twoParticlesMatrix%values( pa, pr ) + exchange
+
+                                     end if
+
+                                  end if
+
+                                  if ( pa /= pb ) then
+
+                                     exchange = densityMatrix%values(pa,pr)*integralsValue(m) * factor
+
+                                     if( pb > ps ) then
+
+                                        twoParticlesMatrix%values( ps, pb ) = &
+                                             twoParticlesMatrix%values( ps, pb) + exchange
+
+                                     else
+
+                                        twoParticlesMatrix%values( pb, ps ) = &
+                                             twoParticlesMatrix%values( pb, ps ) + exchange
+
+                                        if( pb==ps .and. pa /= pr ) then
+
+                                           twoParticlesMatrix%values( pb, ps ) = &
+                                                twoParticlesMatrix%values( pb, ps ) + exchange
+
+                                        end if
+
+                                     end if
+
+                                     if ( pr /= ps ) then
+
+                                        exchange=densityMatrix%values(pa,ps)*integralsValue(m) * factor
+
+                                        if( pb <= pr ) then
+
+                                           twoParticlesMatrix%values( pb, pr ) = &
+                                                twoParticlesMatrix%values( pb, pr ) + exchange
+
+                                           if( pb == pr ) then
+
+                                              twoParticlesMatrix%values( pb, pr ) = &
+                                                   twoParticlesMatrix%values( pb, pr ) + exchange
+
+                                           end if
+
+                                        else
+
+                                           twoParticlesMatrix%values( pr, pb ) = &
+                                                twoParticlesMatrix%values( pr, pb) + exchange
+
+                                           if( pa == pr .and. ps == pb ) goto 30
+
+                                        end if
+
+                                     end if
+
+                                  end if
+
+
+                                  exchange = densityMatrix%values(pb,pr)*integralsValue(m) * factor
+
+                                  twoParticlesMatrix%values( pa, ps ) = &
+                                       twoParticlesMatrix%values( pa, ps ) + exchange
+
+30                                continue
+
+                                  !!
+                                  !!*****************************************************************************
+
+                               end if
+                            end if
+
+                            end do
+                         end do
+                      end do
+                   end do !! Primitives loop
+                   
+!!                end if !starting
+
+             end do
+             u=r+1
+          end do
+       end do
+    end do !! shells loop
+
+    counter = counter + 1
+!!    eris%a(counter) = -1
+!!    eris%b(counter) = -1
+!!    eris%c(counter) = -1
+!!    eris%d(counter) = -1
+!!    eris%integrals(counter) = 0.0_8
+       
+!!    write(34) &
+!!         eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!         eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!         eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!         eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+!!         eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+!!    
+!!    close(34)
+
+!!    if(CONTROL_instance%LAST_STEP) then
+!!       write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
+!!            trim(MolecularSystem_instance%species(specieID)%name)
+!!    end if
+    
+  end subroutine LibintInterface_directIntraSpecies
+  
 
   !!>
   !! @brief Indica si el objeto ha sido instanciado o no
