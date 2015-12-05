@@ -125,9 +125,7 @@ module CONTROL_
      !!
      logical :: COSMO
 	 	 real(8) :: COSMO_SOLVENT_DIALECTRIC
-	   integer :: COSMO_MIN_BEM
-	   integer :: COSMO_MAX_BEM
-	   real(8) :: COSMO_RSOLV
+	   real(8) :: COSMO_SCALING
 
      !!***************************************************************************
 
@@ -365,9 +363,7 @@ module CONTROL_
   !!
   logical :: LowdinParameters_cosmo
   real(8) :: LowdinParameters_cosmo_solvent_dialectric
-  integer :: LowdinParameters_cosmo_min_bem
-  integer :: LowdinParameters_cosmo_max_bem
-  real(8) :: LowdinParameters_cosmo_rsolv
+  real(8) :: LowdinParameters_cosmo_scaling
   
   !!***************************************************************************
   !! Parameter to control the propagator theory module
@@ -602,9 +598,7 @@ module CONTROL_
        !!
        LowdinParameters_cosmo,& 
        LowdinParameters_cosmo_solvent_dialectric,& 
-       LowdinParameters_cosmo_min_bem,&  
-       LowdinParameters_cosmo_max_bem,&  
-       LowdinParameters_cosmo_rsolv,& 
+       LowdinParameters_cosmo_scaling,& 
        
        !!***************************************************************************
        !! Parameter to control the propagator theory module
@@ -864,9 +858,7 @@ contains
     !!
     LowdinParameters_cosmo = .false.
     LowdinParameters_cosmo_solvent_dialectric = 78.3553d+00
-    LowdinParameters_cosmo_min_bem = 2
-    LowdinParameters_cosmo_max_bem = 3
-    LowdinParameters_cosmo_rsolv =0.5d+00
+    LowdinParameters_cosmo_scaling =0.0d+00
     
     !!***************************************************************************
     !! Parameter to control the propagator theory module
@@ -1113,9 +1105,7 @@ contains
     !!                                                                                                                         
     CONTROL_instance%COSMO = .false.
     CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= 78.3553d+00 
-    CONTROL_instance%COSMO_MIN_BEM= 2
-    CONTROL_instance%COSMO_MAX_BEM= 3
-    CONTROL_instance%COSMO_RSOLV= 0.5d+00
+    CONTROL_instance%COSMO_SCALING= 0.0d+00
 
     !!***************************************************************************                                              
     !! Parameter to control the propagator theory module                                                                       
@@ -1397,9 +1387,7 @@ contains
     !!                                                                                 
     CONTROL_instance%COSMO = LowdinParameters_cosmo
   	CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= LowdinParameters_cosmo_solvent_dialectric
-  	CONTROL_instance%COSMO_MIN_BEM=LowdinParameters_cosmo_min_bem
-  	CONTROL_instance%COSMO_MAX_BEM=LowdinParameters_cosmo_max_bem
-  	CONTROL_instance%COSMO_RSOLV=LowdinParameters_cosmo_rsolv
+  	CONTROL_instance%COSMO_SCALING=LowdinParameters_cosmo_SCALING
 
     !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
@@ -1647,9 +1635,7 @@ contains
     !!                                                                                 
     LowdinParameters_cosmo = CONTROL_instance%COSMO
     LowdinParameters_cosmo_solvent_dialectric = CONTROL_instance%COSMO_SOLVENT_DIALECTRIC 
-    LowdinParameters_cosmo_min_bem = CONTROL_instance%COSMO_MIN_BEM
-    LowdinParameters_cosmo_max_bem = CONTROL_instance%COSMO_MAX_BEM
-    LowdinParameters_cosmo_rsolv = CONTROL_instance%COSMO_RSOLV
+    LowdinParameters_cosmo_scaling = CONTROL_instance%COSMO_SCALING
 
     !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
@@ -1888,9 +1874,7 @@ contains
     !!
     otherThis%COSMO  = this%COSMO                   
     otherThis%COSMO_SOLVENT_DIALECTRIC = this%COSMO_SOLVENT_DIALECTRIC
-    otherThis%COSMO_MIN_BEM = this%COSMO_MIN_BEM           
-    otherThis%COSMO_MAX_BEM = this%COSMO_MAX_BEM           
-    otherThis%COSMO_RSOLV = this%COSMO_RSOLV             
+    otherThis%COSMO_SCALING = this%COSMO_SCALING
 
     !!*****************************************************
     ! Control this for Propagator Theory= !! Control this for Propagator Theory

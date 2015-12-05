@@ -251,10 +251,11 @@ contains
     call Matrix_constructor(q, int(surface%sizeSurface,8), 1_8)
     call Matrix_constructor(cmatinv_aux, int(segments,8), int(segments,8))
 
-    write(*,*)"Constante dialectrica = ", CONTROL_instance%COSMO_SOLVENT_DIALECTRIC
+    write(*,*)"Constante dielectrica = ", CONTROL_instance%COSMO_SOLVENT_DIALECTRIC
 
 
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    ! lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)
 
     write(*,*)"lambda= ",lambda
 
@@ -385,7 +386,8 @@ contains
 
     charge=MolecularSystem_getCharge(MolecularSystem_getSpecieID(specieName))
 
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    ! lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)
 
     do i=1,ints
 
