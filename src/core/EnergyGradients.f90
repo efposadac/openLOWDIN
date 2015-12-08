@@ -384,16 +384,15 @@ contains
     ! write(*,"(3F17.12)") geometry%values(1:3)
     ! write(*,"(3F17.12)") geometry%values(4:6)
     ! write(*,"(3F17.12)") geometry%values(7:9)
+    ! write(*,"(3F17.12)") geometry%values(10:12)
+    ! write(*,"(3F17.12)") geometry%values(13:15)
 
-
-
-    write(*,"(A,I)") "prueba 1"
+    ! write(*,"(A,I)") "Entrando a calcular Gradientes ..."
     if(allocated(EnergyGradients_instance%gradients%coupling)) deallocate(EnergyGradients_instance%gradients%coupling)
     allocate(EnergyGradients_instance%gradients%coupling(numberOfOptimizationCenters*3))
-    write(*,"(A,I)") "prueba 2"
+
     if(allocated(EnergyGradients_instance%gradients%total)) deallocate(EnergyGradients_instance%gradients%total)
     allocate(EnergyGradients_instance%gradients%total(numberOfOptimizationCenters*3))
-
 
     EnergyGradients_instance%gradients%total = 0.0_8
     EnergyGradients_instance%gradients%coupling = 0.0_8
@@ -427,21 +426,21 @@ contains
           ! write(*,"(3(f17.12))") gradientVector(1), gradientVector(2), gradientVector(3)
           ! write(*,"(3(f17.12))") gradientVector(4), gradientVector(5), gradientVector(6)
           ! write(*,"(3(f17.12))") gradientVector(7), gradientVector(8), gradientVector(9)
+          ! write(*,"(3(f17.12))") gradientVector(10), gradientVector(11), gradientVector(12)
+          ! write(*,"(3(f17.12))") gradientVector(13), gradientVector(14), gradientVector(15)
           ! write(*,"(A)") "----------------------------------------------------------------"
        else
           call EnergyGradients_show()
        end if
 
-       ! deallocate(EnergyGradients_instance%gradients%total)
-       ! deallocate(EnergyGradients_instance%gradients%nuclear)
-       ! deallocate(EnergyGradients_instance%gradients%kinetic)
-       ! deallocate(EnergyGradients_instance%gradients%attraction)
-       ! deallocate(EnergyGradients_instance%gradients%overlap)
-       ! deallocate(EnergyGradients_instance%gradients%coupling)
-       ! deallocate(EnergyGradients_instance%gradients%coulomb)
-       ! deallocate(EnergyGradients_instance%gradients%exchange)
-    
-
+       deallocate(EnergyGradients_instance%gradients%total)
+       deallocate(EnergyGradients_instance%gradients%nuclear)
+       deallocate(EnergyGradients_instance%gradients%kinetic)
+       deallocate(EnergyGradients_instance%gradients%attraction)
+       deallocate(EnergyGradients_instance%gradients%overlap)
+       deallocate(EnergyGradients_instance%gradients%coupling)
+       deallocate(EnergyGradients_instance%gradients%coulomb)
+       deallocate(EnergyGradients_instance%gradients%exchange)
     else
 
        call Exception_constructor( ex , ERROR )
@@ -1862,17 +1861,20 @@ contains
     real(8) :: Zi, Zj
     integer :: numberOfOptimizationCenters
     integer :: auxIter
+    integer :: numberOfPointCharges
 
     numberOfOptimizationCenters = ParticleManager_getNumberOfCentersOfOptimization()
+    numberOfPointCharges = size(MolecularSystem_instance%pointCharges)
 
     if(allocated(ownerId)) deallocate(ownerId)
-    allocate(ownerId(size( MolecularSystem_instance%pointCharges )))
+    allocate(ownerId(numberOfPointCharges))
 
     if(allocated(output)) deallocate(output)
     allocate(output(numberOfOptimizationCenters,3))
 
     if(allocated(EnergyGradients_instance%gradients%nuclear)) deallocate(EnergyGradients_instance%gradients%nuclear)
     allocate(EnergyGradients_instance%gradients%nuclear(numberOfOptimizationCenters*3))
+
 
     EnergyGradients_instance%gradients%nuclear = 0.0_8
 

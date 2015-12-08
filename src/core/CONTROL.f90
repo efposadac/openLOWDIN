@@ -87,7 +87,7 @@ module CONTROL_
      real(8) :: MINIMIZATION_LINE_TOLERANCE
      real(8) :: MINIMIZATION_TOLERANCE_GRADIENT
      integer :: MINIMIZATION_MAX_ITERATION
-     character(10) :: MINIMIZATION_METHOD
+     integer :: MINIMIZATION_METHOD
      character(10) :: MINIMIZATION_LIBRARY
      character(50) :: COORDINATES
      character(10) :: ENERGY_CALCULATOR
@@ -322,7 +322,7 @@ module CONTROL_
   real(8) :: LowdinParameters_minimizationLineTolerance
   real(8) :: LowdinParameters_minimizationToleranceGradient
   integer :: LowdinParameters_minimizationMaxIteration
-  character(10) :: LowdinParameters_minimizationMethod
+  integer :: LowdinParameters_minimizationMethod
   character(10) :: LowdinParameters_minimizationLibrary
   character(50) :: LowdinParameters_coordinates
   character(20) :: LowdinParameters_energyCalculator
@@ -330,6 +330,7 @@ module CONTROL_
   logical :: LowdinParameters_minimizationWithSinglePoint
   logical :: LowdinParameters_useSymmetryInMatrices
   logical :: LowdinParameters_restartOptimization
+  logical :: LowdinParameters_firstStep
   logical :: LowdinParameters_lastStep
   logical :: LowdinParameters_optimizeWithCpCorrection
   logical :: LowdinParameters_cpCorrection
@@ -561,6 +562,7 @@ module CONTROL_
        LowdinParameters_minimizationWithSinglePoint,&
        LowdinParameters_useSymmetryInMatrices,&
        LowdinParameters_restartOptimization,&
+       LowdinParameters_firstStep,&
        LowdinParameters_lastStep,&
        LowdinParameters_optimizeWithCpCorrection,&
        LowdinParameters_cpCorrection,&
@@ -805,11 +807,11 @@ contains
     !! Parameter to control geometry optimization
     !!
     LowdinParameters_numericalDerivativeDelta = 1.0E-3
-    LowdinParameters_minimizationInitialStepSize = 0.1_8
-    LowdinParameters_minimizationLineTolerance = 0.1_8
-    LowdinParameters_minimizationToleranceGradient = 1.0E-5
-    LowdinParameters_minimizationMaxIteration = 100
-    LowdinParameters_minimizationMethod = "TR"
+    LowdinParameters_minimizationInitialStepSize = 0.5_8
+    LowdinParameters_minimizationLineTolerance = 0.001_8
+    LowdinParameters_minimizationToleranceGradient = 0.00001_8
+    LowdinParameters_minimizationMaxIteration = 200
+    LowdinParameters_minimizationMethod = 4
     LowdinParameters_minimizationLibrary = "GENERIC"
     LowdinParameters_coordinates = "CARTESIAN"
     LowdinParameters_energyCalculator = "INTERNAL"
@@ -817,6 +819,7 @@ contains
     LowdinParameters_minimizationWithSinglePoint = .true.
     LowdinParameters_useSymmetryInMatrices = .false.
     LowdinParameters_restartOptimization = .false.
+    LowdinParameters_firstStep = .true.
     LowdinParameters_lastStep = .true.
     LowdinParameters_optimizeWithCpCorrection = .false.
     LowdinParameters_cpCorrection = .false.
@@ -1051,7 +1054,7 @@ contains
     CONTROL_instance%MINIMIZATION_LINE_TOLERANCE = 0.1_8
     CONTROL_instance%MINIMIZATION_TOLERANCE_GRADIENT = 1.0E-5
     CONTROL_instance%MINIMIZATION_MAX_ITERATION = 100
-    CONTROL_instance%MINIMIZATION_METHOD = "TR"
+    CONTROL_instance%MINIMIZATION_METHOD = 4
     CONTROL_instance%MINIMIZATION_LIBRARY = "GENERIC"
     CONTROL_instance%COORDINATES = "CARTESIAN"
     CONTROL_instance%ENERGY_CALCULATOR = "INTERNAL"
@@ -1338,6 +1341,7 @@ contains
     CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT = LowdinParameters_minimizationWithSinglePoint
     CONTROL_instance%USE_SYMMETRY_IN_MATRICES = LowdinParameters_useSymmetryInMatrices
     CONTROL_instance%RESTART_OPTIMIZATION = LowdinParameters_restartOptimization
+    CONTROL_instance%FIRST_STEP = LowdinParameters_firstStep
     CONTROL_instance%LAST_STEP = LowdinParameters_lastStep
     CONTROL_instance%OPTIMIZE_WITH_CP_CORRECTION = LowdinParameters_optimizeWithCpCorrection
     CONTROL_instance%CP_CORRECTION = LowdinParameters_cpCorrection
@@ -1497,11 +1501,12 @@ contains
 
   !> 
   !! @brief Save all options in file
-  subroutine CONTROL_save( unit, lastStep )
+  subroutine CONTROL_save( unit, lastStep, firstStep )
     implicit none
     
     integer :: unit
     logical, optional :: lastStep 
+    logical, optional :: firstStep
     
     !! Saving de control parameters on the name list.
     
@@ -1578,6 +1583,11 @@ contains
     LowdinParameters_minimizationWithSinglePoint = CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT
     LowdinParameters_useSymmetryInMatrices = CONTROL_instance%USE_SYMMETRY_IN_MATRICES
     LowdinParameters_restartOptimization = CONTROL_instance%RESTART_OPTIMIZATION
+    if(present(firstStep)) then
+       LowdinParameters_firstStep = firstStep
+    else
+       LowdinParameters_firstStep = CONTROL_instance%FIRST_STEP
+    end if
     if(present(lastStep)) then
        LowdinParameters_lastStep = lastStep
     else
@@ -2075,7 +2085,7 @@ contains
     if (CONTROL_instance%OPTIMIZE) then
 
        write (*,"(T10,A)") "GEOMETRY OPTIMIZATION:  T"
-       write (*,"(T10,A)") "OPTIMIZATION METHOD: "//trim(CONTROL_instance%MINIMIZATION_METHOD)
+       write (*,"(T10,A,I)") "OPTIMIZATION METHOD: ",CONTROL_instance%MINIMIZATION_METHOD
        write (*,"(T10,A,ES15.5)") "GRADIENT THRESHOLD FOR THE MINIMIZATION: ",CONTROL_instance%MINIMIZATION_TOLERANCE_GRADIENT
 
        if(CONTROL_instance%MOLLER_PLESSET_CORRECTION>=2) then
@@ -2098,7 +2108,7 @@ contains
     else if (CONTROL_instance%TDHF) then
 
        write (*,"(T10,A)") "TIME DEPENDENT HATREE-FOCK:  T"
-       write (*,"(T10,A)") "EVOLUTION METHOD: "//trim(CONTROL_instance%MINIMIZATION_METHOD)
+       write (*,"(T10,A,I)") "EVOLUTION METHOD: ",CONTROL_instance%MINIMIZATION_METHOD
        write (*,"(T10,A,ES15.5)") "GRADIENT THRESHOLD FOR THE MINIMIZATION: ",CONTROL_instance%MINIMIZATION_TOLERANCE_GRADIENT
 
        if(CONTROL_instance%MOLLER_PLESSET_CORRECTION>=2) then

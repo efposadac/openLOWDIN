@@ -151,7 +151,7 @@ fi
 STDCPP_LIBS="-lstdc++"
 GSL_LIBS="-lgsl -lgslcblas"
 LIBINT_LIBS="-lr12 -lderiv -lint"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $CUDA_LIBS"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
 
 ###############################################################################
 #                       SPECIFIC INSTALLATION DIRECTORIES
