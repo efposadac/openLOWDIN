@@ -465,6 +465,8 @@ contains
 
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
 
+														write(*,*)"number of point charges: ",numberOfPointCharges
+
 														write(70)integralValueCosmo(m,:)
                             write(80)qCharges
                          end do
@@ -485,6 +487,12 @@ contains
 
           !!quantum
           totals(f)=total_aux
+					! ####################################
+					!Nuevo, ojo
+					! write(80)numberOfPointCharges
+					! write(80)totals(f)
+
+					! ####################################
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(f),f,f)
 
 
