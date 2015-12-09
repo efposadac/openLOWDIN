@@ -1,0 +1,17 @@
+SYSTEM_DESCRIPTION='Molecula de H2O'
+GEOMETRY
+	e-[O]   STO-3G     0.000000      0.000000     -0.066575
+	e-[H]   STO-3G     0.000000      0.754175      0.528381
+	e-[H]   STO-3G     0.000000     -0.754174      0.528382
+	O        dirac     0.000000      0.000000     -0.066575
+	H_1 DZSNB     0.000000      0.754175      0.528381	
+	H dirac     0.000000     -0.754174      0.528382  
+END GEOMETRY
+TASKS
+	method = "RHF"
+	cosmo=T
+END TASKS
+CONTROL
+	numberOfCores=1
+	getGradients=T
+END CONTROL

@@ -871,6 +871,7 @@ contains
     real(8) :: Ax, Ay, Az, Bx, By, Bz, Cx, Cy, Cz, Dx, Dy, Dz
     integer, allocatable :: labelsOfContractions(:)
     real(8), allocatable :: auxKinetic(:,:), auxPotential(:,:), auxOverlap(:,:), auxCoulomb(:,:), auxExchange(:,:)
+    real(8), allocatable :: auxCOSMO(:,:), auxPotentialCOSMO(:,:)
     integer, allocatable :: auxOwnerId(:)
     character(50) :: wfnFile
     integer :: wfnUnit
@@ -879,6 +880,7 @@ contains
     real(8) :: eta, lambda, kappa
     integer :: deltasum
     real(8) :: matrixSum, derivativesum
+    real(8), allocatable :: qTotal(:)
 
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
@@ -936,7 +938,16 @@ contains
        
        if(allocated(auxPotential)) deallocate(auxPotential)
        allocate(auxPotential(numberOfOptimizationCenters,3))
-       
+
+       if(CONTROL_instance%COSMO) then
+          if(allocated(auxCOSMO)) deallocate(auxCOSMO)
+          allocate(auxCOSMO(numberOfOptimizationCenters,3))
+          if(allocated(auxPotentialCOSMO)) deallocate(auxPotentialCOSMO)
+          allocate(auxPotentialCOSMO(surface%sizeSurface,3))
+          if(allocated(qTotal)) deallocate(qTotal)
+          allocate(qTotal(size(surface%sizeSurface)))
+       end if
+
        if(allocated(auxOverlap)) deallocate(auxOverlap)
        allocate(auxOverlap(numberOfOptimizationCenters,3))
 
@@ -986,6 +997,8 @@ contains
             Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
             columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
 
+       ! write(*,*) "Matriz densidad"
+       ! call Matrix_show(densityMatrix)
        ! densityMatrix%values = transpose(densityMatrix%values) 
 
        arguments(1) = "COEFFICIENTS"
@@ -1182,11 +1195,15 @@ contains
              call DerivativeManager_getElement( ATTRACTION_DERIVATIVES, &
                   auxVector2, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerP, B=centerQ )
 
-             ! write(*,"(A)") "---------------------------------------------------------------------------------------"
+
+                ! write(*,"(A)") "---------------------------------------------------------------------------------------"
+                ! write(*,*) "Derivadas Potencial: "
+                ! write(*,*) P, Q, " | ", auxVector2(:)
+
              i = 0
              j = 0
              k = 0
-             center = 1
+             ! center = 1
              ! A = 1
              ! do l = 1, size(ParticleManager_instance)
              !    if(ParticleManager_instance(l)%particlePtr%isCenterOfOptimization) then
@@ -1206,17 +1223,22 @@ contains
                    do qIter = 0, numCartesianQ - 1
                       u = pIter + labelsOfContractions(P)
                       v = qIter + labelsOfContractions(Q)
-                      Vval = perm*densityMatrix%values(u,v)
 
-                      auxPotential(center,1) = auxPotential(center,1) + Vval*auxVector2(i)
+                      Vval = perm*densityMatrix%values(u,v)
+                      ! write(*,*) "Label P or ", labelsOfContractions(P)
+                      ! write(*,*) "Label Q or ", labelsOfContractions(Q)
+                      ! write(*,*) "(u|v) ", u, " | ", v, " : ", densityMatrix%values(u,v)
+                      ! write(*,*) "(v,u) ", v, " | ", u, " : ", densityMatrix%values(v,u)
+
+                      auxPotential(A,1) = auxPotential(A,1) + Vval*auxVector2(i)
                       !write(*,"(A,3f17.12)") "Potencial Vector x: ", auxPotential(center,1), Vval, auxVector2(i)
 
                       i = i + 1
-                      auxPotential(center,2) = auxPotential(center,2) + Vval*auxVector2(j)
+                      auxPotential(A,2) = auxPotential(A,2) + Vval*auxVector2(j)
                       !write(*,"(A,3f17.12)") "Potencial Vector y: ", auxPotential(center,2), Vval, auxVector2(j)
 
                       j = j + 1
-                      auxPotential(center,3) = auxPotential(center,3) + Vval*auxVector2(k)
+                      auxPotential(A,3) = auxPotential(A,3) + Vval*auxVector2(k)
                       !write(*,"(A,3f17.12)") "Potencial Vector z: ", auxPotential(center,3), Vval, auxVector2(k)
 
                       k = k + 1
@@ -1224,7 +1246,7 @@ contains
                    end do
                 end do
                 ! A = A + 1
-                center = center + 1
+                ! center = center + 1
                 !    end if
                 ! end if
              end do
@@ -1562,6 +1584,13 @@ contains
        ! write(*,"(A)") "----------------------------------------------------------------"
        !! Potential Gradients
        if(CONTROL_instance%COSMO) then
+          
+          open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
+
+          read(77)(qTotal(i),i=1,surface%sizeSurface)
+
+          close(unit=77)
+
           do P = 1, numberOfContractions
              do Q = 1, P
                 numCartesianP = contractions(P)%numCartesianOrbital  !! nP
@@ -1582,54 +1611,69 @@ contains
                      auxVector2, surface, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerP, B=centerQ )
 
                 ! write(*,"(A)") "---------------------------------------------------------------------------------------"
+                ! write(*,*) "Derivadas: "
+                ! write(*,*) P, Q, " | ", auxVector2(:)
+
                 i = 0
                 j = 0
                 k = 0
-                center = 1
+                ! center = 1
 ! ################################################################################
                 ! OJO ESTO SE NECESITA PARA EL GRADIENTE FINAL!!!
 ! ################################################################################
-                ! A = 1
-                ! do l = 1, size(ParticleManager_instance)
-                !    if(ParticleManager_instance(l)%particlePtr%isCenterOfOptimization) then
-                !       if(ParticleManager_instance(l)%particlePtr%isQuantum) then
-                !          auxPotential(center,1) = 0.0_8
-                !          auxPotential(center,2) = 0.0_8
-                !          auxPotential(center,3) = 0.0_8
-                !          center = center + 1
-                !          A = A + 1
-                !       else
-                ! do A=1, numberOfOptimizationCenters
-                !    i = 3*(A-1)*numCartesianP*numCartesianQ + 0*numCartesianP*numCartesianQ
-                !    j = 3*(A-1)*numCartesianP*numCartesianQ + 1*numCartesianP*numCartesianQ
-                !    k = 3*(A-1)*numCartesianP*numCartesianQ + 2*numCartesianP*numCartesianQ
-                !    ! write(*,"(A,I2,I2,3I3)") "center: ", center, A, i, j, k
-                !    do pIter = 0, numCartesianP - 1
-                !       do qIter = 0, numCartesianQ - 1
-                !          u = pIter + labelsOfContractions(P)
-                !          v = qIter + labelsOfContractions(Q)
-                !          Vval = perm*densityMatrix%values(u,v)
 
-                !          auxPotential(center,1) = auxPotential(center,1) + Vval*auxVector2(i)
-                !          !write(*,"(A,3f17.12)") "Potencial Vector x: ", auxPotential(center,1), Vval, auxVector2(i)
+                do A=1, surface%sizeSurface
+                   i = 3*(A-1)*numCartesianP*numCartesianQ + 0*numCartesianP*numCartesianQ
+                   j = 3*(A-1)*numCartesianP*numCartesianQ + 1*numCartesianP*numCartesianQ
+                   k = 3*(A-1)*numCartesianP*numCartesianQ + 2*numCartesianP*numCartesianQ
+                   ! write(*,"(A,I2,I2,3I3)") "center: ", center, A, i, j, k
+                   do pIter = 0, numCartesianP - 1
+                      do qIter = 0, numCartesianQ - 1
+                         u = pIter + labelsOfContractions(P)
+                         v = qIter + labelsOfContractions(Q)
+                         Vval = perm*densityMatrix%values(u,v)
+                         ! write(*,*) "Label P", labelsOfContractions(P), " Center P: ", centerP
+                         ! write(*,*) "Label Q", labelsOfContractions(Q), " Center Q: ", centerQ
+                         ! write(*,*) "(u|v) ", u, " | ", v, " : ", densityMatrix%values(u,v)
+                         ! write(*,*) "(v,u) ", v, " | ", u, " : ", densityMatrix%values(v,u)
 
-                !          i = i + 1
-                !          auxPotential(center,2) = auxPotential(center,2) + Vval*auxVector2(j)
-                !          !write(*,"(A,3f17.12)") "Potencial Vector y: ", auxPotential(center,2), Vval, auxVector2(j)
+                         do center=1, numberOfOptimizationCenters
+                            if((centerP.EQ.center).and.(surface%atoms(A).NE.center))then
+                               auxCOSMO(center,1) = auxCOSMO(center,1) + Vval*auxVector2(i)*qTotal(A)
+                               i=i+1
+                               auxCOSMO(center,2) = auxCOSMO(center,2) + Vval*auxVector2(j)*qTotal(A)
+                               j=j+1
+                               auxCOSMO(center,3) = auxCOSMO(center,3) + Vval*auxVector2(k)*qTotal(A)
+                               k=k+1
+                            else if((centerP.NE.center).and.(surface%atoms(A).EQ.center))then
+                               auxCOSMO(center,1) = auxCOSMO(center,1) - Vval*auxVector2(i)*qTotal(A)
+                               i=i+1
+                               auxCOSMO(center,2) = auxCOSMO(center,2) - Vval*auxVector2(j)*qTotal(A)
+                               j=j+1
+                               auxCOSMO(center,3) = auxCOSMO(center,3) - Vval*auxVector2(k)*qTotal(A)
+                               k=k+1
+                            end if
+                         end do
+                         ! auxPotential(center,1) = auxPotential(center,1) + Vval*auxVector2(i)
+                         ! !write(*,"(A,3f17.12)") "Potencial Vector x: ", auxPotential(center,1), Vval, auxVector2(i)
 
-                !          j = j + 1
-                !          auxPotential(center,3) = auxPotential(center,3) + Vval*auxVector2(k)
-                !          !write(*,"(A,3f17.12)") "Potencial Vector z: ", auxPotential(center,3), Vval, auxVector2(k)
+                         ! i = i + 1
+                         ! auxPotential(center,2) = auxPotential(center,2) + Vval*auxVector2(j)
+                         ! !write(*,"(A,3f17.12)") "Potencial Vector y: ", auxPotential(center,2), Vval, auxVector2(j)
 
-                !          k = k + 1
+                         ! j = j + 1
+                         ! auxPotential(center,3) = auxPotential(center,3) + Vval*auxVector2(k)
+                         ! !write(*,"(A,3f17.12)") "Potencial Vector z: ", auxPotential(center,3), Vval, auxVector2(k)
 
-                !       end do
-                !    end do
-                !    ! A = A + 1
-                !    center = center + 1
-                !    !    end if
-                !    ! end if
-                ! end do
+                         ! k = k + 1
+
+                      end do
+                   end do
+                   ! A = A + 1
+                   center = center + 1
+                   !    end if
+                   ! end if
+                end do
                 ! write(*,"(A)") "================================================================"
                 ! write(*,"(3(f17.12))") auxPotential(1,1), auxPotential(1,2), auxPotential(1,3)
                 ! write(*,"(A)") "================================================================"

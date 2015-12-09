@@ -138,7 +138,7 @@ contains
 
 
     if(allocated(deriveValue)) deallocate(deriveValue)
-    allocate(deriveValue(0:3*nCenters*ssize))
+    allocate(deriveValue(0:3*nCenters*ssize-1))
 
     ! if(allocated(deriveValue)) deallocate(deriveValue)
     ! allocate(deriveValue(0:3*numberOfPointCharges*ssize))
@@ -148,7 +148,7 @@ contains
     deriveValue = 0.0_8
 
     if(allocated(pointCharges)) deallocate(pointCharges)
-    allocate(pointCharges(0:nCenters,0:4))
+    allocate(pointCharges(0:nCenters-1,0:3))
 
     ! if(allocated(pointCharges)) deallocate(pointCharges)
     ! allocate(pointCharges(0:numberOfPointCharges,0:4))
