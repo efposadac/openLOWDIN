@@ -57,7 +57,7 @@ module EnergyGradients_
      real(8), allocatable :: nuclear(:)
      real(8), allocatable :: coupling(:)
      real(8), allocatable :: total(:)
-     
+
   end type Gradients
 
 
@@ -104,7 +104,7 @@ contains
   !**
   subroutine EnergyGradients_constructor()
     implicit none
-    
+
 
     EnergyGradients_instance%name = ""
     EnergyGradients_instance%isIntanced = .true.
@@ -144,11 +144,11 @@ contains
        k = i*3 + 3
        write(*,"(3F17.12)") EnergyGradients_instance%gradients%total(j:k)
     end do
-    
+
     if(CONTROL_instance%AMBER_FILE) then
        !! Results for Amber package
        !!
-       
+
        !! open file
        open(unit=45, file="low2amber.dat", status="replace", form="formatted")
 
@@ -157,7 +157,7 @@ contains
        close(45)
     end if
 
-    
+
   end subroutine EnergyGradients_show
 
   !         !**
@@ -244,10 +244,10 @@ contains
     ! write(*,"(A)") "Componenetes de entrada"
     ! do i=1, size(components)
     !    write(*,"(I)") EnergyGradients_instance%components(i)
-       ! write(*,"(A)") "-------------------------"
-       ! do j=1, size(evaluationPoint%values)
-       !    write(*,"(f12.8)") evaluationPoint%values(j)
-       ! end do
+    ! write(*,"(A)") "-------------------------"
+    ! do j=1, size(evaluationPoint%values)
+    !    write(*,"(f12.8)") evaluationPoint%values(j)
+    ! end do
     ! end do
     ! write(*,"(A)") "-------------------------"
 
@@ -862,16 +862,17 @@ contains
     integer :: x
     integer :: y
     integer :: npairs, npairs2, pqrsIter
-    integer :: P, Q, R, S, PQ, RS, pIter, qIter, rIter, sIter, auxIter, A, stride
+    integer :: P, Q, R, S, PQ, RS, pIter, qIter, rIter, sIter, auxIter, A, B, stride
     integer :: numCartesianP, numCartesianQ, numCartesianR, numCartesianS
     integer :: centerP, centerQ, centerR, centerS, center
     integer :: numberOfOptimizationCenters, delta
+    integer :: Zi
     real(8) :: perm, Vval, JKval, mass
     real(8) :: Duv, Dxy
     real(8) :: Ax, Ay, Az, Bx, By, Bz, Cx, Cy, Cz, Dx, Dy, Dz
     integer, allocatable :: labelsOfContractions(:)
     real(8), allocatable :: auxKinetic(:,:), auxPotential(:,:), auxOverlap(:,:), auxCoulomb(:,:), auxExchange(:,:)
-    real(8), allocatable :: auxCOSMO(:,:), auxPotentialCOSMO(:,:)
+    real(8), allocatable :: auxCOSMO(:,:)
     integer, allocatable :: auxOwnerId(:)
     character(50) :: wfnFile
     integer :: wfnUnit
@@ -881,6 +882,14 @@ contains
     integer :: deltasum
     real(8) :: matrixSum, derivativesum
     real(8), allocatable :: qTotal(:)
+    real(8) :: distance, cubeDistance
+    real(8) :: deltaOrigin(3)
+    real(8) :: cosmoEpsilon
+    integer :: AA
+    real(8) :: dax, day, daz
+    real(8) :: constantDer
+    integer :: stat
+
 
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
@@ -905,10 +914,10 @@ contains
 
     if(allocated(EnergyGradients_instance%gradients%kinetic)) deallocate(EnergyGradients_instance%gradients%kinetic)
     allocate(EnergyGradients_instance%gradients%kinetic(numberOfOptimizationCenters*3))
-       
+
     if(allocated(EnergyGradients_instance%gradients%attraction)) deallocate(EnergyGradients_instance%gradients%attraction)
     allocate(EnergyGradients_instance%gradients%attraction(numberOfOptimizationCenters*3))
-       
+
     if(allocated(EnergyGradients_instance%gradients%overlap)) deallocate(EnergyGradients_instance%gradients%overlap)
     allocate(EnergyGradients_instance%gradients%overlap(numberOfOptimizationCenters*3))
 
@@ -935,17 +944,15 @@ contains
 
        if(allocated(auxKinetic)) deallocate(auxKinetic)
        allocate(auxKinetic(numberOfOptimizationCenters,3))
-       
+
        if(allocated(auxPotential)) deallocate(auxPotential)
        allocate(auxPotential(numberOfOptimizationCenters,3))
 
        if(CONTROL_instance%COSMO) then
           if(allocated(auxCOSMO)) deallocate(auxCOSMO)
           allocate(auxCOSMO(numberOfOptimizationCenters,3))
-          if(allocated(auxPotentialCOSMO)) deallocate(auxPotentialCOSMO)
-          allocate(auxPotentialCOSMO(surface%sizeSurface,3))
           if(allocated(qTotal)) deallocate(qTotal)
-          allocate(qTotal(size(surface%sizeSurface)))
+          allocate(qTotal(surface%sizeSurface))
        end if
 
        if(allocated(auxOverlap)) deallocate(auxOverlap)
@@ -962,7 +969,7 @@ contains
        auxOverlap = 0.0_8
        auxCoulomb = 0.0_8
        auxExchange = 0.0_8       
-       
+
        call MolecularSystem_getBasisSet(specieIterator, contractions)
 
        numberOfContractions = MolecularSystem_getNumberOfContractions(specieIterator)
@@ -1080,7 +1087,7 @@ contains
              else
                 perm = 2.0
              end if
-             
+
              perm = (perm/mass)
 
 
@@ -1165,7 +1172,7 @@ contains
              ! write(*,"(A)") "----------------------------------------------------------------"
           end do
        end do
-       
+
        ! write(*,"(3(f17.12))") auxKinetic(1,1), auxKinetic(1,2), auxKinetic(1,3)
        ! write(*,"(3(f17.12))") auxKinetic(2,1), auxKinetic(2,2), auxKinetic(2,3)
        ! write(*,"(3(f17.12))") auxKinetic(3,1), auxKinetic(3,2), auxKinetic(3,3)
@@ -1196,9 +1203,9 @@ contains
                   auxVector2, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerP, B=centerQ )
 
 
-                ! write(*,"(A)") "---------------------------------------------------------------------------------------"
-                ! write(*,*) "Derivadas Potencial: "
-                ! write(*,*) P, Q, " | ", auxVector2(:)
+             ! write(*,"(A)") "---------------------------------------------------------------------------------------"
+             ! write(*,*) "Derivadas Potencial: "
+             ! write(*,*) P, Q, " | ", auxVector2(:)
 
              i = 0
              j = 0
@@ -1356,7 +1363,7 @@ contains
        call EnergyGradients_getShellPairs(numberOfContractions, shellPairs)
        npairs = size(shellPairs%values,DIM=1)
        npairs2 = npairs*npairs
-       
+
        deltasum = 0
        do pqrsIter = 0, npairs2 - 1
           PQ = pqrsIter/npairs
@@ -1393,10 +1400,10 @@ contains
           if (PQ /= RS) then
              perm = perm*2.0_8
           end if
-          
+
           deltasum = deltasum + perm
           perm = perm*0.5_8
-          
+
           stride = numCartesianP*numCartesianQ*numCartesianR*numCartesianS
 
           Ax = 0.0_8
@@ -1561,7 +1568,7 @@ contains
           auxExchange(centerS,3) = auxExchange(centerS,3) + Dz
 
        end do
-      
+
        auxCoulomb = auxCoulomb*charge*charge*0.5
        auxExchange = auxExchange*charge*charge*kappa*0.5
 
@@ -1577,14 +1584,15 @@ contains
        ! write(*,"(3(f17.12))") auxExchange(2,1), auxExchange(2,2), auxExchange(2,3)
        ! write(*,"(3(f17.12))") auxExchange(3,1), auxExchange(3,2), auxExchange(3,3)
        ! write(*,"(A)") "----------------------------------------------------------------"
-       
+
        ! write(*,"(A,I)") "delta: ", deltasum
        ! write(*,"(A)") "----------------------------------------------------------------"
        ! write(*,"(A)") " Gradientes de Potencial COSMO"
        ! write(*,"(A)") "----------------------------------------------------------------"
        !! Potential Gradients
        if(CONTROL_instance%COSMO) then
-          
+          cosmoEpsilon=(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)
+
           open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 
           read(77)(qTotal(i),i=1,surface%sizeSurface)
@@ -1610,17 +1618,14 @@ contains
                 call DerivativeManager_getElement( ATTRACTION_DERIVATIVES, &
                      auxVector2, surface, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerP, B=centerQ )
 
-                ! write(*,"(A)") "---------------------------------------------------------------------------------------"
-                ! write(*,*) "Derivadas: "
-                ! write(*,*) P, Q, " | ", auxVector2(:)
+                !write(*,"(A)") "---------------------------------------------------------------------------------------"
+                !write(*,*) "Derivadas: "
+                !write(*,*) P, Q, " | ", auxVector2(:)
 
                 i = 0
                 j = 0
                 k = 0
                 ! center = 1
-! ################################################################################
-                ! OJO ESTO SE NECESITA PARA EL GRADIENTE FINAL!!!
-! ################################################################################
 
                 do A=1, surface%sizeSurface
                    i = 3*(A-1)*numCartesianP*numCartesianQ + 0*numCartesianP*numCartesianQ
@@ -1654,18 +1659,6 @@ contains
                                k=k+1
                             end if
                          end do
-                         ! auxPotential(center,1) = auxPotential(center,1) + Vval*auxVector2(i)
-                         ! !write(*,"(A,3f17.12)") "Potencial Vector x: ", auxPotential(center,1), Vval, auxVector2(i)
-
-                         ! i = i + 1
-                         ! auxPotential(center,2) = auxPotential(center,2) + Vval*auxVector2(j)
-                         ! !write(*,"(A,3f17.12)") "Potencial Vector y: ", auxPotential(center,2), Vval, auxVector2(j)
-
-                         ! j = j + 1
-                         ! auxPotential(center,3) = auxPotential(center,3) + Vval*auxVector2(k)
-                         ! !write(*,"(A,3f17.12)") "Potencial Vector z: ", auxPotential(center,3), Vval, auxVector2(k)
-
-                         ! k = k + 1
 
                       end do
                    end do
@@ -1679,6 +1672,69 @@ contains
                 ! write(*,"(A)") "================================================================"
              end do
           end do
+          deltaOrigin=0.0_8
+          do A=1, surface%sizeSurface
+             do center=1, numberOfOptimizationCenters
+                Zi = ParticleManager_instance(center)%particlePtr%charge
+                deltaOrigin(1) = (ParticleManager_instance(center)%particlePtr%origin(1) - surface%xs(A)) 
+                deltaOrigin(2) = (ParticleManager_instance(center)%particlePtr%origin(2) - surface%ys(A)) 
+                deltaOrigin(3) = (ParticleManager_instance(center)%particlePtr%origin(3) - surface%zs(A)) 
+                distance = sqrt( sum( deltaOrigin**2.0_8 ) )
+                cubeDistance = distance*distance*distance
+                do centerP=1, numberOfOptimizationCenters
+
+                   if((centerP.EQ.center).and.(surface%atoms(A).NE.center))then
+                      auxCOSMO(center,1) = auxCOSMO(center,1)  - Zi*qTotal(A)*deltaOrigin(1)/cubeDistance
+                      auxCOSMO(center,2) = auxCOSMO(center,2)  - Zi*qTotal(A)*deltaOrigin(2)/cubeDistance
+                      auxCOSMO(center,3) = auxCOSMO(center,3)  - Zi*qTotal(A)*deltaOrigin(3)/cubeDistance
+                   else if((centerP.NE.center).and.(surface%atoms(A).EQ.center))then
+                      auxCOSMO(center,1) = auxCOSMO(center,1)  + Zi*qTotal(A)*deltaOrigin(1)/cubeDistance
+                      auxCOSMO(center,2) = auxCOSMO(center,2)  + Zi*qTotal(A)*deltaOrigin(2)/cubeDistance
+                      auxCOSMO(center,3) = auxCOSMO(center,3)  + Zi*qTotal(A)*deltaOrigin(3)/cubeDistance
+                   end if
+                end do
+             end do
+          end do
+          deltaOrigin=0.0_8
+	  constantDer=-0.5_8*cosmoEpsilon*1.07_8*Math_SQRT_PI
+          open(unit=78, file=trim(CONTROL_instance%INPUT_FILE)//"der", status="old")
+	  read(78,*) AA, centerP, dax, day, daz
+	  write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
+          do A=1, surface%sizeSurface
+             do B=1, surface%sizeSurface
+                deltaOrigin(1) = surface%xs(A) - surface%xs(B) 
+                deltaOrigin(2) = surface%ys(A) - surface%ys(B) 
+                deltaOrigin(3) = surface%zs(A) - surface%zs(B) 
+                distance = sqrt( sum( deltaOrigin**2.0_8 ) )
+                cubeDistance = distance*distance*distance
+                do center=1, numberOfOptimizationCenters
+                   if(A.EQ.B)then
+			   if (AA.EQ.A) then
+				   if (centerP.EQ.center) then
+
+
+                       auxCOSMO(center,1) = auxCOSMO(center,1)  +constantDer*qTotal(A)*qTotal(A)*dax/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
+                       auxCOSMO(center,2) = auxCOSMO(center,2)  +constantDer*qTotal(A)*qTotal(A)*day/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
+                       auxCOSMO(center,3) = auxCOSMO(center,3)  +constantDer*qTotal(A)*qTotal(A)*daz/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
+	  		read(78,*,iostat=stat) AA, centerP, dax, day, daz
+	  			write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
+			end if
+			end if
+                   else if ((surface%atoms(A).EQ.center).and.(surface%atoms(B).NE.center)) then 
+                      auxCOSMO(center,1) = auxCOSMO(center,1)  -0.5_8*(cosmoEpsilon)*qTotal(A)*qTotal(B)*deltaOrigin(1)/cubeDistance
+                      auxCOSMO(center,2) = auxCOSMO(center,2)  -0.5_8*(cosmoEpsilon)*qTotal(A)*qTotal(B)*deltaOrigin(2)/cubeDistance
+                      auxCOSMO(center,3) = auxCOSMO(center,3)  -0.5_8*(cosmoEpsilon)*qTotal(A)*qTotal(B)*deltaOrigin(3)/cubeDistance
+                   else if ((surface%atoms(B).EQ.center).and.(surface%atoms(A).NE.center)) then 
+                      auxCOSMO(center,1) = auxCOSMO(center,1)  +0.5_8*(cosmoEpsilon)*qTotal(A)*qTotal(B)*deltaOrigin(1)/cubeDistance
+                      auxCOSMO(center,2) = auxCOSMO(center,2)  +0.5_8*(cosmoEpsilon)*qTotal(A)*qTotal(B)*deltaOrigin(2)/cubeDistance
+                      auxCOSMO(center,3) = auxCOSMO(center,3)  +0.5_8*(cosmoEpsilon)*qTotal(A)*qTotal(B)*deltaOrigin(3)/cubeDistance
+                   end if
+                end do
+             end do
+          end do
+	close(78)
+	write(*,*)"gradiente cosmo"
+	write(*,*)auxCOSMO(:,:)	
        end if
 
 
@@ -1695,25 +1751,25 @@ contains
           end do
        end do
 
-    deallocate(auxKinetic) 
-    deallocate(auxPotential)
-    deallocate(auxOverlap)
-    deallocate(auxCoulomb)
-    deallocate(auxExchange)
-    deallocate(auxVector) 
-    deallocate(auxVector2)
-    deallocate(auxVector3)
-    deallocate(auxVector4)
-    deallocate(labelsOfContractions)
+       deallocate(auxKinetic) 
+       deallocate(auxPotential)
+       deallocate(auxOverlap)
+       deallocate(auxCoulomb)
+       deallocate(auxExchange)
+       deallocate(auxVector) 
+       deallocate(auxVector2)
+       deallocate(auxVector3)
+       deallocate(auxVector4)
+       deallocate(labelsOfContractions)
 
-    call Matrix_destructor(matrixOfEigenvectors)
-    call Matrix_destructor(densityMatrix)
-    call Vector_destructor(vectorOfEigenvalues)
-    call Matrix_destructor(auxWeightDensity)
-    call Matrix_destructor(weightDensityMatrix)
+       call Matrix_destructor(matrixOfEigenvectors)
+       call Matrix_destructor(densityMatrix)
+       call Vector_destructor(vectorOfEigenvalues)
+       call Matrix_destructor(auxWeightDensity)
+       call Matrix_destructor(weightDensityMatrix)
 
     end do
-    
+
     deallocate(auxOwnerId)
 
     close(wfnUnit)
@@ -1813,7 +1869,7 @@ contains
        lambda = MolecularSystem_getLambda(specieIterator)
 
        do otherSpecieIterator = specieIterator + 1, MolecularSystem_instance%numberOfQuantumSpecies
-          
+
           auxoutput = 0.0_8
           ! write(*,*) 'Iteradores acoplamiento: ', otherSpecieIterator, specieIterator
 
@@ -1947,7 +2003,7 @@ contains
           end do
 
           auxoutput = auxoutput*charge*otherCharge!*lambda*otherLambda
-          
+
           ! write(*,"(A)") "----------------------------------------------------------------"
           ! write(*,"(A)") " Gradientes de Acoplamiento"
           ! write(*,*) specieIterator, otherSpecieIterator
@@ -1959,7 +2015,7 @@ contains
 
 
           output = output + auxoutput
-          
+
        end do
     end do
 
@@ -1970,7 +2026,7 @@ contains
           k = k + 1
        end do
     end do
-   
+
     ! write(*,"(A)") "----------------------------------------------------------------"
     ! write(*,"(A)") " Gradientes de Acoplamiento"
     ! write(*,"(A)") "----------------------------------------------------------------"
@@ -1983,7 +2039,7 @@ contains
 
 
   end subroutine EnergyGradients_calculateAnalyticCouplingFirstDerivative
-  
+
   !**
   ! @brief Retorna la componente de la derivada anlitica asociada a las particulas puntuales del sistema
   !

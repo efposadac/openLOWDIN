@@ -15,6 +15,7 @@ module CosmoCore_
      real(8), allocatable :: ys(:)
      real(8), allocatable :: zs(:)
      real(8), allocatable :: area(:)
+     integer, allocatable :: atoms(:)
      integer :: sizeSurface
   end type surfaceSegment
 
@@ -72,8 +73,8 @@ contains
     type(surfaceSegment), intent(inout) :: surface
 
 
-    ! cmd = "cat *.sup | grep '[^ ]' | wc -l > nlines.txt"
-    cmd = "cat vectors.vec | grep '[^ ]' | wc -l > nlines.txt"
+    cmd = "cat *.sup | grep '[^ ]' | wc -l > nlines.txt"
+    ! cmd = "cat vectors.vec | grep '[^ ]' | wc -l > nlines.txt"
     call system(cmd) 
     open(1,file='nlines.txt')
     read(1,*) n
@@ -104,49 +105,54 @@ contains
     real(8), dimension(surface%sizeSurface) :: y !segment y cordinate
     real(8), dimension(surface%sizeSurface) :: z !segment z cordinate
     real(8), dimension(surface%sizeSurface) :: a	!segment area
+    integer, dimension(surface%sizeSurface) :: at	!atomo padre
 
     allocate(surface%xs(surface%sizeSurface))
     allocate(surface%ys(surface%sizeSurface))
     allocate(surface%zs(surface%sizeSurface))
     allocate(surface%area(surface%sizeSurface))
+    allocate(surface%atoms(surface%sizeSurface))
 
     ! Reading surface from .vec
-100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
-    open(55,file='vectors.vec',status='unknown') 
-    read(55,100) (x(i),y(i),z(i),a(i),i=1,surface%sizeSurface)
-    close(55)
+!100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8,2X,I)
+!    open(55,file='vectors.vec',status='unknown') 
+!    read(55,100) (x(i),y(i),z(i),a(i),at(i),i=1,surface%sizeSurface)
+!    close(55)
 
 
-    do i=1,surface%sizeSurface        
-       surface%xs(i)=x(i)/AMSTRONG
-       surface%ys(i)=y(i)/AMSTRONG
-       surface%zs(i)=z(i)/AMSTRONG
-       surface%area(i)=a(i)/((AMSTRONG)**2)
-    end do
+!    do i=1,surface%sizeSurface        
+!       surface%xs(i)=x(i)/AMSTRONG
+!       surface%ys(i)=y(i)/AMSTRONG
+!       surface%zs(i)=z(i)/AMSTRONG
+!       surface%area(i)=a(i)/((AMSTRONG)**2)
+!    end do
 
     !Reading surface from .sup
     !
-    ! 100 format (F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
-    ! 		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
-    !     read(55,*) (a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
-    !
-    ! do i=1,surface%sizeSurface        
-    !    surface%xs(i)=x(i)
-    !    surface%ys(i)=y(i)
-    !    surface%zs(i)=z(i)
-    !    surface%area(i)=a(i)
-    ! end do
-    ! close(55)
+     100 format (I,2X,F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
+     		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
+         read(55,*) (at(i),a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
+    
+     do i=1,surface%sizeSurface        
+        surface%xs(i)=x(i)
+        surface%ys(i)=y(i)
+        surface%zs(i)=z(i)
+        surface%area(i)=a(i)
+ 	 surface%atoms(i)=at(i)	
+     end do
+     close(55)
     !
     ! write(*,*)"tipo superficie"
-    !! llenando surface con la informacion leida
+    ! llenando surface con la informacion leida
     ! 	 write(*,*)"como lee los numeros"
     !
-    !! gepol matrix
+    ! gepol matrix
     ! write(*,*)"surface%sizeSurface",surface%sizeSurface
     ! write(*,*)"datos leidos"
-
-
+    !Debug
+    !do i=1,surface%sizeSurface        
+    !			write(*,*)"átomo padre: ",at(i), "segmento: ",i
+    !	end do
 
 
   end subroutine CosmoCore_Filler
@@ -251,10 +257,11 @@ contains
     call Matrix_constructor(q, int(surface%sizeSurface,8), 1_8)
     call Matrix_constructor(cmatinv_aux, int(segments,8), int(segments,8))
 
-    write(*,*)"Constante dialectrica = ", CONTROL_instance%COSMO_SOLVENT_DIALECTRIC
+    write(*,*)"Constante dielectrica = ", CONTROL_instance%COSMO_SOLVENT_DIALECTRIC
 
 
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    ! lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)
 
     write(*,*)"lambda= ",lambda
 
@@ -385,7 +392,8 @@ contains
 
     charge=MolecularSystem_getCharge(MolecularSystem_getSpecieID(specieName))
 
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    ! lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)
 
     do i=1,ints
 
@@ -457,12 +465,15 @@ contains
        read(90)(ints_mat(i,n),i=1,surface)
     end do
 
+		! read(100)m
+    ! do n=1,charges
+    !    read(100)(a_mat(i,n),i=1,surface)
+    ! end do
+		! read
 
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
     end do
-
-    !!calculo del producto punto
 
     cosmo_int(:)=0.0_8
 

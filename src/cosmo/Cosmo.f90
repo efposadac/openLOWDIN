@@ -33,8 +33,9 @@ program Cosmo
   use Matrix_
   use String_
   use CosmoCore_
-  implicit none 
 
+  implicit none 
+  
   integer(8) :: n
 
   type(Matrix) :: cmatin
@@ -58,7 +59,7 @@ program Cosmo
 	n=MolecularSystem_instance%numberOfParticles
 
   call CosmoCore_clasical(surfaceSegment_instance,n,cmatin,qc)
-	
+     
 	call system(" lowdin-ints.x COSMO ")
 	
 end program Cosmo

@@ -281,6 +281,7 @@ if [ $extFile="lowdin" ]; then
 	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.der $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.coup $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
