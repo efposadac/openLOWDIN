@@ -352,8 +352,8 @@ contains
        if(allocated(point)) deallocate(point)
        allocate(point(1:numberOfPointCharges))
        ! write(*,*) "remplazadas por estas"
-       
-			 if(allocated(totals)) deallocate(totals)
+
+       if(allocated(totals)) deallocate(totals)
        allocate(totals(size(MolecularSystem_instance%species)))
 
        write(40) job
@@ -363,16 +363,16 @@ contains
        call CosmoCore_cmat(surface,cmatin)
 
        ! call Matrix_Show(cmatin)
-				! do i=1,120
-				! 	do j=i,120
-				! 		cmatin%values(j,i)=cmatin%values(i,j)
-				! 	end do
-				! end do
+       ! do i=1,120
+       ! 	do j=i,120
+       ! 		cmatin%values(j,i)=cmatin%values(i,j)
+       ! 	end do
+       ! end do
 
        !!do sobre las especies
 
        do f = 1, size(MolecularSystem_instance%species)
-       write(40) MolecularSystem_instance%species(f)%name
+          write(40) MolecularSystem_instance%species(f)%name
 
           total_aux=0
 
@@ -420,17 +420,16 @@ contains
 
                       total_aux=total_aux+totals(f)
 
+                      !Calculating integrals for shell
                       do c = 1, numberOfPointCharges
                          ! do sobre las cargas puntuales 
                          point(1)%charge = 1.0 
                          point(1)%x  =surface%xs(c)
                          point(1)%y  =surface%ys(c)
                          point(1)%z  =surface%zs(c)
-                         !Calculating integrals for shell
-
 
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue)
+                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue)
                          m=0
 
                          do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
@@ -438,18 +437,16 @@ contains
                                m = m + 1
 
 
-															 integralValueCosmo(m,c)=integralValue(m)*(-MolecularSystem_getCharge(f))
+                               integralValueCosmo(m,c)=integralValue(m)*(-MolecularSystem_getCharge(f))
 
-                               
+
                             end do
                          end do
 
-                         ! todas las integrales para un c específico 
-
-                         ! aqui es donde se hace el calculo para cada carga
-
+                      ! todas las integrales para un c específico 
                       end do
-                      !! end do de cargas puntuales
+                      ! aqui es donde se hace el calculo para cada carga
+
 
                       if(allocated(qCharges)) deallocate(qCharges)
                       allocate(qCharges(numberOfPointCharges))
@@ -465,7 +462,7 @@ contains
 
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
 
-														write(70)integralValueCosmo(m,:)
+                            write(70)integralValueCosmo(m,:)
                             write(80)qCharges
                          end do
                       end do
@@ -484,7 +481,6 @@ contains
           close(70)
 
           !!quantum
-
           totals(f)=total_aux
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(f),f,f)
 
@@ -523,9 +519,8 @@ contains
 
           if ( f /= g ) then
 
-
-          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
           cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
 
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
 
@@ -819,10 +814,12 @@ contains
 
     if( ending > ssize ) ending = ssize
 
+    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
+
     !! Calculate integrals (stored on disk)           
     select case (trim(String_getUppercase(trim(scheme))))
     
-		case("RYS")
+    case("RYS")
        call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     case("LIBINT")
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )

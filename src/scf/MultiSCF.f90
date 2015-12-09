@@ -462,7 +462,7 @@ contains
                             call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
                          end if
 
-                         call Matrix_show(wavefunction_instance(iteratorOfSpecie)%couplingMatrix)
+                         ! call Matrix_show(wavefunction_instance(iteratorOfSpecie)%couplingMatrix)
 
 
                          if (CONTROL_instance%COSMO) then
@@ -575,8 +575,6 @@ contains
     real(8) :: tolerace
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
-
-    write(*,*)"entre a SpecieFullyConvergedIndividually"
 
     iteratorOfSpecie = 1
     nameOfSpecie = MolecularSystem_getNameOfSpecie(iteratorOfSpecie)

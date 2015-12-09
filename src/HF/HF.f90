@@ -355,7 +355,7 @@ program HF
 
         ! write(*,*)"cosmo coupling wf hf"
         ! call Matrix_show(WaveFunction_instance(speciesID)%cosmoCoupling)
-        call WaveFunction_quantumTotalCharge(speciesID)
+        ! call WaveFunction_quantumTotalCharge(speciesID)
 
 
      end if

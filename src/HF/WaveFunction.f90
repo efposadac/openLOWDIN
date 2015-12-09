@@ -276,7 +276,7 @@ contains
     integer :: contractionID, contractionID_2
     integer :: numberOfCartesiansOrbitals, numberOfCartesiansOrbitals_2
     integer :: owner, owner_2
-    integer :: auxCharge
+    real(8) :: auxCharge
     integer :: numberOfContractions
     integer :: totalNumberOfContractions
     character(10) :: arguments(2)

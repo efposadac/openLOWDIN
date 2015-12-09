@@ -39,6 +39,7 @@ module EnergyGradients_
   use MolecularSystem_
   use ParticleManager_
   use ContractedGaussian_
+  use CosmoCore_
   use MecanicProperties_
   use DerivativeManager_
   use Math_
@@ -374,9 +375,16 @@ contains
     integer :: numberOfOptimizationCenters
     type(Vector) :: geometry
     integer :: i,j,k 
+    type(surfaceSegment) :: surface_aux
     ! real(8), allocatable :: auxNuclear(:,:), auxCoupling(:,:)
 
     numberOfOptimizationCenters = ParticleManager_getNumberOfCentersOfOptimization()
+
+    if(CONTROL_instance%COSMO)then
+       call CosmoCore_lines(surface_aux)
+       call CosmoCore_filler(surface_aux)
+    end if
+
 
     ! geometry = ParticleManager_getPositionOfCenterOfOptimizacion()
 
@@ -398,8 +406,11 @@ contains
     EnergyGradients_instance%gradients%coupling = 0.0_8
 
     if ( EnergyGradients_instance%order == 1 ) then
-
-       call EnergyGradients_calculateAnalyticUncoupledFirstDerivative()
+       if(CONTROL_instance%COSMO)then
+          call EnergyGradients_calculateAnalyticUncoupledFirstDerivative(surface_aux)
+       else
+          call EnergyGradients_calculateAnalyticUncoupledFirstDerivative()
+       end if
 
        if ( MolecularSystem_instance%numberOfQuantumSpecies > 1) then
           call EnergyGradients_calculateAnalyticCouplingFirstDerivative()
@@ -823,11 +834,12 @@ contains
   !               acoplamiento interspecie
   ! 16/07/2012: revisada para implementacion de derivadas analiticas para cualquier momento angular (Edwin Posada)
   !**
-  subroutine EnergyGradients_calculateAnalyticUncoupledFirstDerivative()
+  subroutine EnergyGradients_calculateAnalyticUncoupledFirstDerivative(surface)
     implicit none
     ! real(8), allocatable :: gradientVector(:)
     character(30) :: nameOfSpecie
     type(ContractedGaussian), allocatable :: contractions(:)
+    type(surfaceSegment), intent(in), optional :: surface
     integer :: numberOfContractions
     real(8), allocatable :: auxVector(:), auxVector2(:), auxVector3(:), auxVector4(:)
     integer :: specieIterator
@@ -1169,6 +1181,7 @@ contains
              ! write(*,"(A,I,A,I)") "Centro Q: ", centerQ, " owner: ", contractions(Q)%owner
              call DerivativeManager_getElement( ATTRACTION_DERIVATIVES, &
                   auxVector2, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerP, B=centerQ )
+
              ! write(*,"(A)") "---------------------------------------------------------------------------------------"
              i = 0
              j = 0
@@ -1544,6 +1557,86 @@ contains
        ! write(*,"(A)") "----------------------------------------------------------------"
        
        ! write(*,"(A,I)") "delta: ", deltasum
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       ! write(*,"(A)") " Gradientes de Potencial COSMO"
+       ! write(*,"(A)") "----------------------------------------------------------------"
+       !! Potential Gradients
+       if(CONTROL_instance%COSMO) then
+          do P = 1, numberOfContractions
+             do Q = 1, P
+                numCartesianP = contractions(P)%numCartesianOrbital  !! nP
+                numCartesianQ = contractions(Q)%numCartesianOrbital  !! nQ
+                centerP = auxOwnerId(contractions(P)%owner) !! aP
+                centerQ = auxOwnerId(contractions(Q)%owner) !! aQ
+
+                if (P == Q) then
+                   perm = 1.0
+                else
+                   perm = 2.0
+                end if
+
+                ! write(*,"(A1,I1,A1,I1,A1)") "(", P, "|", Q, ")"
+                ! write(*,"(A,I,A,I)") "Centro P: ", centerP, " owner: ", contractions(P)%owner
+                ! write(*,"(A,I,A,I)") "Centro Q: ", centerQ, " owner: ", contractions(Q)%owner
+                call DerivativeManager_getElement( ATTRACTION_DERIVATIVES, &
+                     auxVector2, surface, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerP, B=centerQ )
+
+                ! write(*,"(A)") "---------------------------------------------------------------------------------------"
+                i = 0
+                j = 0
+                k = 0
+                center = 1
+! ################################################################################
+                ! OJO ESTO SE NECESITA PARA EL GRADIENTE FINAL!!!
+! ################################################################################
+                ! A = 1
+                ! do l = 1, size(ParticleManager_instance)
+                !    if(ParticleManager_instance(l)%particlePtr%isCenterOfOptimization) then
+                !       if(ParticleManager_instance(l)%particlePtr%isQuantum) then
+                !          auxPotential(center,1) = 0.0_8
+                !          auxPotential(center,2) = 0.0_8
+                !          auxPotential(center,3) = 0.0_8
+                !          center = center + 1
+                !          A = A + 1
+                !       else
+                ! do A=1, numberOfOptimizationCenters
+                !    i = 3*(A-1)*numCartesianP*numCartesianQ + 0*numCartesianP*numCartesianQ
+                !    j = 3*(A-1)*numCartesianP*numCartesianQ + 1*numCartesianP*numCartesianQ
+                !    k = 3*(A-1)*numCartesianP*numCartesianQ + 2*numCartesianP*numCartesianQ
+                !    ! write(*,"(A,I2,I2,3I3)") "center: ", center, A, i, j, k
+                !    do pIter = 0, numCartesianP - 1
+                !       do qIter = 0, numCartesianQ - 1
+                !          u = pIter + labelsOfContractions(P)
+                !          v = qIter + labelsOfContractions(Q)
+                !          Vval = perm*densityMatrix%values(u,v)
+
+                !          auxPotential(center,1) = auxPotential(center,1) + Vval*auxVector2(i)
+                !          !write(*,"(A,3f17.12)") "Potencial Vector x: ", auxPotential(center,1), Vval, auxVector2(i)
+
+                !          i = i + 1
+                !          auxPotential(center,2) = auxPotential(center,2) + Vval*auxVector2(j)
+                !          !write(*,"(A,3f17.12)") "Potencial Vector y: ", auxPotential(center,2), Vval, auxVector2(j)
+
+                !          j = j + 1
+                !          auxPotential(center,3) = auxPotential(center,3) + Vval*auxVector2(k)
+                !          !write(*,"(A,3f17.12)") "Potencial Vector z: ", auxPotential(center,3), Vval, auxVector2(k)
+
+                !          k = k + 1
+
+                !       end do
+                !    end do
+                !    ! A = A + 1
+                !    center = center + 1
+                !    !    end if
+                !    ! end if
+                ! end do
+                ! write(*,"(A)") "================================================================"
+                ! write(*,"(3(f17.12))") auxPotential(1,1), auxPotential(1,2), auxPotential(1,3)
+                ! write(*,"(A)") "================================================================"
+             end do
+          end do
+       end if
+
 
        k=1
        do i=1, numberOfOptimizationCenters

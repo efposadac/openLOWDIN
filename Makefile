@@ -51,7 +51,7 @@ distclean::
 	find . -name "*.i" -exec rm -f {} \;
 	rm -rf $(TOPDIR)/doc/html
 	rm -rf $(TOPDIR)/doc/latex
-
+	cd $(TOPDIR)/test/ && sh clean.sh
 test::
 	cd $(TOPDIR)/test/ && sh runtest.sh
 

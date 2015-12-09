@@ -258,21 +258,30 @@ contains
 !    vectors = Matrix_getFromFile(orderOfMatrix, orderOfMatrix, &
 !         file=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//".vec", binary = .false.)
 
-    !! Open file for wavefunction
-    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+       arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+       arguments(1) = "COEFFICIENTS"
+      
+      call Matrix_constructor( vectors, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
 
-     arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-     arguments(1) = "COEFFICIENTS"
-    
-    call Matrix_constructor( vectors, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
+    if ( CONTROL_instance%READ_COEFFICIENTS_IN_BINARY ) then
+      !! Open file for wavefunction
+      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+  
+       vectors = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
+            columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+ 
+      close(wfnUnit)
+    else 
 
-     vectors = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
-          columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
-
-    close(wfnUnit)
+      !! Open file for wavefunction
+      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+  
+       vectors = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
+            columns= int(orderOfMatrix,4), binary=.false., arguments=arguments(1:2))
+      close(wfnUnit)
+    end if
 
     call matrix_constructor( densitymatrix, int(orderofmatrix,8), int(orderofmatrix,8), 0.0_8 )
-
     
     do i = 1 , orderOfMatrix
        do j = 1 , orderOfMatrix

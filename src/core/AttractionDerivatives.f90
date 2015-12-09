@@ -35,6 +35,7 @@ module AttractionDerivatives_
   use ParticleManager_
   use MolecularSystem_
   use ContractedGaussian_
+  use CosmoCore_
   use Math_
   implicit none
 
@@ -46,7 +47,7 @@ module AttractionDerivatives_
 
 contains
 
-  subroutine AttractionDerivatives_getDerive(this, indexA, indexB, deriveValue, centerA, centerB, specieID)
+  subroutine AttractionDerivatives_getDerive(this, indexA, indexB, deriveValue, centerA, centerB, specieID, surface)
     type(ContractedGaussian), intent(in):: this(:)
     integer, intent(in) :: indexA, indexB, centerA, centerB, specieID
     integer :: i, j
@@ -80,6 +81,7 @@ contains
     integer :: iind, jind
     real(8) :: chargeSpecie, lambda
     integer :: numberOfPointCharges
+    type(surfaceSegment), intent(in), optional :: surface
 
     angularMomentA = this(indexA)%angularMoment
     angularMomentB = this(indexB)%angularMoment
@@ -126,8 +128,14 @@ contains
     end do
 
     
-    nCenters = ParticleManager_getNumberOfCentersOfOptimization()
-    numberOfPointCharges = MolecularSystem_instance%numberOfPointCharges
+
+    if(present(surface))then
+       nCenters = surface%sizeSurface
+    else
+       nCenters = ParticleManager_getNumberOfCentersOfOptimization()
+       numberOfPointCharges = MolecularSystem_instance%numberOfPointCharges
+    end if
+
 
     if(allocated(deriveValue)) deallocate(deriveValue)
     allocate(deriveValue(0:3*nCenters*ssize))
@@ -154,25 +162,34 @@ contains
     !    j = j + 1
     ! end do
     
-    j = 0
-    do i = 1, size(ParticleManager_instance)
-       if(ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
-          if(ParticleManager_instance(i)%particlePtr%isQuantum) then
-             pointCharges(j,0) = 0.0_8!ParticleManager_instance(i)%particlePtr%charge
-             ! write(*,"(A,F17.12)") "Carga nucleo q: ", pointCharges(j,0)
-             pointCharges(j,1) = ParticleManager_instance(i)%particlePtr%origin(1)
-             pointCharges(j,2) = ParticleManager_instance(i)%particlePtr%origin(2)
-             pointCharges(j,3) = ParticleManager_instance(i)%particlePtr%origin(3)
-             j = j + 1
-          else
-             pointCharges(j,0) = ParticleManager_instance(i)%particlePtr%charge
-             pointCharges(j,1) = ParticleManager_instance(i)%particlePtr%origin(1)
-             pointCharges(j,2) = ParticleManager_instance(i)%particlePtr%origin(2)
-             pointCharges(j,3) = ParticleManager_instance(i)%particlePtr%origin(3)
-             j = j + 1
+    if(present(surface)) then
+       do i = 0, nCenters - 1
+          pointCharges(i,0) = 1.0_8
+          pointCharges(i,1)  =surface%xs(i+1)
+          pointCharges(i,2)  =surface%ys(i+1)
+          pointCharges(i,3)  =surface%zs(i+1)
+       end do
+    else
+       j = 0
+       do i = 1, size(ParticleManager_instance)
+          if(ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
+             if(ParticleManager_instance(i)%particlePtr%isQuantum) then
+                pointCharges(j,0) = 0.0_8!ParticleManager_instance(i)%particlePtr%charge
+                ! write(*,"(A,F17.12)") "Carga nucleo q: ", pointCharges(j,0)
+                pointCharges(j,1) = ParticleManager_instance(i)%particlePtr%origin(1)
+                pointCharges(j,2) = ParticleManager_instance(i)%particlePtr%origin(2)
+                pointCharges(j,3) = ParticleManager_instance(i)%particlePtr%origin(3)
+                j = j + 1
+             else
+                pointCharges(j,0) = ParticleManager_instance(i)%particlePtr%charge
+                pointCharges(j,1) = ParticleManager_instance(i)%particlePtr%origin(1)
+                pointCharges(j,2) = ParticleManager_instance(i)%particlePtr%origin(2)
+                pointCharges(j,3) = ParticleManager_instance(i)%particlePtr%origin(3)
+                j = j + 1
+             end if
           end if
-       end if
-    end do
+       end do
+    end if
 
     ! write(*,"(A)") "------------------------------------ "
     do p1 = 0, lengthA - 1
@@ -226,89 +243,89 @@ contains
           !          center = center + 1
           !       else
           do center=0, nCenters - 1
-             
-                   Z = pointCharges(center,0)
 
-                   PC(0) = P(0) - pointCharges(center,1)
-                   PC(1) = P(1) - pointCharges(center,2)
-                   PC(2) = P(2) - pointCharges(center,3)
-                   call AttractionDerivatives_obaraSaikaRecursion(vi, vx, vy, vz, PA, PB, PC, gamma, angularMomentA+1, angularMomentB+1)
+             Z = pointCharges(center,0)
 
-                   ao12 = 0_8
-                   do ii = 0, angularMomentA
-                      l1 = angularMomentA - ii
-                      do jj = 0, ii
-                         m1 = ii - jj
-                         n1 = jj
-                         do kk = 0, angularMomentB
-                            l2 = angularMomentB - kk
-                            do ll = 0, kk
-                               m2 = kk - ll
-                               n2 = ll
+             PC(0) = P(0) - pointCharges(center,1)
+             PC(1) = P(1) - pointCharges(center,2)
+             PC(2) = P(2) - pointCharges(center,3)
+             call AttractionDerivatives_obaraSaikaRecursion(vi, vx, vy, vz, PA, PB, PC, gamma, angularMomentA+1, angularMomentB+1)
 
-                               iind = l1 * ixm1 + m1 * iym1 + n1 * izm1
-                               jind = l2 * jxm1 + m2 * jym1 + n2 * jzm1
+             ao12 = 0_8
+             do ii = 0, angularMomentA
+                l1 = angularMomentA - ii
+                do jj = 0, ii
+                   m1 = ii - jj
+                   n1 = jj
+                   do kk = 0, angularMomentB
+                      l2 = angularMomentB - kk
+                      do ll = 0, kk
+                         m2 = kk - ll
+                         n2 = ll
 
-                               pfac = commonPreFactor * Z * chargeSpecie
+                         iind = l1 * ixm1 + m1 * iym1 + n1 * izm1
+                         jind = l2 * jxm1 + m2 * jym1 + n2 * jzm1
 
-                               ! write(*,"(A)") "------------------------------------ "
-                               ! write(*,"(A,I1,4F17.12)") "pfac del centro: ", center, pfac, commonPreFactor, Z, chargeSpecie
+                         pfac = commonPreFactor * Z * chargeSpecie
 
-                               temp = lambda*auxExponentA*vi(iind+ixm1,jind,0)
-                               if (l1>0) then
-                                  temp = temp - l1*vi(iind-ixm1,jind,0)
-                               end if
-                               deriveValue(center_i+(0*ssize)+ao12) = deriveValue(center_i+(0*ssize)+ao12) + temp * pfac
-                               ! write(*,"(I,3F17.12)") center_i+(0*ssize)+ao12, deriveValue(center_i+(0*ssize)+ao12), temp, pfac
-                               temp = lambda*auxExponentB*vi(iind,jind+jxm1,0)
-                               if (l2>0) then
-                                  temp = temp - l2*vi(iind,jind-jxm1,0)
-                               end if
-                               deriveValue(center_j+(0*ssize)+ao12) = deriveValue(center_j+(0*ssize)+ao12) + temp * pfac
-                               ! write(*,"(I,3F17.12)") center_j+(0*ssize)+ao12, deriveValue(center_j+(0*ssize)+ao12), temp, pfac
-                          
-                               deriveValue(3*ssize*center+ao12) = deriveValue(3*ssize*center+ao12) + vx(iind,jind,0) * pfac
-                               ! write(*,"(A,I,3F17.12)") "x: ", 3*ssize*center+ao12, deriveValue(3*ssize*center+ao12), temp, pfac
+                         ! write(*,"(A)") "------------------------------------ "
+                         ! write(*,"(A,I1,4F17.12)") "pfac del centro: ", center, pfac, commonPreFactor, Z, chargeSpecie
 
-                               temp = lambda*auxExponentA*vi(iind+iym1,jind,0)
-                               if (m1>0) then
-                                  temp = temp - m1*vi(iind-iym1,jind,0)
-                               end if
-                               deriveValue(center_i+(1*ssize)+ao12) = deriveValue(center_i+(1*ssize)+ao12) + temp * pfac
-                               ! write(*,"(I,3F17.12)") center_i+(1*ssize)+ao12, deriveValue(center_i+(1*ssize)+ao12), temp, pfac
-                               temp = lambda*auxExponentB*vi(iind,jind+jym1,0)
-                               if (m2>0) then
-                                  temp = temp - m2*vi(iind,jind-jym1,0)
-                               end if
-                               deriveValue(center_j+(1*ssize)+ao12) = deriveValue(center_j+(1*ssize)+ao12) + temp * pfac
-                               ! write(*,"(I,3F17.12)") center_j+(1*ssize)+ao12, deriveValue(center_j+(1*ssize)+ao12), temp, pfac
-                               
-                               deriveValue(3*ssize*center+ssize+ao12) = deriveValue(3*ssize*center+ssize+ao12) + vy(iind,jind,0) * pfac
-                               ! write(*,"(A,I,3F17.12)") "y: ", 3*ssize*center+ssize+ao12, deriveValue(3*ssize*center+ssize+ao12), temp, pfac 
+                         temp = lambda*auxExponentA*vi(iind+ixm1,jind,0)
+                         if (l1>0) then
+                            temp = temp - l1*vi(iind-ixm1,jind,0)
+                         end if
+                         deriveValue(center_i+(0*ssize)+ao12) = deriveValue(center_i+(0*ssize)+ao12) + temp * pfac
+                         ! write(*,"(I,3F17.12)") center_i+(0*ssize)+ao12, deriveValue(center_i+(0*ssize)+ao12), temp, pfac
+                         temp = lambda*auxExponentB*vi(iind,jind+jxm1,0)
+                         if (l2>0) then
+                            temp = temp - l2*vi(iind,jind-jxm1,0)
+                         end if
+                         deriveValue(center_j+(0*ssize)+ao12) = deriveValue(center_j+(0*ssize)+ao12) + temp * pfac
+                         ! write(*,"(I,3F17.12)") center_j+(0*ssize)+ao12, deriveValue(center_j+(0*ssize)+ao12), temp, pfac
 
-                               temp = lambda*auxExponentA*vi(iind+izm1,jind,0)
-                               if (n1>0) then
-                                  temp = temp - n1*vi(iind-izm1,jind,0)
-                               end if
-                               deriveValue(center_i+(2*ssize)+ao12) = deriveValue(center_i+(2*ssize)+ao12) + temp * pfac
-                               ! write(*,"(I,3F17.12)") center_i+(2*ssize)+ao12, deriveValue(center_i+(2*ssize)+ao12), temp, pfac
-                               temp = lambda*auxExponentB*vi(iind,jind+jzm1,0)
-                               if (n2>0) then
-                                  temp = temp - n2*vi(iind,jind-jzm1,0)
-                               end if
-                               deriveValue(center_j+(2*ssize)+ao12) = deriveValue(center_j+(2*ssize)+ao12) + temp * pfac
-                               ! write(*,"(I,3F17.12)") center_j+(2*ssize)+ao12, deriveValue(center_j+(2*ssize)+ao12), temp, pfac
-                               
-                               deriveValue(3*ssize*center+2*ssize+ao12) = deriveValue(3*ssize*center+2*ssize+ao12) + vz(iind,jind,0) * pfac
-                               ! write(*,"(A,I,3F17.12)") "z: ", 3*ssize*center+2*ssize+ao12, deriveValue(3*ssize*center+2*ssize+ao12), temp, pfac
-                               ao12 = ao12 + 1
+                         deriveValue(3*ssize*center+ao12) = deriveValue(3*ssize*center+ao12) + vx(iind,jind,0) * pfac
+                         ! write(*,"(A,I,3F17.12)") "x: ", 3*ssize*center+ao12, deriveValue(3*ssize*center+ao12), temp, pfac
 
-                               ! write(*,"(A)") "------------------------------------ "
-                            end do
-                         end do
+                         temp = lambda*auxExponentA*vi(iind+iym1,jind,0)
+                         if (m1>0) then
+                            temp = temp - m1*vi(iind-iym1,jind,0)
+                         end if
+                         deriveValue(center_i+(1*ssize)+ao12) = deriveValue(center_i+(1*ssize)+ao12) + temp * pfac
+                         ! write(*,"(I,3F17.12)") center_i+(1*ssize)+ao12, deriveValue(center_i+(1*ssize)+ao12), temp, pfac
+                         temp = lambda*auxExponentB*vi(iind,jind+jym1,0)
+                         if (m2>0) then
+                            temp = temp - m2*vi(iind,jind-jym1,0)
+                         end if
+                         deriveValue(center_j+(1*ssize)+ao12) = deriveValue(center_j+(1*ssize)+ao12) + temp * pfac
+                         ! write(*,"(I,3F17.12)") center_j+(1*ssize)+ao12, deriveValue(center_j+(1*ssize)+ao12), temp, pfac
+
+                         deriveValue(3*ssize*center+ssize+ao12) = deriveValue(3*ssize*center+ssize+ao12) + vy(iind,jind,0) * pfac
+                         ! write(*,"(A,I,3F17.12)") "y: ", 3*ssize*center+ssize+ao12, deriveValue(3*ssize*center+ssize+ao12), temp, pfac 
+
+                         temp = lambda*auxExponentA*vi(iind+izm1,jind,0)
+                         if (n1>0) then
+                            temp = temp - n1*vi(iind-izm1,jind,0)
+                         end if
+                         deriveValue(center_i+(2*ssize)+ao12) = deriveValue(center_i+(2*ssize)+ao12) + temp * pfac
+                         ! write(*,"(I,3F17.12)") center_i+(2*ssize)+ao12, deriveValue(center_i+(2*ssize)+ao12), temp, pfac
+                         temp = lambda*auxExponentB*vi(iind,jind+jzm1,0)
+                         if (n2>0) then
+                            temp = temp - n2*vi(iind,jind-jzm1,0)
+                         end if
+                         deriveValue(center_j+(2*ssize)+ao12) = deriveValue(center_j+(2*ssize)+ao12) + temp * pfac
+                         ! write(*,"(I,3F17.12)") center_j+(2*ssize)+ao12, deriveValue(center_j+(2*ssize)+ao12), temp, pfac
+
+                         deriveValue(3*ssize*center+2*ssize+ao12) = deriveValue(3*ssize*center+2*ssize+ao12) + vz(iind,jind,0) * pfac
+                         ! write(*,"(A,I,3F17.12)") "z: ", 3*ssize*center+2*ssize+ao12, deriveValue(3*ssize*center+2*ssize+ao12), temp, pfac
+                         ao12 = ao12 + 1
+
+                         ! write(*,"(A)") "------------------------------------ "
                       end do
                    end do
-                   ! center = center + 1
+                end do
+             end do
+             ! center = center + 1
              !    end if
              ! end if
           end do

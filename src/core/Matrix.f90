@@ -505,6 +505,26 @@ contains
 
           !! Falta implementar
 
+          inquire(unit=unit, exist=existFile)
+
+
+          if(existFile) then
+
+             if(present(arguments)) then
+                
+                do m = 1, size(arguments)
+                   
+                   write(unit,*) arguments(m)
+                   
+                end do
+             end if
+            rows = size( mmatrix%values , DIM=1 )
+            columns = size( mmatrix%values , DIM=2 )
+            write(auxSize,*)  columns
+            write(unit,*) int(size(mmatrix%values), 8)
+            write (unit,"("//trim(auxSize)//"(1X,ES15.8))") ((mmatrix%values(m,n), n=1 ,columns) , m=1 , rows)
+          end if
+
        else if ( present(file) ) then
 
           open ( 4,FILE=trim(file),STATUS='REPLACE',ACTION='WRITE')
@@ -701,7 +721,100 @@ contains
        
        if ( present( unit ) ) then
           
-          !! Falta implementar
+          !! check file
+          inquire(unit=unit, exist=existFile)
+          
+          if(existFile) then
+             
+             rewind(unit)
+             
+             found = .false.
+             
+             if(present(arguments)) then
+                
+                do          
+                   line = ""
+                   read(unit,*, iostat = status) line !(1:len_trim(arguments(1)))
+                
+                   if(status == -1) then
+                      
+                      call Matrix_exception( ERROR, "End of file!",&
+                           "Class object Matrix in the getfromFile() function" )
+                   end if
+                   
+                   if(trim(line) == trim(arguments(1))) then
+                      
+                      found = .true.                   
+                      
+                   end if
+                   
+                   if(found) then
+                      
+                      backspace(unit)
+                      
+                      do i = 1, size(arguments)
+                         
+                         found = .false.
+                         read(unit,*, iostat = status) line
+                         
+                         if(trim(line) == trim(arguments(i))) then
+                            
+                            found = .true.
+                                                     
+                         end if
+                         
+                      end do
+                      
+                   end if
+                   
+                   if(found) exit
+                      
+                end do
+                
+             end if
+             
+             !! check size
+             read(unit,*) totalSize
+             
+             if(totalSize == int(columns*rows,8)) then
+
+                if(.not. allocated(output%values)) then                   
+                
+                   call Matrix_constructor( output, int(rows,8), int(columns,8) )
+                   
+                end if
+                
+                if (allocated(values)) deallocate(values)
+                allocate( values(totalSize) )
+                
+                read(unit,*) values
+                
+                m = 1
+                do i=1,columns
+                   do j=1,columns
+!!                      output%values(j, i) = values(m) !! ???
+                      output%values(i, j) = values(m)
+                      m = m + 1
+                   end do
+                end do
+                
+                !! call Matrix_show(output)
+                
+                deallocate(values)
+
+            else
+                
+                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                     "Class object Matrix  in the getFromFile() function"  )
+                
+             end if
+             
+          else
+             call Matrix_exception( ERROR, "Unit file no connected!",&
+                  "Class object Matrix  in the getFromFile() function" )
+             
+          end if
+
           
        else if ( present(file) ) then
           

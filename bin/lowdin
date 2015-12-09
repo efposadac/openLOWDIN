@@ -113,7 +113,7 @@ then
 	else
 		chmod +w $LOWDIN_SCRATCH/lowdin.pid
 		echo "## WARNING ## Another LOWDIN process (pid=`cat $LOWDIN_SCRATCH/lowdin.pid`) in singleton mode (-s) have finished with errors"
-		rm $LOWDIN_SCRATCH/lowdin.pid
+		# rm $LOWDIN_SCRATCH/lowdin.pid
 	fi
 elif [ $singleton = "T" ]
 then
@@ -271,7 +271,7 @@ if [ $extFile="lowdin" ]; then
 	    echo "## WARNING ## The scratch directory $LOWDIN_SCRATCH/$nameFile"
 	    echo "              has been removed, probably it corresponds to"
 	    echo "              a calculation completed or with errors."
-	    rm -rf $LOWDIN_SCRATCH/$nameFile
+	    # rm -rf $LOWDIN_SCRATCH/$nameFile
 	    mkdir $LOWDIN_SCRATCH/$nameFile
 	else
 	    mkdir $LOWDIN_SCRATCH/$nameFile
@@ -327,7 +327,8 @@ if [ $extFile="lowdin" ]; then
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
 	fi
 
-	#mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/lowdin-plain.vec $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
@@ -367,7 +368,7 @@ if [ $singleton = "T" ]
 then
 	cd $LOWDIN_SCRATCH
 	chmod +w lowdin.pid
-	rm lowdin.pid
+	# rm lowdin.pid
 	exit 0
 else
 	exit 0
