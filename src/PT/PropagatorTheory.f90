@@ -457,11 +457,11 @@ contains
 
        if (nameOfSpeciesA=="E-ALPHA".or.nameOfSpeciesA=="E-BETA") then
           
-          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 8, 0.0_8)
+          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 
        else 
 
-          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 4, 0.0_8)
+          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 4_8, 0.0_8)
 
        end if
 
@@ -564,18 +564,18 @@ contains
                 vectorSize1 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA * virtualNumberOfSpeciesA
                 vectorSize2 = occupationNumberOfSpeciesA * occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
 
-                call Matrix_constructor(selfEnergy2ph(j), 2, vectorSize1, 0.0_8)
+                call Matrix_constructor(selfEnergy2ph(j), 2_8, vectorSize1, 0.0_8)
                 
                 if (occupationNumberOfSpeciesA>1) then
                    
-                   call Matrix_constructor(selfEnergy2hp(j), 2, vectorSize2, 0.0_8)
+                   call Matrix_constructor(selfEnergy2hp(j), 2_8, vectorSize2, 0.0_8)
 
                 end if
 
                 if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
 
                    vectorSize3 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
-                   call Matrix_constructor(selfEnergyhp(j), 2, vectorSize2, 0.0_8)
+                   call Matrix_constructor(selfEnergyhp(j), 2_8, vectorSize2, 0.0_8)
 
                 end if
 
@@ -667,13 +667,13 @@ contains
                 vectorSize1 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesA * virtualNumberOfSpeciesB
                 vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
 
-                call Matrix_constructor(selfEnergy2ph(j), 2, vectorSize1, 0.0_8)
-                call Matrix_constructor(selfEnergy2hp(j), 2, vectorSize2, 0.0_8)
+                call Matrix_constructor(selfEnergy2ph(j), 2_8, vectorSize1, 0.0_8)
+                call Matrix_constructor(selfEnergy2hp(j), 2_8, vectorSize2, 0.0_8)
 
                 if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
 
                    vectorSize3 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesB
-                   call Matrix_constructor(selfEnergyhp(j), 2, vectorSize3, 0.0_8)
+                   call Matrix_constructor(selfEnergyhp(j), 2_8, vectorSize3, 0.0_8)
 
                 end if
 
@@ -1021,7 +1021,7 @@ contains
 !          n = 2
 !       end if
 !
-!       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8, 0.0_8)
+!       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 !       ! Storing transformed integrals !!!! We need a more efficient algorithm for this
 !       
 !!       call TransformIntegrals_constructor( repulsionTransformer )
@@ -1074,8 +1074,8 @@ contains
 !                vectorSize1 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA * virtualNumberOfSpeciesA
 !                vectorSize2 = occupationNumberOfSpeciesA * occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
 !
-!                call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-!                call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+!                call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+!                call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
 !
 !                id1 = 0
 !                id2 = 0
@@ -1345,8 +1345,8 @@ contains
 !                
 !                auxMatrix%values = auxMatrix%values * ( chargeOfSpeciesB**2.0_8 )
 !                         
-!                call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-!                call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+!                call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+!                call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
 !
 !                id1 = 0
 !                id2 = 0
@@ -2464,7 +2464,7 @@ contains
 !          n = 2
 !       end if
 !
-!       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8, 0.0_8)
+!       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 !       
 !       ! Storing transformed integrals !!!! We need a more efficient algorithm for this
 !       
@@ -2748,8 +2748,8 @@ contains
 !                vectorSize1 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA * virtualNumberOfSpeciesA
 !                vectorSize2 = occupationNumberOfSpeciesA * occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
 !                
-!                call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-!                call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+!                call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+!                call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
 !                
 !                id1 = 0
 !                id2 = 0
@@ -3210,8 +3210,8 @@ contains
 !
 !                   end if
 !
-!                   call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-!                   call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+!                   call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+!                   call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
 !                   
 !                   id1 = 0
 !                   id2 = 0
@@ -4651,7 +4651,7 @@ contains
 !          n = 2
 !       end if
 !
-!       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8, 0.0_8)
+!       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 !
 !       !**************************************************************************
 !       !	Storing of denominators and numerators in the corresponding vectors
@@ -5235,8 +5235,8 @@ contains
 !                vectorSize1 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA * virtualNumberOfSpeciesA
 !                vectorSize2 = occupationNumberOfSpeciesA * occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
 !                
-!                call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-!                call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+!                call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+!                call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
 !                
 !                id1 = 0
 !                id2 = 0
@@ -5497,8 +5497,8 @@ contains
 !                   vectorSize1 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesA * virtualNumberOfSpeciesB
 !                   vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
 !                   
-!                   call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-!                   call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+!                   call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+!                   call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
 !                   
 !                   id1 = 0
 !                   id2 = 0
@@ -6841,7 +6841,7 @@ contains
 !          n = 2
 !       end if
 !
-!       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8, 0.0_8)
+!       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 !
 !       !**************************************************************************
 !       !	Storing of denominators and numerators in the corresponding vectors
@@ -7566,8 +7566,8 @@ contains
 !                vectorSize1 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA * virtualNumberOfSpeciesA
 !                vectorSize2 = occupationNumberOfSpeciesA * occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
 !                
-!                call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-!                call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+!                call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+!                call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
 !                
 !                id1 = 0
 !                id2 = 0
@@ -7748,8 +7748,8 @@ contains
 !                   vectorSize1 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesA * virtualNumberOfSpeciesB
 !                   vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
 !                   
-!                   call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-!                   call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+!                   call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+!                   call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
 !                   
 !                   id1 = 0
 !                   id2 = 0
@@ -9615,7 +9615,7 @@ contains
           n = 2
        end if
 
-       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8, 0.0_8)
+       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 
        !**************************************************************************
        !	Storing of denominators and numerators in the corresponding vectors
@@ -10351,8 +10351,8 @@ contains
                 vectorSize1 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA * virtualNumberOfSpeciesA
                 vectorSize2 = occupationNumberOfSpeciesA * occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
                 
-                call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-                call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+                call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+                call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
                 
                 id1 = 0
                 id2 = 0
@@ -10539,8 +10539,8 @@ contains
                    vectorSize1 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesA * virtualNumberOfSpeciesB
                    vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
                    
-                   call Matrix_constructor(selfEnergy2ph(j), 3, vectorSize1, 0.0_8)
-                   call Matrix_constructor(selfEnergy2hp(j), 3, vectorSize2, 0.0_8)
+                   call Matrix_constructor(selfEnergy2ph(j), 3_8, vectorSize1, 0.0_8)
+                   call Matrix_constructor(selfEnergy2hp(j), 3_8, vectorSize2, 0.0_8)
                    
                    id1 = 0
                    id2 = 0
@@ -13185,8 +13185,8 @@ contains
   !   call Vector_constructor( direction, int(HamiltonianSize) )
   !   call Vector_constructor( auxVector, int(HamiltonianSize) )
   !   call Vector_constructor( subEigenvalues, 2 )
-  !   call Matrix_constructor( subHamiltonian, 2, 2 )
-  !   call Matrix_constructor( subEigenvectors, 2, 2 )
+  !   call Matrix_constructor( subHamiltonian, 2_8, 2_8 )
+  !   call Matrix_constructor( subEigenvectors, 2_8, 2_8 )
   !   call Vector_constructor( superEigenvalues, int(HamiltonianSize) )
   !   call Matrix_constructor( superEigenvectors, HamiltonianSize, HamiltonianSize )
 
@@ -13454,10 +13454,10 @@ contains
 !                virtualNumberOfSpecies
 
 !           if ( allocated(hph(j)%values ) ) deallocate(hph(j)%values)
-!           call Matrix_constructor( hph(j), 3, size2hp)
+!           call Matrix_constructor( hph(j), 3_8, size2hp)
 
 !           if ( allocated(php(j)%values ) ) deallocate(php(j)%values)
-!           call Matrix_constructor( php(j), 3, size2ph)
+!           call Matrix_constructor( php(j), 3_8, size2ph)
 
 !           print *,"sizes:",size2hp,"",size2ph
 
@@ -13474,10 +13474,10 @@ contains
 !           print *,"sizes:",size2hp,"",size2ph
 
 !           if ( allocated(hph(j)%values ) ) deallocate(hph(j)%values)
-!           call Matrix_constructor( hph(j), 3, size2hp)
+!           call Matrix_constructor( hph(j), 3_8, size2hp)
 
 !           if ( allocated(php(j)%values ) ) deallocate(php(j)%values)
-!           call Matrix_constructor( php(j), 3, size2ph)
+!           call Matrix_constructor( php(j), 3_8, size2ph)
 
 !           sizes%values(j) = size2hp + size2ph
 !           vectorSizeaHf = vectorSizeaHf + size2hp + size2ph
@@ -14235,8 +14235,8 @@ contains
 !        call Vector_constructor( direction, int(HamiltonianSize) )
 !        call Vector_constructor( auxVector, int(HamiltonianSize) )
 !        call Vector_constructor( subEigenvalues, 2 )
-!        call Matrix_constructor( subHamiltonian, 2, 2 )
-!        call Matrix_constructor( subEigenvectors, 2, 2 )
+!        call Matrix_constructor( subHamiltonian, 2_8, 2_8 )
+!        call Matrix_constructor( subEigenvectors, 2_8, 2_8 )
        
 !        !!! DAVIDSON ALGORYTHM STARTS
        
