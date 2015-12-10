@@ -353,9 +353,7 @@ program HF
              Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-        ! write(*,*)"cosmo coupling wf hf"
-        ! call Matrix_show(WaveFunction_instance(speciesID)%cosmoCoupling)
-     	! call WaveFunction_quantumTotalCharge(speciesID)
+     	call WaveFunction_quantumTotalCharge(speciesID)
 
 
      end if

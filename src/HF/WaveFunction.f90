@@ -30,6 +30,7 @@ module WaveFunction_
   use Exception_
   use Stopwatch_
   use MolecularSystem_
+	use CosmoCore_
   implicit none
 
 
@@ -835,125 +836,89 @@ contains
     call Exception_destructor( ex )
   end subroutine WaveFunction_exception
 
-  ! subroutine WaveFunction_quantumTotalCharge(specieID)
-  !
-  !   ! character(*) :: nameOfSpecie
-  !   type(species) :: specieSelected
-  !   character(30) :: nameOfSpecieSelected
-  !   integer,intent(in) :: specieID
-  !
-  !   integer, allocatable :: labels(:)
-  !   real(8), allocatable :: cosmo_charges(:)
-  !   real(8), allocatable :: cosmo_charge_aux(:,:)
-	! 	
-	! 	
-  !
-  !   integer :: g,i,ii,h,hh,j,jj,k,l,m,o,p
-  !   integer :: iii,jjj,hhh,gg,ll,pp,oo
-  !
-  !   integer:: auxLabelsOfContractions
-  !   integer:: a, b, c
-  !
-	! 	leer del archivo de las cargas
-	! 	las dimensiones del archivo tal tal tal
-  !   
-	! 	specieSelected=MolecularSystem_instance%species(specieID)
-  !   nameOfSpecieSelected = MolecularSystem_getNameOfSpecie(specieID)
-  !   open(unit=110, file="cosmo"//trim(nameOfSpecieSelected)//".charges", status='old', form="unformatted")
-  !   read(110)nCharges
-	! 	read(110)totals
-  !
-	! 	luego leer las cargas(se puede hacer como lo hicimos antes para que no
-	! 	se volquetiara)
-  !
-  !
-	! 	Producto por las bases, el resultado sera un vector cosmoChargesAux(i)
-  !
-  !
-	! 	do i, surface%surfaceSize
-	! 		do m
-	! 			do u
-	! 			cosmoChargesAux(i)=cosmoChargesAux(i)+cosmoCharges(m,u)*DensityMatrix(m,u)
-	! 			endo
-	! 		endo
-	! 	endo
-  !
-	! 	write(*,*)
-  !
-  !
-  !
-  !   if(allocated(cosmo_int)) deallocate(cosmo_int)
-  !   allocate(cosmo_int(m))
-  !
-  !   read(110)(cosmo_int(i),i=1,m)
-  !   close(unit=110)
-  !
-  !   if(allocated(labels)) deallocate(labels)
-  !   allocate(labels(MolecularSystem_instance%species(specieID)%basisSetSize))
-  !
-  !   if(allocated(cosmo_charge_aux)) deallocate(cosmo_charge_aux)
-  !   allocate(cosmo_charge_aux(MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getTotalNumberOfContractions(specieID)))
-  !
-  !
-  !   auxLabelsOfContractions = 1
-  !
-  !   c = 0
-  !   do a = 1, size(specieSelected%particles)
-  !      do b = 1, size(specieSelected%particles(a)%basis%contraction)
-  !
-  !         c = c + 1
-  !
-  !         !!position for cartesian contractions
-  !
-  !         labels(c) = auxLabelsOfContractions
-  !         auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(a)%basis%contraction(b)%numCartesianOrbital
-  !
-  !
-  !      end do
-  !   end do
-  !
-	! 	write(*,*)"hola sali de ahi"
-  !   ! call Matrix_show(wavefunction_instance(speciesID)%densityMatrix)
-  !
-  !   cosmoCharge=0.0_8
-  !
-  !   m = 0
-  !
-  !   ii = 0
-  !   do g = 1, size(MolecularSystem_instance%species(specieID)%particles)
-  !      do h = 1, size(MolecularSystem_instance%species(specieID)%particles(g)%basis%contraction)
-  !
-  !         hh = h
-  !         ii = ii + 1
-  !         jj = ii - 1
-  !
-  !         do i = g, size(MolecularSystem_instance%species(specieID)%particles)
-  !            do j = hh, size(MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction)
-  !
-  !               jj = jj + 1
-  !
-  !               !!saving integrals on Matrix
-  !               do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(specieID)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-  !                  do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-  !                     m = m + 1
-  !
-  !                     cosmo_charge_aux(k,l) =(wavefunction_instance(specieID)%densityMatrix%values(k,l))* cosmo_int(m)
-  !                     cosmo_charge_aux(l,k) =(wavefunction_instance(specieID)%densityMatrix%values(l,k))* cosmo_int(m)
-  !
-  !                  end do
-  !               end do
-  !            end do
-  !            hh = 1
-  !         end do
-  !      end do
-  !   end do
-  !
-  !   ! write(*,*)"cosmo_charge_aux(pp,oo)"
-  !   ! write(*,*) cosmo_charge_aux(:,:)
-  !
-  !   cosmoCharge=sum(cosmo_charge_aux)
-  !   write(*,*)"COSMO Total Charge for  "//trim(nameOfSpecieSelected),cosmoCharge
-  !
-  ! end subroutine WaveFunction_quantumTotalCharge
+  subroutine WaveFunction_quantumTotalCharge(f)
+  
+	integer :: f,g,a,c,b
+	integer :: m,k,l
+	integer :: h,hh,i,ii,jj,j
+	integer :: auxLabelsOfContractions
+	integer, allocatable :: labels(:)
+  real(8), allocatable :: qiCosmo(:,:)
+	
+	character(100) :: charges_file
+  
+	type(species) :: specieSelected
+    
+	specieSelected=MolecularSystem_instance%species(f)
 
+    if(allocated(labels)) deallocate(labels)
+    allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+
+    auxLabelsOfContractions = 1
+
+
+
+    c = 0
+    do a = 1, size(specieSelected%particles)
+       do b = 1, size(specieSelected%particles(a)%basis%contraction)
+
+          c = c + 1
+
+          !!position for cartesian contractions
+
+          labels(c) = auxLabelsOfContractions
+          auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(a)%basis%contraction(b)%numCartesianOrbital
+
+
+       end do
+    end do
+    
+		
+		charges_file="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+    open(unit=100, file=trim(charges_file), status='old', form="unformatted")
+          ii = 0
+          !! do sobre las particulas
+          do g = 1, size(MolecularSystem_instance%species(f)%particles)
+             !! do sobre las contracciones 
+             do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+                hh = h
+                ii = ii + 1
+                jj = ii - 1
+                !! do sobre las particulas diferentes a g de la misma especie
+                do i = g, size(MolecularSystem_instance%species(f)%particles)
+                   !! do sobre las bases de las particulas diferentes a g de la misma especie
+                   do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+                      jj = jj + 1
+
+                      if(allocated(qiCosmo)) deallocate(qiCosmo)
+                      allocate(qiCosmo((MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                           MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital), numberOfPointCharges))
+
+
+                      m=0
+                      do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                         do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                            m = m + 1
+                            ! if(allocated(cosmoV)) deallocate(cosmoV)
+                            ! allocate(cosmoV(numberOfPointCharges))
+                            ! cosmoV(:)=integralValueCosmo(m,:)
+                            !
+                            ! call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
+                            !
+                            ! write(70)integralValueCosmo(m,:)
+                            ! write(80)qCharges
+                         end do
+                      end do
+
+                   end do
+                   !! end do de bases
+                   hh = 1
+                end do
+                !!end do particulas
+             end do
+             ! end do bases
+          end do
+
+  end subroutine WaveFunction_quantumTotalCharge
+	
 end module WaveFunction_

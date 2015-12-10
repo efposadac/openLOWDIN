@@ -391,7 +391,7 @@ contains
 
 
           integralBuffer = 0.0_8
-
+					write(80)numberOfPointCharges
 
           ii = 0
           !! do sobre las particulas

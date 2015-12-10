@@ -470,7 +470,9 @@ contains
     !    read(100)(a_mat(i,n),i=1,surface)
     ! end do
 		! read
-
+		
+		read(100)m
+		write(*,*)"m en el charge file ", m
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
     end do
