@@ -7,3 +7,4 @@
 *.a
 CONFIG
 makefile
+__pycache__
