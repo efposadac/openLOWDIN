@@ -268,7 +268,7 @@ contains
     !
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 
-
+		write(77)segments
     do i=1,np
 
        !se alimenta verifier con la informacion del particle manager sobre si es
@@ -622,6 +622,7 @@ contains
     type(surfaceSegment), intent(in) :: surface
 
     integer(8) :: np 
+    integer(8) :: isegments 
     integer:: segments,j,i
 
     type(Matrix) :: clasical_charge
@@ -642,6 +643,9 @@ contains
     allocate(clasical_positions(np,3))
 
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
+		read(77) isegments
+		write(*,*)"isegments",isegments
+
     read(77)(q_clasical(i),i=1,segments)
 
     close(77)
@@ -695,6 +699,7 @@ contains
     real(8), allocatable :: ints_mat_aux(:,:)
 
     character(100), intent(in):: charges_file
+    integer :: icharges
 
 
     np=MolecularSystem_instance%numberOfPointCharges
@@ -707,7 +712,9 @@ contains
     allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
-
+		
+		read(100)icharges
+		write(*,*)"icharges",icharges
     do n=1,charges
        read(100)(a_mat(i,n),i=1,segments)
     end do

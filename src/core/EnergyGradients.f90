@@ -889,6 +889,7 @@ contains
     real(8) :: dax, day, daz
     real(8) :: constantDer
     integer :: stat
+    integer :: icharges
 
 
     wfnFile = "lowdin.wfn"
@@ -1594,7 +1595,7 @@ contains
           cosmoEpsilon=(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)
 
           open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
-
+					read(77)icharges
           read(77)(qTotal(i),i=1,surface%sizeSurface)
 
           close(unit=77)
@@ -1699,7 +1700,7 @@ contains
 	  constantDer=-0.5_8*cosmoEpsilon*1.07_8*Math_SQRT_PI
           open(unit=78, file=trim(CONTROL_instance%INPUT_FILE)//"der", status="old")
 	  read(78,*) AA, centerP, dax, day, daz
-	  write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
+	  ! write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
           do A=1, surface%sizeSurface
              do B=1, surface%sizeSurface
                 deltaOrigin(1) = surface%xs(A) - surface%xs(B) 

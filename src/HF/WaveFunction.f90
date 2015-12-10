@@ -30,7 +30,7 @@ module WaveFunction_
   use Exception_
   use Stopwatch_
   use MolecularSystem_
-	use CosmoCore_
+  use CosmoCore_
   implicit none
 
 
@@ -837,26 +837,46 @@ contains
   end subroutine WaveFunction_exception
 
   subroutine WaveFunction_quantumTotalCharge(f)
-  
-	integer :: f,g,a,c,b
-	integer :: m,k,l
-	integer :: h,hh,i,ii,jj,j
-	integer :: auxLabelsOfContractions
-	integer, allocatable :: labels(:)
-  real(8), allocatable :: qiCosmo(:,:)
-	
-	character(100) :: charges_file
-  
-	type(species) :: specieSelected
+
+    integer :: f,g,a,c,b
+    integer :: m,k,l
+    integer :: h,hh,i,ii,jj,j
+    integer :: auxLabelsOfContractions
+    integer :: numberOfPointCharges
+    integer :: orderOfMatrix
+
+    integer, allocatable :: labels(:)
+    real(8), allocatable :: qiCosmo(:)
+    real(8), allocatable :: qiDensityCosmo(:,:)
+
+    character(100) :: charges_file
+    character(50) :: arguments(20)
+
+    type(species) :: specieSelected
+    type(Matrix) :: densityMatrix
     
-	specieSelected=MolecularSystem_instance%species(f)
+		character(50) :: wfnFile
+    integer :: wfnUnit
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+
+    specieSelected=MolecularSystem_instance%species(f)
 
     if(allocated(labels)) deallocate(labels)
     allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+    
+		orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(f)
 
-    auxLabelsOfContractions = 1
+    arguments(2) = MolecularSystem_getNameOfSpecie(f)
 
+    arguments(1) = "DENSITY"
+    densityMatrix = &
+         Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
+         columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
 
+    
+		
+		auxLabelsOfContractions = 1
 
     c = 0
     do a = 1, size(specieSelected%particles)
@@ -872,53 +892,57 @@ contains
 
        end do
     end do
-    
-		
-		charges_file="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+
+
+    charges_file="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
-          ii = 0
-          !! do sobre las particulas
-          do g = 1, size(MolecularSystem_instance%species(f)%particles)
-             !! do sobre las contracciones 
-             do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
-                hh = h
-                ii = ii + 1
-                jj = ii - 1
-                !! do sobre las particulas diferentes a g de la misma especie
-                do i = g, size(MolecularSystem_instance%species(f)%particles)
-                   !! do sobre las bases de las particulas diferentes a g de la misma especie
-                   do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
-                      jj = jj + 1
+    read(100)numberOfPointCharges
+    ii = 0
+    !! do sobre las particulas
+    do g = 1, size(MolecularSystem_instance%species(f)%particles)
+       !! do sobre las contracciones 
+       do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+          hh = h
+          ii = ii + 1
+          jj = ii - 1
+          !! do sobre las particulas diferentes a g de la misma especie
+          do i = g, size(MolecularSystem_instance%species(f)%particles)
+             !! do sobre las bases de las particulas diferentes a g de la misma especie
+             do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+                jj = jj + 1
 
-                      if(allocated(qiCosmo)) deallocate(qiCosmo)
-                      allocate(qiCosmo((MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
-                           MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital), numberOfPointCharges))
+                if(allocated(qiCosmo)) deallocate(qiCosmo)
+                allocate(qiCosmo(numberOfPointCharges))
+
+                if(allocated(qiDensityCosmo)) deallocate(qiDensityCosmo)
+                allocate(qiDensityCosmo(orderOfMatrix, orderOfMatrix))
 
 
-                      m=0
-                      do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                         do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                            m = m + 1
-                            ! if(allocated(cosmoV)) deallocate(cosmoV)
-                            ! allocate(cosmoV(numberOfPointCharges))
-                            ! cosmoV(:)=integralValueCosmo(m,:)
-                            !
-                            ! call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
-                            !
-                            ! write(70)integralValueCosmo(m,:)
-                            ! write(80)qCharges
-                         end do
-                      end do
-
+                do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                   do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                      ! if(allocated(cosmoV)) deallocate(cosmoV)
+                      ! allocate(cosmoV(numberOfPointCharges))
+                      ! cosmoV(:)=integralValueCosmo(m,:)
+                                                 read(100)cosmo_int
+                                                 ints_mat_aux(pp, oo) =(wavefunction_instance(otherSpecieID)%densityMatrix%values(pp,oo))* cosmo_int
+                                                 ints_mat_aux(oo, pp) = ints_mat_aux(pp, oo)
+                      !
+                      ! call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
+                      !
+                      ! write(70)integralValueCosmo(m,:)
+                      ! write(80)qCharges
                    end do
-                   !! end do de bases
-                   hh = 1
                 end do
-                !!end do particulas
+
              end do
-             ! end do bases
+             !! end do de bases
+             hh = 1
           end do
+          !!end do particulas
+       end do
+       ! end do bases
+    end do
 
   end subroutine WaveFunction_quantumTotalCharge
-	
+
 end module WaveFunction_
