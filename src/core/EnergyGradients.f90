@@ -857,6 +857,7 @@ contains
     integer :: j
     integer :: k
     integer :: l
+    integer :: m
     integer :: u
     integer :: v
     integer :: x
@@ -872,7 +873,7 @@ contains
     real(8) :: Ax, Ay, Az, Bx, By, Bz, Cx, Cy, Cz, Dx, Dy, Dz
     integer, allocatable :: labelsOfContractions(:)
     real(8), allocatable :: auxKinetic(:,:), auxPotential(:,:), auxOverlap(:,:), auxCoulomb(:,:), auxExchange(:,:)
-    real(8), allocatable :: auxCOSMO(:,:)
+    real(8), allocatable :: auxCOSMO(:,:), auxCOSMO2(:,:), auxCOSMO3(:,:,:)
     integer, allocatable :: auxOwnerId(:)
     character(50) :: wfnFile
     integer :: wfnUnit
@@ -952,6 +953,10 @@ contains
        if(CONTROL_instance%COSMO) then
           if(allocated(auxCOSMO)) deallocate(auxCOSMO)
           allocate(auxCOSMO(numberOfOptimizationCenters,3))
+          if(allocated(auxCOSMO2)) deallocate(auxCOSMO2)
+          allocate(auxCOSMO2(numberOfOptimizationCenters,3))
+          if(allocated(auxCOSMO3)) deallocate(auxCOSMO3)
+          allocate(auxCOSMO3(surface%sizeSurface,numberOfOptimizationCenters,3))
           if(allocated(qTotal)) deallocate(qTotal)
           allocate(qTotal(surface%sizeSurface))
        end if
@@ -1599,6 +1604,9 @@ contains
 
           close(unit=77)
 
+          write(*,"(A)") "---------------------------------------------------------------------------------------"
+          write(*,*) "Derivadas: "
+
           do P = 1, numberOfContractions
              do Q = 1, P
                 numCartesianP = contractions(P)%numCartesianOrbital  !! nP
@@ -1618,15 +1626,14 @@ contains
                 call DerivativeManager_getElement( ATTRACTION_DERIVATIVES, &
                      auxVector2, surface, i=P, j=Q, nameOfSpecie=nameOfSpecie, A=centerP, B=centerQ )
 
-                !write(*,"(A)") "---------------------------------------------------------------------------------------"
-                !write(*,*) "Derivadas: "
-                !write(*,*) P, Q, " | ", auxVector2(:)
+                ! write(*,*) P, Q, " | ", auxVector2(:)
 
                 i = 0
                 j = 0
                 k = 0
                 ! center = 1
 
+              
                 do A=1, surface%sizeSurface
                    i = 3*(A-1)*numCartesianP*numCartesianQ + 0*numCartesianP*numCartesianQ
                    j = 3*(A-1)*numCartesianP*numCartesianQ + 1*numCartesianP*numCartesianQ
@@ -1643,35 +1650,61 @@ contains
                          ! write(*,*) "(v,u) ", v, " | ", u, " : ", densityMatrix%values(v,u)
 
                          do center=1, numberOfOptimizationCenters
-                            if((centerP.EQ.center).and.(surface%atoms(A).NE.center))then
-                               auxCOSMO(center,1) = auxCOSMO(center,1) + Vval*auxVector2(i)*qTotal(A)
-                               i=i+1
-                               auxCOSMO(center,2) = auxCOSMO(center,2) + Vval*auxVector2(j)*qTotal(A)
-                               j=j+1
-                               auxCOSMO(center,3) = auxCOSMO(center,3) + Vval*auxVector2(k)*qTotal(A)
-                               k=k+1
-                            else if((centerP.NE.center).and.(surface%atoms(A).EQ.center))then
-                               auxCOSMO(center,1) = auxCOSMO(center,1) - Vval*auxVector2(i)*qTotal(A)
-                               i=i+1
-                               auxCOSMO(center,2) = auxCOSMO(center,2) - Vval*auxVector2(j)*qTotal(A)
-                               j=j+1
-                               auxCOSMO(center,3) = auxCOSMO(center,3) - Vval*auxVector2(k)*qTotal(A)
-                               k=k+1
-                            end if
-                         end do
+                            ! if((centerP.EQ.center).and.(surface%atoms(A).NE.center))then
+                            !    auxCOSMO(center,1) = auxCOSMO(center,1) + Vval*auxVector2(i)!*qTotal(A)
+                            !    i=i+1
+                            !    auxCOSMO(center,2) = auxCOSMO(center,2) + Vval*auxVector2(j)!*qTotal(A)
+                            !    j=j+1
+                            !    auxCOSMO(center,3) = auxCOSMO(center,3) + Vval*auxVector2(k)!*qTotal(A)
+                            !    k=k+1
+                            ! else if((centerP.NE.center).and.(surface%atoms(A).EQ.center))then
+                            !    auxCOSMO(center,1) = auxCOSMO(center,1) - Vval*auxVector2(i)!*qTotal(A)
+                            !    i=i+1
+                            !    auxCOSMO(center,2) = auxCOSMO(center,2) - Vval*auxVector2(j)!*qTotal(A)
+                            !    j=j+1
+                            !    auxCOSMO(center,3) = auxCOSMO(center,3) - Vval*auxVector2(k)!*qTotal(A)
+                            !    k=k+1
+                            ! end if
+                            auxCOSMO(center,1) = auxCOSMO(center,1) + Vval*auxVector2(i)!*qTotal(A)
+                            i=i+1
+                            auxCOSMO(center,2) = auxCOSMO(center,2) + Vval*auxVector2(j)!*qTotal(A)
+                            j=j+1
+                            auxCOSMO(center,3) = auxCOSMO(center,3) + Vval*auxVector2(k)!*qTotal(A)
+                            k=k+1
 
+                         end do
+                         
                       end do
+                        
                    end do
+                   do center=1, numberOfOptimizationCenters
+                      do m=1, 3
+                      auxCOSMO3(A,center,m)= auxCOSMO3(A,center,m) + auxCOSMO(center,m) - auxCOSMO2(center,m)
+                   end do
+                   end do
+                   auxCOSMO2=auxCOSMO
+
                    ! A = A + 1
-                   center = center + 1
                    !    end if
                    ! end if
                 end do
                 ! write(*,"(A)") "================================================================"
                 ! write(*,"(3(f17.12))") auxPotential(1,1), auxPotential(1,2), auxPotential(1,3)
                 ! write(*,"(A)") "================================================================"
+
              end do
           end do
+          do center=1, numberOfOptimizationCenters
+             do A=1, surface%sizeSurface
+
+                   write(*,*) auxCOSMO3(A,center,:), center, A
+
+             end do
+          end do
+          write(*,*)"1X",auxCOSMO(1,1) 
+          write(*,*)"2X",auxCOSMO(2,1) 
+          write(*,*)"3X",auxCOSMO(3,1) 
+					
           deltaOrigin=0.0_8
           do A=1, surface%sizeSurface
              do center=1, numberOfOptimizationCenters
