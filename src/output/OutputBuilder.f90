@@ -183,7 +183,8 @@ contains
     print *, "--------------------------------------------------------"
     print *, "Output Number: ", this%outputID
     print *, "FileName: ", this%fileName
-    if (this%filename2 /= "") print *, "FileName 2: ", this%fileName2
+    ! TODO Fix this line.
+    ! if (this%filename2 /= "") print *, "FileName 2: ", this%fileName2
     print *, this%type
     if (this%specie /= "") write (6,"(A30,A10)") "for specie: ", this%specie
     if (this%orbital /= 0) write (6,"(A30,I10)") "for orbital: ", this%orbital

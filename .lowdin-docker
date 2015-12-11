@@ -1,0 +1,12 @@
+FROM ubuntu:14.04
+
+# Update the base system and install any required dependencies
+# RUN apt-get update -qq
+
+# You could install further dependencies via e.g.
+# RUN apt-get install \
+#   apt-utils \
+#   build-essential \
+#   libblas-dev \
+#   liblapack-dev
+

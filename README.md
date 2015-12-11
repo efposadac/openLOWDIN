@@ -9,6 +9,12 @@ This program has been developed under direction of:
 
 © All rights reserved, 2014.
 
+
+Build status
+
+![status](https://codeship.com/projects/20d722b0-8229-0133-0920-3ae4df758b2e/status?branch=Develop-qcc "Build status")
+
+
 Welcome to LOWDIN Quantum Chemistry Package 2.0.
 
 Installation notes.
