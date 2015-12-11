@@ -42,9 +42,9 @@ SCRATCH='/scratch'
 CUDAFLAGS="no"
 CXX="g++"
 CC="gcc"
-CFLAGS="-g -O3 -fopenmp -D gfortran"
-CPPFLAGS="-g -O3 -fopenmp -D gfortran"
-FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check -mcmodel=large"
+CFLAGS="-g -O2 -fopenmp -D gfortran"
+CPPFLAGS="-g -O2 -fopenmp -D gfortran"
+FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran"
 LAPACK_LIBS="-lblas -llapack"
 STDCPP_LIBS="-lstdc++"
 LIBINT_LIBS="-lr12 -lderiv -lint"
@@ -123,14 +123,14 @@ else
         CXX="icpc"
         CC="icc"
         CU="nvcc -arch=sm_20"
-        CFLAGS="-g -O3 -D intel"
-        CPPFLAGS="-g -O3 -D intel"
+        CFLAGS="-g -O2 -D intel"
+        CPPFLAGS="-g -O2 -D intel"
     else
         CXX=g++
         CC=gcc
         CU="nvcc -arch=sm_20"
-        CFLAGS="-g -O3 -fopenmp -D gfortran"
-        CPPFLAGS="-g -O3 -fopenmp -D gfortran"
+        CFLAGS="-g -O2 -fopenmp -D gfortran"
+        CPPFLAGS="-g -O2 -fopenmp -D gfortran"
     fi
 
     echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only) [$FLAGS]"
@@ -161,26 +161,26 @@ else
     if [ "$FLAGS" = "1" ] ; then
         
         if [ "$FC" = "ifort" ] ; then
-    	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp -mcmodel=large $addflagsCuda"
+    	FCFLAGS="-O2 -D intel -fpic -openmp -fpp  $addflagsCuda"
         else
-    	FCFLAGS="-Ofast -fopenmp -D gfortran -fpic -cpp  -ffree-line-length-none -fno-range-check -mcmodel=large $addflagsCuda"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran $addflagsCuda"
         fi
     fi
 
     if [ "$FLAGS" = "2" ] ; then
         if [ "$FC" = "ifort" ] ; then
-    	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended -mcmodel=large $addflagsCuda " 
+    	FCFLAGS="-O2 -D intel -fpic -openmp -fpp -traceback -g -debug extended  $addflagsCuda " 
         else
-    	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check -mcmodel=large $addflagsCuda"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
         fi
     fi
 
     if [ "$FLAGS" = "3" ] ; then
         if [ "$FC" = "ifort" ] ; then	
-    	FCFLAGS="-static -static-intel -static-libgcc -O3 -D intel -fpic -no-vec -fpp -openmp -traceback -g -debug extended  $addflagsCuda"
+    	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -openmp -traceback -g -debug extended  $addflagsCuda"
         else
     	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
-    	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check  $addflagsCuda"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
         fi
     fi
 
