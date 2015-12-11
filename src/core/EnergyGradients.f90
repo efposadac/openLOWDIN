@@ -1594,8 +1594,7 @@ contains
        if(CONTROL_instance%COSMO) then
           cosmoEpsilon=(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)
 
-          open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
-					read(77)icharges
+          open(unit=77, file="qTotalCosmo.charges", status="unknown",form="unformatted")
           read(77)(qTotal(i),i=1,surface%sizeSurface)
 
           close(unit=77)

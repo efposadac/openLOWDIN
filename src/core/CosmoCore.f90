@@ -643,7 +643,6 @@ contains
 
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 		read(77) isegments
-		write(*,*)"isegments",isegments
 
     read(77)(q_clasical(i),i=1,segments)
 
