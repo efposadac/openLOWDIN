@@ -847,15 +847,15 @@ contains
 
     integer, allocatable :: labels(:)
     real(8), allocatable :: qiCosmo(:)
-    real(8), allocatable :: qiDensityCosmo(:,:)
+    real(8), allocatable :: qiDensityCosmo(:,:,:)
 
     character(100) :: charges_file
     character(50) :: arguments(20)
 
     type(species) :: specieSelected
     type(Matrix) :: densityMatrix
-    
-		character(50) :: wfnFile
+
+    character(50) :: wfnFile
     integer :: wfnUnit
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
@@ -864,8 +864,8 @@ contains
 
     if(allocated(labels)) deallocate(labels)
     allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-    
-		orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(f)
+
+    orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(f)
 
     arguments(2) = MolecularSystem_getNameOfSpecie(f)
 
@@ -874,9 +874,9 @@ contains
          Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
          columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
 
-    
-		
-		auxLabelsOfContractions = 1
+
+
+    auxLabelsOfContractions = 1
 
     c = 0
     do a = 1, size(specieSelected%particles)
@@ -893,55 +893,58 @@ contains
        end do
     end do
 
-
     charges_file="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
     read(100)numberOfPointCharges
+
+    if(allocated(qiDensityCosmo)) deallocate(qiDensityCosmo)
+    allocate(qiDensityCosmo(orderOfMatrix, orderOfMatrix,numberOfPointCharges))
     ii = 0
-    !! do sobre las particulas
     do g = 1, size(MolecularSystem_instance%species(f)%particles)
-       !! do sobre las contracciones 
        do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
           hh = h
           ii = ii + 1
           jj = ii - 1
-          !! do sobre las particulas diferentes a g de la misma especie
           do i = g, size(MolecularSystem_instance%species(f)%particles)
-             !! do sobre las bases de las particulas diferentes a g de la misma especie
              do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
                 jj = jj + 1
 
                 if(allocated(qiCosmo)) deallocate(qiCosmo)
                 allocate(qiCosmo(numberOfPointCharges))
 
-                if(allocated(qiDensityCosmo)) deallocate(qiDensityCosmo)
-                allocate(qiDensityCosmo(orderOfMatrix, orderOfMatrix))
-
-
                 do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
                    do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                      ! if(allocated(cosmoV)) deallocate(cosmoV)
-                      ! allocate(cosmoV(numberOfPointCharges))
-                      ! cosmoV(:)=integralValueCosmo(m,:)
-                                                 read(100)cosmo_int
-                                                 ints_mat_aux(pp, oo) =(wavefunction_instance(otherSpecieID)%densityMatrix%values(pp,oo))* cosmo_int
-                                                 ints_mat_aux(oo, pp) = ints_mat_aux(pp, oo)
-                      !
-                      ! call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
-                      !
-                      ! write(70)integralValueCosmo(m,:)
-                      ! write(80)qCharges
+                      read(100)(qiCosmo(m),m=1,numberOfPointCharges)
+                      do m=1, numberOfPointCharges
+                         qiDensityCosmo(k, l, m) = densityMatrix%values(k,l)*qiCosmo(m)
+                         qiDensityCosmo(l, k, m) = qiDensityCosmo(k, l, m) 
+                      end do
                    end do
                 end do
-
              end do
-             !! end do de bases
              hh = 1
           end do
-          !!end do particulas
        end do
-       ! end do bases
     end do
+    
+		close(100)
+
+    qiCosmo(:)=0.0_8
+
+    do m=1, numberOfPointCharges
+       do k=1, orderOfMatrix
+          do l=1, orderOfMatrix
+             qiCosmo(m)=qiCosmo(m)+qiDensityCosmo(k, l, m)
+          end do
+       end do
+    end do
+
+    write(*,*) "qiCosmoTotals", sum(qiCosmo(:))
+    
+		charges_file="qi"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+    open(unit=100, file=trim(charges_file), status='replace', form="unformatted")
+		write(100) qiCosmo(:)
+		close(100)
 
   end subroutine WaveFunction_quantumTotalCharge
 

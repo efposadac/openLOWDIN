@@ -1718,7 +1718,7 @@ contains
                        auxCOSMO(center,2) = auxCOSMO(center,2)  +constantDer*qTotal(A)*qTotal(A)*day/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
                        auxCOSMO(center,3) = auxCOSMO(center,3)  +constantDer*qTotal(A)*qTotal(A)*daz/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
 	  		read(78,*,iostat=stat) AA, centerP, dax, day, daz
-	  			write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
+	  			! write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
 			end if
 			end if
                    else if ((surface%atoms(A).EQ.center).and.(surface%atoms(B).NE.center)) then 
