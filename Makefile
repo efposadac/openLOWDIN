@@ -35,6 +35,7 @@ install:: bin/lowdin bin/lowdin.x
 uninstall:: bin/lowdin bin/lowdin.x
 	rm -rf $(PREFIX)/.lowdin2
 	rm -rf $(PREFIX)/lowdin2
+	
 clean::
 	for dir in $(SUBDIRS); \
 	  do \
@@ -51,7 +52,7 @@ distclean::
 	find . -name "*.i" -exec rm -f {} \;
 	rm -rf $(TOPDIR)/doc/html
 	rm -rf $(TOPDIR)/doc/latex
-	cd $(TOPDIR)/test/ && sh clean.sh
+
 test::
 	cd $(TOPDIR)/test/ && sh runtest.sh
 

@@ -464,7 +464,7 @@ contains
 
     !!calculo del producto punto
 
-    cosmo_int(:)=0.0_8
+    ! cosmo_int(:)=0.0_8
 
 		!!sumatoria sobre los i segmentos
     m=1
