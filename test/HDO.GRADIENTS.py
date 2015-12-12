@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import os
+import sys
 from colorstring import *
 
 testName = "HDO.GRADIENTS"
@@ -20,29 +22,33 @@ refGradOz = 0.078305109084
 
 # Run calculation
 
-os.system ("lowdin2 -i " + inputName)
+status = os.system("lowdin2 -i " + inputName)
 
-output = open ( outputName, "r") 
+if status:
+    print(testName + str_red(" ... NOT OK"))
+    sys.exit(1)
+
+output = open(outputName, "r")
 outputRead = output.readlines()
 
 # Values
 
-i =0 
-for line in outputRead: 
-        i = i + 1
-	if "dE/dx            dE/dy            dE/dz" in line :
-                newline = outputRead[i + 1]
-                gradHx = float(newline.split()[0])
-                gradHy = float(newline.split()[1])
-                gradHz = float(newline.split()[2])
-                newline = outputRead[i + 2]
-                gradDx = float(newline.split()[0])
-                gradDy = float(newline.split()[1])
-                gradDz = float(newline.split()[2])
-                newline = outputRead[i + 3]
-                gradOx = float(newline.split()[0])
-                gradOy = float(newline.split()[1])
-                gradOz = float(newline.split()[2])
+i = 0
+for line in outputRead:
+    i = i + 1
+    if "dE/dx            dE/dy            dE/dz" in line:
+        newline = outputRead[i + 1]
+        gradHx = float(newline.split()[0])
+        gradHy = float(newline.split()[1])
+        gradHz = float(newline.split()[2])
+        newline = outputRead[i + 2]
+        gradDx = float(newline.split()[0])
+        gradDy = float(newline.split()[1])
+        gradDz = float(newline.split()[2])
+        newline = outputRead[i + 3]
+        gradOx = float(newline.split()[0])
+        gradOy = float(newline.split()[1])
+        gradOz = float(newline.split()[2])
 
 diffHx = abs(refGradHx - gradHx)
 diffHy = abs(refGradHy - gradHy)
@@ -54,13 +60,13 @@ diffOx = abs(refGradOx - gradOx)
 diffOy = abs(refGradOy - gradOy)
 diffOz = abs(refGradOz - gradOz)
 
-if (diffHx <= 1E-6 and diffHy <= 1E-6 and diffHz <= 1E-6 and diffDx <= 1E-6 and diffDy <= 1E-6 and diffDz <= 1E-6 and diffOx <= 1E-6 and diffOy <= 1E-6 and diffOz <= 1E-6) :
-	print testName + str_green(" ... OK" )
-else :
-	print testName + str_red(" ... NOT OK")
-
-	print "\tDifference H: " + str( diffHx ) + str( diffHy ) + str( diffHz )
-	print "\tDifference D: " + str( diffDx ) + str( diffDy ) + str( diffDz )
-	print "\tDifference O: " + str( diffOx ) + str( diffOy ) + str( diffOz )
+if (diffHx <= 1E-6 and diffHy <= 1E-6 and diffHz <= 1E-6 and diffDx <= 1E-6 and diffDy <= 1E-6 and diffDz <= 1E-6 and diffOx <= 1E-6 and diffOy <= 1E-6 and diffOz <= 1E-6):
+    print(testName + str_green(" ... OK"))
+else:
+    print(testName + str_red(" ... NOT OK"))
+    print("Difference H: " + str(diffHx) + str(diffHy) + str(diffHz))
+    print("Difference D: " + str(diffDx) + str(diffDy) + str(diffDz))
+    print("Difference O: " + str(diffOx) + str(diffOy) + str(diffOz))
+    sys.exit(1)
 
 output.close()
