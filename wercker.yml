@@ -20,7 +20,39 @@ build:
     # Read more about steps on our dev center:
     # http://devcenter.wercker.com/docs/steps/index.html
   steps:
+    - install-packages:
+        packages: git build-essential liblapack-dev libblas-dev automake libtool gfortran python gawk
     - script:
-        name: echo
+        name: setup
         code: |
-          echo "hello world!"
+          # Define work directories
+          WORKDIR=$PWD/dependencies
+          mkdir $WORKDIR
+          mkdir $WORKDIR/bin
+          mkdir $WORKDIR/lib
+          # Build libint
+          git clone https://github.com/evaleev/libint.git
+          cd libint
+          git checkout v1
+          aclocal -I lib/autoconf
+          autoconf
+          ./configure --prefix=$WORKDIR
+          make
+          make install
+          cd ..
+    - script:
+        name: build
+        code: |
+          WORKDIR=$PWD/dependencies
+          export PATH=$PATH:$WORKDIR/bin
+          export C_INCLUDE_PATH=$C_INCLUDE_PATH:$WORKDIR/include
+          export CPP_INCLUDE_PATH=$CPP_INCLUDE_PATH:$WORKDIR/include
+          export LIBRARY_PATH=$LIBRARY_PATH:$WORKDIR/lib
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$WORKDIR/lib
+          # Build Lowdin
+          ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
+          make
+          make install
+          # Perform tests
+          make test
+
