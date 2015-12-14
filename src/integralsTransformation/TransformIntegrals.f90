@@ -156,10 +156,6 @@ contains
     this%prefixOfFile =""//trim(nameOfSpecie)
     this%fileForCoefficients =""//trim(nameOfSpecie)//"mo.values"
 
-    if ( nameOfSpecie == "E-BETA" ) then
-        this%prefixOfFile =""//trim("E-ALPHA")
-    end if
-
     if ( .not.CONTROL_instance%OPTIMIZE ) then
        call cpu_time(initialTime)
     end if

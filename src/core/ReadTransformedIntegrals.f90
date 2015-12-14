@@ -74,9 +74,9 @@ contains
 
     prefixOfFile =""//trim(nameOfSpecie)
 
-    if ( nameOfSpecie == "E-BETA" ) then
-        prefixOfFile =""//trim("E-ALPHA")
-    end if
+!    if ( nameOfSpecie == "E-BETA" ) then
+!        prefixOfFile =""//trim("E-ALPHA")
+!    end if
 
     unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
 

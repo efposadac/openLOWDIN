@@ -67,10 +67,13 @@
 !
 !----------------------------------------------------------------------
 
-     
       FN61 = trim(nameFile)//'inf'	    
       FN62 = trim(nameFile)//'mo.values'    
-      FN63 = trim(nameFile)//'.ints' 
+      if ( trim(nameFile) == "E-BETA" ) then
+         FN63 = trim("E-ALPHA")//'.ints' 
+      else 
+         FN63 = trim(nameFile)//'.ints' 
+      end if
       FN71 = trim(nameFile)//'inf.dat'	    
       FN72 = trim(nameFile)//'mocoef.dat'   
       FN73 = trim(nameFile)//'aoints.dat'    
