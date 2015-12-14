@@ -13,159 +13,212 @@
 #
 #******************************************************************************
 
-###############################################################################
-#            SEARCHING FOR OLD OPTIONS OR SET DEFAULTS
-###############################################################################
-if [ -e CONFIG ] ; then
-    FC=`awk '{if($1 == "FC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    PREFIX=`awk '{if($1 == "PREFIX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CXX=`awk '{if($1 == "CXX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CC=`awk '{if($1 == "CC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-    
+usage(){
+    echo "Usage:"
+    echo "   $ ./configure [-p path/to/install] [-s path/to/scratch] [-l lapack libs] [-d] [-h] "
+    echo ""
+    echo "   -p"
+    echo "      Path to install LOWDIN"
+    echo "   -s"
+    echo "      Path for scratch"
+    echo "   -l"
+    echo "      Lapack libraries to be used"
+    echo "   -d"
+    echo "      Use defaults (Avoid asking for options)"
+    echo "   -h"
+    echo "      Print this message"
+    echo ""
+    echo "Example: ./configure -p /usr/local -s /tmp -l \"-llapack -lblas -latlas\""
+    echo ""
+}
+
+###########################################
+#            SET DEFAULTS
+###########################################
+FC="gfortran"
+FLAGS="2"
+PREFIX="/usr/local"
+SCRATCH='/scratch'
+CUDAFLAGS="no"
+CXX="g++"
+CC="gcc"
+CFLAGS="-g -O2 -fopenmp -D gfortran"
+CPPFLAGS="-g -O2 -fopenmp -D gfortran"
+FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran"
+LAPACK_LIBS="-lblas -llapack"
+STDCPP_LIBS="-lstdc++"
+LIBINT_LIBS="-lr12 -lderiv -lint"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS"
+DEFAULTS='F'
+
+############################################
+# Script options
+############################################
+while getopts   "p:s:l:dh" OPTNAME
+do
+    case $OPTNAME in
+        p)
+            PREFIX=$OPTARG
+            DEFAULTS='T'
+            ;;
+        s)
+            SCRATCH=$OPTARG
+            DEFAULTS='T'
+            ;;
+        d)
+            DEFAULTS='T'
+            ;;
+        l)  
+            LAPACK_LIBS=$OPTARG
+            ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS"
+            DEFAULTS='T'
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+    esac
+done
+
+if [[ $DEFAULTS == 'T' ]]; then
+    echo 'INFO: Using default configuration!'
 else
-    FC="ifort"
-    FLAGS="1"
-    PREFIX="/usr/local"
-    CUBAFLAGS=
-    CUDAFLAGS="no"
-    CXX="icpc"
-    CC="icc"
-    CU="nvcc"
-    CFLAGS="-g -O2 -D intel"
-    CPPFLAGS="-g -O2 -D intel"
-    FCFLAGS="-fopenmp -O2 -D intel -fpic -no-vec -openmp -fpp -mcmodel=large "
-    LAPACK_LIBS="-mkl"
+    ###############################################################################
+    #                            LOAD OLD CONFIG
+    ###############################################################################
+    if [ -e CONFIG ] ; then
+        FC=`awk '{if($1 == "FC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        PREFIX=`awk '{if($1 == "PREFIX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        SCRATCH=`awk '{if($1 == "SCRATCH" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CXX=`awk '{if($1 == "CXX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CC=`awk '{if($1 == "CC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+    fi
+    
+    ###############################################################################
+    #                        OPTIONS FOR FORTRAN COMPILER
+    ###############################################################################
+    echo "Fortran Compiler command?  [$FC]"
+    read FCOMP
+
+    if [ "$FCOMP" = "" ] ; then
+        FCOMP=$FC
+    fi
+
+    FC=$FCOMP
+
+    if [ "$FC" = "ifort" ]  ; then
+        CXX="icpc"
+        CC="icc"
+        CU="nvcc -arch=sm_20"
+        CFLAGS="-g -O2 -D intel"
+        CPPFLAGS="-g -O2 -D intel"
+    else
+        CXX=g++
+        CC=gcc
+        CU="nvcc -arch=sm_20"
+        CFLAGS="-g -O2 -fopenmp -D gfortran"
+        CPPFLAGS="-g -O2 -fopenmp -D gfortran"
+    fi
+
+    echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only) [$FLAGS]"
+    read FFLAGS
+
+    if [ "$FFLAGS" = "" ] ; then
+        FFLAGS=$FLAGS
+    fi
+
+    FLAGS=$FFLAGS
+
+    echo "Speed up on GPUs? (you need to have already installed CUDA and Magma libraries): yes/no [$CUDAFLAGS]"
+    read FCUDAFLAGS
+
+    if [ "$FCUDAFLAGS" = "" ] ; then
+        FCUDAFLAGS=$CUDAFLAGS
+    fi
+
+    CUDAFLAGS=$FCUDAFLAGS
+
+    addflagsCuda=""
+
+
+    if [ "$CUDAFLAGS" = "yes" ] ; then
+    addflagsCuda="-D CUDA"
+    fi
+
+    if [ "$FLAGS" = "1" ] ; then
+        
+        if [ "$FC" = "ifort" ] ; then
+    	FCFLAGS="-O2 -D intel -fpic -openmp -fpp  $addflagsCuda"
+        else
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran $addflagsCuda"
+        fi
+    fi
+
+    if [ "$FLAGS" = "2" ] ; then
+        if [ "$FC" = "ifort" ] ; then
+    	FCFLAGS="-O2 -D intel -fpic -openmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+        else
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+        fi
+    fi
+
+    if [ "$FLAGS" = "3" ] ; then
+        if [ "$FC" = "ifort" ] ; then	
+    	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -openmp -traceback -g -debug extended  $addflagsCuda"
+        else
+    	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+        fi
+    fi
+
+    ###############################################################################
+    #                   LIBRARIES CONFIGURATION
+    ###############################################################################
+
+    if [ "$FC" = "ifort" ] ; then
+        LAPACK_LIBS="-mkl"
+    else
+        LAPACK_LIBS="-lblas -llapack"
+    fi
+
+    if [ "$CUDAFLAGS" = "yes" ] ; then
+        CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcublas -lcudart"
+    else
+        CUDA_LIBS=""
+    fi
+
     STDCPP_LIBS="-lstdc++"
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint"
-    CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcublas -lcudart"
-    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $FOURINDEX_LIBS" 
-fi
+    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $CUDA_LIBS"
 
-###############################################################################
-#                        OPTIONS FOR FORTRAN COMPILER
-###############################################################################
-echo "Fortran Compiler command?  [$FC]"
-read FCOMP
+    ###############################################################################
+    #                       SPECIFIC INSTALLATION DIRECTORIES
+    ###############################################################################
 
-if [ "$FCOMP" = "" ] ; then
-    FCOMP=$FC
-fi
+    echo "Installation directory? [$PREFIX]"
+    read BINDIR
 
-FC=$FCOMP
-
-if [ "$FC" = "ifort" ]  ; then
-    CXX="icpc"
-    CC="icc"
-    CU="nvcc -arch=sm_20"
-    CFLAGS="-g -O3 -D intel"
-    CPPFLAGS="-g -O3 -D intel"
-else
-    CXX=g++
-    CC=gcc
-    CU="nvcc -arch=sm_20"
-    CFLAGS="-g -O3 -fopenmp -D gfortran"
-    CPPFLAGS="-g -O3 -fopenmp -D gfortran"
-fi
-
-echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only) [$FLAGS]"
-read FFLAGS
-
-if [ "$FFLAGS" = "" ] ; then
-    FFLAGS=$FLAGS
-fi
-
-FLAGS=$FFLAGS
-
-echo "Speed up on GPUs? (you need to have already installed CUDA and Magma libraries): yes/no [$CUDAFLAGS]"
-read FCUDAFLAGS
-
-if [ "$FCUDAFLAGS" = "" ] ; then
-    FCUDAFLAGS=$CUDAFLAGS
-fi
-
-CUDAFLAGS=$FCUDAFLAGS
-
-addflagsCuda=""
-
-
-if [ "$CUDAFLAGS" = "yes" ] ; then
-addflagsCuda="-D CUDA"
-fi
-
-if [ "$FLAGS" = "1" ] ; then
-    
-    if [ "$FC" = "ifort" ] ; then
-	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp -mcmodel=large $addflagsCuda"
-    else
-	FCFLAGS="-Ofast -fopenmp -D gfortran -fpic -cpp  -ffree-line-length-none -fno-range-check -mcmodel=large $addflagsCuda"
+    if [ "$BINDIR" = "" ] ; then
+        BINDIR=$PREFIX
     fi
+
+    PREFIX=$BINDIR
+
 fi
-
-if [ "$FLAGS" = "2" ] ; then
-    if [ "$FC" = "ifort" ] ; then
-	FCFLAGS="-O2 -D intel -fpic -no-vec -openmp -fpp -traceback -g -debug extended -mcmodel=large $addflagsCuda " 
-    else
-	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check -mcmodel=large $addflagsCuda"
-    fi
-fi
-
-if [ "$FLAGS" = "3" ] ; then
-    if [ "$FC" = "ifort" ] ; then	
-	FCFLAGS="-static -static-intel -static-libgcc -O3 -D intel -fpic -no-vec -fpp -openmp -traceback -g -debug extended  $addflagsCuda"
-    else
-	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
-	FCFLAGS="-fopenmp -Ofast -D gfortran -fpic -cpp -fbacktrace -g  -ffree-line-length-none -fno-range-check  $addflagsCuda"
-    fi
-fi
-
-###############################################################################
-#                   LIBRARIES CONFIGURATION
-###############################################################################
-
-if [ "$FC" = "ifort" ] ; then
-    LAPACK_LIBS="-mkl"
-else
-    LAPACK_LIBS="-lblas -llapack"
-fi
-
-if [ "$CUDAFLAGS" = "yes" ] ; then
-    CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcublas -lcudart"
-else
-    CUDA_LIBS=""
-fi
-
-STDCPP_LIBS="-lstdc++"
-GSL_LIBS="-lgsl -lgslcblas"
-LIBINT_LIBS="-lr12 -lderiv -lint"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $CUDA_LIBS"
-
-###############################################################################
-#                       SPECIFIC INSTALLATION DIRECTORIES
-###############################################################################
-
-echo "Installation directory? [$PREFIX]"
-read BINDIR
-
-if [ "$BINDIR" = "" ] ; then
-    BINDIR=$PREFIX
-fi
-
-PREFIX=$BINDIR
-
 ###############################################################################
 #                       SAVING OPTIONS
 ###############################################################################
@@ -173,6 +226,7 @@ PREFIX=$BINDIR
 echo "FC = $FC" > CONFIG
 echo "FLAGS = $FLAGS" >> CONFIG
 echo "PREFIX = $PREFIX" >> CONFIG
+echo "SCRATCH = $SCRATCH" >> CONFIG
 echo "CUBAFLAGS = $CUBAFFLAGS" >> CONFIG
 echo "CUDAFLAGS = $CUDAFLAGS" >> CONFIG
 echo "CXX = $CXX"  >> CONFIG
@@ -187,7 +241,6 @@ echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG
 echo "LIBINT_LIBS = $LIBINT_LIBS"  >> CONFIG
 echo "CUDA_LIBS = $CUDA_LIBS" >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
-
 
 ###############################################################################
 #                       Generate makefiles

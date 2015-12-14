@@ -146,7 +146,7 @@ program IntegralsTransformation
            numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
   
 
-          if ( transformThisSpecies == .True. ) then
+          if ( transformThisSpecies .eqv. .True. ) then
             call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer, &
                  eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
           end if
@@ -190,7 +190,7 @@ program IntegralsTransformation
                                output = eigenValuesOfOtherSpecie )     
   
 
-                          if ( transformTheseSpecies == .True. ) then
+                          if ( transformTheseSpecies .eqv. .True. ) then
                             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
                                  eigenVec, eigenVecOtherSpecie, &
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )

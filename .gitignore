@@ -1,0 +1,10 @@
+*.so
+*.o
+*.mod
+*.x
+*.aux
+*.out
+*.a
+CONFIG
+makefile
+__pycache__

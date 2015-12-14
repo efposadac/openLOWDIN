@@ -474,7 +474,9 @@ contains
        read(100)(a_mat(i,n),i=1,surface)
     end do
 
-    cosmo_int(:)=0.0_8
+    !!calculo del producto punto
+
+    ! cosmo_int(:)=0.0_8
 
 		!!sumatoria sobre los i segmentos
     m=1

@@ -1,0 +1,4 @@
+app:
+  build:
+    image: lowdin
+    dockerfile_path: .lowdin-docker
