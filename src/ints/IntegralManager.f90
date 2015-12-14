@@ -465,7 +465,7 @@ contains
 
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
 
-														write(*,*)"number of point charges: ",numberOfPointCharges
+														! write(*,*)"number of point charges: ",numberOfPointCharges
 
 														write(70)integralValueCosmo(m,:)
                             write(80)qCharges

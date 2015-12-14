@@ -10,7 +10,7 @@ outputName = testName + ".out"
 
 # Reference values
 
-refTotalEnergy = -75.956252723159
+refTotalEnergy = -75.956252671443
 
 # Run calculation
 

@@ -149,9 +149,9 @@ contains
     ! gepol matrix
     ! write(*,*)"surface%sizeSurface",surface%sizeSurface
     ! write(*,*)"datos leidos"
-    do i=1,surface%sizeSurface        
-			write(*,*)"átomo padre: ",at(i), "segmento: ",i
-		end do
+    ! do i=1,surface%sizeSurface        
+		! 	write(*,*)"átomo padre: ",at(i), "segmento: ",i
+		! end do
 
 
   end subroutine CosmoCore_Filler
@@ -565,7 +565,7 @@ contains
           ! write(110) cosmo_int(:)
           close(unit=110)
 
-          write(*,*)"same specie inner product",MolecularSystem_instance%species(f_aux)%name,m-1
+          ! write(*,*)"same specie inner product",MolecularSystem_instance%species(f_aux)%name,m-1
 
           ! ints_mat(:,:)=1.0_8
 
@@ -595,7 +595,7 @@ contains
        ! write(*,*)"a_mat(:,k))"
        ! write(*,*)a_mat(:,:)
        !
-			 write(*,*)"integrals", integrals, " charges ", charges
+			 ! write(*,*)"integrals", integrals, " charges ", charges
        open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)//"_qq.cup", status='unknown', form="unformatted")
        write(110) m-1
        do n=1,integrals
@@ -605,7 +605,7 @@ contains
        end do
        ! write(110) cosmo_int(:)
        close(unit=110)
-       write(*,*)"other species inner product :",trim(MolecularSystem_instance%species(f_aux)%name),"charges ,",trim(MolecularSystem_instance%species(g_aux)%name)," potentials",m-1
+       ! write(*,*)"other species inner product :",trim(MolecularSystem_instance%species(f_aux)%name),"charges ,",trim(MolecularSystem_instance%species(g_aux)%name)," potentials",m-1
 
 
     end if
