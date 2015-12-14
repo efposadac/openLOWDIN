@@ -115,32 +115,32 @@ contains
 
     ! Reading surface from .vec
 100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8,2X,I)
-    open(55,file='vectors.vec',status='unknown') 
-    read(55,100) (x(i),y(i),z(i),a(i),at(i),i=1,surface%sizeSurface)
-    close(55)
+   open(55,file='vectors.vec',status='unknown') 
+   read(55,100) (x(i),y(i),z(i),a(i),at(i),i=1,surface%sizeSurface)
+   close(55)
 
 
-    do i=1,surface%sizeSurface        
-       surface%xs(i)=x(i)/AMSTRONG
-       surface%ys(i)=y(i)/AMSTRONG
-       surface%zs(i)=z(i)/AMSTRONG
-       surface%area(i)=a(i)/((AMSTRONG)**2)
-    end do
+   do i=1,surface%sizeSurface        
+      surface%xs(i)=x(i)/AMSTRONG
+      surface%ys(i)=y(i)/AMSTRONG
+      surface%zs(i)=z(i)/AMSTRONG
+      surface%area(i)=a(i)/((AMSTRONG)**2)
+   end do
 
     !Reading surface from .sup
     !
-    ! 100 format (I,2X,F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
-    ! 		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
-    !     read(55,*) (at(i),a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
-    !
-    ! do i=1,surface%sizeSurface        
-    !    surface%xs(i)=x(i)
-    !    surface%ys(i)=y(i)
-    !    surface%zs(i)=z(i)
-    !    surface%area(i)=a(i)
-	  !		 surface%atoms(i)=at(i)	
-    ! end do
-    ! close(55)
+   !   100 format (I,2X,F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
+   !   		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
+   !       read(55,*) (at(i),a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
+   !  
+   !   do i=1,surface%sizeSurface        
+   !      surface%xs(i)=x(i)
+   !      surface%ys(i)=y(i)
+   !      surface%zs(i)=z(i)
+   !      surface%area(i)=a(i)
+ 	 ! surface%atoms(i)=at(i)	
+   !   end do
+   !   close(55)
     !
     ! write(*,*)"tipo superficie"
     ! llenando surface con la informacion leida
@@ -149,9 +149,10 @@ contains
     ! gepol matrix
     ! write(*,*)"surface%sizeSurface",surface%sizeSurface
     ! write(*,*)"datos leidos"
-    ! do i=1,surface%sizeSurface        
-		! 	write(*,*)"átomo padre: ",at(i), "segmento: ",i
-		! end do
+    !Debug
+    !do i=1,surface%sizeSurface        
+    !			write(*,*)"átomo padre: ",at(i), "segmento: ",i
+    !	end do
 
 
   end subroutine CosmoCore_Filler
@@ -267,7 +268,7 @@ contains
     !
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 
-
+		write(77)segments
     do i=1,np
 
        !se alimenta verifier con la informacion del particle manager sobre si es
@@ -469,7 +470,8 @@ contains
     !    read(100)(a_mat(i,n),i=1,surface)
     ! end do
 		! read
-
+		
+		read(100)m
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
     end do
@@ -621,6 +623,7 @@ contains
     type(surfaceSegment), intent(in) :: surface
 
     integer(8) :: np 
+    integer(8) :: isegments 
     integer:: segments,j,i
 
     type(Matrix) :: clasical_charge
@@ -641,6 +644,8 @@ contains
     allocate(clasical_positions(np,3))
 
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
+		read(77) isegments
+
     read(77)(q_clasical(i),i=1,segments)
 
     close(77)
@@ -694,6 +699,7 @@ contains
     real(8), allocatable :: ints_mat_aux(:,:)
 
     character(100), intent(in):: charges_file
+    integer :: icharges
 
 
     np=MolecularSystem_instance%numberOfPointCharges
@@ -706,7 +712,9 @@ contains
     allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
-
+		
+		read(100)icharges
+		write(*,*)"icharges",icharges
     do n=1,charges
        read(100)(a_mat(i,n),i=1,segments)
     end do

@@ -74,12 +74,13 @@ program HF
   call get_command_argument(1,value=job)
   job = trim(String_getUppercase(job))
 
-  write(*,"(A)") trim(job)
+  ! write(*,"(A)") trim(job)
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+
 
   if(CONTROL_instance%LAST_STEP) then
      write(*,"(A)")"----------------------------------------------------------------------"
@@ -88,6 +89,10 @@ program HF
 
      write(*,"(A)") "INFO: RUNNING IN "//trim(job)//" MODE."
      write(*,"(A)")" "
+     write (6,"(T20,A30)") " TEST GEOMETRY: AMSTRONG"
+     write (6,"(T18,A35)") "------------------------------------------"
+     call MolecularSystem_showCartesianMatrix()
+     call MolecularSystem_showDistanceMatrix()
   end if
 
   !!Start time
@@ -292,7 +297,7 @@ program HF
 
   if( .not.CONTROL_instance%OPTIMIZE .and. CONTROL_instance%GET_GRADIENTS ) then        
 
-     call system(" lowdin-ints.x GET_GRADIENTS")
+     call system("lowdin-ints.x GET_GRADIENTS")
 
   end if
   !! Open file for wavefunction
@@ -347,11 +352,6 @@ program HF
         WaveFunction_instance(speciesID)%cosmoCoupling = &
              Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-
-        ! write(*,*)"cosmo coupling wf hf"
-        ! call Matrix_show(WaveFunction_instance(speciesID)%cosmoCoupling)
-        ! call WaveFunction_quantumTotalCharge(speciesID)
-
 
      end if
 

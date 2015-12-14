@@ -243,7 +243,7 @@ contains
 
     if(allocated(AI0))deallocate(AI0)
     allocate(AI0(0:maxIndex, 0:maxIndex, 0:2*maxAngularMoment+1))
-		
+
     AI0 = 0.0_8
 
     AB2 = 0.0_8
@@ -281,10 +281,10 @@ contains
           PB(2) = P(2) - B(2)
 
           commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*zetaInv) * sqrt(Math_PI*zetaInv) * Math_PI * zetaInv * auxCoefficentA * auxCoefficentB * auxConstantA * auxConstantB
-					! write(*,*)"fragmentos y length a y b",numberOfPointCharges,lengthA,lengthB
+          ! write(*,*)"fragmentos y length a y b",numberOfPointCharges,lengthA,lengthB
 
           do atom = 0, numberOfPointCharges - 1
-             
+
              PC(0) = P(0) - pointCharges(atom)%x
              PC(1) = P(1) - pointCharges(atom)%y
              PC(2) = P(2) - pointCharges(atom)%z
@@ -296,11 +296,11 @@ contains
              indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
 
              indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
-						 
-						 integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+
+             integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
 
           end do
-					! write(*,*) "se ha llamado obara-saika ",atom," veces"
+          ! write(*,*) "se ha llamado obara-saika ",atom," veces"
        end do
     end do
 		! write(*,*)"finaliza_computePrimitives"

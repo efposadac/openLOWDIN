@@ -257,7 +257,7 @@ program SCF
         labels(1) = "COSMO2"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
         labels(1) = "COSMOCOUPLING"
-        call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmoCoupling, unit=wfnUnit, binary=.true., arguments = labels )  
+        call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmoCoupling, unit=wfnUnit, binary=.true., arguments = labels ) 
      end if
 
   end do
@@ -305,5 +305,9 @@ program SCF
   end if
 
   close(wfnUnit)
+     
+		 if (CONTROL_instance%COSMO) then
+				call WaveFunction_cosmoQuantumCharge()
+     end if
 
 end program SCF

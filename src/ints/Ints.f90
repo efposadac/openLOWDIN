@@ -187,7 +187,6 @@ Program Ints
       end if
 
    case("GET_GRADIENTS")
-
       call EnergyGradients_constructor()
       call EnergyGradients_getAnalyticDerivative()
       ! write(*,"(A)") "Lo logramos" 
