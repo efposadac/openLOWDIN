@@ -114,7 +114,7 @@ contains
     allocate(surface%atoms(surface%sizeSurface))
 
     ! Reading surface from .vec
-100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8,2X,I)
+100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8,2X,I5)
    open(55,file='vectors.vec',status='unknown') 
    read(55,100) (x(i),y(i),z(i),a(i),at(i),i=1,surface%sizeSurface)
    close(55)

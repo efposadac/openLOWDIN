@@ -385,13 +385,13 @@ C***************************************************************************
       INTEGER*4 MC,MV
       INTEGER*4 NATOM,NCOR,NDIV,NP
        
-      REAL*4 AP
-      REAL*4 DVEC
-      REAL*4 OFAC
-      REAL*4 RD,RE,RMIN
-      REAL*4 XC1,XE,XP
-      REAL*4 YC1,YE,YP
-      REAL*4 ZC1,ZE,ZP
+      REAL*8 AP
+      REAL*8 DVEC
+      REAL*8 OFAC
+      REAL*8 RD,RE,RMIN
+      REAL*8 XC1,XE,XP
+      REAL*8 YC1,YE,YP
+      REAL*8 ZC1,ZE,ZP
 
       REAL*8 CV
       REAL*8 STOT,VOL
@@ -514,10 +514,10 @@ C     -------------------------------------------------------------------
       INTEGER*4 MC,MI
       INTEGER*4 NATOM,NCOR,NEWS
 
-      REAL*4 RE
-      REAL*4 XE
-      REAL*4 YE
-      REAL*4 ZE
+      REAL*8 RE
+      REAL*8 XE
+      REAL*8 YE
+      REAL*8 ZE
 
       CHARACTER*5 KSURF
 
@@ -619,9 +619,9 @@ C     ------------------------------------------------------------------
       INTEGER*4 LN,LT
       INTEGER*4 NDIV
   
-      REAL*4 DVEC
-      REAL*4 OFAC
-      REAL*4 RD,RMIN
+      REAL*8 DVEC
+      REAL*8 OFAC
+      REAL*8 RD,RMIN
 
       CHARACTER*5 KEY,KSURF
       
@@ -737,10 +737,10 @@ C     ---------------------------------------------------------------
       INTEGER*4 MC
       INTEGER*4 NAT0,NATOM,NESFI,NESFP
 
-      REAL*4 RE
-      REAL*4 XE
-      REAL*4 YE
-      REAL*4 ZE
+      REAL*8 RE
+      REAL*8 XE
+      REAL*8 YE
+      REAL*8 ZE
 
       CHARACTER*33 LABEL
       CHARACTER*80 COOF
@@ -866,7 +866,7 @@ C     --------------------------------------------------------------------
       INTEGER*4 I,II
       INTEGER*4 J
 
-      REAL*4 XC1,YC1,ZC1
+      REAL*8 XC1,YC1,ZC1
 
       REAL*8 CTH,CV
       REAL*8 FI,FIR,FIV
@@ -925,7 +925,7 @@ C     ---------------------------------------------------------------
       INTEGER*4 NDIV,NV1,NV2,NV21,NV22,NV23,NV3,NV31,NV32,NV33
       INTEGER*4 NV41,NV42,NV43,NV51,NV52,NV53
      
-      REAL*4 XC1,YC1,ZC1
+      REAL*8 XC1,YC1,ZC1
    
       REAL*8 CC,CV,CVN2,CVN3,CVN4,CVN5
       REAL*8 FOUR     
@@ -1162,15 +1162,15 @@ C     ------------------------------------------------------------------
       INTEGER*4 N3,N4,NCOR,NDIV,NEJCI,NINF,NP,NSUP,NTRIAN,NTS
       INTEGER*4 UN3
 
-      REAL*4 AP,ATP,ATS
-      REAL*4 DD,DIJ2
-      REAL*4 FC,FNDIV
-      REAL*4 PI
-      REAL*4 RE,REI,RREJ,RRR
-      REAL*4 SRE2
-      REAL*4 XC1,XE,XEI,XP,XPL,XSL,XSM
-      REAL*4 YC1,YE,YEI,YP,YPL,YSL,YSM
-      REAL*4 ZC1,ZE,ZEI,ZP,ZPL,ZSL,ZSM
+      REAL*8 AP,ATP,ATS
+      REAL*8 DD,DIJ2
+      REAL*8 FC,FNDIV
+      REAL*8 PI
+      REAL*8 RE,REI,RREJ,RRR
+      REAL*8 SRE2
+      REAL*8 XC1,XE,XEI,XP,XPL,XSL,XSM
+      REAL*8 YC1,YE,YEI,YP,YPL,YSL,YSM
+      REAL*8 ZC1,ZE,ZEI,ZP,ZPL,ZSL,ZSM
 
       REAL*8 CV
 
@@ -1322,10 +1322,10 @@ C     ------------------------------------------------------------------
       INTEGER*4 I
       INTEGER*4 NDIV
 
-      REAL*4 DVEC
-      REAL*4 OFAC
-      REAL*4 MODULE
-      REAL*4 RD,RMIN
+      REAL*8 DVEC
+      REAL*8 OFAC
+      REAL*8 MODULE
+      REAL*8 RD,RMIN
 
       CHARACTER*80 LINE,TIT,COOF,VECF,SPHF,DISF
       CHARACTER*5 KSURF
@@ -1422,13 +1422,13 @@ C     --------------------------------------------------------------
       INTEGER*4 MC,MV
       INTEGER*4 NP
 
-      REAL*4 AP
-      REAL*4 DVEC
-      REAL*4 FDR
-      REAL*4 RE
-      REAL*4 XE,XP,XVEC
-      REAL*4 YE,YP,YVEC
-      REAL*4 ZE,ZP,ZVEC
+      REAL*8 AP
+      REAL*8 DVEC
+      REAL*8 FDR
+      REAL*8 RE
+      REAL*8 XE,XP,XVEC
+      REAL*8 YE,YP,YVEC
+      REAL*8 ZE,ZP,ZVEC
 
       CHARACTER*80 TIT,VECF
 
@@ -1500,11 +1500,11 @@ C     ---------------------------------------------------------------
       INTEGER*4 MC,MV
       INTEGER*4 NATOM,NCOR,NP
 
-      REAL*4 AE,AP
-      REAL*4 RE
-      REAL*4 XE,XP
-      REAL*4 YE,YP
-      REAL*4 ZE,ZP
+      REAL*8 AE,AP
+      REAL*8 RE
+      REAL*8 XE,XP
+      REAL*8 YE,YP
+      REAL*8 ZE,ZP
 
       CHARACTER*4 LNEW
       CHARACTER*33 LABEL
@@ -1582,12 +1582,12 @@ C     -------------------------------------------------------------
       INTEGER*4 MC,MV
       INTEGER*4 NP,NVX1,NVX2,NVX3
    
-      REAL*4 AP
-      REAL*4 RE,REI
-      REAL*4 XP,XC1,XE,XEI
-      REAL*4 YP,YC1,YE,YEI
-      REAL*4 ZP,ZC1,ZE,ZEI
-      REAL*4 VERTEX
+      REAL*8 AP
+      REAL*8 RE,REI
+      REAL*8 XP,XC1,XE,XEI
+      REAL*8 YP,YC1,YE,YEI
+      REAL*8 ZP,ZC1,ZE,ZEI
+      REAL*8 VERTEX
 
       REAL*8 CV,PLUS1
 
@@ -1671,12 +1671,12 @@ C     --------------------------------------------------------------------
       INTEGER*4 MC,MV
       INTEGER*4 NATOM,NI,NP
 
-      REAL*4 AP
-      REAL*4 DIS,DMI
-      REAL*4 RE
-      REAL*4 XE,XP
-      REAL*4 YE,YP
-      REAL*4 ZE,ZP
+      REAL*8 AP
+      REAL*8 DIS,DMI
+      REAL*8 RE
+      REAL*8 XE,XP
+      REAL*8 YE,YP
+      REAL*8 ZE,ZP
 
       PARAMETER (MC=100000,MV=100000)
 
@@ -1757,12 +1757,12 @@ C     --------------------------------------------------------------------
       INTEGER*4 MC
       INTEGER*4 NCOR
 
-      REAL*4 DD
-      REAL*4 RD,RE
-      REAL*4 TEST
-      REAL*4 XE
-      REAL*4 YE
-      REAL*4 ZE
+      REAL*8 DD
+      REAL*8 RD,RE
+      REAL*8 TEST
+      REAL*8 XE
+      REAL*8 YE
+      REAL*8 ZE
 
       PARAMETER (MC=100000)
 
@@ -1819,13 +1819,13 @@ C     ---------------------------------------------------------------------
       INTEGER*4 NP
       INTEGER*4 MV,MC
 
-      REAL*4 AP
-      REAL*4 DP
-      REAL*4 RE,REJ
-      REAL*4 VD,VN
-      REAL*4 XE,XP,XEJ
-      REAL*4 YE,YP,YEJ
-      REAL*4 ZE,ZP,ZEJ
+      REAL*8 AP
+      REAL*8 DP
+      REAL*8 RE,REJ
+      REAL*8 VD,VN
+      REAL*8 XE,XP,XEJ
+      REAL*8 YE,YP,YEJ
+      REAL*8 ZE,ZP,ZEJ
 
       REAL*8 STOT,VOL
 
@@ -1900,12 +1900,12 @@ C     -------------------------------------------------------------
       INTEGER*4 NCOR,NINT
       INTEGER*4 TMIN,TMAX
 
-      REAL*4 C
-      REAL*4 R1,R2,RE
-      REAL*4 VINT
-      REAL*4 XE
-      REAL*4 YE
-      REAL*4 ZE
+      REAL*8 C
+      REAL*8 R1,R2,RE
+      REAL*8 VINT
+      REAL*8 XE
+      REAL*8 YE
+      REAL*8 ZE
 
       PARAMETER (MC=100000,MAXI=100)
 
@@ -1972,10 +1972,10 @@ C     --------------------------------------------------------------------
       INTEGER*4 MC
       INTEGER*4 NCOR
 
-      REAL*4 RD,RE
-      REAL*4 XE
-      REAL*4 YE
-      REAL*4 ZE
+      REAL*8 RD,RE
+      REAL*8 XE
+      REAL*8 YE
+      REAL*8 ZE
       
       CHARACTER*4 OP
  
@@ -2025,16 +2025,16 @@ C     ----------------------------------------------------------------
       INTEGER*4 MC
       INTEGER*4 NATOM,NCOR,NEK,NGE,NL1,NL2,NDIV,NENG
       
-      REAL*4 DI
-      REAL*4 FC,FC1
-      REAL*4 OFAC,OFACT
-      REAL*4 RD,RE,REK,REN,REG,REG2,REGD2,REND2A,REND2C
-      REAL*4 REP,REP2,REPD2,RMIN,RMID2,RGN
-      REAL*4 RIJ,RIJ2,RIK,RIN,RNK2
-      REAL*4 TEST
-      REAL*4 XE,XEN
-      REAL*4 YE,YEN
-      REAL*4 ZE,ZEN
+      REAL*8 DI
+      REAL*8 FC,FC1
+      REAL*8 OFAC,OFACT
+      REAL*8 RD,RE,REK,REN,REG,REG2,REGD2,REND2A,REND2C
+      REAL*8 REP,REP2,REPD2,RMIN,RMID2,RGN
+      REAL*8 RIJ,RIJ2,RIK,RIN,RNK2
+      REAL*8 TEST
+      REAL*8 XE,XEN
+      REAL*8 YE,YEN
+      REAL*8 ZE,ZEN
 
       PARAMETER (MC=100000)
       
@@ -2265,15 +2265,15 @@ C     ----------------------------------------------------------------
       INTEGER*4 SC
       INTEGER*4 ULL
       
-      REAL*4 DD,DI
-      REAL*4 FC,FC1
-      REAL*4 OFAC,OFACT
-      REAL*4 RD,RE,REI,REJ,REK,REN,RNK2
-      REAL*4 RIJ,RIK,RIN
-      REAL*4 TEST
-      REAL*4 XC1,XE,XEN,XPN
-      REAL*4 YC1,YE,YEN,YPN
-      REAL*4 ZC1,ZE,ZEN,ZPN
+      REAL*8 DD,DI
+      REAL*8 FC,FC1
+      REAL*8 OFAC,OFACT
+      REAL*8 RD,RE,REI,REJ,REK,REN,RNK2
+      REAL*8 RIJ,RIK,RIN
+      REAL*8 TEST
+      REAL*8 XC1,XE,XEN,XPN
+      REAL*8 YC1,YE,YEN,YPN
+      REAL*8 ZC1,ZE,ZEN,ZPN
 
       REAL*8 CV
 
@@ -2511,12 +2511,12 @@ C     ----------------------------------------------------------------
       INTEGER*4 SC
       INTEGER*4 ULL
 
-      REAL*4 DD
-      REAL*4 RE,REI
-      REAL*4 TEST
-      REAL*4 XE,XEI,XC1,XP
-      REAL*4 YE,YEI,YC1,YP
-      REAL*4 ZE,ZEI,ZC1,ZP
+      REAL*8 DD
+      REAL*8 RE,REI
+      REAL*8 TEST
+      REAL*8 XE,XEI,XC1,XP
+      REAL*8 YE,YEI,YC1,YP
+      REAL*8 ZE,ZEI,ZC1,ZP
 
       REAL*8 CV
 
@@ -2688,12 +2688,12 @@ C     ----------------------------------------------------------------
       INTEGER*4 SC
       INTEGER*4 ULJ
 
-      REAL*4 DD
-      REAL*4 RE,REI
-      REAL*4 TEST
-      REAL*4 XE,XEI,XC1,XP
-      REAL*4 YE,YEI,YC1,YP
-      REAL*4 ZE,ZEI,ZC1,ZP
+      REAL*8 DD
+      REAL*8 RE,REI
+      REAL*8 TEST
+      REAL*8 XE,XEI,XC1,XP
+      REAL*8 YE,YEI,YC1,YP
+      REAL*8 ZE,ZEI,ZC1,ZP
 
       REAL*8 CV
 
