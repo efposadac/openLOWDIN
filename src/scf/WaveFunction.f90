@@ -2954,7 +2954,6 @@ contains
 		close(100)
 		! Debug
 		! write(*,*)"qTotalCosmo ", qTotalCosmo(:)
-
 		! write(*,*)"sumqTotalCosmo ", sum(qTotalCosmo(:))
 
   end subroutine WaveFunction_cosmoQuantumCharge
