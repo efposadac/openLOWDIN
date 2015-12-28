@@ -21,7 +21,7 @@
 !!        -# Creacion del archivo y las funciones basicas
 module GSLInterface_
   implicit none
-  
+
   private
   public ::                  &
        tolow_minimize

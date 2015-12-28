@@ -1597,7 +1597,7 @@ contains
        ! write(*,"(A)") "----------------------------------------------------------------"
        !! Potential Gradients
        if(CONTROL_instance%COSMO) then
-          cosmoEpsilon=(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)
+          cosmoEpsilon=(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC+CONTROL_instance%COSMO_SCALING)/(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC-1)
 
           open(unit=77, file="qTotalCosmo.charges", status="unknown",form="unformatted")
           read(77)(qTotal(i),i=1,surface%sizeSurface)
@@ -1633,7 +1633,7 @@ contains
                 k = 0
                 ! center = 1
 
-              
+
                 do A=1, surface%sizeSurface
                    i = 3*(A-1)*numCartesianP*numCartesianQ + 0*numCartesianP*numCartesianQ
                    j = 3*(A-1)*numCartesianP*numCartesianQ + 1*numCartesianP*numCartesianQ
@@ -1673,14 +1673,14 @@ contains
                             k=k+1
 
                          end do
-                         
+
                       end do
-                        
+
                    end do
                    do center=1, numberOfOptimizationCenters
                       do m=1, 3
-                      auxCOSMO3(A,center,m)= auxCOSMO3(A,center,m) + auxCOSMO(center,m) - auxCOSMO2(center,m)
-                   end do
+                         auxCOSMO3(A,center,m)= auxCOSMO3(A,center,m) + auxCOSMO(center,m) - auxCOSMO2(center,m)
+                      end do
                    end do
                    auxCOSMO2=auxCOSMO
 
@@ -1697,14 +1697,14 @@ contains
           do center=1, numberOfOptimizationCenters
              do A=1, surface%sizeSurface
 
-                   write(*,*) auxCOSMO3(A,center,:), center, A
+                write(*,*) auxCOSMO3(A,center,:), center, A
 
              end do
           end do
           write(*,*)"1X",auxCOSMO(1,1) 
           write(*,*)"2X",auxCOSMO(2,1) 
           write(*,*)"3X",auxCOSMO(3,1) 
-					
+
           deltaOrigin=0.0_8
           do A=1, surface%sizeSurface
              do center=1, numberOfOptimizationCenters
@@ -1732,7 +1732,7 @@ contains
 	  constantDer=-0.5_8*cosmoEpsilon*1.07_8*Math_SQRT_PI
           open(unit=78, file=trim(CONTROL_instance%INPUT_FILE)//"der", status="old")
 	  read(78,*) AA, centerP, dax, day, daz
-	  ! write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
+   ! write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
           do A=1, surface%sizeSurface
              do B=1, surface%sizeSurface
                 deltaOrigin(1) = surface%xs(A) - surface%xs(B) 
@@ -1742,17 +1742,17 @@ contains
                 cubeDistance = distance*distance*distance
                 do center=1, numberOfOptimizationCenters
                    if(A.EQ.B)then
-			   if (AA.EQ.A) then
-				   if (centerP.EQ.center) then
+                      if (AA.EQ.A) then
+                         if (centerP.EQ.center) then
 
 
-                       auxCOSMO(center,1) = auxCOSMO(center,1)  +constantDer*qTotal(A)*qTotal(A)*dax/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
-                       auxCOSMO(center,2) = auxCOSMO(center,2)  +constantDer*qTotal(A)*qTotal(A)*day/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
-                       auxCOSMO(center,3) = auxCOSMO(center,3)  +constantDer*qTotal(A)*qTotal(A)*daz/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
-	  		read(78,*,iostat=stat) AA, centerP, dax, day, daz
-	  			! write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
-			end if
-			end if
+                            auxCOSMO(center,1) = auxCOSMO(center,1)  +constantDer*qTotal(A)*qTotal(A)*dax/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
+                            auxCOSMO(center,2) = auxCOSMO(center,2)  +constantDer*qTotal(A)*qTotal(A)*day/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
+                            auxCOSMO(center,3) = auxCOSMO(center,3)  +constantDer*qTotal(A)*qTotal(A)*daz/sqrt(surface%area(A)*surface%area(A)*surface%area(A))
+                            read(78,*,iostat=stat) AA, centerP, dax, day, daz
+                            ! write(*,*) "lectura de .der ", AA, centerP, dax, day, daz  	
+                         end if
+                      end if
                    else if ((surface%atoms(A).EQ.center).and.(surface%atoms(B).NE.center)) then 
                       auxCOSMO(center,1) = auxCOSMO(center,1)  -0.5_8*(cosmoEpsilon)*qTotal(A)*qTotal(B)*deltaOrigin(1)/cubeDistance
                       auxCOSMO(center,2) = auxCOSMO(center,2)  -0.5_8*(cosmoEpsilon)*qTotal(A)*qTotal(B)*deltaOrigin(2)/cubeDistance
@@ -1765,9 +1765,9 @@ contains
                 end do
              end do
           end do
-	close(78)
-	write(*,*)"gradiente cosmo"
-	write(*,*)auxCOSMO(:,:)	
+          close(78)
+          write(*,*)"gradiente cosmo"
+          write(*,*)auxCOSMO(:,:)	
        end if
 
 

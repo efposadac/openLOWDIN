@@ -120,7 +120,7 @@ program HF
 
   if( existFile ) then
      open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
-      
+
      read(integralsUnit) numberOfSpecies
 
      if(MolecularSystem_instance%numberOfQuantumSpecies /= numberOfSpecies ) then
@@ -176,16 +176,16 @@ program HF
         call Matrix_destructor(auxDensity)
 
      else
-		
+
 
         auxDensity=DensityMatrixSCFGuess_getGuess( CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS, speciesID )
 
         call WaveFunction_setDensityMatrix(  auxDensity, speciesID )
         call Matrix_destructor(auxDensity)
-			
+
 
      end if
-		 
+
 
      !!**********************************************************
      !! Save matrices to lowdin.wfn file
@@ -205,23 +205,23 @@ program HF
 
      arguments(1) = "TRANSFORMATION"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-		 
-     
+
+
      if(CONTROL_instance%COSMO)then
-        
+
         arguments(1) = "COSMO1"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-			 
+
         arguments(1) = "COSMO4"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-				
+
      end if
 
   end do
-	
+
 
   close(wfnUnit)
-	
+
 
   !!**************************************************************************************************************************
   !! Calculate two-particle integrals (not building 2 particles and coupling matrix... those matrices are done by SCF program)
@@ -257,7 +257,7 @@ program HF
   if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL ) then        
 
      call system(" lowdin-ints.x TWO_PARTICLE_F12")
-		 
+
 
   else        
 
@@ -340,7 +340,7 @@ program HF
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = WaveFunction_instance(speciesID)%energyofmolecularorbital )     
 
-     
+
      if(CONTROL_instance%COSMO)then
 
         arguments(1) = "COSMO2"
@@ -373,17 +373,17 @@ program HF
        + totalQuantumPuntualInteractionEnergy &
        + totalCouplingEnergy &
        + totalExternalPotentialEnergy
-	totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
+  totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
 
- if(CONTROL_instance%COSMO) then
-    write(*,*)"totalCosmoEnergy",totalCosmoEnergy
-    write(*,*)"cosmo3energy",cosmo3Energy
+  if(CONTROL_instance%COSMO) then
+     write(*,*)"totalCosmoEnergy",totalCosmoEnergy
+     write(*,*)"cosmo3energy",cosmo3Energy
 
-    potentialEnergy=potentialEnergy+totalCosmoEnergy+cosmo3Energy
+     potentialEnergy=potentialEnergy+totalCosmoEnergy+cosmo3Energy
 
- end if
+  end if
 
- close(wfnUnit)
+  close(wfnUnit)
 
   !! Show results
   if(CONTROL_instance%LAST_STEP) then
@@ -516,7 +516,7 @@ program HF
   !!save virial
   open(unit=wfnUnit, file=trim(wfnFile), status="old", position="append", form="unformatted")
 
-      call Vector_writeToFile(unit=wfnUnit, binary=.true., value=- ( potentialEnergy / totalKineticEnergy) , arguments=["VIRIAL"])
+  call Vector_writeToFile(unit=wfnUnit, binary=.true., value=- ( potentialEnergy / totalKineticEnergy) , arguments=["VIRIAL"])
 
   close(wfnUnit)
 

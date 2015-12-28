@@ -32,7 +32,7 @@ Program Ints
   use ParticleManager_
 
   implicit none
-  
+
   character(50) :: job
   character(50) :: nprocs
   character(50) :: proc
@@ -53,23 +53,23 @@ Program Ints
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
   call Stopwatch_start(lowdin_stopwatch)
-  
+
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
-  
+
   !!Load the system in lowdin.bas format
   call MolecularSystem_loadFromFile( "LOWDIN.BAS" )
 
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-  
+
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
- 
+
 
   select case(trim(job))
 
   case("ONE_PARTICLE")
-     
+
      if(CONTROL_instance%LAST_STEP) then
         write(*,"(A)")"----------------------------------------------------------------------"
         write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
@@ -80,22 +80,22 @@ Program Ints
 
      !!Open file to store integrals
      open(unit=30, file="lowdin.opints", status="unknown", form="unformatted")
-     
+
      !!write global info on output
      write(30) size(MolecularSystem_instance%species)
-     
+
      !!Calculate overlap integrals
      call IntegralManager_getOverlapIntegrals()
 
      !!Calculate kinetic integrals
      call IntegralManager_getKineticIntegrals()
-     
+
      !!Calculate attraction integrals
      call IntegralManager_getAttractionIntegrals()
-     
+
      !!Calculate moment integrals
      call IntegralManager_getMomentIntegrals()
-     
+
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
 
@@ -116,8 +116,8 @@ Program Ints
         write(*,"(A)") "INFO: RUNNING IN COSMO MODE."
         write(*,"(A)")" "
      end if
-     
-     
+
+
      call CosmoCore_lines(surface_aux)
      call CosmoCore_filler(surface_aux)
 
@@ -131,72 +131,72 @@ Program Ints
      call IntegralManager_getAttractionIntegrals(surface_aux)
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
-     
+
      if(CONTROL_instance%LAST_STEP) then
         write(*, *) ""
         write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
         write(*, *) ""
      end if
      close(40)
-     
+
   case("TWO_PARTICLE_R12_INTRA")
-     
+
      nprocs = ""
      proc = ""
      speciesName=""
-     
+
      call get_command_argument(2,value=nprocs)
      call get_command_argument(3,value=proc)
      call get_command_argument(4,value=speciesName)
-     
+
      nprocess = 1
      process = 1
 
      if(trim(nprocs)/= "")read(nprocs,*) nprocess
      if(trim(proc)/= "")read(proc,*) process     
-     
+
      if(trim(speciesName) == "") speciesName="E-"
-     
+
      !!Calculate attraction integrals (intra-species)
      call IntegralManager_getIntraRepulsionIntegrals(nprocess, process, speciesName, trim(CONTROL_instance%INTEGRAL_SCHEME))
 
      ! write(*,*)"nprocess,process,speciesName", nprocess, process, speciesName
-     
+
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
-     
+
      if(CONTROL_instance%LAST_STEP) then
         write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
      end if
 
-   case("TWO_PARTICLE_R12_INTER")
-      
-      if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
+  case("TWO_PARTICLE_R12_INTER")
 
-         !!Calculate attraction integrals (inter-species)
-         call IntegralManager_getInterRepulsionIntegrals(trim(CONTROL_instance%INTEGRAL_SCHEME))
+     if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
 
-         !stop time
-         call Stopwatch_stop(lowdin_stopwatch)
+        !!Calculate attraction integrals (inter-species)
+        call IntegralManager_getInterRepulsionIntegrals(trim(CONTROL_instance%INTEGRAL_SCHEME))
 
-         if(CONTROL_instance%LAST_STEP) then
-            write(*, *) ""
-            write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
-            write(*, *) ""
-         end if
-      end if
+        !stop time
+        call Stopwatch_stop(lowdin_stopwatch)
 
-   case("GET_GRADIENTS")
-      call EnergyGradients_constructor()
-      call EnergyGradients_getAnalyticDerivative()
-      ! write(*,"(A)") "Lo logramos" 
+        if(CONTROL_instance%LAST_STEP) then
+           write(*, *) ""
+           write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+           write(*, *) ""
+        end if
+     end if
 
-   case("TWO_PARTICLE_F12")
-     
+  case("GET_GRADIENTS")
+     call EnergyGradients_constructor()
+     call EnergyGradients_getAnalyticDerivative()
+     ! write(*,"(A)") "Lo logramos" 
+
+  case("TWO_PARTICLE_F12")
+
      stop "NOT IMPLEMENTED"
-     
+
   case default
-     
+
      write(*,*) "USAGE: lowdin-ints.x job "
      write(*,*) "Where job can be: "
      write(*,*) "  ONE_PARTICLE"
@@ -204,7 +204,7 @@ Program Ints
      write(*,*) "  TWO_PARTICLE_R12_INTER"
      write(*,*) "  TWO_PARTICLE_F12"
      stop "ERROR"
-     
+
   end select
-  
+
 end Program Ints

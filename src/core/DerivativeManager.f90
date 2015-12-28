@@ -154,7 +154,7 @@ contains
        else
           call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID)
        end if
-       
+
     case( OVERLAP_DERIVATIVES )
 
        call OverlapDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)

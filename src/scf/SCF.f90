@@ -263,30 +263,30 @@ program SCF
   end do
 
   if ( .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
-        labels = ""
-        !! Open file for wfn
-        vecUnit = 36
-        vecFile = "lowdin-plain.vec"
-        open(unit=vecUnit, file=trim(vecFile), status="replace", form="formatted")
+     labels = ""
+     !! Open file for wfn
+     vecUnit = 36
+     vecFile = "lowdin-plain.vec"
+     open(unit=vecUnit, file=trim(vecFile), status="replace", form="formatted")
 
-                do speciesID = 1, numberOfSpecies
+     do speciesID = 1, numberOfSpecies
 
-                  labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
-                  labels(1) = "COEFFICIENTS"
-                  call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
-                   unit=vecUnit, binary=.false., arguments = labels)
+        labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+        labels(1) = "COEFFICIENTS"
+        call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
+             unit=vecUnit, binary=.false., arguments = labels)
 
-                end do 
+     end do
 
-        close (vecUnit)
+     close (vecUnit)
 
-   end if
+  end if
   !!**********************************************************
   !! Save Some energies
   !!
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%totalEnergy, arguments=["TOTALENERGY"])
-  
-	call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%cosmo3Energy, arguments=["COSMO3ENERGY"])
+
+  call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%cosmo3Energy, arguments=["COSMO3ENERGY"])
 
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%totalCouplingEnergy, arguments=["COUPLINGENERGY"])
 
@@ -305,9 +305,9 @@ program SCF
   end if
 
   close(wfnUnit)
-     
-		 if (CONTROL_instance%COSMO) then
-				call WaveFunction_cosmoQuantumCharge()
-     end if
+
+  if (CONTROL_instance%COSMO) then
+     call WaveFunction_cosmoQuantumCharge()
+  end if
 
 end program SCF

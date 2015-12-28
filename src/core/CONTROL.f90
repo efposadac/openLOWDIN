@@ -124,8 +124,8 @@ module CONTROL_
      !! Parameter to control cosmo  
      !!
      logical :: COSMO
-	 	 real(8) :: COSMO_SOLVENT_DIALECTRIC
-	   real(8) :: COSMO_SCALING
+     real(8) :: COSMO_SOLVENT_DIELECTRIC
+     real(8) :: COSMO_SCALING
 
      !!***************************************************************************
 
@@ -261,7 +261,7 @@ module CONTROL_
   end type CONTROL
 
   !< Namelist definition
-  
+
   !!***************************************************************************
   !! Parameter to control Integrals library
   !!  
@@ -364,9 +364,9 @@ module CONTROL_
   !! Parameter to control cosmo theory
   !!
   logical :: LowdinParameters_cosmo
-  real(8) :: LowdinParameters_cosmo_solvent_dialectric
+  real(8) :: LowdinParameters_cosmo_solvent_dielectric
   real(8) :: LowdinParameters_cosmo_scaling
-  
+
   !!***************************************************************************
   !! Parameter to control the propagator theory module
   !!
@@ -456,7 +456,7 @@ module CONTROL_
   !!
   integer :: LowdinParameters_cubePointsDensity
   real(8) :: LowdinParameters_volumeDensityThreshold
-  
+
   !!***************************************************** 
   !! Molecular Mechanics Options                                                        
   character(50) :: LowdinParameters_forceField
@@ -497,20 +497,20 @@ module CONTROL_
   character(255) :: LowdinParameters_elementalParticlesDataBase
   character(100) :: LowdinParameters_inputFile
 
-  
+
   NAMELIST /LowdinParameters/ &
-       !!***************************************************************************
-       !! Parameter to control Integrals library
-       !!  
+                                !!***************************************************************************
+                                !! Parameter to control Integrals library
+                                !!  
        LowdinParameters_tv,&
        LowdinParameters_integralThreshold,&
        LowdinParameters_integralStackSize,&
        LowdinParameters_integralDestiny,&
        LowdinParameters_integralScheme,&
-
-       !!***************************************************************************
-       !! Parameter to control SCF program
-       !!
+       
+                                !!***************************************************************************
+                                !! Parameter to control SCF program
+                                !!
        LowdinParameters_scfNonelectronicEnergyTolerance,&
        LowdinParameters_scfElectronicEnergyTolerance,&
        LowdinParameters_nonelectronicDensityMatrixTolerance,&
@@ -539,9 +539,9 @@ module CONTROL_
        LowdinParameters_exchangeOrbitalsInSCF,&
        LowdinParameters_debugScfs,&
        
-       !!*****************************************************
-       !! Hartree-Fock Options
-       !!
+                                !!*****************************************************
+                                !! Hartree-Fock Options
+                                !!
        LowdinParameters_frozen,&
        LowdinParameters_freezeNonElectronicOrbitals,&
        LowdinParameters_hartreeProductGuess,&
@@ -557,10 +557,10 @@ module CONTROL_
        LowdinParameters_electronicWaveFunctionAnalysis,&
        LowdinParameters_isOpenShell, &
        LowdinParameters_getGradients, &
-
-       !!***************************************************************************
-       !! Parameter to control geometry optimization
-       !!
+       
+                                !!***************************************************************************
+                                !! Parameter to control geometry optimization
+                                !!
        LowdinParameters_numericalDerivativeDelta,&
        LowdinParameters_minimizationInitialStepSize,&
        LowdinParameters_minimizationLineTolerance,&
@@ -583,30 +583,30 @@ module CONTROL_
        LowdinParameters_optimizeGeometryWithMP,&
        LowdinParameters_projectHessiane,&
        
-       !!***************************************************************************
-       !! Parameter of atomic conectivity
-       !!
+                                !!***************************************************************************
+                                !! Parameter of atomic conectivity
+                                !!
        LowdinParameters_bondDistanceFactor,&
        LowdinParameters_bondAngleThreshold,&
        LowdinParameters_dihedralAngleThreshold,&
        
-       !!***************************************************************************
-       !! Parameter to control MPn theory
-       !!
+                                !!***************************************************************************
+                                !! Parameter to control MPn theory
+                                !!
        LowdinParameters_mpCorrection,&
        LowdinParameters_mpFrozenCoreBoundary,&
        LowdinParameters_mpOnlyElectronicCorrection,&
        
-       !!***************************************************************************
-       !! Parameter to control cosmo theory
-       !!
+                                !!***************************************************************************
+                                !! Parameter to control cosmo theory
+                                !!
        LowdinParameters_cosmo,& 
-       LowdinParameters_cosmo_solvent_dialectric,& 
+       LowdinParameters_cosmo_solvent_dielectric,& 
        LowdinParameters_cosmo_scaling,& 
        
-       !!***************************************************************************
-       !! Parameter to control the propagator theory module
-       !!
+                                !!***************************************************************************
+                                !! Parameter to control the propagator theory module
+                                !!
        LowdinParameters_ptOnlyOneSpecieCorrection,&
        LowdinParameters_selfEnergyScan,&
        LowdinParameters_ptTransitionOperator,&
@@ -619,9 +619,9 @@ module CONTROL_
        LowdinParameters_ptIterationScheme,&
        LowdinParameters_ptMaxNumberOfPolesSearched,&
        
-       !!***************************************************************************
-       !! Control print level and units
-       !!
+                                !!***************************************************************************
+                                !! Control print level and units
+                                !!
        LowdinParameters_formatNumberOfColumns,&
        LowdinParameters_unitForOutputFile,&
        LowdinParameters_unitForMolecularOrbitalsFile,&
@@ -630,19 +630,19 @@ module CONTROL_
        LowdinParameters_units    ,&
        LowdinParameters_doubleZeroThreshold,&
        
-       !!***************************************************************************
-       !! CISD - FCI
-       !!
+                                !!***************************************************************************
+                                !! CISD - FCI
+                                !!
        LowdinParameters_configurationInteractionLevel,&
-
-       !!***************************************************************************
-       !! CCSD 
-       !!
+       
+                                !!***************************************************************************
+                                !! CCSD 
+                                !!
        LowdinParameters_coupledClusterLevel,&
-
-       !!*****************************************************
-       !! Parameter to general control
-       !!
+       
+                                !!*****************************************************
+                                !! Parameter to general control
+                                !!
        LowdinParameters_method,&
        LowdinParameters_transformToCenterOfMass,&
        LowdinParameters_areThereDummyAtoms,&
@@ -652,9 +652,9 @@ module CONTROL_
        LowdinParameters_isThereFrozenParticle,&
        LowdinParameters_dimensionality,&
        
-       !!*****************************************************
-       !! Density Functional Theory Options
-       !!
+                                !!*****************************************************
+                                !! Density Functional Theory Options
+                                !!
        LowdinParameters_electronCorrelationFunctional,&
        LowdinParameters_electronExchangeFunctional,&
        LowdinParameters_electronNuclearCorrelationFunctional,&
@@ -665,9 +665,9 @@ module CONTROL_
        LowdinParameters_storeThreeCenterElectronIntegrals,&
        LowdinParameters_callDft,&
        
-       !!*****************************************************
-       !! External Potential Options
-       !!
+                                !!*****************************************************
+                                !! External Potential Options
+                                !!
        LowdinParameters_numericalIntegrationForExternalPotential,&
        LowdinParameters_numericalIntegrationForOverlap  ,&
        LowdinParameters_maxIntervalInNumericalIntegration,&
@@ -682,46 +682,46 @@ module CONTROL_
        LowdinParameters_originOfGaussianExternalPotential,&
        LowdinParameters_numericalIntegrationMethod,&
        
-       !!*****************************************************
-       !! Graphs Options
-       !!
+                                !!*****************************************************
+                                !! Graphs Options
+                                !!
        LowdinParameters_numberOfPointsPerDimension,&
        
-       !!*****************************************************
-       !! Cubes Options
-       !!
+                                !!*****************************************************
+                                !! Cubes Options
+                                !!
        LowdinParameters_cubePointsDensity,&
        LowdinParameters_volumeDensityThreshold,&
-
-       !!***************************************************** 
-       !! Molecular Mechanics Options                                                        
+       
+                                !!***************************************************** 
+                                !! Molecular Mechanics Options                                                        
        LowdinParameters_forceField,&
        LowdinParameters_electrostaticMM,&
        LowdinParameters_chargesMM,&
        LowdinParameters_printMM,&
-
-       !!*****************************************************                                                      
-       !! Output Options                                                                                            
+       
+                                !!*****************************************************                                                      
+                                !! Output Options                                                                                            
        LowdinParameters_moldenFile,&
        LowdinParameters_amberFile,&       
        
-       !!*****************************************************
-       !! Properties Options
+                                !!*****************************************************
+                                !! Properties Options
        LowdinParameters_calculateInterparticleDistances,&
        LowdinParameters_calculateDensityVolume,&
        
-       !!*****************************************************
-       !! Miscelaneous Options
-       !!
+                                !!*****************************************************
+                                !! Miscelaneous Options
+                                !!
        LowdinParameters_MOFractionOccupation,&
        LowdinParameters_ionizeMO,&
        LowdinParameters_ionizeSpecie,&
        LowdinParameters_exciteSpecie,&
        LowdinParameters_numberOfCores,&
-
-       !!***************************************************************************
-       !! Variables de ambiente al sistema de archivos del programa
-       !!
+       
+                                !!***************************************************************************
+                                !! Variables de ambiente al sistema de archivos del programa
+                                !!
        LowdinParameters_inputFile, &
        LowdinParameters_homeDirectory,&
        LowdinParameters_dataDirectory,&
@@ -747,20 +747,20 @@ module CONTROL_
        CONTROL_getExternalCommand, &
        CONTROL_getExternalSoftwareName, &
        CONTROL_exception
-  
+
   !> Singleton
   type(CONTROL), save, public :: CONTROL_instance
-  
+
 contains
 
-  
+
   !>
   !! @brief Set defaults
   subroutine CONTROL_start()
     implicit none
 
     !! Set defaults for namelist
-    
+
     !!***************************************************************************
     !! Parameter to control Integrals library
     !!  
@@ -863,9 +863,9 @@ contains
     !! Parameter to control cosmo theory
     !!
     LowdinParameters_cosmo = .false.
-    LowdinParameters_cosmo_solvent_dialectric = 78.3553d+00
+    LowdinParameters_cosmo_solvent_dielectric = 78.3553d+00
     LowdinParameters_cosmo_scaling =0.0d+00
-    
+
     !!***************************************************************************
     !! Parameter to control the propagator theory module
     !!
@@ -1002,7 +1002,7 @@ contains
     LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
 
     !! Set defaults for CONTROL Object
-    
+
     !!***************************************************************************
     !!***************************************************************************
     !!***************************************************************************
@@ -1111,7 +1111,7 @@ contains
     !! Parameter to control cosmo method                                                                                         
     !!                                                                                                                         
     CONTROL_instance%COSMO = .false.
-    CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= 78.3553d+00 
+    CONTROL_instance%COSMO_SOLVENT_DIELECTRIC= 78.3553d+00 
     CONTROL_instance%COSMO_SCALING= 0.0d+00
 
     !!***************************************************************************                                              
@@ -1246,7 +1246,7 @@ contains
     CONTROL_instance%POTENTIALS_DATABASE = "/potentials/"
     CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE = "/dataBases/elementalParticles.lib"
     CONTROL_instance%INPUT_FILE = CONTROL_instance%INPUT_FILE
-    
+
   end subroutine CONTROL_start
 
   !<
@@ -1255,13 +1255,13 @@ contains
     implicit none
 
     integer, optional :: unit
-    
+
     integer :: uunit
     integer:: stat
-    
+
     uunit = 4
     if(present(unit)) uunit = unit
-    
+
     !! Reload file
     rewind(uunit)
 
@@ -1274,7 +1274,7 @@ contains
        call CONTROL_exception( ERROR, "Class object CONTROL in the load function", &
             "check the CONTROL block in your input file")
     end if
-    
+
     !! Fixing load...
     if ( LowdinParameters_diisSwitchThreshold > LowdinParameters_doubleZeroThreshold  ) then
        LowdinParameters_diisSwitchThreshold_bkp = LowdinParameters_diisSwitchThreshold
@@ -1293,7 +1293,7 @@ contains
        LowdinParameters_totalEnergyTolerance = LowdinParameters_totalEnergyTolerance / 2.5_8
 
     end if
-    
+
     !!***************************************************************************      
     !! Parameter to control Integrals library                                          
     !!                                                                                 
@@ -1302,7 +1302,7 @@ contains
     CONTROL_instance%INTEGRAL_STACK_SIZE = LowdinParameters_integralStackSize
     CONTROL_instance%INTEGRAL_DESTINY = LowdinParameters_integralDestiny
     CONTROL_instance%INTEGRAL_SCHEME =  LowdinParameters_integralScheme
-    
+
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
     !!                                                                                 
@@ -1333,7 +1333,7 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = LowdinParameters_activateLevelShifting
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = LowdinParameters_exchangeOrbitalsInSCF
     CONTROL_instance%DEBUG_SCFS = LowdinParameters_debugScfs
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
     !!                                                                                 
@@ -1376,27 +1376,27 @@ contains
     CONTROL_instance%OPTIMIZE = LowdinParameters_optimize
     CONTROL_instance%OPTIMIZE_WITH_MP = LowdinParameters_optimizeGeometryWithMP
     CONTROL_instance%PROJECT_HESSIANE = LowdinParameters_projectHessiane
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! Parameter of atomic conectivity                                                 
     !!                                                                                 
     CONTROL_instance%BOND_DISTANCE_FACTOR = LowdinParameters_bondDistanceFactor
     CONTROL_instance%BOND_ANGLE_THRESHOLD = LowdinParameters_bondAngleThreshold
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = LowdinParameters_dihedralAngleThreshold
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! Parameter to control MPn theory                                                 
     !!                                                                                 
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = LowdinParameters_mpCorrection
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = LowdinParameters_mpFrozenCoreBoundary
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = LowdinParameters_mpOnlyElectronicCorrection
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! Parameter to control cosmo method                                               
     !!                                                                                 
     CONTROL_instance%COSMO = LowdinParameters_cosmo
-  	CONTROL_instance%COSMO_SOLVENT_DIALECTRIC= LowdinParameters_cosmo_solvent_dialectric
-  	CONTROL_instance%COSMO_SCALING=LowdinParameters_cosmo_SCALING
+    CONTROL_instance%COSMO_SOLVENT_DIELECTRIC= LowdinParameters_cosmo_solvent_dielectric
+    CONTROL_instance%COSMO_SCALING=LowdinParameters_cosmo_SCALING
 
     !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
@@ -1412,7 +1412,7 @@ contains
     CONTROL_instance%PT_ITERATION_METHOD_2_LIMIT = LowdinParameters_ptIterationMethod2Limit
     CONTROL_instance%PT_ITERATION_SCHEME = LowdinParameters_ptIterationScheme
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = LowdinParameters_ptMaxNumberOfPolesSearched
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! Control print level and units                                                   
     !!                                                                                 
@@ -1423,12 +1423,12 @@ contains
     CONTROL_instance%PRINT_LEVEL = LowdinParameters_printLevel
     CONTROL_instance%UNITS = LowdinParameters_units
     CONTROL_instance%DOUBLE_ZERO_THRESHOLD = LowdinParameters_doubleZeroThreshold
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! CISD - FCI                                                                      
     !!                                                                                 
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! CCSD                                                                       
     !!                                                                                 
@@ -1445,7 +1445,7 @@ contains
     CONTROL_instance%IS_THERE_OUTPUT = LowdinParameters_isThereOutput
     CONTROL_instance%IS_THERE_FROZEN_PARTICLE = LowdinParameters_isThereFrozenParticle
     CONTROL_instance%DIMENSIONALITY = LowdinParameters_dimensionality
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Density Functional Theory Options                                               
     !!                                                                                 
@@ -1458,7 +1458,7 @@ contains
     CONTROL_instance%AUXILIARY_DENSITY = LowdinParameters_auxiliaryDensity
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = LowdinParameters_storeThreeCenterElectronIntegrals
     CONTROL_instance%CALL_DFT = LowdinParameters_callDft
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! External Potential Options                                                      
     !!                                                                                 
@@ -1475,18 +1475,18 @@ contains
     CONTROL_instance%EXPONENT_FOR_GAUSSIAN_EXTERNAL_POTENTIAL = LowdinParameters_exponentForGaussianExternalPotential
     CONTROL_instance%ORIGIN_OF_GAUSSIAN_EXTERNAL_POTENTIAL = LowdinParameters_originOfGaussianExternalPotential
     CONTROL_instance%NUMERICAL_INTEGRATION_METHOD = LowdinParameters_numericalIntegrationMethod
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Graphs Options                                                                  
     !!                                                                                 
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = LowdinParameters_numberOfPointsPerDimension
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Cubes Options                                                                   
     !!                                                                                 
     CONTROL_instance%CUBE_POINTS_DENSITY = LowdinParameters_cubePointsDensity
     CONTROL_instance%VOLUME_DENSITY_THRESHOLD = LowdinParameters_volumeDensityThreshold
-                                                                                                                                
+
     !!***************************************************** 
     !! Molecular Mechanics Options                                                        
     CONTROL_instance%FORCE_FIELD = LowdinParameters_forceField
@@ -1497,12 +1497,12 @@ contains
     !! Output Options                                                               
     CONTROL_instance%MOLDEN_FILE = LowdinParameters_moldenFile
     CONTROL_instance%AMBER_FILE = LowdinParameters_amberFile    
-                                                          
+
     !!*****************************************************                            
     !! Properties Options                                                              
     CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES = LowdinParameters_calculateInterparticleDistances
     CONTROL_instance%CALCULATE_DENSITY_VOLUME = LowdinParameters_calculateDensityVolume
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Miscelaneous Options                                                            
     !!                                                                                 
@@ -1525,7 +1525,7 @@ contains
     CONTROL_instance%POTENTIALS_DATABASE = LowdinParameters_potentialsDataBase
     CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE = LowdinParameters_elementalParticlesDataBase
     CONTROL_instance%INPUT_FILE = LowdinParameters_inputFile
-                                                                                              
+
 
   end subroutine CONTROL_load
 
@@ -1533,13 +1533,13 @@ contains
   !! @brief Save all options in file
   subroutine CONTROL_save( unit, lastStep, firstStep )
     implicit none
-    
+
     integer :: unit
     logical, optional :: lastStep 
     logical, optional :: firstStep
-    
+
     !! Saving de control parameters on the name list.
-    
+
     !!***************************************************************************      
     !! Parameter to control Integrals library                                          
     !!                                                                                 
@@ -1548,7 +1548,7 @@ contains
     LowdinParameters_integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
     LowdinParameters_integralDestiny = CONTROL_instance%INTEGRAL_DESTINY
     LowdinParameters_integralScheme = CONTROL_instance%INTEGRAL_SCHEME
-    
+
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
     !!                                                                                 
@@ -1579,7 +1579,7 @@ contains
     LowdinParameters_activateLevelShifting = CONTROL_instance%ACTIVATE_LEVEL_SHIFTING
     LowdinParameters_exchangeOrbitalsInSCF = CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF
     LowdinParameters_debugScfs = CONTROL_instance%DEBUG_SCFS
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
     !!                                                                                 
@@ -1598,7 +1598,7 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS
     LowdinParameters_isOpenShell = CONTROL_instance%IS_OPEN_SHELL
     LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1631,14 +1631,14 @@ contains
     LowdinParameters_optimize = CONTROL_instance%OPTIMIZE
     LowdinParameters_optimizeGeometryWithMP = CONTROL_instance%OPTIMIZE_WITH_MP
     LowdinParameters_projectHessiane = CONTROL_instance%PROJECT_HESSIANE
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! Parameter of atomic conectivity                                                 
     !!                                                                                 
     LowdinParameters_bondDistanceFactor = CONTROL_instance%BOND_DISTANCE_FACTOR
     LowdinParameters_bondAngleThreshold = CONTROL_instance%BOND_ANGLE_THRESHOLD
     LowdinParameters_dihedralAngleThreshold = CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! Parameter to control MPn theory                                                 
     !!                                                                                 
@@ -1650,7 +1650,7 @@ contains
     !! Parameter to control cosmo method                                                 
     !!                                                                                 
     LowdinParameters_cosmo = CONTROL_instance%COSMO
-    LowdinParameters_cosmo_solvent_dialectric = CONTROL_instance%COSMO_SOLVENT_DIALECTRIC 
+    LowdinParameters_cosmo_solvent_dielectric = CONTROL_instance%COSMO_SOLVENT_DIELECTRIC 
     LowdinParameters_cosmo_scaling = CONTROL_instance%COSMO_SCALING
 
     !!***************************************************************************      
@@ -1678,17 +1678,17 @@ contains
     LowdinParameters_printLevel = CONTROL_instance%PRINT_LEVEL
     LowdinParameters_units = CONTROL_instance%UNITS
     LowdinParameters_doubleZeroThreshold = CONTROL_instance%DOUBLE_ZERO_THRESHOLD
-                                                                                                                                                                                          
+
     !!***************************************************************************      
     !! CISD - FCI                                                                      
     !!                                                                                 
     LowdinParameters_configurationInteractionLevel = CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
- 
+
     !!***************************************************************************      
     !! CCSD                                                                      
     !!                                                                                 
     LowdinParameters_coupledClusterLevel = CONTROL_instance%COUPLED_CLUSTER_LEVEL
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Parameter to general control                                                    
     !!                                                                                 
@@ -1700,7 +1700,7 @@ contains
     LowdinParameters_isThereOutput = CONTROL_instance%IS_THERE_OUTPUT
     LowdinParameters_isThereFrozenParticle = CONTROL_instance%IS_THERE_FROZEN_PARTICLE
     LowdinParameters_dimensionality = CONTROL_instance%DIMENSIONALITY
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Density Functional Theory Options                                               
     !!                                                                                 
@@ -1713,7 +1713,7 @@ contains
     LowdinParameters_auxiliaryDensity = CONTROL_instance%AUXILIARY_DENSITY
     LowdinParameters_storeThreeCenterElectronIntegrals = CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS
     LowdinParameters_callDft = CONTROL_instance%CALL_DFT
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! External Potential Options                                                      
     !!                                                                                 
@@ -1730,12 +1730,12 @@ contains
     LowdinParameters_exponentForGaussianExternalPotential = CONTROL_instance%EXPONENT_FOR_GAUSSIAN_EXTERNAL_POTENTIAL
     LowdinParameters_originOfGaussianExternalPotential = CONTROL_instance%ORIGIN_OF_GAUSSIAN_EXTERNAL_POTENTIAL
     LowdinParameters_numericalIntegrationMethod = CONTROL_instance%NUMERICAL_INTEGRATION_METHOD
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Graphs Options                                                                  
     !!                                                                                 
     LowdinParameters_numberOfPointsPerDimension = CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Cubes Options                                                                   
     !!                                                                                 
@@ -1744,20 +1744,20 @@ contains
 
     !!***************************************************** 
     !! Molecular Mechanics Options                                                        
-     LowdinParameters_forceField = CONTROL_instance%FORCE_FIELD
-     LowdinParameters_electrostaticMM = CONTROL_instance%ELECTROSTATIC_MM
-     LowdinParameters_chargesMM = CONTROL_instance%CHARGES_MM
-     LowdinParameters_printMM = CONTROL_instance%PRINT_MM
+    LowdinParameters_forceField = CONTROL_instance%FORCE_FIELD
+    LowdinParameters_electrostaticMM = CONTROL_instance%ELECTROSTATIC_MM
+    LowdinParameters_chargesMM = CONTROL_instance%CHARGES_MM
+    LowdinParameters_printMM = CONTROL_instance%PRINT_MM
     !!*****************************************************      
     !! Output Options                               
     LowdinParameters_moldenFile = CONTROL_instance%MOLDEN_FILE
     LowdinParameters_amberFile = CONTROL_instance%AMBER_FILE     
-     
+
     !!*****************************************************                            
     !! Properties Options                                                              
     LowdinParameters_calculateInterparticleDistances = CONTROL_instance%CALCULATE_INTERPARTICLE_DISTANCES
     LowdinParameters_calculateDensityVolume = CONTROL_instance%CALCULATE_DENSITY_VOLUME
-                                                                                                                                                                                          
+
     !!*****************************************************                            
     !! Miscelaneous Options                                                            
     !!                                                                                 
@@ -1780,10 +1780,10 @@ contains
     LowdinParameters_potentialsDataBase = CONTROL_instance%POTENTIALS_DATABASE
     LowdinParameters_elementalParticlesDataBase = CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE
     LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
-                                                                                                        
+
     !! Write the name list in the specified unit.
     write(unit, NML=LowdinParameters)
-    
+
   end subroutine CONTROL_save
 
   !>
@@ -1891,7 +1891,7 @@ contains
     !! Control de parametros de metodo cosmo
     !!
     otherThis%COSMO  = this%COSMO                   
-    otherThis%COSMO_SOLVENT_DIALECTRIC = this%COSMO_SOLVENT_DIALECTRIC
+    otherThis%COSMO_SOLVENT_DIELECTRIC = this%COSMO_SOLVENT_DIELECTRIC
     otherThis%COSMO_SCALING = this%COSMO_SCALING
 
     !!*****************************************************
@@ -2019,20 +2019,20 @@ contains
     implicit none
 
     integer:: i
-    
+
     print *,""
     print *,"LOWDIN IS RUNNING WITH NEXT PARAMETERS: "
     print *,"----------------------------------------"
     print *,""
-    
+
     write (*,"(T10,A)") "METHOD TYPE:  "//trim(CONTROL_instance%METHOD)
     write (*,"(T10,A,I5)") "NUMBER OF CORES: ",CONTROL_instance%NUMBER_OF_CORES
-    
-    
+
+
     if(CONTROL_instance%METHOD=="RKS" .or. CONTROL_instance%METHOD=="UKS" .or. CONTROL_instance%METHOD=="ROKS" ) then
 
        if(CONTROL_instance%AUXILIARY_DENSITY) write (*,"(T10,A)") "USING AUXILIARY DENSITY"
-       
+
        write (*,"(T10,A)") "ELECTRON CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
        write (*,"(T10,A)") "ELECTRON EXCHANGE FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)
        write (*,"(T10,A)") "ELECTRON-NUCLEAR CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL)
@@ -2092,14 +2092,14 @@ contains
     if((CONTROL_instance%IONIZE_SPECIE(1)) /= "NONE") then 
 
        write (*,"(T10,A,I5)") "MOLECULAR ORBITAL TO BE IONIZED: ", CONTROL_instance%IONIZE_MO
-	print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
-	print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
+       print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
+       print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
        do i = 1, size(CONTROL_instance%IONIZE_SPECIE)
-         if ( CONTROL_instance%IONIZE_SPECIE(i) /= "NONE" ) then
-         write (*,"(T10,A,A)") "FOR SPECIE0: ", (CONTROL_instance%IONIZE_SPECIE(i))
-         write (*,"(T10,A,ES15.5)") "IONIZED MOLECULAR ORBITAL OCCUPATION: ",CONTROL_instance%MO_FRACTION_OCCUPATION
-         end if
-      end do 
+          if ( CONTROL_instance%IONIZE_SPECIE(i) /= "NONE" ) then
+             write (*,"(T10,A,A)") "FOR SPECIE0: ", (CONTROL_instance%IONIZE_SPECIE(i))
+             write (*,"(T10,A,ES15.5)") "IONIZED MOLECULAR ORBITAL OCCUPATION: ",CONTROL_instance%MO_FRACTION_OCCUPATION
+          end if
+       end do
     end if
 
     if(CONTROL_instance%POLARIZATION_ORDER > 1) then 
@@ -2294,5 +2294,5 @@ contains
     call Exception_destructor( ex )
 
   end subroutine CONTROL_exception
-  
+
 end module CONTROL_

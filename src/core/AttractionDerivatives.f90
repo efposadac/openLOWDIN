@@ -111,7 +111,7 @@ contains
     ssize = this(indexA)%numCartesianOrbital*this(indexB)%numCartesianOrbital
     center_i = (centerA - 1)*3*ssize
     center_j = (centerB - 1)*3*ssize
-    
+
     ! write(*,"(A,I1)") "center: ", center_i
     ! write(*,"(A,I1)") "center: ", center_j
 
@@ -127,7 +127,7 @@ contains
        AB2 = AB2 + (originA(i) - originB(i))*(originA(i) - originB(i))
     end do
 
-    
+
 
     if(present(surface))then
        nCenters = surface%sizeSurface
@@ -161,7 +161,7 @@ contains
     !    pointCharges(j,3) =  MolecularSystem_instance%pointCharges(i+1)%origin(3)
     !    j = j + 1
     ! end do
-    
+
     if(present(surface)) then
        do i = 0, nCenters - 1
           pointCharges(i,0) = 1.0_8
@@ -205,7 +205,7 @@ contains
           auxPrimConstantB = this(indexB)%primNormalization(p2 + 1,1)
           auxContConstantB = this(indexB)%contNormalization(1)
           c2 = auxCoefficientB*auxPrimConstantB*auxContConstantB
-          
+
 
           ! write(*,"(A,f,A,f)") "expA: ", auxExponentA, " expB:", auxExponentB
           !! Debug Mauricio Rodas
@@ -378,7 +378,7 @@ contains
 
     tmp = sqrt(zeta)*(2.0_8/Math_SQRT_PI)
     u = zeta * (PC(0) * PC(0) + PC(1) * PC(1) + PC(2) * PC(2))
-    
+
     allocate(F(0:mmax+1))
 
     F = 0.0_8
@@ -403,7 +403,7 @@ contains
           do by=0, b-bx
              bz = b-bx-by
              bind = bx*bxm + by*bym + bz*bzm
-             
+
              if(bz>0) then
                 do m=0, mmax-b
                    vi(0,bind,m) = PB(2)*vi(0,bind-bzm,m)-PC(2)*vi(0,bind-bzm,m+1)
@@ -477,7 +477,7 @@ contains
                    do ay=0, a-ax
                       az = a-ax-ay;
                       aind = ax*axm + ay*aym + az*azm
-                      
+
                       if (az > 0) then
                          do m=0, mmax-a-b
                             vi(aind,bind,m) = PA(2) * vi(aind-azm,bind,m) - PC(2) * vi(aind-azm,bind,m+1)
@@ -572,7 +572,7 @@ contains
           end do
        end do
     end do
-    
+
     deallocate(F)
 
   end subroutine AttractionDerivatives_obaraSaikaRecursion

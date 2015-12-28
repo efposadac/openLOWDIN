@@ -391,7 +391,7 @@ contains
 
 
           integralBuffer = 0.0_8
-					write(80)numberOfPointCharges
+          write(80)numberOfPointCharges
 
           ii = 0
           !! do sobre las particulas
@@ -443,7 +443,7 @@ contains
                             end do
                          end do
 
-                      ! todas las integrales para un c específico 
+                         ! todas las integrales para un c específico 
                       end do
                       ! aqui es donde se hace el calculo para cada carga
 
@@ -482,12 +482,12 @@ contains
 
           !!quantum
           totals(f)=total_aux
-					! ####################################
-					!Nuevo, ojo
-					! write(80)numberOfPointCharges
-					! write(80)totals(f)
+          ! ####################################
+          !Nuevo, ojo
+          ! write(80)numberOfPointCharges
+          ! write(80)totals(f)
 
-					! ####################################
+          ! ####################################
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(f),f,f)
 
 
@@ -495,46 +495,46 @@ contains
 
           cosmoClasicalChargeFile="cosmo.clasical"
 
-					job="COSMO1"
+          job="COSMO1"
 
-					write(40) job
+          write(40) job
           write(40) MolecularSystem_instance%species(f)%name
 
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals(f),f,f,labels)
 
           !clasical vs quantum
-          
-					
-					job="COSMO4"
-					write(40) job
+
+
+          job="COSMO4"
+          write(40) job
           write(40) MolecularSystem_instance%species(f)%name
 
           call CosmoCore_nucleiPotentialQuantumCharges(surface,cosmoQuantumChargeFile,totals(f),labels,f)
 
        end do
        !! end do especies
-			
-			 
-			if( MolecularSystem_getNumberOfQuantumSpecies() > 1 ) then
-				 
-				 
-			do f = 1, size(MolecularSystem_instance%species)
-				do g= 1, size(MolecularSystem_instance%species)
-					
-          !! do all possible combinations of potentials and charges.
 
-          if ( f /= g ) then
 
-          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
-          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
+       if( MolecularSystem_getNumberOfQuantumSpecies() > 1 ) then
 
-          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
 
-					end if
-				end do
-			end do
-				
-			end if
+          do f = 1, size(MolecularSystem_instance%species)
+             do g= 1, size(MolecularSystem_instance%species)
+
+                !! do all possible combinations of potentials and charges.
+
+                if ( f /= g ) then
+
+                   cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+                   cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
+
+                   call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
+
+                end if
+             end do
+          end do
+
+       end if
 
 
     else
@@ -601,7 +601,7 @@ contains
                             m = m + 1
 
 
-														! write(*,*)"lowdin integrals:f, m,k,l, integral value",f,m,k,l,integralValue(m)
+                            ! write(*,*)"lowdin integrals:f, m,k,l, integral value",f,m,k,l,integralValue(m)
                             integralsMatrix(k, l) = integralValue(m)
                             integralsMatrix(l, k) = integralsMatrix(k, l)
 
@@ -824,13 +824,13 @@ contains
 
     !! Calculate integrals (stored on disk)           
     select case (trim(String_getUppercase(trim(scheme))))
-    
+
     case("RYS")
        call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     case("LIBINT")
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
-    ! case("CUDINT")
-    !    call CudintInterface_computeIntraSpecies(speciesID)
+       ! case("CUDINT")
+       !    call CudintInterface_computeIntraSpecies(speciesID)
     case default
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     end select
@@ -855,13 +855,13 @@ contains
           select case (trim(String_getUppercase(trim(scheme))))
           case("LIBINT")
              call LibintInterface_computeInterSpecies( i, j, "ERIS" )
-          ! case("CUDINT")
-          !    call CudintInterface_computeInterSpecies( i, j, "ERIS" )
+             ! case("CUDINT")
+             !    call CudintInterface_computeInterSpecies( i, j, "ERIS" )
           case default
              call LibintInterface_computeInterSpecies( i, j, "ERIS" )
           end select
 
-       end do       
+       end do
     end do
 
   end subroutine IntegralManager_getInterRepulsionIntegrals
@@ -880,11 +880,11 @@ contains
     integer:: i, j, k
 
     auxLabelsOfContractions = 1
-		
-		! write(*,*)"labels data from integral manager"
+
+    ! write(*,*)"labels data from integral manager"
 
     k = 0
-		! write(*,*)size(specieSelected%particles)
+    ! write(*,*)size(specieSelected%particles)
     do i = 1, size(specieSelected%particles)
 
        do j = 1, size(specieSelected%particles(i)%basis%contraction)
@@ -894,7 +894,7 @@ contains
           !!position for cartesian contractions
           labelsOfContractions(k) = auxLabelsOfContractions
           auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
-					! write(*,*)specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
+          ! write(*,*)specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
 
        end do
     end do

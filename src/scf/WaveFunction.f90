@@ -265,188 +265,188 @@ contains
 
        if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
 
-       !$OMP PARALLEL private(ifile,sfile,unit,aa,bb,rr,ss,shellIntegrals,i,coulomb,exchange, tmpArray), shared(wavefunction_instance)
-       !$OMP DO 
-       do ifile = 1, nproc
+          !$OMP PARALLEL private(ifile,sfile,unit,aa,bb,rr,ss,shellIntegrals,i,coulomb,exchange, tmpArray), shared(wavefunction_instance)
+          !$OMP DO 
+          do ifile = 1, nproc
 
-          write(sfile,*) ifile
-          sfile = trim(adjustl(sfile))
-          unit = ifile+50
+             write(sfile,*) ifile
+             sfile = trim(adjustl(sfile))
+             unit = ifile+50
 
-          !! open file (order, integral(shell))
-          if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(speciesID)%isElectron) then
+             !! open file (order, integral(shell))
+             if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(speciesID)%isElectron) then
 
-             open( UNIT=unit,FILE=trim(sfile)//"E-ALPHA.ints", status='old',access='sequential', form='Unformatted')
+                open( UNIT=unit,FILE=trim(sfile)//"E-ALPHA.ints", status='old',access='sequential', form='Unformatted')
 
-          else
+             else
 
-             open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//".ints", status='old',access='sequential', form='Unformatted')
+                open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//".ints", status='old',access='sequential', form='Unformatted')
 
-          end if
-
-          if(allocated(tmpArray))deallocate(tmpArray)
-          allocate(tmpArray(totalNumberOfContractions,totalNumberOfContractions))
-          tmpArray = 0.0_8
-
-          loadintegrals : do
-
-             read(UNIT=unit, iostat=status) aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                  bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                  rr(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                  ss(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                  shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-
-             if(status == -1 ) then
-                print*, "end of file! file: ",trim(sfile)//"E-ALPHA.ints"
-                exit loadintegrals
              end if
 
-             do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+             if(allocated(tmpArray))deallocate(tmpArray)
+             allocate(tmpArray(totalNumberOfContractions,totalNumberOfContractions))
+             tmpArray = 0.0_8
 
-                if( aa(i) == -1 ) exit loadintegrals
+             loadintegrals : do
 
-                coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i))*shellIntegrals(i)
+                read(UNIT=unit, iostat=status) aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                     bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                     rr(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                     ss(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                     shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-                !!*****************************************************************************
-                !! Adds coulomb operator contributions
-                if( aa(i) == rr(i) .and. bb(i) == ss(i) ) then
+                if(status == -1 ) then
+                   print*, "end of file! file: ",trim(sfile)//"E-ALPHA.ints"
+                   exit loadintegrals
+                end if
 
-                   tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
+                do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
-                   if( rr(i) /= ss(i) ) then
+                   if( aa(i) == -1 ) exit loadintegrals
+
+                   coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i))*shellIntegrals(i)
+
+                   !!*****************************************************************************
+                   !! Adds coulomb operator contributions
+                   if( aa(i) == rr(i) .and. bb(i) == ss(i) ) then
 
                       tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
 
-                   end if
+                      if( rr(i) /= ss(i) ) then
 
-                else
+                         tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
 
-                   tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
-
-                   if( rr(i) /= ss(i) ) then
-
-                      tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
-
-                   end if
-
-                   coulomb = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),bb(i))*shellIntegrals(i)
-
-                   tmpArray(rr(i),ss(i)) = tmpArray(rr(i),ss(i)) + coulomb
-
-                   if ( aa(i) /= bb(i) ) then
-
-                      tmpArray( rr(i), ss(i) ) = tmpArray( rr(i), ss(i) ) + coulomb
-
-                   end if
-
-                end if
-
-                !!
-                !!*****************************************************************************
-
-                !!*****************************************************************************
-                !! Adds exchange operator contributions
-                if( rr(i) /= ss(i) ) then
-
-                   exchange =wavefunction_instance(speciesID)%densityMatrix%values(bb(i),ss(i))*shellIntegrals(i)* factor
-
-                   tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
-
-                   if( aa(i) == rr(i) .and. bb(i) /= ss(i) ) then
-
-                      tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
-
-                   end if
-
-                end if
-
-                if ( aa(i) /= bb(i) ) then
-
-                   exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),rr(i))*shellIntegrals(i) * factor
-
-                   if( bb(i) > ss(i) ) then
-
-                      tmpArray( ss(i), bb(i) ) = tmpArray( ss(i), bb(i)) + exchange
+                      end if
 
                    else
 
-                      tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
+                      tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
 
-                      if( bb(i)==ss(i) .and. aa(i) /= rr(i) ) then
+                      if( rr(i) /= ss(i) ) then
 
-                         tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
+                         tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
+
+                      end if
+
+                      coulomb = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),bb(i))*shellIntegrals(i)
+
+                      tmpArray(rr(i),ss(i)) = tmpArray(rr(i),ss(i)) + coulomb
+
+                      if ( aa(i) /= bb(i) ) then
+
+                         tmpArray( rr(i), ss(i) ) = tmpArray( rr(i), ss(i) ) + coulomb
 
                       end if
 
                    end if
 
-                   if ( rr(i) /= ss(i) ) then
+                   !!
+                   !!*****************************************************************************
 
-                      exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),ss(i))*shellIntegrals(i) * factor
+                   !!*****************************************************************************
+                   !! Adds exchange operator contributions
+                   if( rr(i) /= ss(i) ) then
 
-                      if( bb(i) <= rr(i) ) then
+                      exchange =wavefunction_instance(speciesID)%densityMatrix%values(bb(i),ss(i))*shellIntegrals(i)* factor
 
-                         tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
+                      tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
 
-                         if( bb(i) == rr(i) ) then
+                      if( aa(i) == rr(i) .and. bb(i) /= ss(i) ) then
 
-                            tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
+                         tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
 
-                         end if
+                      end if
+
+                   end if
+
+                   if ( aa(i) /= bb(i) ) then
+
+                      exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),rr(i))*shellIntegrals(i) * factor
+
+                      if( bb(i) > ss(i) ) then
+
+                         tmpArray( ss(i), bb(i) ) = tmpArray( ss(i), bb(i)) + exchange
 
                       else
 
-                         tmpArray( rr(i), bb(i) ) = tmpArray( rr(i), bb(i)) + exchange
+                         tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
 
-                         if( aa(i) == rr(i) .and. ss(i) == bb(i) ) goto 30
+                         if( bb(i)==ss(i) .and. aa(i) /= rr(i) ) then
+
+                            tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
+
+                         end if
+
+                      end if
+
+                      if ( rr(i) /= ss(i) ) then
+
+                         exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),ss(i))*shellIntegrals(i) * factor
+
+                         if( bb(i) <= rr(i) ) then
+
+                            tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
+
+                            if( bb(i) == rr(i) ) then
+
+                               tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
+
+                            end if
+
+                         else
+
+                            tmpArray( rr(i), bb(i) ) = tmpArray( rr(i), bb(i)) + exchange
+
+                            if( aa(i) == rr(i) .and. ss(i) == bb(i) ) goto 30
+
+                         end if
 
                       end if
 
                    end if
 
-                end if
+                   exchange = wavefunction_instance(speciesID)%densityMatrix%values(bb(i),rr(i))*shellIntegrals(i) * factor
 
-                exchange = wavefunction_instance(speciesID)%densityMatrix%values(bb(i),rr(i))*shellIntegrals(i) * factor
+                   tmpArray( aa(i), ss(i) ) = tmpArray( aa(i), ss(i) ) + exchange
 
-                tmpArray( aa(i), ss(i) ) = tmpArray( aa(i), ss(i) ) + exchange
+30                 continue
 
-30              continue
+                   !!
+                   !!*****************************************************************************
 
-                !!
-                !!*****************************************************************************
+                end do
+             end do loadintegrals
 
+             close(unit)
+
+             do u = 1, totalNumberOfContractions
+                do v = 1, totalNumberOfContractions
+                   !$OMP ATOMIC
+                   wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
+                        wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpArray(u,v) 
+                end do
              end do
-          end do loadintegrals
 
-          close(unit)
-
-          do u = 1, totalNumberOfContractions
-             do v = 1, totalNumberOfContractions
-                !$OMP ATOMIC
-                wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
-                     wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpArray(u,v) 
-             end do
           end do
+          !$OMP END DO
+          !$OMP END PARALLEL
 
-       end do
-       !$OMP END DO
-       !$OMP END PARALLEL
+          !! Direct
+       else 
 
-       !! Direct
-        else 
-                
           numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
           ssize = (numberOfContractions * (numberOfContractions + 1))/2
           ssize = (ssize * (ssize + 1))/2
-      
+
           integralsByProcess = ceiling( real(ssize,8)/real(nprocess,8) )
-      
+
           ending = process * integralsByProcess
           starting = ending - integralsByProcess + 1
-      
-!!          if( starting > ssize ) return
-      
-!!          if( ending > ssize ) ending = ssize
+
+          !!          if( starting > ssize ) return
+
+          !!          if( ending > ssize ) ending = ssize
 
           call LibintInterface_directIntraSpecies(speciesID, "ERIS", starting, ending, int( process ), & 
                Wavefunction_instance(speciesID)%densityMatrix, & 
@@ -2668,8 +2668,8 @@ contains
 
 
     if( MolecularSystem_getNumberOfQuantumSpecies() > 1 ) then
-             
-			wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
+
+       wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
 
 
        do speciesIterator = 1, MolecularSystem_getNumberOfQuantumSpecies()
@@ -2683,7 +2683,7 @@ contains
 
              ! write(*,*)"hola other and current", otherSpecieID,currentSpecieID 
 
-      !      wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
+             !      wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
 
              open(unit=110, file=trim(nameOfOtherSpecie)//trim(nameOfSpecieSelected)//"_qq.cup", status='old', form="unformatted")
              ! open(unit=110, file=trim(nameOfSpecieSelected)//trim(nameOfOtherSpecie)//"_qq.cup", status='old', form="unformatted")
@@ -2773,7 +2773,7 @@ contains
 
                                   end do
                                end do
-															 ! write(*,*)"m ", m
+                               ! write(*,*)"m ", m
                                cosmoCoup_aux(k,l)=0.0_8
                                do pp=1,size(ints_mat_aux,DIM=1)
                                   do oo=1,size(ints_mat_aux,DIM=1)
@@ -2787,12 +2787,12 @@ contains
                    end do
                 end do
              end do
-                               do k=1,size(cosmoCoup_aux,DIM=1)
-                                  do l=k,size(cosmoCoup_aux,DIM=1)
-																		wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)=cosmoCoup_aux(k,l)+wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
-																		wavefunction_instance(currentSpecieID)%cosmoCoupling%values(l,k)=wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
-                                  end do
-                               end do
+             do k=1,size(cosmoCoup_aux,DIM=1)
+                do l=k,size(cosmoCoup_aux,DIM=1)
+                   wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)=cosmoCoup_aux(k,l)+wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
+                   wavefunction_instance(currentSpecieID)%cosmoCoupling%values(l,k)=wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
+                end do
+             end do
 
 
 
@@ -2803,8 +2803,8 @@ contains
                 write(*,*)"cosmo Coupling = "//trim(nameofSpecieSelected)
 
                 call Matrix_show(wavefunction_instance(currentSpecieID)%cosmoCoupling)
-								
-								write(*,*)"cosmo density matrix used = "//trim(nameOfOtherSpecie)
+
+                write(*,*)"cosmo density matrix used = "//trim(nameOfOtherSpecie)
 
                 call Matrix_show(wavefunction_instance(otherSpecieID)%densityMatrix)
 
@@ -2819,8 +2819,8 @@ contains
 
 
   end subroutine WaveFunction_buildCosmoCoupling
-  
-	subroutine WaveFunction_cosmoQuantumCharge()
+
+  subroutine WaveFunction_cosmoQuantumCharge()
 
     integer :: f,g,a,c,b
     integer :: m,k,l
@@ -2845,116 +2845,114 @@ contains
     integer :: wfnUnit
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
-    
-		open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-		
-		open(unit=100,file="cosmo.clasical",status="old",form="unformatted")
-		read(100)numberOfPointCharges
-    
-		if(allocated(qTotalCosmo)) deallocate(qTotalCosmo)
-		allocate(qTotalCosmo(numberOfPointCharges))
-    
-		if(allocated(qiCosmo)) deallocate(qiCosmo)
+
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+    open(unit=100,file="cosmo.clasical",status="old",form="unformatted")
+    read(100)numberOfPointCharges
+
+    if(allocated(qTotalCosmo)) deallocate(qTotalCosmo)
+    allocate(qTotalCosmo(numberOfPointCharges))
+
+    if(allocated(qiCosmo)) deallocate(qiCosmo)
     allocate(qiCosmo(numberOfPointCharges))
-		qTotalCosmo(:)=0.0_8
+    qTotalCosmo(:)=0.0_8
     read(100)(qTotalCosmo(i),i=1,numberOfPointCharges)
-		close(100)
-		! write(*,*)"Cosmo Clasical Charges : ", qTotalCosmo(:)
-		! write(*,*)"sum Cosmo Clasical Charges : ", sum(qTotalCosmo(:))
+    close(100)
+    ! write(*,*)"Cosmo Clasical Charges : ", qTotalCosmo(:)
+    ! write(*,*)"sum Cosmo Clasical Charges : ", sum(qTotalCosmo(:))
 
-		numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
-		
-		do f = 1, numberOfSpecies
-		
-    specieSelected=MolecularSystem_instance%species(f)
+    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
 
-    if(allocated(labels)) deallocate(labels)
-    allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+    do f = 1, numberOfSpecies
 
-    orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(f)
+       specieSelected=MolecularSystem_instance%species(f)
 
-    arguments(2) = MolecularSystem_getNameOfSpecie(f)
+       if(allocated(labels)) deallocate(labels)
+       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
 
-    arguments(1) = "DENSITY"
-    densityMatrix = &
-         Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
-         columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+       orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(f)
 
-    auxLabelsOfContractions = 1
+       arguments(2) = MolecularSystem_getNameOfSpecie(f)
 
-    c = 0
-    do a = 1, size(specieSelected%particles)
-       do b = 1, size(specieSelected%particles(a)%basis%contraction)
+       arguments(1) = "DENSITY"
+       densityMatrix = &
+            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
+            columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
 
-          c = c + 1
+       auxLabelsOfContractions = 1
 
-          !!position for cartesian contractions
+       c = 0
+       do a = 1, size(specieSelected%particles)
+          do b = 1, size(specieSelected%particles(a)%basis%contraction)
 
-          labels(c) = auxLabelsOfContractions
-          auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(a)%basis%contraction(b)%numCartesianOrbital
+             c = c + 1
+
+             !!position for cartesian contractions
+
+             labels(c) = auxLabelsOfContractions
+             auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(a)%basis%contraction(b)%numCartesianOrbital
 
 
+          end do
        end do
-    end do
 
-    charges_file="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
-    open(unit=100, file=trim(charges_file), status='old', form="unformatted")
-    read(100)m
+       charges_file="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+       open(unit=100, file=trim(charges_file), status='old', form="unformatted")
+       read(100)m
 
-    if(allocated(qiDensityCosmo)) deallocate(qiDensityCosmo)
-    allocate(qiDensityCosmo(orderOfMatrix, orderOfMatrix,numberOfPointCharges))
-    ii = 0
-    do g = 1, size(MolecularSystem_instance%species(f)%particles)
-       do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
-          hh = h
-          ii = ii + 1
-          jj = ii - 1
-          do i = g, size(MolecularSystem_instance%species(f)%particles)
-             do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
-                jj = jj + 1
-
-
-                do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                   do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                      read(100)(qiCosmo(m),m=1,numberOfPointCharges)
-                      do m=1, numberOfPointCharges
-                         qiDensityCosmo(k, l, m) = densityMatrix%values(k,l)*qiCosmo(m)
-                         qiDensityCosmo(l, k, m) = qiDensityCosmo(k, l, m) 
+       if(allocated(qiDensityCosmo)) deallocate(qiDensityCosmo)
+       allocate(qiDensityCosmo(orderOfMatrix, orderOfMatrix,numberOfPointCharges))
+       ii = 0
+       do g = 1, size(MolecularSystem_instance%species(f)%particles)
+          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+             hh = h
+             ii = ii + 1
+             jj = ii - 1
+             do i = g, size(MolecularSystem_instance%species(f)%particles)
+                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+                   jj = jj + 1
+                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         read(100)(qiCosmo(m),m=1,numberOfPointCharges)
+                         do m=1, numberOfPointCharges
+                            qiDensityCosmo(k, l, m) = densityMatrix%values(k,l)*qiCosmo(m)
+                            qiDensityCosmo(l, k, m) = qiDensityCosmo(k, l, m) 
+                         end do
                       end do
                    end do
                 end do
+                hh = 1
              end do
-             hh = 1
           end do
        end do
-    end do
-    
-		close(100)
 
-    qiCosmo(:)=0.0_8
+       close(100)
 
-    do m=1, numberOfPointCharges
-       do k=1, orderOfMatrix
-          do l=1, orderOfMatrix
-             qiCosmo(m)=qiCosmo(m)+qiDensityCosmo(k, l, m)
+       qiCosmo(:)=0.0_8
+
+       do m=1, numberOfPointCharges
+          do k=1, orderOfMatrix
+             do l=1, orderOfMatrix
+                qiCosmo(m)=qiCosmo(m)+qiDensityCosmo(k, l, m)
+             end do
           end do
+          qTotalCosmo(m)=qTotalCosmo(m)+qiCosmo(m)
        end do
-			qTotalCosmo(m)=qTotalCosmo(m)+qiCosmo(m)
+
+       ! write(*,*)"Cosmo Quantum Charges : ", qiCosmo(:)
+       write(*,*) "COSMO Charges for ",MolecularSystem_getNameOfSpecie( f )," = ", sum(qiCosmo(:))
+
     end do
 
-		! write(*,*)"Cosmo Quantum Charges : ", qiCosmo(:)
-    write(*,*) "COSMO Charges for ",MolecularSystem_getNameOfSpecie( f )," = ", sum(qiCosmo(:))
-    
-		end do
 
-
-		charges_file="qTotalCosmo.charges"
+    charges_file="qTotalCosmo.charges"
     open(unit=100, file=trim(charges_file), status='replace', form="unformatted")
-		write(100) qTotalCosmo(:)
-		close(100)
-		! Debug
-		! write(*,*)"qTotalCosmo ", qTotalCosmo(:)
-		! write(*,*)"sumqTotalCosmo ", sum(qTotalCosmo(:))
+    write(100) qTotalCosmo(:)
+    close(100)
+    ! Debug
+    ! write(*,*)"qTotalCosmo ", qTotalCosmo(:)
+    ! write(*,*)"sumqTotalCosmo ", sum(qTotalCosmo(:))
 
   end subroutine WaveFunction_cosmoQuantumCharge
 

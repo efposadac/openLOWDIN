@@ -78,7 +78,7 @@ module AttractionIntegrals_
   use Math_
   use ContractedGaussian_
   implicit none
-  
+
 
   !>
   !! Puntual particle atributes
@@ -107,7 +107,7 @@ contains
   !! @version 1.0
   subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral)
     implicit none
-    
+
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
     type(pointCharge), intent(in), allocatable :: point(:)
 
@@ -130,7 +130,7 @@ contains
     integer, allocatable :: angularMomentIndexA(:,:)
     integer, allocatable :: angularMomentIndexB(:,:)
     integer ::  i, m, p, q
-    
+
     integral = 0.0_8
     auxIntegral = 0.0_8
 
@@ -139,10 +139,10 @@ contains
 
     allocate(angularMomentIndexA(3, contractedGaussianA%numCartesianOrbital))
     allocate(angularMomentIndexB(3, contractedGaussianB%numCartesianOrbital))
-    
+
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexA, contractedGaussianA)
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexB, contractedGaussianB)
-		
+
 
 
     nprim1 = contractedGaussianA%length
@@ -157,7 +157,7 @@ contains
     B(1) = contractedGaussianB%origin(2)
     B(2) = contractedGaussianB%origin(3)
     coef2(0:nprim2-1) =  contractedGaussianB%contractionCoefficients(1:nprim2)
-    
+
     m = 0
 
 
@@ -202,7 +202,7 @@ contains
        normalizationConstantsA, normalizationConstantsB, &
        pointCharges, integralValue )
     implicit none
-		
+
     integer, intent(in) :: angularMomentindexA(0:3), angularMomentindexB(0:3)
     integer, intent(in) :: lengthA, lengthB
     integer, intent(in) :: numberOfPointCharges
@@ -212,7 +212,7 @@ contains
     real(8), intent(in) :: normalizationConstantsA(0:lengthA), normalizationConstantsB(0:lengthB)
     type(pointCharge), intent(in) :: pointCharges(0:numberOfPointCharges-1)
     real(8), intent(inout) :: integralValue
-		
+
 
     real(8), allocatable :: AI0(:,:,:)
     real(8) :: PA(0:3), PB(0:3), PC(0:3), P(0:3)
@@ -303,7 +303,7 @@ contains
           ! write(*,*) "se ha llamado obara-saika ",atom," veces"
        end do
     end do
-		! write(*,*)"finaliza_computePrimitives"
+    ! write(*,*)"finaliza_computePrimitives"
 
   end subroutine AttractionIntegrals_computePrimitive
 

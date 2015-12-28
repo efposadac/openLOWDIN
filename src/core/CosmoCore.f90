@@ -115,32 +115,32 @@ contains
 
     ! Reading surface from .vec
 100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8,2X,I5)
-   open(55,file='vectors.vec',status='unknown') 
-   read(55,100) (x(i),y(i),z(i),a(i),at(i),i=1,surface%sizeSurface)
-   close(55)
+    open(55,file='vectors.vec',status='unknown') 
+    read(55,100) (x(i),y(i),z(i),a(i),at(i),i=1,surface%sizeSurface)
+    close(55)
 
 
-   do i=1,surface%sizeSurface        
-      surface%xs(i)=x(i)/AMSTRONG
-      surface%ys(i)=y(i)/AMSTRONG
-      surface%zs(i)=z(i)/AMSTRONG
-      surface%area(i)=a(i)/((AMSTRONG)**2)
-   end do
+    do i=1,surface%sizeSurface        
+       surface%xs(i)=x(i)/AMSTRONG
+       surface%ys(i)=y(i)/AMSTRONG
+       surface%zs(i)=z(i)/AMSTRONG
+       surface%area(i)=a(i)/((AMSTRONG)**2)
+    end do
 
     !Reading surface from .sup
     !
-   !   100 format (I,2X,F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
-   !   		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
-   !       read(55,*) (at(i),a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
-   !  
-   !   do i=1,surface%sizeSurface        
-   !      surface%xs(i)=x(i)
-   !      surface%ys(i)=y(i)
-   !      surface%zs(i)=z(i)
-   !      surface%area(i)=a(i)
- 	 ! surface%atoms(i)=at(i)	
-   !   end do
-   !   close(55)
+    !   100 format (I,2X,F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
+    !   		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
+    !       read(55,*) (at(i),a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
+    !  
+    !   do i=1,surface%sizeSurface        
+    !      surface%xs(i)=x(i)
+    !      surface%ys(i)=y(i)
+    !      surface%zs(i)=z(i)
+    !      surface%area(i)=a(i)
+    ! surface%atoms(i)=at(i)	
+    !   end do
+    !   close(55)
     !
     ! write(*,*)"tipo superficie"
     ! llenando surface con la informacion leida
@@ -257,18 +257,18 @@ contains
     call Matrix_constructor(q, int(surface%sizeSurface,8), 1_8)
     call Matrix_constructor(cmatinv_aux, int(segments,8), int(segments,8))
 
-    write(*,*)"Constante dielectrica = ", CONTROL_instance%COSMO_SOLVENT_DIALECTRIC
+    write(*,*)"Constante dielectrica = ", CONTROL_instance%COSMO_SOLVENT_DIELECTRIC
 
 
     ! lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC+CONTROL_instance%COSMO_SCALING)
 
     write(*,*)"lambda= ",lambda
 
     !
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 
-		write(77)segments
+    write(77)segments
     do i=1,np
 
        !se alimenta verifier con la informacion del particle manager sobre si es
@@ -392,8 +392,7 @@ contains
 
     charge=MolecularSystem_getCharge(MolecularSystem_getSpecieID(specieName))
 
-    ! lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC+CONTROL_instance%COSMO_SCALING)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC+CONTROL_instance%COSMO_SCALING)
 
     do i=1,ints
 
@@ -465,13 +464,13 @@ contains
        read(90)(ints_mat(i,n),i=1,surface)
     end do
 
-		! read(100)m
+    ! read(100)m
     ! do n=1,charges
     !    read(100)(a_mat(i,n),i=1,surface)
     ! end do
-		! read
-		
-		read(100)m
+    ! read
+
+    read(100)m
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
     end do
@@ -480,7 +479,7 @@ contains
 
     ! cosmo_int(:)=0.0_8
 
-		!!sumatoria sobre los i segmentos
+    !!sumatoria sobre los i segmentos
     m=1
     do n=1,integrals
        do k=1,charges
@@ -597,7 +596,7 @@ contains
        ! write(*,*)"a_mat(:,k))"
        ! write(*,*)a_mat(:,:)
        !
-			 ! write(*,*)"integrals", integrals, " charges ", charges
+       ! write(*,*)"integrals", integrals, " charges ", charges
        open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)//"_qq.cup", status='unknown', form="unformatted")
        write(110) m-1
        do n=1,integrals
@@ -644,7 +643,7 @@ contains
     allocate(clasical_positions(np,3))
 
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
-		read(77) isegments
+    read(77) isegments
 
     read(77)(q_clasical(i),i=1,segments)
 
@@ -712,9 +711,9 @@ contains
     allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
-		
-		read(100)icharges
-		write(*,*)"icharges",icharges
+
+    read(100)icharges
+    write(*,*)"icharges",icharges
     do n=1,charges
        read(100)(a_mat(i,n),i=1,segments)
     end do

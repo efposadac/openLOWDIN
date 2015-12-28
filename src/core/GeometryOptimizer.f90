@@ -58,7 +58,7 @@ module GeometryOptimizer_
   implicit none
 
   type, public :: GeometryOptimizer
-     
+
      character(30) :: name
      integer :: method ! using by MR
      ! integer :: minimizationType  ! using by MR
@@ -82,8 +82,8 @@ module GeometryOptimizer_
        GeometryOptimizer_constructor, &
        GeometryOptimizer_destructor, &
        GeometryOptimizer_run, &
-  ! GeometryOptimizer_setName, &
-  ! GeometryOptimizer_getNumberOfIterations, &
+                                ! GeometryOptimizer_setName, &
+                                ! GeometryOptimizer_getNumberOfIterations, &
        GeometryOptimizer_getFunctionValue, &
        GeometryOptimizer_getGradient
 
@@ -131,9 +131,9 @@ contains
 
   end subroutine GeometryOptimizer_constructor
 
-        !**
-        ! @brief Define el destructor
-        !**
+  !**
+  ! @brief Define el destructor
+  !**
   subroutine GeometryOptimizer_destructor(this)
     implicit none
     type(GeometryOptimizer) :: this
@@ -172,12 +172,12 @@ contains
     lastStep = .false.
 
     open(unit=40, file="lowdin.dat", status="replace", form="formatted")
-    
+
     !!save all options
     call CONTROL_save(40, lastStep)
 
     close(40)
-    
+
     CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="energy"
     if( CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT ) CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "energy"
 
@@ -285,12 +285,12 @@ contains
     lastStep = .false.
 
     open(unit=40, file="lowdin.dat", status="replace", form="formatted")
-    
+
     !!save all options
     call CONTROL_save(40, lastStep)
 
     close(40)
-    
+
     CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="energy"
 
     call Solver_run()
@@ -298,7 +298,7 @@ contains
     !! Load results...
     call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalEnergy, arguments=["TOTALENERGY"])
     close(wfnUnit)
-   
+
     output = totalEnergy
 
     ! this_pointer%isInitialExecution=.false.
@@ -308,7 +308,7 @@ contains
   ! >
   ! @brief Retorna el gradiente obtenido en la ultima iteracion
   !      Esta funcion solo debe emplease previa asignacion del apuntador this_pointer
-  
+
   ! @warning Anque no se define como privada de la clase por propositos de conveniencia
   !          no debe ser empleada fuera de la clase
   ! <
@@ -440,42 +440,42 @@ contains
     ! do i = 1, size
     !    write(6,"(T20,F20.10)") coordinates(i)
     ! end do
-!     write (6,"(A10,A16,A20,A20)") "Particle","<x>","<y>","<z>"
-!     do i = 1, totalNumberOfParticles!ParticleManager_getTotalNumberOfParticles()
+    !     write (6,"(A10,A16,A20,A20)") "Particle","<x>","<y>","<z>"
+    !     do i = 1, totalNumberOfParticles!ParticleManager_getTotalNumberOfParticles()
 
-!        if ( ParticleManager_isCenterOfOptimization( i ) ) then
-!           origin = ParticleManager_getOrigin( iterator = i )
-!           if ( CONTROL_instance%UNITS=="ANGSTROMS") then
-!              origin = origin * AMSTRONG
-!           end if
-! #ifdef intel
-!           write (6,"(A10,<3>F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
-! #else
-!           write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
-! #endif
-!        end if
+    !        if ( ParticleManager_isCenterOfOptimization( i ) ) then
+    !           origin = ParticleManager_getOrigin( iterator = i )
+    !           if ( CONTROL_instance%UNITS=="ANGSTROMS") then
+    !              origin = origin * AMSTRONG
+    !           end if
+    ! #ifdef intel
+    !           write (6,"(A10,<3>F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
+    ! #else
+    !           write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
+    ! #endif
+    !        end if
 
-!     end do
+    !     end do
 
 
-!     ! print *,""
-!     write (6,"(A)") ""
-!     write (6,"(T20,A25)") "GRADIENT: HARTREE/BOHR"
-!     write (6,"(A10,A16,A20,A20)") "Particle","dE/dx","dE/dy","dE/dz"
-!     k=1
-!     do i = 1, totalNumberOfParticles
+    !     ! print *,""
+    !     write (6,"(A)") ""
+    !     write (6,"(T20,A25)") "GRADIENT: HARTREE/BOHR"
+    !     write (6,"(A10,A16,A20,A20)") "Particle","dE/dx","dE/dy","dE/dz"
+    !     k=1
+    !     do i = 1, totalNumberOfParticles
 
-!        if ( ParticleManager_isCenterOfOptimization( i ) .and. k < size(gradient)) then
+    !        if ( ParticleManager_isCenterOfOptimization( i ) .and. k < size(gradient)) then
 
-!           write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), &
-!                gradient(k), gradient(k+1),gradient(k+2)
-!           k=k+3
+    !           write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), &
+    !                gradient(k), gradient(k+1),gradient(k+2)
+    !           k=k+3
 
-!        end if
+    !        end if
 
-!     end do
-!     write (6,*) ""
-!     write (6,"(T10,A24,F20.10)") "TOTAL ENERGY (Hartree) =", functionValue
+    !     end do
+    !     write (6,*) ""
+    !     write (6,"(T10,A24,F20.10)") "TOTAL ENERGY (Hartree) =", functionValue
 
   end subroutine GeometryOptimizer_showIterationInfo
 
@@ -558,24 +558,24 @@ contains
 
   ! end subroutine GeometryOptimizer_projectHessiane
 
-!         !>
-!         !! @brief  Maneja excepciones de la clase
-!         !<
-!         subroutine GeometryOptimizer_exception( this, typeMessage, description, debugDescription)
-!             implicit none
-!             type(GeometryOptimizer) :: this
-!             integer :: typeMessage
-!             character(*) :: description
-!             character(*) :: debugDescription
+  !         !>
+  !         !! @brief  Maneja excepciones de la clase
+  !         !<
+  !         subroutine GeometryOptimizer_exception( this, typeMessage, description, debugDescription)
+  !             implicit none
+  !             type(GeometryOptimizer) :: this
+  !             integer :: typeMessage
+  !             character(*) :: description
+  !             character(*) :: debugDescription
 
-!             type(Exception) :: ex
+  !             type(Exception) :: ex
 
-!             call Exception_constructor( ex , typeMessage )
-!             call Exception_setDebugDescription( ex, debugDescription )
-!             call Exception_setDescription( ex, description )
-!             call Exception_show( ex )
-!             call Exception_destructor( ex )
+  !             call Exception_constructor( ex , typeMessage )
+  !             call Exception_setDebugDescription( ex, debugDescription )
+  !             call Exception_setDescription( ex, description )
+  !             call Exception_show( ex )
+  !             call Exception_destructor( ex )
 
-!         end subroutine GeometryOptimizer_exception
+  !         end subroutine GeometryOptimizer_exception
 
 end module GeometryOptimizer_
