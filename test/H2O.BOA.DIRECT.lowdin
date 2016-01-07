@@ -22,8 +22,7 @@ TASKS
 END TASKS
 
 CONTROL
-!	integralScheme="rys"
-!	numberOfCores=4
+	numberOfCores=1
 	integralDestiny="direct"
 END CONTROL
 OUTPUTS

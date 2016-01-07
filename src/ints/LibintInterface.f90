@@ -37,6 +37,8 @@ module LibintInterface_
   implicit none
   
   public :: &
+  LibintInterface_computeIntraSpecies, &
+  LibintInterface_computeInterSpecies, &
   LibintInterface_directIntraSpecies
 
 #define contr(n,m) contractions(n)%contractions(m)

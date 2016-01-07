@@ -17,7 +17,6 @@
 !! @author E. F. Posada, 20130
 !! @warning This module is differs from the Wavefunction.f90 located in HF program.
 module WaveFunction_
-  use LibintInterface_
   use Matrix_
   use Vector_
   use String_
@@ -27,6 +26,7 @@ module WaveFunction_
   use Convergence_
   use MolecularSystem_
   use CosmoCore_
+  use DirectIntegralManager_
 
   implicit none
 
@@ -238,6 +238,7 @@ contains
     character(50) :: sfile
 
     real(8), allocatable :: tmpArray(:,:)
+    type(Matrix) :: tmpTwoParticlesMatrix
 
     integer(8) :: nprocess
     integer(8) :: process
@@ -248,13 +249,10 @@ contains
     integer(8) :: starting
     integer(8) :: ending
 
-
-
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
-
 
     !! This matrix is only calculated if there are more than one particle for speciesID or if the user want to calculate it.
     if ( MolecularSystem_getNumberOfParticles( speciesID ) > 1 .or. CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
@@ -435,22 +433,31 @@ contains
        !! Direct
         else 
                 
-          numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
-          ssize = (numberOfContractions * (numberOfContractions + 1))/2
-          ssize = (ssize * (ssize + 1))/2
-      
-          integralsByProcess = ceiling( real(ssize,8)/real(nprocess,8) )
-      
-          ending = process * integralsByProcess
-          starting = ending - integralsByProcess + 1
-      
-!!          if( starting > ssize ) return
-      
-!!          if( ending > ssize ) ending = ssize
-
-          call LibintInterface_directIntraSpecies(speciesID, "ERIS", starting, ending, int( process ), & 
-               Wavefunction_instance(speciesID)%densityMatrix, & 
-               Wavefunction_instance(speciesID)%twoParticlesMatrix, factor)
+         !! Not working! only for one core...
+  
+         !$OMP PARALLEL private(process), firstprivate(tmpTwoParticlesMatrix), shared(Wavefunction_instance) 
+         !$OMP DO 
+         do process = nproc, 1, -1 
+  
+            call Matrix_constructor ( tmpTwoParticlesMatrix, &
+                  int (totalNumberOfContractions,8) , int(totalNumberOfContractions,8) , 0.0_8 )
+  
+            call DirectIntegralManager_getDirectIntraRepulsionIntegrals(int(nproc,8), int(process,8) , speciesID, &
+                 trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                 Wavefunction_instance(speciesID)%densityMatrix, & 
+                 tmpTwoParticlesMatrix, factor)
+  
+           do u = 1, totalNumberOfContractions
+               do v = 1, totalNumberOfContractions
+                  !$OMP ATOMIC
+                  wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
+                       wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpTwoParticlesMatrix%values(u,v) 
+               end do
+            end do
+  
+          end do
+         !$OMP END DO
+         !$OMP END PARALLEL
 
        end if
 

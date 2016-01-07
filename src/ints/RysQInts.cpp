@@ -259,6 +259,7 @@ void coul_rep_(double *xa,double *ya,double *za, int *la, double *alphaa, int *l
 	      
 	    
 	      integrals[bcount] = prefac*sum;
+
 	      // std::cout<<"Counter:   "<<bcount+1<<std::endl;
 	      // std::cout<<"The integral is:   "<<integrals[bcount]<<std::endl;	    
 	      
