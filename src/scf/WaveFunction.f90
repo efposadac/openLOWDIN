@@ -74,6 +74,7 @@ module WaveFunction_
      !!**************************************************************
 
      logical :: wasBuiltFockMatrix
+     logical :: builtTwoParticlesMatrix
 
      !!**************************************************************
      !!  Variables y objetos asociados al metodo SCF
@@ -199,6 +200,7 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%cosmoCoupling, numberOfContractions, numberOfContractions, 0.0_8 )
 
        WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .false.
+       WaveFunction_instance(speciesID)%builtTwoParticlesMatrix = .true.
 
     end do
 

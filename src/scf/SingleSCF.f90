@@ -523,6 +523,7 @@ contains
 
        !! Warning:
        !! This part has not been tested
+
        call WaveFunction_builtDensityMatrix(trim(nameOfSpecieSelected) )
 
        !! Calcula energia total para la especie especificada
