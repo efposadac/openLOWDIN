@@ -245,6 +245,11 @@ module CONTROL_
      character(50) :: EXCITE_SPECIE
      integer :: NUMBER_OF_CORES
 
+     !!*****************************************************
+     !! Integrals transformation options
+     !!
+     character(10) :: INTEGRALS_TRANSFORMATION_METHOD
+
      !!***************************************************************************
      !! Environment variables
      !!
@@ -484,6 +489,11 @@ module CONTROL_
   character(50) :: LowdinParameters_exciteSpecie
   integer :: LowdinParameters_numberOfCores
 
+  !!*****************************************************
+  !! Integrals transformation options
+  !!
+  character(10) :: LowdinParameters_integralsTransformationMethod
+
   !!***************************************************************************
   !! Environment variables
   !!
@@ -719,6 +729,11 @@ module CONTROL_
        LowdinParameters_ionizeSpecie,&
        LowdinParameters_exciteSpecie,&
        LowdinParameters_numberOfCores,&
+
+       !!*****************************************************
+       !! Integrals transformation options
+       !!
+       LowdinParameters_integralsTransformationMethod, &
 
        !!***************************************************************************
        !! Variables de ambiente al sistema de archivos del programa
@@ -988,6 +1003,11 @@ contains
     LowdinParameters_numberOfCores = OMP_get_thread_num() + 1
     !$OMP END PARALLEL 
 
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    LowdinParameters_integralsTransformationMethod = "A"
+
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
     !!
@@ -1234,6 +1254,11 @@ contains
     !$OMP PARALLEL
     CONTROL_instance%NUMBER_OF_CORES = OMP_get_thread_num() + 1
     !$OMP END PARALLEL 
+
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = "A"
 
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   
@@ -1514,6 +1539,11 @@ contains
     CONTROL_instance%EXCITE_SPECIE = LowdinParameters_exciteSpecie
     CONTROL_instance%NUMBER_OF_CORES = LowdinParameters_numberOfCores
 
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = LowdinParameters_integralsTransformationMethod
+
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
     !!                                                                                 
@@ -1763,6 +1793,11 @@ contains
     LowdinParameters_exciteSpecie = CONTROL_instance%EXCITE_SPECIE
     LowdinParameters_numberOfCores = CONTROL_instance%NUMBER_OF_CORES
 
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    LowdinParameters_integralsTransformationMethod = CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD 
+
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
     !!                                                                                 
@@ -1992,6 +2027,11 @@ contains
     otherThis%IONIZE_SPECIE = this%IONIZE_SPECIE 
     otherThis%EXCITE_SPECIE = this%EXCITE_SPECIE 
     otherThis%NUMBER_OF_CORES = this%NUMBER_OF_CORES
+
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    otherThis%INTEGRALS_TRANSFORMATION_METHOD = this%INTEGRALS_TRANSFORMATION_METHOD 
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
