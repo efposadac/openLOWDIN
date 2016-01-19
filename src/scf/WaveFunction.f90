@@ -439,7 +439,7 @@ contains
                 
          !! Not working! only for one core...
   
-         !$OMP PARALLEL private(process), firstprivate(tmpTwoParticlesMatrix), shared(Wavefunction_instance) 
+         !$OMP PARALLEL private(process), shared(Wavefunction_instance) 
          !$OMP DO 
          do process = nproc, 1, -1 
   

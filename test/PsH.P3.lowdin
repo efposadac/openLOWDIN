@@ -11,6 +11,8 @@ END TASKS
 
 CONTROL
 	numberOfCores = 4
+!	integralsTransformationMethod = "A"
 END CONTROL
+
 
 

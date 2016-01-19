@@ -228,7 +228,7 @@ program IntegralsTransformationManager
                             select case( CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD )
                           
                               case ( "A" ) 
-                          
+
                                 call TransformIntegralsA_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
                                  eigenVec, eigenVecOtherSpecie, &
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
