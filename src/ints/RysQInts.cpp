@@ -168,8 +168,6 @@ void coul_rep_(double *xa,double *ya,double *za, int *la, double *alphaa, int *l
 
   X = rpq2*rho;
   
-  //std::cout<<"X:  "<<X<<std::endl;
-  
   Roots(norder,X); /* Puts currect roots/weights in "common" */
 
   double prefac = 2*sqrt(rho/M_PI);
@@ -1651,6 +1649,7 @@ inline void Root6(int n, double XX)
 //    std::cout<<"XX :"<<XX<<" n: "<<n<<std::endl;  
     if (XX >= ryspar_xasymp[n - 1]) {
 	rysasy_(n, XX, rts, wts);
+//printf ("call rysay");
 	
 /*           GAUTSCHI'S DISCRETIZED STIELTJES "BOOTSTRAPPING", WHICH */
 /*           WORKS WITH NUMERICAL VALUES OF THE RYS POLYNOMIALS ON */
@@ -1658,13 +1657,20 @@ inline void Root6(int n, double XX)
 /*           SEE SAGAR/SMITH FOR THE DETAILS: IJQC 42, 827-836(1992) */
 
     } else {
+
+//        printf ("n %d \n", n);
         naux = ryspar_nauxs[n - 1];
+//        printf ("naux %d \n", naux);
         map = ryspar_maprys[n - 1];
+//        printf ("map %d \n", map);
         i__1 = naux;
         for (i__ = 1; i__ <= i__1 || i__ == 1; ++i__) {
-            t2 = ryspar_rtsaux[i__ + map * 55 - 56] * ryspar_rtsaux[i__ + map * 55 - 56];
+//            t2 = ryspar_rtsaux[i__ + map * 55 - 56] * ryspar_rtsaux[i__ + map * 55 - 56];
+            t2 = ryspar_rtsaux[map][i__  -1] * ryspar_rtsaux[map][i__ -1 ];
+//            printf ("t2 %E \n", t2);
             rgrid[i__ - 1] = t2;
-            wgrid[i__ - 1] = ryspar_wtsaux[i__ + map * 55 - 56] * exp(-XX * t2);
+//            wgrid[i__ - 1] = ryspar_wtsaux[i__ + map * 55 - 56] * exp(-XX * t2);
+            wgrid[i__ - 1] = ryspar_wtsaux[map][i__ -1] * exp(-XX * t2);
         }
         rysds_(n, naux, rgrid, wgrid, alpha, beta, ierr, p0,p1, p2);
         rysgw_(n, alpha, beta, eps, rts, wts, ierr, wrk);
@@ -1673,6 +1679,7 @@ inline void Root6(int n, double XX)
     i__1 = n;
     for (k = 1; k <= i__1 || k == 1; ++k) {
 	dum = rts[k - 1];
+//	printf ("dum %E \n", dum);
 	roots[k - 1] = dum / (1. - dum);
 	weights[k - 1] = wts[k - 1];
     }

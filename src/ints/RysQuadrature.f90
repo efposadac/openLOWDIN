@@ -292,6 +292,9 @@ contains
                                
                                auxIntegrals(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy                                                                    
                                
+!!                                  print *, "ints"
+!!                                  print *, auxIntegrals(1:arraySize) 
+
                                m = 0
                                do ii = 1, contractions(a)%numCartesianOrbital
                                   do jj = 1, contractions(b)%numCartesianOrbital

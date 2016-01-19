@@ -9,9 +9,9 @@
 SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
-	e-[O]   6-311G     0.000000      0.000000     -0.066575 
-	e-[H]   6-311G     0.000000      0.754175      0.528381
-	e-[H]   6-311G     0.000000     -0.754174      0.528382 
+	e-[O]   6-311G.2DF.2PD     0.000000      0.000000     -0.066575 
+	e-[H]   6-311G.2DF.2PD     0.000000      0.754175      0.528381
+	e-[H]   6-311G.2DF.2PD     0.000000     -0.754174      0.528382 
 	O        dirac     0.000000      0.000000     -0.066575
 	H_1      dirac     0.000000      0.754175      0.528381	
 	H_1      dirac     0.000000     -0.754174      0.528382  
@@ -22,8 +22,8 @@ TASKS
 END TASKS
 
 CONTROL
-!	integralScheme="rys"
-	numberOfCores=2
+	integralScheme="rys"
+	numberOfCores=4
 END CONTROL
 !OUTPUTS
 !	wfnFile	
