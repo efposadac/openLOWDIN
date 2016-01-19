@@ -4,14 +4,14 @@ import os
 import sys
 from colorstring import *
 
-testName = "He.CISD"
+testName = "H2O.BOA.MP2.IT-C"
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
 # Reference values
 
-refTotalEnergy = -2.859895424516
-refCISDEnergy = -2.876418360249
+refTotalEnergy = -76.008843007735
+refMP2Energy = -7.61654101128488605E+01
 
 # Run calculation
 
@@ -29,18 +29,19 @@ outputRead = output.readlines()
 for line in outputRead:
     if "TOTAL ENERGY =" in line:
         totalEnergy = float(line.split()[3])
-    if "GROUND-STATE ENERGY =" in line:
-        CISDEnergy = float(line.split()[3])
+    if "E(MP2)=" in line:
+        MP2Energy = float(line.split()[1])
 
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffCISDEnergy = abs(refCISDEnergy - CISDEnergy)
+diffMP2Energy = abs(refMP2Energy - MP2Energy)
 
-if (diffTotalEnergy <= 1E-12 and CISDEnergy <= 1E-12):
+if (diffTotalEnergy <= 1E-12 and MP2Energy <= 1E-12):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
     print("Difference HF: " + str(diffTotalEnergy))
-    print("Difference CISD: " + str(diffCISDEnergy))
+    print("Difference MP2: " + str(diffMP2Energy))
     sys.exit(1)
+
 
 output.close()

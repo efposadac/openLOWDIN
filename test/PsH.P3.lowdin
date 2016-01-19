@@ -1,0 +1,18 @@
+GEOMETRY
+	e-(H)   cc-pVTZ			0.00	0.00 	0.00 addParticles=1
+	H	dirac			0.00	0.00 	0.00
+	e+	e+-H-7SP-aug-cc-pVTZ	0.00	0.00	0.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	propagatorTheoryCorrection = 3
+END TASKS
+
+CONTROL
+	numberOfCores = 4
+!	integralsTransformationMethod = "A"
+END CONTROL
+
+
+

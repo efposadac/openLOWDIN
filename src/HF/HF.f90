@@ -260,7 +260,7 @@ program HF
 
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-        !$OMP PARALLEL private(arguments)
+        !$OMP PARALLEL firstprivate(arguments)
         write(arguments(1),*) nproc
         !$OMP DO 
         do i = nproc, 1, -1

@@ -26,6 +26,7 @@ module WaveFunction_
   use Convergence_
   use MolecularSystem_
   use CosmoCore_
+  use DirectIntegralManager_
 
   implicit none
 
@@ -73,6 +74,7 @@ module WaveFunction_
      !!**************************************************************
 
      logical :: wasBuiltFockMatrix
+     logical :: builtTwoParticlesMatrix
 
      !!**************************************************************
      !!  Variables y objetos asociados al metodo SCF
@@ -198,6 +200,7 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%cosmoCoupling, numberOfContractions, numberOfContractions, 0.0_8 )
 
        WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .false.
+       WaveFunction_instance(speciesID)%builtTwoParticlesMatrix = .true.
 
     end do
 
@@ -217,7 +220,7 @@ contains
     real(8) :: coulomb,exchange
     real(8) :: factor
 
-    integer, target :: numberOfContractions
+    integer, target :: totalNumberOfContractions
     integer, target :: a, b, r, s
     integer :: speciesID
     integer :: n, u, v, i
@@ -237,19 +240,30 @@ contains
     character(50) :: sfile
 
     real(8), allocatable :: tmpArray(:,:)
+    type(Matrix) :: tmpTwoParticlesMatrix
+
+    integer(8) :: nprocess
+    integer(8) :: process
+
+    integer :: numberOfContractions
+    integer(8) :: integralsByProcess
+    integer(8) :: ssize
+    integer(8) :: starting
+    integer(8) :: ending
 
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
 
-
     !! This matrix is only calculated if there are more than one particle for speciesID or if the user want to calculate it.
     if ( MolecularSystem_getNumberOfParticles( speciesID ) > 1 .or. CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
 
        wavefunction_instance(speciesID)%twoParticlesMatrix%values = 0.0_8
-       numberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
+       totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
        factor = MolecularSystem_getFactorOfInterchangeIntegrals( speciesID )       
+
+       if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
 
        !$OMP PARALLEL private(ifile,sfile,unit,aa,bb,rr,ss,shellIntegrals,i,coulomb,exchange, tmpArray), shared(wavefunction_instance)
        !$OMP DO 
@@ -271,7 +285,7 @@ contains
           end if
 
           if(allocated(tmpArray))deallocate(tmpArray)
-          allocate(tmpArray(numberOfContractions,numberOfContractions))
+          allocate(tmpArray(totalNumberOfContractions,totalNumberOfContractions))
           tmpArray = 0.0_8
 
           loadintegrals : do
@@ -292,6 +306,8 @@ contains
                 if( aa(i) == -1 ) exit loadintegrals
 
                 coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i))*shellIntegrals(i)
+
+                if ( abs(shellIntegrals(i)) < 1E-11) print *, shellIntegrals(i)
 
                 !!*****************************************************************************
                 !! Adds coulomb operator contributions
@@ -406,8 +422,8 @@ contains
 
           close(unit)
 
-          do u = 1, numberOfContractions
-             do v = 1, numberOfContractions
+          do u = 1, totalNumberOfContractions
+             do v = 1, totalNumberOfContractions
                 !$OMP ATOMIC
                 wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
                      wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpArray(u,v) 
@@ -418,8 +434,39 @@ contains
        !$OMP END DO
        !$OMP END PARALLEL
 
-       do u = 1 , numberOfContractions
-          do v = u , numberOfContractions
+       !! Direct
+        else 
+                
+         !! Not working! only for one core...
+  
+         !$OMP PARALLEL private(process), shared(Wavefunction_instance) 
+         !$OMP DO 
+         do process = nproc, 1, -1 
+  
+            call Matrix_constructor ( tmpTwoParticlesMatrix, &
+                  int (totalNumberOfContractions,8) , int(totalNumberOfContractions,8) , 0.0_8 )
+  
+            call DirectIntegralManager_getDirectIntraRepulsionIntegrals(int(nproc,8), int(process,8) , speciesID, &
+                 trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                 Wavefunction_instance(speciesID)%densityMatrix, & 
+                 tmpTwoParticlesMatrix, factor)
+  
+           do u = 1, totalNumberOfContractions
+               do v = 1, totalNumberOfContractions
+                  !$OMP ATOMIC
+                  wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
+                       wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpTwoParticlesMatrix%values(u,v) 
+               end do
+            end do
+  
+          end do
+         !$OMP END DO
+         !$OMP END PARALLEL
+
+       end if
+
+       do u = 1 , totalNumberOfContractions
+          do v = u , totalNumberOfContractions
 
              wavefunction_instance(speciesID)%twoParticlesMatrix%values(v,u) = wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v)
 

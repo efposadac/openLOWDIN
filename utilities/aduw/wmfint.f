@@ -99,6 +99,8 @@
                   IF( NW == DDOB73 ) THEN
                      WRITE(NFT73) NW,NW,DBUFF,IBUFF
                      NW = 0
+                     DBUFF=0
+                     IBUFF=0
                   END IF
                END DO
             END DO
@@ -145,14 +147,16 @@ c$$$     *              VAL(j)
                IF( NW == DDOB73 ) THEN
                   WRITE(NFT73) NW,NW,DBUFF,IBUFF
                   NW = 0
+                  DBUFF=0
+                  IBUFF=0
                END IF
             END DO
          END DO
  110     CONTINUE
   
-         IF(i .LT. nproc) THEN
-            WRITE(NFT73) NW,NW,DBUFF,IBUFF
-         END IF 
+!         IF(i .LT. nproc) THEN
+!            WRITE(NFT73) NW,NW,DBUFF,IBUFF
+!         END IF 
      
          CLOSE(UNIT=NFT63)
   

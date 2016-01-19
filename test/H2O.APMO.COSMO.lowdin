@@ -1,0 +1,17 @@
+SYSTEM_DESCRIPTION='Molecula de H2O'
+GEOMETRY
+	e-[O]   6-311G     0.000000      0.000000     -0.066575
+	e-[H]   6-311G     0.000000      0.754175      0.528381
+	e-[H]   6-311G     0.000000     -0.754174      0.528382
+	O        dirac     0.000000      0.000000     -0.066575
+	H-A_1  1S1P     0.000000      0.754175      0.528381	
+	H-B_1  1S1P     0.000000     -0.754174      0.528382  
+END GEOMETRY
+TASKS
+	method = "RHF"
+	cosmo=T
+END TASKS
+CONTROL
+	numberOfCores=1
+	iterationScheme=3
+END CONTROL

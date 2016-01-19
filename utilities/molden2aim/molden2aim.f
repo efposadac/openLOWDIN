@@ -108,7 +108,7 @@ c     Port numbers 4x: important input and output files
 c     Port numbers 5x: temporary files
 c     Port numbers 55, 56, and 57 will be defined later.
 c
-      iini=40             ! INI file
+      iini=43             ! INI file
       imod=44             ! original molden file
       inmd=45             ! new molden file in Cartesian functions
       iwfn=46             ! wfn file
@@ -598,7 +598,8 @@ c-----------------------------------------------------------------------
       end do
       close(iini)
 
-9000  return
+9000  continue 
+      close(iini)
       End
 
 c-----------------------------------------------------------------------

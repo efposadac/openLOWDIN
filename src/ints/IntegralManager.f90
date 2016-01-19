@@ -48,7 +48,8 @@ module IntegralManager_
        IntegralManager_getAttractionIntegrals, &
        IntegralManager_getMomentIntegrals, &
        IntegralManager_getInterRepulsionIntegrals, &
-       IntegralManager_getIntraRepulsionIntegrals
+       IntegralManager_getIntraRepulsionIntegrals, &
+       IntegralManager_getDirectIntraRepulsionIntegrals
   private :: &
        IntegralManager_getLabels
 
@@ -817,10 +818,12 @@ contains
 
     if( ending > ssize ) ending = ssize
 
+    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
+
     !! Calculate integrals (stored on disk)           
     select case (trim(String_getUppercase(trim(scheme))))
     
-		case("RYS")
+    case("RYS")
        call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     case("LIBINT")
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
@@ -831,6 +834,70 @@ contains
     end select
 
   end subroutine IntegralManager_getIntraRepulsionIntegrals
+
+  !> 
+  !! @brief Calculate Intra-species repulsion integrals directly
+  !! @author J. A. Charry, 2015
+  !! @version 1.0
+  !! @par History
+  !!    
+  subroutine IntegralManager_getDirectIntraRepulsionIntegrals(nprocess, process, speciesID, scheme, &
+                densityMatrix, twoParticlesMatrix, factor )
+    implicit none
+
+    integer(8) :: nprocess
+    integer(8) :: process
+    character(*) :: scheme
+
+    integer :: speciesID
+    integer :: numberOfContractions
+    integer(8) :: integralsByProcess
+    integer(8) :: ssize
+    integer(8) :: starting
+    integer(8) :: ending
+
+    real(8) :: factor
+
+    type(matrix) :: densityMatrix
+    type(matrix) :: twoParticlesMatrix
+
+    !! Skip integrals calculation two times for electrons alpha and beta    
+!!    if(CONTROL_instance%IS_OPEN_SHELL .and. ( trim(nameOfSpecies) == "E-BETA" )) return
+
+    numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
+
+    ssize = (numberOfContractions * (numberOfContractions + 1))/2
+    ssize = (ssize * (ssize + 1))/2
+
+    integralsByProcess = ceiling( real(ssize,8)/real(nprocess,8) )
+
+    ending = process * integralsByProcess
+    starting = ending - integralsByProcess + 1
+
+    if( starting > ssize ) return
+
+    if( ending > ssize ) ending = ssize
+
+    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
+
+    !! Calculate integrals (stored on disk)           
+    select case (trim(String_getUppercase(trim(scheme))))
+    
+    case("RYS")
+!       call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
+    case("LIBINT")
+       call LibintInterface_directIntraSpecies(speciesID, "ERIS", starting, ending, int( process ), & 
+              densityMatrix, & 
+              twoParticlesMatrix, factor)
+
+    ! case("CUDINT")
+    !    call CudintInterface_computeIntraSpecies(speciesID)
+    case default
+!       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
+    end select
+
+  end subroutine IntegralManager_getDirectIntraRepulsionIntegrals
+
 
   !> 
   !! @brief Calculate Inter-species repulsion integrals

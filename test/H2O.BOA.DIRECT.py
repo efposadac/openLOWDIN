@@ -4,14 +4,13 @@ import os
 import sys
 from colorstring import *
 
-testName = "He.CISD"
+testName = "H2O.BOA.DIRECT"
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
 # Reference values
 
-refTotalEnergy = -2.859895424516
-refCISDEnergy = -2.876418360249
+refTotalEnergy = -76.008843007734
 
 # Run calculation
 
@@ -29,18 +28,14 @@ outputRead = output.readlines()
 for line in outputRead:
     if "TOTAL ENERGY =" in line:
         totalEnergy = float(line.split()[3])
-    if "GROUND-STATE ENERGY =" in line:
-        CISDEnergy = float(line.split()[3])
 
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffCISDEnergy = abs(refCISDEnergy - CISDEnergy)
 
-if (diffTotalEnergy <= 1E-12 and CISDEnergy <= 1E-12):
+if (diffTotalEnergy <= 1E-10):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
     print("Difference HF: " + str(diffTotalEnergy))
-    print("Difference CISD: " + str(diffCISDEnergy))
     sys.exit(1)
 
 output.close()

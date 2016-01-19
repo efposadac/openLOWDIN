@@ -1689,7 +1689,7 @@ contains
                infoProcess, &
 	       ifail, infoProcess )
 
-          call Matrix_destructor( eigenVectorsTmp )
+          ! call Matrix_destructor( eigenVectorsTmp )
 
        end if
 

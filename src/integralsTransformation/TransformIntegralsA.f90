@@ -31,7 +31,7 @@
 !!   - <tt> 2014-08-26 </tt>: Jorge Charry (jacharrym@unal.edu.co)     
 !!        -# Adapts this module to works indepently from MP2 program
 !<
-module TransformIntegrals_
+module TransformIntegralsA_
   use MolecularSystem_
   use InputManager_
   use IntegralManager_
@@ -42,7 +42,7 @@ module TransformIntegrals_
   use omp_lib
   implicit none
 
-  type, public :: TransformIntegrals
+  type, public :: TransformIntegralsA
      character(30) :: name
      character(255) :: fileForCoefficients
      character(255) :: fileForIntegrals
@@ -56,7 +56,7 @@ module TransformIntegrals_
      integer :: nproc
      integer :: integralStackSize
 
-  end type TransformIntegrals
+  end type TransformIntegralsA
 
   !! TypeOfIntegrals {
   integer, parameter :: ONE_SPECIE			= 0
@@ -64,11 +64,12 @@ module TransformIntegrals_
   !! }
 
   public :: &
-       TransformIntegrals_constructor, &
-       TransformIntegrals_destructor, &
-       TransformIntegrals_atomicToMolecularOfOneSpecie, &
-       TransformIntegrals_atomicToMolecularOfTwoSpecies
-!       TransformIntegrals_readIntegralsTransformed
+       TransformIntegralsA_constructor, &
+       TransformIntegralsA_destructor, &
+       TransformIntegralsA_show, &
+       TransformIntegralsA_atomicToMolecularOfOneSpecie, &
+       TransformIntegralsA_atomicToMolecularOfTwoSpecies
+!       TransformIntegralsA_readIntegralsTransformed
 
   private
 
@@ -112,33 +113,54 @@ contains
   !>
   !! @brief Contructor de la clase
   !<
-  subroutine TransformIntegrals_constructor(this)
+  subroutine TransformIntegralsA_constructor(this)
     implicit none
-    type(TransformIntegrals) :: this
+    type(TransformIntegralsA) :: this
 
     this%unidOfOutputForCoefficients = CONTROL_instance%UNIT_FOR_MOLECULAR_ORBITALS_FILE
     this%unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
     this%fileForIntegrals = trim(CONTROL_INSTANCE%INPUT_FILE)//".ints"
 
-  end subroutine TransformIntegrals_constructor
+  end subroutine TransformIntegralsA_constructor
+
 
   !>
   !! @brief Contructor de la clase
   !<
-  subroutine TransformIntegrals_destructor(this)
+  subroutine TransformIntegralsA_destructor(this)
     implicit none
-    type(TransformIntegrals) :: this
+    type(TransformIntegralsA) :: this
     
-  end subroutine TransformIntegrals_destructor
+  end subroutine TransformIntegralsA_destructor
+
+  !>
+  !! @brief show
+  !<
+  subroutine TransformIntegralsA_show()
+    implicit none
+
+     print *,""
+     print *,"BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
+     print *,"========================================"
+     print *,""
+     print *,"--------------------------------------------------"
+     print *,"    Algorithm Four-index integral tranformation"
+     print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
+     print *,"  Computer Physics Communications, 2005, 166, 58-65"
+     print *,"--------------------------------------------------"
+     print *,""
+
+  end subroutine TransformIntegralsA_show
+
   
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de la misma especie
   !! 		a integrales moleculares.
   !<
-  subroutine TransformIntegrals_atomicToMolecularOfOneSpecie( this, coefficientsOfAtomicOrbitals, &
+  subroutine TransformIntegralsA_atomicToMolecularOfOneSpecie( this, coefficientsOfAtomicOrbitals, &
        molecularIntegrals, specieID, nameOfSpecie  )
     implicit none
-    type(TransformIntegrals) :: this
+    type(TransformIntegralsA) :: this
     type(Matrix) :: coefficientsOfAtomicOrbitals
     type(Matrix) :: molecularIntegrals
     integer :: specieID
@@ -156,10 +178,6 @@ contains
     this%prefixOfFile =""//trim(nameOfSpecie)
     this%fileForCoefficients =""//trim(nameOfSpecie)//"mo.values"
 
-    if ( nameOfSpecie == "E-BETA" ) then
-        this%prefixOfFile =""//trim("E-ALPHA")
-    end if
-
     if ( .not.CONTROL_instance%OPTIMIZE ) then
        call cpu_time(initialTime)
     end if
@@ -167,14 +185,14 @@ contains
     this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
     this%specieID = specieID
 
-    call TransformIntegrals_writeCoefficients(this, coefficientsOfAtomicOrbitals)
+    call TransformIntegralsA_writeCoefficients(this, coefficientsOfAtomicOrbitals)
 
     !! Inicia proceso de transformacion
 
     call fourIndexTransformation( this%numberOfContractions, 0_4,  trim(this%prefixOfFile ), nproc, integralStackSize )
 
 !    !! Lee  de disco las integrales tranformadas
-!    call TransformIntegrals_readIntegralsTransformed( this, molecularIntegrals, ONE_SPECIE )
+!    call TransformIntegralsA_readIntegralsTransformed( this, molecularIntegrals, ONE_SPECIE )
 
 !    !! Remueve archivos empleados en proceso de transformacion
 !    call system("rm "// trim(this%prefixOfFile)//"*.dat "// trim(this%prefixOfFile) // "*.values "  )
@@ -185,16 +203,16 @@ contains
 !       print *,""
 !    end if
 
-  end subroutine TransformIntegrals_atomicToMolecularOfOneSpecie
+  end subroutine TransformIntegralsA_atomicToMolecularOfOneSpecie
 
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de diferente especie
   !! 		a integrales moleculares.
   !<
-  subroutine TransformIntegrals_atomicToMolecularOfTwoSpecies( this, coefficientsOfAtomicOrbitals, &
+  subroutine TransformIntegralsA_atomicToMolecularOfTwoSpecies( this, coefficientsOfAtomicOrbitals, &
        otherCoefficientsOfAtomicOrbitals, molecularIntegrals, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
     implicit none
-    type(TransformIntegrals) :: this
+    type(TransformIntegralsA) :: this
     type(Matrix) :: coefficientsOfAtomicOrbitals
     type(Matrix) :: otherCoefficientsOfAtomicOrbitals
     type(Matrix) :: molecularIntegrals
@@ -228,14 +246,14 @@ contains
     this%otherSpecieID = otherSpecieID
 
 
-    call TransformIntegrals_writeCoefficients( this, coefficientsOfAtomicOrbitals, otherCoefficientsOfAtomicOrbitals )
+    call TransformIntegralsA_writeCoefficients( this, coefficientsOfAtomicOrbitals, otherCoefficientsOfAtomicOrbitals )
 
     !! Inicia proceso de transformacion
     !! this%numberOfContractions = Total number of contractions, it is the sum of contractions beetwen specieID and otherSpecieID
     call fourIndexTransformation( this%numberOfContractions, size(coefficientsOfAtomicOrbitals%values,dim=1), trim(this%prefixOfFile), 0_4, integralStackSize )
 
     ! Lee  de disco las integrales tranformadas
-!    call TransformIntegrals_readIntegralsTransformed( this, molecularIntegrals, TWO_SPECIES )
+!    call TransformIntegralsA_readIntegralsTransformed( this, molecularIntegrals, TWO_SPECIES )
 
     !! Remueve archivos empleados en proceso de transformacion
 !    call system("rm "// trim(this%prefixOfFile)//"*.dat "// trim(this%prefixOfFile) // "*.values "  )
@@ -246,15 +264,15 @@ contains
 !       print *,""
 !    end if
 
-  end subroutine TransformIntegrals_atomicToMolecularOfTwoSpecies
+  end subroutine TransformIntegralsA_atomicToMolecularOfTwoSpecies
 
   !>
   !! @brief Escribe los coefficientes de combinacion para los orbitales atomicos.
   !! 		El almacenamiento requiere guardar columnas completas una tras de otra
   !<
-  subroutine TransformIntegrals_writeCoefficients( this, coefficients, otherCoefficients )
+  subroutine TransformIntegralsA_writeCoefficients( this, coefficients, otherCoefficients )
     implicit none
-    type(TransformIntegrals) :: this
+    type(TransformIntegralsA) :: this
     type(Matrix) :: coefficients
     type(Matrix), optional :: otherCoefficients
     integer :: a
@@ -307,13 +325,13 @@ contains
     close( UNIT=this%unidOfOutputForCoefficients )
 
 
-  end subroutine TransformIntegrals_writeCoefficients
+  end subroutine TransformIntegralsA_writeCoefficients
 
 !! This subroutine was moved to lowdinCore  
 !
-!  subroutine TransformIntegrals_readIntegralsTransformed(this, matrixContainer, typeOfIntegrals )
+!  subroutine TransformIntegralsA_readIntegralsTransformed(this, matrixContainer, typeOfIntegrals )
 !    implicit none
-!    type(TransformIntegrals) :: this
+!    type(TransformIntegralsA) :: this
 !    type(Matrix) :: matrixContainer
 !    integer :: typeOfIntegrals
 !
@@ -438,13 +456,13 @@ contains
 !
 !    close(this%unidOfOutputForIntegrals)
 !
-!  end subroutine TransformIntegrals_readIntegralsTransformed
+!  end subroutine TransformIntegralsA_readIntegralsTransformed
 
   
   !>
   !! @brief  Maneja excepciones de la clase
   !<
-  subroutine TransformIntegrals_exception( typeMessage, description, debugDescription)
+  subroutine TransformIntegralsA_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -458,6 +476,6 @@ contains
     call Exception_show( ex )
     call Exception_destructor( ex )
 
-  end subroutine TransformIntegrals_exception
+  end subroutine TransformIntegralsA_exception
 
-end module TransformIntegrals_
+end module TransformIntegralsA_
