@@ -498,6 +498,11 @@ contains
 	numberOfContractions=numberOfContractions*2
         print *, "numberOfContractions", numberOfContractions
 
+!! 21 de enero 2016
+  noc=numberOfContractions
+  nop=numberOfParticles
+
+
         if (allocated(spinints)) deallocate (spinints)
         allocate(spinints(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
         spinints(:,:,:,:) = 0.0_8
@@ -525,9 +530,11 @@ contains
         if (allocated(Ts)) deallocate (Ts)
         allocate(Ts(numberOfContractions,numberOfContractions))
         Ts(:,:) = 0.0_8
-
+        !! Td solo corre sobre virtual,virtual,ocupado,ocupado
         if (allocated(Td)) deallocate (Td)
-        allocate(Td(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+ !! 21 de enero 2016
+ !!      allocate(Td(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(Td(noc-nop,noc-nop,numberOfContractions,numberOfContractions))
         Td(:,:,:,:) = 0.0_8
 
         if (allocated(taus)) deallocate (taus)
@@ -542,9 +549,13 @@ contains
                 do b=numberOfParticles+1, numberOfContractions
                         do i=1, numberOfParticles
                                 do j=1, numberOfParticles
-                                        Td(a,b,i,j) = Td(a,b,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
-                                        taus(a,b,i,j) = Td(a,b,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
-                                        tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
+ !!                                       Td(a,b,i,j) = Td(a,b,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+ !!                                       taus(a,b,i,j) = Td(a,b,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
+ !!                                       tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
+
+                                        Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+                                        taus(a,b,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
+                                        tau(a,b,i,j) = Td(a-nop,b-nop,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
 !			                  write(*,*) Td(a,b,i,j), taus(a,b,i,j), tau(a,b,i,j)
                                 end do
                         end do
@@ -590,11 +601,6 @@ contains
 
 !!!! Main Loop
 
-
-!! 21 de enero 2016
-
-  noc=numberOfContractions
-  nop=numberOfParticles
 
 
   ECCSD = 0.0_8
