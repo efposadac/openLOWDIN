@@ -216,12 +216,12 @@ contains
                                    write (*,'(T10,A30,A8,A4,ES16.8)') "MP2 Corr.{", &
                                              trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
 					"} = ", CoupledCluster_instance%mp2Coupling%values(k)
-!                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
-!                                             trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( i ) ), &
-!					"} = ",  CoupledCluster_instance%coupledClusterSDCorrection%values( i )
-!                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
-!                                             trim(  MolecularSystem_getNameOfSpecie( j ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
-!					"} = ",  CoupledCluster_instance%coupledClusterSDCorrection%values( j )
+                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
+                                             trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( i ) ), &
+					"} = ",  CoupledCluster_instance%coupledClusterSDCorrection%values( i )
+                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
+                                             trim(  MolecularSystem_getNameOfSpecie( j ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
+					"} = ",  CoupledCluster_instance%coupledClusterSDCorrection%values( j )
                                    write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
                                              trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
 					"} = ", CoupledCluster_instance%ccsdTwoParticlesCorrection
@@ -305,7 +305,7 @@ contains
    integer :: ii,jj,kk,ll,pp,qq,rr,ss,hh,tt
    integer(8) :: x,y,z,auxIndex,auxIndex2
    integer :: e,f,m,n,iii,jjj,aaa,bbb
-   integer :: ee,mm,nn,fff
+   integer :: ee,mm,nn,fff,oo
    integer :: speciesID
    integer :: otherSpeciesID
    character(10) :: nameOfSpecie
@@ -325,6 +325,7 @@ contains
    integer, allocatable :: spatialOrbital(:)
    type(Vector) :: eigenValues, ff
    type(Vector) :: eigenValuesOfOtherSpecie, otherff
+   type(Vector) :: coupledClusterValue
    type(Matrix) :: auxMatrix!   type(TransformIntegrals) :: repulsionTransformer
    real(8) :: lambda
    real(8) :: lambdaOfOtherSpecie
@@ -352,7 +353,9 @@ contains
    character(50) :: wfnFile
    character(50) :: arguments(2)
    integer :: wfnUnit
-
+   !! 21 enero 2016
+   integer :: noc
+   integer :: nop
 
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
@@ -374,8 +377,8 @@ contains
 !! Begin CCSD calculation same specie. 
 !!******************************************************************************************************************************
 
-	speciesID=1 !!! FOR NOW, only electrons 
-!    do speciesID=1, numberOfSpecies
+!	speciesID=1 !!! FOR NOW, only electrons 
+    do speciesID=1, numberOfSpecies
 	numberOfParticles = MolecularSystem_getNumberOfParticles(speciesID)
 
     if ( numberOfParticles > 1 ) then
@@ -420,6 +423,8 @@ contains
 
 	call Vector_constructor( CoupledCluster_instance%coupledClusterSDCorrection, numberOfSpecies)
 	call Vector_constructor( CoupledCluster_instance%energyCorrectionOfSecondOrder, numberOfSpecies)
+   
+   !! Aqui empieza MP2
 
 	do a=1, ocupationNumber
 		do b=1, ocupationNumber
@@ -489,7 +494,9 @@ contains
 
 !!! From scratch...
 
+        print *, "numberOfContractions", numberOfContractions
 	numberOfContractions=numberOfContractions*2
+        print *, "numberOfContractions", numberOfContractions
 
         if (allocated(spinints)) deallocate (spinints)
         allocate(spinints(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
@@ -583,6 +590,13 @@ contains
 
 !!!! Main Loop
 
+
+!! 21 de enero 2016
+
+  noc=numberOfContractions
+  nop=numberOfParticles
+
+
   ECCSD = 0.0_8
   DECC = 1.0_8 
 !  OLDCC = 0 
@@ -597,17 +611,23 @@ contains
         allocate(Fae(numberOfContractions,numberOfContractions))
 	Fae=0.0_8
 	if (allocated(Fmi)) deallocate (Fmi)
-        allocate(Fmi(numberOfContractions,numberOfContractions))
+!! 21-enero-2016
+!!        allocate(Fmi(numberOfContractions,numberOfContractions))
+        allocate(Fmi(numberOfParticles,numberOfParticles))
 	Fmi=0.0_8
 	if (allocated(Fme)) deallocate (Fme)
         allocate(Fme(numberOfContractions,numberOfContractions))
 	Fme=0.0_8
 
 	if (allocated(Wmnij)) deallocate (Wmnij)
-        allocate(Wmnij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+!! 21-enero-2016
+!!        allocate(Wmnij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(Wmnij(numberOfParticles,numberOfParticles,numberOfParticles,numberOfParticles))
 	Wmnij=0.0_8
 	if (allocated(Wabef)) deallocate (Wabef)
-        allocate(Wabef(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+!! 21-enero-2016
+!!        allocate(Wabef(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(Wabef(numberOfContractions-nop,numberOfContractions-nop,numberOfContractions-nop,numberOfContractions-nop))
 	Wabef=0.0_8
 	if (allocated(Wmbej)) deallocate (Wmbej)
         allocate(Wmbej(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
@@ -696,15 +716,16 @@ contains
 
 	!! Equation 7
 
+
 	do a=numberOfParticles+1, numberOfContractions
 		do b=numberOfParticles+1, numberOfContractions
 			do e=numberOfParticles+1, numberOfContractions
 				do f=numberOfParticles+1, numberOfContractions
-					Wabef(a,b,e,f) = spinints(a,b,e,f)
+					Wabef(a-nop,b-nop,e-nop,f-nop) = spinints(a,b,e,f)
 					do m=1, numberOfParticles
-						Wabef(a,b,e,f) = Wabef(a,b,e,f) + (-Ts(b,m)*spinints(a,m,e,f)+Ts(a,m)*spinints(b,m,e,f))
+						Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + (-Ts(b,m)*spinints(a,m,e,f)+Ts(a,m)*spinints(b,m,e,f))
 						do n=1, numberOfParticles
-							Wabef(a,b,e,f) = Wabef(a,b,e,f) + 0.25*tau(a,b,m,n)*spinints(m,n,e,f)
+							Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + 0.25*tau(a,b,m,n)*spinints(m,n,e,f)
 						end do
 					end do
 				end do
@@ -712,7 +733,28 @@ contains
 		end do
 	end do
 
-	!! Equation 8
+
+
+
+!!  do a=numberOfParticles+1, numberOfContractions
+!!		do b=numberOfParticles+1, numberOfContractions
+!!			do e=numberOfParticles+1, numberOfContractions
+!!				do f=numberOfParticles+1, numberOfContractions
+!!					Wabef(a,b,e,f) = spinints(a,b,e,f)
+!!					do m=1, numberOfParticles
+!!						Wabef(a,b,e,f) = Wabef(a,b,e,f) + (-Ts(b,m)*spinints(a,m,e,f)+Ts(a,m)*spinints(b,m,e,f))
+!!						do n=1, numberOfParticles
+!!							Wabef(a,b,e,f) = Wabef(a,b,e,f) + 0.25*tau(a,b,m,n)*spinints(m,n,e,f)
+!!						end do
+!!					end do
+!!				end do
+!!			end do
+!!		end do
+!!	end do
+
+
+
+!! Equation 8
 
 !	do m=1, numberOfParticles
 !		do b=numberOfParticles+1, numberOfContractions
@@ -835,7 +877,7 @@ auxECCSD = 0.0_8
 					do e=numberOfParticles+1, numberOfContractions
 						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (Ts(e,i)*spinints(a,b,e,j)-Ts(e,j)*spinints(a,b,e,i))
 						do f=numberOfParticles+1, numberOfContractions
-							TdNew(a,b,i,j) = TdNew(a,b,i,j) + 0.5*tau(e,f,i,j)*Wabef(a,b,e,f)
+							TdNew(a,b,i,j) = TdNew(a,b,i,j) + 0.5*tau(e,f,i,j)*Wabef(a-nop,b-nop,e-nop,f-nop)
 						end do
 					end do
 					do m=1, numberOfParticles
@@ -1297,7 +1339,7 @@ auxECCSD = 0.0_8
 	end if !! If numberOfParticles > 1	
 
 
-! end do !! Species
+ end do !! Species
 
 
 	call Vector_show (CoupledCluster_instance%coupledClusterSDCorrection)
@@ -1323,6 +1365,15 @@ auxECCSD = 0.0_8
 !! End CCSD calculation same specie!
 !!*********************************************************************************************************************************
 
+
+
+
+
+
+
+
+
+
 !!*********************************************************************************************************************************
 !! Begin CCSD Calculation different species
 !!*********************************************************************************************************************************
@@ -1342,7 +1393,7 @@ print *, " |------------------------------------------------|"
 f = numberOfSpecies * ( numberOfSpecies-1 ) / 2
 
 call Vector_constructor( CoupledCluster_instance%mp2Coupling, f)
-
+call Vector_constructor( coupledClusterValue, numberOfSpecies)
 
   do i=1, numberOfSpecies
 
@@ -1415,7 +1466,6 @@ call Vector_constructor( CoupledCluster_instance%mp2Coupling, f)
 
 !end do !!! Number Of Species
 !end do !!! 
-
 
 !!! From Scratch
 
@@ -2032,6 +2082,8 @@ call Vector_constructor( CoupledCluster_instance%mp2Coupling, f)
                  end do
          end do
 
+write(*,*) i,j,auxECCSD
+
 !write (*,*) "CC inter", auxECCSD
 
   DECC = abs( auxECCSD - OLDCC )
@@ -2118,7 +2170,7 @@ call Vector_constructor( CoupledCluster_instance%mp2Coupling, f)
 !                                        auxtaus(a,b,ii,jj) = auxTd(a,b,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj) - Ts(b,ii)*Ts(a,jj))
 !                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*Ts(b,jj) - Ts(b,ii)*Ts(a,jj)
                                         auxtaus(a,b,ii,jj) = auxTd(a,b,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj))
-                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*Ts(b,jj)
+                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*otherTs(b,jj)
 
 				end do
 			end do
@@ -2127,13 +2179,15 @@ call Vector_constructor( CoupledCluster_instance%mp2Coupling, f)
 
 end do !! Loop
 
+	coupledClusterValue%values(m) = auxECCSD
+
       end do !! Number Of
   end do     !! Species
 !
 	call Matrix_destructor(auxMatrix)
 !	CoupledCluster_instance%mp2Correction = sum ( CoupledCluster_instance%mp2Coupling%values )
 	CoupledCluster_instance%ccsdTwoParticlesCorrection = auxECCSD
-
+	call Vector_show(coupledClusterValue)
 
 end if
 
