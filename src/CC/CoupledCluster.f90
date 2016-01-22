@@ -506,7 +506,8 @@ contains
         if (allocated(spinints)) deallocate (spinints)
         allocate(spinints(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
         spinints(:,:,:,:) = 0.0_8
-        
+
+!! pasa de 4 indices a 1 (pairing function)
         do p=1, numberOfContractions
                 do q=1, numberOfContractions
                         do r=1, numberOfContractions
@@ -528,21 +529,26 @@ contains
 !!!! Initial guesses T1 and T2
 
         if (allocated(Ts)) deallocate (Ts)
-        allocate(Ts(numberOfContractions,numberOfContractions))
+!!        allocate(Ts(numberOfContractions,numberOfContractions))
+          allocate(Ts(noc-nop,nop))
         Ts(:,:) = 0.0_8
         !! Td solo corre sobre virtual,virtual,ocupado,ocupado
         if (allocated(Td)) deallocate (Td)
- !! 21 de enero 2016
+ !! 22 de enero 2016
  !!      allocate(Td(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
-        allocate(Td(noc-nop,noc-nop,numberOfContractions,numberOfContractions))
+        allocate(Td(noc-nop,noc-nop,nop,nop))
         Td(:,:,:,:) = 0.0_8
 
         if (allocated(taus)) deallocate (taus)
-        allocate(taus(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+!! 22 enero 2016 
+!!      allocate(taus(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(taus(noc-nop,noc-nop,nop,nop))
         taus(:,:,:,:) = 0.0_8
 
         if (allocated(tau)) deallocate (tau)
-        allocate(tau(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+!! 22 enero 2016
+!!      allocate(tau(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(tau(noc-nop,noc-nop,nop,nop))
         tau(:,:,:,:) = 0.0_8
 
         do a=numberOfParticles+1, numberOfContractions
@@ -554,8 +560,9 @@ contains
  !!                                       tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
 
                                         Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
-                                        taus(a,b,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
-                                        tau(a,b,i,j) = Td(a-nop,b-nop,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
+                 !! 22 de enero 2016     
+                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j))
+                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j)
 !			                  write(*,*) Td(a,b,i,j), taus(a,b,i,j), tau(a,b,i,j)
                                 end do
                         end do
@@ -581,21 +588,23 @@ contains
         
         !! Equation 13 from Stanton
 
-        if (allocated(Dabij)) deallocate (Dabij)
-        allocate(Dabij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
-        Dabij(:,:,:,:) = 0.0_8
+!!        if (allocated(Dabij)) deallocate (Dabij)
+!! 22 enero 2016
+!!      allocate(Dabij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+!!        allocate(Dabij(noc-nop,noc-nop,nop,nop))
+!!        Dabij(:,:,:,:) = 0.0_8
 
 
-        do a=numberOfParticles+1, numberOfContractions
-                do b=numberOfParticles+1, numberOfContractions
-                        do i=1, numberOfParticles
-                                do j=1, numberOfParticles
-                                        Dabij(a,b,i,j) = Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)
+!!        do a=numberOfParticles+1, numberOfContractions
+!!                do b=numberOfParticles+1, numberOfContractions
+ !!                       do i=1, numberOfParticles
+ !!                               do j=1, numberOfParticles
+!!                                        Dabij(a-nop,b-nop,i,j) = Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)
 !					write(*,*) a,b,i,j,Dabij(a,b,i,j)
-                                end do
-                        end do
-                end do
-        end do
+!!                                end do
+ !!                       end do
+  !!              end do
+ !!       end do
 
 !!!! End Denominators
 
@@ -614,36 +623,40 @@ contains
 
 
 	if (allocated(Fae)) deallocate (Fae)
-        allocate(Fae(numberOfContractions,numberOfContractions))
-	Fae=0.0_8
+!! 22 de enero 2016
+!!      allocate(Fae(numberOfContractions,numberOfContractions))
+        allocate(Fae(noc-nop,noc-nop))
+   Fae=0.0_8
 	if (allocated(Fmi)) deallocate (Fmi)
 !! 21-enero-2016
-!!        allocate(Fmi(numberOfContractions,numberOfContractions))
-        allocate(Fmi(numberOfParticles,numberOfParticles))
+!!      allocate(Fmi(numberOfContractions,numberOfContractions))
+        allocate(Fmi(nop,nop))
 	Fmi=0.0_8
 	if (allocated(Fme)) deallocate (Fme)
-        allocate(Fme(numberOfContractions,numberOfContractions))
-	Fme=0.0_8
+!!        allocate(Fme(numberOfContractions,numberOfContractions))
+          allocate(Fme(nop,noc-nop))
+   Fme=0.0_8
 
 	if (allocated(Wmnij)) deallocate (Wmnij)
 !! 21-enero-2016
 !!        allocate(Wmnij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
-        allocate(Wmnij(numberOfParticles,numberOfParticles,numberOfParticles,numberOfParticles))
+        allocate(Wmnij(nop,nop,nop,nop))
 	Wmnij=0.0_8
 	if (allocated(Wabef)) deallocate (Wabef)
 !! 21-enero-2016
 !!        allocate(Wabef(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
-        allocate(Wabef(numberOfContractions-nop,numberOfContractions-nop,numberOfContractions-nop,numberOfContractions-nop))
+        allocate(Wabef(noc-nop,noc-nop,noc-nop,noc-nop))
 	Wabef=0.0_8
 	if (allocated(Wmbej)) deallocate (Wmbej)
-        allocate(Wmbej(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(Wmbej(nop,noc-nop,noc-nop,nop))
 	Wmbej=0.0_8
 
 	if (allocated(TsNew)) deallocate (TsNew)
-	allocate(TsNew(numberOfContractions,numberOfContractions))
+!!	allocate(TsNew(numberOfContractions,numberOfContractions))
+   allocate(TsNew(noc-nop,nop))
 	TsNew=0.0_8
 	if (allocated(TdNew)) deallocate (TdNew)
-        allocate(TdNew(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(TdNew(noc-nop,noc-nop,nop,nop))
 	TdNew=0.0_8
 
 
@@ -654,13 +667,13 @@ contains
 
 	do a=numberOfParticles+1, numberOfContractions
 		do e=numberOfParticles+1, numberOfContractions
-			Fae(a,e) = (1 + (a==e))*Fs%values(a,e)
+			Fae(a-nop,e-nop) = (1 + (a==e))*Fs%values(a,e)
 			do m=1, numberOfParticles
-				Fae(a,e) = Fae(a,e) + (-0.5*Fs%values(m,e)*Ts(a,m))
+				Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + (-0.5*Fs%values(m,e)*Ts(a-nop,m))
 				do f=numberOfParticles+1, numberOfContractions
-					Fae(a,e) = Fae(a,e) + Ts(f,m)*spinints(m,a,f,e)
+					Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + Ts(f-nop,m)*spinints(m,a,f,e)
 					do n=1, numberOfParticles
-						Fae(a,e) = Fae(a,e) + (-0.5*taus(a,f,m,n)*spinints(m,n,e,f))
+						Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + (-0.5*taus(a-nop,f-nop,m,n)*spinints(m,n,e,f))
 !						write(*,*) a,e,Fae(a,e)
 					end do
 				end do
@@ -677,11 +690,11 @@ contains
 		do i=1, numberOfParticles
 			Fmi(m,i) = (1 + (m==i))*Fs%values(m,i)
 			do e=numberOfParticles+1, numberOfContractions
-				Fmi(m,i) = Fmi(m,i) + 0.5*Ts(e,i)*Fs%values(m,e)
+				Fmi(m,i) = Fmi(m,i) + 0.5*Ts(e-nop,i)*Fs%values(m,e)
 				do n=1, numberOfParticles
-					Fmi(m,i) = Fmi(m,i) + Ts(e,n)*spinints(m,n,i,e)
+					Fmi(m,i) = Fmi(m,i) + Ts(e-nop,n)*spinints(m,n,i,e)
 					do f=numberOfParticles+1, numberOfContractions
-						Fmi(m,i) = Fmi(m,i) + 0.5*taus(e,f,i,n)*spinints(m,n,e,f)
+						Fmi(m,i) = Fmi(m,i) + 0.5*taus(e-nop,f-nop,i,n)*spinints(m,n,e,f)
 					end do
 				end do
 			end do
@@ -693,10 +706,10 @@ contains
 
 	do m=1, numberOfParticles
 		do e=numberOfParticles+1, numberOfContractions
-			Fme(m,e) = Fs%values(m,e)
+			Fme(m,e-nop) = Fs%values(m,e)
 			do n=1, numberOfParticles
 				do f=numberOfParticles+1, numberOfContractions
-				Fme(m,e) = Fme(m,e) + Ts(f,n)*spinints(m,n,e,f)
+				Fme(m,e-nop) = Fme(m,e-nop) + Ts(f-nop,n)*spinints(m,n,e,f)
 				end do
 			end do
 		end do
@@ -710,9 +723,9 @@ contains
 				do j=1, numberOfParticles
 					Wmnij(m,n,i,j) = spinints(m,n,i,j)
 					do e=numberOfParticles+1, numberOfContractions
-						Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + (Ts(e,j)*spinints(m,n,i,e)-Ts(e,i)*spinints(m,n,j,e))
+						Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + (Ts(e-nop,j)*spinints(m,n,i,e)-Ts(e-nop,i)*spinints(m,n,j,e))
 						do f=numberOfParticles+1, numberOfContractions
-							Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + 0.25*tau(e,f,i,j)*spinints(m,n,e,f)
+							Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + 0.25*tau(e-nop,f-nop,i,j)*spinints(m,n,e,f)
 						end do
 					end do
 				end do
@@ -729,9 +742,9 @@ contains
 				do f=numberOfParticles+1, numberOfContractions
 					Wabef(a-nop,b-nop,e-nop,f-nop) = spinints(a,b,e,f)
 					do m=1, numberOfParticles
-						Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + (-Ts(b,m)*spinints(a,m,e,f)+Ts(a,m)*spinints(b,m,e,f))
+						Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + (-Ts(b-nop,m)*spinints(a,m,e,f)+Ts(a-nop,m)*spinints(b,m,e,f))
 						do n=1, numberOfParticles
-							Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + 0.25*tau(a,b,m,n)*spinints(m,n,e,f)
+							Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + 0.25*tau(a-nop,b-nop,m,n)*spinints(m,n,e,f)
 						end do
 					end do
 				end do
@@ -785,14 +798,14 @@ contains
 		do b=numberOfParticles+1, numberOfContractions
 			do e=numberOfParticles+1, numberOfContractions
 				do j=1, numberOfParticles
-					Wmbej(m,b,e,j) = spinints(m,b,e,j)
+					Wmbej(m,b-nop,e-nop,j) = spinints(m,b,e,j)
 					do f=numberOfParticles+1, numberOfContractions
-						Wmbej(m,b,e,j) = Wmbej(m,b,e,j) + Ts(f,j)*spinints(m,b,e,f)
+						Wmbej(m,b-nop,e-nop,j) = Wmbej(m,b-nop,e-nop,j) + Ts(f-nop,j)*spinints(m,b,e,f)
 					end do
 					do n=1, numberOfParticles
 !						Wmbej(m,b,e,j) = Wmbej(m,b,e,j) + (-Ts(b,n)*spinints(m,n,e,f))
 						do f=numberOfParticles+1, numberOfContractions
-							Wmbej(m,b,e,j) = Wmbej(m,b,e,j) + -(0.5*Td(f,b,j,n)+Ts(f,j)*Ts(b,n))*spinints(m,n,e,f)
+							Wmbej(m,b-nop,e-nop,j) = Wmbej(m,b-nop,e-nop,j) + -(0.5*Td(f-nop,b-nop,j,n)+Ts(f-nop,j)*Ts(b-nop,n))*spinints(m,n,e,f)
 						end do
 					end do
 				end do
@@ -807,10 +820,10 @@ auxECCSD = 0.0_8
 
 	do i=1, numberOfParticles
 		do a=numberOfParticles+1, numberOfContractions
-			auxECCSD = auxECCSD + Fs%values(i,a)*Ts(a,i)
+			auxECCSD = auxECCSD + Fs%values(i,a)*Ts(a-nop,i)
 			do j=1, numberOfParticles
 				do b=numberOfParticles+1, numberOfContractions
-					auxECCSD = auxECCSD + (0.25*spinints(i,j,a,b)*Td(a,b,i,j)+0.5*spinints(i,j,a,b)*Ts(a,i)*Ts(b,j))
+					auxECCSD = auxECCSD + (0.25*spinints(i,j,a,b)*Td(a-nop,b-nop,i,j)+0.5*spinints(i,j,a,b)*Ts(a-nop,i)*Ts(b-nop,j))
 		!			write(*,*) auxECCSD
 				end do
 			end do
@@ -830,29 +843,29 @@ auxECCSD = 0.0_8
 		
 	do a=numberOfParticles+1, numberOfContractions
 		do i=1, numberOfParticles
-			TsNew(a,i) = Fs%values(i,a)
+			TsNew(a-nop,i) = Fs%values(i,a)
 			do e=numberOfParticles+1, numberOfContractions
-				TsNew(a,i) = TsNew(a,i) + Ts(e,i)*Fae(a,e)
+				TsNew(a-nop,i) = TsNew(a-nop,i) + Ts(e-nop,i)*Fae(a-nop,e-nop)
 			end do
 			do m=1, numberOfParticles
-				TsNew(a,i) = TsNew(a,i) + (-Ts(a,m)*Fmi(m,i))
+				TsNew(a-nop,i) = TsNew(a-nop,i) + (-Ts(a-nop,m)*Fmi(m,i))
 				do e=numberOfParticles+1, numberOfContractions
-					TsNew(a,i) = TsNew(a,i) + Td(a,e,i,m)*Fme(m,e)
+					TsNew(a-nop,i) = TsNew(a-nop,i) + Td(a-nop,e-nop,i,m)*Fme(m,e-nop)
 					do f=numberOfParticles+1, numberOfContractions
-						TsNew(a,i) = TsNew(a,i) + (-0.5*Td(e,f,i,m)*spinints(m,a,e,f))
+						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(e-nop,f-nop,i,m)*spinints(m,a,e,f))
 					end do
 					do n=1, numberOfParticles
-						TsNew(a,i) = TsNew(a,i) + (-0.5*Td(a,e,m,n)*spinints(n,m,e,i))
+						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(a-nop,e-nop,m,n)*spinints(n,m,e,i))
 					end do
 				end do
 			end do
 			do n=1,numberOfParticles
 				do f=numberOfParticles+1, numberOfContractions
-					TsNew(a,i) = TsNew(a,i) + (-Ts(f,n)*spinints(n,a,i,f))
+					TsNew(a-nop,i) = TsNew(a-nop,i) + (-Ts(f-nop,n)*spinints(n,a,i,f))
 				end do
 			end do
-			TsNew(a,i) = TsNew(a,i)/Dai(a,i)
-			Ts(a,i) = TsNew(a,i)
+			TsNew(a-nop,i) = TsNew(a-nop,i)/Dai(a,i)
+			Ts(a-nop,i) = TsNew(a-nop,i)
 !			write(*,*) a,i,Ts(a,i),TsNew(a,i)
 		end do
 	end do
@@ -867,38 +880,42 @@ auxECCSD = 0.0_8
 			do i=1, numberOfParticles
 				do j=1, numberOfParticles
 
-					TdNew(a,b,i,j) = TdNew(a,b,i,j) + spinints(i,j,a,b)
+					TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + spinints(i,j,a,b)
 					do e=numberOfParticles+1, numberOfContractions
-						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (Td(a,e,i,j)*Fae(b,e)-Td(b,e,i,j)*Fae(a,e))
+						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (Td(a-nop,e-nop,i,j)*Fae(b-nop,e-nop)-Td(b-nop,e-nop,i,j)*Fae(a-nop,e-nop))
 						do m=1, numberOfParticles
-							TdNew(a,b,i,j) = TdNew(a,b,i,j) + (-0.5*Td(a,e,i,j)*Ts(b,m)*Fme(m,e)+0.5*Td(a,e,i,j)*Ts(a,m)*Fme(m,e)) 
+							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*Td(a-nop,e-nop,i,j)*Ts(b-nop,m)*Fme(m,e-nop)+0.5*Td(a-nop,e-nop,i,j)*Ts(a-nop,m)*Fme(m,e-nop)) 
 						end do
 					end do
 					do m=1, numberOfParticles
-						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (-Td(a,b,i,m)*Fmi(m,j)+Td(a,b,j,m)*Fmi(m,i))
+						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-Td(a-nop,b-nop,i,m)*Fmi(m,j)+Td(a-nop,b-nop,j,m)*Fmi(m,i))
 						do e=numberOfParticles+1, numberOfContractions
-							TdNew(a,b,i,j) = TdNew(a,b,i,j) + (-0.5*Td(a,b,i,m)*Ts(e,j)*Fme(m,e)+0.5*Td(a,b,i,m)*Ts(e,i)*Fme(m,e))
+							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*Td(a-nop,b-nop,i,m)*Ts(e-nop,j)*Fme(m,e-nop)+0.5*Td(a-nop,b-nop,i,m)*Ts(e-nop,i)*Fme(m,e-nop))
 						end do
 					end do
 					do e=numberOfParticles+1, numberOfContractions
-						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (Ts(e,i)*spinints(a,b,e,j)-Ts(e,j)*spinints(a,b,e,i))
+						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (Ts(e-nop,i)*spinints(a,b,e,j)-Ts(e-nop,j)*spinints(a,b,e,i))
 						do f=numberOfParticles+1, numberOfContractions
-							TdNew(a,b,i,j) = TdNew(a,b,i,j) + 0.5*tau(e,f,i,j)*Wabef(a-nop,b-nop,e-nop,f-nop)
+							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + 0.5*tau(e-nop,f-nop,i,j)*Wabef(a-nop,b-nop,e-nop,f-nop)
 						end do
 					end do
 					do m=1, numberOfParticles
-						TdNew(a,b,i,j) = TdNew(a,b,i,j) + (-Ts(a,m)*spinints(m,b,i,j)+Ts(b,m)*spinints(m,a,i,j))
+						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-Ts(a-nop,m)*spinints(m,b,i,j)+Ts(b-nop,m)*spinints(m,a,i,j))
 						do e=numberOfParticles+1, numberOfContractions
-							TdNew(a,b,i,j) = TdNew(a,b,i,j) + Td(a,e,i,m)*Wmbej(m,b,e,j) - Ts(e,i)*Ts(a,m)*spinints(m,b,e,j) + -Td(a,e,j,m)*Wmbej(m,b,e,i) + Ts(e,j)*Ts(a,m)*spinints(m,b,e,i) + -Td(b,e,i,m)*Wmbej(m,a,e,j) - Ts(e,i)*Ts(b,m)*spinints(m,a,e,j) + Td(b,e,j,m)*Wmbej(m,a,e,i) - Ts(e,j)*Ts(b,m)*spinints(m,a,e,i)
+							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + Td(a-nop,e-nop,i,m)*Wmbej(m,b-nop,e-nop,j) - Ts(e-nop,i)*Ts(a-nop,m)*spinints(m,b,e,j) + -Td(a-nop,e-nop,j,m)*Wmbej(m,b-nop,e-nop,i) + Ts(e-nop,j)*Ts(a-nop,m)*spinints(m,b,e,i) + -Td(b-nop,e-nop,i,m)*Wmbej(m,a-nop,e-nop,j) - Ts(e-nop,i)*Ts(b-nop,m)*spinints(m,a,e,j) + Td(b-nop,e-nop,j,m)*Wmbej(m,a-nop,e-nop,i) - Ts(e-nop,j)*Ts(b-nop,m)*spinints(m,a,e,i)
 						end do
 						do n=1, numberOfParticles
-							TdNew(a,b,i,j) = TdNew(a,b,i,j) + 0.5*tau(a,b,m,n)*Wmnij(m,n,i,j)
+							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + 0.5*tau(a-nop,b-nop,m,n)*Wmnij(m,n,i,j)
 						end do
 					end do
-					TdNew(a,b,i,j) = TdNew(a,b,i,j)/Dabij(a,b,i,j)
-					Td(a,b,i,j) = TdNew(a,b,i,j)
-                                        taus(a,b,i,j) = Td(a,b,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
-                                        tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
+!!	22 enero 2016			  
+!!!! Make denominator array Dabij
+!!               Dabij(a-nop,b-nop,i,j) = Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)
+               
+               TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b))
+               Td(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j)
+                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j))
+                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j)
 				end do
 			end do
 		end do
