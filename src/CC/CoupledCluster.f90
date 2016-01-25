@@ -20,10 +20,15 @@ module CoupledCluster_
   !!
   !! @author Alejandro
   !!
+  !! Optimization of CCSD module
+  !! CCSD(T) Code 
+  !! @author Carlos (CAOM)
+  !!
   !! <b> Creation data : </b> 2015
   !!
   !! <b> History change: </b>
-  !!
+  !! 
+  !! <li> Optimization of CC: January 2016</li>
   !!
   !<
   type, public :: CoupledCluster
@@ -356,6 +361,8 @@ contains
    !! 21 enero 2016
    integer :: noc
    integer :: nop
+   integer :: nocs
+   integer :: nops
 
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
@@ -1544,6 +1551,9 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !        end do
 !
 	numberOfContractionsOfOtherSpecie=numberOfContractionsOfOtherSpecie*2
+!! 25 de enero 2016
+  nocs=numberOfContractionsOfOtherSpecie 
+  nops=numberOfOtherSpecieParticles
 !
 !        if (allocated(otherspinints)) deallocate (otherspinints)
 !        allocate(otherspinints(numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie,numberOfContractionsOfOtherSpecie))
@@ -1628,7 +1638,9 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !        otherTd(:,:,:,:) = 0.0_8
 
         if (allocated(auxTd)) deallocate (auxTd)
-        allocate(auxTd(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+!! 25 de enero de 2016
+!!      allocate(auxTd(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        allocate(auxTd(noc-nop,nocs-nops,nop,nops))
         auxTd(:,:,:,:) = 0.0_8
 
 !        if (allocated(othertaus)) deallocate (othertaus)
@@ -1640,11 +1652,13 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !        othertau(:,:,:,:) = 0.0_8
         
 	if (allocated(auxtaus)) deallocate (auxtaus)
-        allocate(auxtaus(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+!! 25 de enero 2016
+!!      allocate(auxtaus(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        allocate(auxtaus(noc-nop,nocs-nops,nop,nops))
         auxtaus(:,:,:,:) = 0.0_8
 
         if (allocated(auxtau)) deallocate (auxtau)
-        allocate(auxtau(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        allocate(auxtau(noc-nop,nocs-nops,nop,nops))
         auxtau(:,:,:,:) = 0.0_8
 
 !        do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
@@ -1666,9 +1680,9 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
                 do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
                         do ii=1, numberOfParticles
                                 do iii=1, numberOfOtherSpecieParticles
-                                        auxTd(aa,aaa,ii,iii) = auxTd(aa,aaa,ii,iii) + (auxspinints(ii,iii,aa,aaa)/(Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)))
-                                        auxtaus(aa,aaa,ii,iii) = auxTd(aa,aaa,ii,iii) + 0.5*(Ts(aa,ii)*otherTs(aaa,iii)) ! Eliminated crossed t1 terms
-                                        auxtau(aa,aaa,ii,iii) = auxTd(aa,aaa,ii,iii) + Ts(aa,ii)*otherTs(aaa,iii) ! same here
+                                        auxTd(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + (auxspinints(ii,iii,aa,aaa)/(Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)))
+                                        auxtaus(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + 0.5*(Ts(aa,ii)*otherTs(aaa,iii)) ! Eliminated crossed t1 terms
+                                        auxtau(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + Ts(aa,ii)*otherTs(aaa,iii) ! same here
 !			                  write(*,*) auxTd(aa,aaa,ii,iii)
                                 end do
                         end do
@@ -1749,20 +1763,22 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !                 end do
 !         end do
 !
-         if (allocated(auxDabij)) deallocate (auxDabij)
-         allocate(auxDabij(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
-         auxDabij(:,:,:,:) = 0.0_8
+!         if (allocated(auxDabij)) deallocate (auxDabij)
+!! 25 de enero 2016
+!!       allocate(auxDabij(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+!!         allocate(auxDabij(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+!!         auxDabij(:,:,:,:) = 0.0_8
 
-         do aa=numberOfParticles+1, numberOfContractions
-                 do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-                         do ii=1, numberOfParticles
-                                 do iii=1, numberOfOtherSpecieParticles
-                                         auxDabij(aa,aaa,ii,iii) = Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)
+!!         do aa=numberOfParticles+1, numberOfContractions
+!!                 do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!!                         do ii=1, numberOfParticles
+!!                                 do iii=1, numberOfOtherSpecieParticles
+!!                                         auxDabij(aa,aaa,ii,iii) = Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)
 !                                         write(*,*) a,b,ii,jj,Dabij(a,b,i,j)
-                                 end do
-                         end do
-                 end do
-         end do
+!!                                 end do
+!!                         end do
+!!                 end do
+!!         end do
 
  !!!! End Denominators
 
@@ -1821,20 +1837,28 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !        auxFme=0.0_8
 
         if (allocated(auxWmnij)) deallocate (auxWmnij)
-        allocate(auxWmnij(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+!! 25 de enero 2016
+!!        allocate(auxWmnij(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        allocate(auxWmnij(nop,nocs,nop,nocs))
         auxWmnij=0.0_8
         if (allocated(auxWabef)) deallocate (auxWabef)
-        allocate(auxWabef(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+!! 25 de enero 2016
+!!      allocate(auxWabef(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        allocate(auxWabef(noc-nop,nocs-nops,noc-nop,nocs-nops))
         auxWabef=0.0_8
         if (allocated(auxWmbej)) deallocate (auxWmbej)
-        allocate(auxWmbej(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+!! 25 de enero 2016
+!!      allocate(auxWmbej(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        allocate(auxWmbej(nop,nocs-nops,noc-nop,nops))
         auxWmbej=0.0_8
 
 !        if (allocated(auxTsNew)) deallocate (auxTsNew)
 !        allocate(auxTsNew(numberOfContractions,numberOfContractionsOfOtherSpecie))
 !        auxTsNew=0.0_8
         if (allocated(auxTdNew)) deallocate (auxTdNew)
-        allocate(auxTdNew(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+!! 25 de enero 2016
+!!      allocate(auxTdNew(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
+        allocate(auxTdNew(noc-nop,nocs-nops,nop,nops))
         auxTdNew=0.0_8
 
 
@@ -1985,7 +2009,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 					auxWmnij(m,n,ii,jj) = auxspinints(m,n,ii,jj)
 					do e=numberOfParticles+1, numberOfContractions
 						do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-							auxWmnij(m,n,ii,jj) = auxWmnij(m,n,ii,jj) + 0.25*auxtau(e,f,ii,jj)*auxspinints(m,n,e,f)
+							auxWmnij(m,n,ii,jj) = auxWmnij(m,n,ii,jj) + 0.25*auxtau(e-nop,f-nops,ii,jj)*auxspinints(m,n,e,f)
 						end do
 					end do
 				end do
@@ -2016,10 +2040,10 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 		do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 			do e=numberOfParticles+1, numberOfContractions
 				do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-					auxWabef(a,b,e,f) = auxspinints(a,b,e,f)
+					auxWabef(a-nop,b-nops,e-nop,f-nops) = auxspinints(a,b,e,f)
 					do m=1, numberOfParticles
 						do n=1, numberOfOtherSpecieParticles
-							auxWabef(a,b,e,f) = auxWabef(a,b,e,f) + 0.25*auxtau(a,b,m,n)*auxspinints(m,n,e,f)
+							auxWabef(a-nop,b-nops,e-nop,f-nops) = auxWabef(a-nop,b-nops,e-nop,f-nops) + 0.25*auxtau(a-nop,b-nops,m,n)*auxspinints(m,n,e,f)
 						end do
 					end do
 				end do
@@ -2034,14 +2058,14 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 		do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 			do e=numberOfParticles+1, numberOfContractions
 				do jj=1, numberOfOtherSpecieParticles
-					auxWmbej(m,b,e,jj) = auxspinints(m,b,e,jj)
+					auxWmbej(m,b-nops,e-nop,jj) = auxspinints(m,b,e,jj)
 					do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-						auxWmbej(m,b,e,jj) = auxWmbej(m,b,e,jj) + otherTs(f,jj)*auxspinints(m,b,e,f)
+						auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + otherTs(f,jj)*auxspinints(m,b,e,f)
 					end do
 					do n=1, numberOfParticles
 !						auxWmbej(m,b,e,jj) = auxWmbej(m,b,e,jj) + (-Ts(b,n)*auxspinints(m,n,e,f))
 						do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-							auxWmbej(m,b,e,jj) = auxWmbej(m,b,e,jj) + -(0.5*auxTd(f,b,jj,n)+otherTs(f,jj)*Ts(b,n))*auxspinints(m,n,e,f) ! 0.5 before auxTd
+							auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + -(0.5*auxTd(f-nop,b-nops,jj,n)+otherTs(f,jj)*Ts(b,n))*auxspinints(m,n,e,f) ! 0.5 before auxTd
 						end do
 					end do
 				end do
@@ -2099,7 +2123,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
                  do aa=numberOfParticles+1, numberOfContractions
                          do iii=1, numberOfOtherSpecieParticles
                                  do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-                                         auxECCSD = auxECCSD + (auxspinints(ii,iii,aa,aaa)*auxTd(aa,aaa,ii,iii)+auxspinints(ii,iii,aa,aaa)*Ts(aa,ii)*otherTs(aaa,iii)) ! 0.25 y 0.5
+                                         auxECCSD = auxECCSD + (auxspinints(ii,iii,aa,aaa)*auxTd(aa-nop,aaa-nops,ii,iii)+auxspinints(ii,iii,aa,aaa)*Ts(aa,ii)*otherTs(aaa,iii)) ! 0.25 y 0.5
                                  end do
                          end do
                  end do
@@ -2160,7 +2184,7 @@ write(*,*) i,j,auxECCSD
 		do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 			do ii=1, numberOfParticles
 				do jj=1, numberOfOtherSpecieParticles
-					auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + auxspinints(ii,jj,a,b)
+					auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxspinints(ii,jj,a,b)
 !					do e=numberOfParticles+1, numberOfContractions
 !						TdNew(a,b,ii,jj) = TdNew(a,b,ii,jj) + (Td(a,e,ii,jj)*Fae(b,e)-Td(b,e,ii,jj)*Fae(a,e))
 !						do m=1, numberOfParticles
@@ -2176,7 +2200,7 @@ write(*,*) i,j,auxECCSD
 					do e=numberOfParticles+1, numberOfContractions
 !						auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + (Ts(e,ii)*spinints(a,b,e,jj)-Ts(e,jj)*spinints(a,b,e,ii))
 						do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-							auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + 0.5*auxtau(e,f,ii,jj)*auxWabef(a,b,e,f)
+							auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + 0.5*auxtau(e-nop,f-nops,ii,jj)*auxWabef(a-nop,b-nops,e-nop,f-nops)
 						end do
 					end do
 					do m=1, numberOfParticles
@@ -2185,15 +2209,21 @@ write(*,*) i,j,auxECCSD
 !							auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + Td(a,e,ii,m)*Wmbej(m,b,e,jj) - Ts(e,ii)*Ts(a,m)*spinints(m,b,e,jj) + -Td(a,e,jj,m)*Wmbej(m,b,e,ii) + Ts(e,jj)*Ts(a,m)*spinints(m,b,e,ii) + -Td(b,e,ii,m)*Wmbej(m,a,e,jj) - Ts(e,ii)*Ts(b,m)*spinints(m,a,e,jj) + Td(b,e,jj,m)*Wmbej(m,a,e,ii) - Ts(e,jj)*Ts(b,m)*spinints(m,a,e,ii)
 !						end do
 						do n=1, numberOfOtherSpecieParticles
-							auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + 0.5*auxtau(a,b,m,n)*auxWmnij(m,n,ii,jj)
+							auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + 0.5*auxtau(a-nop,b-nops,m,n)*auxWmnij(m,n,ii,jj)
 						end do
 					end do
-					auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj)/auxDabij(a,b,ii,jj)
-					auxTd(a,b,ii,jj) = auxTdNew(a,b,ii,jj)
+
+!! Make a auxDabij denominator | It's the same Dabij denominator that is used in interspecies part
+!!                                         auxDabij(aa,aaa,ii,iii) = Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)
+
+!!             auxTdNew(a-nop,b,ii,jj) = auxTdNew(a-nop,b,ii,jj)/auxDabij(a,b,ii,jj)
+               
+               auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj)/(Fs%values(ii,ii)+otherFs%values(jj,jj)-Fs%values(a,a)-otherFs%values(b,b))
+					auxTd(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj)
 !                                        auxtaus(a,b,ii,jj) = auxTd(a,b,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj) - Ts(b,ii)*Ts(a,jj))
 !                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*Ts(b,jj) - Ts(b,ii)*Ts(a,jj)
-                                        auxtaus(a,b,ii,jj) = auxTd(a,b,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj))
-                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*otherTs(b,jj)
+                                        auxtaus(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj))
+                                        auxtau(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + Ts(a,ii)*otherTs(b,jj)
 
 				end do
 			end do
