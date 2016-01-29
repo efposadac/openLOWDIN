@@ -73,6 +73,7 @@ module OutputBuilder_
        OutputBuilder_show, &
        OutputBuilder_writeMoldenFile, &
        OutputBuilder_VecGamessFile, &
+       OutputBuilder_writeEigenvalues,&
        OutputBuilder_generateAIMFiles, &
        OutputBuilder_generateExtendedWfnFile, &
        OutputBuilder_buildOutput, &
@@ -215,7 +216,10 @@ contains
 
      case ("VecGamessFile")
         call OutputBuilder_VecGamessFile (this)
-        
+
+     case ("EigenGamessFile")
+        call OutputBuilder_writeEigenvalues (this)
+
      case ( "wfnFile") 
         call OutputBuilder_writeMoldenFile (this)
         call OutputBuilder_generateAIMFiles (this)
@@ -262,7 +266,7 @@ contains
    end subroutine OutputBuilder_buildOutput
 
 
-
+  
   subroutine OutputBuilder_writeMoldenFile(this)
     implicit none
     type(OutputBuilder) :: this
@@ -480,6 +484,9 @@ contains
 
 	    end do
 
+              !Aqui termina de modificar laura
+
+     
            do j=1,size(energyOfMolecularOrbital%values)
               write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital%values(j)
 
@@ -636,9 +643,9 @@ contains
                       write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
                    end if
                 end do
-                 write (29, "(A)", advance='yes')" "
+!                 write (29, "(A)", advance='yes')" "
                 if (m<numberOfContractions) then
-                   !   write (29,"(A)", advance='no')" "
+                      write (29,"(A)", advance='no')" "
                     write (29,"(A)")" "
                 end if
                 
@@ -657,8 +664,112 @@ contains
         
   end subroutine OutputBuilder_VecGamessFile
 
-  !!!!!!!!!!END GAMESS .VEC FILE
+!!!!!!!!!!END GAMESS .VEC FILE LAURA
 
+
+
+
+
+
+
+
+
+
+
+
+  
+  !!Escribe los valores propios en el archivo eigenvalues.dat para que puedan ser leidos por GAMESS   Laura
+
+   subroutine OutputBuilder_writeEigenvalues(this)
+    implicit none
+    type(OutputBuilder) :: this
+    type(MolecularSystem) :: MolecularSystemInstance
+
+    integer :: i
+    integer :: j
+    integer :: k
+    integer :: l
+    integer :: m
+    integer :: specieID
+    real :: occupation
+    integer :: occupationTotal
+    logical :: wasPress
+    character(10) :: auxString
+    character(10) :: symbol
+    real(8) :: origin(3)
+    real(8), allocatable :: charges(:)
+    type(Matrix) :: localizationOfCenters
+    type(Matrix) :: auxMatrix
+    type(Vector) :: energyOfMolecularOrbital
+    type(Matrix) :: coefficientsOfcombination
+    character(10),allocatable :: labels(:)
+    integer :: wfnUnit
+    character(50) :: wfnFile
+    integer :: numberOfContractions
+    character(50) :: arguments(20)
+    character(19) , allocatable :: labelsOfContractions(:)
+    integer :: counter, auxcounter
+    character(6) :: nickname
+    character(4) :: shellCode
+    character(2) :: space
+    integer :: totalNumberOfParticles, n
+
+    auxString="speciesName"
+
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+
+        auxString=MolecularSystem_getNameOfSpecie( 1 )
+        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"dat"
+        open(129,file=this%fileName,status='replace',action='write')
+        write (129,"(A)") "Hola soy un archivo .dat de Laura"
+        close(129)
+
+        localizationOfCenters=ParticleManager_getCartesianMatrixOfCentersOfOptimization()
+        auxMatrix=localizationOfCenters
+        allocate( labels( size(auxMatrix%values,dim=1) ) )
+        allocate( charges( size(auxMatrix%values,dim=1) ) )
+        labels=ParticleManager_getLabelsOfCentersOfOptimization()
+        charges=ParticleManager_getChargesOfCentersOfOptimization()
+
+!! Open file for wavefunction                                                                                     
+        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+
+        do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+
+	   totalNumberOfParticles = 0
+
+           auxString=MolecularSystem_getNameOfSpecie( l )
+           specieID = MolecularSystem_getSpecieID(auxString)
+           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".dat"
+           open(129,file=this%fileName,status='replace',action='write')
+
+            specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
+            numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
+            arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
+
+           arguments(1) = "ORBITALS"
+           call Vector_getFromFile( elementsNum = numberOfContractions, &
+                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+                output = energyOfMolecularOrbital )
+
+              !Aqui empieza a modificar Laura
+           do j=1,size(energyOfMolecularOrbital%values)
+              write (129,"(F15.12)") ,energyOfMolecularOrbital%values(j)
+           end do
+            close(129)
+         end do
+
+         call Matrix_destructor( localizationOfCenters )
+         call Matrix_destructor( auxMatrix )
+         deallocate(labels)
+
+    
+  end  subroutine OutputBuilder_writeEigenvalues
+  
+!!Aqui termina
+ 
 
   
   !**
