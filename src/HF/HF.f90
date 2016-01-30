@@ -203,8 +203,7 @@ program HF
 		 
      
      if(CONTROL_instance%COSMO)then
-       	print *, "cosmo matrix" 
-	call Matrix_show (WaveFunction_instance(speciesID)%cosmo1)
+
         arguments(1) = "COSMO1"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
 			 
