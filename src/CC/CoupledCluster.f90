@@ -1056,6 +1056,54 @@ auxECCSD = 0.0_8
       	TsNew=0.0_8
 
 
+        !! Td solo corre sobre virtual,virtual,ocupado,ocupado
+        if (allocated(Td)) deallocate (Td)
+ !! 22 de enero 2016
+ !!      allocate(Td(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(Td(noc-nop,noc-nop,nop,nop))
+        Td(:,:,:,:) = 0.0_8
+
+        if (allocated(taus)) deallocate (taus)
+!! 22 enero 2016 
+!!      allocate(taus(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(taus(noc-nop,noc-nop,nop,nop))
+        taus(:,:,:,:) = 0.0_8
+
+        if (allocated(tau)) deallocate (tau)
+!! 22 enero 2016
+!!      allocate(tau(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        allocate(tau(noc-nop,noc-nop,nop,nop))
+        tau(:,:,:,:) = 0.0_8
+
+!  29 de enero 2016
+
+	if (allocated(Wmbej)) deallocate (Wmbej)
+        allocate(Wmbej(nop,noc-nop,noc-nop,nop))
+	Wmbej=0.0_8
+
+
+        do a=numberOfParticles+1, numberOfContractions
+                do b=numberOfParticles+1, numberOfContractions
+                        do i=1, numberOfParticles
+                                do j=1, numberOfParticles
+ !!                                       Td(a,b,i,j) = Td(a,b,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+ !!                                       taus(a,b,i,j) = Td(a,b,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
+ !!                                       tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
+
+                                        Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+                 !! 22 de enero 2016     
+                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j))
+                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j)
+!			                  write(*,*) Td(a,b,i,j), taus(a,b,i,j), tau(a,b,i,j)
+                                end do
+                        end do
+                end do
+        end do
+
+!!!! End Initial Guesses
+
+
+
 
 !!**      !!!! Let's make T1 and T2 (the new ones) 
 !!**      
@@ -1076,7 +1124,7 @@ auxECCSD = 0.0_8
       				do e=numberOfParticles+1, numberOfContractions
       					TsNew(a-nop,i) = TsNew(a-nop,i) + Td(a-nop,e-nop,i,m)*Fme(m,e-nop)
       					do f=numberOfParticles+1, numberOfContractions
-      						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(e-nop,f-nop,i,m)*spinints(m,a,e,f))
+      					TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(e-nop,f-nop,i,m)*spinints(m,a,e,f))
       					end do
       					do n=1, numberOfParticles
       						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(a-nop,e-nop,m,n)*spinints(n,m,e,i))
@@ -1094,6 +1142,8 @@ auxECCSD = 0.0_8
       		end do
       	end do
       
+
+
       !write (*,*) Ts(:,:)
 
 
@@ -1231,6 +1281,35 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
         nops=numberOfOtherSpecieParticles
 !
 !
+
+
+        if (allocated(spinints)) deallocate (spinints)
+        allocate(spinints(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+        spinints(:,:,:,:) = 0.0_8
+
+!! pasa de 4 indices a 1 (pairing function)
+        do p=1, numberOfContractions
+                do q=1, numberOfContractions
+                        do r=1, numberOfContractions
+                                do s=1, numberOfContractions
+                                        value1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,numberOfContractions/2) !! integrales de Coulomb
+                                        auxVal_A= auxMatrix%values(value1, 1)
+                                        value2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,numberOfContractions/2) !! integrales de intercambio
+                                        auxVal_B= auxMatrix%values(value2, 1)
+                                        auxVal1 = auxVal_A * (mod(p,2) == mod(r,2)) * (mod(q,2) == mod(s,2))
+                                        auxVal2 = auxVal_B * (mod(p,2) == mod(s,2)) * (mod(q,2) == mod(r,2))
+                                        spinints(p,q,r,s) = auxVal1 - auxVal2 !! p+1 o p-1? Revisar !! ecuacion 1
+!					write (*,*) spinints(p,q,r,s)
+                                end do
+                        end do
+                end do
+        end do
+
+
+
+
+
+
         if (allocated(auxspinints)) deallocate (auxspinints)
         allocate(auxspinints(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
 
@@ -1308,6 +1387,11 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !                        end do
 !                end do
 !        end do
+
+
+
+
+
 
 	!!! TEST for combined Td auxTd
 
@@ -1621,25 +1705,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !
 	!! Equation 6
 
-!	do m=1, numberOfParticles
-!		do n=1, numberOfParticles
-!			do ii=1, numberOfParticles
-!				do jj=1, numberOfParticles
-!					Wmnij(m,n,ii,jj) = spinints(m,n,ii,jj)
-!					do e=numberOfParticles+1, numberOfContractions
-!						Wmnij(m,n,ii,jj) = Wmnij(m,n,ii,jj) + (Ts(e,jj)*spinints(m,n,ii,e)-Ts(e,ii)*spinints(m,n,jj,e))
-!						do f=numberOfParticles+1, numberOfContractions
-!							Wmnij(m,n,ii,jj) = Wmnij(m,n,ii,jj) + 0.25*tau(e,f,ii,jj)*spinints(m,n,e,f)
-!						end do
-!					end do
-!				end do
-!			end do
-!		end do
-!	end do
-!
-
-
-!real
+! Antes
 
 !*   do m=1, numberOfParticles
 !*		do n=1, numberOfOtherSpecieParticles
@@ -1660,7 +1726,32 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 
 
 
-!!****test 
+!! Equation 8 electronica
+! eq ok
+
+!!**  	do m=1, numberOfParticles
+!!**  		do b=numberOfParticles+1, numberOfContractions
+!!**  			do e=numberOfParticles+1, numberOfContractions
+!!**  				do jj=1, numberOfParticles
+!!**  					Wmbej(m,b-nop,e-nop,jj) = spinints(m,b,e,jj)
+!!**  					do f=numberOfParticles+1, numberOfContractions
+!!**  						Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + Ts(f-nop,jj)*spinints(m,b,e,f)
+!!**  					end do
+!!**  					do n=1, numberOfParticles
+!!**  !! 26 de enero 2016
+!!**                     Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-Ts(b-nop,n)*spinints(m,n,e,jj))
+!!**  						do f=numberOfParticles+1, numberOfContractions
+!!**  							Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-(0.5*Td(f-nop,b-nop,jj,n)+Ts(f-nop,jj)*Ts(b-nop,n))*spinints(m,n,e,f))
+!!**  						end do
+!!**  					end do
+!!**  				end do
+!!**  			end do
+!!**  		end do
+!!**  	end do
+
+
+
+!!****test Ahora
 
 
 	do m=1, numberOfParticles
@@ -1669,7 +1760,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 				do jj=1, numberOfOtherSpecieParticles
 					auxWmnij(m,n,ii,jj) = auxspinints(m,n,ii,jj)
 					do e=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-             		auxWmnij(m,n,ii,jj) = auxWmnij(m,n,ii,jj) + otherTs(e,jj)*auxspinints(m,n,ii,e) !! termino anulado -Ts(e,ii)*spinints(m,n,jj,e))
+             		auxWmnij(m,n,ii,jj) = auxWmnij(m,n,ii,jj) + otherTs(e-nops,jj)*auxspinints(m,n,ii,e) !! termino anulado -otherTs(e-nops,ii)*auxspinints(m,n,jj,e))
 					end do
                do e=numberOfParticles+1, numberOfContractions
                   do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
@@ -1711,7 +1802,10 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 			do e=numberOfParticles+1, numberOfContractions
 				do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 					auxWabef(a-nop,b-nops,e-nop,f-nops) = auxspinints(a,b,e,f)
-					do m=1, numberOfParticles
+	        		do m=1, numberOfOtherSpecieParticles
+             		auxWmnij(m,n,ii,jj) = auxWmnij(m,n,ii,jj) + otherTs(b-nops,m)*auxspinints(a,m,e,f) !! termino anulado -otherTs(a-nop,m)*auxspinints(b,m,e,f))
+					end do
+              do m=1, numberOfParticles
 						do n=1, numberOfOtherSpecieParticles
 							auxWabef(a-nop,b-nops,e-nop,f-nops) = auxWabef(a-nop,b-nops,e-nop,f-nops) + 0.25*auxtau(a-nop,b-nops,m,n)*auxspinints(m,n,e,f)
 						end do
@@ -1733,21 +1827,21 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 					do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 						auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + otherTs(f-nops,jj)*auxspinints(m,b,e,f)
 					end do
-					do n=1, numberOfParticles
+					do n=1, numberOfOtherSpecieParticles !numberOfParticles (anterior)
 !! 26 de enero 2016
 !! error  auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + (-Ts(e-nop,n)*auxspinints(m,n,e,f)) Ts deberia ser otherTs u auxspinints deberia llamar otros contadores
-						auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + (-otherTs(b-nops,n)*auxspinints(m,n,e,j))
+						auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + (-otherTs(b-nops,n)*auxspinints(m,n,e,jj)) !doble jj ahora n es otherparticle
 !						auxWmbej(m,b,e,jj) = auxWmbej(m,b,e,jj) + (-Ts(b,n)*auxspinints(m,n,e,f))
 						do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 !! 26 de enero 2016 cambio en el contador de la matriz del termino Ts(b,n). Siempre ha sido virtuales - ocupados en electronico, pero aparece de interespecie.
 !!							auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + -(0.5*auxTd(f-nop,b-nops,jj,n)+otherTs(f-nops,jj)*Ts(b,n))*auxspinints(m,n,e,f) ! 0.5 before auxTd
-                     auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + -(0.5*auxTd(f-nop,b-nops,jj,n)+otherTs(f-nops,jj)*otherTs(b-nops,n))*auxspinints(m,n,e,f) ! 0.5 before auxTd
+                     auxWmbej(m,b-nops,e-nop,jj) = auxWmbej(m,b-nops,e-nop,jj) + -(0.5*auxTd(f-nops,b-nops,jj,n)+otherTs(f-nops,jj)*otherTs(b-nops,n))*auxspinints(m,n,e,f) ! 0.5 before auxTd
 						end do
 					end do
 				end do
 			end do
 		end do
-	end do !!!! REVISAR ESTE TERMINO
+	end do 
 
 !!!! End Intermediates for different particles
 
@@ -1860,7 +1954,7 @@ write(*,*) i,j,auxECCSD
 		do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 			do ii=1, numberOfParticles
 				do jj=1, numberOfOtherSpecieParticles
-					auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxspinints(ii,jj,a,b)
+					auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxspinints(ii,jj,a,b) ! termino 1
 !					do e=numberOfParticles+1, numberOfContractions
 !						TdNew(a,b,ii,jj) = TdNew(a,b,ii,jj) + (Td(a,e,ii,jj)*Fae(b,e)-Td(b,e,ii,jj)*Fae(a,e))
 !						do m=1, numberOfParticles
@@ -1876,18 +1970,40 @@ write(*,*) i,j,auxECCSD
 					do e=numberOfParticles+1, numberOfContractions
 !						auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + (Ts(e,ii)*spinints(a,b,e,jj)-Ts(e,jj)*spinints(a,b,e,ii))
 						do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-							auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + 0.5*auxtau(e-nop,f-nops,ii,jj)*auxWabef(a-nop,b-nops,e-nop,f-nops)
+							auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + 0.5*auxtau(e-nop,f-nops,ii,jj)*auxWabef(a-nop,b-nops,e-nop,f-nops) ! termino 5
 						end do
 					end do
 					do m=1, numberOfParticles
+
+                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - Ts(a-nop,m)*auxspinints(m,b,ii,jj) ! termino 10
+
 !						auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + (-Ts(a,m)*spinints(m,b,ii,jj)+Ts(b,m)*spinints(m,a,ii,jj))
 !						do e=numberOfParticles+1, numberOfContractions
 !							auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + Td(a,e,ii,m)*Wmbej(m,b,e,jj) - Ts(e,ii)*Ts(a,m)*spinints(m,b,e,jj) + -Td(a,e,jj,m)*Wmbej(m,b,e,ii) + Ts(e,jj)*Ts(a,m)*spinints(m,b,e,ii) + -Td(b,e,ii,m)*Wmbej(m,a,e,jj) - Ts(e,ii)*Ts(b,m)*spinints(m,a,e,jj) + Td(b,e,jj,m)*Wmbej(m,a,e,ii) - Ts(e,jj)*Ts(b,m)*spinints(m,a,e,ii)
 !						end do
 						do n=1, numberOfOtherSpecieParticles
-							auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + 0.5*auxtau(a-nop,b-nops,m,n)*auxWmnij(m,n,ii,jj)
+							auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + 0.5*auxtau(a-nop,b-nops,m,n)*auxWmnij(m,n,ii,jj)  ! termino 4
 						end do
 					end do
+       !! 29 de enero 2016
+               do m=1, numberOfParticles
+                  do e=numberOfParticles+1, numberOfContractions
+       ! Correlacion e-e- ---> e+ (posible?)
+ !                    auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + Td(a-nop,e-nop,ii,m)*auxWmbej(m,b-nops,e-nop,jj) - Ts(e-nop,ii)*Ts(a-nop,m)*auxspinints(m,b,e,jj) ! termino 6
+
+
+                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - Ts(e-nop,ii)*Ts(a-nop,m)*auxspinints(m,b,e,jj) ! termino 7
+
+!auxTd(b-nops,e-nop,ii,m) para continuar con las dimensiones de la matrix auxTd y por reglas de simetria el valor de Td para la proxima ecuacion puede ser: auxTd(e-nop,b-nops,m,ii)
+
+       !              auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxTd(b-nops,e-nop,jj,m) !*Wmbej(m,a-nop,e-nop,ii) ! termino 8
+                  end do
+               end do
+
+               do e=numberOfParticles+1, numberOfContractions
+                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + Ts(e-nop,ii)*auxspinints(m,b,e,jj)  ! termino 9
+               end do
+
 
 !! Make a auxDabij denominator | It's the same Dabij denominator that is used in interspecies part
 !!                                         auxDabij(aa,aaa,ii,iii) = Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)
