@@ -30,6 +30,7 @@ module CONTROL_
      integer :: INTEGRAL_STACK_SIZE
      character(20) :: INTEGRAL_DESTINY
      character(20) :: INTEGRAL_SCHEME
+     logical :: SCHWARZ_INEQUALITY
 
      !!***************************************************************************
      !! Parameter to control SCF program
@@ -276,6 +277,7 @@ module CONTROL_
   integer :: LowdinParameters_integralStackSize
   character(20) :: LowdinParameters_integralDestiny
   character(20) :: LowdinParameters_integralScheme
+  logical :: LowdinParameters_schwarzInequality
 
   !!***************************************************************************
   !! Parameter to control SCF program
@@ -518,6 +520,7 @@ module CONTROL_
        LowdinParameters_integralStackSize,&
        LowdinParameters_integralDestiny,&
        LowdinParameters_integralScheme,&
+       LowdinParameters_schwarzInequality, &
 
        !!***************************************************************************
        !! Parameter to control SCF program
@@ -785,6 +788,7 @@ contains
     LowdinParameters_integralStackSize = 30000
     LowdinParameters_integralDestiny = "MEMORY" !! "MEMORY" or "DISK"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
+    LowdinParameters_schwarzInequality = .false.
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -1037,6 +1041,7 @@ contains
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
     CONTROL_instance%INTEGRAL_DESTINY = "MEMORY" !! "MEMORY", "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
+    CONTROL_instance%SCHWARZ_INEQUALITY = .false.
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -1329,6 +1334,7 @@ contains
     CONTROL_instance%INTEGRAL_STACK_SIZE = LowdinParameters_integralStackSize
     CONTROL_instance%INTEGRAL_DESTINY = LowdinParameters_integralDestiny
     CONTROL_instance%INTEGRAL_SCHEME =  LowdinParameters_integralScheme
+    CONTROL_instance%SCHWARZ_INEQUALITY = LowdinParameters_schwarzInequality
     
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
@@ -1579,6 +1585,7 @@ contains
     LowdinParameters_integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
     LowdinParameters_integralDestiny = CONTROL_instance%INTEGRAL_DESTINY
     LowdinParameters_integralScheme = CONTROL_instance%INTEGRAL_SCHEME
+    LowdinParameters_schwarzInequality = CONTROL_instance%SCHWARZ_INEQUALITY
     
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
@@ -1834,6 +1841,8 @@ contains
     otherThis%INTEGRAL_DESTINY = this%INTEGRAL_DESTINY 
     otherThis%INTEGRAL_SCHEME = this%INTEGRAL_SCHEME
     otherThis%INTEGRAL_STACK_SIZE = this%INTEGRAL_STACK_SIZE 
+    otherThis%SCHWARZ_INEQUALITY = this%SCHWARZ_INEQUALITY
+
     !!***************************************************************************
     !! Parametros para control de proceso de minizacion de energia mediante
     !! metodo SCF

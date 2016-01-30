@@ -441,9 +441,11 @@ contains
 
     if(allocated(a_mat)) deallocate(a_mat)
     allocate (a_mat(surface,charges))
+    a_mat = 0 
 
     if(allocated(ints_mat)) deallocate(ints_mat)
     allocate (ints_mat(surface,integrals))
+    ints_mat = 0
 
     open(unit=90, file=trim(integrals_file), status='old', form="unformatted") 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
@@ -456,7 +458,6 @@ contains
     do n=1,integrals
        read(90)(ints_mat(i,n),i=1,surface)
     end do
-
 
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
@@ -482,7 +483,6 @@ contains
     close(unit=100)
     open(unit=115, file='cosmo_int_new', status='old', form="unformatted")
 
-
     if (f_aux == g_aux) then
 
 
@@ -490,6 +490,7 @@ contains
 
 
           allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+	  ints_mat_aux = 0 !!JC
           ii = 0
           mm = 1
           do g = 1, size(MolecularSystem_instance%species(f_aux)%particles)

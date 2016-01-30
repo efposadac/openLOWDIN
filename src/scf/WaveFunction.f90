@@ -307,7 +307,7 @@ contains
 
                 coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i))*shellIntegrals(i)
 
-                if ( abs(shellIntegrals(i)) < 1E-11) print *, shellIntegrals(i)
+!!                if ( abs(shellIntegrals(i)) < 1E-11) 
 
                 !!*****************************************************************************
                 !! Adds coulomb operator contributions

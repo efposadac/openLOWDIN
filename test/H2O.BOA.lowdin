@@ -23,7 +23,8 @@ END TASKS
 
 CONTROL
 !	integralScheme="rys"
-	numberOfCores=2
+	numberOfCores=1
+	schwarzInequality=true
 END CONTROL
 !OUTPUTS
 !	wfnFile	

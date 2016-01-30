@@ -352,6 +352,7 @@ contains
        ! write (*,*) "cargas puntuales cosmo", numberOfPointCharges
        if(allocated(point)) deallocate(point)
        allocate(point(1:numberOfPointCharges))
+       point%charge = 0.0_8
        ! write(*,*) "remplazadas por estas"
        
 			 if(allocated(totals)) deallocate(totals)
@@ -415,6 +416,7 @@ contains
                       allocate(integralValueCosmo((MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
                            MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital), numberOfPointCharges))
 
+		      integralValueCosmo = 0
                       b=MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital
                       d=MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital
                       totals(f)=b*d
@@ -428,10 +430,8 @@ contains
                          point(1)%y  =surface%ys(c)
                          point(1)%z  =surface%zs(c)
                          !Calculating integrals for shell
-
-
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue)
+                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue)
                          m=0
 
                          do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
@@ -439,8 +439,7 @@ contains
                                m = m + 1
 
 
-															 integralValueCosmo(m,c)=integralValue(m)*(-MolecularSystem_getCharge(f))
-
+				 integralValueCosmo(m,c)=integralValue(m)*(-MolecularSystem_getCharge(f))
                                
                             end do
                          end do
@@ -462,11 +461,12 @@ contains
                             m = m + 1
                             if(allocated(cosmoV)) deallocate(cosmoV)
                             allocate(cosmoV(numberOfPointCharges))
+			    cosmoV = 0 
                             cosmoV(:)=integralValueCosmo(m,:)
 
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
 
-														write(70)integralValueCosmo(m,:)
+	  		    write(70)integralValueCosmo(m,:)
                             write(80)qCharges
                          end do
                       end do
@@ -826,6 +826,9 @@ contains
     case("RYS")
        call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     case("LIBINT")
+       if ( CONTROL_instance%SCHWARZ_INEQUALITY ) then
+         call LibintInterface_computeIntraSpeciesTwoIndex( speciesID, "ERIS", starting, ending, int(process) )
+       end if
        call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
     ! case("CUDINT")
     !    call CudintInterface_computeIntraSpecies(speciesID)
