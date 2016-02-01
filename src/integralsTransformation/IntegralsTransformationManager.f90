@@ -69,6 +69,8 @@ program IntegralsTransformationManager
   integer :: numberOfQuantumSpecies
   logical :: transformThisSpecies
   logical :: transformTheseSpecies
+  real(8) :: nonZeroIntegrals
+  real(8) :: timeA, timeB
 
   wfnFile = "lowdin.wfn"
   wfnUnit = 20
@@ -78,8 +80,9 @@ program IntegralsTransformationManager
   job = trim(String_getUppercase(job))
 
   !!Start time
-  call Stopwatch_constructor(lowdin_stopwatch)
-  call Stopwatch_start(lowdin_stopwatch)
+!!  call Stopwatch_constructor(lowdin_stopwatch)
+!!  call Stopwatch_start(lowdin_stopwatch)
+  timeA = omp_get_wtime()
 
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
@@ -151,6 +154,11 @@ program IntegralsTransformationManager
            call Vector_getFromFile( elementsNum = numberOfContractions, &
                 unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                 output = eigenValues )     
+
+          arguments(1) = "NUMBEROFNONZEROINTS"
+           call Vector_getFromFile( value = nonZeroIntegrals,  &
+                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+                output = eigenValues )     
            
            specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
            numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
@@ -174,7 +182,7 @@ program IntegralsTransformationManager
               case ( "C" ) 
           
                 call TransformIntegralsC_atomicToMolecularOfOneSpecie(  transformInstanceC, &
-                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
+                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies), int(nonZeroIntegrals) )
 
             end select
 
@@ -243,10 +251,12 @@ program IntegralsTransformationManager
      end do
 
   !!stop time
-  call Stopwatch_stop(lowdin_stopwatch)
+!!  call Stopwatch_stop(lowdin_stopwatch)
+  timeB = omp_get_wtime()
   
   write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time for integrals transformation : ", lowdin_stopwatch%enlapsetTime ," (s)"
+!!  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time for integrals transformation : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time for integrals transformation : ", timeB - timeA ," (s)"
   write(*, *) ""
   close(30)
 

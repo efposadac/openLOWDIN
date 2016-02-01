@@ -170,7 +170,7 @@ contains
 
             if ( p <= 0 ) exit
 
-                  auxIndex = IndexMap_tensorR4ToVector( p, q, r, s, numberOfContractions )
+                  auxIndex = IndexMap_tensorR4ToVectorB( p, q, r, s, numberOfContractions )
                   matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
 
          end do

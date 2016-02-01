@@ -90,6 +90,7 @@ module WaveFunction_
      real(8) :: totalEnergyForSpecie
      real(8) :: independentSpecieEnergy
      real(8) :: nuclearElectronicCorrelationEnergy
+     integer :: nonZeroRepulsionIntegrals 
 
   end type WaveFunction
 
@@ -118,6 +119,7 @@ contains
        labels(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
+
        !! Parametros Asociados con el SCF
        call List_constructor( WaveFunction_instance( speciesID )%energySCF,"energy",CONTROL_instance%LISTS_SIZE )
        call List_constructor( WaveFunction_instance( speciesID )%diisError,"diisError",CONTROL_instance%LISTS_SIZE )
@@ -132,6 +134,7 @@ contains
        WaveFunction_instance( speciesID )%independentSpecieEnergy =0.0_8
        WaveFunction_instance( speciesID )%nuclearElectronicCorrelationEnergy = 0.0_8
        WaveFunction_instance( speciesID )%numberOfIterations = 0 
+       WaveFunction_instance( speciesID )%nonZeroRepulsionIntegrals = 0
 
        !! Cosmo things
        call Matrix_constructor( WaveFunction_instance(speciesID)%cosmo1, numberOfContractions, numberOfContractions, 0.0_8 )     
@@ -224,6 +227,7 @@ contains
     integer, target :: a, b, r, s
     integer :: speciesID
     integer :: n, u, v, i
+    integer :: m(nproc) 
     integer :: status
 
     integer*2 :: aa(CONTROL_instance%INTEGRAL_STACK_SIZE)
@@ -255,7 +259,7 @@ contains
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
-
+    m = 0
     !! This matrix is only calculated if there are more than one particle for speciesID or if the user want to calculate it.
     if ( MolecularSystem_getNumberOfParticles( speciesID ) > 1 .or. CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
 
@@ -302,7 +306,7 @@ contains
              end if
 
              do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
-
+                m(ifile) = m(ifile) + 1
                 if( aa(i) == -1 ) exit loadintegrals
 
                 coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i))*shellIntegrals(i)
@@ -430,10 +434,13 @@ contains
              end do
           end do
 
+
        end do
+
        !$OMP END DO
        !$OMP END PARALLEL
 
+        WaveFunction_instance(speciesID)%nonZeroRepulsionIntegrals = sum(m)
        !! Direct
         else 
                 

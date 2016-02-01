@@ -420,7 +420,7 @@ end if
                         do b=MollerPlesset_instance%frozenCoreBoundary,ocupationNumber
                                 do r=ocupationNumber+1, numberOfContractions
                                         do s=r, numberOfContractions
-                                                auxIndex = IndexMap_tensorR4ToVector(a,r,b,s, numberOfContractions )
+                                                auxIndex = IndexMap_tensorR4ToVectorB(a,r,b,s, numberOfContractions )
                                                 auxVal_A= auxMatrix%values(auxIndex, 1)
 
                                                 if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
