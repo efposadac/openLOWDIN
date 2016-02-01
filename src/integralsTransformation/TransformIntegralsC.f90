@@ -270,8 +270,8 @@ contains
       do mu = 1, this%numberOfContractions
         if ( abs(coefficientsOfAtomicOrbitals%values( mu, p )) < 1E-10 ) cycle
         !! auxtemp is the twoparticlesintegrals reduced to a three dimensional array
-        auxtempA = TransformIntegralsC_buildArrayA( twoParticlesIntegrals, mu, indexTwoParticlesIntegrals, &
-                                                this%numberOfContractions )
+        call TransformIntegralsC_buildArrayA( twoParticlesIntegrals, mu, indexTwoParticlesIntegrals, &
+                                                this%numberOfContractions, auxtempA )
         tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
                                       auxtempA(:,:,:)
 
@@ -327,7 +327,7 @@ contains
 
   end subroutine TransformIntegralsC_atomicToMolecularOfOneSpecie
 
-  function TransformIntegralsC_buildArrayA( integralArray, i, indexArray, ssize) result (auxtempA)
+  subroutine TransformIntegralsC_buildArrayA( integralArray, i, indexArray, ssize , auxtempA)
   implicit none 
   integer, intent(in) :: ssize
   integer, intent(in) :: i
@@ -356,9 +356,7 @@ contains
        end do 
      end do 
 
-  end function  TransformIntegralsC_buildArrayA
-
-
+  end subroutine TransformIntegralsC_buildArrayA
 
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de diferente especie
