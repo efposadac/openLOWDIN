@@ -21,6 +21,7 @@ module CoupledCluster_
   !! @author Alejandro
   !!
   !! Optimization of CCSD module
+  !! CCSD Interespecies
   !! CCSD(T) Code 
   !! @author Carlos (CAOM)
   !!
@@ -55,7 +56,13 @@ module CoupledCluster_
 
      character(20) :: level
 
+
+     real(8), allocatable :: Tstest(:,:),Tdtest(:,:,:,:),Wmbejtest(:,:,:,:)
+
   end type CoupledCluster
+
+
+
 
   type, public :: HartreeFock
         real(8) :: totalEnergy
@@ -140,8 +147,34 @@ contains
 !
 !    end do
 !
+    integer :: numberOfContractionss,nopp,numberOfParticless,nocc,i
+!!*
+!	 do i=1, MolecularSystem_getNumberOfQuantumSpecies()
+!!*
+!    numberOfContractionss = MolecularSystem_getTotalNumberOfContractions( i )
+!!*
+!     numberOfParticless = MolecularSystem_getNumberOfParticles(i)
+!!*
+!    nopp=numberOfParticless
+!    nocc=numberOfContractionss
+!!*
+!!*
+!!*
+!    if (allocated(CoupledCluster_instance%Tstest)) deallocate(CoupledCluster_instance%Tstest)
+!    allocate(CoupledCluster_instance%Tstest(nocc-nopp,nopp)) ! 01f
+!!*
+!!*
+!!*    if (allocated(CoupledCluster_instance%Ts)) deallocate(CoupledCluster_instance%Ts)
+!!*    allocate(CoupledCluster_instance%Ts(nocc-nopp,nopp)) ! 01f
+!!*
+ !   CoupledCluster_instance%Tstest = 136
+!!*
+!    end do
+
+
     CoupledCluster_instance%isInstanced=.true.
     CoupledCluster_instance%level=level
+
 ! Not necessary... maybe    
 !    CoupledCluster_instance%numberOfCouplings=0
 
@@ -279,8 +312,17 @@ contains
 	print *, "Patience is not the ability to wait, but the ability to keep a good attitude while waiting... Or just destroy the computer."
 
 	call CoupledCluster_iterateIntermediates_SameSpecies()
-	call CoupledCluster_iterateIntermediates_DiffSpecies()
-       
+	
+  print *, "mi variable copartida Ts",  CoupledCluster_instance%Tstest(1,1) 
+  print *, "mi variable copartida Td",  CoupledCluster_instance%Tdtest(1,1,1,1) 
+  print *, "mi variable copartida Wmbej",  CoupledCluster_instance%Wmbejtest(1,1,1,1) 
+
+   call CoupledCluster_iterateIntermediates_DiffSpecies()
+ 
+  print *, "mi variable copartida Ts",  CoupledCluster_instance%Tstest(1,1) *2
+  print *, "mi variable copartida Td",  CoupledCluster_instance%Tdtest(1,1,1,1) *2
+  print *, "mi variable copartida Wmbej",  CoupledCluster_instance%Wmbejtest(1,1,1,1) *2
+
        print *,""
        print *, "-----------------------------------------------"
        print *, "|              END CCSD CALCULATION           |"
@@ -346,7 +388,9 @@ contains
    type(Matrix) :: eigenVec, eigenVec1, Fs
    type(Matrix) :: eigenVecOtherSpecie, eigenVecOtherSpecie1, otherFs
 !   real(8), allocatable :: ff(:)
-   real(8), allocatable :: Ts(:,:),Fae(:,:),Fmi(:,:),Fme(:,:),Dai(:,:),TsNew(:,:)
+! 01 febrero 2016
+   real(8), allocatable :: Fae(:,:),Fmi(:,:),Fme(:,:),Dai(:,:),TsNew(:,:)
+   real(8), allocatable :: Ts(:,:)
    real(8), allocatable :: auxTs(:,:),auxFae(:,:),auxFmi(:,:),auxFme(:,:),auxDai(:,:),auxTsNew(:,:)
    real(8), allocatable :: otherTs(:,:),otherFae(:,:),otherFmi(:,:),otherFme(:,:),otherDai(:,:),otherTsNew(:,:)
    real(8), allocatable :: Td(:,:,:,:), spinints(:,:,:,:), Dabij(:,:,:,:), taus(:,:,:,:), tau(:,:,:,:), Wmnij(:,:,:,:), Wabef(:,:,:,:), Wmbej(:,:,:,:), TdNew(:,:,:,:)
@@ -385,6 +429,8 @@ contains
 !!******************************************************************************************************************************
 !! Begin CCSD calculation same specie. 
 !!******************************************************************************************************************************
+
+
 
 !	speciesID=1 !!! FOR NOW, only electrons 
     do speciesID=1, numberOfSpecies
@@ -537,10 +583,32 @@ contains
 
 !!!! Initial guesses T1 and T2
 
-        if (allocated(Ts)) deallocate (Ts)
-!!        allocate(Ts(numberOfContractions,numberOfContractions))
-          allocate(Ts(noc-nop,nop))
-        Ts(:,:) = 0.0_8
+
+
+!variables compartidas
+
+    if (allocated(CoupledCluster_instance%Tstest)) deallocate(CoupledCluster_instance%Tstest)
+    allocate(CoupledCluster_instance%Tstest(noc-nop,nop)) ! 01f
+    CoupledCluster_instance%Tstest(:,:) = 0.0_8
+
+
+    if (allocated(CoupledCluster_instance%Tdtest)) deallocate(CoupledCluster_instance%Tdtest)
+    allocate(CoupledCluster_instance%Tdtest(noc-nop,noc-nop,nop,nop)) ! 01f
+    CoupledCluster_instance%Tdtest(:,:,:,:) = 0.0_8
+
+
+    if (allocated(CoupledCluster_instance%Wmbejtest)) deallocate(CoupledCluster_instance%Wmbejtest)
+    allocate(CoupledCluster_instance%Wmbejtest(nop,noc-nop,noc-nop,nop)) ! 01f
+    CoupledCluster_instance%Wmbejtest(:,:,:,:) = 0.0_8
+
+
+!   print *, "55555mi variable copartida ",  CoupledCluster_instance%Tstest(1,1) 
+
+! if (allocated(Ts)) deallocate (Ts)
+! allocate(Ts(noc-nop,nop))
+! Ts(:,:) = 0.0_8
+ 
+
         !! Td solo corre sobre virtual,virtual,ocupado,ocupado
         if (allocated(Td)) deallocate (Td)
  !! 22 de enero 2016
@@ -564,14 +632,18 @@ contains
                 do b=numberOfParticles+1, numberOfContractions
                         do i=1, numberOfParticles
                                 do j=1, numberOfParticles
- !!                                       Td(a,b,i,j) = Td(a,b,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
- !!                                       taus(a,b,i,j) = Td(a,b,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
- !!                                       tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
 
-                                        Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
-                 !! 22 de enero 2016     
-                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j))
-                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j)
+! 01 febrero 2016
+
+!CoupledCluster_instance%Tstest(:,:) = 0.0_8
+
+                                        CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+                                        taus(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + 0.5*(CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j))
+                                        tau(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j)
+!! 22 de enero 2016
+                                !        Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+                                !        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j))
+                                !        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j)
 !			                  write(*,*) Td(a,b,i,j), taus(a,b,i,j), tau(a,b,i,j)
                                 end do
                         end do
@@ -670,9 +742,9 @@ contains
          
          Fae(a-nop,e-nop) = (1 - kro)*Fs%values(a,e)
 			do m=1, numberOfParticles
-				Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + (-0.5*Fs%values(m,e)*Ts(a-nop,m))
+				Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + (-0.5*Fs%values(m,e)*CoupledCluster_instance%Tstest(a-nop,m))
 				do f=numberOfParticles+1, numberOfContractions
-					Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + Ts(f-nop,m)*spinints(m,a,f,e)
+					Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + CoupledCluster_instance%Tstest(f-nop,m)*spinints(m,a,f,e)
 					do n=1, numberOfParticles
 						Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + (-0.5*taus(a-nop,f-nop,m,n)*spinints(m,n,e,f))
 !						write(*,*) a,e,Fae(a,e)
@@ -700,9 +772,9 @@ contains
          
          Fmi(m,i) = (1 - kro)*Fs%values(m,i)
 			do e=numberOfParticles+1, numberOfContractions
-				Fmi(m,i) = Fmi(m,i) + 0.5*Ts(e-nop,i)*Fs%values(m,e)
+				Fmi(m,i) = Fmi(m,i) + 0.5*CoupledCluster_instance%Tstest(e-nop,i)*Fs%values(m,e)
 				do n=1, numberOfParticles
-					Fmi(m,i) = Fmi(m,i) + Ts(e-nop,n)*spinints(m,n,i,e)
+					Fmi(m,i) = Fmi(m,i) + CoupledCluster_instance%Tstest(e-nop,n)*spinints(m,n,i,e)
 					do f=numberOfParticles+1, numberOfContractions
 						Fmi(m,i) = Fmi(m,i) + 0.5*taus(e-nop,f-nop,i,n)*spinints(m,n,e,f)
 					end do
@@ -719,7 +791,7 @@ contains
 			Fme(m,e-nop) = Fs%values(m,e)
 			do n=1, numberOfParticles
 				do f=numberOfParticles+1, numberOfContractions
-				Fme(m,e-nop) = Fme(m,e-nop) + Ts(f-nop,n)*spinints(m,n,e,f)
+				Fme(m,e-nop) = Fme(m,e-nop) + CoupledCluster_instance%Tstest(f-nop,n)*spinints(m,n,e,f)
 				end do
 			end do
 		end do
@@ -733,7 +805,7 @@ contains
 				do j=1, numberOfParticles
 					Wmnij(m,n,i,j) = spinints(m,n,i,j)
 					do e=numberOfParticles+1, numberOfContractions
-						Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + (Ts(e-nop,j)*spinints(m,n,i,e)-Ts(e-nop,i)*spinints(m,n,j,e))
+						Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + (CoupledCluster_instance%Tstest(e-nop,j)*spinints(m,n,i,e)-CoupledCluster_instance%Tstest(e-nop,i)*spinints(m,n,j,e))
 						do f=numberOfParticles+1, numberOfContractions
 							Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + 0.25*tau(e-nop,f-nop,i,j)*spinints(m,n,e,f)
 						end do
@@ -752,7 +824,7 @@ contains
 				do f=numberOfParticles+1, numberOfContractions
 					Wabef(a-nop,b-nop,e-nop,f-nop) = spinints(a,b,e,f)
 					do m=1, numberOfParticles
-						Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + (-Ts(b-nop,m)*spinints(a,m,e,f)+Ts(a-nop,m)*spinints(b,m,e,f))
+						Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + (-CoupledCluster_instance%Tstest(b-nop,m)*spinints(a,m,e,f)+CoupledCluster_instance%Tstest(a-nop,m)*spinints(b,m,e,f))
 						do n=1, numberOfParticles
 							Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + 0.25*tau(a-nop,b-nop,m,n)*spinints(m,n,e,f)
 						end do
@@ -770,15 +842,15 @@ contains
 		do b=numberOfParticles+1, numberOfContractions
 			do e=numberOfParticles+1, numberOfContractions
 				do j=1, numberOfParticles
-					Wmbej(m,b-nop,e-nop,j) = spinints(m,b,e,j)
+					CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) = spinints(m,b,e,j)
 					do f=numberOfParticles+1, numberOfContractions
-						Wmbej(m,b-nop,e-nop,j) = Wmbej(m,b-nop,e-nop,j) + Ts(f-nop,j)*spinints(m,b,e,f)
+						CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) = CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) + CoupledCluster_instance%Tstest(f-nop,j)*spinints(m,b,e,f)
 					end do
 					do n=1, numberOfParticles
 !! 26 de enero 2016
-                   Wmbej(m,b-nop,e-nop,j) = Wmbej(m,b-nop,e-nop,j) + (-Ts(b-nop,n)*spinints(m,n,e,j))
+                   CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) = CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) + (-CoupledCluster_instance%Tstest(b-nop,n)*spinints(m,n,e,j))
 						do f=numberOfParticles+1, numberOfContractions
-							Wmbej(m,b-nop,e-nop,j) = Wmbej(m,b-nop,e-nop,j) + (-(0.5*Td(f-nop,b-nop,j,n)+Ts(f-nop,j)*Ts(b-nop,n))*spinints(m,n,e,f))
+							CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) = CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) + (-(0.5*CoupledCluster_instance%Tdtest(f-nop,b-nop,j,n)+CoupledCluster_instance%Tstest(f-nop,j)*CoupledCluster_instance%Tstest(b-nop,n))*spinints(m,n,e,f))
 						end do
 					end do
 				end do
@@ -793,10 +865,10 @@ auxECCSD = 0.0_8
 
 	do i=1, numberOfParticles
 		do a=numberOfParticles+1, numberOfContractions
-			auxECCSD = auxECCSD + Fs%values(i,a)*Ts(a-nop,i)
+			auxECCSD = auxECCSD + Fs%values(i,a)*CoupledCluster_instance%Tstest(a-nop,i)
 			do j=1, numberOfParticles
 				do b=numberOfParticles+1, numberOfContractions
-					auxECCSD = auxECCSD + (0.25*spinints(i,j,a,b)*Td(a-nop,b-nop,i,j)+0.5*spinints(i,j,a,b)*Ts(a-nop,i)*Ts(b-nop,j))
+					auxECCSD = auxECCSD + (0.25*spinints(i,j,a,b)*CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j)+0.5*spinints(i,j,a,b)*CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j))
 		!			write(*,*) auxECCSD
 				end do
 			end do
@@ -820,27 +892,27 @@ auxECCSD = 0.0_8
 		do i=1, numberOfParticles
 			TsNew(a-nop,i) = Fs%values(i,a)
 			do e=numberOfParticles+1, numberOfContractions
-				TsNew(a-nop,i) = TsNew(a-nop,i) + Ts(e-nop,i)*Fae(a-nop,e-nop)
+				TsNew(a-nop,i) = TsNew(a-nop,i) + CoupledCluster_instance%Tstest(e-nop,i)*Fae(a-nop,e-nop)
 			end do
 			do m=1, numberOfParticles
-				TsNew(a-nop,i) = TsNew(a-nop,i) + (-Ts(a-nop,m)*Fmi(m,i))
+				TsNew(a-nop,i) = TsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(a-nop,m)*Fmi(m,i))
 				do e=numberOfParticles+1, numberOfContractions
-					TsNew(a-nop,i) = TsNew(a-nop,i) + Td(a-nop,e-nop,i,m)*Fme(m,e-nop)
+					TsNew(a-nop,i) = TsNew(a-nop,i) + CoupledCluster_instance%Tdtest(a-nop,e-nop,i,m)*Fme(m,e-nop)
 					do f=numberOfParticles+1, numberOfContractions
-						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(e-nop,f-nop,i,m)*spinints(m,a,e,f))
+						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*CoupledCluster_instance%Tdtest(e-nop,f-nop,i,m)*spinints(m,a,e,f))
 					end do
 					do n=1, numberOfParticles
-						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(a-nop,e-nop,m,n)*spinints(n,m,e,i))
+						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*CoupledCluster_instance%Tdtest(a-nop,e-nop,m,n)*spinints(n,m,e,i))
 					end do
 				end do
 			end do
 			do n=1,numberOfParticles
 				do f=numberOfParticles+1, numberOfContractions
-					TsNew(a-nop,i) = TsNew(a-nop,i) + (-Ts(f-nop,n)*spinints(n,a,i,f))
+					TsNew(a-nop,i) = TsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(f-nop,n)*spinints(n,a,i,f))
 				end do
 			end do
 			TsNew(a-nop,i) = TsNew(a-nop,i)/Dai(a,i)
-			Ts(a-nop,i) = TsNew(a-nop,i)
+			CoupledCluster_instance%Tstest(a-nop,i) = TsNew(a-nop,i)
 !			write(*,*) a,i,Ts(a,i),TsNew(a,i)
 		end do
 	end do
@@ -861,9 +933,9 @@ auxECCSD = 0.0_8
    ! 1er ciclo
                do e=numberOfParticles+1, numberOfContractions
 	
-                  TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (Td(a-nop,e-nop,i,j)*Fae(b-nop,e-nop)-Td(b-nop,e-nop,i,j)*Fae(a-nop,e-nop)) !B
+                  TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (CoupledCluster_instance%Tdtest(a-nop,e-nop,i,j)*Fae(b-nop,e-nop)-CoupledCluster_instance%Tdtest(b-nop,e-nop,i,j)*Fae(a-nop,e-nop)) !B
 
-    					TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (Ts(e-nop,i)*spinints(a,b,e,j)-Ts(e-nop,j)*spinints(a,b,e,i)) !G
+    					TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (CoupledCluster_instance%Tstest(e-nop,i)*spinints(a,b,e,j)-CoupledCluster_instance%Tstest(e-nop,j)*spinints(a,b,e,i)) !G
 
 						do f=numberOfParticles+1, numberOfContractions
 							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + 0.5*tau(e-nop,f-nop,i,j)*Wabef(a-nop,b-nop,e-nop,f-nop) !D
@@ -872,15 +944,15 @@ auxECCSD = 0.0_8
 						do m=1, numberOfParticles
 !! 27 de enero 2016
 !                      TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*Td(a-nop,e-nop,i,j)*Ts(b-nop,m)*Fme(m,e-nop)+0.5*Td(a-nop,e-nop,i,j)*Ts(a-nop,m)*Fme(m,e-nop)) !B'
-                      TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*Td(a-nop,e-nop,i,j)*Ts(b-nop,m)*Fme(m,e-nop)+0.5*Td(b-nop,e-nop,i,j)*Ts(a-nop,m)*Fme(m,e-nop)) !B'
+                      TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*CoupledCluster_instance%Tdtest(a-nop,e-nop,i,j)*CoupledCluster_instance%Tstest(b-nop,m)*Fme(m,e-nop)+0.5*CoupledCluster_instance%Tdtest(b-nop,e-nop,i,j)*CoupledCluster_instance%Tstest(a-nop,m)*Fme(m,e-nop)) !B'
 
                   end do
 					end do
 	! 2do ciclo
                do m=1, numberOfParticles
-						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-Td(a-nop,b-nop,i,m)*Fmi(m,j)+Td(a-nop,b-nop,j,m)*Fmi(m,i)) !C
+						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-CoupledCluster_instance%Tdtest(a-nop,b-nop,i,m)*Fmi(m,j)+CoupledCluster_instance%Tdtest(a-nop,b-nop,j,m)*Fmi(m,i)) !C
 
-						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-Ts(a-nop,m)*spinints(m,b,i,j)+Ts(b-nop,m)*spinints(m,a,i,j)) !H
+						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-CoupledCluster_instance%Tstest(a-nop,m)*spinints(m,b,i,j)+CoupledCluster_instance%Tstest(b-nop,m)*spinints(m,a,i,j)) !H
 
 						do n=1, numberOfParticles
 							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + 0.5*tau(a-nop,b-nop,m,n)*Wmnij(m,n,i,j) !E
@@ -889,9 +961,9 @@ auxECCSD = 0.0_8
 						do e=numberOfParticles+1, numberOfContractions
 !! 27 de enero 2016
 !                    TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*Td(a-nop,b-nop,i,m)*Ts(e-nop,j)*Fme(m,e-nop)+0.5*Td(a-nop,b-nop,i,m)*Ts(e-nop,i)*Fme(m,e-nop)) !C'
-                    TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*Td(a-nop,b-nop,i,m)*Ts(e-nop,j)*Fme(m,e-nop)+0.5*Td(a-nop,b-nop,j,m)*Ts(e-nop,i)*Fme(m,e-nop)) !C'
+                    TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*CoupledCluster_instance%Tdtest(a-nop,b-nop,i,m)*CoupledCluster_instance%Tstest(e-nop,j)*Fme(m,e-nop)+0.5*CoupledCluster_instance%Tdtest(a-nop,b-nop,j,m)*CoupledCluster_instance%Tstest(e-nop,i)*Fme(m,e-nop)) !C'
 
-                  TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + Td(a-nop,e-nop,i,m)*Wmbej(m,b-nop,e-nop,j) - Ts(e-nop,i)*Ts(a-nop,m)*spinints(m,b,e,j) + -Td(a-nop,e-nop,j,m)*Wmbej(m,b-nop,e-nop,i) + Ts(e-nop,j)*Ts(a-nop,m)*spinints(m,b,e,i) + -Td(b-nop,e-nop,i,m)*Wmbej(m,a-nop,e-nop,j) - Ts(e-nop,i)*Ts(b-nop,m)*spinints(m,a,e,j) + Td(b-nop,e-nop,j,m)*Wmbej(m,a-nop,e-nop,i) - Ts(e-nop,j)*Ts(b-nop,m)*spinints(m,a,e,i) !F
+                  TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + CoupledCluster_instance%Tdtest(a-nop,e-nop,i,m)*CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) - CoupledCluster_instance%Tstest(e-nop,i)*CoupledCluster_instance%Tstest(a-nop,m)*spinints(m,b,e,j) + -CoupledCluster_instance%Tdtest(a-nop,e-nop,j,m)*CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,i) + CoupledCluster_instance%Tstest(e-nop,j)*CoupledCluster_instance%Tstest(a-nop,m)*spinints(m,b,e,i) + -CoupledCluster_instance%Tdtest(b-nop,e-nop,i,m)*CoupledCluster_instance%Wmbejtest(m,a-nop,e-nop,j) - CoupledCluster_instance%Tstest(e-nop,i)*CoupledCluster_instance%Tstest(b-nop,m)*spinints(m,a,e,j) + CoupledCluster_instance%Tdtest(b-nop,e-nop,j,m)*CoupledCluster_instance%Wmbejtest(m,a-nop,e-nop,i) - CoupledCluster_instance%Tstest(e-nop,j)*CoupledCluster_instance%Tstest(b-nop,m)*spinints(m,a,e,i) !F
 
                   end do
 					end do
@@ -903,9 +975,9 @@ auxECCSD = 0.0_8
 !!!! Make denominator array Dabij     |   Dabij(a-nop,b-nop,i,j) = Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)
                
                TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b))
-               Td(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j)
-                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j))
-                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j)
+               CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j)
+                                        taus(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + 0.5*(CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j))
+                                        tau(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j)
 				end do
 			end do
 		end do
@@ -971,7 +1043,7 @@ auxECCSD = 0.0_8
    integer :: i,j,k,l,p,q,r,s,h,t
    integer :: ii,jj,kk,ll,pp,qq,rr,ss,hh,tt
    integer(8) :: x,y,z,auxIndex,auxIndex2
-   integer :: e,f,m,n,iii,jjj,aaa,bbb
+   integer :: e,f,m,mmm,n,iii,jjj,aaa,bbb
    integer :: ee,mm,nn,fff,oo
    integer :: speciesID
    integer :: otherSpeciesID
@@ -1082,23 +1154,29 @@ auxECCSD = 0.0_8
 	Wmbej=0.0_8
 
 
-        do a=numberOfParticles+1, numberOfContractions
-                do b=numberOfParticles+1, numberOfContractions
-                        do i=1, numberOfParticles
-                                do j=1, numberOfParticles
+!CoupledCluster_instance%Tstest(:,:) = 5*5
+
+
+ !  print *, "55555mi variable copartida ",  CoupledCluster_instance%Tstest(1,1) 
+!01 de febrero 2016
+
+!        do a=numberOfParticles+1, numberOfContractions
+!                do b=numberOfParticles+1, numberOfContractions
+!                        do i=1, numberOfParticles
+!                                do j=1, numberOfParticles
  !!                                       Td(a,b,i,j) = Td(a,b,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
  !!                                       taus(a,b,i,j) = Td(a,b,i,j) + 0.5*(Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j))
  !!                                       tau(a,b,i,j) = Td(a,b,i,j) + Ts(a,i)*Ts(b,j) - Ts(b,i)*Ts(a,j)
 
-                                        Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+!                                        Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
                  !! 22 de enero 2016     
-                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j))
-                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j)
+!                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j))
+!                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j)
 !			                  write(*,*) Td(a,b,i,j), taus(a,b,i,j), tau(a,b,i,j)
-                                end do
-                        end do
-                end do
-        end do
+!                                end do
+!                        end do
+!                end do
+!        end do
 
 !!!! End Initial Guesses
 
@@ -1112,35 +1190,37 @@ auxECCSD = 0.0_8
 !!**      	 !eq ok
 !!**     
 !!**     Serà usado nuevamente al combinar las excitaciones entre diferentes especies
-      	
-         do a=numberOfParticles+1, numberOfContractions
-      		do i=1, numberOfParticles
-      			TsNew(a-nop,i) = Fs%values(i,a)
-      			do e=numberOfParticles+1, numberOfContractions
-      				TsNew(a-nop,i) = TsNew(a-nop,i) + Ts(e-nop,i)*Fae(a-nop,e-nop)
-      			end do
-      			do m=1, numberOfParticles
-      				TsNew(a-nop,i) = TsNew(a-nop,i) + (-Ts(a-nop,m)*Fmi(m,i))
-      				do e=numberOfParticles+1, numberOfContractions
-      					TsNew(a-nop,i) = TsNew(a-nop,i) + Td(a-nop,e-nop,i,m)*Fme(m,e-nop)
-      					do f=numberOfParticles+1, numberOfContractions
-      					TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(e-nop,f-nop,i,m)*spinints(m,a,e,f))
-      					end do
-      					do n=1, numberOfParticles
-      						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(a-nop,e-nop,m,n)*spinints(n,m,e,i))
-      					end do
-      				end do
-      			end do
-      			do n=1,numberOfParticles
-      				do f=numberOfParticles+1, numberOfContractions
-      					TsNew(a-nop,i) = TsNew(a-nop,i) + (-Ts(f-nop,n)*spinints(n,a,i,f))
-      				end do
-      			end do
-      			TsNew(a-nop,i) = TsNew(a-nop,i)/Dai(a,i)
-      			Ts(a-nop,i) = TsNew(a-nop,i)
-      !			write(*,*) a,i,Ts(a,i),TsNew(a,i)
-      		end do
-      	end do
+ 
+! 01 febrero 2016
+
+!!**         do a=numberOfParticles+1, numberOfContractions
+!!**      		do i=1, numberOfParticles
+!!**      			TsNew(a-nop,i) = Fs%values(i,a)
+!!**      			do e=numberOfParticles+1, numberOfContractions
+!!**      				TsNew(a-nop,i) = TsNew(a-nop,i) + CoupledCluster_instance%Tstest(e-nop,i)*Fae(a-nop,e-nop)
+!!**      			end do
+!!**      			do m=1, numberOfParticles
+!!**      				TsNew(a-nop,i) = TsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(a-nop,m)*Fmi(m,i))
+!!**      				do e=numberOfParticles+1, numberOfContractions
+!!**      					TsNew(a-nop,i) = TsNew(a-nop,i) + Td(a-nop,e-nop,i,m)*Fme(m,e-nop)
+!!**      					do f=numberOfParticles+1, numberOfContractions
+!!**      					TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(e-nop,f-nop,i,m)*spinints(m,a,e,f))
+!!**      					end do
+!!**      					do n=1, numberOfParticles
+!!**      						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*Td(a-nop,e-nop,m,n)*spinints(n,m,e,i))
+!!**      					end do
+!!**      				end do
+!!**      			end do
+!!**      			do n=1,numberOfParticles
+!!**      				do f=numberOfParticles+1, numberOfContractions
+!!**      					TsNew(a-nop,i) = TsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(f-nop,n)*spinints(n,a,i,f))
+!!**      				end do
+!!**      			end do
+!!**      			TsNew(a-nop,i) = TsNew(a-nop,i)/Dai(a,i)
+!!**      			Ts(a-nop,i) = TsNew(a-nop,i)
+!!**      !			write(*,*) a,i,Ts(a,i),TsNew(a,i)
+!!**      		end do
+!!**      	end do
       
 
 
@@ -1150,7 +1230,7 @@ auxECCSD = 0.0_8
 if ( numberOfSpecies > 1 ) then
 
 mp2CouplingCorrection = 0.0_8
-m = 0
+mmm = 0
 
 print *, " "
 print *, " "
@@ -1158,6 +1238,11 @@ print *, " |------------------------------------------------|"
 print *, " |Calculating CCSD corr. for different species....|"
 print *, " |------------------------------------------------|"
 
+
+
+!   CoupledCluster_instance%Tstest = 136 * 100
+
+!   print *, "mi variable copartida *100 ",  CoupledCluster_instance%Tstest(1,1) 
 
 f = numberOfSpecies * ( numberOfSpecies-1 ) / 2
 
@@ -1186,7 +1271,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
      lambda = MolecularSystem_getlambda( i )
 
      do j = i + 1, numberOfSpecies
-        m = m + 1
+        mmm = mmm + 1
 
 
         numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
@@ -1231,7 +1316,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
            end do
         end do
 
-        CoupledCluster_instance%mp2Coupling%values(m)= ( lambda * lambdaOfOtherSpecie * mp2CouplingCorrection )
+        CoupledCluster_instance%mp2Coupling%values(mmm)= ( lambda * lambdaOfOtherSpecie * mp2CouplingCorrection )
 
 !end do !!! Number Of Species
 !end do !!! 
@@ -1282,28 +1367,28 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !
 !
 
-
-        if (allocated(spinints)) deallocate (spinints)
-        allocate(spinints(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
-        spinints(:,:,:,:) = 0.0_8
-
-!! pasa de 4 indices a 1 (pairing function)
-        do p=1, numberOfContractions
-                do q=1, numberOfContractions
-                        do r=1, numberOfContractions
-                                do s=1, numberOfContractions
-                                        value1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,numberOfContractions/2) !! integrales de Coulomb
-                                        auxVal_A= auxMatrix%values(value1, 1)
-                                        value2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,numberOfContractions/2) !! integrales de intercambio
-                                        auxVal_B= auxMatrix%values(value2, 1)
-                                        auxVal1 = auxVal_A * (mod(p,2) == mod(r,2)) * (mod(q,2) == mod(s,2))
-                                        auxVal2 = auxVal_B * (mod(p,2) == mod(s,2)) * (mod(q,2) == mod(r,2))
-                                        spinints(p,q,r,s) = auxVal1 - auxVal2 !! p+1 o p-1? Revisar !! ecuacion 1
-!					write (*,*) spinints(p,q,r,s)
-                                end do
-                        end do
-                end do
-        end do
+!01 de febrero 2016
+!!**        if (allocated(spinints)) deallocate (spinints)
+!!**        allocate(spinints(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
+!!**        spinints(:,:,:,:) = 0.0_8
+!!**
+!!**!! pasa de 4 indices a 1 (pairing function)
+!!**        do p=1, numberOfContractions
+!!**                do q=1, numberOfContractions
+!!**                        do r=1, numberOfContractions
+!!**                                do s=1, numberOfContractions
+!!**                                        value1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,numberOfContractions/2) !! integrales de Coulomb
+!!**                                        auxVal_A= auxMatrix%values(value1, 1)
+!!**                                        value2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,numberOfContractions/2) !! integrales de intercambio
+!!**                                        auxVal_B= auxMatrix%values(value2, 1)
+!!**                                        auxVal1 = auxVal_A * (mod(p,2) == mod(r,2)) * (mod(q,2) == mod(s,2))
+!!**                                        auxVal2 = auxVal_B * (mod(p,2) == mod(s,2)) * (mod(q,2) == mod(r,2))
+!!**                                        spinints(p,q,r,s) = auxVal1 - auxVal2 !! p+1 o p-1? Revisar !! ecuacion 1
+!!**!					write (*,*) spinints(p,q,r,s)
+!!**                                end do
+!!**                        end do
+!!**                end do
+!!**        end do
 
 
 
@@ -1400,8 +1485,8 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
                         do ii=1, numberOfParticles
                                 do iii=1, numberOfOtherSpecieParticles
                                         auxTd(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + (auxspinints(ii,iii,aa,aaa)/(Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)))
-                                        auxtaus(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + 0.5*(Ts(aa-nop,ii)*otherTs(aaa-nops,iii)) ! Eliminated crossed t1 terms
-                                        auxtau(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + Ts(aa-nop,ii)*otherTs(aaa-nops,iii) ! same here
+                                        auxtaus(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + 0.5*(CoupledCluster_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii)) ! Eliminated crossed t1 terms
+                                        auxtau(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + CoupledCluster_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii) ! same here
 !			                  write(*,*) auxTd(aa,aaa,ii,iii)
                                 end do
                         end do
@@ -1750,7 +1835,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !!**  	end do
 
 
-
+!! Eq 6
 !!****test Ahora
 
 
@@ -1803,9 +1888,9 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 				do f=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 					auxWabef(a-nop,b-nops,e-nop,f-nops) = auxspinints(a,b,e,f)
 	        		do m=1, numberOfOtherSpecieParticles
-             		auxWmnij(m,n,ii,jj) = auxWmnij(m,n,ii,jj) + otherTs(b-nops,m)*auxspinints(a,m,e,f) !! termino anulado -otherTs(a-nop,m)*auxspinints(b,m,e,f))
+             		auxWabef(a-nop,b-nops,e-nop,f-nops) = auxWabef(a-nop,b-nops,e-nop,f-nops) + otherTs(b-nops,m)*auxspinints(a,m,e,f) !! termino anulado -otherTs(a-nop,m)*auxspinints(b,m,e,f))
 					end do
-              do m=1, numberOfParticles
+               do m=1, numberOfParticles
 						do n=1, numberOfOtherSpecieParticles
 							auxWabef(a-nop,b-nops,e-nop,f-nops) = auxWabef(a-nop,b-nops,e-nop,f-nops) + 0.25*auxtau(a-nop,b-nops,m,n)*auxspinints(m,n,e,f)
 						end do
@@ -1893,7 +1978,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
                  do aa=numberOfParticles+1, numberOfContractions
                          do iii=1, numberOfOtherSpecieParticles
                                  do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-                                         auxECCSD = auxECCSD + (auxspinints(ii,iii,aa,aaa)*auxTd(aa-nop,aaa-nops,ii,iii)+auxspinints(ii,iii,aa,aaa)*Ts(aa-nop,ii)*otherTs(aaa-nops,iii)) ! 0.25 y 0.5
+                                         auxECCSD = auxECCSD + (auxspinints(ii,iii,aa,aaa)*auxTd(aa-nop,aaa-nops,ii,iii)+auxspinints(ii,iii,aa,aaa)*CoupledCluster_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii)) ! 0.25 y 0.5
                                  end do
                          end do
                  end do
@@ -1975,7 +2060,7 @@ write(*,*) i,j,auxECCSD
 					end do
 					do m=1, numberOfParticles
 
-                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - Ts(a-nop,m)*auxspinints(m,b,ii,jj) ! termino 10
+                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - CoupledCluster_instance%Tstest(a-nop,m)*auxspinints(m,b,ii,jj) ! termino 10
 
 !						auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + (-Ts(a,m)*spinints(m,b,ii,jj)+Ts(b,m)*spinints(m,a,ii,jj))
 !						do e=numberOfParticles+1, numberOfContractions
@@ -1988,20 +2073,20 @@ write(*,*) i,j,auxECCSD
        !! 29 de enero 2016
                do m=1, numberOfParticles
                   do e=numberOfParticles+1, numberOfContractions
-       ! Correlacion e-e- ---> e+ (posible?)
- !                    auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + Td(a-nop,e-nop,ii,m)*auxWmbej(m,b-nops,e-nop,jj) - Ts(e-nop,ii)*Ts(a-nop,m)*auxspinints(m,b,e,jj) ! termino 6
+       ! Correlacion e-e- ---> e+ (posible?) 
+!                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tdtest(a-nop,e-nop,ii,m)*auxWmbej(m,b-nops,e-nop,jj)  ! termino 6 revisar
 
 
-                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - Ts(e-nop,ii)*Ts(a-nop,m)*auxspinints(m,b,e,jj) ! termino 7
+                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - CoupledCluster_instance%Tstest(e-nop,ii)*CoupledCluster_instance%Tstest(a-nop,m)*auxspinints(m,b,e,jj) ! termino 7 
 
 !auxTd(b-nops,e-nop,ii,m) para continuar con las dimensiones de la matrix auxTd y por reglas de simetria el valor de Td para la proxima ecuacion puede ser: auxTd(e-nop,b-nops,m,ii)
 
-       !              auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxTd(b-nops,e-nop,jj,m) !*Wmbej(m,a-nop,e-nop,ii) ! termino 8
+!                    auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxTd(b-nops,e-nop,jj,m)*CoupledCluster_instance%Wmbejtest(m,a-nop,e-nop,ii) ! termino 8 revisar
                   end do
                end do
 
                do e=numberOfParticles+1, numberOfContractions
-                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + Ts(e-nop,ii)*auxspinints(m,b,e,jj)  ! termino 9
+                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tstest(e-nop,ii)*auxspinints(m,b,e,jj)  ! termino 9
                end do
 
 
@@ -2014,8 +2099,8 @@ write(*,*) i,j,auxECCSD
 					auxTd(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj)
 !                                        auxtaus(a,b,ii,jj) = auxTd(a,b,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj) - Ts(b,ii)*Ts(a,jj))
 !                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*Ts(b,jj) - Ts(b,ii)*Ts(a,jj)
-                                        auxtaus(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + 0.5*(Ts(a-nop,ii)*otherTs(b-nops,jj))
-                                        auxtau(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + Ts(a-nop,ii)*otherTs(b-nops,jj)
+                                        auxtaus(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + 0.5*(CoupledCluster_instance%Tstest(a-nop,ii)*otherTs(b-nops,jj))
+                                        auxtau(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tstest(a-nop,ii)*otherTs(b-nops,jj)
 
 				end do
 			end do
@@ -2024,7 +2109,7 @@ write(*,*) i,j,auxECCSD
 
 end do !! Loop
 
-	coupledClusterValue%values(m) = auxECCSD
+	coupledClusterValue%values(mmm) = auxECCSD
 
       end do !! Number Of
   end do     !! Species
