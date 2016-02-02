@@ -90,7 +90,6 @@ module WaveFunction_
      real(8) :: totalEnergyForSpecie
      real(8) :: independentSpecieEnergy
      real(8) :: nuclearElectronicCorrelationEnergy
-     integer :: nonZeroRepulsionIntegrals 
 
   end type WaveFunction
 
@@ -134,7 +133,6 @@ contains
        WaveFunction_instance( speciesID )%independentSpecieEnergy =0.0_8
        WaveFunction_instance( speciesID )%nuclearElectronicCorrelationEnergy = 0.0_8
        WaveFunction_instance( speciesID )%numberOfIterations = 0 
-       WaveFunction_instance( speciesID )%nonZeroRepulsionIntegrals = 0
 
        !! Cosmo things
        call Matrix_constructor( WaveFunction_instance(speciesID)%cosmo1, numberOfContractions, numberOfContractions, 0.0_8 )     
@@ -440,7 +438,6 @@ contains
        !$OMP END DO
        !$OMP END PARALLEL
 
-        WaveFunction_instance(speciesID)%nonZeroRepulsionIntegrals = sum(m)
        !! Direct
         else 
                 
@@ -506,7 +503,7 @@ contains
     integer :: otherSpecieID
     integer :: speciesIterator
     integer :: ssize
-    integer :: i, j, u
+    integer :: i, j, u, m
     real(8), allocatable :: auxMatrix(:,:)
     real(8) :: coulomb
 
@@ -556,7 +553,7 @@ contains
                    do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE                      
 
                       if (a(u) == -1) exit readIntegrals1
-
+                      m = m + 1
                       coulomb = wavefunction_instance(otherSpecieID)%densityMatrix%values(a(u),b(u))*integral(u)
 
                       auxMatrix(r(u),s(u)) = auxMatrix(r(u),s(u)) + coulomb

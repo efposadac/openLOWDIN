@@ -140,7 +140,7 @@ Program Ints
      close(40)
      
   case("TWO_PARTICLE_R12_INTRA")
-     
+
      nprocs = ""
      proc = ""
      speciesName=""

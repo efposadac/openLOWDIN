@@ -69,7 +69,6 @@ program IntegralsTransformationManager
   integer :: numberOfQuantumSpecies
   logical :: transformThisSpecies
   logical :: transformTheseSpecies
-  real(8) :: nonZeroIntegrals
   real(8) :: timeA, timeB
 
   wfnFile = "lowdin.wfn"
@@ -155,13 +154,12 @@ program IntegralsTransformationManager
                 unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                 output = eigenValues )     
 
-          arguments(1) = "NUMBEROFNONZEROINTS"
-           call Vector_getFromFile( value = nonZeroIntegrals,  &
-                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
-                output = eigenValues )     
-           
            specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
            numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
+
+          !! Reading the number of non-zero integrals
+
+   
   
           !! Transforms integrals for one species
 
@@ -182,7 +180,7 @@ program IntegralsTransformationManager
               case ( "C" ) 
           
                 call TransformIntegralsC_atomicToMolecularOfOneSpecie(  transformInstanceC, &
-                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies), int(nonZeroIntegrals) )
+                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
 
             end select
 
@@ -228,6 +226,9 @@ program IntegralsTransformationManager
                           call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
                                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                                output = eigenValuesOfOtherSpecie )     
+
+
+                          otherSpecieID = j
   
                           !! Transforms integrals for two species
 
@@ -241,8 +242,12 @@ program IntegralsTransformationManager
                                  eigenVec, eigenVecOtherSpecie, &
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
                           
-                              case ( "B" ) 
-                          
+                              case ( "C" ) 
+
+                              call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+
                             end select
 
                           end if 

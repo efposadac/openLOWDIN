@@ -253,9 +253,6 @@ program SCF
      labels(1) = "ORBITALS"
      call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, unit=wfnUnit, binary=.true., arguments = labels )
 
-     labels(1) = "NUMBEROFNONZEROINTS"
-     call Vector_writeToFile(unit=wfnUnit, binary=.true., value= real(WaveFunction_instance(speciesID)%nonZeroRepulsionIntegrals,8), arguments = labels )
-
      if (CONTROL_instance%COSMO) then
         labels(1) = "COSMO2"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
@@ -289,7 +286,7 @@ program SCF
   !!
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%totalEnergy, arguments=["TOTALENERGY"])
   
-	call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%cosmo3Energy, arguments=["COSMO3ENERGY"])
+  call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%cosmo3Energy, arguments=["COSMO3ENERGY"])
 
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%totalCouplingEnergy, arguments=["COUPLINGENERGY"])
 

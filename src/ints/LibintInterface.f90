@@ -231,7 +231,7 @@ contains
   !! @author E. F. Posada, 2010
   !! @version 2.0
   !! @info Tested
-  subroutine LibintInterface_computeIntraSpecies(specieID, job, starting, ending, process)
+  subroutine LibintInterface_computeIntraSpecies(specieID, job, starting, ending, process, auxCounter)
     implicit none
     
     character(*), intent(in) :: job
@@ -1427,7 +1427,7 @@ contains
   !! @brief calculate eris using libint library for all basis set (inter-species)
   !! @author E. F. Posada, 2010
   !! @version 2.0
-  subroutine LibintInterface_computeInterSpecies(specieID, otherSpecieID, job, isInterSpecies, isCouplingA, isCouplingB)
+  subroutine LibintInterface_computeInterSpecies(specieID, otherSpecieID, job, auxCounter, isInterSpecies, isCouplingA, isCouplingB)
     implicit none
 
     integer,target :: specieID

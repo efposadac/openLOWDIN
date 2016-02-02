@@ -793,6 +793,7 @@ contains
 
     integer :: speciesID
     integer :: numberOfContractions
+    integer :: auxCounter
     integer(8) :: integralsByProcess
     integer(8) :: ssize
     integer(8) :: starting
@@ -829,12 +830,17 @@ contains
        if ( CONTROL_instance%SCHWARZ_INEQUALITY ) then
          call LibintInterface_computeIntraSpeciesTwoIndex( speciesID, "ERIS", starting, ending, int(process) )
        end if
-       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
+       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process), auxCounter )
     ! case("CUDINT")
     !    call CudintInterface_computeIntraSpecies(speciesID)
     case default
-       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
+       if ( CONTROL_instance%SCHWARZ_INEQUALITY ) then
+         call LibintInterface_computeIntraSpeciesTwoIndex( speciesID, "ERIS", starting, ending, int(process) )
+       end if
+       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process), auxCounter )
     end select
+
+        call IntegralManager_SaveNumberOfNonZeroIntegrals(speciesID, auxCounter, process ) 
 
   end subroutine IntegralManager_getIntraRepulsionIntegrals
 
@@ -912,6 +918,7 @@ contains
     implicit none
     character(*) :: scheme    
     integer :: i, j
+    integer :: auxCounter
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
@@ -919,15 +926,18 @@ contains
           !! Calculate integrals (stored on disk)       
           select case (trim(String_getUppercase(trim(scheme))))
           case("LIBINT")
-             call LibintInterface_computeInterSpecies( i, j, "ERIS" )
+             call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
           ! case("CUDINT")
           !    call CudintInterface_computeInterSpecies( i, j, "ERIS" )
           case default
-             call LibintInterface_computeInterSpecies( i, j, "ERIS" )
+             call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
           end select
+
+         call IntegralManager_SaveNumberOfNonZeroCouplingIntegrals(i, j, auxCounter) 
 
        end do       
     end do
+    close(30) 
 
   end subroutine IntegralManager_getInterRepulsionIntegrals
 
@@ -966,5 +976,42 @@ contains
 
 
   end function IntegralManager_getLabels
+
+  subroutine IntegralManager_SaveNumberOfNonZeroIntegrals(speciesID, auxCounter, process) 
+      implicit none
+
+      integer :: speciesID
+      integer :: auxCounter
+      integer(8) :: process
+      character(50) :: fileNumber
+
+      write(fileNumber,*) process
+      fileNumber = trim(adjustl(fileNumber))
+
+      open(UNIT=49,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(speciesID)%name)//".nints", &
+           STATUS='NEW', ACCESS='SEQUENTIAL', FORM='Unformatted')
+      write (49) auxCounter 
+
+      close(49)
+
+  end subroutine IntegralManager_SaveNumberOfNonZeroIntegrals
+
+  subroutine IntegralManager_SaveNumberOfNonZeroCouplingIntegrals( i, j, auxCounter) 
+      implicit none
+
+      integer :: i, j 
+      integer :: auxCounter
+      character(50) :: fileNumber
+
+      !! open file for integrals
+      open(UNIT=59,FILE=trim(MolecularSystem_instance%species(i)%name)//"."//trim(MolecularSystem_instance%species(j)%name)//".nints", &
+         STATUS='NEW', ACCESS='SEQUENTIAL', FORM='Unformatted')
+
+      write (59) auxCounter 
+      close(59)
+ 
+
+  end subroutine IntegralManager_SaveNumberOfNonZeroCouplingIntegrals
+
 
 end module IntegralManager_
