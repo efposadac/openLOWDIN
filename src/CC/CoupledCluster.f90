@@ -1630,15 +1630,15 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !        TdNew=0.0_8
 !
 !!
-!        if (allocated(auxFae)) deallocate (auxFae)
-!        allocate(auxFae(numberOfContractions,numberOfContractionsOfOtherSpecie))
-!        auxFae=0.0_8
+        if (allocated(auxFae)) deallocate (auxFae)
+        allocate(auxFae(noc,nocs))
+        auxFae=0.0_8
 !        if (allocated(auxFmi)) deallocate (auxFmi)
 !        allocate(auxFmi(numberOfContractions,numberOfContractionsOfOtherSpecie))
 !        auxFmi=0.0_8
-!        if (allocated(auxFme)) deallocate (auxFme)
-!        allocate(auxFme(numberOfContractions,numberOfContractionsOfOtherSpecie))
-!        auxFme=0.0_8
+        if (allocated(otherFme)) deallocate (otherFme)
+        allocate(otherFme(nops,nocs-nops))
+        otherFme=0.0_8
 
         if (allocated(auxWmnij)) deallocate (auxWmnij)
 !! 25 de enero 2016
@@ -1668,34 +1668,45 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 
 	!! Equation 3
 
-!	do a=numberOfParticles+1, numberOfContractions
-!		do e=numberOfParticles+1, numberOfContractions
-!			do aa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-!				do ee=numberOfParticles+1, numberOfContractions
-!				auxFae(a,e) = (1 + (a==e))*Fs%values(a,e)
-!				auxFae(a,e) = auxFae(a,e) + (1 + (a==e))*otherFs%values(aa,ee)
-!					do m=1, numberOfParticles
-!					do mm=1, numberOfOtherSpecieParticles
-!						auxFae(a,e) = auxFae(a,e) + (-0.5*Fs%values(m,e)*Ts(a,m))
-!						auxFae(a,e) = auxFae(a,e) + (-0.5*otherFs%values(mm,ee)*otherTs(aa,mm))
-!						do f=numberOfParticles+1, numberOfContractions
-!						do fff=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-!							auxFae(a,e) = auxFae(a,e) + Ts(f,m)*spinints(m,a,f,e)
-!							auxFae(a,e) = auxFae(a,e) + otherTs(fff,mm)*otherspinints(mm,aa,fff,ee)
-!							do n=1, numberOfParticles
-!							do nn=1, numberOfOtherSpecieParticles
-!								auxFae(a,e) = auxFae(a,e) + (-0.5*taus(a,f,m,n)*spinints(m,n,e,f))
-!								auxFae(a,e) = auxFae(a,e) + (-0.5*othertaus(aa,fff,mm,nn)*otherspinints(mm,nn,ee,fff))
-!							end do
-!							end do
-!						end do
-!						end do
-!					end do
-!					end do
-!				end do
-!			end do
-!		end do
-!	end do
+! 02 de febrero 2016 
+
+	do a=nops+1, nocs
+		do e=nops+1, nocs
+ 
+!Termino de misma especie ya está descrito en intraespecie 
+!!         if (B==E) then 
+!!            kro = 1 
+!!         else 
+!!            kro = 0 
+!!         end if
+!!         
+!!         auxFae(B-nops,E-nops) = (1 - kro)*otherFs%values(A,E)
+		
+         do m=1, numberOfParticles
+!Termino de misma especie ya está descrito en intraespecie
+!				auxFae(B-nops,E-nops) = auxFae(B-nops,E-nops) + (-0.5*otherFs%values(M,E)*CoupledCluster_instance%Tstest(B-nops,M))
+				do f=numberOfParticles+1, numberOfContractions
+					auxFae(a-nops,e-nops) = auxFae(a-nops,e-nops) + CoupledCluster_instance%Tstest(f-nop,m)*auxspinints(m,a,f,e)
+            end do
+         end do
+         do m=1, nops
+            do n=1, numberOfParticles
+               do f=numberOfParticles+1, numberOfContractions
+                 ! Tau puede presentarse de dos formas:  t_(Mn)´(Bf) = t_(nM)´(fB) 
+						auxFae(a-nops,e-nops) = auxFae(a-nops,e-nops) + (-0.5*auxtaus(f-nop,a-nops,n,m)*auxspinints(n,m,f,e))
+!						write(*,*) a,e,Fae(a,e)
+					end do
+				end do
+			end do
+
+		end do
+	end do
+
+
+  print *, "Variable F(BE)",  auxFae(1,1) 
+
+
+
 !	write(*,*) auxFae
 !
 !        do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
@@ -1766,6 +1777,26 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !
 	!! Equation 5
 
+
+	!! Equation 5
+! eq ok
+	do m=1, nops
+		do e=nops+1, nocs
+!   Esta parte de la diagonalización ya está descrita en intraespecie  
+!			otherFme(m,e-nops) = otherFs%values(m,e)
+			do n=1, numberOfParticles
+				do f=numberOfParticles+1, numberOfContractions
+				otherFme(m,e-nops) = otherFme(m,e-nops) + CoupledCluster_instance%Tstest(f-nop,n)*auxspinints(n,m,f,e)
+				end do
+			end do
+		end do
+	end do
+
+
+
+  print *, "Variable F(ME)",  otherFme(1,1) 
+
+
 !	do m=1, numberOfParticles
 !		do e=numberOfParticles+1, numberOfContractions
 !			Fme(m,e) = Fs%values(m,e)
@@ -1809,30 +1840,6 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !*	end do
 
 
-
-
-!! Equation 8 electronica
-! eq ok
-
-!!**  	do m=1, numberOfParticles
-!!**  		do b=numberOfParticles+1, numberOfContractions
-!!**  			do e=numberOfParticles+1, numberOfContractions
-!!**  				do jj=1, numberOfParticles
-!!**  					Wmbej(m,b-nop,e-nop,jj) = spinints(m,b,e,jj)
-!!**  					do f=numberOfParticles+1, numberOfContractions
-!!**  						Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + Ts(f-nop,jj)*spinints(m,b,e,f)
-!!**  					end do
-!!**  					do n=1, numberOfParticles
-!!**  !! 26 de enero 2016
-!!**                     Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-Ts(b-nop,n)*spinints(m,n,e,jj))
-!!**  						do f=numberOfParticles+1, numberOfContractions
-!!**  							Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-(0.5*Td(f-nop,b-nop,jj,n)+Ts(f-nop,jj)*Ts(b-nop,n))*spinints(m,n,e,f))
-!!**  						end do
-!!**  					end do
-!!**  				end do
-!!**  			end do
-!!**  		end do
-!!**  	end do
 
 
 !! Eq 6
@@ -2070,11 +2077,26 @@ write(*,*) i,j,auxECCSD
 							auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + 0.5*auxtau(a-nop,b-nops,m,n)*auxWmnij(m,n,ii,jj)  ! termino 4
 						end do
 					end do
+    
+      !! 02 febrero
+
+
+               do e=nops+1, nocs
+                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxTd(a-nop,e-nops,ii,jj)*auxFae(b-nops,e-nops)    ! parte 1 termino 2
+                  do m=1, nops
+                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + (-0.5*(otherTs(b-nops,m)*otherFme(m,e-nops)))     ! parte 2 termino 2
+                  
+                  end do
+               end do
+
+
+
+
        !! 29 de enero 2016
                do m=1, numberOfParticles
                   do e=numberOfParticles+1, numberOfContractions
        ! Correlacion e-e- ---> e+ (posible?) 
-!                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tdtest(a-nop,e-nop,ii,m)*auxWmbej(m,b-nops,e-nop,jj)  ! termino 6 revisar
+                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tdtest(a-nop,e-nop,ii,m)*auxWmbej(m,b-nops,e-nop,jj)  ! termino 6 revisar
 
 
                      auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - CoupledCluster_instance%Tstest(e-nop,ii)*CoupledCluster_instance%Tstest(a-nop,m)*auxspinints(m,b,e,jj) ! termino 7 
@@ -2102,10 +2124,46 @@ write(*,*) i,j,auxECCSD
                                         auxtaus(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + 0.5*(CoupledCluster_instance%Tstest(a-nop,ii)*otherTs(b-nops,jj))
                                         auxtau(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tstest(a-nop,ii)*otherTs(b-nops,jj)
 
+
 				end do
 			end do
 		end do
 	end do
+
+
+
+
+
+!! Equation 8 electronica
+! eq ok
+
+!!**  	do m=1, numberOfParticles
+!!**  		do b=numberOfParticles+1, numberOfContractions
+!!**  			do e=numberOfParticles+1, numberOfContractions
+!!**  				do jj=1, numberOfParticles
+!!**  			!		CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,jj) = spinints(m,b,e,jj)
+!!**  					do f=numberOfParticles+1, numberOfContractions
+!!**  						Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + Ts(f-nop,jj)*spinints(m,b,e,f)
+!!**  					end do
+!!**  					do n=1, numberOfParticles
+!!**  !! 26 de enero 2016
+!!**                     Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-Ts(b-nop,n)*spinints(m,n,e,jj))
+!!**  						do f=numberOfParticles+1, numberOfContractions
+!!**  							Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-(0.5*Td(f-nop,b-nop,jj,n)+Ts(f-nop,jj)*Ts(b-nop,n))*spinints(m,n,e,f))
+!!**  						end do
+!!**  					end do
+!!**  				end do
+!!**  			end do
+!!**  		end do
+!!**  	end do
+
+
+
+
+
+
+
+
 
 end do !! Loop
 
