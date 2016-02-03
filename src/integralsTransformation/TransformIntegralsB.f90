@@ -47,6 +47,7 @@ module TransformIntegralsB_
      character(255) :: fileForIntegrals
      character(255) :: prefixOfFile
      integer :: numberOfContractions
+     integer :: otherNumberOfContractions
      integer :: bias
      integer :: specieID
      integer :: otherSpecieID
@@ -71,8 +72,8 @@ module TransformIntegralsB_
        TransformIntegralsB_constructor, &
        TransformIntegralsB_destructor, &
        TransformIntegralsB_show, &
-       TransformIntegralsB_atomicToMolecularOfOneSpecie!, &
-!       TransformIntegralsB_atomicToMolecularOfTwoSpecies
+       TransformIntegralsB_atomicToMolecularOfOneSpecie, &
+       TransformIntegralsB_atomicToMolecularOfTwoSpecies
 !       TransformIntegralsB_readIntegralsTransformed
 
   private
@@ -289,58 +290,158 @@ contains
   !<
   subroutine TransformIntegralsB_atomicToMolecularOfTwoSpecies( this, coefficientsOfAtomicOrbitals, &
        otherCoefficientsOfAtomicOrbitals, molecularIntegrals, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
-    implicit none
+       implicit none
     type(TransformIntegralsB) :: this
     type(Matrix) :: coefficientsOfAtomicOrbitals
     type(Matrix) :: otherCoefficientsOfAtomicOrbitals
     type(Matrix) :: molecularIntegrals
-    integer :: specieID
-    character(*) :: nameOfSpecie
-    integer :: otherSpecieID
-    character(*) :: nameOfOtherSpecie
+    integer :: specieID, otherSpecieID
+    character(*) :: nameOfSpecie, nameOfOtherSpecie
     integer :: nproc
     integer :: integralStackSize
-    integer :: errorNum
     real(8) :: initialTime
     real(8) :: finalTime
-    
-    if ( .not.CONTROL_instance%OPTIMIZE ) then
-       call cpu_time(initialTime)
-    end if
+
+    integer :: ifile, i
+    integer :: unit
+    character(50) :: sfile
+    integer :: status
+    integer :: nonZeroIntegrals
+
+!!    real(8), allocatable :: twoParticlesIntegrals(:,:,:,:)
+    real(8), allocatable :: twoParticlesIntegrals(:,:,:,:)
+    integer, allocatable :: indexTwoParticlesIntegrals(:)
+    real(8)  auxTransformedTwoParticlesIntegral
+
+    real(8), allocatable :: tempA(:,:,:)
+    real(8), allocatable :: auxtempA(:,:,:)
+    real(8), allocatable :: tempB(:,:)
+    real(8), allocatable :: tempC(:)
+
+    integer*2 :: aa(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer*2 :: bb(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer*2 :: cc(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer*2 :: dd(CONTROL_instance%INTEGRAL_STACK_SIZE)
+
+    real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
+
+    integer :: p, q, r, s, mu, nu, lambda, sigma, m, n, u, mm
+    integer :: ssize, otherSsize
 
     ! Reads the number of cores
+
     nproc = CONTROL_instance%NUMBER_OF_CORES
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
-    
     this%prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
     this%fileForCoefficients =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//"mo.values"
 
+    this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
+    this%otherNumberOfContractions=size(otherCoefficientsOfAtomicOrbitals%values,dim=1)
 
-    this%numberOfContractions = size(coefficientsOfAtomicOrbitals%values, dim=1)+size(otherCoefficientsOfAtomicOrbitals%values, dim=1)
-
-    this%bias = size(coefficientsOfAtomicOrbitals%values,dim=1)
     this%specieID = specieID
-    this%otherSpecieID = otherSpecieID
 
 
-    call TransformIntegralsB_writeCoefficients( this, coefficientsOfAtomicOrbitals, otherCoefficientsOfAtomicOrbitals )
+    if ( allocated (twoParticlesIntegrals)) deallocate (twoParticlesIntegrals )
+    allocate (twoParticlesIntegrals (  this%numberOfContractions, &
+                                       this%numberOfContractions, &
+                                       this%otherNumberOfContractions , &
+                                       this%otherNumberOfContractions )  )
 
-    !! Inicia proceso de transformacion
-    !! this%numberOfContractions = Total number of contractions, it is the sum of contractions beetwen specieID and otherSpecieID
-    call fourIndexTransformation( this%numberOfContractions, size(coefficientsOfAtomicOrbitals%values,dim=1), trim(this%prefixOfFile), 0_4, integralStackSize )
+    twoParticlesIntegrals = 0
 
-    ! Lee  de disco las integrales tranformadas
-!    call TransformIntegralsB_readIntegralsTransformed( this, molecularIntegrals, TWO_SPECIES )
+    m = 0
 
-    !! Remueve archivos empleados en proceso de transformacion
-!    call system("rm "// trim(this%prefixOfFile)//"*.dat "// trim(this%prefixOfFile) // "*.values "  )
+    !! Read integrals
 
-!    if ( .not.CONTROL_instance%OPTIMIZE ) then
-!       call cpu_time(finalTime)
-!       write (6,"(T15,A30,ES10.2,A4)") "cpu-time  for transformation:  ", finalTime-initialTime ," (s)"
-!       print *,""
-!    end if
+    !! open file for integrals
+    open(UNIT=34,FILE=trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
+         STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
+
+    loadintegrals : do
+
+       read(34)   aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            cc(1:CONTROL_instance%INTEGRAL_STACK_SIZE), dd(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+
+       do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+
+          if (aa(i) == -1) exit loadintegrals
+
+            m = m + 1
+            twoParticlesIntegrals(aa(i),bb(i),cc(i),dd(i)) = shellIntegrals(i)
+
+         end do
+
+       end do loadintegrals
+
+       close (34)
+
+   !! symmetrize 
+    do mu = 1, this%numberOfContractions
+      do nu = 1, this%numberOfContractions
+        do lambda = 1, this%otherNumberOfContractions
+          do sigma = 1, this%otherNumberOfContractions
+            twoParticlesIntegrals(nu,mu,lambda,sigma) = twoParticlesIntegrals(mu,nu,lambda,sigma) 
+            twoParticlesIntegrals(mu,nu,sigma,lambda) = twoParticlesIntegrals(mu,nu,lambda,sigma) 
+!            twoParticlesIntegrals(lambda,sigma,mu,nu) = twoParticlesIntegrals(mu,nu,lambda,sigma) 
+
+          end do
+        end do  
+      end do  
+    end do  
+
+!!    print *, "this 0", this%lowerOccupiedOrbital
+!!    print *, "this 0", this%upperOccupiedOrbital
+!!    print *, "this 0", this%lowerVirtualOrbital 
+!!    print *, "this 0", this%upperVirtualOrbital 
+
+    !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+    open(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE, file=trim(this%prefixOfFile)//"moint.dat", &
+         status='replace',access='sequential', form='unformatted' )
+     
+    m = 0
+    do p = 1, this%numberOfContractions
+      do q = p, this%numberOfContractions
+        do r = 1, this%otherNumberOfContractions
+          do s = r, this%otherNumberOfContractions
+
+!            if ( q >= this%lowerVirtualOrbital .and. s >= this%lowerVirtualOrbital .and. &
+!                 p <= this%upperOccupiedOrbital .and. r <= this%upperOccupiedOrbital ) then
+
+              auxTransformedTwoParticlesIntegral = 0
+              do mu = 1, this%numberOfContractions
+                do nu = 1, this%numberOfContractions
+                  do lambda = 1, this%otherNumberOfContractions
+                    do sigma = 1, this%otherNumberOfContractions
+
+                      auxTransformedTwoParticlesIntegral = auxTransformedTwoParticlesIntegral + &
+                                          coefficientsOfAtomicOrbitals%values( mu, p )* &
+                                          coefficientsOfAtomicOrbitals%values( nu, q )* &
+                                          otherCoefficientsOfAtomicOrbitals%values( lambda, r )* &
+                                          otherCoefficientsOfAtomicOrbitals%values( sigma, s )* &
+                                          twoParticlesIntegrals(mu, nu, lambda, sigma) 
+    
+                    end do
+                  end do
+                 end do
+               end do
+
+               write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p,q,r,s, auxTransformedTwoParticlesIntegral
+  
+             !end if
+
+           end do
+         end do
+       end do
+     end do
+
+     write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) -1,0,0,0, 0  
+
+
+
+     close(CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE)
+
 
   end subroutine TransformIntegralsB_atomicToMolecularOfTwoSpecies
 

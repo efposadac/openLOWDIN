@@ -159,7 +159,6 @@ contains
          call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
          matrixContainer%values = 0.0_8
 
-
       !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
       open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
            status='old',access='sequential', form='unformatted' )
@@ -206,6 +205,13 @@ contains
     integer :: integralStackSize
     integer :: unidOfOutputForIntegrals
 
+    integer :: p, q, r, s
+    real(8) :: auxIntegralValue
+
+    select case( CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD )
+
+    case ( "A" ) 
+
     if ( otherSpecieID > SpecieID ) then
 
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID) &
@@ -218,6 +224,7 @@ contains
     prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
 
     unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+
 
     !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
     open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
@@ -376,7 +383,99 @@ contains
     close(unidOfOutputForIntegrals)
 
 
+
     end if
+
+    case ( "B" ) 
+
+    if ( otherSpecieID > SpecieID ) then
+
+
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID) &
+	+ MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+    bias = MolecularSystem_getTotalNumberOfContractions(specieID)
+
+    nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
+    nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+
+    prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+
+    unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+
+    !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+    open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
+         status='old',access='sequential', form='unformatted' )
+
+       if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
+
+       numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
+            ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
+
+       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+
+       matrixContainer%values = 0.0_8
+
+       do
+          read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) p, q, r, s, auxIntegralValue
+
+            if ( p <= 0 ) exit
+
+                  auxIndex = IndexMap_tensorR4ToVectorB( p, q, r, s, bias,  numberOfContractions - bias  )
+                  matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+
+         end do
+
+      close(unidOfOutputForIntegrals)
+
+    end if
+
+
+    case ( "C" ) 
+
+    if ( otherSpecieID > SpecieID ) then
+
+
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID) &
+	+ MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+    bias = MolecularSystem_getTotalNumberOfContractions(specieID)
+
+    nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
+    nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+
+    prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+
+    unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+
+    !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+    open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
+         status='old',access='sequential', form='unformatted' )
+
+       if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
+
+       numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
+            ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
+
+       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+
+       matrixContainer%values = 0.0_8
+
+       do
+          read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) p, q, r, s, auxIntegralValue
+
+            if ( p <= 0 ) exit
+
+                  auxIndex = IndexMap_tensorR4ToVectorB( p, q, r, s, bias,  numberOfContractions - bias  )
+                  matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+
+         end do
+
+      close(unidOfOutputForIntegrals)
+
+    end if
+
+    end select
+
+
 
 
 

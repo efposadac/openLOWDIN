@@ -47,6 +47,7 @@ module TransformIntegralsC_
      character(255) :: fileForIntegrals
      character(255) :: prefixOfFile
      integer :: numberOfContractions
+     integer :: otherNumberOfContractions
      integer :: bias
      integer :: specieID
      integer :: otherSpecieID
@@ -162,7 +163,6 @@ contains
     real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
 
     integer :: p, q, r, s, mu, nu, lambda, sigma, m, n, u, mm
-    integer :: ssize
 
     ! Reads the number of cores
 
@@ -170,7 +170,11 @@ contains
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
     call TransformIntegralsC_getNumberOfNonZeroRepulsionIntegrals( specieID, nproc, nonZeroIntegrals )
- 
+
+    if ( allocated (twoParticlesIntegrals)) deallocate (twoParticlesIntegrals )
+    allocate (twoParticlesIntegrals ( nonZeroIntegrals ) )
+    twoParticlesIntegrals = 0
+
     this%prefixOfFile =""//trim(nameOfSpecie)
     this%fileForCoefficients =""//trim(nameOfSpecie)//"mo.values"
 
@@ -178,23 +182,14 @@ contains
        call cpu_time(initialTime)
     end if
 
-    this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
-    ssize = this%numberOfContractions
-    ssize = (ssize * (ssize + 1))/2 + ssize
-    ssize = (ssize * (ssize + 1))/2 + ssize
-
     this%specieID = specieID
 
     call TransformIntegralsC_checkMOIntegralType(specieID, this)
 
-    if ( allocated (twoParticlesIntegrals)) deallocate (twoParticlesIntegrals )
-    allocate (twoParticlesIntegrals ( nonZeroIntegrals ) )
+    this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
 
-    twoParticlesIntegrals = 0
-    if ( allocated (indexTwoParticlesIntegrals)) deallocate (indexTwoParticlesIntegrals )
-    allocate (indexTwoParticlesIntegrals ( ssize ) )
-
-    indexTwoParticlesIntegrals = 0
+    !! Setting size of index array
+    call TransformIntegralsC_setSizeOfIndexArray ( this%numberOfContractions, indexTwoParticlesIntegrals)
 
     m = 0
 
@@ -205,7 +200,12 @@ contains
       sfile = trim(adjustl(sfile))
       unit = ifile+50
 
-      open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//".ints", status='old',access='sequential', form='Unformatted')
+
+      if ( trim(nameOfSpecie) == "E-BETA" ) then
+        open( UNIT=unit,FILE=trim(sfile)//trim("E-ALPHA")//".ints", status='old',access='sequential', form='Unformatted')
+      else 
+        open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//".ints", status='old',access='sequential', form='Unformatted')
+      end if
 
       loadintegrals : do
   
@@ -264,7 +264,6 @@ contains
     !! begin transformation
     mm = 0
     do p = this%p_lowerOrbital, this%p_upperOrbital
-
       n = p
       tempA = 0
       auxTransformedTwoParticlesIntegral = 0
@@ -275,6 +274,7 @@ contains
         !! auxtemp is the twoparticlesintegrals reduced to a three dimensional array
         call TransformIntegralsC_buildArrayA( twoParticlesIntegrals, mu, indexTwoParticlesIntegrals, &
                                                 this%numberOfContractions, auxtempA )
+
         tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
                                       auxtempA(:,:,:)
 
@@ -315,7 +315,6 @@ contains
                                                          tempC(sigma)
 
              end do
-
              write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p,q,r,s, auxTransformedTwoParticlesIntegral
              mm = mm + 1
 
@@ -325,10 +324,42 @@ contains
        end do
      end do
 
-     write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) -1,0,0,0, 0  
-     print *, "non zero transformed integrals", mm
+     write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) -1,0,0,0, 0.0_8 
+     print *, "Non zero transformed repulsion integrals: ", mm
+
+     close(CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE)
 
   end subroutine TransformIntegralsC_atomicToMolecularOfOneSpecie
+
+  subroutine TransformIntegralsC_setSizeOfIndexArray ( numberOfContractions, indexTwoParticlesIntegrals)
+    implicit none 
+    integer :: numberOfContractions
+    integer, allocatable :: indexTwoParticlesIntegrals(:)
+    integer :: ssize 
+    integer(kind=8) :: ssize8 !! Beyond 360 cartesian funtions
+
+    !! If the number of cartesians function is greater than 360 then we need a 64 bits variable
+    if ( numberOfContractions < 360 ) then
+      ssize = numberOfContractions
+      ssize = (ssize * (ssize + 1))/2 + ssize
+      ssize = (ssize * (ssize + 1))/2 + ssize
+  
+      if ( allocated (indexTwoParticlesIntegrals)) deallocate (indexTwoParticlesIntegrals )
+      allocate (indexTwoParticlesIntegrals ( ssize ) )
+  
+      indexTwoParticlesIntegrals = 0
+    else 
+      ssize8 = numberOfContractions
+      ssize8 = (ssize8 * (ssize8 + 1))/2 + ssize8
+      ssize8 = (ssize8 * (ssize8 + 1))/2 + ssize8
+  
+      if ( allocated (indexTwoParticlesIntegrals)) deallocate (indexTwoParticlesIntegrals )
+      allocate (indexTwoParticlesIntegrals ( ssize8 ) )
+  
+      indexTwoParticlesIntegrals = 0
+    end if
+
+  end subroutine TransformIntegralsC_setSizeOfIndexArray
 
   subroutine TransformIntegralsC_buildArrayA( integralArray, i, indexArray, ssize , auxtempA)
   implicit none 
@@ -360,6 +391,7 @@ contains
      end do 
 
   end subroutine TransformIntegralsC_buildArrayA
+
 
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de diferente especie
@@ -406,7 +438,7 @@ contains
     real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
 
     integer :: p, q, r, s, mu, nu, lambda, sigma, m, n, u, mm
-    integer :: ssize
+    integer :: ssize, otherSsize
 
     ! Reads the number of cores
 
@@ -414,100 +446,87 @@ contains
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
     call TransformIntegralsC_getNumberOfNonZeroCouplingIntegrals( specieID, otherSpecieID, nonZeroIntegrals )
-    print *, "non zero ints", nonZeroIntegrals
  
-    this%prefixOfFile =""//trim(nameOfSpecie)
-    this%fileForCoefficients =""//trim(nameOfSpecie)//"mo.values"
+    this%prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+    this%fileForCoefficients =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//"mo.values"
 
-
-    this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
-    ssize = this%numberOfContractions
-    ssize = (ssize * (ssize + 1))/2 + ssize
-    ssize = (ssize * (ssize + 1))/2 + ssize
-
-    this%specieID = specieID
-
-    call TransformIntegralsC_checkMOIntegralType(specieID, this)
+    call TransformIntegralsC_checkInterMOIntegralType(specieID, otherSpecieID, this)
 
     if ( allocated (twoParticlesIntegrals)) deallocate (twoParticlesIntegrals )
     allocate (twoParticlesIntegrals ( nonZeroIntegrals ) )
-
     twoParticlesIntegrals = 0
-    if ( allocated (indexTwoParticlesIntegrals)) deallocate (indexTwoParticlesIntegrals )
-    allocate (indexTwoParticlesIntegrals ( ssize ) )
 
-    indexTwoParticlesIntegrals = 0
+    this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
+    this%otherNumberOfContractions=size(otherCoefficientsOfAtomicOrbitals%values,dim=1)
+
+    !! Setting size of index array
+    call TransformIntegralsC_setSizeOfInterIndexArray ( this%numberOfContractions, this%otherNumberOfContractions, indexTwoParticlesIntegrals)
+
+    this%specieID = specieID
 
     m = 0
 
     !! Read integrals
-    do ifile = 1, nproc
 
-      write(sfile,*) ifile
-      sfile = trim(adjustl(sfile))
-      unit = ifile+50
+    !! open file for integrals
+    open(UNIT=34,FILE=trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
+         STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
 
-      open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//".ints", status='old',access='sequential', form='Unformatted')
+    loadintegrals : do
 
-      loadintegrals : do
-  
-        read(UNIT=unit, iostat=status) aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-              bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-              cc(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-              dd(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-              shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-    
-    
-         do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
-    
-            if( aa(i) == -1 ) exit loadintegrals
+       read(34)   aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            cc(1:CONTROL_instance%INTEGRAL_STACK_SIZE), dd(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+
+       do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+
+          if (aa(i) == -1) exit loadintegrals
+
             m = m + 1
             twoParticlesIntegrals(m) = shellIntegrals(i)
-            indexTwoParticlesIntegrals(IndexMap_tensorR4ToVectorC(int(aa(i),4),int(bb(i),4),int(cc(i),4),int(dd(i),4), &
-                                       this%numberOfContractions )) = m
+            indexTwoParticlesIntegrals(IndexMap_tensorR4ToVectorB(int(aa(i),4),int(bb(i),4),int(cc(i),4),int(dd(i),4), &
+                                       this%numberOfContractions,this%OtherNumberOfContractions  )) = m
 
          end do
 
        end do loadintegrals
 
-       close (unit)
-    end do 
+       close (34)
 
     !! allocate some auxiliary arrays
     if ( allocated (tempA)) deallocate (tempA )
     allocate (tempA ( this%numberOfContractions , &
-                                      this%numberOfContractions, &
-                                      this%numberOfContractions ) )
+                                      this%otherNumberOfContractions, &
+                                      this%otherNumberOfContractions ) )
     tempA = 0
 
     if ( allocated (auxtempA)) deallocate (auxtempA )
     allocate (auxtempA ( this%numberOfContractions , &
-                                      this%numberOfContractions, &
-                                      this%numberOfContractions ) )
+                                      this%otherNumberOfContractions, &
+                                      this%otherNumberOfContractions ) )
     auxtempA = 0
 
 
     if ( allocated (tempB)) deallocate (tempB )
-    allocate (tempB ( this%numberOfContractions , &
-                                      this%numberOfContractions ) )
+    allocate (tempB ( this%otherNumberOfContractions , &
+                                      this%otherNumberOfContractions ) )
     tempB = 0
 
     if ( allocated (tempC)) deallocate (tempC )
-    allocate (tempC ( this%numberOfContractions ) )
+    allocate (tempC ( this%otherNumberOfContractions ) )
 
     tempC = 0
 
     !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
     open(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE, file=trim(this%prefixOfFile)//"moint.dat", &
          status='replace',access='sequential', form='unformatted' )
-     
+   
     call omp_set_num_threads(omp_get_max_threads())
 
-    !! begin transformation
-    mm = 0
+  !! begin transformation
+  mm = 0
     do p = this%p_lowerOrbital, this%p_upperOrbital
 
-      n = p
       tempA = 0
       auxTransformedTwoParticlesIntegral = 0
 
@@ -515,65 +534,119 @@ contains
       do mu = 1, this%numberOfContractions
         if ( abs(coefficientsOfAtomicOrbitals%values( mu, p )) < 1E-10 ) cycle
         !! auxtemp is the twoparticlesintegrals reduced to a three dimensional array
-        call TransformIntegralsC_buildArrayA( twoParticlesIntegrals, mu, indexTwoParticlesIntegrals, &
-                                                this%numberOfContractions, auxtempA )
+        call TransformIntegralsC_buildArrayAInter( twoParticlesIntegrals, mu, indexTwoParticlesIntegrals, &
+                                              this%numberOfContractions, this%otherNumberOfContractions, &
+                                              auxtempA )
         tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
                                       auxtempA(:,:,:)
 
       end do
 
       do q = p, this%q_upperOrbital
-        u = q
         tempB = 0
 
         if ( q < this%q_lowerOrbital ) cycle
         !! second quarter
         do nu = 1, this%numberOfContractions
           if ( abs(coefficientsOfAtomicOrbitals%values( nu, q )) < 1E-10 ) cycle
+
           tempB(:,:) = tempB(:,:) + coefficientsOfAtomicOrbitals%values( nu, q )* &
                                         tempA(nu,:,:)
         end do
 
-        do r = n, this%r_upperOrbital
+        do r = this%r_lowerOrbital , this%r_upperOrbital
 
            tempC = 0
 
-!           if ( r >  this%upperOccupiedOrbital  ) cycle
+           !!if ( r >  this%upperOccupiedOrbital  ) cycle
 
            !! third quarter
-           do lambda = 1, this%numberOfContractions
-             tempC(:) = tempC(:) + coefficientsOfAtomicOrbitals%values( lambda, r )* &
+           do lambda = 1, this%otherNumberOfContractions
+
+             tempC(:) = tempC(:) + otherCoefficientsOfAtomicOrbitals%values( lambda, r )* &
                                             tempB(lambda,:)
 
            end do
-           do s = u, this%s_upperOrbital
+           do s = r, this%s_upperOrbital
              auxTransformedTwoParticlesIntegral = 0
 
              if ( s < this%s_lowerOrbital ) cycle
              !! fourth quarter
-             do sigma = 1, this%numberOfContractions
+             do sigma = 1, this%otherNumberOfContractions
                auxTransformedTwoParticlesIntegral = auxTransformedTwoParticlesIntegral + &
-                                                         coefficientsOfAtomicOrbitals%values( sigma, s )* &
+                                                         otherCoefficientsOfAtomicOrbitals%values( sigma, s )* &
                                                          tempC(sigma)
 
              end do
-
              write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p,q,r,s, auxTransformedTwoParticlesIntegral
              mm = mm + 1
 
            end do
-           u = r + 1
          end do
        end do
      end do
 
      write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) -1,0,0,0, 0  
-     print *, "non zero transformed integrals", mm
+     print *, "Non zero transformed coupling integrals: ", mm
 
-
-
+     close(CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE)
 
   end subroutine TransformIntegralsC_atomicToMolecularOfTwoSpecies
+
+
+
+  subroutine TransformIntegralsC_setSizeOfInterIndexArray ( numberOfContractions, otherNumberOfContractions, indexTwoParticlesIntegrals)
+    implicit none 
+    integer :: numberOfContractions, otherNumberOfContractions
+    integer, allocatable :: indexTwoParticlesIntegrals(:)
+    integer(kind=8) :: ssize8, otherSsize8 !! Beyond 360 cartesian funtions
+
+      ssize8 = numberOfContractions
+      ssize8 = (ssize8 * (ssize8 + 1))/2 + ssize8
+
+      otherSsize8 = otherNumberOfContractions
+      otherSsize8 = (otherSsize8 * (otherSsize8 + 1))/2 + otherSsize8
+
+      ssize8 = ( ssize8 * otherSsize8 )
+  
+      if ( allocated (indexTwoParticlesIntegrals)) deallocate (indexTwoParticlesIntegrals )
+      allocate (indexTwoParticlesIntegrals ( ssize8 ) )
+  
+      indexTwoParticlesIntegrals = 0
+
+  end subroutine TransformIntegralsC_setSizeOfInterIndexArray
+
+
+  subroutine TransformIntegralsC_buildArrayAInter( integralArray, i, indexArray, ssize , otherSsize, auxtempA)
+  implicit none 
+  integer, intent(in) :: ssize, otherSsize
+  integer, intent(in) :: i
+  real(8), intent(in) :: integralArray(:)
+  real(8) :: auxtempA(ssize,otherSsize,otherSsize)
+  integer, intent(in) :: indexArray(:)
+  integer :: auxIndex
+  integer :: j,k,l,auxm, n, u
+  
+
+  !$OMP PARALLEL DO private(j,k,l,auxIndex,auxm) shared(ssize,otherSsize,i,n,indexArray,integralArray)
+  do j = 1, ssize
+    do k = 1, otherSsize
+       do l = k, otherSsize
+         auxIndex = IndexMap_tensorR4ToVectorB(i,j,k,l,ssize, otherSsize )
+         auxm = indexArray(auxIndex)
+         auxtempA(j,k,l) = integralArray(auxm)
+       end do 
+     end do 
+   end do 
+  !$OMP END PARALLEL DO  
+
+    do l = 1, otherSsize
+       do k = l+1, otherSsize
+         auxtempA(:,k,l) = auxtempA(:,l,k)
+       end do 
+     end do 
+
+  end subroutine TransformIntegralsC_buildArrayAInter
 
   !>
   !! @brief Contructor de la clase
@@ -617,6 +690,50 @@ contains
 
   end subroutine TransformIntegralsC_checkMOIntegralType
 
+
+  subroutine TransformIntegralsC_checkInterMOIntegralType(speciesID, otherSpeciesID, this)
+    implicit none
+    integer :: speciesID, otherSpeciesID
+    type(TransformIntegralsC) :: this
+    integer :: totalOccupation, otherTotalOccupation
+    integer :: totalNumberOfContractions, otherTotalNumberOfContractions
+
+    totalOccupation = MolecularSystem_getOcupationNumber( speciesID )
+    totalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions ( speciesID )
+    otherTotalOccupation = MolecularSystem_getOcupationNumber( otherSpeciesID )
+    otherTotalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions ( otherSpeciesID )
+
+
+    !! All orbitals. Default
+    this%p_lowerOrbital = 1
+    this%p_upperOrbital = totalNumberOfContractions
+    this%q_lowerOrbital = 1
+    this%q_upperOrbital = totalNumberOfContractions
+    this%r_lowerOrbital = 1
+    this%r_upperOrbital = otherTotalNumberOfContractions
+    this%s_lowerOrbital = 1
+    this%s_upperOrbital = otherTotalNumberOfContractions
+
+
+    !! only the (ia|jb) integrals will be transformed
+    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2 .or. &
+         ( CONTROL_instance%PT_ORDER == 2 .and.  CONTROL_instance%IONIZE_MO <= totalOCcupation ) ) then
+
+      this%p_lowerOrbital = 1
+      this%p_upperOrbital = totalOccupation
+      this%q_lowerOrbital = totalOccupation + 1
+      this%q_upperOrbital = totalNumberOfContractions
+      this%r_lowerOrbital = 1
+      this%r_upperOrbital = otherTotalOccupation
+      this%s_lowerOrbital = otherTotalOccupation + 1
+      this%s_upperOrbital = otherTotalNumberOfContractions
+
+    end if
+
+
+  end subroutine TransformIntegralsC_checkInterMOIntegralType
+
+
   subroutine TransformIntegralsC_getNumberOfNonZeroRepulsionIntegrals( specieID, nproc, nonZeroIntegrals )
     implicit none
     integer :: specieID, nproc, auxNonZeroIntegrals
@@ -634,6 +751,8 @@ contains
        unit = ifile+50
 
        nameOfSpecie = MolecularSystem_getNameOfSpecie( specieID )          
+
+       if ( trim(nameOfSpecie) == "E-BETA" ) nameOfSpecie =""//trim("E-ALPHA")
 
        !! open file (order, integral(shell))
        open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//".nints", status='old',access='sequential', form='Unformatted')

@@ -191,7 +191,6 @@ program IntegralsTransformationManager
           !!
           if ( numberOfQuantumSpecies > 1 ) then
                   do j = i + 1 , numberOfQuantumSpecies
-                          
                           nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
 
                           !! For PT = 2 there is no need to transform integrals for all species"
@@ -206,6 +205,7 @@ program IntegralsTransformationManager
                           else 
                             transformTheseSpecies = .True.
                           end if
+
                   
                           if ( .not.CONTROL_instance%OPTIMIZE .and. transformTheseSpecies ) then
                              write (6,"(T2,A)") "Inter-species integrals transformation for: "//trim(nameOfSpecies)//"/"//trim(nameOfOtherSpecie)
@@ -227,7 +227,6 @@ program IntegralsTransformationManager
                                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                                output = eigenValuesOfOtherSpecie )     
 
-
                           otherSpecieID = j
   
                           !! Transforms integrals for two species
@@ -242,6 +241,12 @@ program IntegralsTransformationManager
                                  eigenVec, eigenVecOtherSpecie, &
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
                           
+                               case ("B")
+
+                              call TransformIntegralsB_atomicToMolecularOfTwoSpecies(transformInstanceB, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+
                               case ( "C" ) 
 
                               call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &

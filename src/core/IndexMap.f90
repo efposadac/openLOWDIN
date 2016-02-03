@@ -281,25 +281,28 @@ contains
 		integer :: output
 		integer :: auxSize
                 integer :: ij, kl
+                if ( .not. present(basisSizeB)) then
+                  if ( i > j ) then
+                          ij = i * (i + 1)/2 + j
+                  else
+                          ij = j * (j + 1)/2 + i
+                  end if                
+  
+                  if ( k > l ) then
+                          kl = k * (k + 1)/2 + l
+                  else
+                          kl = l * (l + 1)/2 + k
+                  end if                
+  
+                  if ( ij > kl ) then
+                          output = ij * (ij + 1)/2 + kl
+                  else
+                          output = kl * (kl + 1)/2 + ij
+                  end if                
 
-                if ( i > j ) then
-                        ij = i * (i + 1)/2 + j
-                else
-                        ij = j * (j + 1)/2 + i
-                end if                
+                end if
 
-                if ( k > l ) then
-                        kl = k * (k + 1)/2 + l
-                else
-                        kl = l * (l + 1)/2 + k
-                end if                
-
-                if ( ij > kl ) then
-                        output = ij * (ij + 1)/2 + kl
-                else
-                        output = kl * (kl + 1)/2 + ij
-                end if                
-
+                
 	end function IndexMap_TensorR4ToVectorC
 
 	!<

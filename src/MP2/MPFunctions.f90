@@ -394,7 +394,6 @@ end if
          arguments(1) = "COEFFICIENTS"
          eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-
    
          arguments(1) = "ORBITALS"
          call Vector_getFromFile( elementsNum = numberOfContractions, &
@@ -408,6 +407,7 @@ end if
          lambda = MolecularSystem_instance%species(i)%lambda
          
          !! Read transformed integrals from file
+
          call ReadTransformedIntegrals_readOneSpecies( specieID, auxMatrix)
 
 !         call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer,&
@@ -421,6 +421,7 @@ end if
                                 do r=ocupationNumber+1, numberOfContractions
                                         do s=r, numberOfContractions
                                                 auxIndex = IndexMap_tensorR4ToVectorB(a,r,b,s, numberOfContractions )
+
                                                 auxVal_A= auxMatrix%values(auxIndex, 1)
 
                                                 if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
@@ -495,6 +496,7 @@ end if
 		call Matrix_destructor(auxMatrix)
 		!!
 		!!**************************************************************************
+
   end do
 
 
@@ -582,7 +584,6 @@ if ( MollerPlesset_instance%numberOfSpecies > 1 ) then
 
                     auxIndex = IndexMap_tensorR4ToVector(a,r,p,t, numberOfContractions, &
                          numberOfContractionsOfOtherSpecie )
-
                     couplingEnergyCorrection = couplingEnergyCorrection +  &
                          ( ( auxMatrix%values(auxIndex,1) )**2.0_8 ) &
                          / (eigenValues%values(a) + eigenValuesOfOtherSpecie%values(p) &
