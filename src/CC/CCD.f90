@@ -4,7 +4,7 @@
 !!
 !!******************************************************************************
 
-module CoupledCluster_
+module CCD_
   use Exception_
   use Matrix_
   use Vector_
@@ -32,7 +32,7 @@ module CoupledCluster_
   !! <li> Optimization of CC: January 2016</li>
   !!
   !<
-  type, public :: CoupledCluster
+  type, public :: CCD
      logical :: isInstanced
      integer :: numberOfSpecies
      type(matrix) :: hamiltonianMatrix
@@ -59,28 +59,25 @@ module CoupledCluster_
 
      real(8), allocatable :: Tstest(:,:),Tdtest(:,:,:,:),Wmbejtest(:,:,:,:)
 
-  end type CoupledCluster
+  end type CCD
 
-
-
-
-  type, public :: HartreeFock
+  type, public :: HartreeFockD
         real(8) :: totalEnergy
         real(8) :: puntualInteractionEnergy
         type(matrix) :: coefficientsofcombination 
         type(matrix) :: HcoreMatrix 
-  end type HartreeFock
+  end type HartreeFockD
   
-  type(CoupledCluster) :: CoupledCluster_instance
-  type(HartreeFock) :: HartreeFock_instance
+  type(CCD) :: CCD_instance
+  type(HartreeFockD) :: HartreeFockD_instance
 
   public :: &
-       CoupledCluster_constructor, &
-       CoupledCluster_destructor, &
-!       CoupledCluster_getTotalEnergy, &
-       CoupledCluster_run, &
-       CoupledCluster_show, &
-       CoupledCluster_exception
+       CCD_constructor, &
+       CCD_destructor, &
+!       CCD_getTotalEnergy, &
+       CCD_run, &
+       CCD_show, &
+       CCD_exception
 
   private		
 contains
@@ -91,110 +88,17 @@ contains
   !!
   !! @param this
   !<
-  subroutine CoupledCluster_constructor(level)
+  subroutine CCD_constructor(level)
     implicit none
     character(*) :: level
 
-!    integer :: numberOfSpecies
-!    integer :: i,j,m,n,p,q,c
-!    integer :: isLambdaEqual1
-!    type(vector) :: order
-!    type(vector) :: occupiedCode
-!    type(vector) :: unoccupiedCode
-!    real(8) :: totalEnergy
-!
-!    character(50) :: wfnFile
-!    integer :: wfnUnit
-!    character(50) :: nameOfSpecie
-!    integer :: numberOfContractions
-!    character(50) :: arguments(2)
-!
-!    wfnFile = "lowdin.wfn"
-!    wfnUnit = 20
-!
-!    !! Open file for wavefunction
-!    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-!
-!    !! Load results...
-!    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%totalEnergy, &
-!         arguments=["TOTALENERGY"])
-!    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%puntualInteractionEnergy, &
-!         arguments=["PUNTUALINTERACTIONENERGY"])
-!
-!    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-!    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
-!
-!    do i=1, numberOfSpecies
-!        nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
-!        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
-!
-!        arguments(2) = nameOfSpecie
-!        arguments(1) = "HCORE"
-!        HartreeFock_instance%HcoreMatrix  = &
-!                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-!                  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-!
-!        arguments(1) = "COEFFICIENTS"
-!        HartreeFock_instance%coefficientsofcombination = &
-!                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-!                  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-!
-!!         arguments(1) = "ORBITALS"
-!!         call Vector_getFromFile( elementsNum = numberOfContractions, &
-!!              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
-!!              output = eigenValues )
-!
-!
-!
-!    end do
 !
     integer :: numberOfContractionss,nopp,numberOfParticless,nocc,i
-!!*
-!	 do i=1, MolecularSystem_getNumberOfQuantumSpecies()
-!!*
-!    numberOfContractionss = MolecularSystem_getTotalNumberOfContractions( i )
-!!*
-!     numberOfParticless = MolecularSystem_getNumberOfParticles(i)
-!!*
-!    nopp=numberOfParticless
-!    nocc=numberOfContractionss
-!!*
-!!*
-!!*
-!    if (allocated(CoupledCluster_instance%Tstest)) deallocate(CoupledCluster_instance%Tstest)
-!    allocate(CoupledCluster_instance%Tstest(nocc-nopp,nopp)) ! 01f
-!!*
-!!*
-!!*    if (allocated(CoupledCluster_instance%Ts)) deallocate(CoupledCluster_instance%Ts)
-!!*    allocate(CoupledCluster_instance%Ts(nocc-nopp,nopp)) ! 01f
-!!*
- !   CoupledCluster_instance%Tstest = 136
-!!*
-!    end do
 
+    CCD_instance%isInstanced=.true.
+    CCD_instance%level=level
 
-    CoupledCluster_instance%isInstanced=.true.
-    CoupledCluster_instance%level=level
-
-! Not necessary... maybe    
-!    CoupledCluster_instance%numberOfCouplings=0
-
-!    call Vector_constructor (CoupledCluster_instance%numberOfOccupiedOrbitals, numberOfSpecies)
-!    call Vector_constructor (CoupledCluster_instance%numberOfOrbitals, numberOfSpecies)
-!    call Vector_constructor (CoupledCluster_instance%lambda, numberOfSpecies)
-
-!    do i=1, numberOfSpecies
-       !! We are working in spin orbitals not in spatial orbitals!
-!       CoupledCluster_instance%lambda%values(i) = MolecularSystem_getLambda( i )
-!       CoupledCluster_instance%numberOfOccupiedOrbitals%values(i)=MolecularSystem_getOcupationNumber( i )* CoupledCluster_instance%lambda%values(i)
-!       CoupledCluster_instance%numberOfOrbitals%values(i)=MolecularSystem_getTotalNumberOfContractions( i )* CoupledCluster_instance%lambda%values(i)
-       !!Uneven occupation number = alpha
-       !!Even occupation number = beta     
-!    end do
-
-!    close(wfnUnit)
-
-  end subroutine CoupledCluster_constructor
+  end subroutine CCD_constructor
 
 
   !>
@@ -202,39 +106,39 @@ contains
   !!
   !! @param this
   !<
-  subroutine CoupledCluster_destructor()
+  subroutine CCD_destructor()
     implicit none
 
-    CoupledCluster_instance%isInstanced=.false.
+    CCD_instance%isInstanced=.false.
 
-  end subroutine CoupledCluster_destructor
+  end subroutine CCD_destructor
 
   !>
   !! @brief Muestra informacion del objeto
   !!
   !! @param this 
   !<
-  subroutine CoupledCluster_show()
+  subroutine CCD_show()
     implicit none
-    type(CoupledCluster) :: this
+    type(CCD) :: this
     integer :: i,j,k,l
     integer :: numberOfSpecies
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
  
-    if ( CoupledCluster_instance%isInstanced ) then
+    if ( CCD_instance%isInstanced ) then
 
        print *,""
        print *," POST HARTREE-FOCK CALCULATION"
        print *," COUPLED CLUSTER THEORY:"
        print *,"=============================="
        print *,""
-       write (6,"(T10,A30, A5)") "LEVEL = ", CoupledCluster_instance%level
-       write (6,"(T10,A30, F20.12)") "HF ENERGY = ", HartreeFock_instance%totalEnergy
-       write (6,"(T10,A30, F20.12)") "MP2 CORR. ENERGY = ", CoupledCluster_instance%secondOrderCorrection
-       write (6,"(T10,A30, F20.12)") "CCSD CORR. ENERGY = ", CoupledCluster_instance%ccsdCorrection
+       write (6,"(T10,A30, A5)") "LEVEL = ", CCD_instance%level
+       write (6,"(T10,A30, F20.12)") "HF ENERGY = ", HartreeFockD_instance%totalEnergy
+       write (6,"(T10,A30, F20.12)") "MP2 CORR. ENERGY = ", CCD_instance%secondOrderCorrection
+       write (6,"(T10,A30, F20.12)") "CCD CORR. ENERGY = ", CCD_instance%ccsdCorrection
        write (6,"(T10,A30, F20.12)") "============================================================"
-       write (6,"(T10,A30, F20.12)") "Total Energy (HF+CCSD) = ", HartreeFock_instance%totalEnergy+CoupledCluster_instance%ccsdCorrection
+       write (6,"(T10,A30, F20.12)") "Total Energy (HF+CCD) = ", HartreeFockD_instance%totalEnergy+CCD_instance%ccsdCorrection
     
 
 	if ( numberOfSpecies > 1 ) then
@@ -254,24 +158,24 @@ contains
                                    k=k+1
                                    write (*,'(T10,A30,A8,A4,ES16.8)') "MP2 Corr.{", &
                                              trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
-					"} = ", CoupledCluster_instance%mp2Coupling%values(k)
-                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
+					"} = ", CCD_instance%mp2Coupling%values(k)
+                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCD Corr.{", &
                                              trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( i ) ), &
-					"} = ",  CoupledCluster_instance%coupledClusterSDCorrection%values( i )
-                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
+					"} = ",  CCD_instance%coupledClusterSDCorrection%values( i )
+                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCD Corr.{", &
                                              trim(  MolecularSystem_getNameOfSpecie( j ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
-					"} = ",  CoupledCluster_instance%coupledClusterSDCorrection%values( j )
-                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCSD Corr.{", &
+					"} = ",  CCD_instance%coupledClusterSDCorrection%values( j )
+                                   write (*,'(T10,A30,A8,A4,ES16.8)') "CCD Corr.{", &
                                              trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
-					"} = ", CoupledCluster_instance%ccsdTwoParticlesCorrection
+					"} = ", CCD_instance%ccsdTwoParticlesCorrection
                          end do
                     end do
 
        print *,""
        print *,""
 				   write (6,'(T10,A30,F20.8)') "========================================================="
-				   write (6,'(T10,A30,F20.8)') "MP2 Total Energy = ", HartreeFock_instance%totalEnergy+CoupledCluster_instance%secondOrderCorrection+CoupledCluster_instance%mp2Coupling%values 
-				   write (6,'(T10,A30,F20.8)') "CCSD Total Energy = ", HartreeFock_instance%totalEnergy+CoupledCluster_instance%ccsdCorrection+CoupledCluster_instance%ccsdTwoParticlesCorrection 
+				   write (6,'(T10,A30,F20.8)') "MP2 Total Energy = ", HartreeFockD_instance%totalEnergy+CCD_instance%secondOrderCorrection+CCD_instance%mp2Coupling%values 
+				   write (6,'(T10,A30,F20.8)') "CCD Total Energy = ", HartreeFockD_instance%totalEnergy+CCD_instance%ccsdCorrection+CCD_instance%ccsdTwoParticlesCorrection 
 
 	end if
 
@@ -279,23 +183,22 @@ contains
 
     end if
 
-  end subroutine CoupledCluster_show
+  end subroutine CCD_show
 
   !>
   !! @brief Muestra informacion del objeto
   !!
   !! @param this 
   !<
-  subroutine CoupledCluster_run()
+  subroutine CCD_run()
     implicit none 
     integer :: m
     real(8), allocatable :: eigenValues(:) 
 
-
        print *, ""
        print *, ""
        print *, "==============================================="
-       print *, "|            BEGIN CCSD CALCULATION           |"
+       print *, "|            BEGIN CCD CALCULATION           |"
        print *, "-----------------------------------------------"
        print *, ""
 
@@ -304,38 +207,37 @@ contains
 	print *, " |------------------------------------------------|"
 	print *, " |Iteration of Coupled Cluster intermediates . . .|"
 	print *, " |------------------------------------------------|"
-	print *, " |Computing CCSD Energy...                        |"
+	print *, " |Computing CCD Energy...                        |"
 	print *, " |________________________________________________|"
 	print *, ""
 	print *, "Patience is not the ability to wait, but the ability to keep a good attitude while waiting... Or just destroy the computer."
 
-	call CoupledCluster_iterateIntermediates_SameSpecies()
+	call CCD_iterateIntermediates_SameSpecies()
 	
-  print *, "mi variable copartida Ts",  CoupledCluster_instance%Tstest(1,1) 
-  print *, "mi variable copartida Td",  CoupledCluster_instance%Tdtest(1,1,1,1) 
-  print *, "mi variable copartida Wmbej",  CoupledCluster_instance%Wmbejtest(1,1,1,1) 
+  print *, "mi variable copartida Ts",  CCD_instance%Tstest(1,1) 
+  print *, "mi variable copartida Td",  CCD_instance%Tdtest(1,1,1,1) 
+  print *, "mi variable copartida Wmbej",  CCD_instance%Wmbejtest(1,1,1,1) 
 
-   call CoupledCluster_iterateIntermediates_DiffSpecies()
+   call CCD_iterateIntermediates_DiffSpecies()
  
-  print *, "mi variable copartida Ts",  CoupledCluster_instance%Tstest(1,1) *2
-  print *, "mi variable copartida Td",  CoupledCluster_instance%Tdtest(1,1,1,1) *2
-  print *, "mi variable copartida Wmbej",  CoupledCluster_instance%Wmbejtest(1,1,1,1) *2
+  print *, "mi variable copartida Ts",  CCD_instance%Tstest(1,1) *2
+  print *, "mi variable copartida Td",  CCD_instance%Tdtest(1,1,1,1) *2
+  print *, "mi variable copartida Wmbej",  CCD_instance%Wmbejtest(1,1,1,1) *2
 
        print *,""
        print *, "-----------------------------------------------"
-       print *, "|              END CCSD CALCULATION           |"
+       print *, "|              END CCD CALCULATION           |"
        print *, "==============================================="
        print *, ""
+         
 
-
-
-  end subroutine CoupledCluster_run
+  end subroutine CCD_run
 
  !>
   !! @brief Calculation of the intermediates
   !!
   !<
- subroutine CoupledCluster_iterateIntermediates_SameSpecies()
+ subroutine CCD_iterateIntermediates_SameSpecies()
    implicit none
 
    integer :: numberOfSpecies
@@ -410,9 +312,9 @@ contains
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
     !! Load results...
-    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%totalEnergy, &
+    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFockD_instance%totalEnergy, &
          arguments=["TOTALENERGY"])
-    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%puntualInteractionEnergy, &
+    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFockD_instance%puntualInteractionEnergy, &
          arguments=["PUNTUALINTERACTIONENERGY"])
 
 
@@ -420,7 +322,7 @@ contains
 
 
 !!******************************************************************************************************************************
-!! Begin CCSD calculation same specie. 
+!! Begin CCD calculation same specie. 
 !!******************************************************************************************************************************
 
 
@@ -469,8 +371,8 @@ contains
 	! Inital guess for T2, initial guess for the cluster amplitudes are the Moller-Plesset first-order perturbed wave function.
 	! t_i^a=0 ; t_{ij}^{ab}= <ij||ab>/(E_i + E_j - E_a - E_b)
 
-	call Vector_constructor( CoupledCluster_instance%coupledClusterSDCorrection, numberOfSpecies)
-	call Vector_constructor( CoupledCluster_instance%energyCorrectionOfSecondOrder, numberOfSpecies)
+	call Vector_constructor( CCD_instance%coupledClusterSDCorrection, numberOfSpecies)
+	call Vector_constructor( CCD_instance%energyCorrectionOfSecondOrder, numberOfSpecies)
    
    !! Aqui empieza MP2
 
@@ -533,11 +435,11 @@ contains
 
 		end do
 
-                CoupledCluster_instance%energyCorrectionOfSecondOrder%values(speciesID) = independentEnergyCorrection &
+                CCD_instance%energyCorrectionOfSecondOrder%values(speciesID) = independentEnergyCorrection &
                         * ( ( MolecularSystem_getCharge( speciesID ) )**4.0_8 )
 
 		!! Suma las correcciones de energia para especies independientes
-		CoupledCluster_instance%secondOrderCorrection = sum( CoupledCluster_instance%energyCorrectionOfSecondOrder%values ) !MP2 Corr. Energy
+		CCD_instance%secondOrderCorrection = sum( CCD_instance%energyCorrectionOfSecondOrder%values ) !MP2 Corr. Energy
 
 
 !!! From scratch...
@@ -580,26 +482,21 @@ contains
 
 !variables compartidas
 
-    if (allocated(CoupledCluster_instance%Tstest)) deallocate(CoupledCluster_instance%Tstest)
-    allocate(CoupledCluster_instance%Tstest(noc-nop,nop)) ! 01f
-    CoupledCluster_instance%Tstest(:,:) = 0.0_8
+    if (allocated(CCD_instance%Tstest)) deallocate(CCD_instance%Tstest)
+    allocate(CCD_instance%Tstest(noc-nop,nop)) ! 01f
+    CCD_instance%Tstest(:,:) = 0.0_8
 
 
-    if (allocated(CoupledCluster_instance%Tdtest)) deallocate(CoupledCluster_instance%Tdtest)
-    allocate(CoupledCluster_instance%Tdtest(noc-nop,noc-nop,nop,nop)) ! 01f
-    CoupledCluster_instance%Tdtest(:,:,:,:) = 0.0_8
+    if (allocated(CCD_instance%Tdtest)) deallocate(CCD_instance%Tdtest)
+    allocate(CCD_instance%Tdtest(noc-nop,noc-nop,nop,nop)) ! 01f
+    CCD_instance%Tdtest(:,:,:,:) = 0.0_8
 
 
-    if (allocated(CoupledCluster_instance%Wmbejtest)) deallocate(CoupledCluster_instance%Wmbejtest)
-    allocate(CoupledCluster_instance%Wmbejtest(nop,noc-nop,noc-nop,nop)) ! 01f
-    CoupledCluster_instance%Wmbejtest(:,:,:,:) = 0.0_8
+    if (allocated(CCD_instance%Wmbejtest)) deallocate(CCD_instance%Wmbejtest)
+    allocate(CCD_instance%Wmbejtest(nop,noc-nop,noc-nop,nop)) ! 01f
+    CCD_instance%Wmbejtest(:,:,:,:) = 0.0_8
 
 
-!   print *, "55555mi variable copartida ",  CoupledCluster_instance%Tstest(1,1) 
-
-! if (allocated(Ts)) deallocate (Ts)
-! allocate(Ts(noc-nop,nop))
-! Ts(:,:) = 0.0_8
  
 
         !! Td solo corre sobre virtual,virtual,ocupado,ocupado
@@ -626,18 +523,11 @@ contains
                         do i=1, numberOfParticles
                                 do j=1, numberOfParticles
 
-! 01 febrero 2016
 
-!CoupledCluster_instance%Tstest(:,:) = 0.0_8
-
-                                        CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
-                                        taus(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + 0.5*(CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j))
-                                        tau(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j)
-!! 22 de enero 2016
-                                !        Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
-                                !        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j))
-                                !        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + Ts(a-nop,i)*Ts(b-nop,j) - Ts(b-nop,i)*Ts(a-nop,j)
-!			                  write(*,*) Td(a,b,i,j), taus(a,b,i,j), tau(a,b,i,j)
+                                        CCD_instance%Tdtest(a-nop,b-nop,i,j) = CCD_instance%Tdtest(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
+                                        taus(a-nop,b-nop,i,j) = CCD_instance%Tdtest(a-nop,b-nop,i,j)
+                                        tau(a-nop,b-nop,i,j) = CCD_instance%Tdtest(a-nop,b-nop,i,j) 
+                                        
                                 end do
                         end do
                 end do
@@ -678,28 +568,19 @@ contains
 
 
 	if (allocated(Fae)) deallocate (Fae)
-!! 22 de enero 2016
-!!      allocate(Fae(numberOfContractions,numberOfContractions))
         allocate(Fae(noc-nop,noc-nop))
    Fae=0.0_8
 	if (allocated(Fmi)) deallocate (Fmi)
-!! 21-enero-2016
-!!      allocate(Fmi(numberOfContractions,numberOfContractions))
         allocate(Fmi(nop,nop))
 	Fmi=0.0_8
 	if (allocated(Fme)) deallocate (Fme)
-!!        allocate(Fme(numberOfContractions,numberOfContractions))
           allocate(Fme(nop,noc-nop))
    Fme=0.0_8
 
 	if (allocated(Wmnij)) deallocate (Wmnij)
-!! 21-enero-2016
-!!        allocate(Wmnij(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
         allocate(Wmnij(nop,nop,nop,nop))
 	Wmnij=0.0_8
 	if (allocated(Wabef)) deallocate (Wabef)
-!! 21-enero-2016
-!!        allocate(Wabef(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
         allocate(Wabef(noc-nop,noc-nop,noc-nop,noc-nop))
 	Wabef=0.0_8
 	if (allocated(Wmbej)) deallocate (Wmbej)
@@ -707,7 +588,6 @@ contains
 	Wmbej=0.0_8
 
 	if (allocated(TsNew)) deallocate (TsNew)
-!!	allocate(TsNew(numberOfContractions,numberOfContractions))
    allocate(TsNew(noc-nop,nop))
 	TsNew=0.0_8
 	if (allocated(TdNew)) deallocate (TdNew)
@@ -719,14 +599,10 @@ contains
 !!!! Intermediates
 
 	!! Equation 3
-! 27 de enero 2016 
 ! eq OK
 
 	do a=numberOfParticles+1, numberOfContractions
 		do e=numberOfParticles+1, numberOfContractions
-!! 27 de enero 2016
-! eq ok 
-!!       Fae(a-nop,e-nop) = (1 + (a==e))*Fs%values(a,e)
          if (a==e) then 
             kro = 1 
          else 
@@ -735,28 +611,21 @@ contains
          
          Fae(a-nop,e-nop) = (1 - kro)*Fs%values(a,e)
 			do m=1, numberOfParticles
-				Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + (-0.5*Fs%values(m,e)*CoupledCluster_instance%Tstest(a-nop,m))
 				do f=numberOfParticles+1, numberOfContractions
-					Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + CoupledCluster_instance%Tstest(f-nop,m)*spinints(m,a,f,e)
 					do n=1, numberOfParticles
 						Fae(a-nop,e-nop) = Fae(a-nop,e-nop) + (-0.5*taus(a-nop,f-nop,m,n)*spinints(m,n,e,f))
-!						write(*,*) a,e,Fae(a,e)
 					end do
 				end do
 			end do
+
 		end do
 	end do
 
-!	write(*,*) numberOfContractions
-!	write(*,*) Fae
 
 	!! Equation 4
 
 	do m=1, numberOfParticles
 		do i=1, numberOfParticles
-!! 27 de enero 2016
-! eq ok
-!!       Fmi(m,i) = (1 + (m==i))*Fs%values(m,i)
          if (m==i) then 
             kro = 1 
          else 
@@ -765,14 +634,13 @@ contains
          
          Fmi(m,i) = (1 - kro)*Fs%values(m,i)
 			do e=numberOfParticles+1, numberOfContractions
-				Fmi(m,i) = Fmi(m,i) + 0.5*CoupledCluster_instance%Tstest(e-nop,i)*Fs%values(m,e)
 				do n=1, numberOfParticles
-					Fmi(m,i) = Fmi(m,i) + CoupledCluster_instance%Tstest(e-nop,n)*spinints(m,n,i,e)
 					do f=numberOfParticles+1, numberOfContractions
 						Fmi(m,i) = Fmi(m,i) + 0.5*taus(e-nop,f-nop,i,n)*spinints(m,n,e,f)
 					end do
 				end do
 			end do
+
 		end do
 	end do
 
@@ -782,11 +650,6 @@ contains
 	do m=1, numberOfParticles
 		do e=numberOfParticles+1, numberOfContractions
 			Fme(m,e-nop) = Fs%values(m,e)
-			do n=1, numberOfParticles
-				do f=numberOfParticles+1, numberOfContractions
-				Fme(m,e-nop) = Fme(m,e-nop) + CoupledCluster_instance%Tstest(f-nop,n)*spinints(m,n,e,f)
-				end do
-			end do
 		end do
 	end do
 
@@ -798,7 +661,6 @@ contains
 				do j=1, numberOfParticles
 					Wmnij(m,n,i,j) = spinints(m,n,i,j)
 					do e=numberOfParticles+1, numberOfContractions
-						Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + (CoupledCluster_instance%Tstest(e-nop,j)*spinints(m,n,i,e)-CoupledCluster_instance%Tstest(e-nop,i)*spinints(m,n,j,e))
 						do f=numberOfParticles+1, numberOfContractions
 							Wmnij(m,n,i,j) = Wmnij(m,n,i,j) + 0.25*tau(e-nop,f-nop,i,j)*spinints(m,n,e,f)
 						end do
@@ -817,10 +679,10 @@ contains
 				do f=numberOfParticles+1, numberOfContractions
 					Wabef(a-nop,b-nop,e-nop,f-nop) = spinints(a,b,e,f)
 					do m=1, numberOfParticles
-						Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + (-CoupledCluster_instance%Tstest(b-nop,m)*spinints(a,m,e,f)+CoupledCluster_instance%Tstest(a-nop,m)*spinints(b,m,e,f))
-						do n=1, numberOfParticles
+	
+                  do n=1, numberOfParticles
 							Wabef(a-nop,b-nop,e-nop,f-nop) = Wabef(a-nop,b-nop,e-nop,f-nop) + 0.25*tau(a-nop,b-nop,m,n)*spinints(m,n,e,f)
-						end do
+				   	end do
 					end do
 				end do
 			end do
@@ -835,15 +697,10 @@ contains
 		do b=numberOfParticles+1, numberOfContractions
 			do e=numberOfParticles+1, numberOfContractions
 				do j=1, numberOfParticles
-					CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) = spinints(m,b,e,j)
-					do f=numberOfParticles+1, numberOfContractions
-						CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) = CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) + CoupledCluster_instance%Tstest(f-nop,j)*spinints(m,b,e,f)
-					end do
+					CCD_instance%Wmbejtest(m,b-nop,e-nop,j) = spinints(m,b,e,j)
 					do n=1, numberOfParticles
-!! 26 de enero 2016
-                   CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) = CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) + (-CoupledCluster_instance%Tstest(b-nop,n)*spinints(m,n,e,j))
 						do f=numberOfParticles+1, numberOfContractions
-							CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) = CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) + (-(0.5*CoupledCluster_instance%Tdtest(f-nop,b-nop,j,n)+CoupledCluster_instance%Tstest(f-nop,j)*CoupledCluster_instance%Tstest(b-nop,n))*spinints(m,n,e,f))
+							CCD_instance%Wmbejtest(m,b-nop,e-nop,j) = CCD_instance%Wmbejtest(m,b-nop,e-nop,j) + -(0.5*CCD_instance%Tdtest(f-nop,b-nop,j,n)*spinints(m,n,e,f))
 						end do
 					end do
 				end do
@@ -856,62 +713,24 @@ contains
 
 auxECCSD = 0.0_8
 
-	do i=1, numberOfParticles
+
 		do a=numberOfParticles+1, numberOfContractions
-			auxECCSD = auxECCSD + Fs%values(i,a)*CoupledCluster_instance%Tstest(a-nop,i)
-			do j=1, numberOfParticles
-				do b=numberOfParticles+1, numberOfContractions
-					auxECCSD = auxECCSD + (0.25*spinints(i,j,a,b)*CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j)+0.5*spinints(i,j,a,b)*CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j))
-		!			write(*,*) auxECCSD
+	      do i=1, numberOfParticles
+			    do j=i+1, numberOfParticles
+				    do b=a+1, numberOfContractions
+					    auxECCSD = auxECCSD + spinints(i,j,a,b)*CCD_instance%Tdtest(a-nop,b-nop,i,j) 
 				end do
 			end do
 		end do
 	end do
+
   ECCSD = auxECCSD
 	
   DECC = abs( ECCSD - OLDCC )
 
    write (*,*) speciesID 
    write (*,*) ECCSD 
-!  write(*,*) ECCSD, OLDCC, DECC
 
-!!!! Let's make T1 and T2 (the new ones) 
-
-
-    !! Equation 1
-	 !eq ok
-
-	do a=numberOfParticles+1, numberOfContractions
-		do i=1, numberOfParticles
-			TsNew(a-nop,i) = Fs%values(i,a)
-			do e=numberOfParticles+1, numberOfContractions
-				TsNew(a-nop,i) = TsNew(a-nop,i) + CoupledCluster_instance%Tstest(e-nop,i)*Fae(a-nop,e-nop)
-			end do
-			do m=1, numberOfParticles
-				TsNew(a-nop,i) = TsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(a-nop,m)*Fmi(m,i))
-				do e=numberOfParticles+1, numberOfContractions
-					TsNew(a-nop,i) = TsNew(a-nop,i) + CoupledCluster_instance%Tdtest(a-nop,e-nop,i,m)*Fme(m,e-nop)
-					do f=numberOfParticles+1, numberOfContractions
-						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*CoupledCluster_instance%Tdtest(e-nop,f-nop,i,m)*spinints(m,a,e,f))
-					end do
-					do n=1, numberOfParticles
-						TsNew(a-nop,i) = TsNew(a-nop,i) + (-0.5*CoupledCluster_instance%Tdtest(a-nop,e-nop,m,n)*spinints(n,m,e,i))
-					end do
-				end do
-			end do
-			do n=1,numberOfParticles
-				do f=numberOfParticles+1, numberOfContractions
-					TsNew(a-nop,i) = TsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(f-nop,n)*spinints(n,a,i,f))
-				end do
-			end do
-			TsNew(a-nop,i) = TsNew(a-nop,i)/Dai(a,i)
-			CoupledCluster_instance%Tstest(a-nop,i) = TsNew(a-nop,i)
-!			write(*,*) a,i,Ts(a,i),TsNew(a,i)
-		end do
-	end do
-
-!write (*,*) Ts(:,:)
-			
 
 	!! Equation 2
 
@@ -926,40 +745,41 @@ auxECCSD = 0.0_8
    ! 1er ciclo
                do e=numberOfParticles+1, numberOfContractions
 	
-                  TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (CoupledCluster_instance%Tdtest(a-nop,e-nop,i,j)*Fae(b-nop,e-nop)-CoupledCluster_instance%Tdtest(b-nop,e-nop,i,j)*Fae(a-nop,e-nop)) !B
-
-    					TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (CoupledCluster_instance%Tstest(e-nop,i)*spinints(a,b,e,j)-CoupledCluster_instance%Tstest(e-nop,j)*spinints(a,b,e,i)) !G
+                  TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (CCD_instance%Tdtest(a-nop,e-nop,i,j)*Fae(b-nop,e-nop)-CCD_instance%Tdtest(b-nop,e-nop,i,j)*Fae(a-nop,e-nop)) !B
 
 						do f=numberOfParticles+1, numberOfContractions
 							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + 0.5*tau(e-nop,f-nop,i,j)*Wabef(a-nop,b-nop,e-nop,f-nop) !D
 						end do
 
-						do m=1, numberOfParticles
-!! 27 de enero 2016
-!                      TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*Td(a-nop,e-nop,i,j)*Ts(b-nop,m)*Fme(m,e-nop)+0.5*Td(a-nop,e-nop,i,j)*Ts(a-nop,m)*Fme(m,e-nop)) !B'
-                      TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*CoupledCluster_instance%Tdtest(a-nop,e-nop,i,j)*CoupledCluster_instance%Tstest(b-nop,m)*Fme(m,e-nop)+0.5*CoupledCluster_instance%Tdtest(b-nop,e-nop,i,j)*CoupledCluster_instance%Tstest(a-nop,m)*Fme(m,e-nop)) !B'
-
-                  end do
 					end do
 	! 2do ciclo
                do m=1, numberOfParticles
-						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-CoupledCluster_instance%Tdtest(a-nop,b-nop,i,m)*Fmi(m,j)+CoupledCluster_instance%Tdtest(a-nop,b-nop,j,m)*Fmi(m,i)) !C
+						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-CCD_instance%Tdtest(a-nop,b-nop,i,m)*Fmi(m,j)+CCD_instance%Tdtest(a-nop,b-nop,j,m)*Fmi(m,i)) !C
 
-						TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-CoupledCluster_instance%Tstest(a-nop,m)*spinints(m,b,i,j)+CoupledCluster_instance%Tstest(b-nop,m)*spinints(m,a,i,j)) !H
 
 						do n=1, numberOfParticles
 							TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + 0.5*tau(a-nop,b-nop,m,n)*Wmnij(m,n,i,j) !E
 						end do
 
 						do e=numberOfParticles+1, numberOfContractions
-!! 27 de enero 2016
-!                    TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*Td(a-nop,b-nop,i,m)*Ts(e-nop,j)*Fme(m,e-nop)+0.5*Td(a-nop,b-nop,i,m)*Ts(e-nop,i)*Fme(m,e-nop)) !C'
-                    TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + (-0.5*CoupledCluster_instance%Tdtest(a-nop,b-nop,i,m)*CoupledCluster_instance%Tstest(e-nop,j)*Fme(m,e-nop)+0.5*CoupledCluster_instance%Tdtest(a-nop,b-nop,j,m)*CoupledCluster_instance%Tstest(e-nop,i)*Fme(m,e-nop)) !C'
 
-                  TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + CoupledCluster_instance%Tdtest(a-nop,e-nop,i,m)*CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,j) - CoupledCluster_instance%Tstest(e-nop,i)*CoupledCluster_instance%Tstest(a-nop,m)*spinints(m,b,e,j) + -CoupledCluster_instance%Tdtest(a-nop,e-nop,j,m)*CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,i) + CoupledCluster_instance%Tstest(e-nop,j)*CoupledCluster_instance%Tstest(a-nop,m)*spinints(m,b,e,i) + -CoupledCluster_instance%Tdtest(b-nop,e-nop,i,m)*CoupledCluster_instance%Wmbejtest(m,a-nop,e-nop,j) - CoupledCluster_instance%Tstest(e-nop,i)*CoupledCluster_instance%Tstest(b-nop,m)*spinints(m,a,e,j) + CoupledCluster_instance%Tdtest(b-nop,e-nop,j,m)*CoupledCluster_instance%Wmbejtest(m,a-nop,e-nop,i) - CoupledCluster_instance%Tstest(e-nop,j)*CoupledCluster_instance%Tstest(b-nop,m)*spinints(m,a,e,i) !F
+                  TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + CCD_instance%Tdtest(a-nop,e-nop,i,m)*CCD_instance%Wmbejtest(m,b-nop,e-nop,j) - CCD_instance%Tdtest(a-nop,e-nop,j,m)*CCD_instance%Wmbejtest(m,b-nop,e-nop,i) - CCD_instance%Tdtest(b-nop,e-nop,i,m)*CCD_instance%Wmbejtest(m,a-nop,e-nop,j) + CCD_instance%Tdtest(b-nop,e-nop,j,m)*CCD_instance%Wmbejtest(m,a-nop,e-nop,i)  !F
 
                   end do
 					end do
+
+
+!Nueva ecuacion
+!!***               do m=1, numberOfParticles
+!!***                  do n=1, numberOfParticles
+!!***                     do e=numberOfParticles+1, numberOfContractions
+!!***                        do f=numberOfParticles+1, numberOfContractions
+!!***                           TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j) + spinints(i,j,a,b)*(0.25*taus(e-nop,f-nop,i,j)*taus(a-nop,b-nop,m,n) - 0.5*(taus(a-nop,e-nop,i,j)*taus(b-nop,f-nop,m,n) + taus(b-nop,f-nop,i,j)*taus(a-nop,e-nop,m,n)) - 0.5*(taus(a-nop,b-nop,i,m)*taus(e-nop,f-nop,j,n) + taus(e-nop,f-nop,i,m)) + taus(a-nop,e-nop,i,m)*taus(b-nop,f-nop,j,n) + taus(b-nop,f-nop,i,m)*taus(a-nop,e-nop,j,n))
+!!***                        end do
+!!***                     end do
+!!***                  end do
+!!***              end do
+
 
 
 !!* Eq 13 Stanton
@@ -968,19 +788,18 @@ auxECCSD = 0.0_8
 !!!! Make denominator array Dabij     |   Dabij(a-nop,b-nop,i,j) = Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)
                
                TdNew(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b))
-               CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j)
-                                        taus(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + 0.5*(CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j))
-                                        tau(a-nop,b-nop,i,j) = CoupledCluster_instance%Tdtest(a-nop,b-nop,i,j) + CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j)
+               CCD_instance%Tdtest(a-nop,b-nop,i,j) = TdNew(a-nop,b-nop,i,j)
+                                        taus(a-nop,b-nop,i,j) = CCD_instance%Tdtest(a-nop,b-nop,i,j)
+                                        tau(a-nop,b-nop,i,j) = CCD_instance%Tdtest(a-nop,b-nop,i,j) 
 				end do
 			end do
 		end do
 	end do
 
 
-
 !!!! End New T1 and T2
 
-	CoupledCluster_instance%coupledClusterSDCorrection%values(speciesID) = ECCSD ! CCSD Correlation Energy
+	CCD_instance%coupledClusterSDCorrection%values(speciesID) = ECCSD ! CCD Correlation Energy
 
  end do !! Main Loop
 
@@ -992,8 +811,8 @@ auxECCSD = 0.0_8
  end do !! Species
 
 
-	call Vector_show (CoupledCluster_instance%coupledClusterSDCorrection)
-	CoupledCluster_instance%ccsdCorrection = sum( CoupledCluster_instance%coupledClusterSDCorrection%values ) !CCSD Corr. Energy
+	call Vector_show (CCD_instance%coupledClusterSDCorrection)
+	CCD_instance%ccsdCorrection = sum( CCD_instance%coupledClusterSDCorrection%values ) !CCD Corr. Energy
  
 ! 28 de enero 2016
 
@@ -1014,21 +833,21 @@ auxECCSD = 0.0_8
 	call Matrix_destructor (auxMatrix)
 
 !!*********************************************************************************************************************************
-!! End CCSD calculation same specie!
+!! End CCD calculation same specie!
 !!*********************************************************************************************************************************
 
    close(wfnUnit)
 
- end subroutine CoupledCluster_iterateIntermediates_SameSpecies
+ end subroutine CCD_iterateIntermediates_SameSpecies
 
 
 !!*********************************************************************************************************************************
-!! Begin CCSD calculation different species!
+!! Begin CCD calculation different species!
 !!*********************************************************************************************************************************
 
 
 
- subroutine CoupledCluster_iterateIntermediates_DiffSpecies()
+ subroutine CCD_iterateIntermediates_DiffSpecies()
    implicit none
 
    integer :: numberOfSpecies
@@ -1101,9 +920,9 @@ auxECCSD = 0.0_8
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
     !! Load results...
-    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%totalEnergy, &
+    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFockD_instance%totalEnergy, &
          arguments=["TOTALENERGY"])
-    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%puntualInteractionEnergy, &
+    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFockD_instance%puntualInteractionEnergy, &
          arguments=["PUNTUALINTERACTIONENERGY"])
 
 
@@ -1112,46 +931,46 @@ auxECCSD = 0.0_8
 
 !!**      !!!! Initial guesses T1 and T2
 !!**      
-!              if (allocated(Ts)) deallocate (Ts)
-!                allocate(Ts(noc-nop,nop))
-!              Ts(:,:) = 0.0_8
+              if (allocated(Ts)) deallocate (Ts)
+                allocate(Ts(noc-nop,nop))
+              Ts(:,:) = 0.0_8
 !!**              !! Td solo corre sobre virtual,virtual,ocupado,ocupado
-!      	if (allocated(TsNew)) deallocate (TsNew)
+      	if (allocated(TsNew)) deallocate (TsNew)
 !!**      !!	allocate(TsNew(numberOfContractions,numberOfContractions))
-!         allocate(TsNew(noc-nop,nop))
-!      	TsNew=0.0_8
+         allocate(TsNew(noc-nop,nop))
+      	TsNew=0.0_8
 
 
         !! Td solo corre sobre virtual,virtual,ocupado,ocupado
-!        if (allocated(Td)) deallocate (Td)
+        if (allocated(Td)) deallocate (Td)
  !! 22 de enero 2016
  !!      allocate(Td(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
-!        allocate(Td(noc-nop,noc-nop,nop,nop))
-!        Td(:,:,:,:) = 0.0_8
+        allocate(Td(noc-nop,noc-nop,nop,nop))
+        Td(:,:,:,:) = 0.0_8
 
- !       if (allocated(taus)) deallocate (taus)
+        if (allocated(taus)) deallocate (taus)
 !! 22 enero 2016 
 !!      allocate(taus(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
-!        allocate(taus(noc-nop,noc-nop,nop,nop))
-!        taus(:,:,:,:) = 0.0_8
+        allocate(taus(noc-nop,noc-nop,nop,nop))
+        taus(:,:,:,:) = 0.0_8
 
-!        if (allocated(tau)) deallocate (tau)
+        if (allocated(tau)) deallocate (tau)
 !! 22 enero 2016
 !!      allocate(tau(numberOfContractions,numberOfContractions,numberOfContractions,numberOfContractions))
-!        allocate(tau(noc-nop,noc-nop,nop,nop))
-!        tau(:,:,:,:) = 0.0_8
+        allocate(tau(noc-nop,noc-nop,nop,nop))
+        tau(:,:,:,:) = 0.0_8
 
 !  29 de enero 2016
 
-!	if (allocated(Wmbej)) deallocate (Wmbej)
-!        allocate(Wmbej(nop,noc-nop,noc-nop,nop))
-!	Wmbej=0.0_8
+	if (allocated(Wmbej)) deallocate (Wmbej)
+        allocate(Wmbej(nop,noc-nop,noc-nop,nop))
+	Wmbej=0.0_8
 
 
-!CoupledCluster_instance%Tstest(:,:) = 5*5
+!CCD_instance%Tstest(:,:) = 5*5
 
 
- !  print *, "55555mi variable copartida ",  CoupledCluster_instance%Tstest(1,1) 
+ !  print *, "55555mi variable copartida ",  CCD_instance%Tstest(1,1) 
 !01 de febrero 2016
 
 !        do a=numberOfParticles+1, numberOfContractions
@@ -1164,8 +983,8 @@ auxECCSD = 0.0_8
 
 !                                        Td(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + (spinints(i,j,a,b)/(Fs%values(i,i)+Fs%values(j,j)-Fs%values(a,a)-Fs%values(b,b)))
                  !! 22 de enero 2016     
-!                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j))
-!                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + CoupledCluster_instance%Tstest(a-nop,i)*CoupledCluster_instance%Tstest(b-nop,j) - CoupledCluster_instance%Tstest(b-nop,i)*CoupledCluster_instance%Tstest(a-nop,j)
+!                                        taus(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + 0.5*(CCD_instance%Tstest(a-nop,i)*CCD_instance%Tstest(b-nop,j) - CCD_instance%Tstest(b-nop,i)*CCD_instance%Tstest(a-nop,j))
+!                                        tau(a-nop,b-nop,i,j) = Td(a-nop,b-nop,i,j) + CCD_instance%Tstest(a-nop,i)*CCD_instance%Tstest(b-nop,j) - CCD_instance%Tstest(b-nop,i)*CCD_instance%Tstest(a-nop,j)
 !			                  write(*,*) Td(a,b,i,j), taus(a,b,i,j), tau(a,b,i,j)
 !                                end do
 !                        end do
@@ -1191,10 +1010,10 @@ auxECCSD = 0.0_8
 !!**      		do i=1, numberOfParticles
 !!**      			TsNew(a-nop,i) = Fs%values(i,a)
 !!**      			do e=numberOfParticles+1, numberOfContractions
-!!**      				TsNew(a-nop,i) = TsNew(a-nop,i) + CoupledCluster_instance%Tstest(e-nop,i)*Fae(a-nop,e-nop)
+!!**      				TsNew(a-nop,i) = TsNew(a-nop,i) + CCD_instance%Tstest(e-nop,i)*Fae(a-nop,e-nop)
 !!**      			end do
 !!**      			do m=1, numberOfParticles
-!!**      				TsNew(a-nop,i) = TsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(a-nop,m)*Fmi(m,i))
+!!**      				TsNew(a-nop,i) = TsNew(a-nop,i) + (-CCD_instance%Tstest(a-nop,m)*Fmi(m,i))
 !!**      				do e=numberOfParticles+1, numberOfContractions
 !!**      					TsNew(a-nop,i) = TsNew(a-nop,i) + Td(a-nop,e-nop,i,m)*Fme(m,e-nop)
 !!**      					do f=numberOfParticles+1, numberOfContractions
@@ -1207,7 +1026,7 @@ auxECCSD = 0.0_8
 !!**      			end do
 !!**      			do n=1,numberOfParticles
 !!**      				do f=numberOfParticles+1, numberOfContractions
-!!**      					TsNew(a-nop,i) = TsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(f-nop,n)*spinints(n,a,i,f))
+!!**      					TsNew(a-nop,i) = TsNew(a-nop,i) + (-CCD_instance%Tstest(f-nop,n)*spinints(n,a,i,f))
 !!**      				end do
 !!**      			end do
 !!**      			TsNew(a-nop,i) = TsNew(a-nop,i)/Dai(a,i)
@@ -1234,13 +1053,13 @@ print *, " |------------------------------------------------|"
 
 
 
-!   CoupledCluster_instance%Tstest = 136 * 100
+!   CCD_instance%Tstest = 136 * 100
 
-!   print *, "mi variable copartida *100 ",  CoupledCluster_instance%Tstest(1,1) 
+!   print *, "mi variable copartida *100 ",  CCD_instance%Tstest(1,1) 
 
 f = numberOfSpecies * ( numberOfSpecies-1 ) / 2
 
-call Vector_constructor( CoupledCluster_instance%mp2Coupling, f)
+call Vector_constructor( CCD_instance%mp2Coupling, f)
 call Vector_constructor( coupledClusterValue, numberOfSpecies)
 
   do i=1, numberOfSpecies
@@ -1310,7 +1129,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
            end do
         end do
 
-        CoupledCluster_instance%mp2Coupling%values(mmm)= ( lambda * lambdaOfOtherSpecie * mp2CouplingCorrection )
+        CCD_instance%mp2Coupling%values(mmm)= ( lambda * lambdaOfOtherSpecie * mp2CouplingCorrection )
 
 !end do !!! Number Of Species
 !end do !!! 
@@ -1454,9 +1273,6 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
         allocate(auxtau(noc-nop,nocs-nops,nop,nops))
         auxtau(:,:,:,:) = 0.0_8
 
-
-
-
 !        do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 !                do b=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
 !                        do ii=1, numberOfOtherSpecieParticles
@@ -1482,8 +1298,8 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
                         do ii=1, numberOfParticles
                                 do iii=1, numberOfOtherSpecieParticles
                                         auxTd(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + (auxspinints(ii,iii,aa,aaa)/(Fs%values(ii,ii)+otherFs%values(iii,iii)-Fs%values(aa,aa)-otherFs%values(aaa,aaa)))
-                                        auxtaus(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + 0.5*(CoupledCluster_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii)) ! Eliminated crossed t1 terms
-                                        auxtau(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + CoupledCluster_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii) ! same here
+                                        auxtaus(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + 0.5*(CCD_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii)) ! Eliminated crossed t1 terms
+                                        auxtau(aa-nop,aaa-nops,ii,iii) = auxTd(aa-nop,aaa-nops,ii,iii) + CCD_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii) ! same here
 !			                  write(*,*) auxTd(aa,aaa,ii,iii)
                                 end do
                         end do
@@ -1584,10 +1400,6 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
  !!!! End Denominators
 
 
-
-
-
-
 !!! Loop
 
   auxECCSD = 0.0_8
@@ -1631,17 +1443,15 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !        TdNew=0.0_8
 !
 !!
-
-
-        if (allocated(auxFae)) deallocate (auxFae)
-        allocate(auxFae(noc,nocs))
-        auxFae=0.0_8
-        if (allocated(auxFmi)) deallocate (auxFmi)
-        allocate(auxFmi(nops,nops))
-        auxFmi=0.0_8
-        if (allocated(otherFme)) deallocate (otherFme)
-        allocate(otherFme(nops,nocs-nops))
-        otherFme=0.0_8
+!        if (allocated(auxFae)) deallocate (auxFae)
+!        allocate(auxFae(numberOfContractions,numberOfContractionsOfOtherSpecie))
+!        auxFae=0.0_8
+!        if (allocated(auxFmi)) deallocate (auxFmi)
+!        allocate(auxFmi(numberOfContractions,numberOfContractionsOfOtherSpecie))
+!        auxFmi=0.0_8
+!        if (allocated(auxFme)) deallocate (auxFme)
+!        allocate(auxFme(numberOfContractions,numberOfContractionsOfOtherSpecie))
+!        auxFme=0.0_8
 
         if (allocated(auxWmnij)) deallocate (auxWmnij)
 !! 25 de enero 2016
@@ -1659,9 +1469,9 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
         allocate(auxWmbej(nop,nocs-nops,noc-nop,nops))
         auxWmbej=0.0_8
 
-        if (allocated(auxTsNew)) deallocate (auxTsNew)
-        allocate(auxTsNew(numberOfContractions,numberOfContractionsOfOtherSpecie))
-        auxTsNew=0.0_8
+!        if (allocated(auxTsNew)) deallocate (auxTsNew)
+!        allocate(auxTsNew(numberOfContractions,numberOfContractionsOfOtherSpecie))
+!        auxTsNew=0.0_8
         if (allocated(auxTdNew)) deallocate (auxTdNew)
 !! 25 de enero 2016
 !!      allocate(auxTdNew(numberOfContractions,numberOfContractionsOfOtherSpecie,numberOfContractions,numberOfContractionsOfOtherSpecie))
@@ -1669,50 +1479,36 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
         auxTdNew=0.0_8
 
 
-
-
-
 	!! Equation 3
 
-! 02 de febrero 2016 
-
-	do a=nops+1, nocs
-		do e=nops+1, nocs
- 
-!Termino de misma especie ya está descrito en intraespecie 
-!!         if (B==E) then 
-!!            kro = 1 
-!!         else 
-!!            kro = 0 
-!!         end if
-!!         
-!!         auxFae(B-nops,E-nops) = (1 - kro)*otherFs%values(A,E)
-		
-         do m=1, numberOfParticles
-!Termino de misma especie ya está descrito en intraespecie
-!				auxFae(B-nops,E-nops) = auxFae(B-nops,E-nops) + (-0.5*otherFs%values(M,E)*CoupledCluster_instance%Tstest(B-nops,M))
-				do f=numberOfParticles+1, numberOfContractions
-					auxFae(a-nops,e-nops) = auxFae(a-nops,e-nops) + CoupledCluster_instance%Tstest(f-nop,m)*auxspinints(m,a,f,e)
-            end do
-         end do
-         do m=1, nops
-            do n=1, numberOfParticles
-               do f=numberOfParticles+1, numberOfContractions
-                 ! Tau puede presentarse de dos formas:  t_(Mn)´(Bf) = t_(nM)´(fB) 
-						auxFae(a-nops,e-nops) = auxFae(a-nops,e-nops) + (-0.5*auxtaus(f-nop,a-nops,n,m)*auxspinints(n,m,f,e))
-!						write(*,*) a,e,Fae(a,e)
-					end do
-				end do
-			end do
-
-		end do
-	end do
-
-
-  print *, "Variable F(BE)",  auxFae(1,1) 
-
-
-
+!	do a=numberOfParticles+1, numberOfContractions
+!		do e=numberOfParticles+1, numberOfContractions
+!			do aa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!				do ee=numberOfParticles+1, numberOfContractions
+!				auxFae(a,e) = (1 + (a==e))*Fs%values(a,e)
+!				auxFae(a,e) = auxFae(a,e) + (1 + (a==e))*otherFs%values(aa,ee)
+!					do m=1, numberOfParticles
+!					do mm=1, numberOfOtherSpecieParticles
+!						auxFae(a,e) = auxFae(a,e) + (-0.5*Fs%values(m,e)*Ts(a,m))
+!						auxFae(a,e) = auxFae(a,e) + (-0.5*otherFs%values(mm,ee)*otherTs(aa,mm))
+!						do f=numberOfParticles+1, numberOfContractions
+!						do fff=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
+!							auxFae(a,e) = auxFae(a,e) + Ts(f,m)*spinints(m,a,f,e)
+!							auxFae(a,e) = auxFae(a,e) + otherTs(fff,mm)*otherspinints(mm,aa,fff,ee)
+!							do n=1, numberOfParticles
+!							do nn=1, numberOfOtherSpecieParticles
+!								auxFae(a,e) = auxFae(a,e) + (-0.5*taus(a,f,m,n)*spinints(m,n,e,f))
+!								auxFae(a,e) = auxFae(a,e) + (-0.5*othertaus(aa,fff,mm,nn)*otherspinints(mm,nn,ee,fff))
+!							end do
+!							end do
+!						end do
+!						end do
+!					end do
+!					end do
+!				end do
+!			end do
+!		end do
+!	end do
 !	write(*,*) auxFae
 !
 !        do a=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
@@ -1733,36 +1529,6 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 
 	!! Equation 4
 
-! 03 de febrero
-	do m=1, nops
-		do ii=1, nops
-
-!Termino de misma especie ya está descrito en intraespecie 
-!!**         if (m==i) then 
-!!**            kro = 1 
-!!**         else 
-!!**            kro = 0 
-!!**         end if
-!!**         
-!!**         Fmi(m,i) = (1 - kro)*Fs%values(m,i)
-!!**         do e=nops+1, nocs
-!!**            auxFmi(m,i) = auxFmi(m,i) - 0.5*otherTs(e-nops,m)*otherFs%values(m,i)
-!!**         end do
-			do e=numberOfParticles+1, numberOfContractions
-				do n=1, numberOfParticles
-				auxFmi(m,ii) = auxFmi(m,ii) + CoupledCluster_instance%Tstest(e-nop,n)*auxspinints(n,m,e,i)
-            end do
-         end do
-         do n=1, numberOfParticles
-   		   do e=nops+1, nocs
-      		   do f=numberOfParticles+1, numberOfContractions
-						auxFmi(m,ii) = auxFmi(m,ii) + 0.5*auxtaus(f-nop,e-nops,n,ii)*auxspinints(n,m,f,e)
-				   end do
-			   end do
-		   end do
-         
-		end do
-	end do
 
 	
 !
@@ -1813,26 +1579,6 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !
 	!! Equation 5
 
-
-	!! Equation 5
-! eq ok
-	do m=1, nops
-		do e=nops+1, nocs
-!   Esta parte de la diagonalización ya está descrita en intraespecie  
-!			otherFme(m,e-nops) = otherFs%values(m,e)
-			do n=1, numberOfParticles
-				do f=numberOfParticles+1, numberOfContractions
-				otherFme(m,e-nops) = otherFme(m,e-nops) + CoupledCluster_instance%Tstest(f-nop,n)*auxspinints(n,m,f,e)
-				end do
-			end do
-		end do
-	end do
-
-
-
-  print *, "Variable F(ME)",  otherFme(1,1) 
-
-
 !	do m=1, numberOfParticles
 !		do e=numberOfParticles+1, numberOfContractions
 !			Fme(m,e) = Fs%values(m,e)
@@ -1876,6 +1622,30 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
 !*	end do
 
 
+
+
+!! Equation 8 electronica
+! eq ok
+
+!!**  	do m=1, numberOfParticles
+!!**  		do b=numberOfParticles+1, numberOfContractions
+!!**  			do e=numberOfParticles+1, numberOfContractions
+!!**  				do jj=1, numberOfParticles
+!!**  					Wmbej(m,b-nop,e-nop,jj) = spinints(m,b,e,jj)
+!!**  					do f=numberOfParticles+1, numberOfContractions
+!!**  						Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + Ts(f-nop,jj)*spinints(m,b,e,f)
+!!**  					end do
+!!**  					do n=1, numberOfParticles
+!!**  !! 26 de enero 2016
+!!**                     Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-Ts(b-nop,n)*spinints(m,n,e,jj))
+!!**  						do f=numberOfParticles+1, numberOfContractions
+!!**  							Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-(0.5*Td(f-nop,b-nop,jj,n)+Ts(f-nop,jj)*Ts(b-nop,n))*spinints(m,n,e,f))
+!!**  						end do
+!!**  					end do
+!!**  				end do
+!!**  			end do
+!!**  		end do
+!!**  	end do
 
 
 !! Eq 6
@@ -2021,7 +1791,7 @@ call Vector_constructor( coupledClusterValue, numberOfSpecies)
                  do aa=numberOfParticles+1, numberOfContractions
                          do iii=1, numberOfOtherSpecieParticles
                                  do aaa=numberOfOtherSpecieParticles+1, numberOfContractionsOfOtherSpecie
-                                         auxECCSD = auxECCSD + (auxspinints(ii,iii,aa,aaa)*auxTd(aa-nop,aaa-nops,ii,iii)+auxspinints(ii,iii,aa,aaa)*CoupledCluster_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii)) ! 0.25 y 0.5
+                                         auxECCSD = auxECCSD + (auxspinints(ii,iii,aa,aaa)*auxTd(aa-nop,aaa-nops,ii,iii)+auxspinints(ii,iii,aa,aaa)*CCD_instance%Tstest(aa-nop,ii)*otherTs(aaa-nops,iii)) ! 0.25 y 0.5
                                  end do
                          end do
                  end do
@@ -2075,47 +1845,6 @@ write(*,*) i,j,auxECCSD
 !
 !!write (*,*) Ts(:,:)
 !			
-
-    !! Equation 1
-
-
-	do a=nops+1, nocs
-		do ii=1, numberOfParticles
-!terminos ya descritos en intraespecie      
-!			auxTsNew(a-nop,i) = otherFs%values(i,a)
-!				TsNew(a-nop,i) = TsNew(a-nop,i) + CoupledCluster_instance%Tstest(e-nop,i)*Fae(a-nop,e-nop)
-
-			do n=1,nop
-            do f=nop+1, noc
-               auxTsNew(a-nops,ii) = auxTsNew(a-nops,ii) -CoupledCluster_instance%Tstest(f-nop,n)*auxspinints(n,a,f,ii)
-               end do
-         end do
-
-			do m=1, numberOfParticles
-!				auxTsNew(a-nop,i) = auxTsNew(a-nop,i) + (-CoupledCluster_instance%Tstest(a-nop,m)*Fmi(m,i))
-				do e=nops+1, nocs
-!					TsNew(a-nop,i) = TsNew(a-nop,i) + CoupledCluster_instance%Tdtest(a-nop,e-nop,i,m)*Fme(m,e-nop)
-					do f=numberOfParticles+1, numberOfContractions   !! 03 de febrero 2016
-						auxTsNew(a-nop,ii) = auxTsNew(a-nop,ii) + (-0.5*CoupledCluster_instance%Tdtest(e-nop,f-nop,ii,m)*spinints(m,a,e,f))
-					end do
-					do n=1, numberOfParticles
-						TsNew(a-nop,ii) = TsNew(a-nop,ii) + (-0.5*CoupledCluster_instance%Tdtest(a-nop,e-nop,m,n)*spinints(n,m,e,ii))
-					end do
-				end do
-			end do
-			do n=1,numberOfParticles
-				do f=numberOfParticles+1, numberOfContractions
-					TsNew(a-nop,ii) = TsNew(a-nop,ii) + (-CoupledCluster_instance%Tstest(f-nop,n)*spinints(n,a,ii,f))
-				end do
-			end do
-			TsNew(a-nop,ii) = TsNew(a-nop,ii)/Dai(a,ii)
-			CoupledCluster_instance%Tstest(a-nop,ii) = TsNew(a-nop,ii)
-!			write(*,*) a,i,Ts(a,i),TsNew(a,i)
-		end do
-	end do
-
-
-
 	!! Equation 2
 
 	
@@ -2144,7 +1873,7 @@ write(*,*) i,j,auxECCSD
 					end do
 					do m=1, numberOfParticles
 
-                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - CoupledCluster_instance%Tstest(a-nop,m)*auxspinints(m,b,ii,jj) ! termino 10
+                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - CCD_instance%Tstest(a-nop,m)*auxspinints(m,b,ii,jj) ! termino 10
 
 !						auxTdNew(a,b,ii,jj) = auxTdNew(a,b,ii,jj) + (-Ts(a,m)*spinints(m,b,ii,jj)+Ts(b,m)*spinints(m,a,ii,jj))
 !						do e=numberOfParticles+1, numberOfContractions
@@ -2154,38 +1883,23 @@ write(*,*) i,j,auxECCSD
 							auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + 0.5*auxtau(a-nop,b-nops,m,n)*auxWmnij(m,n,ii,jj)  ! termino 4
 						end do
 					end do
-    
-      !! 02 febrero
-
-
-               do e=nops+1, nocs
-                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxTd(a-nop,e-nops,ii,jj)*auxFae(b-nops,e-nops)    ! parte 1 termino 2
-                  do m=1, nops
-                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + (-0.5*(otherTs(b-nops,m)*otherFme(m,e-nops)))     ! parte 2 termino 2
-                  
-                  end do
-               end do
-
-
-
-
        !! 29 de enero 2016
                do m=1, numberOfParticles
                   do e=numberOfParticles+1, numberOfContractions
        ! Correlacion e-e- ---> e+ (posible?) 
-                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tdtest(a-nop,e-nop,ii,m)*auxWmbej(m,b-nops,e-nop,jj)  ! termino 6 revisar
+!                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + CCD_instance%Tdtest(a-nop,e-nop,ii,m)*auxWmbej(m,b-nops,e-nop,jj)  ! termino 6 revisar
 
 
-                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - CoupledCluster_instance%Tstest(e-nop,ii)*CoupledCluster_instance%Tstest(a-nop,m)*auxspinints(m,b,e,jj) ! termino 7 
+                     auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) - CCD_instance%Tstest(e-nop,ii)*CCD_instance%Tstest(a-nop,m)*auxspinints(m,b,e,jj) ! termino 7 
 
 !auxTd(b-nops,e-nop,ii,m) para continuar con las dimensiones de la matrix auxTd y por reglas de simetria el valor de Td para la proxima ecuacion puede ser: auxTd(e-nop,b-nops,m,ii)
 
-!                    auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxTd(b-nops,e-nop,jj,m)*CoupledCluster_instance%Wmbejtest(m,a-nop,e-nop,ii) ! termino 8 revisar
+!                    auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + auxTd(b-nops,e-nop,jj,m)*CCD_instance%Wmbejtest(m,a-nop,e-nop,ii) ! termino 8 revisar
                   end do
                end do
 
                do e=numberOfParticles+1, numberOfContractions
-                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tstest(e-nop,ii)*auxspinints(m,b,e,jj)  ! termino 9
+                  auxTdNew(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj) + CCD_instance%Tstest(e-nop,ii)*auxspinints(m,b,e,jj)  ! termino 9
                end do
 
 
@@ -2198,50 +1912,13 @@ write(*,*) i,j,auxECCSD
 					auxTd(a-nop,b-nops,ii,jj) = auxTdNew(a-nop,b-nops,ii,jj)
 !                                        auxtaus(a,b,ii,jj) = auxTd(a,b,ii,jj) + 0.5*(Ts(a,ii)*otherTs(b,jj) - Ts(b,ii)*Ts(a,jj))
 !                                        auxtau(a,b,ii,jj) = auxTd(a,b,ii,jj) + Ts(a,ii)*Ts(b,jj) - Ts(b,ii)*Ts(a,jj)
-                                        auxtaus(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + 0.5*(CoupledCluster_instance%Tstest(a-nop,ii)*otherTs(b-nops,jj))
-                                        auxtau(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + CoupledCluster_instance%Tstest(a-nop,ii)*otherTs(b-nops,jj)
-
+                                        auxtaus(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + 0.5*(CCD_instance%Tstest(a-nop,ii)*otherTs(b-nops,jj))
+                                        auxtau(a-nop,b-nops,ii,jj) = auxTd(a-nop,b-nops,ii,jj) + CCD_instance%Tstest(a-nop,ii)*otherTs(b-nops,jj)
 
 				end do
 			end do
 		end do
 	end do
-
-
-
- print *, "Td:  ",  CoupledCluster_instance%Tdtest(1,1,1,1)   
-
-
-!! Equation 8 electronica
-! eq ok
-
-!!**  	do m=1, numberOfParticles
-!!**  		do b=numberOfParticles+1, numberOfContractions
-!!**  			do e=numberOfParticles+1, numberOfContractions
-!!**  				do jj=1, numberOfParticles
-!!**  			!		CoupledCluster_instance%Wmbejtest(m,b-nop,e-nop,jj) = spinints(m,b,e,jj)
-!!**  					do f=numberOfParticles+1, numberOfContractions
-!!**  						Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + Ts(f-nop,jj)*spinints(m,b,e,f)
-!!**  					end do
-!!**  					do n=1, numberOfParticles
-!!**  !! 26 de enero 2016
-!!**                     Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-Ts(b-nop,n)*spinints(m,n,e,jj))
-!!**  						do f=numberOfParticles+1, numberOfContractions
-!!**  							Wmbej(m,b-nop,e-nop,jj) = Wmbej(m,b-nop,e-nop,jj) + (-(0.5*Td(f-nop,b-nop,jj,n)+Ts(f-nop,jj)*Ts(b-nop,n))*spinints(m,n,e,f))
-!!**  						end do
-!!**  					end do
-!!**  				end do
-!!**  			end do
-!!**  		end do
-!!**  	end do
-
-
-
-
-
-
-
-
 
 end do !! Loop
 
@@ -2251,8 +1928,8 @@ end do !! Loop
   end do     !! Species
 !
 	call Matrix_destructor(auxMatrix)
-!	CoupledCluster_instance%mp2Correction = sum ( CoupledCluster_instance%mp2Coupling%values )
-	CoupledCluster_instance%ccsdTwoParticlesCorrection = auxECCSD
+!	CCD_instance%mp2Correction = sum ( CCD_instance%mp2Coupling%values )
+	CCD_instance%ccsdTwoParticlesCorrection = auxECCSD
 	call Vector_show(coupledClusterValue)
 
 end if
@@ -2265,7 +1942,7 @@ end if
 
 
 
- end subroutine CoupledCluster_iterateIntermediates_DiffSpecies
+ end subroutine CCD_iterateIntermediates_DiffSpecies
 
 
 
@@ -2276,20 +1953,20 @@ end if
  ! @ Returns final energy (with CCSD correction)
  !**
 
-! function CoupledCluster_getTotalEnergy() result(output)
+! function CCD_getTotalEnergy() result(output)
 !	implicit none
 !	real(8) :: output
 !
-!	output = CoupledCluster_instance%totalEnergy
+!	output = CCD_instance%totalEnergy
 !
-! end function CoupledCluster_getTotalEnergy
+! end function CCD_getTotalEnergy
 
   !>
   !! @brief Muestra informacion del objeto
   !!
   !! @param this 
   !<
-  subroutine CoupledCluster_getTransformedIntegrals()
+  subroutine CCD_getTransformedIntegrals()
     implicit none
 
 !    type(TransformIntegrals) :: repulsionTransformer
@@ -2315,8 +1992,8 @@ end if
     integer :: wfnUnit
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-    allocate(CoupledCluster_instance%twoCenterIntegrals(numberOfSpecies))
-    allocate(CoupledCluster_instance%fourCenterIntegrals(numberOfSpecies,numberOfSpecies))
+    allocate(CCD_instance%twoCenterIntegrals(numberOfSpecies))
+    allocate(CCD_instance%fourCenterIntegrals(numberOfSpecies,numberOfSpecies))
 
 !    print *,""
 !    print *,"BEGIN INTEGRALS TRANFORMATION:"
@@ -2338,11 +2015,11 @@ end if
         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
 
 !        write (6,"(T10,A)")"ONE PARTICLE INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)
-        call Matrix_constructor (CoupledCluster_instance%twoCenterIntegrals(i), int(numberOfContractions,8), int(numberOfContractions,8) )
+        call Matrix_constructor (CCD_instance%twoCenterIntegrals(i), int(numberOfContractions,8), int(numberOfContractions,8) )
         call Matrix_constructor (hcoreMatrix,int(numberOfContractions,8), int(numberOfContractions,8))
         call Matrix_constructor (couplingMatrix,int(numberOfContractions,8), int(numberOfContractions,8))
 
-        hcoreMatrix  = HartreeFock_instance%HcoreMatrix 
+        hcoreMatrix  = HartreeFockD_instance%HcoreMatrix 
 
 !        hcoreMatrix%values = WaveFunction_HF_instance( specieID )%IndependentParticleMatrix%values
 
@@ -2370,8 +2047,8 @@ end if
           do n=m, numberOfContractions
              do mu=1, numberOfContractions
                 do nu=1, numberOfContractions
-                    CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n) = &
-                        CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n) + &
+                    CCD_instance%twoCenterIntegrals(i)%values(m,n) = &
+                        CCD_instance%twoCenterIntegrals(i)%values(m,n) + &
                         coefficients%values(mu,m)* &
                         coefficients%values(nu,n)* &
                         hcoreMatrix%values(mu,nu)
@@ -2386,8 +2063,8 @@ end if
 !!             do n=m, numberOfContractions
 !!                do mu=1, numberOfContractions
 !!                   do nu=1, numberOfContractions
-!!                      CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n) = &
-!!                           CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n) + &
+!!                      CCD_instance%twoCenterIntegrals(i)%values(m,n) = &
+!!                           CCD_instance%twoCenterIntegrals(i)%values(m,n) + &
 !!                           WaveFunction_HF_instance( specieID )%waveFunctionCoefficients%values(mu,m)* &
 !!                           WaveFunction_HF_instance( specieID )%waveFunctionCoefficients%values(nu,n) * &
 !!                           WaveFunction_HF_instance( specieID )%ExternalPotentialMatrix%values(mu,nu)
@@ -2399,21 +2076,21 @@ end if
 
        do m=1,numberOfContractions
           do n=m, numberOfContractions
-             CoupledCluster_instance%twoCenterIntegrals(i)%values(n,m)=&
-                  CoupledCluster_instance%twoCenterIntegrals(i)%values(m,n)
+             CCD_instance%twoCenterIntegrals(i)%values(n,m)=&
+                  CCD_instance%twoCenterIntegrals(i)%values(m,n)
           end do
        end do
           
        ! print *, "Independent Particle"
-       ! call Matrix_show ( CoupledCluster_instance%twoCenterIntegrals(i) )
+       ! call Matrix_show ( CCD_instance%twoCenterIntegrals(i) )
 
 !       write (6,"(T10,A)")"TWO PARTICLES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)
 !       print *,""
 
 !       call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer, MolecularSystem_getEigenvectors(specieID), &
-!            CoupledCluster_instance%fourCenterIntegrals(i,i), specieID, trim(nameOfSpecie) )
+!            CCD_instance%fourCenterIntegrals(i,i), specieID, trim(nameOfSpecie) )
 
-        call ReadTransformedIntegrals_readOneSpecies( specieID, CoupledCluster_instance%fourCenterIntegrals(i,i)   )
+        call ReadTransformedIntegrals_readOneSpecies( specieID, CCD_instance%fourCenterIntegrals(i,i)   )
 
        if ( numberOfSpecies > 1 ) then
           do j = 1 , numberOfSpecies
@@ -2428,10 +2105,10 @@ end if
 
 !                call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !                     MolecularSystem_getEigenVectors(i), MolecularSystem_getEigenVectors(j), &
-!                     CoupledCluster_instance%fourCenterIntegrals(i,j), specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
+!                     CCD_instance%fourCenterIntegrals(i,j), specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
 
                  call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, &
-                         CoupledCluster_instance%fourCenterIntegrals(i,j) )
+                         CCD_instance%fourCenterIntegrals(i,j) )
 
              end if
           end do
@@ -2442,12 +2119,12 @@ end if
 	call Matrix_destructor (hcoreMatrix)
         call Matrix_destructor (couplingMatrix)
 
-  end subroutine CoupledCluster_getTransformedIntegrals
+  end subroutine CCD_getTransformedIntegrals
 
   !>
   !! @brief  Maneja excepciones de la clase
   !<
-  subroutine CoupledCluster_exception( typeMessage, description, debugDescription)
+  subroutine CCD_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -2461,6 +2138,6 @@ end if
     call Exception_show( ex )
     call Exception_destructor( ex )
 
-  end subroutine CoupledCluster_exception
+  end subroutine CCD_exception
 
-end module CoupledCluster_
+end module CCD_

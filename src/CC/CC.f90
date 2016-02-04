@@ -27,6 +27,7 @@ program CC
   use MolecularSystem_
   use Exception_
   use CoupledCluster_
+  use CCD_
   use String_
   implicit none
 
@@ -46,17 +47,51 @@ program CC
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-  call CoupledCluster_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
-  call CoupledCluster_run()
-  call CoupledCluster_show()
-  call CoupledCluster_destructor()
+ 
+ print *," Control: ", CONTROL_instance%COUPLED_CLUSTER_LEVEL
 
-  !!stop time
-  call Stopwatch_stop(lowdin_stopwatch)
+
+  select case ( trim(CONTROL_instance%COUPLED_CLUSTER_LEVEL) )
+
+    case ( "CCSD" )
+
+
+       call CoupledCluster_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
+       call CoupledCluster_run()
+       call CoupledCluster_show()
+       call CoupledCluster_destructor()
+
+       !!stop time
+       call Stopwatch_stop(lowdin_stopwatch)
   
-  write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time CC : ", lowdin_stopwatch%enlapsetTime ," (s)"
-  write(*, *) ""
+       write(*, *) ""
+       write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time CC : ", lowdin_stopwatch%enlapsetTime ," (s)"
+       write(*, *) ""
+
+    case ( "CCD" )
+
+
+ print *," Control: ", CONTROL_instance%COUPLED_CLUSTER_LEVEL
+       call CCD_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
+       call CCD_run()
+       call CCD_show()
+       call CCD_destructor()
+
+       !!stop time
+       call Stopwatch_stop(lowdin_stopwatch)
+  
+       write(*, *) ""
+       write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time CC : ", lowdin_stopwatch%enlapsetTime ," (s)"
+       write(*, *) ""
+
+ print *," Control: ", CONTROL_instance%COUPLED_CLUSTER_LEVEL
+
+    case default
+
+      call CoupledCluster_exception( ERROR, "Coupled interactor constructor", "Correction level not implemented")
+
+  end select
+
   close(30)
 
 
