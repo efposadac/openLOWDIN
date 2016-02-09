@@ -989,7 +989,7 @@ contains
       fileNumber = trim(adjustl(fileNumber))
 
       open(UNIT=49,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(speciesID)%name)//".nints", &
-           STATUS='NEW', ACCESS='SEQUENTIAL', FORM='Unformatted')
+           STATUS='replace', ACCESS='SEQUENTIAL', FORM='Unformatted')
       write (49) auxCounter 
 
       close(49)
@@ -1005,7 +1005,7 @@ contains
 
       !! open file for integrals
       open(UNIT=59,FILE=trim(MolecularSystem_instance%species(i)%name)//"."//trim(MolecularSystem_instance%species(j)%name)//".nints", &
-         STATUS='NEW', ACCESS='SEQUENTIAL', FORM='Unformatted')
+         STATUS='replace', ACCESS='SEQUENTIAL', FORM='Unformatted')
 
       write (59) auxCounter 
       close(59)

@@ -212,16 +212,16 @@ contains
 	!>
 	function IndexMap_tensorR4ToVectorB( i, j, k, l, basisSizeA, basisSizeB ) result ( output )
 		implicit none
-		integer, intent(in) :: i
-		integer, intent(in) :: j
-		integer, intent(in) :: k
-		integer, intent(in) :: l
-		integer, optional :: basisSizeA
-		integer, optional :: basisSizeB
+		integer(kind=8), intent(in) :: i
+		integer(kind=8), intent(in) :: j
+		integer(kind=8), intent(in) :: k
+		integer(kind=8), intent(in) :: l
+		integer(kind=8), optional :: basisSizeA
+		integer(kind=8), optional :: basisSizeB
 
-		integer :: output
-		integer :: auxSize
-                integer :: ij, kl
+		integer(kind=8) :: output
+		integer(kind=8) :: auxSize
+                integer(kind=8) :: ij, kl
 
                 if ( .not. present ( basisSizeB ) ) then
 
@@ -236,7 +236,7 @@ contains
                     kl = IndexMap_tensorR2ToVectorB( k, l, basisSizeB)
 
                     auxSize = ( basisSizeB * ( basisSizeB + 1 ) ) / 2
-                    output = auxSize * ij + kl 
+                    output = int(auxSize,8) * int(ij,8) + int(kl,8)
                        
                 end if
 
@@ -248,14 +248,13 @@ contains
 	!>
 	function IndexMap_tensorR2ToVectorB( i, j, basisSizeA, basisSizeB ) result ( output )
 		implicit none
-		integer, intent(in) :: i
-		integer, intent(in) :: j
-		integer, optional :: basisSizeA
-		integer, optional :: basisSizeB
+		integer(kind=8), intent(in) :: i
+		integer(kind=8), intent(in) :: j
+		integer(kind=8), optional :: basisSizeA
+		integer(kind=8), optional :: basisSizeB
 
-		integer :: output
-		integer :: auxSize
-                integer :: ij
+		integer(kind=8) :: output
+		integer(kind=8) :: auxSize
 
                 if ( i > j ) then
                    output = i - j + ( ( ( 2 * basisSizeA * (j -1 )) - ( j * j) + (3*j) ) / 2 )
@@ -278,9 +277,8 @@ contains
 		integer, optional :: basisSizeA
 		integer, optional :: basisSizeB
 
-		integer :: output
-		integer :: auxSize
-                integer :: ij, kl
+		integer(kind=8) :: output
+                integer(kind=8) :: ij, kl
                 if ( .not. present(basisSizeB)) then
                   if ( i > j ) then
                           ij = i * (i + 1)/2 + j
@@ -297,7 +295,7 @@ contains
                   if ( ij > kl ) then
                           output = ij * (ij + 1)/2 + kl
                   else
-                          output = kl * (kl + 1)/2 + ij
+                        output = kl * (kl + 1)/2 + ij
                   end if                
 
                 end if
