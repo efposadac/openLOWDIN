@@ -594,8 +594,9 @@ contains
           do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
                (SingleSCF_getNumberOfIterations( iteratorOfSpecie ) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
-             call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
-
+!             print*, "Multi-SCF", nameOfSpecie
+!             call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+             
              if (CONTROL_instance%COSMO) then
                 call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))
 	                if(SingleSCF_getNumberOfIterations( iteratorOfSpecie ) > 0) then

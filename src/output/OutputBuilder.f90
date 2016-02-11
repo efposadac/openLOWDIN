@@ -629,10 +629,16 @@ contains
 
 	    end do
 
-             do i =1, numberOfContractions
+
+     
+     do i =1, numberOfContractions
                 j =1
+
+     if (mod(numberOfContractions,2)) then
+ !!!Se activa cuando el numberOfContractions es impar                                  
                 write (29,"(I3,I3)",advance='no') i,j
                 do m=1,numberOfContractions
+
                    if (mod(m,5)==0) then
                       write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
                       j=j+1
@@ -643,17 +649,41 @@ contains
                       write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
                    end if
                 end do
-!                 write (29, "(A)", advance='yes')" "
+                !write (29, "(A)", advance='yes')" "
+                if (m<numberOfContractions) then
+                    write (29,"(A)", advance='no')" "
+                    write (29,"(A)")" "
+                end if
+
+     else
+ ! !!!Se activa cuando el numberOfContractions es par                                  
+                       write (29,"(I3,I3)",advance='no') i,j
+                do m=1,numberOfContractions
+
+                   if (mod(m,5)==0) then
+                      write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
+                      j=j+1
+                      if (m<numberOfContractions) then
+                         write (29,"(I3,I3)",advance='no') i,j
+                      end if
+                   else
+                      write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
+                   end if
+                end do
+                 write (29, "(A)", advance='yes')" "
                 if (m<numberOfContractions) then
                       write (29,"(A)", advance='no')" "
                     write (29,"(A)")" "
                 end if
-                
+
+    end if
+             
              end do
 
            close(29)
         end do
 
+        
 !        call Matrix_destructor( localizationOfCenters )
 !        call Matrix_destructor( auxMatrix )
 !        deallocate(labels)
@@ -720,9 +750,8 @@ contains
     wfnUnit = 20
 
         auxString=MolecularSystem_getNameOfSpecie( 1 )
-        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"dat"
+        this%fileName=trim(CONTROL_instance%INPUT_FILE)//".eigen"
         open(129,file=this%fileName,status='replace',action='write')
-        write (129,"(A)") "Hola soy un archivo .dat de Laura"
         close(129)
 
         localizationOfCenters=ParticleManager_getCartesianMatrixOfCentersOfOptimization()
@@ -742,7 +771,7 @@ contains
 
            auxString=MolecularSystem_getNameOfSpecie( l )
            specieID = MolecularSystem_getSpecieID(auxString)
-           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".dat"
+           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".eigen"
            open(129,file=this%fileName,status='replace',action='write')
 
             specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
@@ -754,7 +783,6 @@ contains
                 unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                 output = energyOfMolecularOrbital )
 
-              !Aqui empieza a modificar Laura
            do j=1,size(energyOfMolecularOrbital%values)
               write (129,"(F15.12)") ,energyOfMolecularOrbital%values(j)
            end do
@@ -767,8 +795,6 @@ contains
 
     
   end  subroutine OutputBuilder_writeEigenvalues
-  
-!!Aqui termina
  
 
   

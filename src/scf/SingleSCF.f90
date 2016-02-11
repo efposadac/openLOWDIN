@@ -222,10 +222,8 @@ contains
     !!
     if ( .not. WaveFunction_instance(speciesID)%wasBuiltFockMatrix ) then
 
-
-       call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc )
-
-       call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )       
+      ! call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc )
+      ! call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )       
 			 
 
        if (CONTROL_instance%COSMO) then
