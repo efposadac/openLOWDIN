@@ -473,7 +473,7 @@ contains
 
 !!    real(8), allocatable :: twoParticlesIntegrals(:,:,:,:)
     real(8), allocatable :: twoParticlesIntegrals(:)
-    integer, allocatable :: indexTwoParticlesIntegrals(:)
+    !!integer, allocatable :: indexTwoParticlesIntegrals(:)
     real(8)  auxTransformedTwoParticlesIntegral
 
     real(8), allocatable :: tempA(:,:,:)
@@ -511,7 +511,8 @@ contains
     this%otherNumberOfContractions=size(otherCoefficientsOfAtomicOrbitals%values,dim=1)
 
     !! Setting size of index array
-    call TransformIntegralsC_setSizeOfInterIndexArray ( this%numberOfContractions, this%otherNumberOfContractions, indexTwoParticlesIntegrals)
+    call TransformIntegralsC_setSizeOfInterIntegralsArray ( this%numberOfContractions, this%otherNumberOfContractions, otherSsize, &
+	twoParticlesIntegrals)
 
     this%specieID = specieID
 
@@ -533,10 +534,10 @@ contains
 
           if (aa(i) == -1) exit loadintegrals
 
-            m = m + 1
-            twoParticlesIntegrals(m) = shellIntegrals(i)
-            indexTwoParticlesIntegrals(IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
-                                       int(this%numberOfContractions,8),int(this%OtherNumberOfContractions,8)  )) = m
+            !m = m + 1
+            !twoParticlesIntegrals(m) = shellIntegrals(i)
+            twoParticlesIntegrals(IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
+                                       int(this%numberOfContractions,8),int(this%OtherNumberOfContractions,8)  )) = shellIntegrals(i)
 
          end do
 
@@ -585,8 +586,8 @@ contains
       do mu = 1, this%numberOfContractions
         if ( abs(coefficientsOfAtomicOrbitals%values( mu, p )) < 1E-10 ) cycle
         !! auxtemp is the twoparticlesintegrals reduced to a three dimensional array
-        call TransformIntegralsC_buildArrayAInter( twoParticlesIntegrals, mu, indexTwoParticlesIntegrals, &
-                                              this%numberOfContractions, this%otherNumberOfContractions, &
+        call TransformIntegralsC_buildArrayAInter( twoParticlesIntegrals, mu, &
+                                              this%numberOfContractions, this%otherNumberOfContractions, otherSsize, &
                                               auxtempA )
         tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
                                       auxtempA(:,:,:)
@@ -646,46 +647,49 @@ contains
 
 
 
-  subroutine TransformIntegralsC_setSizeOfInterIndexArray ( numberOfContractions, otherNumberOfContractions, indexTwoParticlesIntegrals)
+  subroutine TransformIntegralsC_setSizeOfInterIntegralsArray ( numberOfContractions, otherNumberOfContractions, otherSsize8, &
+   twoParticlesIntegrals)
     implicit none 
     integer :: numberOfContractions, otherNumberOfContractions
-    integer, allocatable :: indexTwoParticlesIntegrals(:)
-    integer(kind=8) :: ssize8, otherSsize8 !! Beyond 360 cartesian funtions
+    real(8), allocatable :: twoParticlesIntegrals(:)
+    integer(kind=8) :: ssize8
+    integer :: otherSsize8 !! Beyond 360 cartesian funtions
 
       ssize8 = numberOfContractions
-      ssize8 = (ssize8 * (ssize8 + 1))/2 + ssize8
+      ssize8 = (ssize8 * (ssize8 + 1))/2 
 
       otherSsize8 = otherNumberOfContractions
-      otherSsize8 = (otherSsize8 * (otherSsize8 + 1))/2 + otherSsize8
+      otherSsize8 = (otherSsize8 * (otherSsize8 + 1))/2 
 
       ssize8 = ( ssize8 * otherSsize8 )
   
-      if ( allocated (indexTwoParticlesIntegrals)) deallocate (indexTwoParticlesIntegrals )
-      allocate (indexTwoParticlesIntegrals ( ssize8 ) )
+      if ( allocated (twoParticlesIntegrals)) deallocate (twoParticlesIntegrals )
+      allocate (twoParticlesIntegrals ( ssize8 ) )
   
-      indexTwoParticlesIntegrals = 0
+      twoParticlesIntegrals = 0
 
-  end subroutine TransformIntegralsC_setSizeOfInterIndexArray
+  end subroutine TransformIntegralsC_setSizeOfInterIntegralsArray
 
 
-  subroutine TransformIntegralsC_buildArrayAInter( integralArray, i, indexArray, ssize , otherSsize, auxtempA)
+  subroutine TransformIntegralsC_buildArrayAInter( integralArray, i, ssize , otherSsize, auxOtherSsize, auxtempA)
   implicit none 
-  integer, intent(in) :: ssize, otherSsize
+  integer, intent(in) :: ssize, otherSsize, auxOtherSsize
   integer, intent(in) :: i
   real(8), intent(in) :: integralArray(:)
   real(8) :: auxtempA(ssize,otherSsize,otherSsize)
-  integer, intent(in) :: indexArray(:)
   integer :: auxIndex
-  integer :: j,k,l,auxm, n, u
+  integer :: j,k,l,auxm, n, u, ij, kl
   
 
-  !$OMP PARALLEL DO private(j,k,l,auxIndex,auxm) shared(ssize,otherSsize,i,n,indexArray,integralArray)
+  !$OMP PARALLEL DO private(j,k,l,ij,kl) shared(ssize,otherSsize,i,auxOtherSsize,integralArray)
   do j = 1, ssize
+    ij = IndexMap_tensorR2ToVectorB( int(i,8), int(j,8), int(ssize,8))
+    kl = 0
     do k = 1, otherSsize
        do l = k, otherSsize
-         auxIndex = IndexMap_tensorR4ToVectorB(int(i,8),int(j,8),int(k,8),int(l,8),int(ssize,8), int(otherSsize,8) )
-         auxm = indexArray(auxIndex)
-         auxtempA(j,k,l) = integralArray(auxm)
+         kl = kl + 1
+         !         auxm = indexArray(auxIndex)
+         auxtempA(j,k,l) = integralArray( ( int(ij,8) - 1 ) * int(auxOtherSsize,8) + int(kl,8) )
        end do 
      end do 
    end do 

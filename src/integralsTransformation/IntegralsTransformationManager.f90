@@ -178,7 +178,7 @@ program IntegralsTransformationManager
                        eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
 
               case ( "C" ) 
-          
+
                 call TransformIntegralsC_atomicToMolecularOfOneSpecie(  transformInstanceC, &
                        eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
 

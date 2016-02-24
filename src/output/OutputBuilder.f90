@@ -634,7 +634,8 @@ contains
      do i =1, numberOfContractions
                 j =1
 
-     if (mod(numberOfContractions,2)) then
+     !if (mod(numberOfContractions,2)) then
+     if (mod(numberOfContractions,2) == 1 ) then
  !!!Se activa cuando el numberOfContractions es impar                                  
                 write (29,"(I3,I3)",advance='no') i,j
                 do m=1,numberOfContractions
