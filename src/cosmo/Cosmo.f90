@@ -17,11 +17,11 @@
 !!        This module allows to make calculations in the COSMO-APMO framework
 !! @author D. Gonzalez.
 !!
-!! <b> Creation date : </b> 2014-21-08
+!! <b> Creation date : </b> 2014-08-21
 !!
 !! <b> History: </b>
 !!
-!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
+!!   - <tt> 2014-08-21 </tt>: Danilo Gonzalez F. ( dagonzalezfo@unal.edu.co )
 !!        -# Creacion de modulo y procedimientos  para calculos con solvente implicito
 !!
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
@@ -33,6 +33,7 @@ program Cosmo
   use Matrix_
   use String_
   use CosmoCore_
+
   implicit none 
 
   integer(8) :: n
@@ -51,15 +52,15 @@ program Cosmo
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-	
+
   !cmatin es el dummy de cmatinv
   call CosmoCore_constructor(surfaceSegment_instance,cmatin)	
 
-	n=MolecularSystem_instance%numberOfParticles
+  n=MolecularSystem_instance%numberOfParticles
 
   call CosmoCore_clasical(surfaceSegment_instance,n,cmatin,qc)
-	
-	call system(" lowdin-ints.x COSMO ")
-	
+
+  call system(" lowdin-ints.x COSMO ")
+
 end program Cosmo
 

@@ -40,6 +40,7 @@ module DerivativeManager_
   use AttractionDerivatives_
   use OverlapDerivatives_
   use RepulsionDerivatives_
+  use CosmoCore_
   use Exception_
   use Math_
   use Matrix_
@@ -106,7 +107,7 @@ contains
   !               KINETIC_INTEGRALS, ATTRACTION_INTEGRALS, MOMENT_INTEGRALS, MOMENTUM_INTEGRALS,
   !               OVERLAP_DERIVATIVES, KINETIC_DERIVATIVES, ATTRACTION_DERIVATIVES
   !**
-  subroutine DerivativeManager_getElement( thisID, deriveVector, i, j, k, l, nameOfSpecie, otherNameOfSpecie, A, B )
+  subroutine DerivativeManager_getElement( thisID, deriveVector, surface, i, j, k, l, nameOfSpecie, otherNameOfSpecie, A, B )
     implicit none
     integer :: thisID
     real(8), allocatable :: deriveVector(:)
@@ -124,6 +125,7 @@ contains
     integer :: specieID
     integer :: otherSpecieID
     character(30) :: nameOfSpecieSelected
+    type(surfaceSegment), intent(in), optional :: surface
 
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) ) then
@@ -147,7 +149,11 @@ contains
 
     case( ATTRACTION_DERIVATIVES )
 
-       call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID)
+       if(present(surface)) then
+          call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID, surface)
+       else
+          call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID)
+       end if
 
     case( OVERLAP_DERIVATIVES )
 

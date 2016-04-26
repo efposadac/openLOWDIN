@@ -41,6 +41,7 @@ module GeometryOptimizer_
   use Vector_
   use String_
   use Exception_
+  use GSLInterface_
   ! use Input_Parameters_
   ! use Units_
   ! use CalculateProperties_
@@ -57,21 +58,20 @@ module GeometryOptimizer_
   implicit none
 
   type, public :: GeometryOptimizer
-     
+
      character(30) :: name
-     integer :: numberOfIterations
-     integer :: numberOfIndependVariables
-     type(Vector) :: valuesOfIndependentVariables
+     integer :: method ! using by MR
+     ! integer :: minimizationType  ! using by MR
+     integer :: numberOfIterations ! using by MR
+     real(8) :: toleranceGradient ! using by MR
+     real(8) :: toleranceDx ! using by MR
+     integer :: numberOfIndependVariables ! using by MR
+     type(Vector) :: valuesOfIndependentVariables ! using by MR
      type(Vector) :: gradient
      real(8) :: functionValue
-     real(8) :: stepSize
-     ! type(InternalCoordinates) :: primitivesCoordinates
-     type(TrustRegionOptimizer) :: trustRegion
-     ! type(TrustRegionIterative) :: trustRegionIterative
-     logical :: isInitialExecution
-     logical :: isInstanced
-     ! type(Input_Parameters) :: LOWDIN_bkp
-     ! type(Solver), pointer :: solverPtr
+     real(8) :: stepSize ! using by MR
+     logical :: isInitialExecution ! using by MR
+     logical :: isInstanced ! using by MR
 
   end type GeometryOptimizer
 
@@ -82,8 +82,8 @@ module GeometryOptimizer_
        GeometryOptimizer_constructor, &
        GeometryOptimizer_destructor, &
        GeometryOptimizer_run, &
-  ! GeometryOptimizer_setName, &
-  ! GeometryOptimizer_getNumberOfIterations, &
+                                ! GeometryOptimizer_setName, &
+                                ! GeometryOptimizer_getNumberOfIterations, &
        GeometryOptimizer_getFunctionValue, &
        GeometryOptimizer_getGradient
 
@@ -94,85 +94,257 @@ contains
   subroutine GeometryOptimizer_constructor( this )
     implicit none
     type(GeometryOptimizer) :: this
-    type(Matrix) :: initialHessian
-    type(Vector) :: initialGeometry
-    type(Hessians) :: hessiansInfo
+    ! type(Vector) :: initialGeometry
     integer :: i
     integer :: numberOfCenterofOptimization
 
     this%isInstanced =.true.
-    ! CONTROL_instance%LAST_STEP=.false.
 
     numberOfCenterofOptimization = ParticleManager_getNumberOfCentersOfOptimization()
+    this%valuesOfIndependentVariables = ParticleManager_getPositionOfCenterOfOptimizacion()
+    ! initialGeometry = ParticleManager_getPositionOfCenterOfOptimizacion()
 
     this%name = ""
     this%isInitialExecution=.true.
-    initialGeometry = ParticleManager_getPositionOfCenterOfOptimizacion()
+    this%numberOfIndependVariables = size( this%valuesOfIndependentVariables%values )
+    this%method = CONTROL_instance%MINIMIZATION_METHOD
+    this%toleranceGradient =  CONTROL_instance%MINIMIZATION_TOLERANCE_GRADIENT
+    this%toleranceDx = CONTROL_instance%MINIMIZATION_LINE_TOLERANCE
+    this%stepSize = CONTROL_instance%MINIMIZATION_INITIAL_STEP_SIZE
+    this%numberOfIterations = CONTROL_instance%MINIMIZATION_MAX_ITERATION
+    ! this%minimizationType = 1
 
-    ! write(*,"(3F17.12)") initialGeometry%values(1:3)
-    ! write(*,"(3F17.12)") initialGeometry%values(4:6)
-    ! write(*,"(3F17.12)") initialGeometry%values(7:9)
-
-    this%numberOfIndependVariables = size( initialGeometry%values )
-
-    call EnergyGradients_constructor()
-
-    ! call Input_Parameters_copyConstructor(this%LOWDIN_bkp, Parameters)
-    call Hessians_constructor( hessiansInfo )
-    initialHessian = Hessians_getEmpirical( hessiansInfo , MolecularSystem_instance )
-
-    !! Debug Mauricio Rodas
-    ! do i=1, size(initialHessian%values, dim=1)
-    !    write(*,"(A,2x,f12.8)") "Diagonal hesiana: ", initialHessian%values(i,i)
+    ! write(*,*) "MAURICIO RODAS: "
+    ! write(*,*) "Size: ", this%numberOfIndependVariables
+    ! write(*,*) "Method: ", this%method
+    ! write(*,*) "TOL GRAD: ", this%toleranceGradient
+    ! write(*,*) "TOL Dx: ", this%toleranceDx
+    ! write(*,*) "Step size: ", this%stepSize
+    ! write(*,*) "Max Iterations: ", this%numberOfIterations
+    ! write(*,*) "Initial geometry: "
+    ! do i=1, this%numberOfIndependVariables
+    !    write(*,*) this%valuesOfIndependentVariables%values(i)
     ! end do
 
-    ! this%solverPtr => ssolver
-
-    select case ( trim(CONTROL_instance%MINIMIZATION_METHOD))
-
-        case("TR")
-            !!by default
-            call TrustRegionOptimizer_constructor( this%trustRegion, initialGeometry%values )
-            call TrustRegionOptimizer_setInitialHessian( this%trustRegion, initialHessian%values )
-
-    !     case("TRI")
-
-    !         call TrustRegionIterative_constructor( this%trustRegionIterative, initialGeometry%values )
-    !         call TrustRegionIterative_setInitialHessian( this%trustRegionIterative, initialHessian%values )
-
-        case default
-
-            call TrustRegionOptimizer_constructor( this%trustRegion, initialGeometry%values )
-            call TrustRegionOptimizer_setInitialHessian( this%trustRegion, initialHessian%values )
-
-    end select
-
-    call Matrix_destructor(initialHessian)
-    call Vector_destructor(initialGeometry)
-    call Hessians_destructor( hessiansInfo)
+    call EnergyGradients_constructor()
+    ! call Vector_destructor(initialGeometry)
 
   end subroutine GeometryOptimizer_constructor
 
-        !**
-        ! @brief Define el destructor
-        !**
+  !**
+  ! @brief Define el destructor
+  !**
   subroutine GeometryOptimizer_destructor(this)
     implicit none
-
     type(GeometryOptimizer) :: this
-
-    ! this%solverPtr => null()
-
-    select case ( trim(CONTROL_instance%MINIMIZATION_METHOD))
-    case("TR")
-       call TrustRegionOptimizer_destructor( this%trustRegion )
-    ! case("TRI")
-    !    call TrustRegionIterative_destructor( this%trustRegionIterative )
-    end select
 
     call EnergyGradients_destructor()
 
   end subroutine GeometryOptimizer_destructor
+
+  !>
+  !! @brief Ejecuta el minimizador hasta encontrar un minimo de la estructura
+  !<
+  subroutine GeometryOptimizer_run(this )
+    implicit none
+    type(GeometryOptimizer), target :: this
+    real(8), allocatable :: coordinates(:)
+    integer :: infoError
+    real(8) :: energy
+    type(Vector) :: geometry
+    real(8) :: auxValue
+    logical :: isMinumum
+    type(Matrix) :: initialHessian
+    type(Hessians) :: hessiansInfo
+    logical :: lastStep
+    logical :: firstStep
+
+    allocate(coordinates(this%numberOfIndependVariables))
+
+    coordinates = this%valuesOfIndependentVariables%values
+
+    print   *,""
+    print *, " BEGIN GEOMETRY OPTIMIZATION: "
+    print *,"------------------------------------------------------------"
+    print   *,""
+
+    isMinumum = .false.
+    lastStep = .false.
+
+    open(unit=40, file="lowdin.dat", status="replace", form="formatted")
+
+    !!save all options
+    call CONTROL_save(40, lastStep)
+
+    close(40)
+
+    CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="energy"
+    if( CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT ) CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "energy"
+
+    this_pointer => this
+
+    !!************************************************************
+    !! Inicia proceso de minimizacion
+    !!***
+
+    infoError = tolow_minimize(this%method, this%numberOfIndependVariables, coordinates(1),&
+         this%stepSize, this%toleranceGradient, this%toleranceDx, this%numberOfIterations, &
+         GeometryOptimizer_calculatePoint, GeometryOptimizer_showIterationInfo, energy)
+
+    if (infoError /= 0) then
+       write(6,*) "Error occurred during the GSL minimization procedure"
+       stop
+    else
+       write(6,*) ""
+       write (6,"(T20,A30)") " FINAL GEOMETRY: AMSTRONG"
+       write (6,"(T18,A35)") "------------------------------------------"
+       write(6,*) ""
+
+       call Vector_constructor( geometry, size(coordinates) )
+       geometry%values = coordinates
+
+       !! Ajusta el origen de las particulas presentes en el sistema
+       call ParticleManager_setParticlesPositions(geometry)
+       call Vector_destructor( geometry )
+       call MolecularSystem_showCartesianMatrix()
+       call MolecularSystem_showDistanceMatrix()
+       call MolecularSystem_saveToFile()
+       ! call MolecularSystem_showZMatrix( MolecularSystem_instance )
+       CONTROL_instance%OPTIMIZE=.false.
+       CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="density"
+       lastStep = .true.
+
+       open(unit=40, file="lowdin.dat", status="replace", form="formatted")
+
+       !!save all options
+       call CONTROL_save(40, lastStep)
+
+       close(40)
+
+       print *,""
+       print *,"END GEOMETRY OPTIMIZATION "
+       print *,""
+
+       call Solver_run()
+
+    end if
+
+    ! !! Realiza un calculo final en la geometria de equilibrio
+
+  end subroutine GeometryOptimizer_run
+
+  subroutine GeometryOptimizer_calculatePoint(size, coordinates, functionValue, getgrad, gradients)
+    integer, intent(in)    :: size
+    real(8), intent(in)    :: coordinates(size)
+    real(8), intent(inout) :: functionValue
+    integer, intent(in)    :: getgrad
+    real(8), intent(inout) :: gradients(size)
+
+
+    ! write(6,*) "Entre a la funcion"
+    functionValue = GeometryOptimizer_getFunctionValue(coordinates)
+    ! write(6,*) "Energia: ", functionValue
+
+    if(getgrad .eq. 1) then
+       ! write(6,*) "Voy a calcular gradientes"
+       call GeometryOptimizer_getGradient( coordinates, gradients )
+       ! write(6,*) "Saliendo de calcular gradientes"
+    end if
+
+  end subroutine GeometryOptimizer_calculatePoint
+
+  !>
+  !! @brief retorna el valor la funcion a minimiza en el punto especificado
+  !!      esta funcion debe ser llamada privia asigacion de apuntador this_pointer
+  !!
+  !! @warning Anque no se define como privada de la clase por propositos de conveniencia
+  !!          no debe ser empleada fuera de la clase
+  !<
+  function GeometryOptimizer_getFunctionValue( evaluationPoint ) result(output)
+    implicit none
+    real(8):: evaluationPoint(:)
+    real(8) :: output
+    real(8) :: totalEnergy
+    character(50) :: wfnFile
+    integer :: wfnUnit
+    logical :: lastStep
+
+    type(Vector) :: valuesOfIndependentVariables
+
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+
+    call Vector_constructor( valuesOfIndependentVariables, size(evaluationPoint) )
+    valuesOfIndependentVariables%values = evaluationPoint
+
+    !! Ajusta el origen de las particulas presentes en el sistema
+    call ParticleManager_setParticlesPositions( valuesOfIndependentVariables)
+    call Vector_destructor( valuesOfIndependentVariables )
+    call MolecularSystem_saveToFile()
+
+    lastStep = .false.
+
+    open(unit=40, file="lowdin.dat", status="replace", form="formatted")
+
+    !!save all options
+    call CONTROL_save(40, lastStep)
+
+    close(40)
+
+    CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="energy"
+
+    call Solver_run()
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+    !! Load results...
+    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalEnergy, arguments=["TOTALENERGY"])
+    close(wfnUnit)
+
+    output = totalEnergy
+
+    ! this_pointer%isInitialExecution=.false.
+
+  end function GeometryOptimizer_getFunctionValue
+
+  ! >
+  ! @brief Retorna el gradiente obtenido en la ultima iteracion
+  !      Esta funcion solo debe emplease previa asignacion del apuntador this_pointer
+
+  ! @warning Anque no se define como privada de la clase por propositos de conveniencia
+  !          no debe ser empleada fuera de la clase
+  ! <
+  subroutine GeometryOptimizer_getGradient( evaluationPoint, gradientVector )
+    implicit none
+    real(8) :: evaluationPoint(:)
+    real(8) :: gradientVector(:)
+    type(Vector) :: valuesOfIndependentVariables
+    integer :: i
+    ! integer :: sizeGradients !Only for debug
+
+    call Vector_constructor( valuesOfIndependentVariables, size(evaluationPoint) )
+    valuesOfIndependentVariables%values = evaluationPoint
+
+    ! write(*,"(A)") "Dentro de GeometryOptimizer_getGradient"
+    ! do i=1, size(evaluationPoint)
+    !    write(*,"(F17.12)") valuesOfIndependentVariables%values(i)
+    ! end do
+
+    if( .not. CONTROL_instance%ANALYTIC_GRADIENT ) then
+       gradientVector = EnergyGradients_getNumericGradient( valuesOfIndependentVariables, GeometryOptimizer_getFunctionValue )
+    else
+       call EnergyGradients_getDerivative(valuesOfIndependentVariables,  GeometryOptimizer_getFunctionValue, gradientVector )
+    end if
+
+    ! Debug Mauricio Rodas
+    ! sizeGradients = size(gradientVector) 
+    ! write(*,"(A)") "Gradientes"
+    ! do i=1, sizeGradients
+    !    write(*,"(f20.12)") gradientVector(i)
+    ! end do
+    ! print *,""
+
+    call Vector_destructor( valuesOfIndependentVariables )
+
+  end subroutine GeometryOptimizer_getGradient
 
   !>
   !! @brief Muestra en la la  unidad de salida el estimado del minimo
@@ -235,295 +407,77 @@ contains
   end subroutine GeometryOptimizer_showMinimum
 
   !>
-  !! @brief Ejecuta el minimizador hasta encontrar un minimo de la estructura
-  !<
-!!!!!!!16/07/2012
-  subroutine GeometryOptimizer_run(this )
-    implicit none
-    type(GeometryOptimizer), target :: this
-
-    real(8) :: auxValue
-    logical :: isMinumum
-    type(Matrix) :: initialHessian
-    type(Hessians) :: hessiansInfo
-    logical :: lastStep
-
-    print   *,""
-    print *, " BEGIN GEOMETRY OPTIMIZATION: "
-    print *,"------------------------------------------------------------"
-    print   *,""
-    isMinumum = .false.
-    lastStep = .false.
-
-    open(unit=40, file="lowdin.dat", status="replace", form="formatted")
-    
-    !!save all options
-    call CONTROL_save(40, lastStep)
-
-    close(40)
-
-    CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="energy"
-    if( CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT ) CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "energy"
-
-    this_pointer => this
-
-    !!************************************************************
-    !! Inicia proceso de minimizacion
-    !!***
-
-    select case ( trim(CONTROL_instance%MINIMIZATION_METHOD))
-
-    case("TR")
-
-       do while ( .not.isMinumum )
-
-          write (6,*) ""
-
-          call TrustRegionOptimizer_iterate( this%trustRegion, &
-               GeometryOptimizer_getFunctionValue, &
-               GeometryOptimizer_getGradient, &
-               GeometryOptimizer_projectGradient, &
-               GeometryOptimizer_projectHessiane, &
-               GeometryOptimizer_showMinimum )
-
-          isMinumum = TrustRegionOptimizer_isMinimum( this%trustRegion )
-
-          ! if  ( ( TrustRegionOptimizer_getNumberOfIterations(this%trustRegion) > &
-          !      this%numberOfIndependVariables ) .and. (CONTROL_instance%RESTART_OPTIMIZATION) ) then
-
-          !    call TrustRegionOptimizer_restart(this%trustRegion)
-          !    call Hessians_constructor(hessiansInfo)
-          !    initialHessian =Hessians_getCartesianForceConstants( hessiansInfo , MolecularSystem_instance )
-          !    call TrustRegionOptimizer_setInitialHessian( this%trustRegion, initialHessian%values )
-          !    call Matrix_destructor(initialHessian)
-          !    call Hessians_destructor(hessiansInfo)
-
-          ! end if
-
-       end do
-
-       write(6,*) ""
-       write (6,"(T20,A30)") " FINAL GEOMETRY: AMSTRONG"
-       write (6,"(T18,A35)") "------------------------------------------"
-       write(6,*) ""
-       write (6,"(T20,A25,ES20.8)") "FINAL GRADIENT (RMS):",TrustRegionOptimizer_getGradient(this%trustRegion)
-
-    ! case("TRI")
-
-    !    do while ( .not.isMinumum )
-
-    !       write (6,*) ""
-
-    !       call TrustRegionIterative_iterate( this%trustRegionIterative, &
-    !            GeometryOptimizer_getFunctionValue, &
-    !            GeometryOptimizer_getGradient, &
-    !            GeometryOptimizer_projectGradient, &
-    !            GeometryOptimizer_projectHessiane, &
-    !            GeometryOptimizer_showMinimum )
-
-    !       isMinumum = TrustRegionIterative_isMinimum( this%trustRegionIterative )
-
-    !       if  ( ( TrustRegionIterative_getNumberOfIterations(this%trustRegionIterative) > &
-    !            this%numberOfIndependVariables ) .and. (CONTROL_instance%RESTART_OPTIMIZATION) ) then
-
-    !          call TrustRegionIterative_restart(this%trustRegionIterative)
-    !          call Hessians_constructor(hessiansInfo)
-    !          initialHessian =Hessians_getCartesianForceConstants( hessiansInfo, &
-    !               MolecularSystem_instance )
-    !          call TrustRegionIterative_setInitialHessian( this%trustRegionIterative, initialHessian%values )
-    !          call Matrix_destructor(initialHessian)
-    !          call Hessians_destructor(hessiansInfo)
-
-    !       end if
-
-    !    end do
-
-    !    write(6,*) ""
-    !    write (6,"(T20,A30)") " FINAL GEOMETRY: AMSTRONG"
-    !    write (6,"(T18,A35)") "------------------------------------------"
-    !    write(6,*) ""
-    !    write (6,"(T20,A25,ES20.8)") "FINAL GRADIENT (RMS):",TrustRegionIterative_getGradient(this%trustRegionIterative)
-
-    end select
-
-    write(6,*) ""
-    call MolecularSystem_showCartesianMatrix()
-    call MolecularSystem_showDistanceMatrix()
-    ! call MolecularSystem_showZMatrix( MolecularSystem_instance )
-
-    ! !! Realiza un calculo final en la geometria de equilibrio
-    CONTROL_instance%OPTIMIZE=.false.
-    CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="density"
-    lastStep = .true.
-
-    open(unit=40, file="lowdin.dat", status="replace", form="formatted")
-    
-    !!save all options
-    call CONTROL_save(40, lastStep)
-
-    close(40)
-
-    ! CONTROL_instance%LAST_STEP = .true.
-    ! call SCF_Global_setStopingThreshold( CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE, &
-    !      CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE )
-    ! call Solver_run()
-
-    print *,""
-    print *,"END GEOMETRY OPTIMIZATION "
-    print *,""
-
-    call Solver_run()
-
-  end subroutine GeometryOptimizer_run
-
-
-!         !>
-!         !! @brief Ajusta el nombre del minimizador empleado
-!         !!
-!         !! @todo Falta implementacion completa
-!         !<
-!         subroutine GeometryOptimizer_setName(this)
-!             implicit none
-!             type(GeometryOptimizer) :: this
-
-!         end subroutine GeometryOptimizer_setName
-
-
-!         !>
-!         !! @brief retorna el numero de iteraciones actual del minimizador
-!         !!
-!         !! @todo Falta por implementar
-!         !<
-!         function GeometryOptimizer_getNumberOfIterations(this) result(output)
-!             implicit none
-!             type(GeometryOptimizer) :: this
-!             integer :: output
-
-!             output = 0
-
-!         end function GeometryOptimizer_getNumberOfIterations
-
-  !>
-  !! @brief retorna el valor la funcion a minimiza en el punto especificado
-  !!      esta funcion debe ser llamada privia asigacion de apuntador this_pointer
+  !! @brief Muestra en la informacion en un punto de iteracion
   !!
-  !! @warning Anque no se define como privada de la clase por propositos de conveniencia
-  !!          no debe ser empleada fuera de la clase
   !<
-  function GeometryOptimizer_getFunctionValue( evaluationPoint ) result(output)
+  subroutine GeometryOptimizer_showIterationInfo(iterationPoint, size, energy, maxdx, maxdf, coordinates)
     implicit none
-    real(8):: evaluationPoint(:)
-    real(8) :: output
-    real(8) :: totalEnergy
-    character(50) :: wfnFile
-    integer :: wfnUnit
+    integer, intent(in) :: iterationPoint
+    integer, intent(in) :: size
+    real(8), intent(in) :: energy, maxdx, maxdf
+    real(8), intent(in) :: coordinates(size)
 
-    type(Vector) :: valuesOfIndependentVariables
+    ! real(8) :: evaluationPoint(:)
+    ! real(8) :: gradient(:)
+    ! real(8) :: functionValue
 
-    wfnFile = "lowdin.wfn"
-    wfnUnit = 20
-
-    call Vector_constructor( valuesOfIndependentVariables, size(evaluationPoint) )
-    valuesOfIndependentVariables%values = evaluationPoint
-
-    !! Ajusta el origen de las particulas presentes en el sistema
-    call ParticleManager_setParticlesPositions( valuesOfIndependentVariables)
-    call Vector_destructor( valuesOfIndependentVariables )
-
-    ! select case ( trim(CONTROL_instance%ENERGY_CALCULATOR) )
-
-    ! case("internal")
-
-       ! if ( this_pointer%isInitialExecution ) then
-       !    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION >= 2) call EnergyGradients_setNumeric()
-       ! else
-       !    call Solver_reset( this_pointer%solverPtr )
-       ! end if
-
-       !! Restituye las variables originales para el control de programa
-       ! call Input_Parameters_copyConstructor(Parameters, this_pointer%LOWDIN_bkp)
-
-       ! this_pointer%solverPtr%withProperties=.false.
-    call Solver_run()
-    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-    !! Load results...
-    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalEnergy, arguments=["TOTALENERGY"])
-    close(wfnUnit)
-   
-    output = totalEnergy
-    ! output = this_pointer%solverPtr%energy
-
-    this_pointer%isInitialExecution=.false.
-    ! print "(A1$)","."
-
-    ! case("external")
-
-    !    call EnergyGradients_setNumeric()
-    !    if ( .not.external_instance%isInstanced ) &
-    !         call ExternalSoftware_constructor( external_instance )
-
-    !    output = ExternalSoftware_getEnergy( external_instance, &
-    !         withCounterPoiseCorrection = CONTROL_instance%OPTIMIZE_WITH_CP_CORRECTION )
-    ! end select
-
-  end function GeometryOptimizer_getFunctionValue
-
-  ! >
-  ! @brief Retorna el gradiente obtenido en la ultima iteracion
-  !      Esta funcion solo debe emplease previa asignacion del apuntador this_pointer
-  
-  ! @warning Anque no se define como privada de la clase por propositos de conveniencia
-  !          no debe ser empleada fuera de la clase
-  ! <
-  subroutine GeometryOptimizer_getGradient( evaluationPoint, gradientVector )
-    implicit none
-    real(8) :: evaluationPoint(:)
-    real(8) :: gradientVector(:)
-    type(Vector) :: valuesOfIndependentVariables
     integer :: i
-    ! integer :: sizeGradients !Only for debug
+    ! integer :: k
+    ! real(8) :: origin(3)
+    ! integer :: totalNumberOfParticles
 
-    call Vector_constructor( valuesOfIndependentVariables, size(evaluationPoint) )
-    valuesOfIndependentVariables%values = evaluationPoint
+    ! totalNumberOfParticles = size( ParticleManager_instance )
 
-    ! write(*,"(A)") "Dentro de GeometryOptimizer_getGradient"
-    ! do i=1, size(evaluationPoint)
-    !    write(*,"(F17.12)") valuesOfIndependentVariables%values(i)
+    write(6,"(T20,A65)") "-----------------------------------------------------------------"
+    write(6,"(T20,A29,I4)") "GEOMETRY OPTIMIZATION POINT: ", iterationPoint
+    write(6,"(T20,A65)") "-----------------------------------------------------------------"
+    write(6,"(T20,A9,F20.10)") "ENERGY = ", energy
+    write(6,"(T20,A22,F20.10)") "MAX POSITION CHANGE = ", maxdx
+    write(6,"(T20,A22,F20.10)") "MAX GRADIENT CHANGE = ", maxdf
+    write(6,"(T20,A65)") "-----------------------------------------------------------------"
+    write(6,*) ""
+    ! write(6,"(T20,A25)") "COORDINATES: "//trim(CONTROL_instance%UNITS)
+    ! do i = 1, size
+    !    write(6,"(T20,F20.10)") coordinates(i)
     ! end do
+    !     write (6,"(A10,A16,A20,A20)") "Particle","<x>","<y>","<z>"
+    !     do i = 1, totalNumberOfParticles!ParticleManager_getTotalNumberOfParticles()
 
-    if( .not. CONTROL_instance%ANALYTIC_GRADIENT ) then
-       gradientVector = EnergyGradients_getNumericGradient( valuesOfIndependentVariables, GeometryOptimizer_getFunctionValue )
-    else
-!       do i=1, this_pointer%numberOfIndependVariables
-!          gradientVector(i) = EnergyGradients_getDerivative(valuesOfIndependentVariables , [i], &
-!               GeometryOptimizer_getFunctionValue )
-!       end do
-       call EnergyGradients_getDerivative(valuesOfIndependentVariables,  GeometryOptimizer_getFunctionValue, gradientVector )
-    end if
+    !        if ( ParticleManager_isCenterOfOptimization( i ) ) then
+    !           origin = ParticleManager_getOrigin( iterator = i )
+    !           if ( CONTROL_instance%UNITS=="ANGSTROMS") then
+    !              origin = origin * AMSTRONG
+    !           end if
+    ! #ifdef intel
+    !           write (6,"(A10,<3>F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
+    ! #else
+    !           write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
+    ! #endif
+    !        end if
 
-    ! Debug Mauricio Rodas
-    ! sizeGradients = size(gradientVector) 
-    ! write(*,"(A)") "Gradientes"
-    ! do i=1, sizeGradients
-    !    write(*,"(f20.12)") gradientVector(i)
-    ! end do
-    ! print *,""
+    !     end do
 
-    call Vector_destructor( valuesOfIndependentVariables )
 
-  end subroutine GeometryOptimizer_getGradient
+    !     ! print *,""
+    !     write (6,"(A)") ""
+    !     write (6,"(T20,A25)") "GRADIENT: HARTREE/BOHR"
+    !     write (6,"(A10,A16,A20,A20)") "Particle","dE/dx","dE/dy","dE/dz"
+    !     k=1
+    !     do i = 1, totalNumberOfParticles
 
-!         subroutine GeometryOptimizer_builtInputFile( evaluationPoint )
-!             real(8) :: evaluationPoint(:)
+    !        if ( ParticleManager_isCenterOfOptimization( i ) .and. k < size(gradient)) then
 
-!             open( UNIT=37,FILE="tmp.aux",STATUS='REPLACE', &
-!                 ACCESS='SEQUENTIAL', FORM='FORMATTED' )
+    !           write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), &
+    !                gradient(k), gradient(k+1),gradient(k+2)
+    !           k=k+3
 
-!                 call Input_Parsing_writeNameList(37,"InputLowdinParameters")
+    !        end if
 
-!             close(37)
+    !     end do
+    !     write (6,*) ""
+    !     write (6,"(T10,A24,F20.10)") "TOTAL ENERGY (Hartree) =", functionValue
 
-!         end subroutine GeometryOptimizer_builtInputFile
+  end subroutine GeometryOptimizer_showIterationInfo
 
   !>
   !! @brief Define un proyector para el gradiente cartesiano
@@ -531,97 +485,97 @@ contains
   !!  @warning Anque no se define como privada de la clase por propositos de conveniencia
   !!          no debe ser empleada fuera de la clase
   !<
-  subroutine GeometryOptimizer_projectGradient( gradientVector, projectedGradient )
-    implicit none
-    real(8) :: gradientVector(:)
-    real(8) :: projectedGradient(:)
+  ! subroutine GeometryOptimizer_projectGradient( gradientVector, projectedGradient )
+  !   implicit none
+  !   real(8) :: gradientVector(:)
+  !   real(8) :: projectedGradient(:)
 
-    type(vector) :: pprojectedGradient
+  !   type(vector) :: pprojectedGradient
 
 
-    !           if ( CONTROL_instance%PROJECT_HESSIANE ) then
-    !
-    !               MolecularSystem_instance(fragment)%mecProperties.transformationMatrix = &
-    !                   MecanicProperties_getTransformationMatrix( MolecularSystem_instance(fragment)%mecProperties )
-    !               call Vector_constructor(pprojectedGradient,size(gradientVector))
-    !               pprojectedGradient%values = gradientVector
-    !               pprojectedGradient =MecanicProperties_getGradientProjectedOnExternalDegrees( MolecularSystem_instance(fragment)%mecProperties, &
-    !                   pprojectedGradient )
-    !               projectedGradient=pprojectedGradient%values
-    !               call Vector_destructor(pprojectedGradient)
-    !
-    !           else
+  !   !           if ( CONTROL_instance%PROJECT_HESSIANE ) then
+  !   !
+  !   !               MolecularSystem_instance(fragment)%mecProperties.transformationMatrix = &
+  !   !                   MecanicProperties_getTransformationMatrix( MolecularSystem_instance(fragment)%mecProperties )
+  !   !               call Vector_constructor(pprojectedGradient,size(gradientVector))
+  !   !               pprojectedGradient%values = gradientVector
+  !   !               pprojectedGradient =MecanicProperties_getGradientProjectedOnExternalDegrees( MolecularSystem_instance(fragment)%mecProperties, &
+  !   !                   pprojectedGradient )
+  !   !               projectedGradient=pprojectedGradient%values
+  !   !               call Vector_destructor(pprojectedGradient)
+  !   !
+  !   !           else
 
-    projectedGradient = gradientVector
+  !   projectedGradient = gradientVector
 
-    !           end if
+  !   !           end if
 
-  end subroutine GeometryOptimizer_projectGradient
+  ! end subroutine GeometryOptimizer_projectGradient
 
-  !>
-  !! @brief Define un proyector para la hesiana cartesiano
-  !!
-  !!  @warning Anque no se define como privada de la clase por propositos de conveniencia
-  !!          no debe ser empleada fuera de la clase
-  !<
-  subroutine GeometryOptimizer_projectHessiane( hessianeMatrix, projectedHessiane)
-    implicit none
-    real(8) :: hessianeMatrix(:,:)
-    real(8) :: projectedHessiane(:,:)
+  ! !>
+  ! !! @brief Define un proyector para la hesiana cartesiano
+  ! !!
+  ! !!  @warning Anque no se define como privada de la clase por propositos de conveniencia
+  ! !!          no debe ser empleada fuera de la clase
+  ! !<
+  ! subroutine GeometryOptimizer_projectHessiane( hessianeMatrix, projectedHessiane)
+  !   implicit none
+  !   real(8) :: hessianeMatrix(:,:)
+  !   real(8) :: projectedHessiane(:,:)
 
-    type(Matrix) :: projector
-    real(8) :: auxValue
-    integer :: infoProcess
-    integer :: i
-    integer :: j
+  !   type(Matrix) :: projector
+  !   real(8) :: auxValue
+  !   integer :: infoProcess
+  !   integer :: i
+  !   integer :: j
 
-    if ( CONTROL_instance%PROJECT_HESSIANE .or. CONTROL_instance%MOLLER_PLESSET_CORRECTION >= 2 ) then
+  !   if ( CONTROL_instance%PROJECT_HESSIANE .or. CONTROL_instance%MOLLER_PLESSET_CORRECTION >= 2 ) then
 
-       projector = MecanicProperties_getHandyProjector( MolecularSystem_instance%mechanicalProp, infoProcess)
+  !      projector = MecanicProperties_getHandyProjector( MolecularSystem_instance%mechanicalProp, infoProcess)
 
-       if(infoProcess==0) then
-          projectedHessiane=matmul(projector%values,matmul(hessianeMatrix,projector%values))
+  !      if(infoProcess==0) then
+  !         projectedHessiane=matmul(projector%values,matmul(hessianeMatrix,projector%values))
 
-          do i=1,size(hessianeMatrix,dim=1)
-             do  j=1,i
-                auxValue=0.5*( projectedHessiane(i,j) + projectedHessiane(j,i) )
-                projectedHessiane(j,i) = auxValue
-                projectedHessiane(i,j) = auxValue
-             end do
-          end do
+  !         do i=1,size(hessianeMatrix,dim=1)
+  !            do  j=1,i
+  !               auxValue=0.5*( projectedHessiane(i,j) + projectedHessiane(j,i) )
+  !               projectedHessiane(j,i) = auxValue
+  !               projectedHessiane(i,j) = auxValue
+  !            end do
+  !         end do
 
-       else
-          projectedHessiane = hessianeMatrix
-          print *, "HESSIANE WILL NOT PROJECTED, THE INERTIA MATRIX IS BADLY CONDITIONED"
-          print *,""
+  !      else
+  !         projectedHessiane = hessianeMatrix
+  !         print *, "HESSIANE WILL NOT PROJECTED, THE INERTIA MATRIX IS BADLY CONDITIONED"
+  !         print *,""
 
-       end if
-       call Matrix_destructor(projector)
+  !      end if
+  !      call Matrix_destructor(projector)
 
-    else
-       projectedHessiane = hessianeMatrix
-    end if
+  !   else
+  !      projectedHessiane = hessianeMatrix
+  !   end if
 
-  end subroutine GeometryOptimizer_projectHessiane
+  ! end subroutine GeometryOptimizer_projectHessiane
 
-!         !>
-!         !! @brief  Maneja excepciones de la clase
-!         !<
-!         subroutine GeometryOptimizer_exception( this, typeMessage, description, debugDescription)
-!             implicit none
-!             type(GeometryOptimizer) :: this
-!             integer :: typeMessage
-!             character(*) :: description
-!             character(*) :: debugDescription
+  !         !>
+  !         !! @brief  Maneja excepciones de la clase
+  !         !<
+  !         subroutine GeometryOptimizer_exception( this, typeMessage, description, debugDescription)
+  !             implicit none
+  !             type(GeometryOptimizer) :: this
+  !             integer :: typeMessage
+  !             character(*) :: description
+  !             character(*) :: debugDescription
 
-!             type(Exception) :: ex
+  !             type(Exception) :: ex
 
-!             call Exception_constructor( ex , typeMessage )
-!             call Exception_setDebugDescription( ex, debugDescription )
-!             call Exception_setDescription( ex, description )
-!             call Exception_show( ex )
-!             call Exception_destructor( ex )
+  !             call Exception_constructor( ex , typeMessage )
+  !             call Exception_setDebugDescription( ex, debugDescription )
+  !             call Exception_setDescription( ex, description )
+  !             call Exception_show( ex )
+  !             call Exception_destructor( ex )
 
-!         end subroutine GeometryOptimizer_exception
+  !         end subroutine GeometryOptimizer_exception
 
 end module GeometryOptimizer_

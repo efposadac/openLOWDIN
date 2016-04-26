@@ -15,6 +15,7 @@ module CosmoCore_
      real(8), allocatable :: ys(:)
      real(8), allocatable :: zs(:)
      real(8), allocatable :: area(:)
+     integer, allocatable :: atoms(:)
      integer :: sizeSurface
   end type surfaceSegment
 
@@ -104,16 +105,18 @@ contains
     real(8), dimension(surface%sizeSurface) :: y !segment y cordinate
     real(8), dimension(surface%sizeSurface) :: z !segment z cordinate
     real(8), dimension(surface%sizeSurface) :: a	!segment area
+    integer, dimension(surface%sizeSurface) :: at	!atomo padre
 
     allocate(surface%xs(surface%sizeSurface))
     allocate(surface%ys(surface%sizeSurface))
     allocate(surface%zs(surface%sizeSurface))
     allocate(surface%area(surface%sizeSurface))
+    allocate(surface%atoms(surface%sizeSurface))
 
     ! Reading surface from .vec
-100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8)
+100 format (2X,F12.8,2X,F12.8,2X,F12.8,2X,F12.8,2X,I5)
     open(55,file='vectors.vec',status='unknown') 
-    read(55,100) (x(i),y(i),z(i),a(i),i=1,surface%sizeSurface)
+    read(55,100) (x(i),y(i),z(i),a(i),at(i),i=1,surface%sizeSurface)
     close(55)
 
 
@@ -126,27 +129,30 @@ contains
 
     !Reading surface from .sup
     !
-    ! 100 format (F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
-    ! 		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
-    !     read(55,*) (a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
-    !
-    ! do i=1,surface%sizeSurface        
-    !    surface%xs(i)=x(i)
-    !    surface%ys(i)=y(i)
-    !    surface%zs(i)=z(i)
-    !    surface%area(i)=a(i)
-    ! end do
-    ! close(55)
+    !   100 format (I,2X,F10.7,2X,F10.7,2X,F10.7,2X,F10.7)
+    !   		open(unit=55, file=trim(CONTROL_instance%INPUT_FILE)//"sup", status='old',	action='read') 
+    !       read(55,*) (at(i),a(i),x(i),y(i),z(i),i=1,surface%sizeSurface)
+    !  
+    !   do i=1,surface%sizeSurface        
+    !      surface%xs(i)=x(i)
+    !      surface%ys(i)=y(i)
+    !      surface%zs(i)=z(i)
+    !      surface%area(i)=a(i)
+    ! surface%atoms(i)=at(i)	
+    !   end do
+    !   close(55)
     !
     ! write(*,*)"tipo superficie"
-    !! llenando surface con la informacion leida
+    ! llenando surface con la informacion leida
     ! 	 write(*,*)"como lee los numeros"
     !
-    !! gepol matrix
+    ! gepol matrix
     ! write(*,*)"surface%sizeSurface",surface%sizeSurface
     ! write(*,*)"datos leidos"
-
-
+    !Debug
+    !do i=1,surface%sizeSurface        
+    !			write(*,*)"átomo padre: ",at(i), "segmento: ",i
+    !	end do
 
 
   end subroutine CosmoCore_Filler
@@ -251,17 +257,18 @@ contains
     call Matrix_constructor(q, int(surface%sizeSurface,8), 1_8)
     call Matrix_constructor(cmatinv_aux, int(segments,8), int(segments,8))
 
-    write(*,*)"Constante dialectrica = ", CONTROL_instance%COSMO_SOLVENT_DIALECTRIC
+    write(*,*)"Constante dielectrica = ", CONTROL_instance%COSMO_SOLVENT_DIELECTRIC
 
 
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    ! lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC+CONTROL_instance%COSMO_SCALING)
 
     write(*,*)"lambda= ",lambda
 
     !
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
 
-
+    write(77)segments
     do i=1,np
 
        !se alimenta verifier con la informacion del particle manager sobre si es
@@ -385,7 +392,7 @@ contains
 
     charge=MolecularSystem_getCharge(MolecularSystem_getSpecieID(specieName))
 
-    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIALECTRIC)
+    lambda=-(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC+CONTROL_instance%COSMO_SCALING)
 
     do i=1,ints
 
@@ -459,6 +466,13 @@ contains
        read(90)(ints_mat(i,n),i=1,surface)
     end do
 
+    ! read(100)m
+    ! do n=1,charges
+    !    read(100)(a_mat(i,n),i=1,surface)
+    ! end do
+    ! read
+
+    read(100)m
     do n=1,charges
        read(100)(a_mat(i,n),i=1,surface)
     end do
@@ -467,7 +481,7 @@ contains
 
     ! cosmo_int(:)=0.0_8
 
-		!!sumatoria sobre los i segmentos
+    !!sumatoria sobre los i segmentos
     m=1
     do n=1,integrals
        do k=1,charges
@@ -554,7 +568,7 @@ contains
           ! write(110) cosmo_int(:)
           close(unit=110)
 
-          write(*,*)"same specie inner product",MolecularSystem_instance%species(f_aux)%name,m-1
+          ! write(*,*)"same specie inner product",MolecularSystem_instance%species(f_aux)%name,m-1
 
           ! ints_mat(:,:)=1.0_8
 
@@ -584,7 +598,7 @@ contains
        ! write(*,*)"a_mat(:,k))"
        ! write(*,*)a_mat(:,:)
        !
-			 write(*,*)"integrals", integrals, " charges ", charges
+       ! write(*,*)"integrals", integrals, " charges ", charges
        open(unit=110, file=trim(MolecularSystem_instance%species(f_aux)%name)//trim(MolecularSystem_instance%species(g_aux)%name)//"_qq.cup", status='unknown', form="unformatted")
        write(110) m-1
        do n=1,integrals
@@ -594,7 +608,7 @@ contains
        end do
        ! write(110) cosmo_int(:)
        close(unit=110)
-       write(*,*)"other species inner product :",trim(MolecularSystem_instance%species(f_aux)%name),"charges ,",trim(MolecularSystem_instance%species(g_aux)%name)," potentials",m-1
+       ! write(*,*)"other species inner product :",trim(MolecularSystem_instance%species(f_aux)%name),"charges ,",trim(MolecularSystem_instance%species(g_aux)%name)," potentials",m-1
 
 
     end if
@@ -610,6 +624,7 @@ contains
     type(surfaceSegment), intent(in) :: surface
 
     integer(8) :: np 
+    integer(8) :: isegments 
     integer:: segments,j,i
 
     type(Matrix) :: clasical_charge
@@ -630,6 +645,8 @@ contains
     allocate(clasical_positions(np,3))
 
     open(unit=77, file="cosmo.clasical", status="unknown",form="unformatted")
+    read(77) isegments
+
     read(77)(q_clasical(i),i=1,segments)
 
     close(77)
@@ -683,6 +700,7 @@ contains
     real(8), allocatable :: ints_mat_aux(:,:)
 
     character(100), intent(in):: charges_file
+    integer :: icharges
 
 
     np=MolecularSystem_instance%numberOfPointCharges
@@ -696,6 +714,8 @@ contains
 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
 
+    read(100)icharges
+    write(*,*)"icharges",icharges
     do n=1,charges
        read(100)(a_mat(i,n),i=1,segments)
     end do

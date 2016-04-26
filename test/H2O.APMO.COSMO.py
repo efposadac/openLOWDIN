@@ -10,7 +10,7 @@ outputName = testName + ".out"
 
 # Reference values
 
-refTotalEnergy = -75.956252723159
+refTotalEnergy = -75.955609253261
 
 # Run calculation
 
@@ -31,7 +31,7 @@ for line in outputRead:
 
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 
-if (diffTotalEnergy <= 1E-10):
+if (diffTotalEnergy <= 1E-8):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

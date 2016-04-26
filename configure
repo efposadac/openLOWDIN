@@ -45,10 +45,11 @@ CC="gcc"
 CFLAGS="-g -O2 -fopenmp -D gfortran"
 CPPFLAGS="-g -O2 -fopenmp -D gfortran"
 FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran"
+GSL_LIBS="-lgsl -lgslcblas"
 LAPACK_LIBS="-lblas -llapack"
 STDCPP_LIBS="-lstdc++"
 LIBINT_LIBS="-lr12 -lderiv -lint"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS"
 DEFAULTS='F'
 
 ############################################
@@ -70,7 +71,7 @@ do
             ;;
         l)  
             LAPACK_LIBS=$OPTARG
-            ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS"
+            ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS"
             DEFAULTS='T'
             ;;
         h)
@@ -203,15 +204,14 @@ else
     STDCPP_LIBS="-lstdc++"
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint"
-    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $CUDA_LIBS"
+    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
 
     ###############################################################################
     #                       SPECIFIC INSTALLATION DIRECTORIES
     ###############################################################################
-
     echo "Installation directory? [$PREFIX]"
     read BINDIR
-
+    
     if [ "$BINDIR" = "" ] ; then
         BINDIR=$PREFIX
     fi

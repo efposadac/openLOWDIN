@@ -21,7 +21,7 @@ build:
     # http://devcenter.wercker.com/docs/steps/index.html
   steps:
     - install-packages:
-        packages: git build-essential liblapack-dev libblas-dev automake libtool gfortran python gawk
+        packages: git build-essential liblapack-dev libblas-dev libgsl0-dev automake libtool gfortran python gawk
     - script:
         name: setup
         code: |
