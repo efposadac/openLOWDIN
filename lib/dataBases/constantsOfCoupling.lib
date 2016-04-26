@@ -17,18 +17,44 @@
 	PARTICLESFRACTION = 1.0
 /
 &SPECIE
+	NAME = "E+SINGLET"
+	SYMBOL = "E+S"
+	
+	KAPPA = -1.0
+	ETA = 2.0
+	LAMBDA = 2.0
+	PARTICLESFRACTION = 0.5
+/
+&SPECIE
+        NAME = "E+ALPHA"
+        SYMBOL = "E+A"
+
+        KAPPA = -1.0
+        ETA = 1.0
+        LAMBDA = 1.0
+        PARTICLESFRACTION = 1.0
+/
+&SPECIE
+        NAME = "E+BETA"
+        SYMBOL = "E+B"
+
+        KAPPA = -1.0
+        ETA = 1.0
+        LAMBDA = 1.0
+        PARTICLESFRACTION = 1.0
+/
+&SPECIE
 	NAME = "EALONE"
 	SYMBOL = "EA-"
-	
 	KAPPA = -1.0
 	ETA = 1.0
 	LAMBDA = 1.0
 	PARTICLESFRACTION = 1.0
 /
+/
 &SPECIE
 	NAME = "EBALONE"
 	SYMBOL = "EB-"
-	
 	KAPPA = -1.0
 	ETA = 1.0
 	LAMBDA = 1.0

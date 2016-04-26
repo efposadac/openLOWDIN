@@ -22,11 +22,12 @@ TASKS
 END TASKS
 
 CONTROL
-	integralScheme="rys"
-	numberOfCores=4
+!	integralScheme="rys"
+	numberOfCores=1
+	schwarzInequality=true
 END CONTROL
-OUTPUTS
-	wfnFile	
-	NBO47File
-	wfxFile
-END OUTPUTS
+!OUTPUTS
+!	wfnFile	
+!	NBO47File
+!	wfxFile
+!END OUTPUTS

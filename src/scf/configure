@@ -29,6 +29,7 @@ OBJECTS=$(for file in $SRCMOD
 TOPDIR=../..
 INCIPATH=$TOPDIR/src/ints/
 INCI=$INCIPATH/*.f90
+INCI2=$INCIPATH/*.cpp
 
 for file in $SRCMOD 
 do
@@ -40,7 +41,18 @@ do
       if [[ -n $inci ]]
       then
         #echo -e "$INCIPATH$auxifile.o \c" >> makefile
-        OBJECTS=$OBJECTS$INCIPATH$auxifile.o  
+        OBJECTS=$OBJECTS$INCIPATH$auxifile.o" "  
+      fi
+   done
+   for ifile in $INCI2 
+   do
+      ifilename=$(echo `basename "$ifile"`)
+      auxifile="${ifilename%.*}"
+      inci=$(grep "\!# use "\\$auxifile $file)
+      if [[ -n $inci ]]
+      then
+        #echo -e "$INCIPATH$auxifile.o \c" >> makefile
+        OBJECTS=$OBJECTS$INCIPATH$auxifile.o" "  
       fi
    done
 done

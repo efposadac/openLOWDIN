@@ -594,8 +594,9 @@ contains
           do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
                (SingleSCF_getNumberOfIterations( iteratorOfSpecie ) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
-             call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
-
+!             print*, "Multi-SCF", nameOfSpecie
+!             call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+             
              if (CONTROL_instance%COSMO) then
                 call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))
 	                if(SingleSCF_getNumberOfIterations( iteratorOfSpecie ) > 0) then
@@ -761,11 +762,15 @@ contains
        print *,"-----------------------------------------------------------------"
     end if
 
+    !! Build an initial two particles matrix, which it will be recalculated in SingleSCF_iterate
+    call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+
     ! write(*,*)"entre al unique specie"
     do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
          ( SingleSCF_getNumberOfIterations(speciesID) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
-       call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+!!      This is not necessary, the two particles matrix can be the one calculated in the previous iteration. 
+!!       call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
 
        if (CONTROL_instance%COSMO) then
           call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))

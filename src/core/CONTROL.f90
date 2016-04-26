@@ -30,6 +30,7 @@ module CONTROL_
      integer :: INTEGRAL_STACK_SIZE
      character(20) :: INTEGRAL_DESTINY
      character(20) :: INTEGRAL_SCHEME
+     logical :: SCHWARZ_INEQUALITY
 
      !!***************************************************************************
      !! Parameter to control SCF program
@@ -244,6 +245,11 @@ module CONTROL_
      character(50) :: EXCITE_SPECIE
      integer :: NUMBER_OF_CORES
 
+     !!*****************************************************
+     !! Integrals transformation options
+     !!
+     character(10) :: INTEGRALS_TRANSFORMATION_METHOD
+
      !!***************************************************************************
      !! Environment variables
      !!
@@ -270,6 +276,7 @@ module CONTROL_
   integer :: LowdinParameters_integralStackSize
   character(20) :: LowdinParameters_integralDestiny
   character(20) :: LowdinParameters_integralScheme
+  logical :: LowdinParameters_schwarzInequality
 
   !!***************************************************************************
   !! Parameter to control SCF program
@@ -483,6 +490,11 @@ module CONTROL_
   character(50) :: LowdinParameters_exciteSpecie
   integer :: LowdinParameters_numberOfCores
 
+  !!*****************************************************
+  !! Integrals transformation options
+  !!
+  character(10) :: LowdinParameters_integralsTransformationMethod
+
   !!***************************************************************************
   !! Environment variables
   !!
@@ -507,10 +519,11 @@ module CONTROL_
        LowdinParameters_integralStackSize,&
        LowdinParameters_integralDestiny,&
        LowdinParameters_integralScheme,&
-       
-                                !!***************************************************************************
-                                !! Parameter to control SCF program
-                                !!
+       LowdinParameters_schwarzInequality, &
+
+       !!***************************************************************************
+       !! Parameter to control SCF program
+       !!
        LowdinParameters_scfNonelectronicEnergyTolerance,&
        LowdinParameters_scfElectronicEnergyTolerance,&
        LowdinParameters_nonelectronicDensityMatrixTolerance,&
@@ -718,10 +731,15 @@ module CONTROL_
        LowdinParameters_ionizeSpecie,&
        LowdinParameters_exciteSpecie,&
        LowdinParameters_numberOfCores,&
-       
-                                !!***************************************************************************
-                                !! Variables de ambiente al sistema de archivos del programa
-                                !!
+
+       !!*****************************************************
+       !! Integrals transformation options
+       !!
+       LowdinParameters_integralsTransformationMethod, &
+
+       !!***************************************************************************
+       !! Variables de ambiente al sistema de archivos del programa
+       !!
        LowdinParameters_inputFile, &
        LowdinParameters_homeDirectory,&
        LowdinParameters_dataDirectory,&
@@ -769,6 +787,7 @@ contains
     LowdinParameters_integralStackSize = 30000
     LowdinParameters_integralDestiny = "MEMORY" !! "MEMORY" or "DISK"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
+    LowdinParameters_schwarzInequality = .false.
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -987,6 +1006,11 @@ contains
     LowdinParameters_numberOfCores = OMP_get_thread_num() + 1
     !$OMP END PARALLEL 
 
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    LowdinParameters_integralsTransformationMethod = "A"
+
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
     !!
@@ -1016,6 +1040,7 @@ contains
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
     CONTROL_instance%INTEGRAL_DESTINY = "MEMORY" !! "MEMORY", "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
+    CONTROL_instance%SCHWARZ_INEQUALITY = .false.
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -1233,6 +1258,11 @@ contains
     CONTROL_instance%NUMBER_OF_CORES = OMP_get_thread_num() + 1
     !$OMP END PARALLEL 
 
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = "A"
+
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   
     !!                                                                                                                         
@@ -1302,6 +1332,7 @@ contains
     CONTROL_instance%INTEGRAL_STACK_SIZE = LowdinParameters_integralStackSize
     CONTROL_instance%INTEGRAL_DESTINY = LowdinParameters_integralDestiny
     CONTROL_instance%INTEGRAL_SCHEME =  LowdinParameters_integralScheme
+    CONTROL_instance%SCHWARZ_INEQUALITY = LowdinParameters_schwarzInequality
 
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
@@ -1512,6 +1543,11 @@ contains
     CONTROL_instance%EXCITE_SPECIE = LowdinParameters_exciteSpecie
     CONTROL_instance%NUMBER_OF_CORES = LowdinParameters_numberOfCores
 
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = LowdinParameters_integralsTransformationMethod
+
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
     !!                                                                                 
@@ -1548,6 +1584,7 @@ contains
     LowdinParameters_integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
     LowdinParameters_integralDestiny = CONTROL_instance%INTEGRAL_DESTINY
     LowdinParameters_integralScheme = CONTROL_instance%INTEGRAL_SCHEME
+    LowdinParameters_schwarzInequality = CONTROL_instance%SCHWARZ_INEQUALITY
 
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
@@ -1767,6 +1804,11 @@ contains
     LowdinParameters_exciteSpecie = CONTROL_instance%EXCITE_SPECIE
     LowdinParameters_numberOfCores = CONTROL_instance%NUMBER_OF_CORES
 
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    LowdinParameters_integralsTransformationMethod = CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD 
+
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
     !!                                                                                 
@@ -1803,6 +1845,8 @@ contains
     otherThis%INTEGRAL_DESTINY = this%INTEGRAL_DESTINY 
     otherThis%INTEGRAL_SCHEME = this%INTEGRAL_SCHEME
     otherThis%INTEGRAL_STACK_SIZE = this%INTEGRAL_STACK_SIZE 
+    otherThis%SCHWARZ_INEQUALITY = this%SCHWARZ_INEQUALITY
+
     !!***************************************************************************
     !! Parametros para control de proceso de minizacion de energia mediante
     !! metodo SCF
@@ -1995,6 +2039,11 @@ contains
     otherThis%IONIZE_SPECIE = this%IONIZE_SPECIE 
     otherThis%EXCITE_SPECIE = this%EXCITE_SPECIE 
     otherThis%NUMBER_OF_CORES = this%NUMBER_OF_CORES
+
+    !!*****************************************************
+    !! Integrals transformation options
+    !!
+    otherThis%INTEGRALS_TRANSFORMATION_METHOD = this%INTEGRALS_TRANSFORMATION_METHOD 
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
