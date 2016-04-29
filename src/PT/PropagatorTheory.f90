@@ -366,7 +366,7 @@ contains
     real(8) :: auxVal, auxVal_1, auxVal_2, auxVal_3
     real(8) :: auxValue_A, auxValue_B, auxValue_C, auxValue_D 
     real(8) :: auxValue_E, auxValue_F, auxValue_G, auxValue_H
-    real(8) :: factorOS(3), factorSS(3), E2hp, E2ph, Ehp, dE2hp, dE2ph, dEhp
+    real(8) :: factorOS(3), factorSS(3), E2hp, E2ph, Ehp, dE2hp, dE2ph, dEhp, TE2hp, TE2ph
     real(8) :: lastOmega, newOmega, residual, koopmans, selfEnergy, selfEnergyDerivative 
     real(8) :: selfEnergySS, selfEnergyDerivativeSS, selfEnergyOS, selfEnergyDerivativeOS 
     real(8) :: a1, a2, b, c, d, poleStrenght
@@ -842,6 +842,8 @@ contains
                       dE2hp = dE2hp + selfEnergy2hp(j)%values(1,id2)/(b**2.0_8)
                       
                    end do
+
+                   !!print *, "Specie ij", i,j, "E2hp", E2hp, "E2ph", E2ph
                    
 20                 continue
                    
@@ -894,7 +896,73 @@ contains
              end do ! end while
              
              poleStrenght = 1.0_8/selfEnergyDerivative
-             
+              
+             !! P2 decomposition
+             print *, ""
+             write (*,"(T5,A42,I2,A13,A12)") "P2 decomposition (in eV) for spin-orbital:", &
+                   int(PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)),&
+                   " of species A: ",nameOfSpeciesA
+
+             write (*, "(T6,A50)") "--------------------------------------------------"
+             write (*, "(T6,A14,A12,A12,A13)"),"Species b     ", "E_2hp (ORX) ", "E_2ph (PRM) ", "\Sigma_{ab}^2"
+             write (*, "(T6,A50)") "--------------------------------------------------"
+             TE2hp = 0.0_8
+             TE2ph = 0.0_8
+             do j = 1 , PropagatorTheory_instance%numberOfSpecies             
+
+                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )                   
+
+                E2hp = 0.0_8
+                E2ph= 0.0_8
+                Ehp = 0.0_8
+
+                do id1 = 1, size(selfEnergy2ph(j)%values,DIM=2)
+                   
+                   b = selfEnergy2ph(j)%values(2,id1) + newOmega
+                   E2ph = E2ph + selfEnergy2ph(j)%values(1,id1)/b
+                   
+                end do
+
+
+                if (occupationNumberOfSpeciesA==1.and.i==j) goto 30
+
+                do id2 = 1, size(selfEnergy2hp(j)%values,DIM=2)
+                   
+                   b = selfEnergy2hp(j)%values(2,id2) + newOmega
+                   E2hp = E2hp + selfEnergy2hp(j)%values(1,id2)/b
+                   
+                end do
+
+                
+30              continue
+                
+                if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
+
+                   do id3 = 1, size(selfEnergyhp(j)%values,DIM=2)
+                      
+                      b = selfEnergyhp(j)%values(2,id3) + newOmega
+                      
+                      Ehp = Ehp + selfEnergyhp(j)%values(1,id3)/b
+                      
+                   end do
+                   
+                end if
+
+                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5)"), nameOfSpeciesB, E2hp*27.211396_8, E2ph*27.211396_8,(E2hp+E2ph)*27.211396_8
+
+                TE2hp = TE2hp + E2hp
+                TE2ph = TE2ph + E2ph
+
+             end do ! end do species j
+
+             write (*, "(T6,A50)") "--------------------------------------------------"
+
+             !! Total 
+             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5)"), "Sum for b " , TE2hp*27.211396_8, TE2ph*27.211396_8,(TE2hp+TE2ph)*27.211396_8
+
+             write (*, "(T6,A50)") "--------------------------------------------------"
+             write (*, *) ""
+
              ! Storing corrections
              
              PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1)=27.211396_8 * newOmega
