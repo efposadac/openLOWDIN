@@ -139,6 +139,9 @@ program SCF
            print *,"---------------------------------------------------------"
         end if
 
+        call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
+        call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
+
         do while( status == SCF_GLOBAL_CONVERGENCE_CONTINUE .and. &
              MultiSCF_getNumberOfIterations() <= CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS )
 
