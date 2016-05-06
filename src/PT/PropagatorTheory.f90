@@ -65,6 +65,7 @@ module PropagatorTheory_
 		type(Matrix) :: energyCorrections
 
 		logical :: isInstanced
+                logical :: externalSCS
 
 	end type PropagatorTheory
 
@@ -223,24 +224,55 @@ contains
 
              if (nameOfSpecies=="E-ALPHA".or.nameOfSpecies=="E-BETA") then
                 
-                write ( 6,'(T10,A90)') "-------------------------------------------------------------------------------------------------"
-                write ( 6,'(T10,A10,A10,A10,A10,A12,A10,A12,A10)') " Orbital ","  KT (eV) "," EP2 (eV) ","  P.S  "," SCS-EP2(eV)"&
-                     ,"  P.S  "," SOS-EP2(eV)","  P.S  "
-                write ( 6,'(T10,A90)') "-------------------------------------------------------------------------------------------------"
-                
-                do j=1,n
-                   write (*,'(T10,A4,I2,A4,F10.4,F10.4,F10.4,F12.4,F10.4,F12.4,F10.4)') "    ",&
-                        int(PropagatorTheory_instance%secondOrderCorrections(i)%values(j,1)),&
-                        "    ",PropagatorTheory_instance%secondOrderCorrections(i)%values(j,2), &
-                        PropagatorTheory_instance%secondOrderCorrections(i)%values(j,3), &
-                        PropagatorTheory_instance%secondOrderCorrections(i)%values(j,4), &
-                        PropagatorTheory_instance%secondOrderCorrections(i)%values(j,5), &
-                        PropagatorTheory_instance%secondOrderCorrections(i)%values(j,6), &
-                        PropagatorTheory_instance%secondOrderCorrections(i)%values(j,7), &
-                        PropagatorTheory_instance%secondOrderCorrections(i)%values(j,8)
-                end do
-                write ( 6,'(T10,A90)') "----------------------------------------------------------------------------------------------"
 
+                if ( PropagatorTheory_instance%externalSCS == .false. ) then
+
+                  write ( 6,'(T10,A90)') "-------------------------------------------------------------------------------------------------"
+                  write ( 6,'(T10,A10,A10,A10,A10,A12,A10,A12,A10)') " Orbital ","  KT (eV) "," EP2 (eV) ","  P.S  "," SCS-EP2(eV)"&
+                       ,"  P.S  "," SOS-EP2(eV)","  P.S  "
+                  write ( 6,'(T10,A90)') "-------------------------------------------------------------------------------------------------"
+                  
+                  do j=1,n
+                     write (*,'(T10,A4,I2,A4,F10.4,F10.4,F10.4,F12.4,F10.4,F12.4,F10.4)') "    ",&
+                          int(PropagatorTheory_instance%secondOrderCorrections(i)%values(j,1)),&
+                          "    ",PropagatorTheory_instance%secondOrderCorrections(i)%values(j,2), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,3), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,4), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,5), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,6), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,7), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,8)
+                  end do
+                  write ( 6,'(T10,A90)') "----------------------------------------------------------------------------------------------"
+
+                else 
+                  write ( 6,'(T10,A110)') "---------------------------------------------------------------------------------------------------------------------"
+                  write ( 6,'(T10,A10,A10,A10,A10,A12,A10,A12,A10,A12,A10)') " Orbital ","  KT (eV) "," EP2 (eV) ","  P.S  "," SCS-EP2(eV)"&
+                       ,"  P.S  "," SOS-EP2(eV)","  P.S  ","*SCS-EP2(eV)","  P.S  "
+
+
+                  write ( 6,'(T10,A110)') "---------------------------------------------------------------------------------------------------------------------"
+                  
+                  do j=1,n
+                     write (*,'(T10,A4,I2,A4,F10.4,F10.4,F10.4,F12.4,F10.4,F12.4,F10.4,F12.4,F10.4)') "    ",&
+                          int(PropagatorTheory_instance%secondOrderCorrections(i)%values(j,1)),&
+                          "    ",PropagatorTheory_instance%secondOrderCorrections(i)%values(j,2), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,3), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,4), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,5), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,6), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,7), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,8), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,9), &
+                          PropagatorTheory_instance%secondOrderCorrections(i)%values(j,10)
+
+                  end do
+
+                  write ( 6,'(T10,A110)') "---------------------------------------------------------------------------------------------------------------------"
+                  write ( 6,'(T10,A12,A11,F10.4,A12,F10.4)') "*SCS-EP2    ","Factor OS: ",  CONTROL_instance%PT_FACTOR_OS, &
+                         "Factor SS: ",  CONTROL_instance%PT_FACTOR_SS 
+                end if
+                
              else
                    
                 write ( 6,'(T10,A45)') "------------------------------------------------------"
@@ -366,7 +398,8 @@ contains
     real(8) :: auxVal, auxVal_1, auxVal_2, auxVal_3
     real(8) :: auxValue_A, auxValue_B, auxValue_C, auxValue_D 
     real(8) :: auxValue_E, auxValue_F, auxValue_G, auxValue_H
-    real(8) :: factorOS(3), factorSS(3), E2hp, E2ph, Ehp, dE2hp, dE2ph, dEhp, TE2hp, TE2ph
+    real(8), allocatable :: factorOS(:), factorSS(:)
+    real(8) :: E2hp, E2ph, Ehp, dE2hp, dE2ph, dEhp, TE2hp, TE2ph
     real(8) :: lastOmega, newOmega, residual, koopmans, selfEnergy, selfEnergyDerivative 
     real(8) :: selfEnergySS, selfEnergyDerivativeSS, selfEnergyOS, selfEnergyDerivativeOS 
     real(8) :: a1, a2, b, c, d, poleStrenght
@@ -438,7 +471,29 @@ contains
     allocate(PropagatorTheory_instance%secondOrderCorrections(m))
 
     ! Factors for spin scaling
+   print *, "OS" ,CONTROL_instance%PT_FACTOR_OS
+   print *, "SS" ,CONTROL_instance%PT_FACTOR_SS 
+
     
+    if ( CONTROL_instance%PT_FACTOR_SS == 0 .and. CONTROL_instance%PT_FACTOR_OS == 0 ) then
+        PropagatorTheory_instance%externalSCS = .false. 
+
+        if (allocated(factorOS)) deallocate (factorOS)
+        allocate(factorOS(3))
+        if (allocated(factorSS)) deallocate (factorSS)
+        allocate(factorSS(3))
+    else 
+        PropagatorTheory_instance%externalSCS = .true. 
+
+        if (allocated(factorOS)) deallocate (factorOS)
+        allocate(factorOS(4))
+        if (allocated(factorSS)) deallocate (factorSS)
+        allocate(factorSS(4))
+
+        factorOS(4)=CONTROL_instance%PT_FACTOR_OS
+        factorSS(4)=CONTROL_instance%PT_FACTOR_SS 
+
+    end if
     ! Regular calculation
     factorOS(1)=1.0_8
     factorSS(1)=1.0_8
@@ -483,7 +538,7 @@ contains
 
        if (nameOfSpeciesA=="E-ALPHA".or.nameOfSpeciesA=="E-BETA") then
           
-          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 8_8, 0.0_8)
+          call Matrix_constructor(PropagatorTheory_instance%secondOrderCorrections(q), int(n,8), 10_8, 0.0_8)
 
        else 
 
@@ -785,12 +840,13 @@ contains
           ! Selecting value of o, for spin-component-scaled calculations
 
           if (nameOfSpeciesA=="E-ALPHA".or.nameOfSpeciesA=="E-BETA") then
-             o = 3
+             o = size(factorSS)
           else
              o = 1
           end if
           
           ! Second order calculations with different spin-component-scaling factors
+        print *, "=== o:" ,o
           do n = 1, o 
              
              ! Initial guess
