@@ -225,7 +225,7 @@ contains
              if (nameOfSpecies=="E-ALPHA".or.nameOfSpecies=="E-BETA") then
                 
 
-                if ( PropagatorTheory_instance%externalSCS == .false. ) then
+                if ( PropagatorTheory_instance%externalSCS .eqv. .false. ) then
 
                   write ( 6,'(T10,A90)') "-------------------------------------------------------------------------------------------------"
                   write ( 6,'(T10,A10,A10,A10,A10,A12,A10,A12,A10)') " Orbital ","  KT (eV) "," EP2 (eV) ","  P.S  "," SCS-EP2(eV)"&
