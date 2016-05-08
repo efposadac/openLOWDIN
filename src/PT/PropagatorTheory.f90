@@ -399,7 +399,7 @@ contains
     real(8) :: auxValue_A, auxValue_B, auxValue_C, auxValue_D 
     real(8) :: auxValue_E, auxValue_F, auxValue_G, auxValue_H
     real(8), allocatable :: factorOS(:), factorSS(:)
-    real(8) :: E2hp, E2ph, Ehp, dE2hp, dE2ph, dEhp, TE2hp, TE2ph
+    real(8) :: E2hp, E2ph, Ehp, dE2hp, dE2ph, dEhp, TE2hp, TE2ph, orx, prx, Tprx, Torx
     real(8) :: lastOmega, newOmega, residual, koopmans, selfEnergy, selfEnergyDerivative 
     real(8) :: selfEnergySS, selfEnergyDerivativeSS, selfEnergyOS, selfEnergyDerivativeOS 
     real(8) :: a1, a2, b, c, d, poleStrenght
@@ -471,9 +471,6 @@ contains
     allocate(PropagatorTheory_instance%secondOrderCorrections(m))
 
     ! Factors for spin scaling
-   print *, "OS" ,CONTROL_instance%PT_FACTOR_OS
-   print *, "SS" ,CONTROL_instance%PT_FACTOR_SS 
-
     
     if ( CONTROL_instance%PT_FACTOR_SS == 0 .and. CONTROL_instance%PT_FACTOR_OS == 0 ) then
         PropagatorTheory_instance%externalSCS = .false. 
@@ -648,7 +645,8 @@ contains
                 
                 if (occupationNumberOfSpeciesA>1) then
                    
-                   call Matrix_constructor(selfEnergy2hp(j), 2_8, vectorSize2, 0.0_8)
+                   call Matrix_constructor(selfEnergy2hp(j), 6_8, vectorSize2, 0.0_8)
+                   !! 2hp(1,2), prx(3,4), orx(5,6) (numerator and denominator)
 
                 end if
 
@@ -705,6 +703,14 @@ contains
                             selfEnergy2hp(j)%values(2,id2) = eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesA%values(ia) &
                                  - eigenValuesOfSpeciesA%values(ja) 
 
+                            if ( pa == ia ) then
+                                 selfEnergy2hp(j)%values(5,id2) = selfEnergy2hp(j)%values(1,id2) 
+                                 selfEnergy2hp(j)%values(6,id2) = selfEnergy2hp(j)%values(2,id2) 
+                            else 
+                                 selfEnergy2hp(j)%values(3,id2) = selfEnergy2hp(j)%values(1,id2) 
+                                 selfEnergy2hp(j)%values(4,id2) = selfEnergy2hp(j)%values(2,id2) 
+                            end if
+
                          end do
                       end do
                    end do
@@ -748,7 +754,7 @@ contains
                 vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
 
                 call Matrix_constructor(selfEnergy2ph(j), 2_8, vectorSize1, 0.0_8)
-                call Matrix_constructor(selfEnergy2hp(j), 2_8, vectorSize2, 0.0_8)
+                call Matrix_constructor(selfEnergy2hp(j), 6_8, vectorSize2, 0.0_8)
 
                 if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
 
@@ -796,6 +802,15 @@ contains
                          
                          selfEnergy2hp(j)%values(2,id2) = eigenValuesOfSpeciesB%values(ab) - eigenValuesOfSpeciesA%values(ia) &
                               - eigenValuesOfSpeciesB%values(ib)
+
+                         if ( pa == ia ) then
+                              selfEnergy2hp(j)%values(5,id2) = selfEnergy2hp(j)%values(1,id2) 
+                              selfEnergy2hp(j)%values(6,id2) = selfEnergy2hp(j)%values(2,id2) 
+                         else 
+                              selfEnergy2hp(j)%values(3,id2) = selfEnergy2hp(j)%values(1,id2) 
+                              selfEnergy2hp(j)%values(4,id2) = selfEnergy2hp(j)%values(2,id2) 
+                         end if
+
 
                       end do
                    end do
@@ -846,9 +861,8 @@ contains
           end if
           
           ! Second order calculations with different spin-component-scaling factors
-        print *, "=== o:" ,o
           do n = 1, o 
-             
+             print *, "   SCS :" , n  
              ! Initial guess
              newOmega = koopmans
              lastOmega = 0.0_8
@@ -955,15 +969,18 @@ contains
               
              !! P2 decomposition
              print *, ""
-             write (*,"(T5,A42,I2,A13,A12)") "P2 decomposition (in eV) for spin-orbital:", &
+             write (*,"(T5,A43,I2,A13,A12)") "P2 decomposition (in eV) for spin-orbital:", &
                    int(PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)),&
-                   " of species A: ",nameOfSpeciesA
+                   " of species a: ",nameOfSpeciesA
 
              write (*, "(T6,A50)") "--------------------------------------------------"
-             write (*, "(T6,A14,A12,A12,A13)"),"Species b     ", "E_2hp (ORX) ", "E_2ph (PRM) ", "\Sigma_{ab}^2"
+             write (*, "(T6,A14,A11,A11,A12,A13)"),"Species b     ", "    PRX    ", "    ORX    ", "E_2ph (PRM) ", "\Sigma_{ab}^2"
              write (*, "(T6,A50)") "--------------------------------------------------"
              TE2hp = 0.0_8
              TE2ph = 0.0_8
+             Tprx = 0.0_8
+             Torx = 0.0_8
+
              do j = 1 , PropagatorTheory_instance%numberOfSpecies             
 
                 nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )                   
@@ -971,6 +988,8 @@ contains
                 E2hp = 0.0_8
                 E2ph= 0.0_8
                 Ehp = 0.0_8
+                prx = 0.0_8
+                orx = 0.0_8
 
                 do id1 = 1, size(selfEnergy2ph(j)%values,DIM=2)
                    
@@ -983,11 +1002,32 @@ contains
                 if (occupationNumberOfSpeciesA==1.and.i==j) goto 30
 
                 do id2 = 1, size(selfEnergy2hp(j)%values,DIM=2)
-                   
+
                    b = selfEnergy2hp(j)%values(2,id2) + newOmega
                    E2hp = E2hp + selfEnergy2hp(j)%values(1,id2)/b
                    
+                   b = selfEnergy2hp(j)%values(4,id2) + newOmega
+                   prx = prx +  selfEnergy2hp(j)%values(3,id2)/b
+
+                   b = selfEnergy2hp(j)%values(6,id2) + newOmega
+                   orx = orx +  selfEnergy2hp(j)%values(5,id2)/b
+
                 end do
+
+                if ((nameOfSpeciesA=="E-ALPHA".and.nameOfSpeciesB=="E-BETA") &
+                        .or.(nameOfSpeciesA=="E-BETA".and.nameOfSpeciesB=="E-ALPHA")) then
+                        E2ph = factorOS(n) * E2ph
+                        E2hp = factorOS(n) * E2hp
+                        prx = factorOS(n) * prx
+                        orx = factorOS(n) * orx
+                end if
+                if ((nameOfSpeciesA=="E-ALPHA".and.nameOfSpeciesB=="E-ALPHA") &
+                        .or.(nameOfSpeciesA=="E-BETA".and.nameOfSpeciesB=="E-BETA")) then
+                        E2ph = factorSS(n) * E2ph
+                        E2hp = factorSS(n) * E2hp
+                        prx = factorSS(n) * prx
+                        orx = factorSS(n) * orx
+                end if
 
                 
 30              continue
@@ -1004,17 +1044,21 @@ contains
                    
                 end if
 
-                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5)"), nameOfSpeciesB, E2hp*27.211396_8, E2ph*27.211396_8,(E2hp+E2ph)*27.211396_8
+                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), nameOfSpeciesB, prx*27.211396_8, orx*27.211396_8, &
+                        E2ph*27.211396_8,(E2hp+E2ph)*27.211396_8
 
                 TE2hp = TE2hp + E2hp
                 TE2ph = TE2ph + E2ph
+                Torx = Torx + orx
+                Tprx = Tprx + prx
 
              end do ! end do species j
 
              write (*, "(T6,A50)") "--------------------------------------------------"
 
              !! Total 
-             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5)"), "Sum for b " , TE2hp*27.211396_8, TE2ph*27.211396_8,(TE2hp+TE2ph)*27.211396_8
+             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), "Sum for b " , Tprx*27.211396_8,Torx*27.211396_8, &
+                         TE2ph*27.211396_8,(TE2hp+TE2ph)*27.211396_8
 
              write (*, "(T6,A50)") "--------------------------------------------------"
              write (*, *) ""
@@ -1024,11 +1068,12 @@ contains
              PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1)=27.211396_8 * newOmega
              PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+2)=poleStrenght
              
-             write (*,"(T5,A10,F8.5,A10,F8.5)") " factorOS: ",factorOS(n)," factorSS: ",factorSS(n)
-             write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",&
+             write (*,"(T5,A10,F8.5,A10,F8.5)") " FactorOS: ",factorOS(n)," FactorSS: ",factorSS(n)
+             write (*,"(T5,A30,F8.4,A7,I2,A12)") " Optimized second order pole: ",&
                   PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1),&
                   " after ",ni," iterations."
              write (*,"(T5,A17,F8.4,A15,F7.4)") "Correction(eV): ",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+             write (*, *) ""
 
           end do          
 

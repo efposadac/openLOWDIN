@@ -28,7 +28,10 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores=6
+	numberOfCores=2
+	ptFactorSS = 1.000
+	ptFactorOS = 1.000
+	integralsTransformationMethod = "C"
 END CONTROL
 
 
