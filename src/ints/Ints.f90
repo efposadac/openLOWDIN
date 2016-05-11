@@ -30,6 +30,7 @@ Program Ints
   use Stopwatch_
   use CosmoCore_
   use ParticleManager_
+  use Libint2Interface_
 
   implicit none
 
@@ -39,8 +40,8 @@ Program Ints
   character(50) :: speciesName
   type(surfaceSegment) :: surface_aux
   !!Cosmo test
-  real(8) :: x,y,z
-  integer :: j
+  ! real(8) :: x,y,z
+  ! integer :: j
   !Cosmo test
 
   integer(8) :: nprocess
@@ -84,16 +85,20 @@ Program Ints
      !!write global info on output
      write(30) size(MolecularSystem_instance%species)
 
-     !!Calculate overlap integrals
-     call IntegralManager_getOverlapIntegrals()
 
-     !!Calculate kinetic integrals
+     ! !!Calculate overlap integrals
+     call Libint2Interface_compute1BodyInts(1)
+     ! call IntegralManager_getOverlapIntegrals()
+
+     ! !!Calculate kinetic integrals
+     ! call Libint2Interface_compute1BodyInts(2)
      call IntegralManager_getKineticIntegrals()
 
-     !!Calculate attraction integrals
+     ! !!Calculate attraction integrals
+     ! call Libint2Interface_compute1BodyInts(3)
      call IntegralManager_getAttractionIntegrals()
 
-     !!Calculate moment integrals
+     ! !!Calculate moment integrals
      call IntegralManager_getMomentIntegrals()
 
      !stop time

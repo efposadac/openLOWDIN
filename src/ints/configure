@@ -77,7 +77,7 @@ SRCMOD=$(ls [!_]*.cpp)
 for file in $SRCMOD 
 do
     echo -e "${file%.cpp}.o:\t${file} \c" >> makefile
-    echo -e "\n\t\$(CC) -c \$(INC) ${file}\n" >> makefile
+    echo -e "\n\t\$(CXX) -c \$(INC) \$(CPPFLAGS) ${file}\n" >> makefile
 # \$(CFLAGS) ${file}\n" >> makefile
 done
 #

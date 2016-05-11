@@ -342,9 +342,10 @@ if [ $extFile="lowdin" ]; then
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+    mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
+    mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
+    mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+    mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.coeff $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*coup $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.com $currentPath &> 2

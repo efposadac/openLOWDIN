@@ -33,6 +33,7 @@ module IntegralManager_
   use MomentIntegrals_
   use KineticIntegrals_
   use LibintInterface_
+  use Libint2Interface_
   ! use CudintInterface_
   use RysQuadrature_
   use Matrix_
@@ -835,14 +836,16 @@ contains
        if ( CONTROL_instance%SCHWARZ_INEQUALITY ) then
          call LibintInterface_computeIntraSpeciesTwoIndex( speciesID, "ERIS", starting, ending, int(process) )
        end if
-       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process), auxCounter )
+       ! call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process), auxCounter )
+       call Libint2Interface_compute2BodyIntraspecies_disk(speciesID)
     ! case("CUDINT")
     !    call CudintInterface_computeIntraSpecies(speciesID)
     case default
        if ( CONTROL_instance%SCHWARZ_INEQUALITY ) then
          call LibintInterface_computeIntraSpeciesTwoIndex( speciesID, "ERIS", starting, ending, int(process) )
        end if
-       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process), auxCounter )
+       ! call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process), auxCounter )
+       call Libint2Interface_compute2BodyIntraspecies_disk(speciesID)
     end select
 
         call IntegralManager_SaveNumberOfNonZeroIntegrals(speciesID, auxCounter, process ) 

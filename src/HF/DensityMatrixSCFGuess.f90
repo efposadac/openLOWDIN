@@ -70,6 +70,8 @@ contains
        call DensityMatrixSCFGuess_read( output, speciesID )
        
     else
+
+      print*, "USING: ", trim( String_getUppercase( densityType ) ), " Density GUESS"
        
        select case( trim( String_getUppercase( densityType ) ) )
           
@@ -77,6 +79,7 @@ contains
           call DensityMatrixSCFGuess_ones( output, speciesID )
           
        case( "HCORE" )
+
           call DensityMatrixSCFGuess_hcore( output, speciesID )
           
        case( "HUCKEL" )

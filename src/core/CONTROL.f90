@@ -785,7 +785,7 @@ contains
     LowdinParameters_tv = 1.0E-6
     LowdinParameters_integralThreshold = 1.0E-10
     LowdinParameters_integralStackSize = 30000
-    LowdinParameters_integralDestiny = "MEMORY" !! "MEMORY" or "DISK"
+    LowdinParameters_integralDestiny = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
     LowdinParameters_schwarzInequality = .false.
 

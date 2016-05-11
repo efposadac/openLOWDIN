@@ -416,6 +416,32 @@ contains
   end subroutine WaveFunction_setDensityMatrix
 
 
+  !>
+  !! @brief Ajusta la matriz de densidad para una especie espcificada
+  subroutine WaveFunction_setCoefficientsMatrix(coefficientsMatrix, speciesID )
+    implicit none
+
+    type(Matrix), intent(in) :: coefficientsMatrix
+    integer :: speciesID
+
+    integer :: totalNumberOfContractions
+
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+
+    if( .not. allocated(WaveFunction_instance( speciesID )%coefficientsofcombination%values )) then
+       call Matrix_constructor( WaveFunction_instance( speciesID )%coefficientsofcombination, &
+            int(totalNumberOfContractions,8), int(totalNumberOfContractions,8), Math_NaN )
+    end if
+
+    call Matrix_copyConstructor( WaveFunction_instance( speciesID )%coefficientsofcombination, coefficientsMatrix )
+
+    !! Debug
+    ! print*, "Matriz de coefficients inicial ", MolecularSystem_getNameOfSpecie(speciesID)
+    ! call Matrix_show(WaveFunction_instance( speciesID )%coefficientsofcombination)
+
+  end subroutine WaveFunction_setCoefficientsMatrix
+
+
 
   !>
   !! @brief Calcula las componentes de energia para la especie especificada
@@ -835,6 +861,5 @@ contains
     call Exception_show( ex )
     call Exception_destructor( ex )
   end subroutine WaveFunction_exception
-
 
 end module WaveFunction_
