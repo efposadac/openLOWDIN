@@ -26,7 +26,6 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores=1
 	getGradients=T
 END CONTROL
 

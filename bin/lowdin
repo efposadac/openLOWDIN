@@ -293,6 +293,12 @@ if [ $extFile="lowdin" ]; then
 	    cp $nameFile.gms.bs $LOWDIN_SCRATCH/$nameFile
 	fi
 
+	# setting default number of cores for OpenMP
+	if [ -z "$OMP_NUM_THREADS" ]; then
+    	export OMP_NUM_THREADS=1
+	fi
+
+	# Start ...
 	echo "Begin job by input: "$nameFile.lowdin, "for user: "$USERNAME " at " `date` > $nameFile.out
 	echo "under operating system" `uname -a` >> $nameFile.out
 	echo "" >> $nameFile.out

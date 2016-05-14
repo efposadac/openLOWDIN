@@ -64,7 +64,7 @@ program SCF
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
   !! Start the MultiSCF object
-  call MultiSCF_constructor(nproc)
+  call MultiSCF_constructor()
 
   !! Start the wavefunction object
   call WaveFunction_constructor( wfnUnit )
@@ -94,7 +94,7 @@ program SCF
 
      do i = 1, numberOfSpecies
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
-        call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
+        call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
         call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
 
         if (CONTROL_instance%COSMO) then

@@ -28,7 +28,6 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores=2
 	ionizeSpecie=E-ALPHA
 	ionizeMO=2
 	ptJustOneOrbital=T

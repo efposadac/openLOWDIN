@@ -41,7 +41,7 @@ module MultiSCF_
   implicit none    
 
   !< enum Convergece_status_type {
-  integer, parameter :: SCF_GLOBAL_CONVERGENCE_FAILED	= 0
+  integer, parameter :: SCF_GLOBAL_CONVERGENCE_FAILED = 0
   integer, parameter :: SCF_GLOBAL_CONVERGENCE_CONTINUE = 1
   integer, parameter :: SCF_GLOBAL_CONVERGENCE_SUCCESS = 2
   !< }
@@ -63,7 +63,6 @@ module MultiSCF_
      character(30) :: name
      integer :: numberOfIterations
      integer :: status
-     integer :: nproc
      real(8) :: electronicTolerance
      real(8) :: nonelectronicTolerance
 
@@ -72,7 +71,7 @@ module MultiSCF_
      real(8) :: totalCouplingEnergy
      real(8) :: electronicRepulsionEnergy
 
-		 !! Cosmo
+     !! Cosmo
      real(8) :: cosmo3Energy
 
 
@@ -102,17 +101,14 @@ contains
 
   !>
   !! @brief Define el constructor para la clase
-  subroutine MultiSCF_constructor(nproc)
+  subroutine MultiSCF_constructor()
     implicit none
-
-    integer :: nproc
 
     isROHF = .false.
 
     call List_constructor( MultiSCF_instance%energyOMNE,"ENERGY", CONTROL_instance%LISTS_SIZE)
     MultiSCF_instance%numberOfIterations = 0
     MultiSCF_instance%status = 0
-    MultiSCF_instance%nproc = nproc
 
     if ( CONTROL_instance%OPTIMIZE .and.  .not.CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT ) then
 
@@ -305,7 +301,7 @@ contains
                       do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
                            (SingleSCF_getNumberOfIterations(iteratorOfElectronicSpecie) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
-                         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie), nproc = MultiSCF_instance%nproc )
+                         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie))
 
                          if (CONTROL_instance%COSMO) then
                             call  WaveFunction_buildCosmo2Matrix( trim(nameOfElectronicSpecie))
@@ -324,7 +320,7 @@ contains
                          waveFunction_instance(iteratorOfElectronicSpecie)%wasBuiltFockMatrix = .true.
 
                          !! Perform SCF iteration for Single species
-                         call SingleSCF_iterate( trim(nameOfElectronicSpecie), nproc = MultiSCF_instance%nproc )
+                         call SingleSCF_iterate( trim(nameOfElectronicSpecie) )
 
                          !! Test energy or density change (as requested)
                          if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "density" ) then
@@ -348,7 +344,7 @@ contains
                 end do non_electronic_loop
 
                 !! Realiza iteracion SCF para una especie cuantica particular
-                call SingleSCF_iterate( trim( nameOfSpecie ), nproc = MultiSCF_instance%nproc )
+                call SingleSCF_iterate( trim( nameOfSpecie ))
 
                 if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "density" ) then
 
@@ -455,7 +451,7 @@ contains
                       do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
                            (SingleSCF_getNumberOfIterations(iteratorOfElectronicSpecie) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
-                         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie), nproc = MultiSCF_instance%nproc )
+                         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie) )
 
                          !! At first iteration is not included the coupling operator.
                          if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
@@ -479,7 +475,7 @@ contains
                          waveFunction_instance(iteratorOfElectronicSpecie)%wasBuiltFockMatrix = .true.
 
                          !! Perform SCF iteration for Single species
-                         call SingleSCF_iterate( trim(nameOfElectronicSpecie), nproc = MultiSCF_instance%nproc )
+                         call SingleSCF_iterate( trim(nameOfElectronicSpecie) )
 
                          !! Test energy or density change (as requested)
                          if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "density" ) then
@@ -503,7 +499,7 @@ contains
                 end do electronic_loop
 
                 !! Realiza iteracion SCF para una especie cuantica particular
-                call SingleSCF_iterate( trim( nameOfSpecie ), nproc = MultiSCF_instance%nproc )
+                call SingleSCF_iterate( trim( nameOfSpecie ))
 
                 if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "density" ) then
 
@@ -537,7 +533,7 @@ contains
                   MultiSCF_instance%totalEnergy, &
                   MultiSCF_instance%totalCouplingEnergy, &
                   MultiSCF_instance%electronicRepulsionEnergy, &
-									MultiSCF_instance%cosmo3Energy)
+                  MultiSCF_instance%cosmo3Energy)
 
              call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
              MultiSCF_instance%numberOfIterations = MultiSCF_instance%numberOfIterations + 1              
@@ -557,7 +553,7 @@ contains
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
             MultiSCF_instance%electronicRepulsionEnergy, &
-						MultiSCF_instance%cosmo3Energy)
+            MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
 
@@ -594,13 +590,13 @@ contains
           do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
                (SingleSCF_getNumberOfIterations( iteratorOfSpecie ) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
-!             print*, "Multi-SCF", nameOfSpecie
-!             call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
-             
+             !             print*, "Multi-SCF", nameOfSpecie
+             !             call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+
              if (CONTROL_instance%COSMO) then
                 call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))
-	                if(SingleSCF_getNumberOfIterations( iteratorOfSpecie ) > 0) then
-                call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
+                if(SingleSCF_getNumberOfIterations( iteratorOfSpecie ) > 0) then
+                   call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
                 end if
              end if
 
@@ -615,7 +611,7 @@ contains
 
              !! Perform SCF iteration for Single species
 
-             call SingleSCF_iterate( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+             call SingleSCF_iterate( trim(nameOfSpecie))
 
              !! Test energy or density change (as requested)
              if ( trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) == "DENSITY" ) then
@@ -643,7 +639,7 @@ contains
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
             MultiSCF_instance%electronicRepulsionEnergy, &
-						MultiSCF_instance%cosmo3Energy)
+            MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
        MultiSCF_instance%numberOfIterations = MultiSCF_instance%numberOfIterations + 1       
@@ -658,7 +654,7 @@ contains
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
             MultiSCF_instance%electronicRepulsionEnergy, &
-						MultiSCF_instance%cosmo3Energy)
+            MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)
 
@@ -686,7 +682,7 @@ contains
        do i = 1, numberOfSpecies
 
           nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
-          call SingleSCF_iterate( trim(nameOfSpecie), actualizeDensityMatrix=.false., nproc = MultiSCF_instance%nproc )
+          call SingleSCF_iterate( trim(nameOfSpecie), actualizeDensityMatrix=.false.)
        end do
 
        !! Get effective Fock matrix for restricted open-shell SCF
@@ -697,7 +693,7 @@ contains
        do i=1, numberOfSpecies
 
           nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
-          call SingleSCF_actualizeDensityMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+          call SingleSCF_actualizeDensityMatrix( trim(nameOfSpecie) )
 
        end do
 
@@ -705,7 +701,7 @@ contains
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
             MultiSCF_instance%electronicRepulsionEnergy, &
-						MultiSCF_instance%cosmo3Energy)
+            MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)             
        MultiSCF_instance%numberOfIterations = MultiSCF_instance%numberOfIterations + 1
@@ -722,7 +718,7 @@ contains
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
             MultiSCF_instance%electronicRepulsionEnergy, &
-						MultiSCF_instance%cosmo3Energy)
+            MultiSCF_instance%cosmo3Energy)
 
        call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)             
 
@@ -763,14 +759,14 @@ contains
     end if
 
     !! Build an initial two particles matrix, which it will be recalculated in SingleSCF_iterate
-    call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+    call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
 
     ! write(*,*)"entre al unique specie"
     do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
          ( SingleSCF_getNumberOfIterations(speciesID) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
-!!      This is not necessary, the two particles matrix can be the one calculated in the previous iteration. 
-!!       call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
+       !!      This is not necessary, the two particles matrix can be the one calculated in the previous iteration. 
+       !!       call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc = MultiSCF_instance%nproc )
 
        if (CONTROL_instance%COSMO) then
           call  WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie))
@@ -782,7 +778,7 @@ contains
 
        waveFunction_instance(speciesID)%wasBuiltFockMatrix = .true.
 
-       call SingleSCF_iterate( nameOfSpecie, nproc = MultiSCF_instance%nproc )
+       call SingleSCF_iterate( nameOfSpecie )
 
        diisError = SingleSCF_getDiisError(speciesID)
 
@@ -834,7 +830,7 @@ contains
 
     if ( MultiSCF_instance%numberOfIterations > CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS ) then
 
-       output =	SCF_GLOBAL_CONVERGENCE_SUCCESS
+       output = SCF_GLOBAL_CONVERGENCE_SUCCESS
        call List_end( MultiSCF_instance%energyOMNE )
        finalEnergy= List_current( MultiSCF_instance%energyOMNE )
 
@@ -884,9 +880,9 @@ contains
           deltaEnergy = deltaEnergy - List_current( MultiSCF_instance%energyOMNE )
 
           if( ( ( abs( deltaEnergy ) < tolerace ) .and. auxVar ) .or. abs(deltaEnergy) < CONTROL_instance%STRONG_ENERGY_TOLERANCE ) then
-             output =	SCF_GLOBAL_CONVERGENCE_SUCCESS
+             output = SCF_GLOBAL_CONVERGENCE_SUCCESS
           else
-             output =	SCF_GLOBAL_CONVERGENCE_CONTINUE
+             output = SCF_GLOBAL_CONVERGENCE_CONTINUE
           end if
 
        else

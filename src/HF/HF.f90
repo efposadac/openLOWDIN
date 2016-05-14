@@ -63,7 +63,6 @@ program HF
   real(8) :: puntualMMInteractionEnergy
   real(8) :: potentialEnergy
   integer :: nproc
-  integer :: i
 
   !!cosmo things
   character(50) :: cosmoIntegralsFile
@@ -112,7 +111,7 @@ program HF
   !!
 
   !! Calculate one-particle integrals  
-  call system(" lowdin-ints.x ONE_PARTICLE")
+  call system("lowdin-ints.x ONE_PARTICLE")
 
   !! Check the one-particle integrals file  
   existFile = .false.     
@@ -265,17 +264,7 @@ program HF
 
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-        !$OMP PARALLEL firstprivate(arguments)
-        write(arguments(1),*) nproc
-        !$OMP DO 
-        do i = nproc, 1, -1
-
-           write(arguments(i+1),*) i
-           call system(" lowdin-ints.x TWO_PARTICLE_R12_INTRA "//trim(arguments(1))//" "//trim(arguments(i+1))//" "//trim(MolecularSystem_getNameOfSpecie(speciesID)))          
-
-        end do
-        !$OMP END DO
-        !$OMP END PARALLEL            
+        call system(" lowdin-ints.x TWO_PARTICLE_R12_INTRA "//trim(MolecularSystem_getNameOfSpecie(speciesID)))                
 
      end do
 

@@ -23,7 +23,6 @@ END TASKS
 
 CONTROL
 !	integralScheme="rys"
-	numberOfCores=1
 	schwarzInequality=true
 END CONTROL
 !OUTPUTS

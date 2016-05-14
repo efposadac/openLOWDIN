@@ -23,7 +23,6 @@ END TASKS
 
 CONTROL
 	integralScheme="rys"
-	numberOfCores=4
 END CONTROL
 !OUTPUTS
 !	wfnFile	

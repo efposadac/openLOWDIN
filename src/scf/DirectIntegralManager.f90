@@ -43,7 +43,7 @@ contains
   !! @version 1.0
   !! @par History
   !!    
-  recursive subroutine DirectIntegralManager_getDirectIntraRepulsionIntegrals(nprocess, process, speciesID, scheme, &
+  recursive subroutine DirectIntegralManager_getDirectIntraRepulsionIntegrals(speciesID, scheme, &
                 densityMatrix, twoParticlesMatrix, factor )
     implicit none
 

@@ -54,10 +54,7 @@ contains
     real(8), optional :: origin(3)
     integer, optional :: unit
     
-    integer :: numberOfSpecies
-    integer :: numberOfParticles
-    integer :: numberOfShells
-    integer :: i, j, k, l !< Iterators
+    integer :: i, j !< Iterators
     logical :: existFile, found
     character(20) :: token
     character(10) :: symbol
@@ -265,7 +262,7 @@ contains
     
     type(BasisSet) , intent(in) :: this
     character(*) ::nameOfOwner
-    integer ::  i, from, to
+    integer ::  i
     
     print *,""
     write(6,"(T5,A10,A11,A15)") trim(nameOfOwner)," BASIS SET: ", trim(this%name)
@@ -282,19 +279,18 @@ contains
   !! @param thisPtr Funcion base
   !>
   subroutine BasisSet_showInSimpleForm( this, nameOfOwner, unidOfOutput )
-  	implicit none
-  	type(BasisSet) , intent(in) :: this
-  	character(*) ::nameOfOwner
-  	integer :: unidOfOutput
+    implicit none
+    type(BasisSet) , intent(in) :: this
+    character(*) ::nameOfOwner
+    integer :: unidOfOutput
   
-  	integer ::  i
-  	
-  	do i =1, this%length
-  		call ContractedGaussian_showInSimpleForm( this%contraction(i),unidOfOutput )
-  	end do
+    integer ::  i
+    
+    do i =1, this%length
+      call ContractedGaussian_showInSimpleForm( this%contraction(i),unidOfOutput )
+    end do
   
   end subroutine BasisSet_showInSimpleForm
-
 
   !>
   !! @brief Saves the basisSet structure to file.

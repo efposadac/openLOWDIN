@@ -18,7 +18,6 @@ END TASKS
 
 CONTROL
 	readCoefficients=F
-	numberOfCores=4
 END CONTROL
 
 

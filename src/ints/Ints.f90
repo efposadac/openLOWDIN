@@ -87,8 +87,8 @@ Program Ints
 
 
      ! !!Calculate overlap integrals
-     call Libint2Interface_compute1BodyInts(1)
-     ! call IntegralManager_getOverlapIntegrals()
+     ! call Libint2Interface_compute1BodyInts(1)
+     call IntegralManager_getOverlapIntegrals()
 
      ! !!Calculate kinetic integrals
      ! call Libint2Interface_compute1BodyInts(2)
@@ -146,26 +146,14 @@ Program Ints
 
   case("TWO_PARTICLE_R12_INTRA")
 
-     nprocs = ""
-     proc = ""
      speciesName=""
 
-     call get_command_argument(2,value=nprocs)
-     call get_command_argument(3,value=proc)
-     call get_command_argument(4,value=speciesName)
-
-     nprocess = 1
-     process = 1
-
-     if(trim(nprocs)/= "")read(nprocs,*) nprocess
-     if(trim(proc)/= "")read(proc,*) process     
+     call get_command_argument(2,value=speciesName)
 
      if(trim(speciesName) == "") speciesName="E-"
 
      !!Calculate attraction integrals (intra-species)
-     call IntegralManager_getIntraRepulsionIntegrals(nprocess, process, speciesName, trim(CONTROL_instance%INTEGRAL_SCHEME))
-
-     ! write(*,*)"nprocess,process,speciesName", nprocess, process, speciesName
+     call IntegralManager_getIntraRepulsionIntegrals(speciesName, trim(CONTROL_instance%INTEGRAL_SCHEME))
 
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)

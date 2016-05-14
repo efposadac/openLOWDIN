@@ -141,7 +141,7 @@ contains
           contraction_tmp = particle_tmp%basis%contraction(c)
 
           allocate(exponents(contraction_tmp%length))
-          exponents = contraction_tmp%orbitalExponents
+          exponents = contraction_tmp%orbitalExponents 
           alpha_ptr = c_loc(exponents(1))
 
           allocate(coefficients(contraction_tmp%length))
@@ -195,6 +195,8 @@ contains
        allocate(Libint2Instance(nspecies))  
     endif
 
+    open(unit=1000, file='libint.txt')
+
     do s = 1, nspecies
        ! Prepare matrix
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
@@ -214,16 +216,18 @@ contains
 
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
-
+       write(1000, *) integralsMatrix
+       
        ! ! Delete Libint object
        ! call Libint2Interface_destructor(Libint2Instance(s))
 
     end do
+    close(1000)
 
   end subroutine Libint2Interface_compute1BodyInts
 
   !>
-  !! Compute all 1-body integrals and store them as a matrix
+  !! Compute  2-body integrals and computes the G matrix
   subroutine Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoBody)
     implicit none
 
@@ -254,14 +258,13 @@ contains
       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
     endif
 
-
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
     call c_LibintInterface_compute2BodyMatrix(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr)
 
   end subroutine Libint2Interface_compute2BodyIntraspecies_direct
 
   !>
-  !! Compute all 1-body integrals and store them as a matrix
+  !! Compute 2-body integrals and store them on disk
   subroutine Libint2Interface_compute2BodyIntraspecies_disk(speciesID)
     implicit none
 
@@ -281,8 +284,7 @@ contains
     ! Initialize libint objects
     if (.not. Libint2Instance(speciesID)%isInstanced) then
       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
-    endif
-
+    end if
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
     call c_LibintInterface_compute2BodyInts(Libint2Instance(speciesID)%this, filename)

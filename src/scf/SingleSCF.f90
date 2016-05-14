@@ -40,14 +40,10 @@ module SingleSCF_
   implicit none
 
   !< enum Matrix_type {
-  integer, parameter, public :: SCF_INTRASPECIES_CONVERGENCE_FAILED	=  0
-  integer, parameter, public :: SCF_INTRASPECIES_CONVERGENCE_CONTINUE	=  1
-  integer, parameter, public :: SCF_INTRASPECIES_CONVERGENCE_SUCCESS	=  2
+  integer, parameter, public :: SCF_INTRASPECIES_CONVERGENCE_FAILED =  0
+  integer, parameter, public :: SCF_INTRASPECIES_CONVERGENCE_CONTINUE =  1
+  integer, parameter, public :: SCF_INTRASPECIES_CONVERGENCE_SUCCESS =  2
   !< }
-
-  type(matrix), private :: auxMatrix
-
-
 
   public :: &
        SingleSCF_showIteratiosStatus, &
@@ -62,8 +58,6 @@ module SingleSCF_
        SingleSCF_actualizeDensityMatrix, &
        SingleSCF_testEnergyChange, &
        SingleSCF_testDensityMatrixChange
-
-
 
 contains
 
@@ -165,24 +159,20 @@ contains
   !! @param nameOfSpecie nombre de la especie seleccionada.
   !! @warning Se debe garantizar la actualizacion de la matriz de densidad  y calculos de esta derivados
   !! cuando se emplee este metodo con el parametro actualizeDensityMatrix=.false.
-  subroutine SingleSCF_iterate( nameOfSpecie, actualizeDensityMatrix, nproc )
+  subroutine SingleSCF_iterate( nameOfSpecie, actualizeDensityMatrix )
     implicit none
 
     character(*), optional :: nameOfSpecie
     logical,optional :: actualizeDensityMatrix
-    integer :: nproc
 
-    type(Matrix) :: fockMatrixTransformed, auxMatrix
-    type(Matrix) :: beforeDensityMatrix, auxiliaryMatrix
+    type(Matrix) :: fockMatrixTransformed
+    type(Matrix) :: auxiliaryMatrix
     type(Matrix) :: previousWavefunctionCoefficients, matchingMatrix, matchingMatrix2
-    type(Vector) :: beforeMolecularOrbitalsEnergy, auxVector, deltaVector 
-    type(Vector) :: matchingVector
+    type(Vector) :: deltaVector 
     type(Matrix) :: auxOverlapMatrix
-    type(Exception) :: ex
 
     character(30) :: nameOfSpecieSelected
-    integer(8) :: numberOfMatrixElements
-    integer(8) :: total2, total3
+    integer(8) :: total3
     integer(8) :: numberOfContractions
     real(8) :: threshold, hold
     real(8) :: levelShiftingFactor    
@@ -191,16 +181,14 @@ contains
     integer :: totales
     integer :: search, trial
     integer :: ii, jj, astrayOrbitals, startIteration
-    integer :: st(1), pt(3), dt(6), ft(10), gt(15)
-    integer :: angularMoment
-    integer :: i, j, k, u, v        
+    integer :: i
     logical :: existFile
     logical :: internalActualizeDensityMatrix 
 
     character(50) :: wfnFile
     character(50) :: arguments(20)
     integer :: wfnUnit
-    
+
     wfnFile = "lowdin.vec"
     wfnUnit = 30
 
@@ -222,16 +210,16 @@ contains
     !!
     if ( .not. WaveFunction_instance(speciesID)%wasBuiltFockMatrix ) then
 
-      ! call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc )
-      ! call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )       
-			 
+       ! call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc )
+       ! call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )       
+
 
        if (CONTROL_instance%COSMO) then
           call WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie) )
           call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
        end if
 
-			 
+
        call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
 
        WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .true.
@@ -246,16 +234,6 @@ contains
        call SingleSCF_convergenceMethod( speciesID )
 
        call Matrix_copyConstructor( fockMatrixTransformed, WaveFunction_instance( speciesID )%fockMatrix )
-
-       ! print*, "MATRIZ HCORE"
-       ! call Matrix_show(WaveFunction_instance( speciesID )%hcoreMatrix)
-       ! PRINT*, "MATRIZ TWOPARTICLES"
-       ! call Matrix_show(WaveFunction_instance( speciesID )%twoParticlesMatrix)
-       ! PRINT*, "MATRIZ DE ACOPLAMIENTO"
-       ! call Matrix_show(WaveFunction_instance( speciesID )%couplingMatrix)
-       ! print*, "FOCK MATRIX ITERATE"
-       ! call Matrix_show(WaveFunction_instance( speciesID )%fockMatrix)
-
 
        !!**********************************************************************************************
        !! Level Shifting Convergence Method       
@@ -299,9 +277,6 @@ contains
        !! End of Level Shifting Convergence Routine       
        !!**********************************************************************************************
 
-       !print*, "COEFICIENTES! ANTES"
-       !call Matrix_show(WaveFunction_instance(speciesID)%waveFunctionCoefficients)
-
        !!**********************************************************************************************
        !! Iteration begins
        !!
@@ -320,10 +295,6 @@ contains
        !!
        !! Interation ends
        !!**********************************************************************************************
-       !print*, "COEFICIENTES! DESPUES"
-       !call Matrix_show(WaveFunction_instance(speciesID)%waveFunctionCoefficients)
-
-
 
        !!**********************************************************************************************
        !! Orbital exchange for TOM calculation
@@ -437,28 +408,28 @@ contains
 
              if ( existFile) then
 
-	       arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-	       arguments(1) = "COEFFICIENTS"
+                arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+                arguments(1) = "COEFFICIENTS"
 
-               if ( CONTROL_instance%READ_COEFFICIENTS_IN_BINARY ) then
+                if ( CONTROL_instance%READ_COEFFICIENTS_IN_BINARY ) then
 
-	        !! Open file for wavefunction
-	        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+                   !! Open file for wavefunction
+                   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-                 WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-                      rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
-                      arguments=arguments(1:2))
+                   WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
+                        rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
+                        arguments=arguments(1:2))
 
-               else 
-                 !! Open file for wavefunction
-                 open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-           
-                 WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-                    rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
-                    arguments=arguments(1:2))
-               end if
+                else 
+                   !! Open file for wavefunction
+                   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
 
-   	       close(wfnUnit)
+                   WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
+                        rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
+                        arguments=arguments(1:2))
+                end if
+
+                close(wfnUnit)
 
              end if
           end if
@@ -507,7 +478,7 @@ contains
                Matrix_standardDeviation( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix ) )
 
           !! Calcula energia total para la especie especificada
-          call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpecieSelected), nproc )
+          call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpecieSelected) )
           call List_push_back( WaveFunction_instance(speciesID)%energySCF, WaveFunction_instance(speciesID)%totalEnergyForSpecie )
           call List_push_back( WaveFunction_instance(speciesID)%diisError, Convergence_getDiisError( WaveFunction_instance(speciesID)%convergenceMethod) )
 
@@ -525,7 +496,7 @@ contains
        call WaveFunction_builtDensityMatrix(trim(nameOfSpecieSelected) )
 
        !! Calcula energia total para la especie especificada
-       call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpecieSelected), nproc )
+       call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpecieSelected) )
 
        call List_push_back( WaveFunction_instance(speciesID)%energySCF, WaveFunction_instance(speciesID)%totalEnergyForSpecie )
 
@@ -577,13 +548,11 @@ contains
 
   !>
   !! @brief Updates density matrix after one SCF iteration
-  subroutine SingleSCF_actualizeDensityMatrix( nameOfSpecie, nproc )
+  subroutine SingleSCF_actualizeDensityMatrix( nameOfSpecie )
     implicit none
     character(*), optional :: nameOfSpecie
-    integer :: nproc
 
     integer :: speciesID
-    type(Matrix) :: beforeDensityMatrix
     character(30) :: nameOfSpecieSelected
 
     nameOfSpecieSelected = "E-"
@@ -601,7 +570,7 @@ contains
          Matrix_standardDeviation( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix) )
 
     !! Calcula energia total para la especie especificada
-    call WaveFunction_obtainTotalEnergyForSpecie( nameOfSpecieSelected, nproc )
+    call WaveFunction_obtainTotalEnergyForSpecie( nameOfSpecieSelected )
 
     call List_push_back( WaveFunction_instance(speciesID)%energySCF, WaveFunction_instance(speciesID)%totalEnergyForSpecie )
 
@@ -617,7 +586,6 @@ contains
     real(8), intent(in) :: tolerace
     integer :: output
 
-    type(Exception) :: ex
     integer :: speciesID
     character(30) :: nameOfSpecieSelected
     real(8) :: deltaEnergy
@@ -630,7 +598,7 @@ contains
     if ( SingleSCF_getNumberOfIterations( speciesID ) &
          >CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) then
 
-       output =	SCF_INTRASPECIES_CONVERGENCE_FAILED
+       output = SCF_INTRASPECIES_CONVERGENCE_FAILED
 
        call SingleSCF_exception(ERROR, "SCF_INTRASPECIES_CONVERGENCE_FAILED BY: "//trim(nameOfSpecieSelected)//" ITERATIONS EXCEEDED", &
             "Class object SCF in the testEnergyChange function" )
@@ -651,18 +619,18 @@ contains
 
           if( abs( deltaEnergy -CONTROL_instance%DOUBLE_ZERO_THRESHOLD) < tolerace  ) then
 
-             output =	SCF_INTRASPECIES_CONVERGENCE_SUCCESS
+             output = SCF_INTRASPECIES_CONVERGENCE_SUCCESS
 
           else
 
-             output =	SCF_INTRASPECIES_CONVERGENCE_CONTINUE
+             output = SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
 
           end if
 
        else
 
-          output =	SCF_INTRASPECIES_CONVERGENCE_CONTINUE
+          output = SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
        end if
 
@@ -679,7 +647,6 @@ contains
     real(8), intent(in) :: tolerace
     integer :: output
 
-    type(Exception) :: ex
     integer :: speciesID
     character(30) :: nameOfSpecieSelected
     real(8) :: deltaDensityMatrix
@@ -692,7 +659,7 @@ contains
     if ( SingleSCF_getNumberOfIterations( speciesID ) &
          >CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) then
 
-       output =	SCF_INTRASPECIES_CONVERGENCE_FAILED
+       output = SCF_INTRASPECIES_CONVERGENCE_FAILED
 
        call SingleSCF_exception(ERROR, "SCF_INTRASPECIES_CONVERGENCE_FAILED BY: "//trim(nameOfSpecieSelected)//" ITERATIONS EXCEEDED", &
             "Class object SCF in the testDensityMatrixChange function")
@@ -707,17 +674,17 @@ contains
 
           if( abs( deltaDensityMatrix -CONTROL_instance%DOUBLE_ZERO_THRESHOLD) > tolerace ) then
 
-             output =	SCF_INTRASPECIES_CONVERGENCE_CONTINUE
+             output = SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
           else
 
-             output =	SCF_INTRASPECIES_CONVERGENCE_SUCCESS
+             output = SCF_INTRASPECIES_CONVERGENCE_SUCCESS
 
           end if
 
        else
 
-          output =	SCF_INTRASPECIES_CONVERGENCE_CONTINUE
+          output = SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
        end if
 

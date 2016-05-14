@@ -28,7 +28,6 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores=6
 END CONTROL
 
 

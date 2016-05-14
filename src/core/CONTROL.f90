@@ -40,7 +40,7 @@ module CONTROL_
      real(8) :: NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
      real(8) :: ELECTRONIC_DENSITY_MATRIX_TOLERANCE
      real(8) :: TOTAL_ENERGY_TOLERANCE
-     real(8) :: STRONG_ENERGY_TOLERANCE	!< Permite controlar la convergencia exaustiva de todas las especies
+     real(8) :: STRONG_ENERGY_TOLERANCE!< Permite controlar la convergencia exaustiva de todas las especies
      real(8) :: DENSITY_FACTOR_THRESHOLD !< define cuando recalcula un elemeto Gij de acuedo con el valor de Pij
      real(8) :: DIIS_SWITCH_THRESHOLD
      real(8) :: DIIS_SWITCH_THRESHOLD_BKP
@@ -488,7 +488,6 @@ module CONTROL_
   integer :: LowdinParameters_ionizeMO
   character(50) :: LowdinParameters_ionizeSpecie(10)
   character(50) :: LowdinParameters_exciteSpecie
-  integer :: LowdinParameters_numberOfCores
 
   !!*****************************************************
   !! Integrals transformation options
@@ -520,10 +519,10 @@ module CONTROL_
        LowdinParameters_integralDestiny,&
        LowdinParameters_integralScheme,&
        LowdinParameters_schwarzInequality, &
-
-       !!***************************************************************************
-       !! Parameter to control SCF program
-       !!
+       
+                                !!***************************************************************************
+                                !! Parameter to control SCF program
+                                !!
        LowdinParameters_scfNonelectronicEnergyTolerance,&
        LowdinParameters_scfElectronicEnergyTolerance,&
        LowdinParameters_nonelectronicDensityMatrixTolerance,&
@@ -730,16 +729,15 @@ module CONTROL_
        LowdinParameters_ionizeMO,&
        LowdinParameters_ionizeSpecie,&
        LowdinParameters_exciteSpecie,&
-       LowdinParameters_numberOfCores,&
-
-       !!*****************************************************
-       !! Integrals transformation options
-       !!
+       
+                                !!*****************************************************
+                                !! Integrals transformation options
+                                !!
        LowdinParameters_integralsTransformationMethod, &
-
-       !!***************************************************************************
-       !! Variables de ambiente al sistema de archivos del programa
-       !!
+       
+                                !!***************************************************************************
+                                !! Variables de ambiente al sistema de archivos del programa
+                                !!
        LowdinParameters_inputFile, &
        LowdinParameters_homeDirectory,&
        LowdinParameters_dataDirectory,&
@@ -777,6 +775,7 @@ contains
   subroutine CONTROL_start()
     implicit none
 
+    character(50) :: aux
     !! Set defaults for namelist
 
     !!***************************************************************************
@@ -1000,11 +999,7 @@ contains
     LowdinParameters_ionizeMO = 0
     LowdinParameters_ionizeSpecie = "NONE"
     LowdinParameters_exciteSpecie = "NONE"
-    LowdinParameters_numberOfCores = 1
     LowdinParameters_exciteSpecie = "NONE"     
-    !$OMP PARALLEL
-    LowdinParameters_numberOfCores = OMP_get_thread_num() + 1
-    !$OMP END PARALLEL 
 
     !!*****************************************************
     !! Integrals transformation options
@@ -1253,10 +1248,6 @@ contains
     CONTROL_instance%IONIZE_MO = 0
     CONTROL_instance%IONIZE_SPECIE = "NONE"
     CONTROL_instance%EXCITE_SPECIE = "NONE"                                                            
-    CONTROL_instance%NUMBER_OF_CORES = 1
-    !$OMP PARALLEL
-    CONTROL_instance%NUMBER_OF_CORES = OMP_get_thread_num() + 1
-    !$OMP END PARALLEL 
 
     !!*****************************************************
     !! Integrals transformation options
@@ -1541,7 +1532,6 @@ contains
     CONTROL_instance%IONIZE_MO = LowdinParameters_ionizeMO
     CONTROL_instance%IONIZE_SPECIE = LowdinParameters_ionizeSpecie
     CONTROL_instance%EXCITE_SPECIE = LowdinParameters_exciteSpecie
-    CONTROL_instance%NUMBER_OF_CORES = LowdinParameters_numberOfCores
 
     !!*****************************************************
     !! Integrals transformation options
@@ -1802,7 +1792,6 @@ contains
     LowdinParameters_ionizeMO = CONTROL_instance%IONIZE_MO
     LowdinParameters_ionizeSpecie = CONTROL_instance%IONIZE_SPECIE
     LowdinParameters_exciteSpecie = CONTROL_instance%EXCITE_SPECIE
-    LowdinParameters_numberOfCores = CONTROL_instance%NUMBER_OF_CORES
 
     !!*****************************************************
     !! Integrals transformation options
@@ -2038,7 +2027,6 @@ contains
     otherThis%IONIZE_MO = this%IONIZE_MO 
     otherThis%IONIZE_SPECIE = this%IONIZE_SPECIE 
     otherThis%EXCITE_SPECIE = this%EXCITE_SPECIE 
-    otherThis%NUMBER_OF_CORES = this%NUMBER_OF_CORES
 
     !!*****************************************************
     !! Integrals transformation options
@@ -2067,7 +2055,7 @@ contains
   subroutine CONTROL_show()
     implicit none
 
-    integer:: i
+    integer:: i, nthreads, proc
 
     print *,""
     print *,"LOWDIN IS RUNNING WITH NEXT PARAMETERS: "
@@ -2075,8 +2063,14 @@ contains
     print *,""
 
     write (*,"(T10,A)") "METHOD TYPE:  "//trim(CONTROL_instance%METHOD)
-    write (*,"(T10,A,I5)") "NUMBER OF CORES: ",CONTROL_instance%NUMBER_OF_CORES
 
+    !$OMP PARALLEL private(nthreads, proc)
+    proc = OMP_GET_THREAD_NUM()
+    if(proc == 0) then
+      nthreads = OMP_GET_NUM_THREADS()
+      write (*,"(T10,A,I5)") "NUMBER OF CORES: ", nthreads
+    end if
+    !$OMP END PARALLEL
 
     if(CONTROL_instance%METHOD=="RKS" .or. CONTROL_instance%METHOD=="UKS" .or. CONTROL_instance%METHOD=="ROKS" ) then
 

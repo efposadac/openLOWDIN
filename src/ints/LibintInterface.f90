@@ -755,12 +755,7 @@ contains
                          do kk = 1,  contractions(rr)%numCartesianOrbital
                             do ll = 1, contractions(ss)%numCartesianOrbital
                                m = m + 1
-                               contractionNumberperOrbital = contractionNumberperOrbital + 1
-                               integralsValue(m) = integralsValue(m) &
-                                    * contractions(aa)%contNormalization(ii) &
-                                    * contractions(bb)%contNormalization(jj) &
-                                    * contractions(rr)%contNormalization(kk) &
-                                    * contractions(ss)%contNormalization(ll)                            
+                           
                                ! if(aa == 1 .and. bb == 1 .and. rr == 3 .and. ss == 3) then
                                !    write(*,*) "Integral Contraida ( ", aa, ", ", bb, " | ", rr, ", ", ss, " )", integralsValue(m)
                                ! end if
