@@ -177,23 +177,34 @@ contains
           if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
              do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
                 do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-                   c=c+1
+
+                   !if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
+                   if ( mod(m,2) /= mod(p,2) .and. (mod(m,2)==0) ) then !! alpha -> alpha, beta -> beta
+                     c=c+1
+                   end if
                 end do
              end do
           end if
 
-!          !!Doubles of the same specie
-!          if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
-!             do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
-!                do n=m+1 , ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
-!                   do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-!                      do q=p+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-!                         c=c+1
-!                      end do
-!                   end do
-!                end do
-!             end do
-!          end if
+          !!Doubles of the same specie
+          if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
+             do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+                do n=m+1 , ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+                   do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
+
+                      if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
+                        do q=p+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
+                          ! if ( (abs(p-q)==1) .or. ( abs(p-q)>1 .and. mod(p,2) == mod(q,2) )) then !! alpha -> alpha, beta -> beta
+                          if ( ((abs(p-q)==1) .or. ( abs(p-q)>1 .and. mod(p,2) == mod(q,2) )) .and.abs(m-n)<3 ) then !! alpha -> alpha, beta -> beta
+                             c=c+1
+                           end if
+                        end do
+                      end if
+
+                   end do
+                end do
+             end do
+          end if
 
 
           !!Doubles of different species
@@ -285,25 +296,35 @@ contains
           if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
              do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
                 do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-                   c=c+1
-                   call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
+                   !if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
+                   if ( mod(m,2) /= mod(p,2) .and. (mod(m,2)==0) ) then !! alpha -> alpha, beta -> beta
+
+                     c=c+1
+                     call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
+                   end if
                 end do
              end do
           end if
 
-!!          !!Doubles of the same specie
-!!          if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
-!!             do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
-!!                do n=m+1 , ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
-!!                   do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-!!                      do q=p+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-!!                         c=c+1
-!!                         call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
-!!                      end do
-!!                   end do
-!!                end do
-!!             end do
-!!          end if
+          !!Doubles of the same specie
+          if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
+             do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+                do n=m+1 , ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+                   do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
+                      if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
+                        do q=p+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
+                           !if ( mod(p,2) == mod(q,2) ) then !! alpha -> alpha, beta -> beta
+                          ! if ( (abs(p-q)==1) .or. ( abs(p-q)>1 .and. mod(p,2) == mod(q,2) )) then !! alpha -> alpha, beta -> beta
+                          if ( ((abs(p-q)==1) .or. ( abs(p-q)>1 .and. mod(p,2) == mod(q,2) ))  .and.abs(m-n)<3) then !! alpha -> alpha, beta -> beta
+                             c=c+1
+                             call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
+                           end if
+                        end do
+                     end if 
+                   end do
+                end do
+             end do
+          end if
 
 
           !!Doubles of different species
@@ -442,12 +463,22 @@ contains
        print *, "  Building hamiltonian"
        call ConfigurationInteraction_buildHamiltonianMatrix()
 
-       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, ConfigurationInteraction_instance%numberOfConfigurations)
-
+       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
+                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
+       print *, "size hamiltonian" , size(ConfigurationInteraction_instance%hamiltonianMatrix%values)
+       print *, "size eigenvalues" , size(ConfigurationInteraction_instance%eigenvalues%values)
+       print *, "numer of conf", ConfigurationInteraction_instance%numberOfConfigurations
        print *, "  Diagonalizing hamiltonian"
-       call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-		1, 1, & !! Only the first 
-		flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+       print *, "Reference", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
+ !      call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+!		1, 1, & !! Only the first 
+!		flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+
+       call Matrix_eigen (ConfigurationInteraction_instance%hamiltonianMatrix, &
+                          ConfigurationInteraction_instance%eigenvalues, &
+                          flags = SYMMETRIC, &
+                          dm = ConfigurationInteraction_instance%numberOfConfigurations)
+
 
 !!       call diagonalize_matrix (ConfigurationInteraction_instance%hamiltonianMatrix%values, ConfigurationInteraction_instance%eigenvalues%values, ConfigurationInteraction_instance%numberOfConfigurations)
 
@@ -555,41 +586,50 @@ contains
                 call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
                 occupiedCode%values(i)=m
                 do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-                   call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
-                   unoccupiedCode%values(i)=p
-                   c=c+1
-                   call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), occupiedCode, unoccupiedCode, order, &
-                        ConfigurationInteraction_instance%numberOfConfigurations) 
+                   if ( mod(m,2) /= mod(p,2) .and. (mod(m,2)==0) ) then !! alpha -> alpha, beta -> beta
+                     call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
+                     unoccupiedCode%values(i)=p
+                     c=c+1
+                     call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), occupiedCode, unoccupiedCode, order, &
+                          ConfigurationInteraction_instance%numberOfConfigurations) 
+                   end if
 
                 end do
              end do
           end if
+          print *, "singles conf", c
+          print *, "Building doubles for specie ", trim(  MolecularSystem_getNameOfSpecie( i ) )
+          !!Doubles of the same specie
+          call Vector_constructor (order, numberOfSpecies, 0.0_8)
+          order%values(i)=2
 
-!!          print *, "Building doubles for specie ", trim(  MolecularSystem_getNameOfSpecie( i ) )
-!!          !!Doubles of the same specie
-!!          call Vector_constructor (order, numberOfSpecies, 0.0_8)
-!!          order%values(i)=2
-!!
-!!          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
-!!             do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
-!!                do n=m+1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
-!!                   call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
-!!                   occupiedCode%values(i)=m*1024+n
-!!                   do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-!!                      do q=p+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-!!                         call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
-!!                         unoccupiedCode%values(i)=p*1024+q
-!!                         c=c+1
-!!                         call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), occupiedCode, unoccupiedCode, order, &
-!!                              ConfigurationInteraction_instance%numberOfConfigurations) 
-!!
-!!
-!!                      end do
-!!                   end do
-!!                end do
-!!             end do
-!!          end if
+          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
+             do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+                do n=m+1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+                   call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
+                   occupiedCode%values(i)=m*1024+n
+                   do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
+                      if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
+                        do q=p+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
 
+                          !if ( mod(p,2) == mod(q,2) ) then !! alpha -> alpha, beta -> beta
+                          if ( ((abs(p-q)==1) .or. ( abs(p-q)>1 .and. mod(p,2) == mod(q,2) )).and.abs(m-n)<3 ) then !! alpha -> alpha, beta -> beta
+                            print *, "mnpq", m,n,p,q
+                            call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
+                            unoccupiedCode%values(i)=p*1024+q
+                            c=c+1
+                            call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), occupiedCode, unoccupiedCode, order, &
+                                 ConfigurationInteraction_instance%numberOfConfigurations) 
+  
+                         end if
+                       end do
+                     end if
+                   end do
+                end do
+             end do
+          end if
+
+          print *, "doubles conf", c
 
           !!Doubles of different species
           do j=i+1, numberOfSpecies
@@ -621,6 +661,19 @@ contains
           end do
 
        end do
+
+       ConfigurationInteraction_instance%configurations(2)%occupations(1)%values = (/1,1,1,0,1,0/)
+       ConfigurationInteraction_instance%configurations(3)%occupations(1)%values = (/1,0,1,1,1,0/)
+       ConfigurationInteraction_instance%configurations(4)%occupations(1)%values = (/1,1,0,0,1,1/)
+       ConfigurationInteraction_instance%configurations(5)%occupations(1)%values = (/1,0,1,0,1,1/)
+       ConfigurationInteraction_instance%configurations(6)%occupations(1)%values = (/0,0,1,1,1,1/)
+
+       ConfigurationInteraction_instance%configurations(2)%occupations(1)%values = (/1,1,1,0,0,1/)
+       ConfigurationInteraction_instance%configurations(3)%occupations(1)%values = (/1,0,1,1,0,1/)
+       ConfigurationInteraction_instance%configurations(4)%occupations(1)%values = (/1,1,0,0,1,1/)
+       ConfigurationInteraction_instance%configurations(5)%occupations(1)%values = (/1,0,0,1,1,1/)
+       ConfigurationInteraction_instance%configurations(6)%occupations(1)%values = (/0,0,1,1,1,1/)
+
 
        call Vector_Destructor(order)
        call Vector_Destructor(occupiedCode)
@@ -726,11 +779,10 @@ contains
                 diffAB%values(i)= sum ( abs ( ConfigurationInteraction_instance%configurations(a)%occupations(i)%values- & 
                      ConfigurationInteraction_instance%configurations(b)%occupations(i)%values ) )
              end do
-             
+                print *, "case", int( sum (diffAB%values) ) 
              select case ( int( sum (diffAB%values) ) )
 
              case (0)
-
                
                    do i=1, numberOfSpecies
                       lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
@@ -746,10 +798,12 @@ contains
                             !!Even orbital > beta(1) spin
                             if (allocated(spin)) deallocate (spin)
                             if (allocated(spatialOrbital)) deallocate (spatialOrbital)
-                            allocate(spin(2),spatialOrbital(2))
-
+                            allocate(spin(2))
+                            allocate(spatialOrbital(2))
+                            spin = 0 
+                            spatialOrbital = 0 
                             spin(1)= mod(k,lambda)
-                            spatialOrbital(1)=(k+spin(1))/lambda
+                            spatialOrbital(1)=int((k+spin(1))/lambda)
 !                               print *, "two integrals"
 !                               call Matrix_show (ConfigurationInteraction_instance%twoCenterIntegrals(i))
 
@@ -764,16 +818,16 @@ contains
                             do l=k+1, numberOfOrbitals 
                                if ( ConfigurationInteraction_instance%configurations(a)%occupations(i)%values(l)  > 0.0_8 ) then
                                   spin(2)= mod(l,lambda)
-                                  spatialOrbital(2)=(l+spin(2))/lambda
+                                  spatialOrbital(2)=int((l+spin(2))/lambda)
 
                                   !Coulomb
                                   auxIndex = IndexMap_tensorR4ToVector(spatialOrbital(1),spatialOrbital(1), &
                                        spatialOrbital(2),spatialOrbital(2), numberOfSpatialOrbitals )
-                                  TwoParticlesEnergy=TwoParticlesEnergy + ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+                                  twoParticlesEnergy=twoParticlesEnergy + ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
 
                                   !Exchange, depends on spin
                                   if ( spin(1) .eq. spin(2) ) then
-                                     auxIndex = IndexMap_tensorR4ToVector(spatialOrbital(1),spatialOrbital(2),spatialOrbital(1),spatialOrbital(2), & 
+                                     auxIndex = IndexMap_tensorR4ToVector(spatialOrbital(1),spatialOrbital(2),spatialOrbital(2),spatialOrbital(1), & 
                                           numberOfSpatialOrbitals )
                                      TwoParticlesEnergy=TwoParticlesEnergy + &
                                           kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
@@ -813,6 +867,7 @@ contains
                                end do
 
                             end if
+
                          end if
                       end do
                    end do
@@ -831,6 +886,7 @@ contains
 
                    !Determine different orbitals
                    call Vector_constructor (differentOrbitals(i),2)
+
                    differentOrbitals(i)%values=0.0
                    z=0
                    do k=1, numberOfOrbitals
@@ -841,48 +897,51 @@ contains
                       end if
                    end do
 
-                   if ( abs( differentOrbitals(i)%values(2)) > 0.1) then
+                   if ( abs( differentOrbitals(i)%values(2)) > 0.1) then !?
                       if (allocated(spin)) deallocate (spin)
                       if (allocated(spatialOrbital)) deallocate (spatialOrbital)
-                      allocate(spin(3),spatialOrbital(3))
-
+                      allocate(spin(3))
+                      allocate(spatialOrbital(3))
+                      spin = 0
+                      spatialOrbital = 0
 
                       spin(1)=mod( int(differentOrbitals(i)%values(1)),lambda)
-                      spatialOrbital(1)=(differentOrbitals(i)%values(1)+spin(1))/lambda
+                      spatialOrbital(1)=int((differentOrbitals(i)%values(1)+spin(1))/lambda)
                       spin(2)=mod( int(differentOrbitals(i)%values(2)),lambda)
-                      spatialOrbital(2)=(differentOrbitals(i)%values(2)+spin(2))/lambda
+                      spatialOrbital(2)=int((differentOrbitals(i)%values(2)+spin(2))/lambda)
 
                      !One particle terms
-                      if (spin(1) .eq. spin(2) ) then
+                      !if (spin(1) .eq. spin(2) ) then
                          ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)= ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) +  ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( spatialOrbital(1), spatialOrbital(2) )
-                      end if
+                      !end if
 
 
                       !Two particles, same specie
                       !Coulomb
                       twoParticlesEnergy=0
-                      if (spin(1) .eq. spin(2) ) then
+                        print *, "ab", a,b
+                      !if (spin(1) .eq. spin(2) ) then
                          do l=1, numberOfOrbitals 
                             if ( ConfigurationInteraction_instance%configurations(a)%occupations(i)%values(l) > 0.0_8 .and. &
                                  ConfigurationInteraction_instance%configurations(b)%occupations(i)%values(l) > 0.0_8 ) then
                                spin(3)=mod(l,lambda)
-                               spatialOrbital(3)=(l+spin(3))/lambda
+                               spatialOrbital(3)=int((l+spin(3))/lambda)
                                auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(3), &
                                     numberOfSpatialOrbitals )
                                TwoParticlesEnergy=TwoParticlesEnergy + &
                                     ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                             end if
                          end do
-                      end if
+                      !end if
 
                       !Exchange
                       do l=1, numberOfOrbitals 
                          spin(3)=mod(l,lambda)
-                         spatialOrbital(3)=(l+spin(3))/lambda
+                         spatialOrbital(3)=int((l+spin(3))/lambda)
                          if (spin(1) .eq. spin(3) .and. spin(2) .eq. spin(3) ) then
                             if ( ConfigurationInteraction_instance%configurations(a)%occupations(i)%values(l) > 0.0_8 .and. &
                                  ConfigurationInteraction_instance%configurations(b)%occupations(i)%values(l) > 0.0_8 ) then
-                               auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(2), spatialOrbital(3), numberOfSpatialOrbitals )
+                               auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(3), spatialOrbital(2), numberOfSpatialOrbitals )
                                TwoParticlesEnergy=TwoParticlesEnergy + &
                                     kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                             end if
@@ -927,17 +986,17 @@ contains
              case (4)
 
                 !Determine different orbitals
-                if (allocated(spin)) deallocate (spin)
-                if (allocated(spatialOrbital)) deallocate (spatialOrbital)
-                allocate(spin(4),spatialOrbital(4))
-
-                spin=0.0
-
+               
                 do i=1, numberOfSpecies
                    numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i)
                    
                    call Vector_constructor (differentOrbitals(i),4)
                    differentOrbitals(i)%values=0.0
+
+                   print *, "case 4"
+                   call Vector_show(ConfigurationInteraction_instance%configurations(a)%occupations(i))
+                   call Vector_show(ConfigurationInteraction_instance%configurations(b)%occupations(i))
+
                    z=0
                    do k=1, numberOfOrbitals
                       if ( ConfigurationInteraction_instance%configurations(a)%occupations(i)%values(k)-&
@@ -952,6 +1011,10 @@ contains
                          !Negative with negative, positive with positive, to identify which orbitals belongs to the same configuration 
                       end if
                    end do
+
+
+                   call vector_show(differentOrbitals(i))
+
                 end do
                 ! !Two cases: 4 different orbitals of the same species, and 2 and 2 of different species
 
@@ -962,6 +1025,15 @@ contains
                    charge=MolecularSystem_getCharge(i)
                    numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i)
                    numberOfSpatialOrbitals=numberOfOrbitals/lambda
+
+                   if (allocated(spin)) deallocate (spin)
+                   if (allocated(spatialOrbital)) deallocate (spatialOrbital)
+                   allocate(spin(4))
+                   allocate(spatialOrbital(4))
+               
+                   spin=0.0
+                   spatialOrbital = 0
+
                    if ( abs( differentOrbitals(i)%values(3)) > 0.1) then
 
 
@@ -974,24 +1046,24 @@ contains
                          if ( differentOrbitals(i)%values(z) > 0.0_8) then
                             pos=pos+1
                             spin(pos)=mod( int(differentOrbitals(i)%values(z)),lambda)
-                            spatialOrbital(pos)=(differentOrbitals(i)%values(z)+spin(pos))/lambda
+                            spatialOrbital(pos)=int((differentOrbitals(i)%values(z)+spin(pos))/lambda)
                          end if
                          if ( differentOrbitals(i)%values(z) < 0.0_8) then
                             neg=neg+1
                             spin(neg)=mod( int(-differentOrbitals(i)%values(z)),lambda)
-                            spatialOrbital(neg)=(-differentOrbitals(i)%values(z)+spin(neg))/lambda
+                            spatialOrbital(neg)=int((-differentOrbitals(i)%values(z)+spin(neg))/lambda)
                          end if
                       end do
 
                       !Coulomb
 
-                      if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
+                      !if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
                          auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(2), spatialOrbital(4), numberOfSpatialOrbitals )
 
                          ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = &
                               ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) + &
                               ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
-                      end if
+                      !end if
 
                       !Exchange
 
@@ -1048,7 +1120,9 @@ contains
 
              case default
 
-                ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)=0.0_8
+                print *, "ab6", a,b
+                ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)=&
+                        ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
              end select
 
           end do
@@ -1056,6 +1130,7 @@ contains
        
          do a=1, ConfigurationInteraction_instance%numberOfConfigurations
             do b=a, ConfigurationInteraction_instance%numberOfConfigurations
+               print *,  ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
                ConfigurationInteraction_instance%hamiltonianMatrix%values(b,a)=ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
             end do
          end do
@@ -1121,9 +1196,9 @@ contains
         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
 
 !        write (6,"(T10,A)")"ONE PARTICLE INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)
-        call Matrix_constructor (ConfigurationInteraction_instance%twoCenterIntegrals(i), int(numberOfContractions,8), int(numberOfContractions,8) )
-        call Matrix_constructor (hcoreMatrix,int(numberOfContractions,8), int(numberOfContractions,8))
-        call Matrix_constructor (couplingMatrix,int(numberOfContractions,8), int(numberOfContractions,8))
+        call Matrix_constructor (ConfigurationInteraction_instance%twoCenterIntegrals(i), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8 )
+        call Matrix_constructor (hcoreMatrix,int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
+        call Matrix_constructor (couplingMatrix,int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
 
         hcoreMatrix  = HartreeFock_instance%HcoreMatrix 
 

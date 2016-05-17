@@ -99,6 +99,10 @@ contains
        numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda
 
        call Vector_constructor ( this%occupations(i), numberOfOrbitals , 0.0_8 )
+      !  print *, "occ"
+       !call Vector_show(occupiedCode)
+       ! print *, "ucc"
+       !call Vector_show(unoccupiedCode)
 
        do j=1, numberOfOccupiedOrbitals
           this%occupations(i)%values(j)=1
@@ -113,6 +117,9 @@ contains
           this%occupations(i)%values( MOD ( div2, 1024 ) ) = this%occupations(i)%values( MOD ( div2, 1024 ) ) + 1
           div2= div2/1024
        end do
+       print *, "conf"
+        call vector_show (this%occupations(i))
+
        
     end do
 
