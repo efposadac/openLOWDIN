@@ -52,6 +52,7 @@ module Configuration_
      character(20) :: name
      logical :: isInstanced
      type(Vector) :: coefficients
+     real(8) :: auxEnergy
      type(Vector), allocatable :: occupations(:)
      type(Vector) :: order !! 1=single, 2=double, 3=triple, etc
   end type Configuration
@@ -89,6 +90,7 @@ contains
 
     call Vector_constructor( this%coefficients, numberOfConfigurations, 0.0_8 )
     call Vector_copyConstructor( this%order, order )
+    this%auxEnergy = 0.0_8
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     allocate ( this%occupations(numberOfSpecies) )
@@ -154,10 +156,10 @@ contains
       numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
       numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(s)*lambda
 
-      print *, "conf A"
-      call vector_show (thisA%occupations(s))
-      print *, "conf B"
-      call vector_show (thisB%occupations(s))
+      !print *, "conf A"
+      !call vector_show (thisA%occupations(s))
+      !print *, "conf B"
+      !call vector_show (thisB%occupations(s))
 
       call Vector_constructor ( auxthisB%occupations(s), numberOfOrbitals , 0.0_8 )
 
@@ -171,8 +173,8 @@ contains
         end if
       end do
 
-      print *, "conf C"
-      call vector_show (auxthisB%occupations(s))
+      !print *, "conf C"
+      !call vector_show (auxthisB%occupations(s))
 
     end do
     
