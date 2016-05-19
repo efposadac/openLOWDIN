@@ -179,8 +179,8 @@ contains
              do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
                 do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
 
-                   !if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
-                   if ( mod(m,2) /= mod(p,2) .and. (mod(m,2)==0) ) then !! alpha -> alpha, beta -> beta
+                   if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
+                  ! if ( mod(m,2) /= mod(p,2) ) then !! alpha -> alpha, beta -> beta
                      c=c+1
                    end if
                 end do
@@ -328,8 +328,8 @@ contains
           if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
              do m=1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
                 do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-                   !if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
-                   if ( mod(m,2) /= mod(p,2) .and. (mod(m,2)==0) ) then !! alpha -> alpha, beta -> beta
+                   if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
+                   !if ( mod(m,2) /= mod(p,2) ) then !! alpha -> alpha, beta -> beta
 
                      c=c+1
                      call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
@@ -486,6 +486,7 @@ contains
        write (6,"(T10,A30, I10)") "NUMBER OF CONFIGURATIONS = ", ConfigurationInteraction_instance%numberOfConfigurations
        write (6,"(T10,A30, F20.12)") "GROUND-STATE ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(1)
        write (6,"(T10,A30, F20.12)") "SECOND-STATE ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(2)
+       write (6,"(T10,A30, F20.12)") "THIRD-STATE ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(3)
        write (6,"(T10,A30, F20.12)") "CORRELATION ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(1) - &
                 HartreeFock_instance%totalEnergy
 
@@ -680,11 +681,12 @@ contains
     implicit none
 
     integer :: numberOfSpecies
-    integer :: i,j,m,n,p,q,c
+    integer :: i,j,m,n,p,q,c,a,b
     integer :: isLambdaEqual1
     type(vector) :: order
     type(vector) :: occupiedCode
     type(vector) :: unoccupiedCode
+    logical :: sameConfiguration
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -712,7 +714,8 @@ contains
                 call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
                 occupiedCode%values(i)=m
                 do p=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-                   if ( mod(m,2) /= mod(p,2) .and. (mod(m,2)==0) ) then !! alpha -> alpha, beta -> beta
+                   if ( mod(m,2) == mod(p,2) ) then !! alpha -> alpha, beta -> beta
+                        print *, "mp", m,p
                      call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
                      unoccupiedCode%values(i)=p
                      c=c+1
@@ -726,8 +729,16 @@ contains
         end do
         print *, "singles conf", c
 
-       ConfigurationInteraction_instance%configurations(2)%occupations(1)%values = (/1,0,1,0/)
-!       ConfigurationInteraction_instance%configurations(3)%occupations(1)%values = (/1,0,1,1,0,1/)
+       do a=1, ConfigurationInteraction_instance%numberOfConfigurations
+          do b=a, ConfigurationInteraction_instance%numberOfConfigurations
+             call Configuration_checkTwoConfigurations(ConfigurationInteraction_instance%configurations(a), &
+                    ConfigurationInteraction_instance%configurations(b), sameConfiguration, numberOfSpecies)
+             print *, "ab same conf?", a, b, sameConfiguration
+          end do
+       end do
+
+!       ConfigurationInteraction_instance%configurations(2)%occupations(1)%values = (/1,0,0,1/)
+!       ConfigurationInteraction_instance%configurations(3)%occupations(1)%values = (/0,1,1,0/)
 
 
     case ( "CISD" )
@@ -828,17 +839,17 @@ contains
 
        end do
 
-       ConfigurationInteraction_instance%configurations(2)%occupations(1)%values = (/1,1,1,0,1,0/)
-       ConfigurationInteraction_instance%configurations(3)%occupations(1)%values = (/1,0,1,1,1,0/)
-       ConfigurationInteraction_instance%configurations(4)%occupations(1)%values = (/1,1,0,0,1,1/)
-       ConfigurationInteraction_instance%configurations(5)%occupations(1)%values = (/1,0,1,0,1,1/)
-       ConfigurationInteraction_instance%configurations(6)%occupations(1)%values = (/0,0,1,1,1,1/)
+       !ConfigurationInteraction_instance%configurations(2)%occupations(1)%values = (/1,1,1,0,1,0/)
+       !ConfigurationInteraction_instance%configurations(3)%occupations(1)%values = (/1,0,1,1,1,0/)
+       !ConfigurationInteraction_instance%configurations(4)%occupations(1)%values = (/1,1,0,0,1,1/)
+       !ConfigurationInteraction_instance%configurations(5)%occupations(1)%values = (/1,0,1,0,1,1/)
+       !ConfigurationInteraction_instance%configurations(6)%occupations(1)%values = (/0,0,1,1,1,1/)
 
-       ConfigurationInteraction_instance%configurations(2)%occupations(1)%values = (/1,1,1,0,0,1/)
-       ConfigurationInteraction_instance%configurations(3)%occupations(1)%values = (/1,0,1,1,0,1/)
-       ConfigurationInteraction_instance%configurations(4)%occupations(1)%values = (/1,1,0,0,1,1/)
-       ConfigurationInteraction_instance%configurations(5)%occupations(1)%values = (/1,0,0,1,1,1/)
-       ConfigurationInteraction_instance%configurations(6)%occupations(1)%values = (/0,0,1,1,1,1/)
+       !ConfigurationInteraction_instance%configurations(2)%occupations(1)%values = (/1,1,1,0,0,1/)
+       !ConfigurationInteraction_instance%configurations(3)%occupations(1)%values = (/1,0,1,1,0,1/)
+       !ConfigurationInteraction_instance%configurations(4)%occupations(1)%values = (/1,1,0,0,1,1/)
+       !ConfigurationInteraction_instance%configurations(5)%occupations(1)%values = (/1,0,0,1,1,1/)
+       !ConfigurationInteraction_instance%configurations(6)%occupations(1)%values = (/0,0,1,1,1,1/)
 
 
        call Vector_Destructor(order)
@@ -1221,9 +1232,11 @@ contains
                       end do
 
                       !Coulomb
-
+                       !! 12|34
                       !if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
-                         auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(2), spatialOrbital(4), numberOfSpatialOrbitals )
+                      print *, "1324",spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(4)
+                         auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(4), numberOfSpatialOrbitals )
+                         !auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(2), spatialOrbital(4), numberOfSpatialOrbitals )
 
                          ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = &
                               ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) + &
@@ -1232,8 +1245,11 @@ contains
 
                       !Exchange
 
-                      if ( spin(1) .eq. spin(4) .and. spin(2) .eq. spin(3) ) then
-                         auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(4), spatialOrbital(2), spatialOrbital(3), numberOfSpatialOrbitals )
+                      if ( spin(1) .eq. spin(2) .and. spin(3) .eq. spin(4) ) then
+                      !if ( spin(1) .eq. spin(4) .and. spin(2) .eq. spin(3) ) then
+                         !auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(4), spatialOrbital(2), spatialOrbital(3), numberOfSpatialOrbitals )
+
+                         auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(4), spatialOrbital(3), spatialOrbital(2), numberOfSpatialOrbitals )
 
                          ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = &
                               ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) + &

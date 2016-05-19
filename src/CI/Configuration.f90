@@ -59,7 +59,8 @@ module Configuration_
   public :: &
        Configuration_constructor, &
        Configuration_destructor, &
-       Configuration_show
+       Configuration_show, &
+       Configuration_checkTwoConfigurations
 
   private		
 contains
@@ -117,8 +118,9 @@ contains
           this%occupations(i)%values( MOD ( div2, 1024 ) ) = this%occupations(i)%values( MOD ( div2, 1024 ) ) + 1
           div2= div2/1024
        end do
-       print *, "conf"
-        call vector_show (this%occupations(i))
+
+       !print *, "conf"
+       !call vector_show (this%occupations(i))
 
        
     end do
@@ -127,6 +129,63 @@ contains
 
   end subroutine Configuration_constructor
 
+         !>
+  !! @brief Constructor por omision
+  !!
+  !! @param this
+  !<
+  subroutine Configuration_checkTwoConfigurations(thisA,thisB,sameConfiguration, numberOfSpecies)
+    implicit none
+    type(Configuration) :: thisA, thisB, auxthisB
+    logical :: sameConfiguration
+    integer :: numberOfSpecies
+    
+    real(8) :: lambda
+    integer :: numberOfOccupiedOrbitals 
+    integer :: numberOfOrbitals 
+    integer :: i,j,s
+
+
+    allocate ( auxthisB%occupations(numberOfSpecies) )
+
+    do s = 1, numberOfSpecies
+
+      lambda=MolecularSystem_getLambda(s)
+      numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
+      numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(s)*lambda
+
+      print *, "conf A"
+      call vector_show (thisA%occupations(s))
+      print *, "conf B"
+      call vector_show (thisB%occupations(s))
+
+      call Vector_constructor ( auxthisB%occupations(s), numberOfOrbitals , 0.0_8 )
+
+      do i = 1, numberOfOrbitals
+
+        if ( thisB%occupations(s)%values(i) == 0 ) then
+          auxthisB%occupations(s)%values(i) = 1 
+        end if
+        if ( thisB%occupations(s)%values(i) == 1 ) then
+           auxthisB%occupations(s)%values(i) = 0 
+        end if
+      end do
+
+      print *, "conf C"
+      call vector_show (auxthisB%occupations(s))
+
+    end do
+    
+    sameConfiguration = .false.  
+    do s = 1, numberOfSpecies
+      if ( sum(abs ( thisA%occupations(s)%values - auxthisB%occupations(s)%values ) ) == 0 ) then
+        sameConfiguration = .true.  
+      else 
+        sameConfiguration = .false.  
+      end if
+    end do
+
+  end subroutine Configuration_checkTwoConfigurations
 
   !>
   !! @brief Destructor por omision
