@@ -145,7 +145,7 @@ contains
     real(8) :: lambda
     integer :: numberOfOccupiedOrbitals 
     integer :: numberOfOrbitals 
-    integer :: i,j,s
+    integer :: i,j,s,ii
 
 
     allocate ( auxthisB%occupations(numberOfSpecies) )
@@ -156,25 +156,47 @@ contains
       numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
       numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(s)*lambda
 
-      !print *, "conf A"
-      !call vector_show (thisA%occupations(s))
-      !print *, "conf B"
-      !call vector_show (thisB%occupations(s))
+      print *, "conf A"
+      call vector_show (thisA%occupations(s))
+      print *, "conf B"
+      call vector_show (thisB%occupations(s))
 
       call Vector_constructor ( auxthisB%occupations(s), numberOfOrbitals , 0.0_8 )
 
       do i = 1, numberOfOrbitals
 
-        if ( thisB%occupations(s)%values(i) == 0 ) then
-          auxthisB%occupations(s)%values(i) = 1 
-        end if
-        if ( thisB%occupations(s)%values(i) == 1 ) then
-           auxthisB%occupations(s)%values(i) = 0 
-        end if
-      end do
+        ii = mod(i,2) ! 1 alpha, 0 beta
+        if ( ii == 1 ) then 
+                if ( thisB%occupations(s)%values(i) == 0 .and. thisB%occupations(s)%values(i+1) == 0 ) then
+                   auxthisB%occupations(s)%values(i) = 0 
+                end if
+                if ( thisB%occupations(s)%values(i) == 0 .and. thisB%occupations(s)%values(i+1) == 1 ) then
+                   auxthisB%occupations(s)%values(i) = 1 
+                end if
+                if ( thisB%occupations(s)%values(i) == 1 .and. thisB%occupations(s)%values(i+1) == 0 ) then
+                   auxthisB%occupations(s)%values(i) = 0
+                end if
+                if ( thisB%occupations(s)%values(i) == 1 .and. thisB%occupations(s)%values(i+1) == 1 ) then
+                   auxthisB%occupations(s)%values(i) = 1 
+                end if
+        else if ( ii == 0 ) then
+                if ( thisB%occupations(s)%values(i) == 0 .and. thisB%occupations(s)%values(i-1) == 0 ) then
+                   auxthisB%occupations(s)%values(i) = 0 
+                end if
+                if ( thisB%occupations(s)%values(i) == 0 .and. thisB%occupations(s)%values(i-1) == 1 ) then
+                   auxthisB%occupations(s)%values(i) = 1 
+                end if
+                if ( thisB%occupations(s)%values(i) == 1 .and. thisB%occupations(s)%values(i-1) == 0 ) then
+                   auxthisB%occupations(s)%values(i) = 0
+                end if
+                if ( thisB%occupations(s)%values(i) == 1 .and. thisB%occupations(s)%values(i-1) == 1 ) then
+                   auxthisB%occupations(s)%values(i) = 1 
+                end if
+         end if
 
-      !print *, "conf C"
-      !call vector_show (auxthisB%occupations(s))
+      end do
+      print *, "conf C"
+      call vector_show (auxthisB%occupations(s))
 
     end do
     

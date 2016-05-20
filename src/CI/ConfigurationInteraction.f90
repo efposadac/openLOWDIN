@@ -690,13 +690,15 @@ contains
     type(vector) :: unoccupiedCode
     logical :: sameConfiguration
     real(8) :: CIenergy(2,2)
-    integer :: nEquivalentConfigurations
+    integer :: nEquivalentConfigurations, newNumberOfConfigurations
     integer, allocatable :: equivalentConfigurations (:,:), auxArray(:,:)
 
     nEquivalentConfigurations = 0
     if (allocated ( equivalentConfigurations )) deallocate ( equivalentConfigurations)
     allocate( equivalentConfigurations(nEquivalentConfigurations,2) )
     equivalentConfigurations = 0
+
+    newNumberOfConfigurations = ConfigurationInteraction_instance%numberOfConfigurations 
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -742,11 +744,12 @@ contains
 
        !! Search for equivalent configurations
        do a=1, ConfigurationInteraction_instance%numberOfConfigurations
-          do b=a, ConfigurationInteraction_instance%numberOfConfigurations
+          do b=a+1, ConfigurationInteraction_instance%numberOfConfigurations
+             print *, "ab", a,b
              call Configuration_checkTwoConfigurations(ConfigurationInteraction_instance%configurations(a), &
                     ConfigurationInteraction_instance%configurations(b), sameConfiguration, numberOfSpecies)
              if ( sameConfiguration .eqv. .True. ) then
-
+               print *, "equi" 
                !! append one value....
                nEquivalentConfigurations = nEquivalentConfigurations + 1
                allocate(auxArray(nEquivalentConfigurations,2))
@@ -768,9 +771,10 @@ contains
 
                ConfigurationInteraction_instance%configurations(a)%auxEnergy = sum(CIenergy) * 0.5
 
-               ConfigurationInteraction_instance%numberOfConfigurations = ConfigurationInteraction_instance%numberOfConfigurations -1
+               newNumberOfConfigurations = newNumberOfConfigurations -1
 
              end if
+             print *, "yiina"
              sameConfiguration = .false.
           end do
        end do
@@ -780,6 +784,8 @@ contains
                 call Configuration_destructor(ConfigurationInteraction_instance%configurations( &
                      equivalentConfigurations(c,2) ) )                
         end do
+
+        ConfigurationInteraction_instance%numberOfConfigurations = newNumberOfConfigurations 
          
        !! Rebuild the hamiltonian matrix without the equivalent configurations
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
@@ -990,6 +996,44 @@ contains
     
     real(8) :: CIenergy
 
+    auxIndex = IndexMap_tensorR4ToVector( 1, 1, 1, 1, 3 )
+    print *, "1 1 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 1, 2, 2, 1, 3 )
+    print *, "1 2 | 2 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 1, 3, 3, 1, 3 )
+    print *, "1 3 | 3 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 2, 2, 2, 2, 3 )
+    print *, "2 2 | 2 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 2, 3, 3, 2, 3 )
+    print *, "2 3 | 3 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 3, 3, 3, 3, 3 )
+    print *, "3 3 | 3 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 1, 1, 2, 2, 3 )
+    print *, "1 1 | 2 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 1, 1, 3, 3, 3 )
+    print *, "1 1 | 3 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 2, 2, 3, 3, 3 )
+    print *, "2 2 | 3 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 2, 3, 1, 1, 3 )
+    print *, "2 3 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 2, 1, 1, 3, 3 )
+    print *, "2 1 | 1 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+    auxIndex = IndexMap_tensorR4ToVector( 1, 3, 1, 2, 3 )
+    print *, "1 3 | 1 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+
+
+
 
     !a,b configuration iterators
     !i,j specie iterators
@@ -997,9 +1041,20 @@ contains
 
        do a=1, ConfigurationInteraction_instance%numberOfConfigurations
           do b=a, ConfigurationInteraction_instance%numberOfConfigurations
+            print *, "build H", a,b
             call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
-            ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
+                 if ( a == 2 .and. b == 3 ) then 
+                        print *, "ab =3"
+                        CIenergy = CIenergy
+                        CIenergy=-0.0217024766
 
+
+
+                end if
+
+            ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
+               
+            print *, "Final Cien", CIenergy
           end do
        end do
       
@@ -1049,7 +1104,7 @@ contains
     CIenergy = 0
 
 
-    if ( ConfigurationInteraction_instance%configurations(a)%auxEnergy /= 0.0_8) then
+    if ( ConfigurationInteraction_instance%configurations(a)%auxEnergy /= 0.0_8 .and. a == b) then
        CIenergy = ConfigurationInteraction_instance%configurations(a)%auxEnergy
        return
     end if
@@ -1064,8 +1119,8 @@ contains
        diffAB%values(i)= sum ( abs ( ConfigurationInteraction_instance%configurations(a)%occupations(i)%values- & 
             ConfigurationInteraction_instance%configurations(b)%occupations(i)%values ) )
     end do
-    !print *, "ab", a,b
-    !print *, "case", int( sum (diffAB%values) ) 
+    print *, "ab", a,b
+    print *, "case", int( sum (diffAB%values) ) 
     select case ( int( sum (diffAB%values) ) )
 
     case (0)
@@ -1200,7 +1255,7 @@ contains
              if (spin(1) .eq. spin(2) ) then
                 CIenergy= CIenergy +  ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( spatialOrbital(1), spatialOrbital(2) )
              end if
-
+             print *, "one pa", CIenergy
 
              !Two particles, same specie
              !Coulomb
@@ -1213,6 +1268,8 @@ contains
                       spatialOrbital(3)=int((l+spin(3))/lambda)
                       auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(3), &
                            numberOfSpatialOrbitals )
+                        print *, "J", ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+
                       TwoParticlesEnergy=TwoParticlesEnergy + &
                            ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                    end if
@@ -1224,9 +1281,12 @@ contains
                 spin(3)=mod(l,lambda)
                 spatialOrbital(3)=int((l+spin(3))/lambda)
                 if (spin(1) .eq. spin(3) .and. spin(2) .eq. spin(3) ) then
+                !if (spin(1) .eq. spin(2) ) then
                    if ( ConfigurationInteraction_instance%configurations(a)%occupations(i)%values(l) > 0.0_8 .and. &
                         ConfigurationInteraction_instance%configurations(b)%occupations(i)%values(l) > 0.0_8 ) then
                       auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(3), spatialOrbital(2), numberOfSpatialOrbitals )
+
+                        print *, "K", ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                       TwoParticlesEnergy=TwoParticlesEnergy + &
                            kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                    end if
