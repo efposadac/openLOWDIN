@@ -1079,10 +1079,6 @@ contains
 
 
 
-
-
-
-
     !a,b configuration iterators
     !i,j specie iterators
     !k,l orbital iterators
@@ -1091,7 +1087,7 @@ contains
      print *, "build H"
        do a=1, ConfigurationInteraction_instance%numberOfConfigurations
           do b=a, ConfigurationInteraction_instance%numberOfConfigurations
-            if ( a == 2 .and. b ==3 ) print *, "XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+!            if ( a == 2 .and. b ==3 ) print *, "XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
             call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
 
             ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
@@ -1142,10 +1138,10 @@ contains
     type(vector) :: diffAB
     type(vector), allocatable :: differentOrbitals(:)
 
-    real(8), intent(inout) :: CIenergy
-    real(8) :: auxCIenergy
+    real(8), intent(out) :: CIenergy
+    real(8) :: auxCIenergy,prefactor
 
-    CIenergy = 0
+    CIenergy = 0.0_8
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     allocate(differentOrbitals (numberOfSpecies))
@@ -1155,7 +1151,7 @@ contains
     do ia = 1, ConfigurationInteraction_instance%configurations(a)%nDeterminants 
       do ib = 1, ConfigurationInteraction_instance%configurations(b)%nDeterminants 
 
-        auxCIenergy = 0
+        auxCIenergy = 0.0_8
    
         call Vector_constructor (diffAB, numberOfSpecies)
         print *, "ia ib", ia ,ib
@@ -1533,8 +1529,12 @@ contains
       end do  ! ib
     end do ! ia 
 
-    CIenergy = CIenergy * (ConfigurationInteraction_instance%configurations(a)%nDeterminants)**(-1.0/2.0) * &!! (1/n!) 
-             (ConfigurationInteraction_instance%configurations(b)%nDeterminants)**(-1.0/2.0) 
+    prefactor =  (real(ConfigurationInteraction_instance%configurations(a)%nDeterminants) * &!! (1/n!) 
+             real(ConfigurationInteraction_instance%configurations(b)%nDeterminants))**(-1.0_8/2.0_8) 
+
+    print *, "prefactor", prefactor, ConfigurationInteraction_instance%configurations(a)%nDeterminants
+    CIenergy = CIenergy * prefactor
+        print *, "ia,ib,E2",ia,ib, CIenergy
 
   end subroutine ConfigurationInteraction_calculateCIenergy
 
