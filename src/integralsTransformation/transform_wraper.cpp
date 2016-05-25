@@ -12,7 +12,11 @@ void print_matrix( char* desc, int m, int n, double* a, int lda ) {
 }
 
 void c_test(double *coeff, double *ints, int nao) {
-
-	print_matrix("Coefficients", nao, nao, coeff, nao);
-
+  auto start = std::chrono::system_clock::now();
+  four_index_trans(nao, coeff, ints);
+  auto end = std::chrono::system_clock::now();
+  double elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double> >(end - start).count();
+  printf("End of the computation. \n");
+  std::cout <<"Elapsed time: "<< elapsed_seconds << " seconds"<<endl;
+  
 }

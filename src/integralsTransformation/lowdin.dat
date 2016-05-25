@@ -146,7 +146,7 @@
  LOWDINPARAMETERS_INTEGRALSTRANSFORMATIONMETHOD="A         ",
  LOWDINPARAMETERS_INPUTFILE="H2O.BOA.                                                                                            ",
  LOWDINPARAMETERS_HOMEDIRECTORY="                                                                                                                                                                                                                                                               ",
- LOWDINPARAMETERS_DATADIRECTORY="/home/edwin/Dropbox/Software/bin/.lowdin2/lib                                                                                                                                                                                                                  ",
+ LOWDINPARAMETERS_DATADIRECTORY="/home/ruben/bin/.lowdin2/lib                                                                                                                                                                                                                                   ",
  LOWDINPARAMETERS_EXTERNALCOMMAND="                                                                                                                                                                                                                                                               ",
  LOWDINPARAMETERS_EXTERNALSOFTWARENAME="                              ",
  LOWDINPARAMETERS_UFFPARAMETERSDATABASE="/dataBases/uffParameters.lib                                                                                                                                                                                                                                   ",

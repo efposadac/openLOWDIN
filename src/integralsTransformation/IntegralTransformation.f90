@@ -58,6 +58,15 @@ program IntegralTransformation
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  
+  write(*,  "(A)")  " IN-CORE TRANSFORMATION OF INTEGRALS                 " 
+  write(*, "(A)")   " Implementation V. 1.0   Guerrero R. D.  2016         "
+  write(*, "(A)")   " Literature:         "
+  write(*, "(A)")   " Sherrill, C. David, and Henry F. Schaefer.        "
+  write(*, "(A)")   " The configuration interaction method: Advances in highly correlated approaches.         "
+  write(*, "(A)")   " Advances in quantum chemistry 34 (1999): 143-269.         "
+  write(*, "(A)")   " ----------------------------------------------------------------------"
+
 
 
   !!*******************************************************************************************
