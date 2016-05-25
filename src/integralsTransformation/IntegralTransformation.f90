@@ -46,7 +46,7 @@ program IntegralTransformation
   logical :: transformThisSpecies
   
   real(8), allocatable, target :: ints(:)
-  real(8), allocatable, target :: coeff(:)
+  real(8), allocatable, target :: coeff(:, :)
 
   print*, "Starting..."
 
@@ -72,7 +72,9 @@ program IntegralTransformation
     nameOfSpecies = MolecularSystem_getNameOfSpecie(i)
 
     if ( .not.CONTROL_instance%OPTIMIZE .and. transformThisSpecies) then
+
       write (6,"(T2,A)")"Integrals transformation for: "//trim(nameOfSpecies)
+
     end if
 
     !! Reading the coefficients
@@ -86,11 +88,11 @@ program IntegralTransformation
                                arguments=arguments(1:2))
 
     if (allocated(coeff)) deallocate(coeff)
-    allocate(coeff(nao * nao))
+    allocate(coeff(nao, nao))
 
     do j = 1, nao
       do k = 1, nao
-        coeff(j*nao+k) = coefficients%values(j, k)
+        coeff(j, k) = coefficients%values(j, k)
       end do
     end do
 
@@ -102,13 +104,14 @@ program IntegralTransformation
     !! Read Integrals
     sze = nao * (nao + 1) / 2
     sze = sze * (sze + 1) / 2
+
     if(allocated(ints)) deallocate(ints)
     allocate(ints(sze))
 
     call ReadIntegrals_intraSpecies(trim(nameOfSpecies), ints, CONTROL_instance%NUMBER_OF_CORES)
 
-    !! Calling C function
-    coeff_ptr = c_loc(coeff(1))
+    ! Calling C function
+    coeff_ptr = c_loc(coeff(1, 1))
     ints_ptr = c_loc(ints(1))
 
     call c_test(coeff_ptr, ints_ptr, nao)
