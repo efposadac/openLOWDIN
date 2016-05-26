@@ -1,3 +1,17 @@
+!!******************************************************************************
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
+!!
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
+!!
+!!    Todos los derechos reservados, 2013
+!!
+!!******************************************************************************
+
 module ReadIntegrals_
     use CONTROL_
     use Vector_
@@ -48,7 +62,7 @@ contains
         
                 do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
                     if( p(i) == -1 ) exit loadintegrals
-                    integrals(index4(p(i), q(i), r(i), s(i)) + 1) = integral(i)
+                    integrals(ReadIntegrals_index4(int(p(i), 4), int(q(i), 4), int(r(i), 4), int(s(i), 4))) = integral(i)
                 end do
 
             end do loadintegrals
@@ -57,9 +71,9 @@ contains
     end subroutine ReadIntegrals_intraSpecies
 
 
-    function index2(i, j) result(output)
+    function ReadIntegrals_index2(i, j) result(output)
         implicit none
-        integer*2 :: i, j
+        integer :: i, j
         integer :: output
 
         if(i > j) then
@@ -68,24 +82,25 @@ contains
             output = j * (j + 1) / 2 + i
         end if
 
-    end function index2
+    end function ReadIntegrals_index2
 
-    function index4(i, j, k, l) result(output)
+    function ReadIntegrals_index4(i, j, k, l) result(output)
         implicit none
-        integer*2 :: i, j, k, l
+        integer :: i, j, k, l
+        integer :: ii, jj, kk, ll
         integer :: output
         
         integer ij, kl
 
-        i = i - 1_2
-        j = j - 1_2
-        k = k - 1_2
-        l = l - 1_2
+        ii = i - 1
+        jj = j - 1
+        kk = k - 1
+        ll = l - 1
 
-        ij = index2(i, j)
-        kl = index2(k, l)
-        output = index2(int(ij, 2), int(kl, 2))
+        ij = ReadIntegrals_index2(ii, jj)
+        kl = ReadIntegrals_index2(kk, ll)
+        output = ReadIntegrals_index2(ij, kl) + 1
 
-    end function index4
+    end function ReadIntegrals_index4
 
 end module ReadIntegrals_

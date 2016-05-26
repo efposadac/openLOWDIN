@@ -15,142 +15,265 @@
 !>
 !! @brief Integrals transformation program.
 !!        This module allows to make calculations in the APMO framework
+!! @author  J. A. Charry, J.M. Rodas, E. F. Posada and S. A. Gonzalez.
 !!
+!! <b> Creation date : </b> 2014-08-26
+!!
+!! <b> History: </b>
+!!
+!!   - <tt> 2008-05-25 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
+!!        -# Creacion de modulo y procedimientos basicos para correccion de segundo orden
+!!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
+!!        -# Adapta el módulo para su inclusion en Lowdin 1
+! this is a change
+!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
+!!        -# Rewrite the module as a program and adapts to Lowdin 2
+!!   - <tt> 2014-08-26 </tt>: Jorge Charry (jacharrym@unal.edu.co)
+!!        -# Write this program to calculate the transformed integrals in Lowdin2
+!!           independently from MP2 program.
 !! @warning This programs only works linked to lowdincore library,
 !!          provided by LOWDIN quantum chemistry package
 !!
-program IntegralTransformation
-  use, intrinsic ::  iso_c_binding
+program IntegralsTransformation
   use CONTROL_
   use MolecularSystem_
+  use IndexMap_
   use Matrix_
-  use Vector_
-  use String_
   use Exception_
-  use ReadIntegrals_
-  use Interface_
+  use Vector_
+  use TransformIntegralsA_
+  use TransformIntegralsB_
+  use TransformIntegralsC_
+  use TransformIntegralsD_
+  use String_
   implicit none
 
-  integer :: i, j, k, nao, sze
-  integer :: p, q, r, s, s_max
-  integer :: wfnUnit
-  integer :: numberOfQuantumSpecies
-
-  character(50) :: nameOfSpecies
+  character(50) :: job
+  integer :: numberOfSpecies
+  integer :: i, j, z
+  integer :: specieID, otherSpecieID, species1ID, species2ID
+  integer :: numberOfContractions
+  integer :: numberOfContractionsOfOtherSpecie
+  character(10) :: nameOfSpecies
+  character(10) :: nameOfOtherSpecie
+  type(Vector) :: eigenValues
+  type(Vector) :: eigenValuesOfOtherSpecie
+  type(Matrix) :: auxMatrix
+  type(TransformIntegralsA) :: repulsionTransformer
+  type(TransformIntegralsB) :: transformInstanceB
+  type(TransformIntegralsC) :: transformInstanceC
+  type(TransformIntegralsD) :: transformInstanceD
+  type(Matrix) :: eigenVec
+  type(Matrix) :: eigenVecOtherSpecie 
   character(50) :: wfnFile
   character(50) :: arguments(2)
-
-  type(Matrix) :: coefficients
-  type(Vector) :: orb
-  type(c_ptr) :: coeff_ptr, ints_ptr
-
+  integer :: wfnUnit
+  integer :: numberOfQuantumSpecies
   logical :: transformThisSpecies
-  
-  real(8), allocatable, target :: ints(:)
-  real(8), allocatable, target :: coeff(:, :)
-  real(8), pointer :: tranfs(:)
-
-  print*, "Starting..."
+  logical :: transformTheseSpecies
+  real(8) :: timeA, timeB
 
   wfnFile = "lowdin.wfn"
   wfnUnit = 20
+
+  job = ""  
+  call get_command_argument(1,value=job)  
+  job = trim(String_getUppercase(job))
+
+  !!Start time
+  timeA = omp_get_wtime()
 
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-  
-  write(*,  "(A)")  " IN-CORE TRANSFORMATION OF INTEGRALS                 " 
-  write(*, "(A)")   " Implementation V. 1.0   Guerrero R. D.  2016         "
-  write(*, "(A)")   " Literature:         "
-  write(*, "(A)")   " Sherrill, C. David, and Henry F. Schaefer.        "
-  write(*, "(A)")   " The configuration interaction method: Advances in highly correlated approaches.         "
-  write(*, "(A)")   " Advances in quantum chemistry 34 (1999): 143-269.         "
-  write(*, "(A)")   " ----------------------------------------------------------------------"
 
+  select case( CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD )
 
+    case ( "A" ) 
+
+      call TransformIntegralsA_show
+      call TransformIntegralsA_constructor( repulsionTransformer )
+
+    case ( "B" ) 
+
+      call TransformIntegralsB_show
+      call TransformIntegralsB_constructor( transformInstanceB )
+
+    case ( "C" ) 
+
+      call TransformIntegralsC_show
+      call TransformIntegralsC_constructor( transformInstanceC )
+
+    case ( "D" )
+
+      call TransformIntegralsD_show
+      call TransformIntegralsD_constructor( transformInstanceD )
+
+  end select
 
   !!*******************************************************************************************
   !! BEGIN
-  open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
-  rewind(wfnUnit)
+
+   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
+   rewind(wfnUnit)
+
 
   numberOfQuantumSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-  do i=1, numberOfQuantumSpecies
+    do i=1, numberOfQuantumSpecies
+  
+        nameOfSpecies = trim( MolecularSystem_getNameOfSpecie( i ) )
 
-    nameOfSpecies = MolecularSystem_getNameOfSpecie(i)
+        !! For PT = 2 there is no need to transform integrals for all species"
+        if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+          transformThisSpecies = .False.
+          do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
+            if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIE(z) )  then
+              transformThisSpecies = .True.
+            end if
+          end do
+        else 
+          transformThisSpecies = .True.
+        end if
 
-    if ( .not.CONTROL_instance%OPTIMIZE .and. transformThisSpecies) then
+          if ( .not.CONTROL_instance%OPTIMIZE .and. transformThisSpecies) then
+              write (6,"(T2,A)")"Integrals transformation for: "//trim(nameOfSpecies)
+           end if
 
-      write (6,"(T2,A)")"Integrals transformation for: "//trim(nameOfSpecies)
+          !! Reading the coefficients
+  
+          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
+           arguments(2) = MolecularSystem_getNameOfSpecie(i)
+  
+           arguments(1) = "COEFFICIENTS"
+  
+           eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          
+          arguments(1) = "ORBITALS"
+           call Vector_getFromFile( elementsNum = numberOfContractions, &
+                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+                output = eigenValues )     
 
-    end if
+           specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
 
-    !! Reading the coefficients
-    nao = MolecularSystem_getTotalNumberOfContractions(i)
+          !! Transforms integrals for one species
 
-    arguments(2) = nameOfSpecies
-    arguments(1) = "COEFFICIENTS"
+          if ( transformThisSpecies .eqv. .True. ) then
 
-    coefficients = Matrix_getFromFile(unit=wfnUnit, rows=int(nao, 4), &
-                               columns=int(nao, 4), binary=.true., &
-                               arguments=arguments(1:2))
+            select case( CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD )
+          
+              case ( "A" ) 
+          
+                call TransformIntegralsA_atomicToMolecularOfOneSpecie( repulsionTransformer, &
+                 eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
+          
+              case ( "B" ) 
+          
+                call TransformIntegralsB_atomicToMolecularOfOneSpecie(  transformInstanceB, &
+                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
 
-    if (allocated(coeff)) deallocate(coeff)
-    allocate(coeff(nao, nao))
+              case ( "C" ) 
 
-    do j = 1, nao
-      do k = 1, nao
-        coeff(j, k) = coefficients%values(j, k)
-      end do
-    end do
+                call TransformIntegralsC_atomicToMolecularOfOneSpecie(  transformInstanceC, &
+                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
 
-    arguments(1) = "ORBITALS"
+              case ( "D" )
 
-    call Vector_getFromFile(elementsNum=nao, unit=wfnUnit, binary=.true., &
-                            arguments=arguments(1:2), output=orb)
+                call TransformIntegralsD_atomicToMolecularOfOneSpecie( transformInstanceD, &
+                       eigenVec, specieID,  trim(nameOfSpecies))
 
-    !! Read Integrals
-    sze = nao * (nao + 1) / 2
-    sze = sze * (sze + 1) / 2
+            end select
 
-    if(allocated(ints)) deallocate(ints)
-    allocate(ints(sze))
+          end if
 
-    call ReadIntegrals_intraSpecies(trim(nameOfSpecies), ints, CONTROL_instance%NUMBER_OF_CORES)
+          !!*******************************************************************************************
+          !! Two species
+          !!
+          if ( numberOfQuantumSpecies > 1 ) then
+                  do j = i + 1 , numberOfQuantumSpecies
+                          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
 
-    ! Calling C function
-    coeff_ptr = c_loc(coeff(1, 1))
-    ints_ptr = c_loc(ints(1))
+                          !! For PT = 2 there is no need to transform integrals for all species"
+                          if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+                            transformTheseSpecies = .False.
+                            do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
+                              if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIE(z) .or. &
+                                   nameOfOtherSpecie == CONTROL_instance%IONIZE_SPECIE(z) )  then
+                                transformTheseSpecies = .True.
+                              end if
+                            end do
+                          else 
+                            transformTheseSpecies = .True.
+                          end if
 
-    call c_test(coeff_ptr, ints_ptr, nao)
+                  
+                          if ( .not.CONTROL_instance%OPTIMIZE .and. transformTheseSpecies ) then
+                             write (6,"(T2,A)") "Inter-species integrals transformation for: "//trim(nameOfSpecies)//"/"//trim(nameOfOtherSpecie)
+                          end if
 
-    ! Bring result back
-    call c_f_pointer(ints_ptr, tranfs, [sze])
+                          !! Reading the coefficients
+  
+                          numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
+  
+                          arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+  
+                          arguments(1) = "COEFFICIENTS"
+                          eigenVecOtherSpecie = &
+                                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
+                                  columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+  
+                          arguments(1) = "ORBITALS"
+                          call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
+                               unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+                               output = eigenValuesOfOtherSpecie )     
 
-    !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
-    open(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE, file = trim(""//trim(nameOfSpecies))//"moint.dat", &
-         status='replace',access='sequential', form='unformatted' )
+                          otherSpecieID = j
+  
+                          !! Transforms integrals for two species
 
-    do p = 1, nao
-       do q = 1, p
-          do r = 1 , p
-            s_max = r
-            if(p == r) s_max = q 
-             do s = 1,  s_max
-              ! print*, p, q, r, s, ReadIntegrals_index4(p, q, r, s), tranfs(ReadIntegrals_index4(p, q, r, s))
-              ! write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4(p, q, r, s))
-           end do
-         end do
-       end do
+                          if ( transformTheseSpecies .eqv. .True. ) then
+
+                            select case( CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD )
+                          
+                              case ( "A" ) 
+
+                                call TransformIntegralsA_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+                          
+                               case ("B")
+
+                              call TransformIntegralsB_atomicToMolecularOfTwoSpecies(transformInstanceB, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+
+                              case ( "C" ) 
+
+                              call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+
+                            case ( "D" )
+                                 stop "ERROR: Not implemented.... soon!"
+                            end select
+
+                          end if 
+                  end do
+           end if
      end do
 
-  end do
+  timeB = omp_get_wtime()
   
+  write(*, *) ""
+  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time for integrals transformation : ", timeB - timeA ," (s)"
+  write(*, *) ""
+  close(30)
 
+close(wfnUnit)
 
-
-end program IntegralTransformation
+end program IntegralsTransformation
 

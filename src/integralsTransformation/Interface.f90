@@ -3,13 +3,14 @@ module Interface_
     implicit none
 
     interface
-        subroutine c_test(coeff, ints, nao) bind(C, name="c_test")
+        subroutine Interface_integralsTransform(coeff, ints, nao, lp, up, lq, uq, lr, ur, ls, us) bind(C, name="c_integrals_transform")
             use, intrinsic :: iso_c_binding
             implicit none
             type(c_ptr), value :: coeff
             type(c_ptr), value :: ints
             integer(c_int), value :: nao
-        end subroutine c_test
+            integer(c_int), value :: lp, up, lq, uq, lr, ur, ls, us
+        end subroutine Interface_integralsTransform
     end interface
 
 

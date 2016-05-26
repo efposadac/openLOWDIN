@@ -1,23 +1,23 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
 !>
 !! @brief Clase encargada de realizar transformacion de integrales atomicas a  moleculares
 !!
-!! 	Esta clase reliza la transformacion de integrales de orbitales atomicos a orbitales moleculares,
-!!	creando una interface al algoritmo de   Yamamoto, Shigeyoshi; Nagashima, Umpei.
-!!	Computer Physics Communications, 2005, 166, 58-65
+!!  Esta clase reliza la transformacion de integrales de orbitales atomicos a orbitales moleculares,
+!!  creando una interface al algoritmo de   Yamamoto, Shigeyoshi; Nagashima, Umpei.
+!!  Computer Physics Communications, 2005, 166, 58-65
 !!
 !! @author Sergio Gonzalez
 !!
