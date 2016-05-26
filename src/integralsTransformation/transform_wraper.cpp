@@ -13,7 +13,8 @@ void print_matrix( char* desc, int m, int n, double* a, int lda ) {
 
 void c_test(double *coeff, double *ints, int nao) {
   auto start = std::chrono::system_clock::now();
-  four_index_trans(nao, coeff, ints);
+  //four_index_trans(nao, coeff, ints);
+  four_index_trans2(nao, coeff, ints, 0, 20, 2, 50, 0, 10, 0,nao-1);
   auto end = std::chrono::system_clock::now();
   double elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double> >(end - start).count();
   printf("End of the computation. \n");

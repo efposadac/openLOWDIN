@@ -1,7 +1,7 @@
  $GENNBO  NATOMS=3    NBAS=140   UPPER  BODM  $END
  $NBO BNDIDX NLMO $END
  $COORD
- Molden2AIM, Version 3.1.0 (02/25/2015)           Time: Wed May 25 17:47:09 2016
+ Molden2AIM, Version 3.1.0 (02/25/2015)           Time: Wed May 25 18:55:24 2016
      1    1       0.000000000       0.000000000      -0.066575001
      1    1       0.000000000       0.754175001       0.528381001
      1    1       0.000000000      -0.754174001       0.528382001

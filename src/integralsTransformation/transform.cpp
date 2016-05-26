@@ -174,3 +174,68 @@ void four_index_trans(int nao, double C[], double ERIS[])
   free(X);
   free(Scratch);
 }
+
+
+void four_index_trans2(int nao, double C[], double ERIS[], int i_lower, int i_upper, int j_lower, int j_upper, int k_lower, int k_upper, int l_lower, int l_upper)
+{
+  /*Size of the ERIs tensor*/
+  int m = nao*(nao + 1)/2;
+  int eris_size = m*(m+1)/2;
+  int i, j, k, l, ij, kl, ijkl, klij;
+  
+  double *X;
+  size_t x_size=nao*nao;
+  X = (double *)malloc(x_size*sizeof(double));
+  assert((X != NULL)&&"We have problems allocating X!");
+  double *Scratch;
+  Scratch = (double *)malloc(x_size*sizeof(double));
+  assert((Scratch != NULL)&&"We have problems allocating Scratch!");
+  
+  int mm =  (nao+1)*(nao+2)/2;
+  int tmp_size = mm*mm;
+  double *TMP;
+  TMP = (double *)malloc(tmp_size*sizeof(double));
+  assert((TMP != NULL)&&"We have problems allocating TMP!");
+  
+  memset(TMP,0.0,tmp_size*sizeof(double));
+
+  /* First half-transformation */
+  for(i=i_lower,ij=0; i <= i_upper; i++)
+    for(j=j_lower ; j <= i; j++,ij++) {
+      for(k=k_lower,kl=0; k <= k_upper; k++)
+        for(l=l_lower; l <= k; l++,kl++) {
+	  X[k*nao+l] = X[l*nao+k] = ERIS[Multi_Index(i,j,k,l)];
+        }
+      
+      Similarity_Transform(nao,&X[0],&C[0],&Scratch[0]);
+      
+      for(k=k_lower, kl=0; k <= k_upper; k++)
+        for(l=l_lower; l <= k; l++, kl++){
+          TMP[(kl*mm + ij)] = X[(k*nao + l)];
+	}
+      
+    }
+  /* Second half-transformation */
+  memset(ERIS,0.0,eris_size*sizeof(double));
+  memset(X,0.0,nao*nao*sizeof(double));
+  
+  for(k=k_lower,kl=0; k <= k_upper; k++)
+    for(l=l_lower; l <= k; l++,kl++) {
+      
+      for(i=i_lower,ij=0; i <= k_upper; i++)
+        for(j=j_lower; j <=i; j++,ij++)
+          X[i*nao + j] = X[j*nao+ i] = TMP[kl*mm + ij];
+      
+      
+      Similarity_Transform(nao,&X[0],&C[0],&Scratch[0]);
+      
+      
+      for(i=i_lower, ij=0; i <= k_upper; i++)
+        for(j=j_lower; j <= i; j++,ij++){
+	  ERIS[Multi_Index(k,l,i,j)]=X[i*nao + j];
+        }
+    }
+  free(X);
+  free(Scratch);
+  free(TMP);
+}

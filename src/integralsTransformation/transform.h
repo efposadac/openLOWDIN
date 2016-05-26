@@ -19,7 +19,7 @@ inline int Multi_Index(int i, int j, int k, int l);
 //May  be easier try cholesky decomposition here.
 void four_index_trans(int nao, mat &C, vec &EXC_ERIS);
 
-static void CdgVC(unsigned n,double Op[],double C[],double Work[]);
+void four_index_trans2(int nao, double C[], double ERIS[], int i_lower, int i_upper, int j_lower, int j_upper, int k_lower, int k_upper, int l_lower, int l_upper);
 
 void four_index_trans(int nao, double C[], double ERIS[]);
 
