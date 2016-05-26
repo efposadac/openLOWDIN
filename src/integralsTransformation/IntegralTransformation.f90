@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -32,6 +32,7 @@ program IntegralTransformation
   implicit none
 
   integer :: i, j, k, nao, sze
+  integer :: p, q, r, s, s_max
   integer :: wfnUnit
   integer :: numberOfQuantumSpecies
 
@@ -47,6 +48,7 @@ program IntegralTransformation
   
   real(8), allocatable, target :: ints(:)
   real(8), allocatable, target :: coeff(:, :)
+  real(8), pointer :: tranfs(:)
 
   print*, "Starting..."
 
@@ -125,8 +127,30 @@ program IntegralTransformation
 
     call c_test(coeff_ptr, ints_ptr, nao)
 
+    ! Bring result back
+    call c_f_pointer(ints_ptr, tranfs, [sze])
+
+    !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+    open(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE, file = trim(""//trim(nameOfSpecies))//"moint.dat", &
+         status='replace',access='sequential', form='unformatted' )
+
+    do p = 1, nao
+       do q = 1, p
+          do r = 1 , p
+            s_max = r
+            if(p == r) s_max = q 
+             do s = 1,  s_max
+              ! print*, p, q, r, s, ReadIntegrals_index4(p, q, r, s), tranfs(ReadIntegrals_index4(p, q, r, s))
+              ! write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4(p, q, r, s))
+           end do
+         end do
+       end do
+     end do
+
   end do
   
+
+
 
 end program IntegralTransformation
 
