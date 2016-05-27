@@ -6,7 +6,7 @@
 SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
-e-(C)  sto-3G	0.000	0.000	0.00000 multiplicity=1
+e-(C)  3-21G	0.000	0.000	0.00000 multiplicity=1
 C    	dirac	0.000	0.000	0.0000
 END GEOMETRY
 

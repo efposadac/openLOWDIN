@@ -19,11 +19,12 @@ END GEOMETRY
 
 TASKS
 	method = "RHF"
-	mollerPlessetCorrection = 2
+	!mollerPlessetCorrection = 2
+	propagatorTheoryCorrection =3
 END TASKS
 
 CONTROL
-	numberOfCores=2
+	numberOfCores=1
 	integralsTransformationMethod = "A"
 END CONTROL
 

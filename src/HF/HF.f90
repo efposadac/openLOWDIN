@@ -340,7 +340,6 @@ program HF
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = WaveFunction_instance(speciesID)%energyofmolecularorbital )     
 
-
      if(CONTROL_instance%COSMO)then
 
         arguments(1) = "COSMO2"

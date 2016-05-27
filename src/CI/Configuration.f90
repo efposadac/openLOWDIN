@@ -310,8 +310,8 @@ contains
         end if
       end do 
 
-      print *, "occ 1", occupiedOrbitals(:,1) 
-      print *, "occ 2", occupiedOrbitals(:,2) 
+      !print *, "occ 1", occupiedOrbitals(:,1) 
+      !print *, "occ 2", occupiedOrbitals(:,2) 
 
       diagonal = 0
       do i = 1, numberOfOccupiedOrbitals 
@@ -324,7 +324,7 @@ contains
            if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
         end do 
       end do 
-      print *, "scoreMatrix", scoreMatrix
+      !print *, "scoreMatrix", scoreMatrix
       print *, "scoreMatrix total", sum(scoreMatrix)
       print *, "diagonal", diagonal
 

@@ -280,7 +280,7 @@ contains
 
       !! First quarter
       do mu = 1, this%numberOfContractions
-        if ( abs(coefficientsOfAtomicOrbitals%values( mu, p )) < 1E-10 ) cycle
+        if ( abs(coefficientsOfAtomicOrbitals%values( mu, p )) < 1E-12 ) cycle
         !! auxtemp is the twoparticlesintegrals reduced to a three dimensional array
         call TransformIntegralsC_buildArrayA( twoParticlesIntegrals, mu, &
                                                 this%numberOfContractions, ssize2, auxtempA )
@@ -298,7 +298,7 @@ contains
         if ( q < this%q_lowerOrbital ) cycle
         !! second quarter
         do nu = 1, this%numberOfContractions
-          if ( abs(coefficientsOfAtomicOrbitals%values( nu, q )) < 1E-10 ) cycle
+          if ( abs(coefficientsOfAtomicOrbitals%values( nu, q )) < 1E-12 ) cycle
           tempB(:,:) = tempB(:,:) + coefficientsOfAtomicOrbitals%values( nu, q )* &
                                         tempA(nu,:,:)
         end do
@@ -312,7 +312,7 @@ contains
            !! third quarter
            do lambda = 1, this%numberOfContractions
 
-             if ( abs(coefficientsOfAtomicOrbitals%values( lambda, r )) < 1E-10 ) cycle
+             if ( abs(coefficientsOfAtomicOrbitals%values( lambda, r )) < 1E-12 ) cycle
              tempC(:) = tempC(:) + coefficientsOfAtomicOrbitals%values( lambda, r )* &
                                             tempB(lambda,:)
 
