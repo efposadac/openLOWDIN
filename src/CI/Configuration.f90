@@ -310,8 +310,8 @@ contains
         end if
       end do 
 
-      !print *, "occ 1", occupiedOrbitals(:,1) 
-      !print *, "occ 2", occupiedOrbitals(:,2) 
+      print *, "occ 1", occupiedOrbitals(:,1) 
+      print *, "occ 2", occupiedOrbitals(:,2) 
 
       diagonal = 0
       do i = 1, numberOfOccupiedOrbitals 
@@ -331,6 +331,7 @@ contains
       if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 1 ) factor = -1.0
       if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 0 ) factor = 1.0
 
+        print *, "factor", factor
 
     end do
 

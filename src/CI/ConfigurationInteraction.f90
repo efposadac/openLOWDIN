@@ -1018,73 +1018,6 @@ contains
     auxIndex = IndexMap_tensorR4ToVector( 1, 1, 1, 1, n )
     print *, "1 1 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
 
-    auxIndex = IndexMap_tensorR4ToVector( 1, 2, 2, 1, n )
-    print *, "1 2 | 2 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 2, 1, 1, 2, n )
-    print *, "2 1 | 1 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 3, 3, 1, n )
-    print *, "1 3 | 3 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 2, 2, 2, 2, n )
-    print *, "2 2 | 2 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 2, 3, 3, 2, n )
-    print *, "2 3 | 3 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 3, 3, 3, 3, n )
-    print *, "3 3 | 3 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 1, 2, 2, n )
-    print *, "1 1 | 2 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 1, 3, 3, n )
-    print *, "1 1 | 3 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 2, 2, 3, 3, n )
-    print *, "2 2 | 3 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 2, 3, 1, 1, n )
-    print *, "2 3 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 2, 1, 1, 3, n )
-    print *, "2 1 | 1 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 3, 1, 2, n )
-    print *, "1 3 | 1 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 3, 2, 2, n )
-    print *, "1 3 | 2 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 2, 2, 3, n )
-    print *, "1 2 | 2 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 3, 2, 3, n )
-    print *, "1 3 | 2 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 2, 1, 1, n )
-    print *, "1 2 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 2, 2, 2, n )
-    print *, "1 2 | 2 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 2, 3, 3, n )
-    print *, "1 2 | 3 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 3, 3, 2, n )
-    print *, "1 3 | 3 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 3, 2, 4, n )
-    print *, "1 3 | 2 4", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-    auxIndex = IndexMap_tensorR4ToVector( 1, 4, 2, 3, n )
-    print *, "1 4 | 2 3", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-
-
-
-
     !a,b configuration iterators
     !i,j specie iterators
     !k,l orbital iterators
@@ -1093,20 +1026,16 @@ contains
      print *, "build H"
        do a=1, ConfigurationInteraction_instance%numberOfConfigurations
           do b=a, ConfigurationInteraction_instance%numberOfConfigurations
-!            if ( a == 2 .and. b ==3 ) print *, "XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
             call ConfigurationInteraction_calculateCIenergyB(a,b,CIenergy)
             !call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
             ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
                
-            !print *, "Final Cien", CIenergy
           end do
        end do
       
          do a=1, ConfigurationInteraction_instance%numberOfConfigurations
             do b=a, ConfigurationInteraction_instance%numberOfConfigurations
-
-            !if ( a == b ) print *, ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
-            print *, ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
 
                ConfigurationInteraction_instance%hamiltonianMatrix%values(b,a)=ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
             end do
@@ -1526,7 +1455,8 @@ contains
 
 !        print *, "factor", factor
 
-           CIenergy= auxCIenergy * factor + CIenergy
+           CIenergy= auxCIenergy  + CIenergy
+           !CIenergy= auxCIenergy * factor + CIenergy
 
         print *, "ia,ib,E",ia,ib, CIenergy
       end do  ! ib
@@ -1656,7 +1586,6 @@ contains
                 auxCIenergy = auxCIenergy + HartreeFock_instance%totalEnergy
 
            end if
-           print *, "== 0 ", auxCienergy 
 
            if (differentOrbitals(i)%values(1) == differentOrbitals(i)%values(3) ) then 
 
@@ -1664,7 +1593,6 @@ contains
                                 spatialOrbital(2), spatialOrbital(4))
 
            end if
-           print *, "== 1 ", auxCienergy 
 
            if (differentOrbitals(i)%values(2) == differentOrbitals(i)%values(4) ) then 
 
@@ -1672,25 +1600,16 @@ contains
                                 spatialOrbital(1), spatialOrbital(3))
 
            end if
-           print *, "== 2 ", auxCienergy 
-           !print *, "product 1",  product (differentOrbitals(i)%values) 
-           !print *, "product 2",  product (differentOrbitals(i)%values(1:2)) 
-           !print *, "product 3",  product (differentOrbitals(i)%values(3:4)) 
 
            if ( product(differentOrbitals(i)%values) /=0 ) then
 
                     ! call vector_show(differentOrbitals(i))
                     ! i -> a = 1->2 , j-> b = 3->4 , [ai|jb] = [ia|jb] -> [12|34], [ab|ji] = [ab|ij] -> [24|13]
-                    print *, "sp", spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(4)
                     auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), &
                                spatialOrbital(3), spatialOrbital(4), numberOfSpatialOrbitals )
 
                      auxCIenergy = auxCIenergy + &
                                ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
-
-                print *, "== 3 ", auxCienergy ,  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
-
-
 
                      if ( spin(1) == spin(3) ) then
                     auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(2), spatialOrbital(4), &
@@ -1698,9 +1617,7 @@ contains
 
                      auxCIenergy = auxCIenergy + &
                                 kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
-                print *, "== 4 ", auxCienergy 
                      end if 
-
 
            end if
 
@@ -1715,8 +1632,8 @@ contains
                 factor, ia, ib, numberOfSpecies)
 
         print *, "auxE2", auxCIenergy
-           !CIenergy= auxCIenergy * factor + CIenergy
-           CIenergy= auxCIenergy + CIenergy
+           CIenergy= auxCIenergy * factor + CIenergy
+           !CIenergy= auxCIenergy + CIenergy
 
         print *, "ia,ib,E2",ia,ib, CIenergy
       end do  ! ib
@@ -1878,8 +1795,8 @@ contains
         call Matrix_show ( ConfigurationInteraction_instance%fockMatrix(i) )
 
           
-        print *, "Independent Particle"
-        call Matrix_show ( ConfigurationInteraction_instance%twoCenterIntegrals(i) )
+        !print *, "Independent Particle"
+        !call Matrix_show ( ConfigurationInteraction_instance%twoCenterIntegrals(i) )
 
 !       write (6,"(T10,A)")"TWO PARTICLES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)
 !       print *,""
@@ -1888,17 +1805,8 @@ contains
 !            ConfigurationInteraction_instance%fourCenterIntegrals(i,i), specieID, trim(nameOfSpecie) )
 
         call ReadTransformedIntegrals_readOneSpecies( specieID, ConfigurationInteraction_instance%fourCenterIntegrals(i,i)   )
-        print *, "two Particle"
-        call Matrix_show(ConfigurationInteraction_instance%fourCenterIntegrals(i,i))
-
-        print *, "two Particle2"
-        do j = 1, size (ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values,dim=1)
-                if( abs(ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(j,1)) > 1E-10 .and. &
-                abs(ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(j,1)) < 0.09 )  then 
-                print *, (ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(j,1))
-                end if
-        end do 
-
+        !print *, "two Particle"
+        !call Matrix_show(ConfigurationInteraction_instance%fourCenterIntegrals(i,i))
 
        if ( numberOfSpecies > 1 ) then
           do j = 1 , numberOfSpecies
