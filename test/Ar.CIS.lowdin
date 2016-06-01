@@ -19,6 +19,7 @@ CONTROL
 	readCoefficients=F
 	numberOfCores=1
 	integralsTransformationMethod= "C"
+	scfelectronicenergytolerance=1E-9
 END CONTROL
 
 

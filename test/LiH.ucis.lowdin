@@ -6,12 +6,14 @@
 SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
-e-(Ne)  6-311G	0.000	0.000	0.00000 
-Ne    	dirac	0.000	0.000	0.0000
+e-(Li)  aug-cc-pVTZ	0.000	0.000	1.6075621
+e-(H)  aug-cc-pVTZ	0.000	0.000	0.000000
+Li    	dirac	0.000	0.000	1.6075621
+H    	dirac	0.000	0.000	0.0000
 END GEOMETRY
 
 TASKS
-	method = "RHF"
+	method = "UHF"
 	configurationInteractionLevel ="CIS"
 END TASKS
 
@@ -20,6 +22,9 @@ CONTROL
 	numberOfCores=1
 	integralsTransformationMethod= "C"
 	scfelectronicenergytolerance=1E-8
+	scfnonelectronicenergytolerance=1E-8
+	totalEnergyTolerance=1E-8
+	strongEnergyTolerance=1E-8
 END CONTROL
 
 

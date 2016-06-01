@@ -189,7 +189,7 @@ contains
     logical :: sameConfiguration
     integer :: numberOfSpecies
     
-    real(8) :: lambda
+    integer :: lambda
     integer :: numberOfOccupiedOrbitals 
     integer :: numberOfOrbitals 
     integer :: i,j,s,ii
@@ -208,56 +208,67 @@ contains
       !print *, "conf B"
       !call vector_show (thisB%occupations(s,1))
 
-      call Vector_constructor ( auxthisB%occupations(s,1), numberOfOrbitals , 0.0_8 )
+      if ( lambda > 1 ) then
 
-      do i = 1, numberOfOrbitals
-
-        ii = mod(i,2) ! 1 alpha, 0 beta
-        if ( ii == 1 ) then 
-                if ( thisB%occupations(s,1)%values(i) == 0 .and. thisB%occupations(s,1)%values(i+1) == 0 ) then
-                   auxthisB%occupations(s,1)%values(i) = 0 
-                end if
-                if ( thisB%occupations(s,1)%values(i) == 0 .and. thisB%occupations(s,1)%values(i+1) == 1 ) then
-                   auxthisB%occupations(s,1)%values(i) = 1 
-                end if
-                if ( thisB%occupations(s,1)%values(i) == 1 .and. thisB%occupations(s,1)%values(i+1) == 0 ) then
-                   auxthisB%occupations(s,1)%values(i) = 0
-                end if
-                if ( thisB%occupations(s,1)%values(i) == 1 .and. thisB%occupations(s,1)%values(i+1) == 1 ) then
-                   auxthisB%occupations(s,1)%values(i) = 1 
-                end if
-        else if ( ii == 0 ) then
-                if ( thisB%occupations(s,1)%values(i) == 0 .and. thisB%occupations(s,1)%values(i-1) == 0 ) then
-                   auxthisB%occupations(s,1)%values(i) = 0 
-                end if
-                if ( thisB%occupations(s,1)%values(i) == 0 .and. thisB%occupations(s,1)%values(i-1) == 1 ) then
-                   auxthisB%occupations(s,1)%values(i) = 1 
-                end if
-                if ( thisB%occupations(s,1)%values(i) == 1 .and. thisB%occupations(s,1)%values(i-1) == 0 ) then
-                   auxthisB%occupations(s,1)%values(i) = 0
-                end if
-                if ( thisB%occupations(s,1)%values(i) == 1 .and. thisB%occupations(s,1)%values(i-1) == 1 ) then
-                   auxthisB%occupations(s,1)%values(i) = 1 
-                end if
-         end if
-
-      end do
-      !print *, "conf C"
-      !call vector_show (auxthisB%occupations(s,1))
-
-    end do
+          call Vector_constructor ( auxthisB%occupations(s,1), numberOfOrbitals , 0.0_8 )
     
-    sameConfiguration = .false.  
-    do s = 1, numberOfSpecies
-      if ( sum(abs ( thisA%occupations(s,1)%values - auxthisB%occupations(s,1)%values ) ) == 0 ) then
-        print *, "true eqruiv"
-        sameConfiguration = .true.  
-        thisA%nDeterminants = 2
-        thisA%occupations(s,2)%values =  thisB%occupations(s,1)%values
-      else 
-        sameConfiguration = .false.  
-      end if
-    end do
+          do i = 1, numberOfOrbitals
+    
+            ii = mod(i,lambda) ! 1 alpha, 0 beta
+            if ( ii == 1 ) then 
+                    if ( thisB%occupations(s,1)%values(i) == 0 .and. thisB%occupations(s,1)%values(i+1) == 0 ) then
+                       auxthisB%occupations(s,1)%values(i) = 0 
+                    end if
+                    if ( thisB%occupations(s,1)%values(i) == 0 .and. thisB%occupations(s,1)%values(i+1) == 1 ) then
+                       auxthisB%occupations(s,1)%values(i) = 1 
+                    end if
+                    if ( thisB%occupations(s,1)%values(i) == 1 .and. thisB%occupations(s,1)%values(i+1) == 0 ) then
+                       auxthisB%occupations(s,1)%values(i) = 0
+                    end if
+                    if ( thisB%occupations(s,1)%values(i) == 1 .and. thisB%occupations(s,1)%values(i+1) == 1 ) then
+                       auxthisB%occupations(s,1)%values(i) = 1 
+                    end if
+            else if ( ii == 0 ) then
+                    if ( thisB%occupations(s,1)%values(i) == 0 .and. thisB%occupations(s,1)%values(i-1) == 0 ) then
+                       auxthisB%occupations(s,1)%values(i) = 0 
+                    end if
+                    if ( thisB%occupations(s,1)%values(i) == 0 .and. thisB%occupations(s,1)%values(i-1) == 1 ) then
+                       auxthisB%occupations(s,1)%values(i) = 1 
+                    end if
+                    if ( thisB%occupations(s,1)%values(i) == 1 .and. thisB%occupations(s,1)%values(i-1) == 0 ) then
+                       auxthisB%occupations(s,1)%values(i) = 0
+                    end if
+                    if ( thisB%occupations(s,1)%values(i) == 1 .and. thisB%occupations(s,1)%values(i-1) == 1 ) then
+                       auxthisB%occupations(s,1)%values(i) = 1 
+                    end if
+             end if
+    
+          end do
+          !print *, "conf C"
+          !call vector_show (auxthisB%occupations(s,1))
+
+        else ! 
+
+          sameConfiguration = .false.
+          return
+
+        end if
+
+    
+      end do
+        
+      sameConfiguration = .false.  
+      do s = 1, numberOfSpecies
+        if ( sum(abs ( thisA%occupations(s,1)%values - auxthisB%occupations(s,1)%values ) ) == 0 ) then
+          !print *, "true eqruiv"
+          sameConfiguration = .true.  
+          thisA%nDeterminants = 2
+          thisA%occupations(s,2)%values =  thisB%occupations(s,1)%values
+        else 
+          sameConfiguration = .false.  
+        end if
+      end do
+
 
   end subroutine Configuration_checkTwoConfigurations
 
@@ -292,6 +303,7 @@ contains
 
       if (allocated(scoreMatrix) ) deallocate (scoreMatrix)
       allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
+      scoreMatrix = 0
 
 
       ii = 0
@@ -328,8 +340,8 @@ contains
       print *, "scoreMatrix total", sum(scoreMatrix)
       print *, "diagonal", diagonal
 
-      if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 1 ) factor = -1.0
-      if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 0 ) factor = 1.0
+      if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 1 ) factor = -1.0_8
+      if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 0 ) factor = 1.0_8
 
         print *, "factor", factor
 
