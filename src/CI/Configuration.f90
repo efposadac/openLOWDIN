@@ -291,6 +291,8 @@ contains
     integer, allocatable :: scoreMatrix(:,:)
     integer :: diagonal
 
+    factor = 1.0_8
+
     do s = 1, numberOfSpecies
       if (allocated(diffVector) ) deallocate (diffVector)
       allocate (diffVector(size(thisA%occupations(s,ia)%values)))
@@ -340,8 +342,8 @@ contains
       print *, "scoreMatrix total", sum(scoreMatrix)
       print *, "diagonal", diagonal
 
-      if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 1 ) factor = -1.0_8
-      if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 0 ) factor = 1.0_8
+      if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 1 ) factor = -1.0_8*factor
+      if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 0 ) factor = 1.0_8*factor
 
         print *, "factor", factor
 

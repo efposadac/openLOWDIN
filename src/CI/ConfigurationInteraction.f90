@@ -629,8 +629,8 @@ contains
         !print *, "eigenvectors"
         !call Matrix_show (ConfigurationInteraction_instance%eigenVectors)
 
-        !print *, "hamiltonian"
-        !call Matrix_show (ConfigurationInteraction_instance%hamiltonianMatrix)
+        print *, "hamiltonian"
+        call Matrix_show (ConfigurationInteraction_instance%hamiltonianMatrix)
 
 !!       call diagonalize_matrix (ConfigurationInteraction_instance%hamiltonianMatrix%values, ConfigurationInteraction_instance%eigenvalues%values, ConfigurationInteraction_instance%numberOfConfigurations)
 
@@ -1235,18 +1235,18 @@ contains
     
     real(8) :: CIenergy
 
-    !!n = 2
-    !!auxIndex = IndexMap_tensorR4ToVector( 1, 1, 1, 1, n )
-    !!print *, "1 1 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+    n = 2
+    auxIndex = IndexMap_tensorR4ToVector( 1, 1, 1, 1, n )
+    print *, "1 1 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
 
-    !!auxIndex = IndexMap_tensorR4ToVector( 2, 2, 2, 2, n )
-    !!print *, "2 2 | 2 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+    auxIndex = IndexMap_tensorR4ToVector( 2, 2, 2, 2, n )
+    print *, "2 2 | 2 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
 
-    !!auxIndex = IndexMap_tensorR4ToVector( 2, 1, 1, 2, n )
-    !!print *, "2 1 | 1 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+    auxIndex = IndexMap_tensorR4ToVector( 2, 1, 1, 2, n )
+    print *, "2 1 | 1 2", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
 
-    !!auxIndex = IndexMap_tensorR4ToVector( 2, 2, 1, 1, n )
-    !!print *, "2 2 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
+    auxIndex = IndexMap_tensorR4ToVector( 2, 2, 1, 1, n )
+    print *, "2 2 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
 
 
 
@@ -1259,8 +1259,8 @@ contains
        do a=1, ConfigurationInteraction_instance%numberOfConfigurations
           do b=a, ConfigurationInteraction_instance%numberOfConfigurations
 
-            call ConfigurationInteraction_calculateCIenergyB(a,b,CIenergy)
-            !call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
+            !call ConfigurationInteraction_calculateCIenergyB(a,b,CIenergy)
+            call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
             ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
                
           end do
@@ -1332,6 +1332,7 @@ contains
                 ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values ) )
         end do
 
+        print *, "case: ",( sum (diffAB%values) ) 
         select case ( int( sum (diffAB%values) ) )
 
         case (0)
@@ -1346,6 +1347,7 @@ contains
                  do k=1, numberOfOrbitals
                     if ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values(k)  > 0.0_8 ) then
 
+                       print *, "k", k
                        !!Uneven orbital > alpha (0) spin
                        !!Even orbital > beta(1) spin
                        if (allocated(spin)) deallocate (spin)
@@ -1366,7 +1368,7 @@ contains
 
                        twoParticlesEnergy=0
                        do l=k+1, numberOfOrbitals 
-                          if ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values(l)  > 0.0_8 ) then
+                          if ( ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values(l)  > 0.0_8 ) then
                              spin(2)= mod(l,lambda)
                              spatialOrbital(2)=int((l+spin(2))/lambda)
 
@@ -1473,7 +1475,7 @@ contains
                  !Two particles, same specie
                  !Coulomb
                  twoParticlesEnergy=0.0_8
-                 if (spin(1) .eq. spin(2) ) then
+                 !if (spin(1) .eq. spin(2) ) then
                     do l=1, numberOfOrbitals 
                        if ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values(l) > 0.0_8 .and. &
                             ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values(l) > 0.0_8 ) then
@@ -1482,11 +1484,12 @@ contains
                           auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(3), &
                                numberOfSpatialOrbitals )
 
+                  print *, "J",  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
                           TwoParticlesEnergy=TwoParticlesEnergy + &
                                ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                        end if
                     end do
-                 end if
+                 !end if
 
                  !Exchange
                  do l=1, numberOfOrbitals 
@@ -1500,6 +1503,7 @@ contains
 
                           auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(3), spatialOrbital(2), numberOfSpatialOrbitals )
 
+                  print *, "K",  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
                           TwoParticlesEnergy=TwoParticlesEnergy + &
                                kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                        end if
@@ -1593,6 +1597,8 @@ contains
                  pos=0
                  neg=2
 
+                call vector_show(differentOrbitals(i))
+
                  do z=1, 4
                     if ( differentOrbitals(i)%values(z) > 0.0_8) then
                        pos=pos+1
@@ -1609,25 +1615,32 @@ contains
                  !Coulomb
                   !! 12|34
                  !if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
-                    auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(4), numberOfSpatialOrbitals )
-                    !auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(2), spatialOrbital(4), numberOfSpatialOrbitals )
+                    !auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(4), spatialOrbital(2), spatialOrbital(3), numberOfSpatialOrbitals )
+
+
+                    auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(4), spatialOrbital(2), spatialOrbital(3), numberOfSpatialOrbitals )
+!                    auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(4), numberOfSpatialOrbitals )
 
                     auxCIenergy = &
                          auxCIenergy + &
                          ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
                  !end if
 
+                  print *, "J",  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
                  !Exchange
 
-                 if ( spin(1) .eq. spin(2) .and. spin(3) .eq. spin(4) ) then
+                 !if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
                  !if ( spin(1) .eq. spin(4) .and. spin(2) .eq. spin(3) ) then
+                 if ( spin(1) .eq. spin(2) .and. spin(1) .eq. spin(3) .and. spin(1) .eq. spin(4) ) then
                     !auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(4), spatialOrbital(2), spatialOrbital(3), numberOfSpatialOrbitals )
 
-                    auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(4), spatialOrbital(3), spatialOrbital(2), numberOfSpatialOrbitals )
+                    !auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(2), spatialOrbital(4), numberOfSpatialOrbitals )
+                    auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(2), spatialOrbital(4), numberOfSpatialOrbitals )
 
                     auxCIenergy = &
                          auxCIenergy + &
                          kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
+                  print *, "K",  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
 
                  end if
 
@@ -1684,8 +1697,8 @@ contains
 
 !        print *, "factor", factor
 
-           CIenergy= auxCIenergy  + CIenergy
-           !CIenergy= auxCIenergy * factor + CIenergy
+           !CIenergy= auxCIenergy  + CIenergy
+           CIenergy= auxCIenergy * factor + CIenergy
 
         print *, "ia,ib,E",ia,ib, CIenergy
       end do  ! ib
@@ -1929,6 +1942,7 @@ contains
         !        factor, ia, ib, numberOfSpecies)
 
                  CIenergy= auxCIenergy + CIenergy
+                 print *, "ia,ib,auxCIenergy",ia,ib,auxCIenergy
                  !CIenergy= auxCIenergy * factor + CIenergy
 
       end do  ! ib
