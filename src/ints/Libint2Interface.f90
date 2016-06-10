@@ -40,9 +40,10 @@ module Libint2Interface_
   !!Interface to libint_iface.cpp
   interface
 
-    function c_LibintInterface_new () result(this) bind(C,name="LibintInterface_new")
+    function c_LibintInterface_new (stack_size) result(this) bind(C,name="LibintInterface_new")
      use, intrinsic :: iso_c_binding
      implicit none
+     integer(c_int), value :: stack_size
      type(c_ptr) :: this
     end function c_LibintInterface_new
 
@@ -94,11 +95,12 @@ module Libint2Interface_
       type(c_ptr), value :: result
     end subroutine c_LibintInterface_compute2BodyMatrix
 
-    subroutine c_LibintInterface_compute2BodyInts(this, filename) bind(C, name="LibintInterface_compute_2body_ints")
+    subroutine c_LibintInterface_compute2BodyInts(this, filename, density) bind(C, name="LibintInterface_compute_2body_ints")
       use, intrinsic :: iso_c_binding
       implicit none
       type(c_ptr), value :: this        
       character(c_char) :: filename(*)
+      type(c_ptr), value :: density
     end subroutine c_LibintInterface_compute2BodyInts
   end interface
 
@@ -124,7 +126,7 @@ contains
     integer :: p, c
 
     ! Create Libint object
-    this%this = c_LibintInterface_new()
+    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE)
 
     ! Iterate over particles
     do p = 1, size(MolecularSystem_instance%species(speciesID)%particles)
@@ -269,17 +271,43 @@ contains
     implicit none
 
     integer :: speciesID
+    real(8), allocatable, target :: density(:,:)
 
-    character(50) :: filename
+    character(50) :: filename, wfnFile
+    character(30) :: labels(2)
     integer :: nspecies
+    integer :: wfnUnit
+    integer :: ssize
+    integer :: numberOfContractions
+
+    type(Matrix) :: aux_dens
+    type(c_ptr) :: density_ptr
 
     nspecies = size(MolecularSystem_instance%species)
     if (.not. allocated(Libint2Instance)) then
        allocate(Libint2Instance(nspecies))  
     endif
 
+    !! Get dens
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+
+    wfnUnit = 30
+    wfnFile = "lowdin.wfn"
+
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+    labels(1) = "DENSITY"
+    labels(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
+    aux_dens = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+      columns= int(numberOfContractions,4), binary=.true., arguments=labels)
+
+    ssize = size(aux_dens%values, DIM=1)
+    allocate(density(ssize, ssize))
+    density = aux_dens%values
+
     !! open file for integrals
     filename = C_CHAR_""//trim(MolecularSystem_instance%species(speciesID)%name)//".ints"//C_NULL_CHAR
+    density_ptr = c_loc(density(1,1))
 
     ! Initialize libint objects
     if (.not. Libint2Instance(speciesID)%isInstanced) then
@@ -287,7 +315,7 @@ contains
     end if
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
-    call c_LibintInterface_compute2BodyInts(Libint2Instance(speciesID)%this, filename)
+    call c_LibintInterface_compute2BodyInts(Libint2Instance(speciesID)%this, filename, density_ptr)
 
   end subroutine Libint2Interface_compute2BodyIntraspecies_disk
 

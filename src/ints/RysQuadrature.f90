@@ -43,10 +43,10 @@ module RysQuadrature_
 
   !> @brief the integrals are saved for big records (that reduces the I/O time)
   type, public :: erisStack
-     integer*2, allocatable :: a(:)
-     integer*2, allocatable :: b(:)
-     integer*2, allocatable :: c(:)
-     integer*2, allocatable :: d(:)
+     integer, allocatable :: a(:)
+     integer, allocatable :: b(:)
+     integer, allocatable :: c(:)
+     integer, allocatable :: d(:)
      real(8), allocatable :: integrals(:)
   end type erisStack
 
@@ -68,7 +68,6 @@ contains
   subroutine RysQuadrature_computeIntraSpecies(specieID)
     implicit none
 
-    character(50) :: wfnFile
     integer, intent(in) :: specieID
 
     integer :: numberOfContractions
@@ -83,8 +82,7 @@ contains
     integer :: apa, apb, apr, aps !< labels index
     integer :: ii, jj, kk, ll !< cartesian iterators for primitives and contractions
     integer :: aux
-    integer :: counter, auxCounter
-    integer :: wfnUnit
+    integer :: counter, auxCounter, totalInts
 
     integer(8) :: control
 
@@ -103,16 +101,13 @@ contains
 
     external coul_rep
 
-
-    allocate (eris%a(CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%b(CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%c(CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%d(CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%integrals(CONTROL_instance%INTEGRAL_STACK_SIZE))
-
-    !! open file for integrals
-    open(UNIT=34,FILE=trim(MolecularSystem_instance%species(specieID)%name)//".ints", &
-         STATUS='UNKNOWN', ACCESS='SEQUENTIAL', FORM='Unformatted')
+    !! OpenMP related variables
+    character(50) :: fileid
+    integer :: nthreads
+    integer :: threadid
+    integer :: unitid
+    integer :: processid
+    integer :: test_counter, all_test
 
     !! Get basisSet
     call MolecularSystem_getBasisSet(specieID, contractions)
@@ -138,24 +133,50 @@ contains
        aux = aux + contractions(i)%numCartesianOrbital          
     end do
 
-    !! allocating space for integrals just one time (do not put it inside do loop!!!)
-    arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
+    totalInts = 0
+    all_test = 0
+
+    !$OMP PARALLEL private(nthreads, threadid, unitid, fileid, eris, auxIntegrals, integralsValue, integralsPtr, counter, &
+    !$OMP& a, b, r, s, n, u, sumAngularMoment, arraySize, i, j, k, l, m, ii, jj, kk, ll, pa, pb, pr, ps, apa, apb, apr, aps, aux,  &
+    !$OMP& auxCounter, processid, test_counter)
+
+    nthreads = OMP_GET_NUM_THREADS()
+    threadid =  OMP_GET_THREAD_NUM()
+    unitid = 40 + threadid
+
+    write(fileid,*) threadid
+    fileid = trim(adjustl(fileid))
+
+
+    allocate (eris%a(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%b(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%c(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%d(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%integrals(CONTROL_instance%INTEGRAL_STACK_SIZE))
+
+    !! open file for integrals
+    open(UNIT=unitid,FILE=trim(fileid)//trim(MolecularSystem_instance%species(specieID)%name)//".ints", &
+         STATUS='UNKNOWN', ACCESS='stream', FORM='Unformatted')
 
     if(allocated(auxIntegrals)) deallocate(auxIntegrals)
     if(allocated(integralsValue)) deallocate(integralsValue)
 
+    !! allocating space for integrals just one time (do not put it inside do loop!!!)
+    arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
+
     allocate(auxIntegrals(arraySize* arraySize* arraySize * arraySize))
     allocate(integralsValue(arraySize* arraySize* arraySize* arraySize))
     allocate(integralsPtr(arraySize* arraySize* arraySize* arraySize))    
-
-    wfnFile = "lowdin.wfn"
-    wfnUnit = 20
 
     integralsPtr = 0.0_8
     auxIntegrals = 0.0_8
     integralsValue = 0.0_8
 
     !!Start Calculating integrals for each shell
+    counter = 0
+    auxCounter = 0
+    processid = -1
+    test_counter = 0
     do a = 1, numberOfContractions
        n = a
        do b = a, numberOfContractions
@@ -163,6 +184,9 @@ contains
           do r = n , numberOfContractions
              do s = u,  numberOfContractions                                
 
+                processid = processid + 1
+                if ( MOD(processid, nthreads) /= threadid) cycle
+                test_counter = test_counter + 1
                 !!Calcula el momento angular total
                 sumAngularMoment =  contractions(a)%angularMoment + &
                      contractions(b)%angularMoment + &
@@ -188,6 +212,8 @@ contains
                       do j = 1, contractions(b)%length
                          do i = 1, contractions(a)%length                               
 
+                            ! Issues with cpp implementation.... SOLVE
+                            !$OMP critical
                             call coul_rep(&
                                  contractions(a)%origin(1), contractions(a)%origin(2), contractions(a)%origin(3), &
                                  contractions(a)%angularMoment, contractions(a)%orbitalExponents(i), labelsOfContractions(a),&
@@ -198,7 +224,7 @@ contains
                                  contractions(s)%origin(1), contractions(s)%origin(2), contractions(s)%origin(3), &
                                  contractions(s)%angularMoment, contractions(s)%orbitalExponents(l), labelsOfContractions(s),&
                                  b, s, integralsPtr(1:arraySize))                               
-
+                            !$OMP END critical
 
                             auxIntegrals(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy                                                                    
 
@@ -295,17 +321,17 @@ contains
                                      counter = counter + 1
                                      auxCounter = auxCounter + 1
 
-                                     eris%a(counter) = pa
-                                     eris%b(counter) = pb
-                                     eris%c(counter) = pr
-                                     eris%d(counter) = ps
-                                     eris%integrals(counter) = integralsValue(m)                                                                                
+                                     eris%a(counter) = ps
+                                     eris%b(counter) = pr
+                                     eris%c(counter) = pb
+                                     eris%d(counter) = pa
+                                     eris%integrals(counter) = integralsValue(m)                                                                      
 
                                   end if
 
                                   if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
 
-                                     write(34) &
+                                     write(unitid) &
                                           eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                           eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                           eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
@@ -337,23 +363,37 @@ contains
     eris%d(counter) = -1
     eris%integrals(counter) = 0.0_8
 
-    write(34) &
+    write(unitid) &
          eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-    close(34)
-
-    write(6,"(A,I12,A,A)") " Stored ", auxCounter, " non-zero repulsion integrals of species: ", &
-         trim(MolecularSystem_instance%species(specieID)%name)
+    close(unitid)
 
     deallocate (eris%a)
     deallocate (eris%b)
     deallocate (eris%c)
     deallocate (eris%d)
     deallocate (eris%integrals)
+
+    !$OMP ATOMIC
+    totalInts = totalInts + auxCounter
+    !$OMP ATOMIC
+    all_test = all_test + test_counter
+
+    deallocate(auxIntegrals)
+    deallocate(integralsValue)
+    deallocate(integralsPtr)    
+
+    !$OMP END PARALLEL
+
+    deallocate(labelsOfContractions)
+    deallocate(contractions)
+
+    write(6,"(A,I12,I12,A,A)") " Stored ", totalInts, all_test, " non-zero repulsion integrals of species: ", &
+         trim(MolecularSystem_instance%species(specieID)%name)
 
   end subroutine RysQuadrature_computeIntraSpecies
 

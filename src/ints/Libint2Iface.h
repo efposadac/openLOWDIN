@@ -1,4 +1,5 @@
-/*file: libint_iface.h
+/*
+file: Libint2Iface.h
 nAPMO package
 Copyright (c) 2016, Edwin Fernando Posada
 All rights reserved.
@@ -6,8 +7,8 @@ Version: 0.1
 efposadac@unal.edu.co
 */
 
-#ifndef LIBINT_IFACE_H
-#define LIBINT_IFACE_H
+#ifndef LIBINT2IFACE_H
+#define LIBINT2IFACE_H
 
 #include <libint2.hpp>
 
@@ -27,6 +28,8 @@ efposadac@unal.edu.co
 #ifdef _OMP
 #include <omp.h>
 #endif
+
+#include "Iterators.h"
 
 /*
 Type definitions
@@ -62,6 +65,7 @@ class LibintInterface {
 private:
   size_t max_nprim;
   size_t nbasis;
+  int s_size; // stack size
   int max_l;
   shellpair_list_t obs_shellpair_list;
   std::vector<libint2::Atom> atoms;
@@ -71,13 +75,16 @@ private:
   Matrix compute_shellblock_norm(const Matrix &A);
 
 public:
-  LibintInterface();
+  LibintInterface(const int stack_size);
   ~LibintInterface() { libint2::finalize(); };
   void add_particle(const int z, const double *center);
   void add_shell(double *alpha, double *coeff, double *origin, int l,
                  int nprim);
   void init_2body_ints();
-  void compute_2body_ints(const char *filename);
+  void
+  compute_2body_ints(const char *filename, const Matrix &D,
+                     const Matrix &Schwartz,
+                     double precision = std::numeric_limits<double>::epsilon());
   Matrix compute_1body_ints(libint2::Operator obtype);
   Matrix
   compute_2body_fock(const Matrix &D, const Matrix &Schwartz,
@@ -92,11 +99,10 @@ public:
 extern "C" {
 #endif
 
-
 /*
 Fortran interface routines.
 */
-LibintInterface *LibintInterface_new();
+LibintInterface *LibintInterface_new(int stack_size);
 
 void LibintInterface_del(LibintInterface *lint);
 
@@ -117,7 +123,7 @@ void LibintInterface_compute_2body_fock(LibintInterface *lint, double *dens,
                                         double *result);
 
 void LibintInterface_compute_2body_ints(LibintInterface *lint,
-                                        const char *filename);
+                                        const char *filename, double *dens);
 
 #ifdef __cplusplus
 }

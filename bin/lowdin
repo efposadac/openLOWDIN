@@ -324,7 +324,7 @@ if [ $extFile="lowdin" ]; then
 	    lowdin$version $nameFile.aux >>   $nameFile.out
 	fi
 	
-	ls -l * >> $nameFile.out
+	ls -lh * >> $nameFile.out
 
 	if [ -e $nameFile.out ]
 	then

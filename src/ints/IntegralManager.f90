@@ -71,7 +71,6 @@ contains
     character(100) :: job
 
     job = "OVERLAP"
-    open(unit=1000, file='lowdin.txt')
 
     !!Overlap Integrals for all species    
     do f = 1, size(MolecularSystem_instance%species)
@@ -139,8 +138,6 @@ contains
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
-       write(1000, *) integralsMatrix
-       close(1000)
 
        !!Depuration block
        ! print*, "Overlap Matrix for species: ", f
@@ -324,9 +321,6 @@ contains
 
 
     a=0
-
-
-    !
 
     job = "ATTRACTION"
 
@@ -658,7 +652,6 @@ contains
     real(8), allocatable :: integralValue(:)
     real(8), allocatable :: integralBuffer(:)
     real(8), allocatable :: integralsMatrix(:,:)
-    character(20) :: colNum
     character(10) :: coordinate(3)
     character(100) :: job
 
@@ -795,7 +788,7 @@ contains
 
     case("RYS")
 
-       !! Non safe for 
+      !! Check critical OMP
        call RysQuadrature_computeIntraSpecies( speciesID )
 
     case("LIBINT")

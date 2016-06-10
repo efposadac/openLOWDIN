@@ -31,21 +31,16 @@ program SCF
   real(8) :: deltaEnergy
   real(8) :: diisError
   integer :: i
-  integer :: nproc
   integer :: numberOfSpecies
   integer :: status
   integer :: wfnUnit, vecUnit
   integer :: speciesID
   integer :: numberOfIterations
-  character(50) :: string
   character(50) :: wfnFile, vecFile
   character(30) :: nameOfSpecie
   character(30) :: labels(2)
   character(100) :: iterationScheme(0:3)
   character :: convergenceType
-
-  call get_command_argument(1, string)
-  read(string,*) nproc
 
   !! Open file for wfn
   wfnUnit = 30
@@ -188,7 +183,7 @@ program SCF
                  call List_iterate( WaveFunction_instance(speciesID)%energySCF )
                  call List_iterate( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements )
                  call List_iterate( WaveFunction_instance(speciesID)%diisError )
-                 diisError =List_current( WaveFunction_instance(speciesID)%diisError )
+                 diisError = List_current( WaveFunction_instance(speciesID)%diisError )
 
                  convergenceType = ""
 

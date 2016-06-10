@@ -24,7 +24,7 @@ END GEOMETRY
 
 TASKS
 	method = "RHF"
-!	mollerPlessetCorrection=2
+	mollerPlessetCorrection=2
 END TASKS
 
 CONTROL

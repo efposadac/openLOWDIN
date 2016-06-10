@@ -48,7 +48,7 @@ diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffOrb5_P2 = abs(refOrb5_P2 - Orb5_P2)
 diffOrb6_P2 = abs(refOrb6_P2 - Orb6_P2)
 
-if (diffTotalEnergy <= 1E-12 and diffOrb5_P2 == 0 and diffOrb6_P2 == 0):
+if (diffTotalEnergy <= 1E-10 and diffOrb5_P2 == 0 and diffOrb6_P2 == 0):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

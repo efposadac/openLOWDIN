@@ -1,82 +1,13 @@
 /*
-file: libint_iface.cpp
+file: Libint2Iface.cpp
 nAPMO package
 Copyright (c) 2016, Edwin Fernando Posada
 All rights reserved.
 Version: 0.1
-efposadac@unal.edu.co
+efposadac@unal.edu.coa
 */
 
-#include "libint_iface.h"
-
-/*
-Fortran interface
-*/
-
-LibintInterface *LibintInterface_new() { return new LibintInterface(); }
-
-void LibintInterface_del(LibintInterface *lint) { lint->~LibintInterface(); }
-
-void LibintInterface_add_particle(LibintInterface *lint, const int z,
-                                  const double *center) {
-  lint->add_particle(z, center);
-}
-
-void LibintInterface_add_shell(LibintInterface *lint, double *alpha,
-                               double *coeff, double *origin, int l,
-                               int nprim) {
-  lint->add_shell(alpha, coeff, origin, l, nprim);
-}
-
-void LibintInterface_compute_1body_ints(LibintInterface *lint,
-                                        int integral_kind, double *result) {
-  // Default case
-  libint2::Operator obtype = libint2::Operator::overlap;
-
-  switch (integral_kind) {
-  case 1: // Overlap
-    obtype = libint2::Operator::overlap;
-    break;
-  case 2: // Kinetic
-    obtype = libint2::Operator::kinetic;
-    break;
-  case 3: // Nuclear
-    obtype = libint2::Operator::nuclear;
-    break;
-  }
-
-  auto tmp = lint->compute_1body_ints(obtype);
-
-  for (int i = 0; i < tmp.size(); ++i) {
-    result[i] = tmp.array()(i);
-  }
-}
-
-void LibintInterface_init_2body_ints(LibintInterface *lint) {
-  lint->init_2body_ints();
-}
-
-void LibintInterface_compute_2body_fock(LibintInterface *lint, double *dens,
-                                        double *result) {
-  auto n = lint->get_nbasis();
-  Matrix D(n, n);
-
-  for (int i = 0; i < D.size(); ++i) {
-    D.array()(i) = dens[i];
-  }
-
-  auto K = compute_schwartz_ints<>(lint->get_shells());
-  auto G = lint->compute_2body_fock(D, K);
-
-  for (int i = 0; i < G.size(); ++i) {
-    result[i] = G.array()(i);
-  }
-}
-
-void LibintInterface_compute_2body_ints(LibintInterface *lint,
-                                        const char *filename) {
-  lint->compute_2body_ints(filename);
-}
+#include "Libint2Iface.h"
 
 /*
 Namespace extension for threads
@@ -105,13 +36,14 @@ template <typename Lambda> void parallel_do(Lambda &lambda) {
     threads[thread_id].join();
 #endif
 }
-}
+
+} // end libint2 namespace
 
 /*
 LibintInterface class implementation
 */
 
-LibintInterface::LibintInterface() {
+LibintInterface::LibintInterface(const int stack_size) : s_size(stack_size) {
   // set up thread pool
   {
     using libint2::nthreads;
@@ -148,9 +80,9 @@ void LibintInterface::init_2body_ints() {
     for (auto &sp : obs_shellpair_list) {
       nsp += sp.second.size();
     }
-    // std::cout << "# of {all,non-negligible} shell-pairs = {"
-    //           << shells.size() * (shells.size() + 1) / 2 << "," << nsp << "}"
-    //           << std::endl;
+    std::cout << "# of {all,non-negligible} shell-pairs = {"
+              << shells.size() * (shells.size() + 1) / 2 << "," << nsp << "}"
+              << std::endl;
   }
 }
 
@@ -166,7 +98,6 @@ void LibintInterface::add_particle(const int z, const double *center) {
 
 void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
                                 int l, int nprim) {
-
   libint2::Shell::do_enforce_unit_normalization(false);
 
   std::vector<double> exponents(nprim);
@@ -291,25 +222,53 @@ Matrix LibintInterface::compute_1body_ints(libint2::Operator obtype) {
   return result;
 }
 
-void LibintInterface::compute_2body_ints(const char *filename) {
-  using libint2::Engine;
-  using libint2::Operator;
+void LibintInterface::compute_2body_ints(const char *filename, const Matrix &D,
+                                         const Matrix &Schwartz,
+                                         double precision) {
+  const auto nshells = shells.size();
+
   using libint2::nthreads;
 
-  auto max_size = (max_l + 1) * (max_l + 2) / 2;
-  auto max_size4 = max_size * max_size * max_size * max_size;
+  const auto do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  Matrix D_shblk_norm; // matrix of infty-norms of shell blocks
+  if (do_schwartz_screen) {
+    D_shblk_norm = compute_shellblock_norm(D);
+  }
+
+  auto fock_precision = precision;
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+  auto engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
+                                   std::numeric_limits<double>::epsilon()) /
+                          max_nprim4;
 
   // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
   std::vector<Engine> engines(nthreads);
   engines[0] = Engine(libint2::Operator::coulomb, max_nprim, max_l, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+
+  std::cout << "compute_2body_fock:precision = " << precision << std::endl;
+  std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
 
   for (size_t i = 1; i != nthreads; ++i) {
     engines[i] = engines[0];
   }
 
   std::atomic<size_t> num_ints_computed{0};
-  std::vector<std::vector<double>> Buffer(nthreads,
-                                          std::vector<double>(max_size4));
+
+  // setting buffers
+  std::vector<std::vector<int>> p_t(nthreads, std::vector<int>(s_size));
+  std::vector<std::vector<int>> q_t(nthreads, std::vector<int>(s_size));
+  std::vector<std::vector<int>> r_t(nthreads, std::vector<int>(s_size));
+  std::vector<std::vector<int>> s_t(nthreads, std::vector<int>(s_size));
+  std::vector<std::vector<double>> integral_t(nthreads,
+                                              std::vector<double>(s_size));
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
   std::vector<libint2::Timers<1>> timers(nthreads);
@@ -319,14 +278,18 @@ void LibintInterface::compute_2body_ints(const char *filename) {
 
   auto lambda = [&](int thread_id) {
 
-    std::string file = filename;
-    file += std::to_string(thread_id);
+    std::string file = std::to_string(thread_id);
+    file += filename;
 
     std::ofstream outfile;
     outfile.open(file, std::ios::binary);
 
     auto &engine = engines[thread_id];
-    auto &buffer = Buffer[thread_id];
+    auto &integral = integral_t[thread_id];
+    auto &p = p_t[thread_id];
+    auto &q = q_t[thread_id];
+    auto &r = r_t[thread_id];
+    auto &s = s_t[thread_id];
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
     auto &timer = timers[thread_id];
@@ -335,37 +298,51 @@ void LibintInterface::compute_2body_ints(const char *filename) {
 #endif
 
     // loop over permutationally-unique set of shells
-    for (auto s1 = 0l, s1234 = 0l; s1 < shells.size(); ++s1) {
-      auto n = s1;
-      auto n1 = shells[s1].size();   // number of basis functions in this shell
+    int counter = 0;
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
       auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
 
-      for (auto s2 = s1; s2 < shells.size(); ++s2) {
-        auto u = s2;
-        auto n2 = shells[s2].size();
+      for (const auto &s2 : obs_shellpair_list[s1]) {
         auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
 
-        for (auto s3 = n; s3 < shells.size(); ++s3) {
-          auto n3 = shells[s3].size();
+        const auto Dnorm12 = do_schwartz_screen ? D_shblk_norm(s1, s2) : 0.;
+
+        for (auto s3 = 0; s3 <= s1; ++s3) {
           auto bf3_first = shell2bf[s3];
+          auto n3 = shells[s3].size();
 
-          for (auto s4 = u; s4 < shells.size(); ++s4) {
-            auto n4 = shells[s4].size();
-            auto bf4_first = shell2bf[s4];
+          const auto Dnorm123 =
+              do_schwartz_screen
+                  ? std::max(D_shblk_norm(s1, s3),
+                             std::max(D_shblk_norm(s2, s3), Dnorm12))
+                  : 0.;
+
+          const auto s4_max = (s1 == s3) ? s2 : s3;
+          for (const auto &s4 : obs_shellpair_list[s3]) {
+            if (s4 > s4_max)
+              break; // for each s3, s4 are stored in monotonically increasing
+                     // order
 
             if ((s1234++) % nthreads != thread_id)
               continue;
 
-            auto shell_size = n1 * n2 * n3 * n4;
-            num_ints_computed += shell_size;
+            const auto Dnorm1234 =
+                do_schwartz_screen
+                    ? std::max(
+                          D_shblk_norm(s1, s4),
+                          std::max(D_shblk_norm(s2, s4),
+                                   std::max(D_shblk_norm(s3, s4), Dnorm123)))
+                    : 0.;
 
-            // compute the permutational degeneracy (i.e. # of equivalents)
-            // of
-            // the given shell set
-            auto s12_deg = (s1 == s2) ? 1.0 : 2.0;
-            auto s34_deg = (s3 == s4) ? 1.0 : 2.0;
-            auto s12_34_deg = (s1 == s3) ? (s2 == s4 ? 1.0 : 2.0) : 2.0;
-            auto s1234_deg = s12_deg * s34_deg * s12_34_deg;
+            if (do_schwartz_screen &&
+                Dnorm1234 * Schwartz(s1, s2) * Schwartz(s3, s4) <
+                    fock_precision)
+              continue;
+
+            auto bf4_first = shell2bf[s4];
+            auto n4 = shells[s4].size();
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.start(0);
@@ -379,30 +356,54 @@ void LibintInterface::compute_2body_ints(const char *filename) {
             timer.stop(0);
 #endif
 
-            for (auto f1 = 0, f1234 = 0; f1 != n1; ++f1) {
-              const auto bf1 = f1 + bf1_first;
-              for (auto f2 = 0; f2 != n2; ++f2) {
-                const auto bf2 = f2 + bf2_first;
-                for (auto f3 = 0; f3 != n3; ++f3) {
-                  const auto bf3 = f3 + bf3_first;
-                  for (auto f4 = 0; f4 != n4; ++f4, ++f1234) {
-                    const auto bf4 = f4 + bf4_first;
+            auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
+                                       bf3_first, bf4_first);
 
-                    const auto value = buf[f1234];
+            for (intIter.first(); intIter.is_done() == false; intIter.next()) {
 
-                    buffer[f1234] = value * s1234_deg * norma[bf1] *
-                                    norma[bf2] * norma[bf3] * norma[bf4];
-                  }
-                }
+              p[counter] = intIter.i() + 1;
+              q[counter] = intIter.j() + 1;
+              r[counter] = intIter.k() + 1;
+              s[counter] = intIter.l() + 1;
+              integral[counter] = buf[intIter.index()] * norma[intIter.i()] *
+                                  norma[intIter.j()] * norma[intIter.k()] *
+                                  norma[intIter.l()];
+
+              // printf("\t(%2d %2d | %2d %2d) = %20.15f\n", p[counter],
+              // q[counter], r[counter], s[counter], integral[counter]);
+
+              ++num_ints_computed;
+              ++counter;
+
+              if (counter == s_size) {
+                outfile.write(reinterpret_cast<const char *>(&p[0]),
+                              s_size * sizeof(int));
+                outfile.write(reinterpret_cast<const char *>(&q[0]),
+                              s_size * sizeof(int));
+                outfile.write(reinterpret_cast<const char *>(&r[0]),
+                              s_size * sizeof(int));
+                outfile.write(reinterpret_cast<const char *>(&s[0]),
+                              s_size * sizeof(int));
+                outfile.write(reinterpret_cast<const char *>(&integral[0]),
+                              s_size * sizeof(double));
+
+                counter = 0;
               }
             }
-            outfile.write(reinterpret_cast<const char *>(&buffer[0]),
-                          shell_size * sizeof(double));
           }
-          u = s3 + 1;
         }
       }
     }
+
+    p[counter] = -1;
+
+    outfile.write(reinterpret_cast<const char *>(&p[0]), s_size * sizeof(int));
+    outfile.write(reinterpret_cast<const char *>(&q[0]), s_size * sizeof(int));
+    outfile.write(reinterpret_cast<const char *>(&r[0]), s_size * sizeof(int));
+    outfile.write(reinterpret_cast<const char *>(&s[0]), s_size * sizeof(int));
+    outfile.write(reinterpret_cast<const char *>(&integral[0]),
+                  s_size * sizeof(double));
+
     outfile.close();
 
   }; // end of lambda
@@ -419,7 +420,7 @@ void LibintInterface::compute_2body_ints(const char *filename) {
     engines[t].print_timers();
 #endif
 
-  std::cout << "# of integrals = " << num_ints_computed << std::endl;
+  std::cout << "# of unique integrals = " << num_ints_computed << std::endl;
 }
 
 Matrix LibintInterface::compute_2body_fock(const Matrix &D,
@@ -439,6 +440,7 @@ Matrix LibintInterface::compute_2body_fock(const Matrix &D,
   }
 
   auto fock_precision = precision;
+
   // engine precision controls primitive truncation, assume worst-casescenario
   // (all primitive combinations add up constructively)
   auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
@@ -549,19 +551,6 @@ Matrix LibintInterface::compute_2body_fock(const Matrix &D,
             timer.stop(0);
 #endif
 
-            // 1) each shell set of integrals contributes up to 6 shell sets
-            // of
-            // the Fock matrix:
-            //    F(a,b) += (ab|cd) * D(c,d)
-            //    F(c,d) += (ab|cd) * D(a,b)
-            //    F(b,d) -= 1/4 * (ab|cd) * D(a,c)
-            //    F(b,c) -= 1/4 * (ab|cd) * D(a,d)
-            //    F(a,c) -= 1/4 * (ab|cd) * D(b,d)
-            //    F(a,d) -= 1/4 * (ab|cd) * D(b,c)
-            // 2) each permutationally-unique integral (shell set) must be
-            // scaled by its degeneracy,
-            //    i.e. the number of the integrals/sets equivalent to it
-            // 3) the end result must be symmetrized
             for (auto f1 = 0, f1234 = 0; f1 != n1; ++f1) {
               const auto bf1 = f1 + bf1_first;
               for (auto f2 = 0; f2 != n2; ++f2) {
@@ -647,7 +636,7 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
     engines.push_back(engines[0]);
   }
 
-  // std::cout << "computing non-negligible shell-pair list ... ";
+  std::cout << "computing non-negligible shell-pair list ... ";
 
   libint2::Timers<1> timer;
   timer.set_now_overhead(25);
@@ -710,7 +699,7 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
   libint2::parallel_do(sort);
 
   timer.stop(0);
-  // std::cout << "done (" << timer.read(0) << " s)" << std::endl;
+  std::cout << "done (" << timer.read(0) << " s)" << std::endl;
 
   return result;
 }
@@ -742,9 +731,8 @@ Matrix compute_schwartz_ints(
     engines[i] = engines[0];
   }
 
-  // std::cout << "computing Schwartz bound prerequisites (kernel=" <<
-  // (int)Kernel
-  // << ") ... ";
+  std::cout << "computing Schwartz bound prerequisites (kernel=" << (int)Kernel
+            << ") ... ";
 
   libint2::Timers<1> timer;
   timer.set_now_overhead(25);
@@ -781,7 +769,87 @@ Matrix compute_schwartz_ints(
   libint2::parallel_do(lambda);
 
   timer.stop(0);
-  // std::cout << "done (" << timer.read(0) << " s)" << std::endl;
+  std::cout << "done (" << timer.read(0) << " s)" << std::endl;
 
   return K;
+}
+
+/*
+Fortran interface
+*/
+
+LibintInterface *LibintInterface_new(const int stack_size) {
+  return new LibintInterface(stack_size);
+}
+
+void LibintInterface_del(LibintInterface *lint) { lint->~LibintInterface(); }
+
+void LibintInterface_add_particle(LibintInterface *lint, const int z,
+                                  const double *center) {
+  lint->add_particle(z, center);
+}
+
+void LibintInterface_add_shell(LibintInterface *lint, double *alpha,
+                               double *coeff, double *origin, int l,
+                               int nprim) {
+  lint->add_shell(alpha, coeff, origin, l, nprim);
+}
+
+void LibintInterface_compute_1body_ints(LibintInterface *lint,
+                                        int integral_kind, double *result) {
+  // Default case
+  libint2::Operator obtype = libint2::Operator::overlap;
+
+  switch (integral_kind) {
+  case 1: // Overlap
+    obtype = libint2::Operator::overlap;
+    break;
+  case 2: // Kinetic
+    obtype = libint2::Operator::kinetic;
+    break;
+  case 3: // Nuclear
+    obtype = libint2::Operator::nuclear;
+    break;
+  }
+
+  auto tmp = lint->compute_1body_ints(obtype);
+
+  for (int i = 0; i < tmp.size(); ++i) {
+    result[i] = tmp.array()(i);
+  }
+}
+
+void LibintInterface_init_2body_ints(LibintInterface *lint) {
+  lint->init_2body_ints();
+}
+
+void LibintInterface_compute_2body_fock(LibintInterface *lint, double *dens,
+                                        double *result) {
+  auto n = lint->get_nbasis();
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  auto K = compute_schwartz_ints<>(lint->get_shells());
+  auto G = lint->compute_2body_fock(D, K);
+
+  for (int i = 0; i < G.size(); ++i) {
+    result[i] = G.array()(i);
+  }
+}
+
+void LibintInterface_compute_2body_ints(LibintInterface *lint,
+                                        const char *filename, double *dens) {
+  auto n = lint->get_nbasis();
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  auto K = compute_schwartz_ints<>(lint->get_shells());
+
+  lint->compute_2body_ints(filename, D, K);
 }

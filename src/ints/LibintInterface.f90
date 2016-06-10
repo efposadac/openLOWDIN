@@ -56,10 +56,10 @@ module LibintInterface_
 
   !> @brief the integrals are saved for big records (that reduces the I/O time)
   type, public :: erisStack
-     integer*2, allocatable :: a(:)
-     integer*2, allocatable :: b(:)
-     integer*2, allocatable :: c(:)
-     integer*2, allocatable :: d(:)
+     integer, allocatable :: a(:)
+     integer, allocatable :: b(:)
+     integer, allocatable :: c(:)
+     integer, allocatable :: d(:)
      real(8), allocatable :: integrals(:)
   end type erisStack
 
@@ -287,8 +287,8 @@ contains
     integer :: contractionNumberdebug, primitiveCounterdebug, contractionNumberperOrbital, totalIntegralswithP
 
     integer :: auxi
-    integer*2 :: ai(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: bi(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: ai(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: bi(CONTROL_instance%INTEGRAL_STACK_SIZE)
     real(8) :: twoIndexIntegral(CONTROL_instance%INTEGRAL_STACK_SIZE)
     real(8), allocatable :: twoIndexMatrix(:,:)
     logical :: skipIntegralShell
@@ -1449,7 +1449,7 @@ contains
     integer :: n,u,m !! auxiliary itetators
     integer :: aa, bb, rr, ss !! permuted iterators (LIBINT)
     integer :: a, b, r, s !! not permuted iterators (original)
-    integer*2 :: pa, pb, pr, ps !! labels index
+    integer :: pa, pb, pr, ps !! labels index
     integer :: ii, jj, kk, ll !! cartesian iterators for contractions and contractions
     integer :: aux, order !!auxiliary index
     integer :: arraySsize(1)

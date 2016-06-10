@@ -40,10 +40,10 @@ module CudintInterface_
 
   !> @brief the integrals are saved for big records (that reduces the I/O time)
   type, public :: erisStack
-     integer*2, allocatable :: a(:)
-     integer*2, allocatable :: b(:)
-     integer*2, allocatable :: c(:)
-     integer*2, allocatable :: d(:)
+     integer, allocatable :: a(:)
+     integer, allocatable :: b(:)
+     integer, allocatable :: c(:)
+     integer, allocatable :: d(:)
      real(8), allocatable :: integrals(:)
   end type erisStack
   
