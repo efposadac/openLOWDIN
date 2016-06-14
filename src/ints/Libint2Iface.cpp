@@ -4,46 +4,17 @@ nAPMO package
 Copyright (c) 2016, Edwin Fernando Posada
 All rights reserved.
 Version: 0.1
-efposadac@unal.edu.coa
+efposadac@unal.edu.co
 */
 
 #include "Libint2Iface.h"
 
 /*
-Namespace extension for threads
-*/
-
-namespace libint2 {
-int nthreads;
-
-/// fires off \c nthreads instances of lambda in parallel
-template <typename Lambda> void parallel_do(Lambda &lambda) {
-#ifdef _OPENMP
-#pragma omp parallel
-  {
-    auto thread_id = omp_get_thread_num();
-    lambda(thread_id);
-  }
-#else // use C++11 threads
-  std::vector<std::thread> threads;
-  for (int thread_id = 0; thread_id != libint2::nthreads; ++thread_id) {
-    if (thread_id != nthreads - 1)
-      threads.push_back(std::thread(lambda, thread_id));
-    else
-      lambda(thread_id);
-  } // threads_id
-  for (int thread_id = 0; thread_id < nthreads - 1; ++thread_id)
-    threads[thread_id].join();
-#endif
-}
-
-} // end libint2 namespace
-
-/*
 LibintInterface class implementation
 */
 
-LibintInterface::LibintInterface(const int stack_size) : s_size(stack_size) {
+LibintInterface::LibintInterface(const int stack_size, const int id)
+    : s_size(stack_size), speciesID(id) {
   // set up thread pool
   {
     using libint2::nthreads;
@@ -59,13 +30,13 @@ LibintInterface::LibintInterface(const int stack_size) : s_size(stack_size) {
 #if defined(_OPENMP)
     omp_set_num_threads(nthreads);
 #endif
-    std::cout << "Will scale over " << nthreads
-#if defined(_OPENMP)
-              << " OpenMP"
-#else
-              << " C++11"
-#endif
-              << " threads" << std::endl;
+    //     std::cout << "Will scale over " << nthreads
+    // #if defined(_OPENMP)
+    //               << " OpenMP"
+    // #else
+    //               << " C++11"
+    // #endif
+    //               << " threads" << std::endl;
   }
 
   // initializes the Libint integrals library ... now ready to compute
@@ -73,17 +44,18 @@ LibintInterface::LibintInterface(const int stack_size) : s_size(stack_size) {
 };
 
 void LibintInterface::init_2body_ints() {
+
   // compute OBS non-negligible shell-pair list
-  {
-    obs_shellpair_list = compute_shellpair_list(shells);
-    size_t nsp = 0;
-    for (auto &sp : obs_shellpair_list) {
-      nsp += sp.second.size();
-    }
-    std::cout << "# of {all,non-negligible} shell-pairs = {"
-              << shells.size() * (shells.size() + 1) / 2 << "," << nsp << "}"
-              << std::endl;
+
+  obs_shellpair_list = compute_shellpair_list(shells);
+  size_t nsp = 0;
+  for (auto &sp : obs_shellpair_list) {
+    nsp += sp.second.size();
   }
+
+  // std::cout << "# of {all,non-negligible} shell-pairs = {"
+  //           << shells.size() * (shells.size() + 1) / 2 << "," << nsp << "}"
+  //           << std::endl;
 }
 
 void LibintInterface::add_particle(const int z, const double *center) {
@@ -222,7 +194,7 @@ Matrix LibintInterface::compute_1body_ints(libint2::Operator obtype) {
   return result;
 }
 
-void LibintInterface::compute_2body_ints(const char *filename, const Matrix &D,
+void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
                                          const Matrix &Schwartz,
                                          double precision) {
   const auto nshells = shells.size();
@@ -253,8 +225,8 @@ void LibintInterface::compute_2body_ints(const char *filename, const Matrix &D,
                                               // positive definiteness
                                               // stick with this simple recipe
 
-  std::cout << "compute_2body_fock:precision = " << precision << std::endl;
-  std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+  // std::cout << "compute_2body_disk:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
 
   for (size_t i = 1; i != nthreads; ++i) {
     engines[i] = engines[0];
@@ -263,12 +235,8 @@ void LibintInterface::compute_2body_ints(const char *filename, const Matrix &D,
   std::atomic<size_t> num_ints_computed{0};
 
   // setting buffers
-  std::vector<std::vector<int>> p_t(nthreads, std::vector<int>(s_size));
-  std::vector<std::vector<int>> q_t(nthreads, std::vector<int>(s_size));
-  std::vector<std::vector<int>> r_t(nthreads, std::vector<int>(s_size));
-  std::vector<std::vector<int>> s_t(nthreads, std::vector<int>(s_size));
-  std::vector<std::vector<double>> integral_t(nthreads,
-                                              std::vector<double>(s_size));
+  using libint2::QuartetBuffer;
+  std::vector<QuartetBuffer> buffers(nthreads);
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
   std::vector<libint2::Timers<1>> timers(nthreads);
@@ -285,11 +253,13 @@ void LibintInterface::compute_2body_ints(const char *filename, const Matrix &D,
     outfile.open(file, std::ios::binary);
 
     auto &engine = engines[thread_id];
-    auto &integral = integral_t[thread_id];
-    auto &p = p_t[thread_id];
-    auto &q = q_t[thread_id];
-    auto &r = r_t[thread_id];
-    auto &s = s_t[thread_id];
+    auto &buffer = buffers[thread_id];
+
+    buffer.p.reserve(s_size);
+    buffer.q.reserve(s_size);
+    buffer.r.reserve(s_size);
+    buffer.s.reserve(s_size);
+    buffer.val.reserve(s_size);
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
     auto &timer = timers[thread_id];
@@ -360,33 +330,24 @@ void LibintInterface::compute_2body_ints(const char *filename, const Matrix &D,
                                        bf3_first, bf4_first);
 
             for (intIter.first(); intIter.is_done() == false; intIter.next()) {
+              if (std::abs(buf[intIter.index()]) > 1.0e-10) {
+                buffer.p[counter] = intIter.i() + 1;
+                buffer.q[counter] = intIter.j() + 1;
+                buffer.r[counter] = intIter.k() + 1;
+                buffer.s[counter] = intIter.l() + 1;
+                buffer.val[counter] = buf[intIter.index()] *
+                                      norma[intIter.i()] * norma[intIter.j()] *
+                                      norma[intIter.k()] * norma[intIter.l()];
 
-              p[counter] = intIter.i() + 1;
-              q[counter] = intIter.j() + 1;
-              r[counter] = intIter.k() + 1;
-              s[counter] = intIter.l() + 1;
-              integral[counter] = buf[intIter.index()] * norma[intIter.i()] *
-                                  norma[intIter.j()] * norma[intIter.k()] *
-                                  norma[intIter.l()];
+                // printf("\t(%2d %2d | %2d %2d) = %20.15f\n", p[counter],
+                // q[counter], r[counter], s[counter], integral[counter]);
 
-              // printf("\t(%2d %2d | %2d %2d) = %20.15f\n", p[counter],
-              // q[counter], r[counter], s[counter], integral[counter]);
-
-              ++num_ints_computed;
-              ++counter;
+                ++num_ints_computed;
+                ++counter;
+              }
 
               if (counter == s_size) {
-                outfile.write(reinterpret_cast<const char *>(&p[0]),
-                              s_size * sizeof(int));
-                outfile.write(reinterpret_cast<const char *>(&q[0]),
-                              s_size * sizeof(int));
-                outfile.write(reinterpret_cast<const char *>(&r[0]),
-                              s_size * sizeof(int));
-                outfile.write(reinterpret_cast<const char *>(&s[0]),
-                              s_size * sizeof(int));
-                outfile.write(reinterpret_cast<const char *>(&integral[0]),
-                              s_size * sizeof(double));
-
+                write_buffer(buffer, s_size, outfile);
                 counter = 0;
               }
             }
@@ -395,15 +356,8 @@ void LibintInterface::compute_2body_ints(const char *filename, const Matrix &D,
       }
     }
 
-    p[counter] = -1;
-
-    outfile.write(reinterpret_cast<const char *>(&p[0]), s_size * sizeof(int));
-    outfile.write(reinterpret_cast<const char *>(&q[0]), s_size * sizeof(int));
-    outfile.write(reinterpret_cast<const char *>(&r[0]), s_size * sizeof(int));
-    outfile.write(reinterpret_cast<const char *>(&s[0]), s_size * sizeof(int));
-    outfile.write(reinterpret_cast<const char *>(&integral[0]),
-                  s_size * sizeof(double));
-
+    buffer.p[counter] = -1;
+    write_buffer(buffer, s_size, outfile);
     outfile.close();
 
   }; // end of lambda
@@ -415,17 +369,19 @@ void LibintInterface::compute_2body_ints(const char *filename, const Matrix &D,
   for (auto &t : timers) {
     time_for_ints += t.read(0);
   }
-  std::cout << "time for integrals = " << time_for_ints << std::endl;
+  std::cout << " Time for intra-species integrals = " << time_for_ints
+            << std::endl;
   for (int t = 0; t != nthreads; ++t)
     engines[t].print_timers();
 #endif
 
-  std::cout << "# of unique integrals = " << num_ints_computed << std::endl;
+  std::cout << " Number of unique integrals for species: " << speciesID << " = "
+            << num_ints_computed << std::endl;
 }
 
-Matrix LibintInterface::compute_2body_fock(const Matrix &D,
-                                           const Matrix &Schwartz,
-                                           double precision) {
+Matrix LibintInterface::compute_2body_direct(const Matrix &D,
+                                             const Matrix &Schwartz,
+                                             double precision) {
   const auto n = nbasis;
   const auto nshells = shells.size();
 
@@ -457,7 +413,7 @@ Matrix LibintInterface::compute_2body_fock(const Matrix &D,
                                               // positive definiteness
                                               // stick with this simple recipe
 
-  // std::cout << "compute_2body_fock:precision = " << precision << std::endl;
+  // std::cout << "compute_2body_direct:precision = " << precision << std::endl;
   // std::cout << "Engine::precision = " << engines[0].precision() <<
   // std::endl;
 
@@ -595,15 +551,375 @@ Matrix LibintInterface::compute_2body_fock(const Matrix &D,
   for (auto &t : timers) {
     time_for_ints += t.read(0);
   }
-  std::cout << "time for integrals = " << time_for_ints << std::endl;
+  std::cout << " Time for intras-pecies integrals = " << time_for_ints
+            << std::endl;
   for (int t = 0; t != nthreads; ++t)
     engines[t].print_timers();
 #endif
 
-  std::cout << "# of integrals = " << num_ints_computed << std::endl;
+  std::cout << " Number of unique integrals for species: " << speciesID << " = "
+            << num_ints_computed << std::endl;
   // symmetrize the result and return
   Matrix GG = 0.25 * (G[0] + G[0].transpose());
   return GG;
+}
+
+void LibintInterface::compute_coupling_disk(LibintInterface &other,
+                                            const char *filename,
+                                            double precision) {
+  const auto nshells = shells.size();
+  const auto oshells = other.get_shells();
+  const auto onshells = oshells.size();
+
+  using libint2::nthreads;
+
+  auto fock_precision = precision;
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto nprim_max = std::max(max_nprim, other.max_nprim);
+  auto l_max = std::max(max_l, other.max_l);
+
+  auto max_nprim4 = nprim_max * nprim_max * nprim_max * nprim_max;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::coulomb, nprim_max, l_max, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+
+  // std::cout << "compute_coupling_direct:precision = " << precision <<
+  // std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+  // setting buffers
+  using libint2::QuartetBuffer;
+  std::vector<QuartetBuffer> buffers(nthreads);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+  auto oshell2bf = other.map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    std::string file = std::to_string(thread_id);
+    file += filename;
+
+    std::ofstream outfile;
+    outfile.open(file, std::ios::binary);
+
+    auto &engine = engines[thread_id];
+
+    auto &buffer = buffers[thread_id];
+
+    buffer.p.reserve(s_size);
+    buffer.q.reserve(s_size);
+    buffer.r.reserve(s_size);
+    buffer.s.reserve(s_size);
+    buffer.val.reserve(s_size);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    int counter = 0;
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (auto s2 = s1; s2 != nshells; ++s2) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto os1 = 0l; os1 != onshells; ++os1) {
+          auto obf1_first = oshell2bf[os1];
+          auto on1 = oshells[os1].size();
+
+          for (auto os2 = os1; os2 != onshells; ++os2) {
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto obf2_first = oshell2bf[os2];
+            auto on2 = oshells[os2].size();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            const auto *buf = engine.compute2<libint2::Operator::coulomb,
+                                              libint2::BraKet::xx_xx, 0>(
+                shells[s1], shells[s2], oshells[os1], oshells[os2]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
+              const auto bf1 = f1 + bf1_first;
+
+              for (auto f2 = 0; f2 != n2; ++f2) {
+                const auto bf2 = f2 + bf2_first;
+
+                for (auto of1 = 0; of1 != on1; ++of1) {
+                  const auto obf1 = of1 + obf1_first;
+
+                  for (auto of2 = 0; of2 != on2; ++of2, ++f1212) {
+                    const auto obf2 = of2 + obf2_first;
+
+                    if (bf1 <= bf2 && obf1 <= obf2) {
+                      if (std::abs(buf[f1212]) < 1.0e-10)
+                        continue;
+
+                      buffer.p[counter] = bf1 + 1;
+                      buffer.q[counter] = bf2 + 1;
+                      buffer.r[counter] = obf1 + 1;
+                      buffer.s[counter] = obf2 + 1;
+                      buffer.val[counter] =
+                          buf[f1212] * get_norma(bf1) * get_norma(bf2) *
+                          other.get_norma(obf1) * other.get_norma(obf2);
+
+                      // printf("(%d %d | %d %d) %lf \n", buffer.p[counter],
+                      // buffer.q[counter], buffer.r[counter],
+                      // buffer.s[counter], buffer.val[counter] *
+                      //                  get_norma(bf1) * get_norma(bf2) *
+                      //                  other.get_norma(obf1) *
+                      //                  other.get_norma(obf2));
+
+                      ++num_ints_computed;
+                      ++counter;
+
+                      if (counter == s_size) {
+                        write_buffer(buffer, s_size, outfile);
+                        counter = 0;
+                      }
+                    }
+                  }
+                }
+              }
+            } // end cartesian loop
+          }
+        }
+      }
+    } // end shells loop
+
+    buffer.p[counter] = -1;
+    write_buffer(buffer, s_size, outfile);
+    outfile.close();
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for inter-species integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  std::cout << " Number of unique integrals for species: " << speciesID << " / "
+            << other.get_speciesID() << " = " << num_ints_computed << std::endl;
+}
+
+Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
+                                                const Matrix &D,
+                                                const bool permuted,
+                                                double precision) {
+  const auto n = permuted ? other.get_nbasis() : get_nbasis();
+
+  const auto nshells = shells.size();
+  const auto oshells = other.get_shells();
+  const auto onshells = oshells.size();
+
+  using libint2::nthreads;
+
+  std::vector<Matrix> B(nthreads, Matrix::Zero(n, n));
+
+  auto fock_precision = precision;
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto nprim_max = std::max(max_nprim, other.max_nprim);
+  auto l_max = std::max(max_l, other.max_l);
+
+  auto max_nprim4 = nprim_max * nprim_max * nprim_max * nprim_max;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::coulomb, nprim_max, l_max, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+
+  // std::cout << "compute_coupling_direct:precision = " << precision <<
+  // std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() <<
+  // std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+  auto oshell2bf = other.map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    auto &b = B[thread_id];
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (auto s2 = s1; s2 != nshells; ++s2) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto os1 = 0l; os1 != onshells; ++os1) {
+          auto obf1_first = oshell2bf[os1];
+          auto on1 = oshells[os1].size();
+
+          for (auto os2 = os1; os2 != onshells; ++os2) {
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto obf2_first = oshell2bf[os2];
+            auto on2 = oshells[os2].size();
+
+// printf("(%ld %ld | %ld %ld) \n", s1, s2, os1, os2);
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            const auto *buf = engine.compute2<libint2::Operator::coulomb,
+                                              libint2::BraKet::xx_xx, 0>(
+                shells[s1], shells[s2], oshells[os1], oshells[os2]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
+              const auto bf1 = f1 + bf1_first;
+
+              for (auto f2 = 0; f2 != n2; ++f2) {
+                const auto bf2 = f2 + bf2_first;
+
+                for (auto of1 = 0; of1 != on1; ++of1) {
+                  const auto obf1 = of1 + obf1_first;
+
+                  for (auto of2 = 0; of2 != on2; ++of2, ++f1212) {
+                    const auto obf2 = of2 + obf2_first;
+
+                    if (bf1 <= bf2 && obf1 <= obf2) {
+                      if (std::abs(buf[f1212]) < 1.0e-10)
+                        continue;
+
+                      ++num_ints_computed;
+
+                      // printf("(%ld %ld | %ld %ld) %lf \n", bf1, bf2, obf1,
+                      // obf2, buf[f1212] *
+                      //                  get_norma(bf1) * get_norma(bf2) *
+                      //                  other.get_norma(obf1) *
+                      //                  other.get_norma(obf2));
+
+                      if (permuted) {
+                        auto coulomb = D(bf1, bf2) * buf[f1212] *
+                                       get_norma(bf1) * get_norma(bf2) *
+                                       other.get_norma(obf1) *
+                                       other.get_norma(obf2);
+
+                        b(obf2, obf1) += coulomb;
+                        if (bf1 != bf2)
+                          b(obf2, obf1) += coulomb;
+                      } else {
+                        auto coulomb = D(obf1, obf2) * buf[f1212] *
+                                       get_norma(bf1) * get_norma(bf2) *
+                                       other.get_norma(obf1) *
+                                       other.get_norma(obf2);
+
+                        // printf("%lf\n", coulomb);
+                        b(bf2, bf1) += coulomb;
+                        if (obf1 != obf2)
+                          b(bf2, bf1) += coulomb;
+                      }
+                    }
+                  }
+                }
+              }
+            } // end cartesian loop
+          }
+        }
+      }
+    } // end shells loop
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+  // accumulate contributions from all threads
+  for (size_t i = 1; i != nthreads; ++i) {
+    B[0] += B[i];
+  }
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for inter-species integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  std::cout << " Number of unique integrals for species: " << speciesID << " / "
+            << other.get_speciesID() << " = " << num_ints_computed << std::endl;
+
+  return B[0];
 }
 
 /*
@@ -617,11 +933,7 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
   const auto nsh2 = bs2.size();
   const auto bs1_equiv_bs2 = (&bs1 == &bs2);
 
-#ifdef _OPENMP
-  const auto nthreads = omp_get_max_threads();
-#else
-  const auto nthreads = 1;
-#endif
+  using libint2::nthreads;
 
   // construct the 2-electron repulsion integrals engine
   using libint2::Engine;
@@ -636,7 +948,7 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
     engines.push_back(engines[0]);
   }
 
-  std::cout << "computing non-negligible shell-pair list ... ";
+  // std::cout << "computing non-negligible shell-pair list ... ";
 
   libint2::Timers<1> timer;
   timer.set_now_overhead(25);
@@ -648,7 +960,7 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
 
   auto compute = [&](int thread_id) {
 
-    // auto &engine = engines[thread_id];
+    auto &engine = engines[thread_id];
 
     // loop over permutationally-unique set of shells
     for (auto s1 = 0l, s12 = 0l; s1 != nsh1; ++s1) {
@@ -668,7 +980,7 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
         bool significant = on_same_center;
         if (not on_same_center) {
           auto n2 = bs2[s2].size();
-          const auto *buf = engines[thread_id].compute(bs1[s1], bs2[s2]);
+          const auto *buf = engine.compute(bs1[s1], bs2[s2]);
           Eigen::Map<const Matrix> buf_mat(buf, n1, n2);
           auto norm = buf_mat.norm();
           significant = (norm >= threshold);
@@ -699,7 +1011,7 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
   libint2::parallel_do(sort);
 
   timer.stop(0);
-  std::cout << "done (" << timer.read(0) << " s)" << std::endl;
+  // std::cout << "done (" << timer.read(0) << " s)" << std::endl;
 
   return result;
 }
@@ -731,8 +1043,9 @@ Matrix compute_schwartz_ints(
     engines[i] = engines[0];
   }
 
-  std::cout << "computing Schwartz bound prerequisites (kernel=" << (int)Kernel
-            << ") ... ";
+  // std::cout << "computing Schwartz bound prerequisites (kernel=" <<
+  // (int)Kernel
+  //           << ") ... ";
 
   libint2::Timers<1> timer;
   timer.set_now_overhead(25);
@@ -769,17 +1082,31 @@ Matrix compute_schwartz_ints(
   libint2::parallel_do(lambda);
 
   timer.stop(0);
-  std::cout << "done (" << timer.read(0) << " s)" << std::endl;
+  // std::cout << "done (" << timer.read(0) << " s)" << std::endl;
 
   return K;
+}
+
+__inline__ void write_buffer(const libint2::QuartetBuffer &buffer,
+                             const int &s_size, std::ofstream &outfile) {
+  outfile.write(reinterpret_cast<const char *>(&buffer.p[0]),
+                s_size * sizeof(int));
+  outfile.write(reinterpret_cast<const char *>(&buffer.q[0]),
+                s_size * sizeof(int));
+  outfile.write(reinterpret_cast<const char *>(&buffer.r[0]),
+                s_size * sizeof(int));
+  outfile.write(reinterpret_cast<const char *>(&buffer.s[0]),
+                s_size * sizeof(int));
+  outfile.write(reinterpret_cast<const char *>(&buffer.val[0]),
+                s_size * sizeof(double));
 }
 
 /*
 Fortran interface
 */
 
-LibintInterface *LibintInterface_new(const int stack_size) {
-  return new LibintInterface(stack_size);
+LibintInterface *LibintInterface_new(const int stack_size, const int id) {
+  return new LibintInterface(stack_size, id);
 }
 
 void LibintInterface_del(LibintInterface *lint) { lint->~LibintInterface(); }
@@ -823,8 +1150,8 @@ void LibintInterface_init_2body_ints(LibintInterface *lint) {
   lint->init_2body_ints();
 }
 
-void LibintInterface_compute_2body_fock(LibintInterface *lint, double *dens,
-                                        double *result) {
+void LibintInterface_compute_2body_direct(LibintInterface *lint, double *dens,
+                                          double *result) {
   auto n = lint->get_nbasis();
   Matrix D(n, n);
 
@@ -833,14 +1160,14 @@ void LibintInterface_compute_2body_fock(LibintInterface *lint, double *dens,
   }
 
   auto K = compute_schwartz_ints<>(lint->get_shells());
-  auto G = lint->compute_2body_fock(D, K);
+  auto G = lint->compute_2body_direct(D, K);
 
   for (int i = 0; i < G.size(); ++i) {
     result[i] = G.array()(i);
   }
 }
 
-void LibintInterface_compute_2body_ints(LibintInterface *lint,
+void LibintInterface_compute_2body_disk(LibintInterface *lint,
                                         const char *filename, double *dens) {
   auto n = lint->get_nbasis();
   Matrix D(n, n);
@@ -851,5 +1178,35 @@ void LibintInterface_compute_2body_ints(LibintInterface *lint,
 
   auto K = compute_schwartz_ints<>(lint->get_shells());
 
-  lint->compute_2body_ints(filename, D, K);
+  lint->compute_2body_disk(filename, D, K);
+}
+
+void LibintInterface_compute_coupling_direct(LibintInterface *lint,
+                                             LibintInterface *olint,
+                                             double *dens, double *result) {
+  auto sid = lint->get_speciesID();
+  auto osid = olint->get_speciesID();
+
+  auto permuted = sid > osid;
+
+  auto n = olint->get_nbasis();
+
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  auto B = permuted ? olint->compute_coupling_direct(*lint, D, permuted)
+                    : lint->compute_coupling_direct(*olint, D, permuted);
+
+  for (int i = 0; i < B.size(); ++i) {
+    result[i] = B.array()(i);
+  }
+}
+
+void LibintInterface_compute_coupling_disk(LibintInterface *lint,
+                                           LibintInterface *olint,
+                                           const char *filename) {
+  lint->compute_coupling_disk(*olint, filename);
 }

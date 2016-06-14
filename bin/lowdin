@@ -295,8 +295,10 @@ if [ $extFile="lowdin" ]; then
 
 	# setting default number of cores for OpenMP
 	if [ -z "$OMP_NUM_THREADS" ]; then
-    	export OMP_NUM_THREADS=1
+    	export OMP_NUM_THREADS=4
 	fi
+
+	echo "Running on " $OMP_NUM_THREADS "OMP threads" 
 
 	# Start ...
 	echo "Begin job by input: "$nameFile.lowdin, "for user: "$USERNAME " at " `date` > $nameFile.out

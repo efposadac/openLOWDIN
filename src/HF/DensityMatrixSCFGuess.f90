@@ -71,7 +71,8 @@ contains
        
     else
 
-      print*, "USING: ", trim( String_getUppercase( densityType ) ), " Density GUESS"
+       write(*, '(A13, A6, A28, A10)') &
+          "INFO: Usign ", trim( String_getUppercase( densityType ) ), " density guess for species: ", trim(nameOfSpecie)
        
        select case( trim( String_getUppercase( densityType ) ) )
           

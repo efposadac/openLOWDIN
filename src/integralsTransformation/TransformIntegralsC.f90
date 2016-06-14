@@ -134,12 +134,9 @@ contains
     type(Matrix) :: molecularIntegrals
     integer :: specieID
     character(*) :: nameOfSpecie
-    integer :: nproc
     integer :: integralStackSize
 
-    integer :: ifile, i
-    integer :: unit
-    character(50) :: sfile
+    integer :: i
     integer :: status
     integer :: ssize,ssize2
 
@@ -161,10 +158,15 @@ contains
     real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
 
     integer :: p, q, r, s, mu, nu, lambda, sigma, m, n, u, mm
+    integer(8) :: index
+
+    !! OpenMP related variables
+    character(50) :: fileid
+    integer :: nthreads
+    integer :: threadid
+    integer :: unitid
 
     ! Reads the number of cores
-
-    nproc = CONTROL_instance%NUMBER_OF_CORES
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
     !!    call TransformIntegralsC_getNumberOfNonZeroRepulsionIntegrals( specieID, nproc, nonZeroIntegrals )
@@ -190,50 +192,55 @@ contains
     m = 0
 
     !! Read integrals
-    do ifile = 1, nproc
 
-       write(sfile,*) ifile
-       sfile = trim(adjustl(sfile))
-       unit = ifile+50
+    !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, cc, dd, shellIntegrals, i, index)
+    nthreads = OMP_GET_NUM_THREADS()
+    threadid =  OMP_GET_THREAD_NUM()
+    unitid = 40 + threadid
 
-
-       if ( trim(nameOfSpecie) == "E-BETA" ) then
-          open( UNIT=unit,FILE=trim(sfile)//trim("E-ALPHA")//".ints", status='old',access='stream', form='Unformatted')
-       else 
-          open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//".ints", status='old',access='stream', form='Unformatted')
-       end if
-
-       loadintegrals : do
-
-          read(UNIT=unit, iostat=status) aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-               bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-               cc(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-               dd(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-               shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+    write(fileid,*) threadid
+    fileid = trim(adjustl(fileid))
 
 
-          do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+    if ( trim(nameOfSpecie) == "E-BETA" ) then
+       open( UNIT=unitid,FILE=trim(fileid)//trim("E-ALPHA")//".ints", status='old',access='stream', form='Unformatted')
+    else 
+       open( unit=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//".ints", status='old',access='stream', form='Unformatted')
+    end if
 
-             if( aa(i) == -1 ) exit loadintegrals
-             !            m = m + 1
-             !            twoParticlesIntegrals() = shellIntegrals(i)
-             !            indexTwoParticlesIntegrals(IndexMap_tensorR4ToVectorC(int(aa(i),4),int(bb(i),4),int(cc(i),4),int(dd(i),4), &
-             !                                       this%numberOfContractions )) = m
-             !		if (IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
-             !                                       this%numberOfContractions ) < 0 ) then
-             !		print *, aa(i), bb(i), cc(i), dd(i), IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
-             !                                       this%numberOfContractions )
-             !		end if
+    loadintegrals : do
 
-             twoParticlesIntegrals(IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
-                  int(this%numberOfContractions,8))) = shellIntegrals(i)
+       read(UNIT=unitid, iostat=status) aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            cc(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            dd(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-          end do
 
-       end do loadintegrals
+       do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+          if( aa(i) == -1 ) exit loadintegrals
+          !            m = m + 1
+          !            twoParticlesIntegrals() = shellIntegrals(i)
+          !            indexTwoParticlesIntegrals(IndexMap_tensorR4ToVectorC(int(aa(i),4),int(bb(i),4),int(cc(i),4),int(dd(i),4), &
+          !                                       this%numberOfContractions )) = m
+          !		if (IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
+          !                                       this%numberOfContractions ) < 0 ) then
+          !		print *, aa(i), bb(i), cc(i), dd(i), IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
+          !                                       this%numberOfContractions )
+          !		end if
 
-       close (unit)
-    end do
+          index = IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
+               int(this%numberOfContractions,8))
+
+          twoParticlesIntegrals(index) = shellIntegrals(i)
+
+       end do
+
+    end do loadintegrals
+
+    close (unitid)
+
+    !$OMP END PARALLEL
 
     !! allocate some auxiliary arrays
     if ( allocated (tempA)) deallocate (tempA )
@@ -479,6 +486,13 @@ contains
     integer :: p, q, r, s, mu, nu, lambda, sigma, m, mm
     integer :: otherSsize
 
+    !! OpenMP related variables
+    character(50) :: fileid
+    integer :: nthreads
+    integer :: threadid
+    integer :: unitid
+    integer(8) :: index
+
     ! Reads the number of cores
 
     nproc = CONTROL_instance%NUMBER_OF_CORES
@@ -508,13 +522,21 @@ contains
 
     !! Read integrals
 
+    !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, cc, dd, shellIntegrals, i, index)
+    nthreads = OMP_GET_NUM_THREADS()
+    threadid =  OMP_GET_THREAD_NUM()
+    unitid = 40 + threadid
+
+    write(fileid,*) threadid
+    fileid = trim(adjustl(fileid))
+
     !! open file for integrals
-    open(UNIT=34,FILE=trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
-         STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
+    open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
+         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
 
     loadintegrals : do
 
-       read(34)   aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+       read(unitid)   aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
             cc(1:CONTROL_instance%INTEGRAL_STACK_SIZE), dd(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
             shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
@@ -522,17 +544,19 @@ contains
 
           if (aa(i) == -1) exit loadintegrals
 
-          !m = m + 1
-          !twoParticlesIntegrals(m) = shellIntegrals(i)
-          twoParticlesIntegrals(IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
-               int(this%numberOfContractions,8),int(this%OtherNumberOfContractions,8)  )) = shellIntegrals(i)
+          index = IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
+               int(this%numberOfContractions,8),int(this%OtherNumberOfContractions,8) )
+
+          twoParticlesIntegrals(index) = shellIntegrals(i)
 
        end do
 
     end do loadintegrals
 
-    close (34)
+    close (unitid)
+    !$OMP END PARALLEL
 
+    
     !! allocate some auxiliary arrays
     if ( allocated (tempA)) deallocate (tempA )
     allocate (tempA ( this%numberOfContractions , &

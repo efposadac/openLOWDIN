@@ -31,19 +31,20 @@ module Libint2Interface_
   implicit none
 
   !> @brief Type for libint2/c++ library
-  type, public :: LibintInterface
+  type, public :: Libint2Interface
      type(c_ptr) :: this = C_NULL_ptr
      logical :: isInstanced = .false.
-  end type LibintInterface
+  end type Libint2Interface
 
   !>
   !!Interface to libint_iface.cpp
   interface
 
-    function c_LibintInterface_new (stack_size) result(this) bind(C,name="LibintInterface_new")
+    function c_LibintInterface_new (stack_size, id) result(this) bind(C,name="LibintInterface_new")
      use, intrinsic :: iso_c_binding
      implicit none
      integer(c_int), value :: stack_size
+     integer(c_int), value :: id
      type(c_ptr) :: this
     end function c_LibintInterface_new
 
@@ -87,24 +88,42 @@ module Libint2Interface_
       type(c_ptr), value :: this
     end subroutine c_LibintInterface_init2BodyInts
 
-    subroutine c_LibintInterface_compute2BodyMatrix(this, density, result) bind(C, name="LibintInterface_compute_2body_fock")
+    subroutine c_LibintInterface_compute2BodyDirect(this, density, result) bind(C, name="LibintInterface_compute_2body_direct")
       use, intrinsic :: iso_c_binding
       implicit none
       type(c_ptr), value :: this        
       type(c_ptr), value :: density
       type(c_ptr), value :: result
-    end subroutine c_LibintInterface_compute2BodyMatrix
+    end subroutine c_LibintInterface_compute2BodyDirect
 
-    subroutine c_LibintInterface_compute2BodyInts(this, filename, density) bind(C, name="LibintInterface_compute_2body_ints")
+    subroutine c_LibintInterface_compute2BodyDisk(this, filename, density) bind(C, name="LibintInterface_compute_2body_disk")
       use, intrinsic :: iso_c_binding
       implicit none
       type(c_ptr), value :: this        
       character(c_char) :: filename(*)
       type(c_ptr), value :: density
-    end subroutine c_LibintInterface_compute2BodyInts
+    end subroutine c_LibintInterface_compute2BodyDisk
+
+    subroutine c_LibintInterface_computeCouplingDirect(this, othis, density, result) bind(C, name="LibintInterface_compute_coupling_direct")
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: this        
+      type(c_ptr), value :: othis        
+      type(c_ptr), value :: density
+      type(c_ptr), value :: result
+    end subroutine c_LibintInterface_computeCouplingDirect
+
+    subroutine c_LibintInterface_computeCouplingDisk(this, othis, filename) bind(C, name="LibintInterface_compute_coupling_disk")
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: this        
+      type(c_ptr), value :: othis        
+      character(c_char) :: filename(*)
+    end subroutine c_LibintInterface_computeCouplingDisk
+
   end interface
 
-  type(LibintInterface), allocatable, dimension(:) :: Libint2Instance
+  type(Libint2Interface), allocatable, dimension(:) :: Libint2Instance
 
 contains
 
@@ -113,7 +132,7 @@ contains
   !! Uses the C++ API.
   subroutine Libint2Interface_constructor(this, speciesID)
     implicit none
-    type(LibintInterface) :: this
+    type(Libint2Interface) :: this
     integer :: speciesID
 
     type(Particle) :: particle_tmp
@@ -126,7 +145,7 @@ contains
     integer :: p, c
 
     ! Create Libint object
-    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID)
 
     ! Iterate over particles
     do p = 1, size(MolecularSystem_instance%species(speciesID)%particles)
@@ -171,7 +190,7 @@ contains
   !! clear the object
   subroutine Libint2Interface_destructor(this)
     implicit none
-    type(LibintInterface) :: this
+    type(Libint2Interface) :: this
 
     call c_LibintInterface_del(this%this)
     this%isInstanced = .false.
@@ -261,7 +280,7 @@ contains
     endif
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
-    call c_LibintInterface_compute2BodyMatrix(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr)
+    call c_LibintInterface_compute2BodyDirect(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr)
 
   end subroutine Libint2Interface_compute2BodyIntraspecies_direct
 
@@ -305,7 +324,7 @@ contains
     allocate(density(ssize, ssize))
     density = aux_dens%values
 
-    !! open file for integrals
+    !! filename for integrals
     filename = C_CHAR_""//trim(MolecularSystem_instance%species(speciesID)%name)//".ints"//C_NULL_CHAR
     density_ptr = c_loc(density(1,1))
 
@@ -315,8 +334,90 @@ contains
     end if
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
-    call c_LibintInterface_compute2BodyInts(Libint2Instance(speciesID)%this, filename, density_ptr)
+    call c_LibintInterface_compute2BodyDisk(Libint2Instance(speciesID)%this, filename, density_ptr)
 
   end subroutine Libint2Interface_compute2BodyIntraspecies_disk
+
+  !>
+  !! Compute  2-body integrals and computes the G matrix
+  subroutine Libint2Interface_compute2BodyInterspecies_direct(speciesID, otherSpeciesID, density, coupling)
+    implicit none
+
+    integer :: speciesID
+    integer :: otherSpeciesID
+    real(8), allocatable, target :: density(:,:)
+    real(8), allocatable, target :: coupling(:,:)
+
+    type(c_ptr) :: density_ptr
+    type(c_ptr) :: coupling_ptr
+
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    ! Prepare matrix
+    if(allocated(coupling)) deallocate(coupling)
+    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
+        MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+
+    coupling_ptr = c_loc(coupling(1,1))
+    density_ptr = c_loc(density(1,1))
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+      call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
+      call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
+    endif
+
+
+    call c_LibintInterface_computeCouplingDirect(&
+       Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coupling_ptr)
+
+  end subroutine Libint2Interface_compute2BodyInterSpecies_direct
+
+
+  !>
+  !! Compute  2-body integrals and and write them to disk
+  subroutine Libint2Interface_compute2BodyInterspecies_disk(speciesID, otherSpeciesID)
+    implicit none
+
+    integer :: speciesID
+    integer :: otherSpeciesID
+
+    character(50) :: filename
+
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    !! filename for integrals
+    filename = C_CHAR_""//trim(MolecularSystem_instance%species(speciesID)%name)//"."&
+       //trim(MolecularSystem_instance%species(otherSpeciesID)%name)//".ints"//C_NULL_CHAR
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+      call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
+      call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
+    endif
+
+
+    call c_LibintInterface_computeCouplingDisk(&
+       Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, filename)
+
+  end subroutine Libint2Interface_compute2BodyInterSpecies_disk
 
 end module Libint2Interface_

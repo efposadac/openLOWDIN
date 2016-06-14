@@ -35,17 +35,16 @@ Program Ints
   implicit none
 
   character(50) :: job
-  character(50) :: nprocs
-  character(50) :: proc
   character(50) :: speciesName
+  integer :: speciesID
+
   type(surfaceSegment) :: surface_aux
+
   !!Cosmo test
   ! real(8) :: x,y,z
   ! integer :: j
   !Cosmo test
 
-  integer(8) :: nprocess
-  integer(8) :: process
 
   job = ""  
   call get_command_argument(1,value=job)  
@@ -105,65 +104,89 @@ Program Ints
      call Stopwatch_stop(lowdin_stopwatch)
 
      if(CONTROL_instance%LAST_STEP) then     
-        write(*, *) ""
-        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "*** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
         write(*, *) ""
      end if
      close(30)
 
   case("COSMO")
-     call Stopwatch_start(lowdin_stopwatch)
-
-     if(CONTROL_instance%LAST_STEP) then
-        write(*,"(A)")"----------------------------------------------------------------------"
-        write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
-        write(*,"(A)")"----------------------------------------------------------------------"
-        write(*,"(A)") "INFO: RUNNING IN COSMO MODE."
-        write(*,"(A)")" "
-     end if
-
 
      call CosmoCore_lines(surface_aux)
      call CosmoCore_filler(surface_aux)
 
      !!Open file to store integrals
-
      open(unit=40, file="cosmo.opints", status="unknown", form="unformatted")
 
      !!write global info on output
      write(40) size(MolecularSystem_instance%species)
+
      !!Calculate cosmo integrals and charges
      call IntegralManager_getAttractionIntegrals(surface_aux)
+
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
 
      if(CONTROL_instance%LAST_STEP) then
         write(*, *) ""
-        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "*** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
         write(*, *) ""
      end if
      close(40)
 
-  case("TWO_PARTICLE_R12_INTRA")
-
-     speciesName=""
-
-     call get_command_argument(2,value=speciesName)
-
-     if(trim(speciesName) == "") speciesName="E-"
-
-     !!Calculate attraction integrals (intra-species)
-     call IntegralManager_getIntraRepulsionIntegrals(speciesName, trim(CONTROL_instance%INTEGRAL_SCHEME))
-
-     !stop time
-     call Stopwatch_stop(lowdin_stopwatch)
+  case("TWO_PARTICLE_R12")
 
      if(CONTROL_instance%LAST_STEP) then
-        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*, "(A)") " "
+        write(*, "(A)") " TWO-BODY INTEGRAL SETUP: "
+        write(*, "(A)") "------------------------- "
+        write(*, "(A, A6)") " Storage: ", trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY ))
+        write(*, '(A, A6)') " Scheme: ", trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME)))
+        write(*, '(A, I6)') " Stack size: ", CONTROL_instance%INTEGRAL_STACK_SIZE
+        write(*, "(A)") " "
+
+        select case (trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME))))
+
+        case("RYS")
+           write(*, "(A)") " RYS QUADRATURE SCHEME                 " 
+           write(*, "(A)") " LOWDIN-RYS Implementation V. 1.0   Guerrero R. D. ; Posada E. F. 2013 "
+           write(*, "(A)") " ----------------------------------------------------------------------"
+
+        case("LIBINT")
+           write(*, "(A)") " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
+           write(*, "(A)") " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2016   "
+           write(*, "(A)") " ----------------------------------------------------------------------"
+
+        case("CUDINT")
+           write(*, "(A)") " CUDA ERI Integrals Calculations has been implemented based on:         " 
+           write(*, "(A)") " Ufimtsev, I. S.; Martinez, T. J.; JCTC 2008, 4, 222           " 
+           write(*, "(A)") " LOWDIN-CUDINT Implementation V. 1.0:  "
+           write(*, "(A)") " Rodas, J. M.; Hernandez, R.; Zapata, A.; Galindo, J. F.; Reyes A. 2014   "
+           write(*, "(A)") " ----------------------------------------------------------------------"
+
+        case default
+           write(*, "(A)") " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
+           write(*, "(A)") " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2016   "
+           write(*, "(A)") " ----------------------------------------------------------------------"
+
+        end select
      end if
 
-  case("TWO_PARTICLE_R12_INTER")
 
+     !! intra-species two-boy integration
+     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+        !!Calculate attraction integrals (intra-species)
+        call IntegralManager_getIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+             trim(CONTROL_instance%INTEGRAL_SCHEME))
+     end do
+
+     !stop time
+     if(CONTROL_instance%LAST_STEP) then
+        write(*,"(/A)", advance="no") "*** TOTAL enlapsed time intra-species integrals : "
+        call Stopwatch_splitTime()
+        write(*,"(A4/)") " (s)"
+     end if
+
+     !! inter-species two-boy integration
      if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
 
         !!Calculate attraction integrals (inter-species)
@@ -173,16 +196,13 @@ Program Ints
         call Stopwatch_stop(lowdin_stopwatch)
 
         if(CONTROL_instance%LAST_STEP) then
-           write(*, *) ""
-           write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
-           write(*, *) ""
+           write(*,"(/A,F10.3,A4/)") "*** TOTAL enlapsed time inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
         end if
      end if
 
   case("GET_GRADIENTS")
      call EnergyGradients_constructor()
      call EnergyGradients_getAnalyticDerivative()
-     ! write(*,"(A)") "Lo logramos" 
 
   case("TWO_PARTICLE_F12")
 
@@ -193,8 +213,9 @@ Program Ints
      write(*,*) "USAGE: lowdin-ints.x job "
      write(*,*) "Where job can be: "
      write(*,*) "  ONE_PARTICLE"
-     write(*,*) "  TWO_PARTICLE_R12_INTRA"
-     write(*,*) "  TWO_PARTICLE_R12_INTER"
+     write(*,*) "  TWO_PARTICLE_R12"
+     write(*,*) "  TWO_PARTICLE_R12"
+     write(*,*) "  GET_GRADIENTS"
      write(*,*) "  TWO_PARTICLE_F12"
      stop "ERROR"
 

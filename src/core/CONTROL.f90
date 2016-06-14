@@ -1033,7 +1033,7 @@ contains
     CONTROL_instance%TV = 1.0E-6
     CONTROL_instance%INTEGRAL_THRESHOLD = 1.0E-10
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
-    CONTROL_instance%INTEGRAL_DESTINY = "MEMORY" !! "MEMORY", "DISK" or "DIRECT"
+    CONTROL_instance%INTEGRAL_DESTINY = "DISK" !! "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
     CONTROL_instance%SCHWARZ_INEQUALITY = .false.
 
@@ -2135,11 +2135,11 @@ contains
     if((CONTROL_instance%IONIZE_SPECIE(1)) /= "NONE") then 
 
        write (*,"(T10,A,I5)") "MOLECULAR ORBITAL TO BE IONIZED: ", CONTROL_instance%IONIZE_MO
-       print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
-       print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
+       ! print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
+       ! print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
        do i = 1, size(CONTROL_instance%IONIZE_SPECIE)
-          if ( CONTROL_instance%IONIZE_SPECIE(i) /= "NONE" ) then
-             write (*,"(T10,A,A)") "FOR SPECIE0: ", (CONTROL_instance%IONIZE_SPECIE(i))
+          if ( trim(CONTROL_instance%IONIZE_SPECIE(i)) /= "NONE" ) then
+             write (*,"(T10,A,A)") "FOR SPECIE0: ", trim(CONTROL_instance%IONIZE_SPECIE(i))
              write (*,"(T10,A,ES15.5)") "IONIZED MOLECULAR ORBITAL OCCUPATION: ",CONTROL_instance%MO_FRACTION_OCCUPATION
           end if
        end do

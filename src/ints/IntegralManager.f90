@@ -32,7 +32,6 @@ module IntegralManager_
   use AttractionIntegrals_
   use MomentIntegrals_
   use KineticIntegrals_
-  use LibintInterface_
   use Libint2Interface_
   ! use CudintInterface_
   use RysQuadrature_
@@ -133,8 +132,8 @@ contains
 
        !! Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
-          write(*,"(A,I6,A,A,A)")" Stored ", size(integralsMatrix,DIM=1)**2," overlap integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-               " in file lowdin.opints"
+          ! write(*,"(A, A ,A,I6)")" Number of Overlap integrals for species ", &
+          ! trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -240,8 +239,8 @@ contains
 
        !!Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
-          write(*,"(A,I6,A,A,A)")" Stored ", size(integralsMatrix,DIM=1)**2," kinetic integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-               " in file lowdin.opints"
+          ! write(*,"(A, A ,A,I6)")" Number of Kinetic integrals for species ", &
+          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -469,7 +468,7 @@ contains
           !!quantum
           totals(f)=total_aux
           ! ####################################
-          !Nuevo, ojo
+          ! Nuevo, ojo
           ! write(80)numberOfPointCharges
           ! write(80)totals(f)
 
@@ -601,8 +600,8 @@ contains
 
           !!Write integrals to file (unit 30)
           if(CONTROL_instance%LAST_STEP) then
-             write(*,"(A,I6,A,A,A)")" Stored ",size(integralsMatrix,DIM=1)**2," attraction integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-                  " in file lowdin.opints"
+             ! write(*,"(A, A ,A,I6)")" Number of Nuclear integrals for species ", &
+             !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
           end if
           write(30) int(size(integralsMatrix),8)
           write(30) integralsMatrix
@@ -751,9 +750,8 @@ contains
        end do !! Done by component
 
        if(CONTROL_instance%LAST_STEP) then
-          write(*,"(A,I6,A,A,A)")" Stored ",(size(integralsMatrix,DIM=1)**2)*3,&
-               " Moment integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-               " in file lowdin.opints"
+          ! write(*,"(A, A ,A,I6)")" Number of Moment integrals for species ", &
+          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
        end if
 
     end do !done! 
@@ -766,6 +764,7 @@ contains
   !! @version 1.0
   !! @par History
   !!      - 2013.03.05: Use Libint V 1.1.4
+  !!      - 2016.06.13: Use Libint V 2.x
   subroutine IntegralManager_getIntraRepulsionIntegrals(nameOfSpecies, scheme)
     implicit none
 
@@ -812,28 +811,40 @@ contains
   !! @version 1.0
   !! @par History
   !!      - 2013.03.05: Use Libint V 1.1.4
+  !!      - 2016.06.13: Use Libint V 2.x
   subroutine IntegralManager_getInterRepulsionIntegrals(scheme)
     implicit none
     character(*) :: scheme    
     integer :: i, j
-    integer :: auxCounter
+    integer :: auxCounter = 0
+
+    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
 
           !! Calculate integrals (stored on disk)       
           select case (trim(String_getUppercase(trim(scheme))))
+
           case("LIBINT")
-             call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
+
+             call Libint2Interface_compute2BodyInterspecies_disk(i, j)
+             ! call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
              ! case("CUDINT")
              !    call CudintInterface_computeInterSpecies( i, j, "ERIS" )
+
           case default
-             call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
+
+             call Libint2Interface_compute2BodyInterspecies_disk(i, j)
+             ! call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
+
           end select
 
           call IntegralManager_SaveNumberOfNonZeroCouplingIntegrals(i, j, auxCounter) 
+
        end do
     end do
+
     close(30) 
 
   end subroutine IntegralManager_getInterRepulsionIntegrals
@@ -887,6 +898,7 @@ contains
 
     open(UNIT=49,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(speciesID)%name)//".nints", &
          STATUS='replace', ACCESS='SEQUENTIAL', FORM='Unformatted')
+    
     write (49) auxCounter 
 
     close(49)
