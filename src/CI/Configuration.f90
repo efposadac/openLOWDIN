@@ -302,25 +302,66 @@ contains
 
       if (allocated(occupiedOrbitals) ) deallocate (occupiedOrbitals)
       allocate (occupiedOrbitals(numberOfOccupiedOrbitals,2))
+      occupiedOrbitals = 0.0_8
 
       if (allocated(scoreMatrix) ) deallocate (scoreMatrix)
       allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
       scoreMatrix = 0
 
+      !call vector_show(thisA%occupations(s,ia))
+      !call vector_show(thisB%occupations(s,ib))
+
+!      ii = 0
+!      do i = 1, size(thisA%occupations(s,ia)%values )
+!        if (thisA%occupations(s,ia)%values(i) > 0 ) then
+!          ii = ii + 1 
+!          occupiedOrbitals(ii,1) = i 
+!        end if
+!      end do 
+!
+!      ii = 0
+!      do i = 1, size(thisB%occupations(s,ib)%values )
+!        if (thisB%occupations(s,ib)%values(i) > 0 ) then
+!          ii = ii + 1 
+!          occupiedOrbitals(ii,2) = i 
+!        end if
+!      end do 
 
       ii = 0
-      do i = 1, size(thisA%occupations(s,ia)%values )
+      do i = 1, numberOfOccupiedOrbitals
+        ii = ii + 1 
         if (thisA%occupations(s,ia)%values(i) > 0 ) then
-          ii = ii + 1 
           occupiedOrbitals(ii,1) = i 
         end if
       end do 
 
+      do i = numberOfOccupiedOrbitals+1, size(thisA%occupations(s,ia)%values )
+        if (thisA%occupations(s,ia)%values(i) > 0 ) then
+          do j = 1, numberOfOccupiedOrbitals
+            if ( occupiedOrbitals(j,1) == 0 .and. mod(i,2) == mod(j,2) ) then
+              occupiedOrbitals(j,1) = i
+              exit
+            end if
+          end do
+        end if
+      end do 
+
       ii = 0
-      do i = 1, size(thisB%occupations(s,ib)%values )
+      do i = 1, numberOfOccupiedOrbitals
+        ii = ii + 1 
         if (thisB%occupations(s,ib)%values(i) > 0 ) then
-          ii = ii + 1 
           occupiedOrbitals(ii,2) = i 
+        end if
+      end do 
+
+      do i = numberOfOccupiedOrbitals+1, size(thisB%occupations(s,ib)%values )
+        if (thisB%occupations(s,ib)%values(i) > 0 ) then
+          do j = 1, numberOfOccupiedOrbitals
+            if ( occupiedOrbitals(j,2) == 0 .and. mod(i,2) == mod(j,2)) then
+              occupiedOrbitals(j,2) = i
+              exit
+            end if
+          end do
         end if
       end do 
 
@@ -338,14 +379,14 @@ contains
            if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
         end do 
       end do 
-      !print *, "scoreMatrix", scoreMatrix
-      print *, "scoreMatrix total", sum(scoreMatrix)
-      print *, "diagonal", diagonal
+
+      !print *, "scoreMatrix total", sum(scoreMatrix)
+      !print *, "diagonal", diagonal
 
       if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 1 ) factor = -1.0_8*factor
       if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 0 ) factor = 1.0_8*factor
 
-        print *, "factor", factor
+      print *, "factor", factor
 
     end do
 

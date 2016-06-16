@@ -1,0 +1,24 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test CISD
+%  Electronic Hartree Fock
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de H2O'
+
+GEOMETRY
+e-(He)  6-311G	0.000	0.000	0.00000 addParticles=2
+He    	dirac	0.000	0.000	0.0000
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+	configurationInteractionLevel ="CISD"
+END TASKS
+
+CONTROL
+	readCoefficients=F
+	numberOfCores=1
+	integralsTransformationMethod= "C"
+END CONTROL
+
+
