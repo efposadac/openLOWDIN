@@ -2093,7 +2093,7 @@ contains
     numberOfPointCharges = size(MolecularSystem_instance%pointCharges)
 
     if(allocated(ownerId)) deallocate(ownerId)
-    allocate(ownerId(numberOfPointCharges))
+    allocate(ownerId(size(ParticleManager_instance)))
 
     if(allocated(output)) deallocate(output)
     allocate(output(numberOfOptimizationCenters,3))
@@ -2115,6 +2115,7 @@ contains
        end if
     end do
 
+    !print*, size(ParticleManager_instance), numberOfPointCharges
 
     ! write(*,"(A)") "----------------------------------------------------------------"
     ! write(*,"(A)") " Gradientes Nucleares"
@@ -2125,7 +2126,6 @@ contains
        if(ParticleManager_instance(i)%particlePtr%isQuantum) cycle
        if(ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
           auxIter = ownerId(i)
-
           do j = 1, size(ParticleManager_instance)
              if(ParticleManager_instance(j)%particlePtr%isQuantum) cycle
              if(ParticleManager_instance(j)%particlePtr%isCenterOfOptimization) then

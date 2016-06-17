@@ -211,7 +211,7 @@ contains
     implicit none
     
     if (RepulsionDerivatives_isInstanced()) then
-       ! call RepulsionDerivatives_freeLibInt(RepulsionDerivatives_instance%libint)
+       !call RepulsionDerivatives_freeLibInt(RepulsionDerivatives_instance%libint)
        ! call RepulsionDerivatives_freeLibDeriv(RepulsionDerivatives_instance%libderiv) !! it does not work
           
        RepulsionDerivatives_instance%isInstanced = .false.
@@ -301,12 +301,11 @@ contains
     allocate(incompletGamma(0:sumAngularMoment+2))
 
     ! Libderiv constructor (solo una vez)
-    if( RepulsionDerivatives_isInstanced() ) then
-       call RepulsionDerivatives_destructor()
-    end if
-    
+    !if( RepulsionDerivatives_isInstanced() ) then
+    !   call RepulsionDerivatives_destructor()
+    !end if
     if( .not. RepulsionDerivatives_isInstanced() ) then
-       call RepulsionDerivatives_constructor(sumAngularMoment,maxNPrimSize,maxNCartSize)
+       call RepulsionDerivatives_constructor(maxAngularMoment,maxNPrimSize,maxNCartSize)
        !! DEBUG
        !call RepulsionDerivatives_show()
     end if
@@ -604,7 +603,7 @@ contains
                     end do
                  end do
 
-                 deallocate(workForces)
+!                 deallocate(workForces)
                  ! write(*,"(A)") "-----------------------------------------"
                  numberOfPrimitives = numberOfPrimitives + 1
              end do
@@ -658,7 +657,7 @@ contains
     ! !    end do
     ! ! end do
     ! write(*,"(A)") "-----------------------------------------"
-
+     RepulsionDerivatives_instance%isInstanced = .true.
   end subroutine RepulsionDerivatives_getDerive
 
   !>
@@ -1081,7 +1080,6 @@ contains
     integer, intent(in) :: size
     integer :: A, B, C, D
     integer :: i
-
 
     if(allocated(deriveValue)) deallocate(deriveValue)
     allocate(deriveValue(0:(size*9 - 1)))
