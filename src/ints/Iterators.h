@@ -10,8 +10,6 @@ efposadac@unal.edu.co
 #ifndef ITERATORS_H
 #define ITERATORS_H
 
-#include <libint2.hpp>
-
 class IntraIntsIt {
  private:
   struct Integral {

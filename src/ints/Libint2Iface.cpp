@@ -98,9 +98,9 @@ void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
   const auto &shell = shells.back();
 
   libint2::Engine engine(libint2::Operator::overlap, shell.nprim(), max_l, 0);
-  const auto *buf = engine.compute(shell, shell);
-  Eigen::Map<const Matrix> buf_mat(buf, shell.size(), shell.size());
-
+  const auto& buf = engine.results();
+  engine.compute(shell, shell);
+  Eigen::Map<const Matrix> buf_mat(buf[0], shell.size(), shell.size());
   for (int i = 0; i < shell.size(); ++i) {
     norma.push_back(1 / sqrt(buf_mat(i, i)));
   }
@@ -158,6 +158,7 @@ Matrix LibintInterface::compute_1body_ints(libint2::Operator obtype) {
   }
 
   auto shell2bf = map_shell_to_basis_function();
+  const auto &buf = engine.results();
 
   // loop over unique shell pairs, {s1,s2} such that s1 >= s2
   // this is due to the permutational symmetry of the real integrals over
@@ -171,12 +172,12 @@ Matrix LibintInterface::compute_1body_ints(libint2::Operator obtype) {
       auto n2 = shells[s2].size();
 
       // compute shell pair; return is the pointer to the buffer
-      const auto *buf = engine.compute(shells[s1], shells[s2]);
+      engine.compute(shells[s1], shells[s2]);
 
       // "map" buffer to a const Eigen Matrix, and copy it to the
       // corresponding
       // blocks of the result
-      Eigen::Map<const Matrix> buf_mat(buf, n1, n2);
+      Eigen::Map<const Matrix> buf_mat(buf[0], n1, n2);
       result.block(bf1, bf2, n1, n2) = buf_mat;
       if (s1 != s2) // if s1 >= s2, copy {s1,s2} to the corresponding {s2,s1}
                     // block, note the transpose!
@@ -252,6 +253,7 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
     std::ofstream outfile;
     outfile.open(file, std::ios::binary);
 
+    const auto &buf = engines[thread_id].results();
     auto &engine = engines[thread_id];
     auto &buffer = buffers[thread_id];
 
@@ -318,9 +320,8 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
             timer.start(0);
 #endif
 
-            const auto *buf = engine.compute2<libint2::Operator::coulomb,
-                                              libint2::BraKet::xx_xx, 0>(
-                shells[s1], shells[s2], shells[s3], shells[s4]);
+            engine.compute2<libint2::Operator::coulomb, libint2::BraKet::xx_xx,
+                            0>(shells[s1], shells[s2], shells[s3], shells[s4]);
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.stop(0);
@@ -330,12 +331,12 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
                                        bf3_first, bf4_first);
 
             for (intIter.first(); intIter.is_done() == false; intIter.next()) {
-              if (std::abs(buf[intIter.index()]) > 1.0e-10) {
+              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
                 buffer.p[counter] = intIter.i() + 1;
                 buffer.q[counter] = intIter.j() + 1;
                 buffer.r[counter] = intIter.k() + 1;
                 buffer.s[counter] = intIter.l() + 1;
-                buffer.val[counter] = buf[intIter.index()] *
+                buffer.val[counter] = buf[0][intIter.index()] *
                                       norma[intIter.i()] * norma[intIter.j()] *
                                       norma[intIter.k()] * norma[intIter.l()];
 
@@ -433,6 +434,7 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
 
     auto &engine = engines[thread_id];
     auto &g = G[thread_id];
+    const auto &buf = engines[thread_id].results();
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
     auto &timer = timers[thread_id];
@@ -499,9 +501,8 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
             timer.start(0);
 #endif
 
-            const auto *buf = engine.compute2<libint2::Operator::coulomb,
-                                              libint2::BraKet::xx_xx, 0>(
-                shells[s1], shells[s2], shells[s3], shells[s4]);
+            engine.compute2<libint2::Operator::coulomb, libint2::BraKet::xx_xx,
+                            0>(shells[s1], shells[s2], shells[s3], shells[s4]);
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.stop(0);
@@ -516,7 +517,7 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
                   for (auto f4 = 0; f4 != n4; ++f4, ++f1234) {
                     const auto bf4 = f4 + bf4_first;
 
-                    const auto value = buf[f1234];
+                    const auto value = buf[0][f1234];
 
                     const auto value_scal_by_deg = value * s1234_deg *
                                                    norma[bf1] * norma[bf2] *
@@ -625,7 +626,7 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
     outfile.open(file, std::ios::binary);
 
     auto &engine = engines[thread_id];
-
+    const auto &buf = engines[thread_id].results();
     auto &buffer = buffers[thread_id];
 
     buffer.p.reserve(s_size);
@@ -665,9 +666,9 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
             timer.start(0);
 #endif
 
-            const auto *buf = engine.compute2<libint2::Operator::coulomb,
-                                              libint2::BraKet::xx_xx, 0>(
-                shells[s1], shells[s2], oshells[os1], oshells[os2]);
+            engine.compute2<libint2::Operator::coulomb, libint2::BraKet::xx_xx,
+                            0>(shells[s1], shells[s2], oshells[os1],
+                               oshells[os2]);
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.stop(0);
@@ -686,7 +687,7 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < 1.0e-10)
                         continue;
 
                       buffer.p[counter] = bf1 + 1;
@@ -694,7 +695,7 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
                       buffer.r[counter] = obf1 + 1;
                       buffer.s[counter] = obf2 + 1;
                       buffer.val[counter] =
-                          buf[f1212] * get_norma(bf1) * get_norma(bf2) *
+                          buf[0][f1212] * get_norma(bf1) * get_norma(bf2) *
                           other.get_norma(obf1) * other.get_norma(obf2);
 
                       // printf("(%d %d | %d %d) %lf \n", buffer.p[counter],
@@ -801,6 +802,7 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
   auto lambda = [&](int thread_id) {
 
     auto &engine = engines[thread_id];
+    const auto &buf = engines[thread_id].results();
     auto &b = B[thread_id];
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
@@ -834,9 +836,9 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
             timer.start(0);
 #endif
 
-            const auto *buf = engine.compute2<libint2::Operator::coulomb,
-                                              libint2::BraKet::xx_xx, 0>(
-                shells[s1], shells[s2], oshells[os1], oshells[os2]);
+            engine.compute2<libint2::Operator::coulomb, libint2::BraKet::xx_xx,
+                            0>(shells[s1], shells[s2], oshells[os1],
+                               oshells[os2]);
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.stop(0);
@@ -855,19 +857,19 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < 1.0e-10)
                         continue;
 
                       ++num_ints_computed;
 
                       // printf("(%ld %ld | %ld %ld) %lf \n", bf1, bf2, obf1,
-                      // obf2, buf[f1212] *
+                      // obf2, buf[0][f1212] *
                       //                  get_norma(bf1) * get_norma(bf2) *
                       //                  other.get_norma(obf1) *
                       //                  other.get_norma(obf2));
 
                       if (permuted) {
-                        auto coulomb = D(bf1, bf2) * buf[f1212] *
+                        auto coulomb = D(bf1, bf2) * buf[0][f1212] *
                                        get_norma(bf1) * get_norma(bf2) *
                                        other.get_norma(obf1) *
                                        other.get_norma(obf2);
@@ -876,7 +878,7 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
                         if (bf1 != bf2)
                           b(obf2, obf1) += coulomb;
                       } else {
-                        auto coulomb = D(obf1, obf2) * buf[f1212] *
+                        auto coulomb = D(obf1, obf2) * buf[0][f1212] *
                                        get_norma(bf1) * get_norma(bf2) *
                                        other.get_norma(obf1) *
                                        other.get_norma(obf2);
@@ -961,6 +963,7 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
   auto compute = [&](int thread_id) {
 
     auto &engine = engines[thread_id];
+    const auto &buf = engines[thread_id].results();
 
     // loop over permutationally-unique set of shells
     for (auto s1 = 0l, s12 = 0l; s1 != nsh1; ++s1) {
@@ -980,8 +983,8 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
         bool significant = on_same_center;
         if (not on_same_center) {
           auto n2 = bs2[s2].size();
-          const auto *buf = engine.compute(bs1[s1], bs2[s2]);
-          Eigen::Map<const Matrix> buf_mat(buf, n1, n2);
+          engine.compute(bs1[s1], bs2[s2]);
+          Eigen::Map<const Matrix> buf_mat(buf[0], n1, n2);
           auto norm = buf_mat.norm();
           significant = (norm >= threshold);
         }
@@ -1052,6 +1055,7 @@ Matrix compute_schwartz_ints(
   timer.start(0);
 
   auto lambda = [&](int thread_id) {
+    const auto &buf = engines[thread_id].results();
 
     // loop over permutationally-unique set of shells
     for (auto s1 = 0l, s12 = 0l; s1 != nsh1; ++s1) {
@@ -1065,11 +1069,10 @@ Matrix compute_schwartz_ints(
         auto n2 = bs2[s2].size();
         auto n12 = n1 * n2;
 
-        const auto *buf =
-            engines[thread_id].compute(bs1[s1], bs2[s2], bs1[s1], bs2[s2]);
+        engines[thread_id].compute(bs1[s1], bs2[s2], bs1[s1], bs2[s2]);
 
         // the diagonal elements are the Schwartz ints ... use Map.diagonal()
-        Eigen::Map<const Matrix> buf_mat(buf, n12, n12);
+        Eigen::Map<const Matrix> buf_mat(buf[0], n12, n12);
         auto norm2 = use_2norm ? buf_mat.diagonal().norm()
                                : buf_mat.diagonal().lpNorm<Eigen::Infinity>();
         K(s1, s2) = std::sqrt(norm2);
