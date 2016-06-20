@@ -76,7 +76,7 @@ module ContractedGaussian_
        ContractedGaussian_saveToFile, &
        ContractedGaussian_loadFromFile, &
        ContractedGaussian_showInCompactForm, &
-       ContractedGaussian_showInSimpleForm, 	&
+       ContractedGaussian_showInSimpleForm,  &
        ContractedGaussian_normalizePrimitive, &
        ContractedGaussian_normalizeContraction, &
        ContractedGaussian_overlapIntegral, &
@@ -135,7 +135,7 @@ contains
     read(unit,*) this%contractionCoefficients
 
     allocate(this%contNormalization(this%numCartesianOrbital))
-    allocate(this%primNormalization(this%length, this%length*this%numCartesianOrbital))
+    allocate(this%primNormalization(this%length, this%numCartesianOrbital))
                  
     read(unit,*) this%contNormalization
     read(unit,*) this%primNormalization
@@ -152,7 +152,7 @@ contains
     
     type(ContractedGaussian) , intent(in) :: this
 
-    integer :: i, j
+    integer :: i
     character(9) :: shellCode(this%numCartesianOrbital)
 
     shellCode=ContractedGaussian_getShellCode(this)
@@ -208,7 +208,7 @@ contains
     type(contractedGaussian) , intent( inout ) :: this
     
     integer, allocatable :: angularMomentIndex(:,:)
-    integer :: i, j, m
+    integer :: i, j
     
     if(allocated(angularMomentIndex)) deallocate(angularMomentIndex)
     allocate(angularMomentIndex(3, this%numCartesianOrbital))
@@ -218,15 +218,13 @@ contains
     
     ! write(*,*) "Normalization" 
     do i = 1, this%length
-       m = 1
        do j = 1, this%numCartesianOrbital
-          this%primNormalization(i,m) =( ( 2.0_8*this%orbitalExponents(i)/Math_PI )**0.75_8 ) &
+          this%primNormalization(i,j) =( ( 2.0_8*this%orbitalExponents(i)/Math_PI )**0.75_8 ) &
                / sqrt( &
                Math_factorial( 2_8 * angularMomentIndex(1, j) - 1_8,2 )&
                * Math_factorial( 2_8 * angularMomentIndex(2, j) - 1_8,2 )&
                * Math_factorial( 2_8 * angularMomentIndex(3, j) - 1_8,2 )/&
                ((4.0_8*this%orbitalExponents(i))**this%angularMoment))
-          m = m + 1
        end do
           ! write(*,*) this%primNormalization(i,:)
     end do
@@ -245,7 +243,7 @@ contains
 
     type(ContractedGaussian) , intent(inout) :: this
     real(8) :: integralValue(this%numCartesianOrbital * this%numCartesianOrbital)
-    integer :: i, j, m, n
+    integer :: i, j, m
 
     this%contNormalization = 1.0_8
     
@@ -292,7 +290,7 @@ contains
     real(8) ::  nor2(0:contractedGaussianB%length)
     integer, allocatable :: angularMomentIndexA(:,:)
     integer, allocatable :: angularMomentIndexB(:,:)
-    integer ::  i, m, p, q
+    integer ::  m, p, q
     
     real(8), allocatable ::  x(:,:), y(:,:), z(:,:)
     real(8) :: AB2
@@ -441,7 +439,7 @@ contains
     integer, intent(in) :: angularMoment1, angularMoment2
 
     real(8) :: pp
-    integer :: i, j, k
+    integer :: i, j
 
     pp = 1/(2*gamma)
 
@@ -513,11 +511,11 @@ contains
 
     type(Exception) :: ex
 
-    character(1) :: indexCode(0:this%angularMoment)	!< Codigo para solo un indice de momento angular
-    character(1) :: shellCode(0:8)			!< Codigo para una capa dada
-    character(1) :: coordCode(3)			!< Codigo de las coordenadas cartesianas
-    integer :: nx, ny, nz	 			!< Indices de momento angular
-    integer :: i, j, m, u, v				!< Iteradores
+    character(1) :: indexCode(0:this%angularMoment) !< Codigo para solo un indice de momento angular
+    character(1) :: shellCode(0:8) !< Codigo para una capa dada
+    character(1) :: coordCode(3) !< Codigo de las coordenadas cartesianas
+    integer :: nx, ny, nz !< Indices de momento angular
+    integer :: i, j, m, u, v !< Iteradores
 
     if ( this%angularMoment <= 8 ) then
        
@@ -530,7 +528,7 @@ contains
        
        select case(CONTROL_instance%DIMENSIONALITY)
           
-       case(3)	
+       case(3)
           
           do i = 0 , this%angularMoment
              nx = this%angularMoment - i

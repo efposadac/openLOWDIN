@@ -62,7 +62,7 @@ diffOrb5alphascs_P2 = abs(refOrb5alphascs_P2 - Orb5alphascs_P2)
 diffOrb5alphasos_P2 = abs(refOrb5alphasos_P2 - Orb5alphasos_P2)
 diffOrb1h1_P2 = abs(refOrb1h1_P2 - Orb1h1_P2)
 
-if (diffTotalEnergy <= 1E-12 and diffOrb5alpha_P2 == 0 and diffOrb5alphascs_P2 == 0 and diffOrb5alphasos_P2 == 0 and
+if (diffTotalEnergy <= 1E-10 and diffOrb5alpha_P2 == 0 and diffOrb5alphascs_P2 == 0 and diffOrb5alphasos_P2 == 0 and
         diffOrb1h1_P2 == 0):
     print(testName + str_green(" ... OK"))
 else:

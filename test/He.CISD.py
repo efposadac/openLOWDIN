@@ -35,7 +35,7 @@ for line in outputRead:
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffCISDEnergy = abs(refCISDEnergy - CISDEnergy)
 
-if (diffTotalEnergy <= 1E-12 and CISDEnergy <= 1E-12):
+if (diffTotalEnergy <= 1E-10 and CISDEnergy <= 1E-10):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

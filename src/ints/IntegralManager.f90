@@ -32,7 +32,7 @@ module IntegralManager_
   use AttractionIntegrals_
   use MomentIntegrals_
   use KineticIntegrals_
-  use LibintInterface_
+  use Libint2Interface_
   ! use CudintInterface_
   use RysQuadrature_
   use Matrix_
@@ -48,8 +48,7 @@ module IntegralManager_
        IntegralManager_getAttractionIntegrals, &
        IntegralManager_getMomentIntegrals, &
        IntegralManager_getInterRepulsionIntegrals, &
-       IntegralManager_getIntraRepulsionIntegrals, &
-       IntegralManager_getDirectIntraRepulsionIntegrals
+       IntegralManager_getIntraRepulsionIntegrals
   private :: &
        IntegralManager_getLabels
 
@@ -65,13 +64,9 @@ contains
     integer :: f, g, h, i
     integer :: j, k, l, m
     integer :: ii, jj, hh
-    integer :: numCartesianOrbitalI
-    integer :: numCartesianOrbitalJ
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:)
-    real(8), allocatable :: integralBuffer(:)
     real(8), allocatable :: integralsMatrix(:,:)
-    character(20) :: colNum
     character(100) :: job
 
     job = "OVERLAP"
@@ -85,10 +80,6 @@ contains
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
        labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
-
-       if(allocated(integralBuffer)) deallocate(integralBuffer)
-       allocate(integralBuffer((MolecularSystem_instance%species(f)%basisSetSize * (MolecularSystem_instance%species(f)%basisSetSize + 1)) / 2 ) )
-       integralBuffer = 0.0_8
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -141,8 +132,8 @@ contains
 
        !! Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
-          write(*,"(A,I6,A,A,A)")" Stored ", size(integralsMatrix,DIM=1)**2," overlap integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-               " in file lowdin.opints"
+          ! write(*,"(A, A ,A,I6)")" Number of Overlap integrals for species ", &
+          ! trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -186,9 +177,7 @@ contains
     integer :: ii, jj, hh
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:)
-    real(8), allocatable :: integralBuffer(:)
     real(8), allocatable :: integralsMatrix(:,:)
-    character(20) :: colNum
     character(100) :: job
 
     job = "KINETIC"
@@ -202,10 +191,6 @@ contains
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
        labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
-
-       if(allocated(integralBuffer)) deallocate(integralBuffer)
-       allocate(integralBuffer((MolecularSystem_instance%species(f)%basisSetSize * (MolecularSystem_instance%species(f)%basisSetSize + 1)) / 2 ) )
-       integralBuffer = 0.0_8
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -254,8 +239,8 @@ contains
 
        !!Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
-          write(*,"(A,I6,A,A,A)")" Stored ", size(integralsMatrix,DIM=1)**2," kinetic integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-               " in file lowdin.opints"
+          ! write(*,"(A, A ,A,I6)")" Number of Kinetic integrals for species ", &
+          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -295,7 +280,7 @@ contains
   !! @par History
   !!      - 2013.03.05: reads point charge information from lowdin.bas file
   !!			- 2014.16.09: modify subroutines to calcule cosmo monoelectronic integrals Danilo
-  subroutine	IntegralManager_getAttractionIntegrals(surface)
+  subroutine IntegralManager_getAttractionIntegrals(surface)
     implicit none
 
     integer :: f, g, h, i, c
@@ -303,31 +288,31 @@ contains
     integer :: ii, jj, hh
     integer :: numberOfPointCharges
     integer :: numberOfClasicalCharges
-    integer :: numberOfSurfaceSegments
+    ! integer :: numberOfSurfaceSegments
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:)
     real(8), allocatable :: integralBuffer(:)
     real(8), allocatable :: integralsMatrix(:,:)
     type(pointCharge), allocatable :: point(:)
-    character(20) :: colNum
+    ! character(20) :: colNum
     character(100) :: job
 
     ! Variables para calcular las integrales monoelectronicas para cosmo
     type(surfaceSegment),intent(in), optional :: surface
-    integer :: times
-    integer :: n,a
+    ! integer :: times
+    integer :: a
     logical :: isCosmo
     real(8), allocatable :: integralValueCosmo(:,:)
     real(8), allocatable ::  cosmoV(:)
     real(8), allocatable ::  qCharges(:)
-    real(8), allocatable ::  qChargesAc(:,:)
+    ! real(8), allocatable ::  qChargesAc(:,:)
     character(100) :: cosmoIntegralFile
     character(100) :: cosmoQuantumChargeFile
     character(100) :: cosmoClasicalChargeFile
 
 
     type(Matrix) :: cmatin
-    real(8) ::  cosmoPotInt
+    ! real(8) ::  cosmoPotInt
 
     integer :: b,d,total_aux
 
@@ -335,9 +320,6 @@ contains
 
 
     a=0
-
-
-    !
 
     job = "ATTRACTION"
 
@@ -416,7 +398,7 @@ contains
                       allocate(integralValueCosmo((MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
                            MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital), numberOfPointCharges))
 
-		      integralValueCosmo = 0
+                      integralValueCosmo = 0
                       b=MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital
                       d=MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital
                       totals(f)=b*d
@@ -460,7 +442,7 @@ contains
                             m = m + 1
                             if(allocated(cosmoV)) deallocate(cosmoV)
                             allocate(cosmoV(numberOfPointCharges))
-			    cosmoV = 0 
+                            cosmoV = 0 
                             cosmoV(:)=integralValueCosmo(m,:)
 
                             call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
@@ -486,7 +468,7 @@ contains
           !!quantum
           totals(f)=total_aux
           ! ####################################
-          !Nuevo, ojo
+          ! Nuevo, ojo
           ! write(80)numberOfPointCharges
           ! write(80)totals(f)
 
@@ -566,10 +548,6 @@ contains
           allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
           labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
 
-          if(allocated(integralBuffer)) deallocate(integralBuffer)
-          allocate(integralBuffer((MolecularSystem_instance%species(f)%basisSetSize * (MolecularSystem_instance%species(f)%basisSetSize + 1)) / 2 ) )
-          integralBuffer = 0.0_8
-
           if(allocated(integralsMatrix)) deallocate(integralsMatrix)
           allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
 
@@ -622,8 +600,8 @@ contains
 
           !!Write integrals to file (unit 30)
           if(CONTROL_instance%LAST_STEP) then
-             write(*,"(A,I6,A,A,A)")" Stored ",size(integralsMatrix,DIM=1)**2," attraction integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-                  " in file lowdin.opints"
+             ! write(*,"(A, A ,A,I6)")" Number of Nuclear integrals for species ", &
+             !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
           end if
           write(30) int(size(integralsMatrix),8)
           write(30) integralsMatrix
@@ -673,7 +651,6 @@ contains
     real(8), allocatable :: integralValue(:)
     real(8), allocatable :: integralBuffer(:)
     real(8), allocatable :: integralsMatrix(:,:)
-    character(20) :: colNum
     character(10) :: coordinate(3)
     character(100) :: job
 
@@ -773,9 +750,8 @@ contains
        end do !! Done by component
 
        if(CONTROL_instance%LAST_STEP) then
-          write(*,"(A,I6,A,A,A)")" Stored ",(size(integralsMatrix,DIM=1)**2)*3,&
-               " Moment integrals of specie ",trim(MolecularSystem_instance%species(f)%name),&
-               " in file lowdin.opints"
+          ! write(*,"(A, A ,A,I6)")" Number of Moment integrals for species ", &
+          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
        end if
 
     end do !done! 
@@ -788,21 +764,15 @@ contains
   !! @version 1.0
   !! @par History
   !!      - 2013.03.05: Use Libint V 1.1.4
-  subroutine IntegralManager_getIntraRepulsionIntegrals(nprocess, process, nameOfSpecies, scheme)
+  !!      - 2016.06.13: Use Libint V 2.x
+  subroutine IntegralManager_getIntraRepulsionIntegrals(nameOfSpecies, scheme)
     implicit none
 
-    integer(8) :: nprocess
-    integer(8) :: process
     character(*) :: nameOfSpecies
     character(*) :: scheme
 
     integer :: speciesID
     integer :: numberOfContractions
-    integer :: auxCounter
-    integer(8) :: integralsByProcess
-    integer(8) :: ssize
-    integer(8) :: starting
-    integer(8) :: ending
 
     !! Skip integrals calculation two times for electrons alpha and beta    
     if(CONTROL_instance%IS_OPEN_SHELL .and. ( trim(nameOfSpecies) == "E-BETA" )) return
@@ -810,107 +780,29 @@ contains
     speciesID = MolecularSystem_getSpecieID(trim(nameOfSpecies))
     numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
 
-
-    ssize = (numberOfContractions * (numberOfContractions + 1))/2
-    ssize = (ssize * (ssize + 1))/2
-
-
-    integralsByProcess = ceiling( real(ssize,8)/real(nprocess,8) )
-
-    ending = process * integralsByProcess
-    starting = ending - integralsByProcess + 1
-
-    if( starting > ssize ) return
-
-    if( ending > ssize ) ending = ssize
-
     if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
 
     !! Calculate integrals (stored on disk)           
     select case (trim(String_getUppercase(trim(scheme))))
 
     case("RYS")
-       call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
+
+      !! Check critical OMP
+       call RysQuadrature_computeIntraSpecies( speciesID )
+
     case("LIBINT")
-       if ( CONTROL_instance%SCHWARZ_INEQUALITY ) then
-         call LibintInterface_computeIntraSpeciesTwoIndex( speciesID, "ERIS", starting, ending, int(process) )
-       end if
-       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process), auxCounter )
-    ! case("CUDINT")
-    !    call CudintInterface_computeIntraSpecies(speciesID)
+
+       call Libint2Interface_compute2BodyIntraspecies_disk(speciesID)
+
     case default
-       if ( CONTROL_instance%SCHWARZ_INEQUALITY ) then
-         call LibintInterface_computeIntraSpeciesTwoIndex( speciesID, "ERIS", starting, ending, int(process) )
-       end if
-       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process), auxCounter )
+
+       call Libint2Interface_compute2BodyIntraspecies_disk(speciesID)
+
     end select
 
-        call IntegralManager_SaveNumberOfNonZeroIntegrals(speciesID, auxCounter, process ) 
+    ! call IntegralManager_SaveNumberOfNonZeroIntegrals(speciesID, auxCounter, process ) 
 
   end subroutine IntegralManager_getIntraRepulsionIntegrals
-
-  !> 
-  !! @brief Calculate Intra-species repulsion integrals directly
-  !! @author J. A. Charry, 2015
-  !! @version 1.0
-  !! @par History
-  !!    
-  subroutine IntegralManager_getDirectIntraRepulsionIntegrals(nprocess, process, speciesID, scheme, &
-                densityMatrix, twoParticlesMatrix, factor )
-    implicit none
-
-    integer(8) :: nprocess
-    integer(8) :: process
-    character(*) :: scheme
-
-    integer :: speciesID
-    integer :: numberOfContractions
-    integer(8) :: integralsByProcess
-    integer(8) :: ssize
-    integer(8) :: starting
-    integer(8) :: ending
-
-    real(8) :: factor
-
-    type(matrix) :: densityMatrix
-    type(matrix) :: twoParticlesMatrix
-
-    !! Skip integrals calculation two times for electrons alpha and beta    
-!!    if(CONTROL_instance%IS_OPEN_SHELL .and. ( trim(nameOfSpecies) == "E-BETA" )) return
-
-    numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
-
-    ssize = (numberOfContractions * (numberOfContractions + 1))/2
-    ssize = (ssize * (ssize + 1))/2
-
-    integralsByProcess = ceiling( real(ssize,8)/real(nprocess,8) )
-
-    ending = process * integralsByProcess
-    starting = ending - integralsByProcess + 1
-
-    if( starting > ssize ) return
-
-    if( ending > ssize ) ending = ssize
-
-    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
-
-    !! Calculate integrals (stored on disk)           
-    select case (trim(String_getUppercase(trim(scheme))))
-    
-    case("RYS")
-!       call RysQuadrature_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
-    case("LIBINT")
-       call LibintInterface_directIntraSpecies(speciesID, "ERIS", starting, ending, int( process ), & 
-              densityMatrix, & 
-              twoParticlesMatrix, factor)
-
-    ! case("CUDINT")
-    !    call CudintInterface_computeIntraSpecies(speciesID)
-    case default
-!       call LibintInterface_computeIntraSpecies( speciesID, "ERIS", starting, ending, int(process) )
-    end select
-
-  end subroutine IntegralManager_getDirectIntraRepulsionIntegrals
 
 
   !> 
@@ -919,28 +811,40 @@ contains
   !! @version 1.0
   !! @par History
   !!      - 2013.03.05: Use Libint V 1.1.4
+  !!      - 2016.06.13: Use Libint V 2.x
   subroutine IntegralManager_getInterRepulsionIntegrals(scheme)
     implicit none
     character(*) :: scheme    
     integer :: i, j
-    integer :: auxCounter
+    integer :: auxCounter = 0
+
+    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
 
           !! Calculate integrals (stored on disk)       
           select case (trim(String_getUppercase(trim(scheme))))
+
           case("LIBINT")
-             call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
-          ! case("CUDINT")
-          !    call CudintInterface_computeInterSpecies( i, j, "ERIS" )
+
+             call Libint2Interface_compute2BodyInterspecies_disk(i, j)
+             ! call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
+             ! case("CUDINT")
+             !    call CudintInterface_computeInterSpecies( i, j, "ERIS" )
+
           case default
-             call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
+
+             call Libint2Interface_compute2BodyInterspecies_disk(i, j)
+             ! call LibintInterface_computeInterSpecies( i, j, "ERIS", auxCounter )
+
           end select
 
-         call IntegralManager_SaveNumberOfNonZeroCouplingIntegrals(i, j, auxCounter) 
-       end do       
+          call IntegralManager_SaveNumberOfNonZeroCouplingIntegrals(i, j, auxCounter) 
+
+       end do
     end do
+
     close(30) 
 
   end subroutine IntegralManager_getInterRepulsionIntegrals
@@ -982,38 +886,38 @@ contains
   end function IntegralManager_getLabels
 
   subroutine IntegralManager_SaveNumberOfNonZeroIntegrals(speciesID, auxCounter, process) 
-      implicit none
+    implicit none
 
-      integer :: speciesID
-      integer :: auxCounter
-      integer(8) :: process
-      character(50) :: fileNumber
+    integer :: speciesID
+    integer :: auxCounter
+    integer(8) :: process
+    character(50) :: fileNumber
 
-      write(fileNumber,*) process
-      fileNumber = trim(adjustl(fileNumber))
+    write(fileNumber,*) process
+    fileNumber = trim(adjustl(fileNumber))
 
-      open(UNIT=49,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(speciesID)%name)//".nints", &
-           STATUS='replace', ACCESS='SEQUENTIAL', FORM='Unformatted')
-      write (49) auxCounter 
+    open(UNIT=49,FILE=trim(fileNumber)//trim(MolecularSystem_instance%species(speciesID)%name)//".nints", &
+         STATUS='replace', ACCESS='SEQUENTIAL', FORM='Unformatted')
+    
+    write (49) auxCounter 
 
-      close(49)
+    close(49)
 
   end subroutine IntegralManager_SaveNumberOfNonZeroIntegrals
 
   subroutine IntegralManager_SaveNumberOfNonZeroCouplingIntegrals( i, j, auxCounter) 
-      implicit none
+    implicit none
 
-      integer :: i, j 
-      integer :: auxCounter
-      character(50) :: fileNumber
+    integer :: i, j 
+    integer :: auxCounter
 
-      !! open file for integrals
-      open(UNIT=59,FILE=trim(MolecularSystem_instance%species(i)%name)//"."//trim(MolecularSystem_instance%species(j)%name)//".nints", &
+    !! open file for integrals
+    open(UNIT=59,FILE=trim(MolecularSystem_instance%species(i)%name)//"."//trim(MolecularSystem_instance%species(j)%name)//".nints", &
          STATUS='replace', ACCESS='SEQUENTIAL', FORM='Unformatted')
 
-      write (59) auxCounter 
-      close(59)
- 
+    write (59) auxCounter 
+    close(59)
+
 
   end subroutine IntegralManager_SaveNumberOfNonZeroCouplingIntegrals
 

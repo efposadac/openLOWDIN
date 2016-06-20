@@ -24,11 +24,11 @@ END GEOMETRY
 
 TASKS
 	method = "UHF"
-	propagatorTheoryCorrection= 2
+	propagatorTheoryCorrection = 2
 END TASKS
 
 CONTROL
-	numberOfCores=6
+        integralsTransformationMethod = "C"
 END CONTROL
 
 

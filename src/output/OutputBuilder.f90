@@ -1,22 +1,22 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://sites.google.com/a/bt.unal.edu.co/andresreyes/home
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
-!!	Prof. G. MERINO's Lab. Universidad de Guanajuato
-!!		http://quimera.ugto.mx/qtc/gmerino.html
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://sites.google.com/a/bt.unal.edu.co/andresreyes/home
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
+!!  Prof. G. MERINO's Lab. Universidad de Guanajuato
+!!    http://quimera.ugto.mx/qtc/gmerino.html
 !!
-!!	Authors:
-!!		E. F. Posada (efposadac@unal.edu.co)
-!!		R. Flores (roberto.floresmoreno.qt@gmail.com)
+!!  Authors:
+!!    E. F. Posada (efposadac@unal.edu.co)
+!!    R. Flores (roberto.floresmoreno.qt@gmail.com)
 !!
-!!	Contributors:
+!!  Contributors:
 !!
-!!		Todos los derechos reservados, 2011
+!!    Todos los derechos reservados, 2011
 !!
 !!******************************************************************************
 
@@ -79,7 +79,7 @@ module OutputBuilder_
        OutputBuilder_buildOutput, &
        OutputBuilder_make2DGraph, &
        OutputBuilder_make3DGraph
-  private		
+  private   
 
 interface 
 
@@ -327,7 +327,7 @@ contains
 
         do l=1,MolecularSystem_getNumberOfQuantumSpecies()
 
-	   totalNumberOfParticles = 0
+     totalNumberOfParticles = 0
 
            auxString=MolecularSystem_getNameOfSpecie( l )
            specieID = MolecularSystem_getSpecieID(auxString)
@@ -349,7 +349,7 @@ contains
 
 !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
 
-		totalNumberOfParticles = totalNumberOfParticles + 1
+    totalNumberOfParticles = totalNumberOfParticles + 1
 #ifdef intel
                  write (10,"(A,I,I,<3>F15.8)") trim(symbol), j,&
                       int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), origin(1), origin(2), origin(3)
@@ -367,7 +367,7 @@ contains
 
               wasPress=.false.
               do i=1,j
-                 if( 	abs( auxMatrix%values(i,1) - localizationOfCenters%values(k,1)) < 1.0D-9 .and. &
+                 if(  abs( auxMatrix%values(i,1) - localizationOfCenters%values(k,1)) < 1.0D-9 .and. &
                       abs( auxMatrix%values(i,2) - localizationOfCenters%values(k,2)) < 1.0D-9 .and. &
                       abs( auxMatrix%values(i,3) - localizationOfCenters%values(k,3)) < 1.0D-9  ) then
                     wasPress=.true.
@@ -377,7 +377,7 @@ contains
               if( .not.wasPress) then
                  m=m+1
 
-		totalNumberOfParticles = totalNumberOfParticles + 1
+    totalNumberOfParticles = totalNumberOfParticles + 1
                  origin=localizationOfCenters%values(k,:)
 !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
                  symbol=labels(k)
@@ -398,7 +398,7 @@ contains
            j=0
            do i=1,size(MolecularSystem_instance%species(l)%particles)
 
-!              if (	trim(MolecularSystem_instance%species(l)%particles(i)%symbol) == trim(auxString) ) then
+!              if ( trim(MolecularSystem_instance%species(l)%particles(i)%symbol) == trim(auxString) ) then
                  j=j+1
 
                  write(10,"(I3,I2)") j,0
@@ -406,15 +406,15 @@ contains
                       trim(MolecularSystem_instance%species(l)%particles(i)%nickname),10 )
                  write(10,*) ""
 
-		if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+    if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
 
-			do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-				write(10,"(I3,I2)") j+n,0
-				write(10,"(A,I1,F5.2)") "s  ",1,1.00
-				write(10,"(ES19.10,ES19.10)") 0.00,0.00
-				write(10,*) ""
-			end do 
-		end if
+      do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+        write(10,"(I3,I2)") j+n,0
+        write(10,"(A,I1,F5.2)") "s  ",1,1.00
+        write(10,"(ES19.10,ES19.10)") 0.00,0.00
+        write(10,*) ""
+      end do 
+    end if
 !              end if
 
            end do
@@ -439,50 +439,50 @@ contains
                 output = energyOfMolecularOrbital )
 
            !! Build a vector of labels of contractions
-	   if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+     if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
            allocate(labelsOfContractions(numberOfContractions))
 
            labelsOfContractions =  MolecularSystem_getlabelsofcontractions( specieID )
 
            !! Swap some columns according to the molden format
            do k=1,size(coefficientsOfCombination%values,dim=1)
-		!! Take the shellcode
+    !! Take the shellcode
                 read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
 
-		!! Reorder the D functions
+    !! Reorder the D functions
                 !! counter:  1,  2,  3,  4,  5,  6
                 !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
                 !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
                 !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
                 !!  2-4, 3-5, 5-6
 
-		if ( shellcode == "Dxx" ) then 
-		    auxcounter = counter
-		    !! Swap XY and YY
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
-		    !! Swap XZ and ZZ
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
-		    !! Swap YZ and XZ'
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+    if ( shellcode == "Dxx" ) then 
+        auxcounter = counter
+        !! Swap XY and YY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+        !! Swap XZ and ZZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+        !! Swap YZ and XZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
                 end if
 
-		!! Reorder the F functions
+    !! Reorder the F functions
                 !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
                 !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
                 !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
 
-             	if ( shellcode == "Fxxx" ) then 
-		    auxcounter = counter
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+              if ( shellcode == "Fxxx" ) then 
+        auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
 
                 end if
 
-	    end do
+      end do
 
               !Aqui termina de modificar laura
 
@@ -501,11 +501,11 @@ contains
                  write(10,"(I4,F15.6)") k,coefficientsOfCombination%values(k,j)
               end do
 
-		if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
-			do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-                 		write(10,"(I4,F15.6)") k-1+n,0.0_8
-			end do
-		end if
+    if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+      do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+                    write(10,"(I4,F15.6)") k-1+n,0.0_8
+      end do
+    end if
 
            end do
 
@@ -564,7 +564,7 @@ contains
 
         do l=1,MolecularSystem_getNumberOfQuantumSpecies()
 
-	   auxString=MolecularSystem_getNameOfSpecie( l )
+     auxString=MolecularSystem_getNameOfSpecie( l )
 
            this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".vec"
 
@@ -580,54 +580,54 @@ contains
                 columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
            !! Build a vector of labels of contractions
-	   if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+     if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
            allocate(labelsOfContractions(numberOfContractions))
 
            labelsOfContractions =  MolecularSystem_getlabelsofcontractions( specieID )
 
            !! Swap some columns according to the molden format
            do k=1,size(coefficientsOfCombination%values,dim=1)
-		!! Take the shellcode
+    !! Take the shellcode
                 read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
 
-		!! Reorder the D functions
+    !! Reorder the D functions
                 !! counter:  1,  2,  3,  4,  5,  6
                 !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
                 !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
                 !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
                 !!  2-4, 3-5, 5-6
 
-		if ( shellcode == "Dxx" ) then 
-		    auxcounter = counter
-		    !! Swap XY and YY
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
-		    !! Swap XZ and ZZ
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
-		    !! Swap YZ and XZ'
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+    if ( shellcode == "Dxx" ) then 
+        auxcounter = counter
+        !! Swap XY and YY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+        !! Swap XZ and ZZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+        !! Swap YZ and XZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
                 end if
 
-		!! Reorder the F functions
+    !! Reorder the F functions
                 !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
                 !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
                 !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
                 !! Gamess:  XXX, YYY, ZZZ, XXY, XXZ, XYY, YYZ, XZZ, YZZ, XYZ
                 
-             	if ( shellcode == "Fxxx" ) then 
-		    auxcounter = counter
+              if ( shellcode == "Fxxx" ) then 
+        auxcounter = counter
                     call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
-             	    call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+4)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+6)
-	            call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+                  call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+4)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
                 end if
 
-	    end do
+      end do
 
 
      
@@ -768,7 +768,7 @@ contains
 
         do l=1,MolecularSystem_getNumberOfQuantumSpecies()
 
-	   totalNumberOfParticles = 0
+     totalNumberOfParticles = 0
 
            auxString=MolecularSystem_getNameOfSpecie( l )
            specieID = MolecularSystem_getSpecieID(auxString)
@@ -823,26 +823,26 @@ contains
     initialSettingsFile = "m2a.ini"
 
     select case (this%type) 
-    	case ( "wfnFile" )
-	  wfnStatus="1"
-	  nboStatus="-1"
-	  wfxStatus="-1"
-    	  extension=".wfn"
-     	case ( "NBO47File" )
-	  wfnStatus="-1"
-	  nboStatus="1"
-	  wfxStatus="-1"
-	  extension=".47"
-    	case ( "wfxFile" ) 
-	  wfnStatus="-1"
-	  nboStatus="-1"
-  	  wfxStatus="1"
-	  extension=".wfx"
-	case ( "extendedwfnFile" )
-	  wfnStatus="1"
-	  nboStatus="-1"
-	  wfxStatus="-1"
-	  extension=".wfn"
+      case ( "wfnFile" )
+    wfnStatus="1"
+    nboStatus="-1"
+    wfxStatus="-1"
+        extension=".wfn"
+      case ( "NBO47File" )
+    wfnStatus="-1"
+    nboStatus="1"
+    wfxStatus="-1"
+    extension=".47"
+      case ( "wfxFile" ) 
+    wfnStatus="-1"
+    nboStatus="-1"
+      wfxStatus="1"
+    extension=".wfx"
+  case ( "extendedwfnFile" )
+    wfnStatus="1"
+    nboStatus="-1"
+    wfxStatus="-1"
+    extension=".wfn"
     end select
 
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")

@@ -293,6 +293,14 @@ if [ $extFile="lowdin" ]; then
 	    cp $nameFile.gms.bs $LOWDIN_SCRATCH/$nameFile
 	fi
 
+	# setting default number of cores for OpenMP
+	if [ -z "$OMP_NUM_THREADS" ]; then
+    	export OMP_NUM_THREADS=4
+	fi
+
+	echo "Running on " $OMP_NUM_THREADS "OMP threads" 
+
+	# Start ...
 	echo "Begin job by input: "$nameFile.lowdin, "for user: "$USERNAME " at " `date` > $nameFile.out
 	echo "under operating system" `uname -a` >> $nameFile.out
 	echo "" >> $nameFile.out
@@ -318,7 +326,7 @@ if [ $extFile="lowdin" ]; then
 	    lowdin$version $nameFile.aux >>   $nameFile.out
 	fi
 	
-	ls -l * >> $nameFile.out
+	ls -lh * >> $nameFile.out
 
 	if [ -e $nameFile.out ]
 	then
@@ -342,9 +350,10 @@ if [ $extFile="lowdin" ]; then
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+    mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
+    mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
+    mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+    mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.coeff $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*coup $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.com $currentPath &> 2

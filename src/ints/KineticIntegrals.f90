@@ -102,7 +102,7 @@ contains
     real(8) :: auxIntegral
     integer, allocatable :: angularMomentIndexA(:,:)
     integer, allocatable :: angularMomentIndexB(:,:)
-    integer ::  i, m, p, q
+    integer ::  m, p, q
     
     if(allocated(angularMomentIndexA)) deallocate(angularMomentIndexA)
     if(allocated(angularMomentIndexB)) deallocate(angularMomentIndexB)
@@ -181,17 +181,17 @@ contains
     real(8) :: zeta, zetaInv
     real(8) :: PA(0:3), PB(0:3), P(0:3)
     real(8) :: commonPreFactor
-    real(8) :: x0, y0, z0
+    ! real(8) :: x0, y0, z0
     real(8) :: I1, I2, I3, I4
     real(8) :: Ix, Iy, Iz
 
     integer :: angularMomentA, angularMomentB
     integer :: maxAngularMoment
     integer :: p1, p2
-    integer :: ao12
-    integer :: ii, jj, kk, ll
-    integer :: l1, m1, n1
-    integer :: l2, m2, n2
+    ! integer :: ao12
+    ! integer :: ii, jj, kk, ll
+    ! integer :: l1, m1, n1
+    ! integer :: l2, m2, n2
 
     integralValue = 0.0_8
 
@@ -323,7 +323,7 @@ contains
     integer, intent(in) :: angularMomentIndexA, angularMomentIndexB
 
     real(8) :: twoZetaInv
-    integer :: i, j, k
+    integer :: i, j
 
     twoZetaInv = 1_8/(2_8*zeta)
 

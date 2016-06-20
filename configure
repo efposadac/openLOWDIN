@@ -43,12 +43,12 @@ CUDAFLAGS="no"
 CXX="g++"
 CC="gcc"
 CFLAGS="-g -O2 -fopenmp -D gfortran"
-CPPFLAGS="-g -O2 -fopenmp -D gfortran"
+CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11 "
 FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran"
 GSL_LIBS="-lgsl -lgslcblas"
 LAPACK_LIBS="-lblas -llapack"
 STDCPP_LIBS="-lstdc++"
-LIBINT_LIBS="-lr12 -lderiv -lint"
+LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
 ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS"
 DEFAULTS='F'
 
@@ -131,7 +131,7 @@ else
         CC=gcc
         CU="nvcc -arch=sm_20"
         CFLAGS="-g -O2 -fopenmp -D gfortran"
-        CPPFLAGS="-g -O2 -fopenmp -D gfortran"
+        CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11"
     fi
 
     echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only) [$FLAGS]"
@@ -203,7 +203,7 @@ else
 
     STDCPP_LIBS="-lstdc++"
     GSL_LIBS="-lgsl -lgslcblas"
-    LIBINT_LIBS="-lr12 -lderiv -lint"
+    LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
     ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
 
     ###############################################################################

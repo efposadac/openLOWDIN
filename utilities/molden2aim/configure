@@ -52,7 +52,7 @@ do
 	  fi
       done
   done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) ${file}$\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) ${file} \n" >> makefile
 done
 #
 cat >> makefile << EOF

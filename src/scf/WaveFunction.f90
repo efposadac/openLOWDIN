@@ -30,10 +30,9 @@ module WaveFunction_
 
   implicit none
 
-
   !< enum Matrix_type {
-  integer, parameter :: CANONICAL_ORTHOGONALIZATION	= 1
-  integer, parameter :: SYMMETRIC_ORTHOGONALIZATION	= 2
+  integer, parameter :: CANONICAL_ORTHOGONALIZATION = 1
+  integer, parameter :: SYMMETRIC_ORTHOGONALIZATION = 2
   !< }
 
   !< enum type of orbital graph {
@@ -209,274 +208,241 @@ contains
 
   !>
   !! @brief Builds two-particles matrix.
-  subroutine WaveFunction_buildTwoParticlesMatrix( nameOfSpecie, nproc )
+  subroutine WaveFunction_buildTwoParticlesMatrix( nameOfSpecie )
     implicit none
 
     character(*), optional :: nameOfSpecie
-    integer :: nproc
 
     character(30) :: nameOfSpecieSelected
 
-    real(8) :: integralValue
-    real(8) :: coulomb,exchange
+    real(8) :: coulomb
+    real(8) :: exchange
     real(8) :: factor
-
-    integer, target :: totalNumberOfContractions
-    integer, target :: a, b, r, s
-    integer :: speciesID
-    integer :: n, u, v, i
-    integer :: m(nproc) 
-    integer :: status
-
-    integer*2 :: aa(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: bb(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: rr(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: ss(CONTROL_instance%INTEGRAL_STACK_SIZE)
-
     real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
-
-    logical :: hadAdded
-
-    integer :: ifile
-    integer :: unit
-    character(50) :: sfile
-
+    real(8), allocatable, target :: tmpTwoParticlesMatrix(:,:)
     real(8), allocatable :: tmpArray(:,:)
-    type(Matrix) :: tmpTwoParticlesMatrix
 
-    integer(8) :: nprocess
-    integer(8) :: process
+    integer :: aa(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: bb(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: rr(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: ss(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: totalNumberOfContractions
+    integer :: speciesID
+    integer :: status
+    integer :: u, v, i
 
-    integer :: numberOfContractions
-    integer(8) :: integralsByProcess
-    integer(8) :: ssize
-    integer(8) :: starting
-    integer(8) :: ending
+    !! OpenMP related variables
+    character(50) :: fileid
+    integer :: nthreads
+    integer :: threadid
+    integer :: unitid
 
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
-
     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
-    m = 0
+
     !! This matrix is only calculated if there are more than one particle for speciesID or if the user want to calculate it.
-    
-    if ( MolecularSystem_getNumberOfParticles( speciesID ) > 1 .or. CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
+    if ( MolecularSystem_getNumberOfParticles( speciesID ) > 1 .or.  CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
 
        wavefunction_instance(speciesID)%twoParticlesMatrix%values = 0.0_8
        totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
-       factor = MolecularSystem_getFactorOfInterchangeIntegrals( speciesID )       
+       factor = MolecularSystem_getFactorOfInterchangeIntegrals( speciesID )
 
        if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
 
-          !$OMP PARALLEL private(ifile,sfile,unit,aa,bb,rr,ss,shellIntegrals,i,coulomb,exchange, tmpArray), shared(wavefunction_instance)
-          !$OMP DO 
-          do ifile = 1, nproc
 
-             write(sfile,*) ifile
-             sfile = trim(adjustl(sfile))
-             unit = ifile+50
+          !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, rr, ss, shellIntegrals, i, coulomb, exchange, tmpArray)
+          nthreads = OMP_GET_NUM_THREADS()
+          threadid =  OMP_GET_THREAD_NUM()
+          unitid = 40 + threadid
 
-             !! open file (order, integral(shell))
-             if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(speciesID)%isElectron) then
+          write(fileid,*) threadid
+          fileid = trim(adjustl(fileid))
 
-                open( UNIT=unit,FILE=trim(sfile)//"E-ALPHA.ints", status='old',access='sequential', form='Unformatted')
+          if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(speciesID)%isElectron) then
 
-             else
+             open( UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.ints", status='old', access='stream', form='Unformatted')
 
-                open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//".ints", status='old',access='sequential', form='Unformatted')
+          else
 
+             open( UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//".ints", status='old', access='stream', form='Unformatted')
+
+          end if
+
+          allocate(tmpArray(totalNumberOfContractions,totalNumberOfContractions))
+          tmpArray = 0.0_8
+
+          loadintegrals : do
+
+             read(UNIT=unitid, iostat=status) &
+                  ss(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  rr(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+
+             if(status == -1 ) then
+                print*, "end of file! file: ",trim(fileid)//"E-ALPHA.ints"
+                exit loadintegrals
              end if
 
-             if(allocated(tmpArray))deallocate(tmpArray)
-             allocate(tmpArray(totalNumberOfContractions,totalNumberOfContractions))
-             tmpArray = 0.0_8
+             buildmatrix : do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
-             loadintegrals : do
-
-                read(UNIT=unit, iostat=status) aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                     bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                     rr(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                     ss(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                     shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-
-                if(status == -1 ) then
-                   print*, "end of file! file: ",trim(sfile)//"E-ALPHA.ints"
-                   exit loadintegrals
-                end if
-
-                do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
-                   m(ifile) = m(ifile) + 1
-                   if( aa(i) == -1 ) exit loadintegrals
-
-                   coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i))*shellIntegrals(i)
-
-!!                if ( abs(shellIntegrals(i)) < 1E-11) 
+                if( ss(i) == -1 ) exit loadintegrals
+                ! print*, ss(i), rr(i),  bb(i), aa(i), shellIntegrals(i)
+                coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i)) * shellIntegrals(i)
 
                 !!*****************************************************************************
                 !! Adds coulomb operator contributions
+
                 if( aa(i) == rr(i) .and. bb(i) == ss(i) ) then
 
-                      tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
+                   tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
 
-                      if( rr(i) /= ss(i) ) then
-
-                         tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
-
-                      end if
-
-                   else
-
-                      tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
-
-                      if( rr(i) /= ss(i) ) then
-
-                         tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
-
-                      end if
-
-                      coulomb = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),bb(i))*shellIntegrals(i)
-
-                      tmpArray(rr(i),ss(i)) = tmpArray(rr(i),ss(i)) + coulomb
-
-                      if ( aa(i) /= bb(i) ) then
-
-                         tmpArray( rr(i), ss(i) ) = tmpArray( rr(i), ss(i) ) + coulomb
-
-                      end if
-
-                   end if
-
-                   !!
-                   !!*****************************************************************************
-
-                   !!*****************************************************************************
-                   !! Adds exchange operator contributions
                    if( rr(i) /= ss(i) ) then
 
-                      exchange =wavefunction_instance(speciesID)%densityMatrix%values(bb(i),ss(i))*shellIntegrals(i)* factor
-
-                      tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
-
-                      if( aa(i) == rr(i) .and. bb(i) /= ss(i) ) then
-
-                         tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
-
-                      end if
+                      tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
 
                    end if
+
+                else
+
+                   tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
+
+                   if( rr(i) /= ss(i) ) then
+
+                      tmpArray(aa(i),bb(i)) = tmpArray(aa(i),bb(i)) + coulomb
+
+                   end if
+
+                   coulomb = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),bb(i))*shellIntegrals(i)
+
+                   tmpArray(rr(i),ss(i)) = tmpArray(rr(i),ss(i)) + coulomb
 
                    if ( aa(i) /= bb(i) ) then
 
-                      exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),rr(i))*shellIntegrals(i) * factor
+                      tmpArray( rr(i), ss(i) ) = tmpArray( rr(i), ss(i) ) + coulomb
 
-                      if( bb(i) > ss(i) ) then
+                   end if
 
-                         tmpArray( ss(i), bb(i) ) = tmpArray( ss(i), bb(i)) + exchange
+                end if
 
-                      else
+                !!
+                !!*****************************************************************************
+
+                !!*****************************************************************************
+                !! Adds exchange operator contributions
+
+                if( rr(i) /= ss(i) ) then
+
+                   exchange =wavefunction_instance(speciesID)%densityMatrix%values(bb(i),ss(i)) * shellIntegrals(i) * factor
+
+                   tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
+
+                   if( aa(i) == rr(i) .and. bb(i) /= ss(i) ) then
+
+                      tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
+
+                   end if
+
+                end if
+
+                if ( aa(i) /= bb(i) ) then
+
+                   exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),rr(i)) * shellIntegrals(i) * factor
+
+                   if( bb(i) > ss(i) ) then
+
+                      tmpArray( ss(i), bb(i) ) = tmpArray( ss(i), bb(i)) + exchange
+
+                   else
+
+                      tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
+
+                      if( bb(i)==ss(i) .and. aa(i) /= rr(i) ) then
 
                          tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
-
-                         if( bb(i)==ss(i) .and. aa(i) /= rr(i) ) then
-
-                            tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
-
-                         end if
-
-                      end if
-
-                      if ( rr(i) /= ss(i) ) then
-
-                         exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),ss(i))*shellIntegrals(i) * factor
-
-                         if( bb(i) <= rr(i) ) then
-
-                            tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
-
-                            if( bb(i) == rr(i) ) then
-
-                               tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
-
-                            end if
-
-                         else
-
-                            tmpArray( rr(i), bb(i) ) = tmpArray( rr(i), bb(i)) + exchange
-
-                            if( aa(i) == rr(i) .and. ss(i) == bb(i) ) goto 30
-
-                         end if
 
                       end if
 
                    end if
 
-                   exchange = wavefunction_instance(speciesID)%densityMatrix%values(bb(i),rr(i))*shellIntegrals(i) * factor
+                   if ( rr(i) /= ss(i) ) then
 
-                   tmpArray( aa(i), ss(i) ) = tmpArray( aa(i), ss(i) ) + exchange
+                      exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),ss(i)) * shellIntegrals(i) * factor
 
-30                 continue
+                      if( bb(i) <= rr(i) ) then
 
-                   !!
-                   !!*****************************************************************************
+                         tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
 
-                end do
-             end do loadintegrals
+                         if( bb(i) == rr(i) ) then
 
-             close(unit)
+                            tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
 
-             do u = 1, totalNumberOfContractions
-                do v = 1, totalNumberOfContractions
-                   !$OMP ATOMIC
-                   wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
-                        wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpArray(u,v) 
-                end do
+                         end if
+
+                      else
+
+                         tmpArray( rr(i), bb(i) ) = tmpArray( rr(i), bb(i)) + exchange
+
+                         if( aa(i) == rr(i) .and. ss(i) == bb(i) ) cycle buildmatrix
+
+                      end if
+
+                   end if
+
+                end if
+
+                exchange = wavefunction_instance(speciesID)%densityMatrix%values(bb(i),rr(i))*shellIntegrals(i) * factor
+
+                tmpArray( aa(i), ss(i) ) = tmpArray( aa(i), ss(i) ) + exchange
+
+                !!
+                !!*****************************************************************************
+
+             end do buildmatrix
+
+          end do loadintegrals
+
+          close(unitid)
+
+          do u = 1, totalNumberOfContractions
+             do v = 1, totalNumberOfContractions
+                !$OMP ATOMIC
+                wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
+                     wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpArray(u,v) 
              end do
-
           end do
-          !$OMP END DO
+
+          deallocate(tmpArray)
+
           !$OMP END PARALLEL
 
-       !! Direct
-        else 
-                
-         !! Not working! only for one core...
-  
-         !$OMP PARALLEL private(process), shared(Wavefunction_instance) 
-         !$OMP DO 
-         do process = nproc, 1, -1 
-  
-            call Matrix_constructor ( tmpTwoParticlesMatrix, &
-                  int (totalNumberOfContractions,8) , int(totalNumberOfContractions,8) , 0.0_8 )
-  
-            call DirectIntegralManager_getDirectIntraRepulsionIntegrals(int(nproc,8), int(process,8) , speciesID, &
-                 trim(CONTROL_instance%INTEGRAL_SCHEME), &
-                 Wavefunction_instance(speciesID)%densityMatrix, & 
-                 tmpTwoParticlesMatrix, factor)
-  
-           do u = 1, totalNumberOfContractions
-               do v = 1, totalNumberOfContractions
-                  !$OMP ATOMIC
-                  wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
-                       wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpTwoParticlesMatrix%values(u,v) 
-               end do
-            end do
-  
+          do u = 1 , totalNumberOfContractions
+             do v = u + 1 , totalNumberOfContractions
+
+                wavefunction_instance(speciesID)%twoParticlesMatrix%values(v,u) = wavefunction_instance(speciesID)%twoParticlesMatrix%values(v,u) + &
+                     wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v)
+
+                wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = wavefunction_instance(speciesID)%twoParticlesMatrix%values(v,u)
+             end do
           end do
-         !$OMP END DO
-         !$OMP END PARALLEL
+
+       else !! Direct
+
+          call DirectIntegralManager_getDirectIntraRepulsionIntegrals(&
+               speciesID, &
+               trim(CONTROL_instance%INTEGRAL_SCHEME), &
+               Wavefunction_instance(speciesID)%densityMatrix, & 
+               tmpTwoParticlesMatrix, factor)
+
+          wavefunction_instance(speciesID)%twoParticlesMatrix%values = tmpTwoParticlesMatrix
+          deallocate(tmpTwoParticlesMatrix)
 
        end if
 
-       do u = 1 , totalNumberOfContractions
-          do v = u , totalNumberOfContractions
-
-             wavefunction_instance(speciesID)%twoParticlesMatrix%values(v,u) = wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v)
-
-          end do
-       end do
-
-       wavefunction_instance(speciesID)%twoParticlesMatrix%values = wavefunction_instance(speciesID)%twoParticlesMatrix%values * ( MolecularSystem_getCharge(speciesID=speciesID ) )**2.0_8
+       wavefunction_instance(speciesID)%twoParticlesMatrix%values = &
+            wavefunction_instance(speciesID)%twoParticlesMatrix%values * ( MolecularSystem_getCharge(speciesID=speciesID ) )**2.0_8
 
     end if
 
@@ -495,7 +461,7 @@ contains
     character(*), optional :: nameOfSpecie
     integer, optional :: initialSpeciesIterator
     integer :: initialSpeciesIteratorSelected
-    
+
     character(30) :: nameOfSpecieSelected
     character(30) :: nameOfOtherSpecie
     integer :: numberOfContractions
@@ -504,20 +470,27 @@ contains
     integer :: otherSpecieID
     integer :: speciesIterator
     integer :: ssize
-    integer :: i, j, u, m
-    real(8), allocatable :: auxMatrix(:,:)
+    integer :: i, j, u
+    real(8), allocatable, target :: auxMatrix(:,:)
     real(8) :: coulomb
 
-    integer*2 :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: r(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: r(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
     real(8) :: integral(CONTROL_instance%INTEGRAL_STACK_SIZE)    
+
+    !! OpenMP related variables
+    character(50) :: fileid
+    integer :: nthreads
+    integer :: threadid
+    integer :: unitid
+    integer :: status
 
     nameOfSpecieSelected = "E-"    
 
     initialSpeciesIteratorSelected = 1
-    
+
     if ( present( initialSpeciesIterator ) ) initialSpeciesIteratorSelected= initialSpeciesIterator
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
@@ -527,94 +500,160 @@ contains
     if( MolecularSystem_getNumberOfQuantumSpecies() > 1 ) then
 
        ssize = size(wavefunction_instance(currentSpecieID)%couplingMatrix%values,dim=1)
-
-       allocate(auxMatrix(ssize, ssize))
-       auxMatrix=0.0_8                
        wavefunction_instance(currentSpecieID)%couplingMatrix%values = 0.0_8
 
-       do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
+       if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
 
-          otherSpecieID = speciesIterator
-          nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpecieID )          
-          OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+          !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, a, b, r, s, integral, u, i, j, coulomb, auxMatrix, speciesIterator), &
+          !$OMP& private(otherSpecieID, nameofOtherSpecie, otherNumberOfContractions)
 
-          !! Restringe suma de terminos repulsivos de la misma especie.
-          if ( otherSpecieID /= currentSpecieID ) then
+          nthreads = OMP_GET_NUM_THREADS()
+          threadid =  OMP_GET_THREAD_NUM()
+          unitid = 40 + threadid
+
+          write(fileid,*) threadid
+          fileid = trim(adjustl(fileid))
+
+          allocate(auxMatrix(ssize, ssize))
+          auxMatrix=0.0_8                
+
+          do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
+
+             otherSpecieID = speciesIterator
+             nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpecieID )          
+             OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+
+             !! Restringe suma de terminos repulsivos de la misma especie.
+             if ( otherSpecieID /= currentSpecieID ) then
 
 
-             if( currentSpecieID > otherSpecieID) then       
-                auxMatrix = 0.0_8
+                if( currentSpecieID > otherSpecieID) then  
 
-                !! open file for integrals
-                open(UNIT=34,FILE=trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)//".ints", &
-                     STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
+                   auxMatrix = 0.0_8
 
-                readIntegrals1 : do
+                   !! open file for integrals
+                   open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)//".ints", &
+                        STATUS='OLD', ACCESS='stream', FORM='Unformatted')
 
-                   read(34)   a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                        r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                        integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+                   readIntegrals1 : do
 
-                   do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE                      
+                      read(unitid, iostat=status)  a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                    b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                    r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                    s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                    integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-                      if (a(u) == -1) exit readIntegrals1
-                      m = m + 1
-                      coulomb = wavefunction_instance(otherSpecieID)%densityMatrix%values(a(u),b(u))*integral(u)
+                      if(status == -1 ) then
+                         print*, "end of file! file: ",trim(fileid)//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)//".ints"
+                         exit readIntegrals1
+                      end if
 
-                      auxMatrix(r(u),s(u)) = auxMatrix(r(u),s(u)) + coulomb
+                      do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE                      
+                         if (a(u) == -1) exit readIntegrals1
 
-                      if( a(u) /= b(u) ) auxMatrix(r(u),s(u)) = auxMatrix(r(u),s(u)) + coulomb
+                         coulomb = wavefunction_instance(otherSpecieID)%densityMatrix%values(a(u),b(u))*integral(u)
 
+                         auxMatrix(r(u),s(u)) = auxMatrix(r(u),s(u)) + coulomb
+
+                         if( a(u) /= b(u) ) auxMatrix(r(u),s(u)) = auxMatrix(r(u),s(u)) + coulomb
+
+                      end do
+
+                   end do readIntegrals1
+
+                   close(unitid)
+
+                   auxMatrix = auxMatrix * MolecularSystem_getCharge(currentSpecieID ) * MolecularSystem_getCharge( otherSpecieID )
+
+                   do i = 1 , ssize
+                     do j = i , ssize
+                       !$OMP ATOMIC
+                       wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j) = &
+                         wavefunction_instance(currentSpecieID)%couplingMatrix%values(i, j) + auxMatrix(i, j)
+                     end do
                    end do
 
-                end do readIntegrals1
+                else
 
-                close(34)
+                   auxMatrix=0.0_8
 
-                auxMatrix= auxMatrix * MolecularSystem_getCharge(currentSpecieID ) * MolecularSystem_getCharge( otherSpecieID )
-                wavefunction_instance(currentSpecieID)%couplingMatrix%values = wavefunction_instance(currentSpecieID)%couplingMatrix%values + auxMatrix
+                   !! open file for integrals
+                   open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
+                        STATUS='OLD', ACCESS='stream', FORM='Unformatted')
 
-             else
-                auxMatrix=0.0_8
+                   readIntegrals2 : do
 
-                !! open file for integrals
-                open(UNIT=34,FILE=trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
-                     STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
+                      read(unitid, iostat=status) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                     b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                     r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                     s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                    integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-                readIntegrals2 : do
+                      if(status == -1 ) then
+                         print*, "end of file! file: ", trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints"
+                         exit readIntegrals2
+                      end if
 
-                   read(34)   a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                        r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                        integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+                      do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
-                   do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+                         if (a(u) == -1) exit readIntegrals2
 
-                      if (a(u) == -1) exit readIntegrals2
+                         coulomb = wavefunction_instance(otherSpecieID)%densityMatrix%values(r(u),s(u))*integral(u)
 
-                      coulomb = wavefunction_instance(otherSpecieID)%densityMatrix%values(r(u),s(u))*integral(u)
+                         auxMatrix(a(u),b(u)) = auxMatrix(a(u),b(u)) + coulomb
 
-                      auxMatrix(a(u),b(u)) = auxMatrix(a(u),b(u)) + coulomb
+                         if( r(u) /= s(u) ) auxMatrix(a(u),b(u)) = auxMatrix(a(u),b(u)) + coulomb
 
-                      if( r(u) /= s(u) ) auxMatrix(a(u),b(u)) = auxMatrix(a(u),b(u)) + coulomb
+                      end do
 
+                   end do readIntegrals2
+
+                   close(unitid)
+
+                   auxMatrix = auxMatrix * MolecularSystem_getCharge(currentSpecieID ) * MolecularSystem_getCharge( otherSpecieID )
+
+                   do i = 1 , ssize
+                     do j = i , ssize
+                       !$OMP ATOMIC
+                       wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j) = &
+                         wavefunction_instance(currentSpecieID)%couplingMatrix%values(i, j) + auxMatrix(i, j)
+                     end do
                    end do
 
-                end do readIntegrals2
-
-                close(34)
-
-                auxMatrix= auxMatrix * MolecularSystem_getCharge(currentSpecieID ) * MolecularSystem_getCharge( otherSpecieID )
-                wavefunction_instance(currentSpecieID)%couplingMatrix%values = wavefunction_instance(currentSpecieID)%couplingMatrix%values + auxMatrix
+                end if
 
              end if
 
-          end if
+          end do
 
-       end do
+          deallocate(auxMatrix)
 
-       deallocate(auxMatrix)
+          !$OMP END PARALLEL
 
-       !! Simetrize
+       else !! Direct
+          do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
+
+             otherSpecieID = speciesIterator
+
+             !! Restringe suma de terminos repulsivos de la misma especie.
+             if ( otherSpecieID /= currentSpecieID ) then
+              
+                   call DirectIntegralManager_getDirectInterRepulsionIntegrals(&
+                        currentSpecieID, OtherSpecieID, &
+                        trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                        wavefunction_instance(otherSpecieID)%densityMatrix, &
+                        auxMatrix )
+
+                auxMatrix = auxMatrix * MolecularSystem_getCharge(currentSpecieID ) * MolecularSystem_getCharge( otherSpecieID )
+                wavefunction_instance(currentSpecieID)%couplingMatrix%values = wavefunction_instance(currentSpecieID)%couplingMatrix%values + auxMatrix
+                deallocate(auxMatrix)
+
+           end if 
+          end do
+
+       end if
+
+       ! Symmetric
        do i = 1 , ssize
           do j = i , ssize
              wavefunction_instance(currentSpecieID)%couplingMatrix%values(j,i) = wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j)
@@ -624,7 +663,7 @@ contains
     end if
 
     if (  CONTROL_instance%DEBUG_SCFS) then
-       write(*,*) "Matriz de acoplamiento: ", trim(nameOfSpecieSelected)
+       write(*,*) "Coupling Matrix: ", trim(nameOfSpecieSelected)
        call Matrix_show( wavefunction_instance(currentSpecieID)%couplingMatrix )
     end if
 
@@ -639,7 +678,7 @@ contains
 
     character(30) :: nameOfSpecieSelected
     integer :: speciesID
-    type(Matrix)::cosmoContribution
+    ! type(Matrix)::cosmoContribution
 
     nameOfSpecieSelected = "E-"    
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
@@ -762,12 +801,11 @@ contains
 
   !>
   !! @brief Calculates total energy for one species
-  subroutine WaveFunction_obtainTotalEnergyForSpecie( nameOfSpecie, nproc )
+  subroutine WaveFunction_obtainTotalEnergyForSpecie( nameOfSpecie )
 
     implicit none
 
     character(*), optional :: nameOfSpecie
-    integer :: nproc
 
     character(30) :: nameOfSpecieSelected
     integer :: speciesID
@@ -779,7 +817,7 @@ contains
 
     !! Recalcula matriz de dos particulas (G) Con la nueva matriz de densidad
 
-    call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecieSelected) , nproc)
+    call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecieSelected) )
 
     if( .not. allocated(wavefunction_instance(speciesID)%externalPotentialMatrix%values) ) then
 
@@ -846,7 +884,7 @@ contains
     real(8) :: totalCouplingEnergy
     real(8) :: electronicRepulsionEnergy
 
-    character(30) :: nameOfSpecieSelected
+    ! character(30) :: nameOfSpecieSelected
     integer :: speciesID
 
     !! cosmo
@@ -950,121 +988,121 @@ contains
     real(8) :: output
 
     character(30) :: nameOfSpecie
-    character(30) :: nameOfOtherSpecie
-    real(8) :: auxValue
-    real(8) :: auxRepulsion
-    real(8) :: integral(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer :: numberOfContractions
-    integer :: numberOfContractionsOfOtherSpecie
-    integer :: numberOfTotalContractions
-    integer :: numberOfTotalContractionsOfOtherSpecie
+    ! character(30) :: nameOfOtherSpecie
+    ! real(8) :: auxValue
+    ! real(8) :: auxRepulsion
+    ! real(8) :: integral(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    ! integer :: numberOfContractions
+    ! integer :: numberOfContractionsOfOtherSpecie
+    ! integer :: numberOfTotalContractions
+    ! integer :: numberOfTotalContractionsOfOtherSpecie
     integer :: speciesID
-    integer :: otherSpecieID
-    integer :: outFile
-    integer*2 :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: r(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer :: u, v
-    integer :: k, l, m
-    integer :: arrayNumber
+    ! integer :: otherSpecieID
+    ! integer :: outFile
+    ! integer :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    ! integer :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    ! integer :: r(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    ! integer :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    ! integer :: u, v
+    ! integer :: k, l, m
+    ! integer :: arrayNumber
 
     output = 0.0_8
 
     do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
-       
+
        nameOfSpecie = MolecularSystem_getNameOfSpecie( speciesID ) 
        call WaveFunction_buildCouplingMatrix(nameOfSpecie)
 
        output=output+ 0.5*(sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
             * (wavefunction_instance(speciesID)%couplingMatrix%values))) 
-            
+
        !       do otherSpecieID = speciesID+1, MolecularSystem_getNumberOfQuantumSpecies()
 
-          
-          ! !! Restringe suma de terminos repulsivos de la misma especie.
-          ! if ( otherSpecieID /= speciesID ) then
 
-          !    nameOfSpecie = MolecularSystem_getNameOfSpecie( speciesID )
-          !    numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
-          !    numberOfTotalContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
+       ! !! Restringe suma de terminos repulsivos de la misma especie.
+       ! if ( otherSpecieID /= speciesID ) then
 
-          !    nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpecieID )
-          !    numberOfContractionsOfOtherSpecie = MolecularSystem_getNumberOfContractions( otherSpecieID )
-          !    numberOfTotalContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( otherSpecieID )
+       !    nameOfSpecie = MolecularSystem_getNameOfSpecie( speciesID )
+       !    numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
+       !    numberOfTotalContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
 
-          !    !Restringe la suma de terminos repulsivos electronicos
-          !    if(trim(nameOfSpecie)=="E-ALPHA" .and. trim(nameOfOtherSpecie)=="E-BETA") cycle
+       !    nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpecieID )
+       !    numberOfContractionsOfOtherSpecie = MolecularSystem_getNumberOfContractions( otherSpecieID )
+       !    numberOfTotalContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( otherSpecieID )
 
-          !    auxValue = 0.0_8
-          !    m = 0
+       !    !Restringe la suma de terminos repulsivos electronicos
+       !    if(trim(nameOfSpecie)=="E-ALPHA" .and. trim(nameOfOtherSpecie)=="E-BETA") cycle
 
-          !    !! open file for integrals
-          !    open(UNIT=34,FILE=trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
-          !         STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
+       !    auxValue = 0.0_8
+       !    m = 0
 
-          !    auxValue=0.0_8
+       !    !! open file for integrals
+       !    open(UNIT=34,FILE=trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
+       !         STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
 
-          !    readIntegrals : do
+       !    auxValue=0.0_8
 
-          !       read(34) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-          !            r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-          !            integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+       !    readIntegrals : do
 
-          !       do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+       !       read(34) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+       !            r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+       !            integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-          !          if (a(u) == -1) exit readIntegrals
+       !       do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
-          !          m = m + 1
+       !          if (a(u) == -1) exit readIntegrals
 
-          !          auxValue = auxValue +&
-          !               (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
-          !               * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
-          !               *  integral(u))
+       !          m = m + 1
 
-          !          if(b(u) /= a(u)) then
+       !          auxValue = auxValue +&
+       !               (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
+       !               * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
+       !               *  integral(u))
 
-          !             m = m + 1
+       !          if(b(u) /= a(u)) then
 
-          !             auxValue = auxValue +&
-          !                  (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
-          !                  * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
-          !                  *  integral(u))
-          !          end if
+       !             m = m + 1
 
-          !          if(s(u) /= r(u)) then
+       !             auxValue = auxValue +&
+       !                  (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
+       !                  * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
+       !                  *  integral(u))
+       !          end if
 
-          !             m = m + 1
+       !          if(s(u) /= r(u)) then
 
-          !             auxValue = auxValue +&
-          !                  (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
-          !                  * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
-          !                  *  integral(u))
-          !          end if
+       !             m = m + 1
 
-          !          if(b(u) /= a(u) .and. s(u) /= r(u)) then
+       !             auxValue = auxValue +&
+       !                  (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
+       !                  * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
+       !                  *  integral(u))
+       !          end if
 
-          !             m = m + 1
+       !          if(b(u) /= a(u) .and. s(u) /= r(u)) then
 
-          !             auxValue = auxValue +&
-          !                  (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
-          !                  * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
-          !                  *  integral(u))
-          !          end if
+       !             m = m + 1
+
+       !             auxValue = auxValue +&
+       !                  (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
+       !                  * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
+       !                  *  integral(u))
+       !          end if
 
 
-          !       end do
+       !       end do
 
-          !    end do readIntegrals
+       !    end do readIntegrals
 
-          !    auxValue = auxValue *  MolecularSystem_getCharge( speciesID=speciesID ) &
-          !         * MolecularSystem_getCharge( speciesID=otherSpecieID )
+       !    auxValue = auxValue *  MolecularSystem_getCharge( speciesID=speciesID ) &
+       !         * MolecularSystem_getCharge( speciesID=otherSpecieID )
 
-          !    output = output + auxValue
+       !    output = output + auxValue
 
-          !    close(34)
+       !    close(34)
 
-          ! end if
+       ! end if
     end do
 
   end function WaveFunction_getTotalCouplingEnergy
@@ -1079,7 +1117,7 @@ contains
     character(30) :: nameOfSpecie
     character(30) :: nameOfOtherSpecie
     real(8) :: auxValue
-    real(8) :: auxRepulsion
+    ! real(8) :: auxRepulsion
     real(8) :: integral(CONTROL_instance%INTEGRAL_STACK_SIZE)
     integer :: numberOfContractions
     integer :: numberOfContractionsOfOtherSpecie
@@ -1087,17 +1125,23 @@ contains
     integer :: numberOfTotalContractionsOfOtherSpecie
     integer :: speciesID
     integer :: otherSpecieID
-    integer :: outFile
-    integer*2 :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: r(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer*2 :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
-    integer :: u, v
-    integer :: k, l, m
-    integer :: arrayNumber
+    ! integer :: outFile
+    integer :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: r(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: u
+    integer :: m
+    ! integer :: arrayNumber
+
+    !! OpenMP related variables
+    character(50) :: fileid
+    integer :: nthreads
+    integer :: threadid
+    integer :: unitid
+    integer :: status
 
     output =0.0_8
-    auxValue = 0.0_8
 
     do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
        do otherSpecieID = speciesID+1, MolecularSystem_getNumberOfQuantumSpecies()
@@ -1115,18 +1159,33 @@ contains
 
              !Restringe la suma a solo electrones
              if(trim(nameOfSpecie)=="E-ALPHA" .and. trim(nameOfOtherSpecie)=="E-BETA") then
+                
+                !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, auxValue, m, a, b, r, s, integral, u)
+
+                nthreads = OMP_GET_NUM_THREADS()
+                threadid =  OMP_GET_THREAD_NUM()
+                unitid = 40 + threadid
+
+                write(fileid,*) threadid
+                fileid = trim(adjustl(fileid))
+
+                !! open file for integrals
+                open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
+                     STATUS='OLD', ACCESS='stream', FORM='Unformatted')
 
                 auxValue = 0.0_8
-                m = 0             
-                !! open file for integrals
-                open(UNIT=34,FILE=trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
-                     STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
+                m = 0
 
                 readIntegrals : do
 
-                   read(34) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                   read(unitid, iostat=status) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                         r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                         integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+
+                   if(status == -1 ) then
+                      print*, "end of file! file: ",trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints"
+                      exit readIntegrals
+                   end if
 
                    do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
@@ -1176,12 +1235,16 @@ contains
                 auxValue = auxValue *  MolecularSystem_getCharge( speciesID=speciesID ) &
                      * MolecularSystem_getCharge( speciesID=otherSpecieID )
 
+                !$OMP ATOMIC
                 output = output + auxValue
+
+                close(unitid)                
+
+                !$OMP END PARALLEL
 
              end if
           end if
 
-          close(34)                
 
        end do
     end do
@@ -1213,10 +1276,10 @@ contains
   !     real(8), allocatable :: auxMatrix(:,:)
   !     real(8) :: coulomb
 
-  !     integer*2 :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
-  !     integer*2 :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
-  !     integer*2 :: r(CONTROL_instance%INTEGRAL_STACK_SIZE)
-  !     integer*2 :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
+  !     integer :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
+  !     integer :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
+  !     integer :: r(CONTROL_instance%INTEGRAL_STACK_SIZE)
+  !     integer :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
   !     real(8) :: integral(CONTROL_instance%INTEGRAL_STACK_SIZE)
   !     integer :: u
 
@@ -2498,7 +2561,7 @@ contains
     real(8), allocatable :: ints_mat_aux(:,:)
     real(8), allocatable :: cosmo2_aux(:,:)
 
-    real(8), allocatable :: qe(:)
+    ! real(8), allocatable :: qe(:)
     real(8) :: cosmo_int
 
 
@@ -2645,9 +2708,9 @@ contains
     real(8), allocatable :: ints_mat_aux(:,:)
     real(8), allocatable :: cosmoCoup_aux(:,:)
 
-    real(8), allocatable :: auxMatrix(:,:)
+    ! real(8), allocatable :: auxMatrix(:,:)
 
-    real(8), allocatable :: qe(:)
+    ! real(8), allocatable :: qe(:)
     real(8) :: cosmo_int
 
 

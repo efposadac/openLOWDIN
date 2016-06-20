@@ -45,7 +45,7 @@ for line in outputRead:
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffOrb1h1_P2 = abs(refOrb1h1_P2 - Orb1h1_P2)
 
-if (diffTotalEnergy <= 1E-12 and diffOrb1h1_P2 == 0):
+if (diffTotalEnergy <= 1E-10 and diffOrb1h1_P2 == 0):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

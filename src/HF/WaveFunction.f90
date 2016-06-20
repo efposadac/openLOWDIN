@@ -35,8 +35,8 @@ module WaveFunction_
 
 
   !< enum Matrix_type {
-  integer, parameter :: CANONICAL_ORTHOGONALIZATION	= 1
-  integer, parameter :: SYMMETRIC_ORTHOGONALIZATION	= 2
+  integer, parameter :: CANONICAL_ORTHOGONALIZATION = 1
+  integer, parameter :: SYMMETRIC_ORTHOGONALIZATION = 2
   !< }
 
   !< enum type of orbital graph {
@@ -60,17 +60,12 @@ module WaveFunction_
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: coefficientsofcombination
      type(vector) :: energyofmolecularorbital
-
      !! Cosmo Things
      type(Matrix) :: cosmo1
      type(Matrix) :: cosmo2
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
      real(8) :: cosmoCharge
-
-
-
-
      !!**************************************************************
 
 
@@ -85,12 +80,8 @@ module WaveFunction_
      real(8) :: repulsionEnergy
      real(8) :: couplingEnergy
      real(8) :: externalPotentialEnergy
-
-
      !! Cosmo Things
-
      real(8) :: cosmoEnergy
-
      !!**************************************************************
 
   end type WaveFunction
@@ -101,8 +92,6 @@ module WaveFunction_
 
 
 contains
-
-
   !>
   !! @brief Define el constructor para la clase
   subroutine WaveFunction_constructor()
@@ -416,6 +405,32 @@ contains
   end subroutine WaveFunction_setDensityMatrix
 
 
+  !>
+  !! @brief Ajusta la matriz de densidad para una especie espcificada
+  subroutine WaveFunction_setCoefficientsMatrix(coefficientsMatrix, speciesID )
+    implicit none
+
+    type(Matrix), intent(in) :: coefficientsMatrix
+    integer :: speciesID
+
+    integer :: totalNumberOfContractions
+
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+
+    if( .not. allocated(WaveFunction_instance( speciesID )%coefficientsofcombination%values )) then
+       call Matrix_constructor( WaveFunction_instance( speciesID )%coefficientsofcombination, &
+            int(totalNumberOfContractions,8), int(totalNumberOfContractions,8), Math_NaN )
+    end if
+
+    call Matrix_copyConstructor( WaveFunction_instance( speciesID )%coefficientsofcombination, coefficientsMatrix )
+
+    !! Debug
+    ! print*, "Matriz de coefficients inicial ", MolecularSystem_getNameOfSpecie(speciesID)
+    ! call Matrix_show(WaveFunction_instance( speciesID )%coefficientsofcombination)
+
+  end subroutine WaveFunction_setCoefficientsMatrix
+
+
 
   !>
   !! @brief Calcula las componentes de energia para la especie especificada
@@ -485,7 +500,7 @@ contains
             0.5_8* (sum( transpose( wavefunction_instance( specieid )%densitymatrix%values ) * &
             wavefunction_instance( specieid )%cosmo1%values )) +0.5_8 *  &
             (sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-            WaveFunction_instance( specieID )%cosmo4%values ))	+ &
+            WaveFunction_instance( specieID )%cosmo4%values )) + &
             0.5_8*(sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
             WaveFunction_instance( specieID )%cosmo2%values ) + &
             sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
@@ -574,12 +589,12 @@ contains
     integer, intent(in) :: speciesID
 
     integer :: unit
-    integer :: k, l, r, s
-    integer :: ParticleID, ParticleID_2
-    integer :: contractionID, contractionID_2
-    integer :: numberOfCartesiansOrbitals, numberOfCartesiansOrbitals_2
-    integer :: owner, owner_2
-    integer :: auxCharge
+    ! integer :: k, l, r, s
+    ! integer :: ParticleID, ParticleID_2
+    ! integer :: contractionID, contractionID_2
+    ! integer :: numberOfCartesiansOrbitals, numberOfCartesiansOrbitals_2
+    ! integer :: owner, owner_2
+    ! integer :: auxCharge
     integer :: numberOfContractions
     integer :: totalNumberOfContractions
     character(10) :: arguments(2)
@@ -835,6 +850,5 @@ contains
     call Exception_show( ex )
     call Exception_destructor( ex )
   end subroutine WaveFunction_exception
-
 
 end module WaveFunction_

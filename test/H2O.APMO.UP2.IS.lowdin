@@ -28,7 +28,6 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores=6
 	IonizeSpecie="H-A_1" "H-B_1"
 END CONTROL
 

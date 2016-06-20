@@ -59,8 +59,8 @@ module TransformIntegralsA_
   end type TransformIntegralsA
 
   !! TypeOfIntegrals {
-  integer, parameter :: ONE_SPECIE			= 0
-  integer, parameter :: TWO_SPECIES			= 1
+  integer, parameter :: ONE_SPECIE = 0
+  integer, parameter :: TWO_SPECIES = 1
   !! }
 
   public :: &
@@ -69,47 +69,47 @@ module TransformIntegralsA_
        TransformIntegralsA_show, &
        TransformIntegralsA_atomicToMolecularOfOneSpecie, &
        TransformIntegralsA_atomicToMolecularOfTwoSpecies
-!       TransformIntegralsA_readIntegralsTransformed
+  !       TransformIntegralsA_readIntegralsTransformed
 
   private
 
-interface
+  interface
 
-   !**                                                                                                                                                                                                
-   ! Realiza proceso de minimizacion restringida o no de una funcion arbitraria                                                                                                                       
-   ! tomado de:    Zhu, C.; Lu, P. and Nocedal, J. Department of Electrical Engineering                                                                                                               
-   !               and Computer Science. Northwestern University. 1996                                                                                                                                
-   !               L-BFGS-B FORTRAN SUBROUTINES FOR LARGE-SCALE BOUND CONSTRAINED                                                                                                                     
-   !               OPTIMIZATION                                                                                                                                                                       
-   !**                                                                                                                                                                                                
-   subroutine  setulb(n, m, x, l, u, nbd, f, g, factr, pgtol, wa, iwa, task, iprint,  csave, lsave, isave, dsave)
-     character*60    ::  task, csave
-     logical ::   lsave(4)
-     integer :: n, m, iprint, nbd(*), iwa(*), isave(44)
-     real(8) :: f, factr, pgtol, x(*), l(*), u(*), g(*), wa(*), dsave(29)
-   end subroutine setulb
+     !**                                                                                                                                                                                                
+     ! Realiza proceso de minimizacion restringida o no de una funcion arbitraria                                                                                                                       
+     ! tomado de:    Zhu, C.; Lu, P. and Nocedal, J. Department of Electrical Engineering                                                                                                               
+     !               and Computer Science. Northwestern University. 1996                                                                                                                                
+     !               L-BFGS-B FORTRAN SUBROUTINES FOR LARGE-SCALE BOUND CONSTRAINED                                                                                                                     
+     !               OPTIMIZATION                                                                                                                                                                       
+     !**                                                                                                                                                                                                
+     subroutine  setulb(n, m, x, l, u, nbd, f, g, factr, pgtol, wa, iwa, task, iprint,  csave, lsave, isave, dsave)
+       character*60    ::  task, csave
+       logical ::   lsave(4)
+       integer :: n, m, iprint, nbd(*), iwa(*), isave(44)
+       real(8) :: f, factr, pgtol, x(*), l(*), u(*), g(*), wa(*), dsave(29)
+     end subroutine setulb
 
-   !**                                                                                                                                                                                                
-   ! Realiza transformacion de cuatro indices de integrales en OA a integrales                                                                                                                        
-   ! en orbitales moleculares.                                                                                                                                                                        
-   ! tomado de:    Yamamoto, Shigeyoshi; Nagashima, U.                                                                                                                                                
-   !               Four-index integral tranformation exploiting symmetry.                                                                                                                             
-   !               Computer Physics Communications, 2005, 166, 58-65                                                                                                                                  
-   !**                                                                                                                                                                                                
-   subroutine  fourIndexTransformation(numberOfContractions, otherNumberOfContractions, nameFile, nproc, integralStackSize )
-     integer :: numberOfContractions
-     integer :: otherNumberOfContractions
-     integer :: nproc
-     integer :: integralStackSize
-     character(*) :: nameFile
-   end subroutine fourIndexTransformation
+     !**                                                                                                                                                                                                
+     ! Realiza transformacion de cuatro indices de integrales en OA a integrales                                                                                                                        
+     ! en orbitales moleculares.                                                                                                                                                                        
+     ! tomado de:    Yamamoto, Shigeyoshi; Nagashima, U.                                                                                                                                                
+     !               Four-index integral tranformation exploiting symmetry.                                                                                                                             
+     !               Computer Physics Communications, 2005, 166, 58-65                                                                                                                                  
+     !**                                                                                                                                                                                                
+     subroutine  fourIndexTransformation(numberOfContractions, otherNumberOfContractions, nameFile, nproc, integralStackSize )
+       integer :: numberOfContractions
+       integer :: otherNumberOfContractions
+       integer :: nproc
+       integer :: integralStackSize
+       character(*) :: nameFile
+     end subroutine fourIndexTransformation
 
-end interface
+  end interface
 
 
 contains
 
-  
+
   !>
   !! @brief Contructor de la clase
   !<
@@ -130,7 +130,7 @@ contains
   subroutine TransformIntegralsA_destructor(this)
     implicit none
     type(TransformIntegralsA) :: this
-    
+
   end subroutine TransformIntegralsA_destructor
 
   !>
@@ -139,20 +139,20 @@ contains
   subroutine TransformIntegralsA_show()
     implicit none
 
-     print *,""
-     print *,"BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
-     print *,"========================================"
-     print *,""
-     print *,"--------------------------------------------------"
-     print *,"    Algorithm Four-index integral tranformation"
-     print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
-     print *,"  Computer Physics Communications, 2005, 166, 58-65"
-     print *,"--------------------------------------------------"
-     print *,""
+    print *,""
+    print *,"BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
+    print *,"========================================"
+    print *,""
+    print *,"--------------------------------------------------"
+    print *,"    Algorithm Four-index integral tranformation"
+    print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
+    print *,"  Computer Physics Communications, 2005, 166, 58-65"
+    print *,"--------------------------------------------------"
+    print *,""
 
   end subroutine TransformIntegralsA_show
 
-  
+
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de la misma especie
   !! 		a integrales moleculares.
@@ -188,20 +188,19 @@ contains
     call TransformIntegralsA_writeCoefficients(this, coefficientsOfAtomicOrbitals)
 
     !! Inicia proceso de transformacion
-
     call fourIndexTransformation( this%numberOfContractions, 0_4,  trim(this%prefixOfFile ), nproc, integralStackSize )
 
-!    !! Lee  de disco las integrales tranformadas
-!    call TransformIntegralsA_readIntegralsTransformed( this, molecularIntegrals, ONE_SPECIE )
+    !    !! Lee  de disco las integrales tranformadas
+    !    call TransformIntegralsA_readIntegralsTransformed( this, molecularIntegrals, ONE_SPECIE )
 
-!    !! Remueve archivos empleados en proceso de transformacion
-!    call system("rm "// trim(this%prefixOfFile)//"*.dat "// trim(this%prefixOfFile) // "*.values "  )
-		
-!    if ( .not.CONTROL_instance%OPTIMIZE ) then
-!       call cpu_time(finalTime)
-!       write (6,"(T15,A30,ES10.2,A4)") "cpu-time  for transformation:  ", finalTime-initialTime ," (s)"
-!       print *,""
-!    end if
+    !    !! Remueve archivos empleados en proceso de transformacion
+    !    call system("rm "// trim(this%prefixOfFile)//"*.dat "// trim(this%prefixOfFile) // "*.values "  )
+
+    !    if ( .not.CONTROL_instance%OPTIMIZE ) then
+    !       call cpu_time(finalTime)
+    !       write (6,"(T15,A30,ES10.2,A4)") "cpu-time  for transformation:  ", finalTime-initialTime ," (s)"
+    !       print *,""
+    !    end if
 
   end subroutine TransformIntegralsA_atomicToMolecularOfOneSpecie
 
@@ -225,7 +224,7 @@ contains
     integer :: errorNum
     real(8) :: initialTime
     real(8) :: finalTime
-    
+
     if ( .not.CONTROL_instance%OPTIMIZE ) then
        call cpu_time(initialTime)
     end if
@@ -234,7 +233,7 @@ contains
     nproc = CONTROL_instance%NUMBER_OF_CORES
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
-    
+
     this%prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
     this%fileForCoefficients =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//"mo.values"
 
@@ -253,16 +252,16 @@ contains
     call fourIndexTransformation( this%numberOfContractions, size(coefficientsOfAtomicOrbitals%values,dim=1), trim(this%prefixOfFile), 0_4, integralStackSize )
 
     ! Lee  de disco las integrales tranformadas
-!    call TransformIntegralsA_readIntegralsTransformed( this, molecularIntegrals, TWO_SPECIES )
+    !    call TransformIntegralsA_readIntegralsTransformed( this, molecularIntegrals, TWO_SPECIES )
 
     !! Remueve archivos empleados en proceso de transformacion
-!    call system("rm "// trim(this%prefixOfFile)//"*.dat "// trim(this%prefixOfFile) // "*.values "  )
+    !    call system("rm "// trim(this%prefixOfFile)//"*.dat "// trim(this%prefixOfFile) // "*.values "  )
 
-!    if ( .not.CONTROL_instance%OPTIMIZE ) then
-!       call cpu_time(finalTime)
-!       write (6,"(T15,A30,ES10.2,A4)") "cpu-time  for transformation:  ", finalTime-initialTime ," (s)"
-!       print *,""
-!    end if
+    !    if ( .not.CONTROL_instance%OPTIMIZE ) then
+    !       call cpu_time(finalTime)
+    !       write (6,"(T15,A30,ES10.2,A4)") "cpu-time  for transformation:  ", finalTime-initialTime ," (s)"
+    !       print *,""
+    !    end if
 
   end subroutine TransformIntegralsA_atomicToMolecularOfTwoSpecies
 
@@ -298,7 +297,7 @@ contains
        this%numberOfContractions=size(coefficients%values,dim=1)+size(otherCoefficients%values,dim=1)
        this%bias = size(coefficients%values,dim=1)
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
        !! Escribe en disco los coeficientes de combinacion  para un par de especies,  haciendo
        !! un "this%bias" de uno de los conjuntos sobre el otro
        !!
@@ -327,138 +326,138 @@ contains
 
   end subroutine TransformIntegralsA_writeCoefficients
 
-!! This subroutine was moved to lowdinCore  
-!
-!  subroutine TransformIntegralsA_readIntegralsTransformed(this, matrixContainer, typeOfIntegrals )
-!    implicit none
-!    type(TransformIntegralsA) :: this
-!    type(Matrix) :: matrixContainer
-!    integer :: typeOfIntegrals
-!
-!    integer(8) :: numberOfIntegrals
-!    integer(8) :: auxIndex
-!    real(8),dimension(791) :: integralValue
-!    real(8) :: auxValue
-!    integer :: iter
-!    integer :: errorValue
-!    integer :: bufferA
-!    integer :: bufferB
-!    integer :: bufferSize
-!    integer :: lowerIndices(2), upperIndeces(2), counter(2)
-!    integer,dimension(4,791) :: indexBuffer
-!
-!
-!    !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
-!    open(unit=this%unidOfOutputForIntegrals, file=trim(this%prefixOfFile)//"moint.dat", &
-!         status='old',access='sequential', form='unformatted' )
-!
-!    select case( typeOfIntegrals)
-!
-!    case(ONE_SPECIE)
-!
-!       if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
-!
-!       numberOfIntegrals   =	 int( ( (  this%numberOfContractions * (  this%numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
-!            ( (  this%numberOfContractions * (  this%numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
-!
-!       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
-!       matrixContainer%values = 0.0_8
-!
-!       do
-!          read(UNIT=this%unidOfOutputForIntegrals,IOSTAT=errorValue) bufferA,bufferB,integralValue,indexBuffer
-!
-!          bufferSize = iabs( bufferA)
-!          if ( bufferA /= 0 ) then
-!             do iter=1,bufferSize
-!
-!                auxIndex = IndexMap_tensorR4ToVector(indexBuffer(1,iter),indexBuffer(2,iter), &
-!                     indexBuffer(3,iter), indexBuffer(4,iter), this%numberOfContractions )
-!
-!                matrixContainer%values( auxIndex, 1 ) = integralValue(iter)
-!
-!             end do
-!          end if
-!
-!          if ( bufferA <= 0 ) exit
-!
-!       end do
-!
-!
-!    case(TWO_SPECIES)
-!
-!
-!       if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
-!
-!       numberOfIntegrals = ( this%bias    *  ( ( this%bias + 1.0_8) / 2.0_8 ) ) * &
-!            ( (this%numberOfContractions-this%bias) * ( ( (this%numberOfContractions-this%bias) + 1.0_8 ) / 2.0_8 ) )
-!
-!       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
-!
-!       matrixContainer%values = 0.0_8
-!
-!       do
-!          read(UNIT=this%unidOfOutputForIntegrals,IOSTAT=errorValue) bufferA,bufferB,integralValue,indexBuffer
-!          bufferSize = iabs( bufferA)
-!          if ( bufferA /= 0 ) then
-!             do iter=1,bufferSize
-!                counter=1
-!                if ( indexBuffer(1,iter ) > this%bias )  then
-!                   indexBuffer(1,iter)=indexBuffer(1,iter)-this%bias
-!                   upperIndeces( counter(1) ) = indexBuffer(1,iter)
-!                   counter(1)=2
-!                else
-!                   lowerIndices( counter(2) ) = indexBuffer(1,iter)
-!                   counter(2)=2
-!                end if
-!
-!                if ( indexBuffer(2,iter ) > this%bias ) then
-!                   indexBuffer(2,iter)=indexBuffer(2,iter)-this%bias
-!                   upperIndeces( counter(1) ) = indexBuffer(2,iter)
-!                   counter(1)=2
-!                else
-!                   lowerIndices( counter(2) ) = indexBuffer(2,iter)
-!                   counter(2)=2
-!                end if
-!
-!                if ( indexBuffer(3,iter ) > this%bias ) then
-!                   indexBuffer(3,iter)=indexBuffer(3,iter)-this%bias
-!                   upperIndeces( counter(1) ) = indexBuffer(3,iter)
-!                   counter(1)=2
-!                else
-!                   lowerIndices( counter(2) ) = indexBuffer(3,iter)
-!                   counter(2)=2
-!                end if
-!
-!                if ( indexBuffer(4,iter ) > this%bias ) then
-!                   indexBuffer(4,iter)=indexBuffer(4,iter)-this%bias
-!                   upperIndeces( counter(1) ) = indexBuffer(4,iter)
-!                   counter(1)=2
-!                else
-!                   lowerIndices( counter(2) ) = indexBuffer(4,iter)
-!                   counter(2)=2
-!                end if
-!
-!
-!
-!                auxIndex = IndexMap_tensorR4ToVector(lowerIndices(1),lowerIndices(2),upperIndeces(1),upperIndeces(2), &
-!                     this%bias, this%numberOfContractions - this%bias )
-!
-!                matrixContainer%values(auxIndex,1)=integralValue(iter)
-!
-!             end do
-!          end if
-!
-!          if ( bufferA <= 0 ) exit
-!
-!       end do
-!
-!    end select
-!
-!    close(this%unidOfOutputForIntegrals)
-!
-!  end subroutine TransformIntegralsA_readIntegralsTransformed
+  !! This subroutine was moved to lowdinCore  
+  !
+  !  subroutine TransformIntegralsA_readIntegralsTransformed(this, matrixContainer, typeOfIntegrals )
+  !    implicit none
+  !    type(TransformIntegralsA) :: this
+  !    type(Matrix) :: matrixContainer
+  !    integer :: typeOfIntegrals
+  !
+  !    integer(8) :: numberOfIntegrals
+  !    integer(8) :: auxIndex
+  !    real(8),dimension(791) :: integralValue
+  !    real(8) :: auxValue
+  !    integer :: iter
+  !    integer :: errorValue
+  !    integer :: bufferA
+  !    integer :: bufferB
+  !    integer :: bufferSize
+  !    integer :: lowerIndices(2), upperIndeces(2), counter(2)
+  !    integer,dimension(4,791) :: indexBuffer
+  !
+  !
+  !    !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+  !    open(unit=this%unidOfOutputForIntegrals, file=trim(this%prefixOfFile)//"moint.dat", &
+  !         status='old',access='sequential', form='unformatted' )
+  !
+  !    select case( typeOfIntegrals)
+  !
+  !    case(ONE_SPECIE)
+  !
+  !       if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
+  !
+  !       numberOfIntegrals   =	 int( ( (  this%numberOfContractions * (  this%numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
+  !            ( (  this%numberOfContractions * (  this%numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
+  !
+  !       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+  !       matrixContainer%values = 0.0_8
+  !
+  !       do
+  !          read(UNIT=this%unidOfOutputForIntegrals,IOSTAT=errorValue) bufferA,bufferB,integralValue,indexBuffer
+  !
+  !          bufferSize = iabs( bufferA)
+  !          if ( bufferA /= 0 ) then
+  !             do iter=1,bufferSize
+  !
+  !                auxIndex = IndexMap_tensorR4ToVector(indexBuffer(1,iter),indexBuffer(2,iter), &
+  !                     indexBuffer(3,iter), indexBuffer(4,iter), this%numberOfContractions )
+  !
+  !                matrixContainer%values( auxIndex, 1 ) = integralValue(iter)
+  !
+  !             end do
+  !          end if
+  !
+  !          if ( bufferA <= 0 ) exit
+  !
+  !       end do
+  !
+  !
+  !    case(TWO_SPECIES)
+  !
+  !
+  !       if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
+  !
+  !       numberOfIntegrals = ( this%bias    *  ( ( this%bias + 1.0_8) / 2.0_8 ) ) * &
+  !            ( (this%numberOfContractions-this%bias) * ( ( (this%numberOfContractions-this%bias) + 1.0_8 ) / 2.0_8 ) )
+  !
+  !       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+  !
+  !       matrixContainer%values = 0.0_8
+  !
+  !       do
+  !          read(UNIT=this%unidOfOutputForIntegrals,IOSTAT=errorValue) bufferA,bufferB,integralValue,indexBuffer
+  !          bufferSize = iabs( bufferA)
+  !          if ( bufferA /= 0 ) then
+  !             do iter=1,bufferSize
+  !                counter=1
+  !                if ( indexBuffer(1,iter ) > this%bias )  then
+  !                   indexBuffer(1,iter)=indexBuffer(1,iter)-this%bias
+  !                   upperIndeces( counter(1) ) = indexBuffer(1,iter)
+  !                   counter(1)=2
+  !                else
+  !                   lowerIndices( counter(2) ) = indexBuffer(1,iter)
+  !                   counter(2)=2
+  !                end if
+  !
+  !                if ( indexBuffer(2,iter ) > this%bias ) then
+  !                   indexBuffer(2,iter)=indexBuffer(2,iter)-this%bias
+  !                   upperIndeces( counter(1) ) = indexBuffer(2,iter)
+  !                   counter(1)=2
+  !                else
+  !                   lowerIndices( counter(2) ) = indexBuffer(2,iter)
+  !                   counter(2)=2
+  !                end if
+  !
+  !                if ( indexBuffer(3,iter ) > this%bias ) then
+  !                   indexBuffer(3,iter)=indexBuffer(3,iter)-this%bias
+  !                   upperIndeces( counter(1) ) = indexBuffer(3,iter)
+  !                   counter(1)=2
+  !                else
+  !                   lowerIndices( counter(2) ) = indexBuffer(3,iter)
+  !                   counter(2)=2
+  !                end if
+  !
+  !                if ( indexBuffer(4,iter ) > this%bias ) then
+  !                   indexBuffer(4,iter)=indexBuffer(4,iter)-this%bias
+  !                   upperIndeces( counter(1) ) = indexBuffer(4,iter)
+  !                   counter(1)=2
+  !                else
+  !                   lowerIndices( counter(2) ) = indexBuffer(4,iter)
+  !                   counter(2)=2
+  !                end if
+  !
+  !
+  !
+  !                auxIndex = IndexMap_tensorR4ToVector(lowerIndices(1),lowerIndices(2),upperIndeces(1),upperIndeces(2), &
+  !                     this%bias, this%numberOfContractions - this%bias )
+  !
+  !                matrixContainer%values(auxIndex,1)=integralValue(iter)
+  !
+  !             end do
+  !          end if
+  !
+  !          if ( bufferA <= 0 ) exit
+  !
+  !       end do
+  !
+  !    end select
+  !
+  !    close(this%unidOfOutputForIntegrals)
+  !
+  !  end subroutine TransformIntegralsA_readIntegralsTransformed
 
-  
+
   !>
   !! @brief  Maneja excepciones de la clase
   !<
@@ -477,5 +476,5 @@ contains
     call Exception_destructor( ex )
 
   end subroutine TransformIntegralsA_exception
-
+  
 end module TransformIntegralsA_

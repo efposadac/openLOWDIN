@@ -23,7 +23,6 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores=2
 	integralsTransformationMethod = "A"
 END CONTROL
 
