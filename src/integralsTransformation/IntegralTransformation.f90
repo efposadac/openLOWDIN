@@ -49,9 +49,8 @@ program IntegralsTransformation
   implicit none
 
   character(50) :: job
-  integer :: numberOfSpecies
   integer :: i, j, z
-  integer :: specieID, otherSpecieID, species1ID, species2ID
+  integer :: specieID, otherSpecieID
   integer :: numberOfContractions
   integer :: numberOfContractionsOfOtherSpecie
   character(10) :: nameOfSpecies
@@ -258,7 +257,12 @@ program IntegralsTransformation
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
 
                             case ( "D" )
-                                 stop "ERROR: Not implemented.... soon!"
+                              
+                              call TransformIntegralsD_atomicToMolecularOfTwoSpecies( transformInstanceD, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 specieID, nameOfSpecies, &
+                                 otherSpecieID, nameOfOtherSpecie)
+
                             end select
 
                           end if 

@@ -19,7 +19,7 @@ CUDA=\$(CUBAFLAGS)
 INC=-I\$(TOPDIR)src/core/ -I\$(TOPDIR)src/ints/
 LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a
 FLAGS=\$(FCFLAGS)
-LIBS=\$(ALL_LIBS) -larmadillo -lopenblas  -lm 
+LIBS=\$(ALL_LIBS) -lm 
 HELIOSFLAGS=\$(CPPFLAGS) -D_OPENMP  -Ofast -std=c++11   -finline-functions -g  -ffast-math  -w
 
 OBJECTS=$(for file in $SRCMOD 

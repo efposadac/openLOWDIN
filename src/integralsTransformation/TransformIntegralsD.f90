@@ -25,7 +25,6 @@ module TransformIntegralsD_
   use IndexMap_
   use Exception_
   use ReadIntegrals_
-  use Interface_
   implicit none
 
   type, public :: TransformIntegralsD
@@ -51,6 +50,40 @@ module TransformIntegralsD_
 
   end type TransformIntegralsD
 
+  interface
+     subroutine TransformIntegralsD_integralsTransform_partial(coeff, ints, nao, lp, up, lq, uq, lr, ur, ls, us) &
+          bind(C, name="c_integrals_transform_partial")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: coeff
+       type(c_ptr), value :: ints
+       integer(c_int), value :: nao
+       integer(c_int), value :: lp, up, lq, uq, lr, ur, ls, us
+     end subroutine TransformIntegralsD_integralsTransform_partial
+
+     subroutine TransformIntegralsD_integralsTransform_all(coeff, ints, nao) &
+          bind(C, name="c_integrals_transform_all")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: coeff
+       type(c_ptr), value :: ints
+       integer(c_int), value :: nao
+     end subroutine TransformIntegralsD_integralsTransform_all
+
+     subroutine TransformIntegralsD_integralsTransformInter_all(coeff, ocoeff, ints, nao, onao) &
+          bind(C, name="c_integrals_transform_inter_all")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: coeff
+       type(c_ptr), value :: ocoeff
+       type(c_ptr), value :: ints
+       integer(c_int), value :: nao
+       integer(c_int), value :: onao
+     end subroutine TransformIntegralsD_integralsTransformInter_all
+
+  end interface
+
+
   !! TypeOfIntegrals {
   integer, parameter :: ONE_SPECIE = 0
   integer, parameter :: TWO_SPECIES = 1
@@ -61,7 +94,7 @@ module TransformIntegralsD_
        TransformIntegralsD_destructor, &
        TransformIntegralsD_show, &
        TransformIntegralsD_atomicToMolecularOfOneSpecie
-       !TransformIntegralsD_readIntegralsTransformed
+  !TransformIntegralsD_readIntegralsTransformed
 
 contains
 
@@ -127,7 +160,7 @@ contains
 
     ! Setting up intervals for transformation
     call TransformIntegralsD_checkMOIntegralType(speciesID, this)
-    
+
     !! Read Integrals
     nao = MolecularSystem_getTotalNumberOfContractions(speciesID)
     sze = nao * (nao + 1) / 2
@@ -140,16 +173,16 @@ contains
     allocate(ints(sze))
 
     ints = 0.0_8
-    call ReadIntegrals_intraSpecies(trim(nameOfSpecies), ints, CONTROL_instance%NUMBER_OF_CORES)
+    call ReadIntegrals_intraSpecies(trim(nameOfSpecies), ints)
 
 
     if (allocated(coeff)) deallocate(coeff)
     allocate(coeff(nao, nao))
 
     do j = 1, nao
-      do k = 1, nao
-        coeff(j, k) = coefficients%values(j, k)
-      end do
+       do k = 1, nao
+          coeff(j, k) = coefficients%values(j, k)
+       end do
     end do
 
 
@@ -157,11 +190,13 @@ contains
     coeff_ptr = c_loc(coeff(1, 1))
     ints_ptr = c_loc(ints(1))
 
-    call Interface_integralsTransform(coeff_ptr, ints_ptr, nao, &
-                             this%p_lowerOrbital, this%p_upperOrbital, &
-                             this%q_lowerOrbital, this%q_upperOrbital, &
-                             this%r_lowerOrbital, this%r_upperOrbital, &
-                             this%s_lowerOrbital, this%s_upperOrbital)
+    ! call TransformIntegralsD_integralsTransform_partial(coeff_ptr, ints_ptr, nao, &
+    !                          this%p_lowerOrbital, this%p_upperOrbital, &
+    !                          this%q_lowerOrbital, this%q_upperOrbital, &
+    !                          this%r_lowerOrbital, this%r_upperOrbital, &
+    !                          this%s_lowerOrbital, this%s_upperOrbital)
+
+    call TransformIntegralsD_integralsTransform_all(coeff_ptr, ints_ptr, nao)
 
     !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
     open(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE, file=trim(this%prefixOfFile)//"moint.dat", &
@@ -170,15 +205,15 @@ contains
     do p = 1, nao
        do q = 1, p
           do r = 1 , p
-            s_max = r
-            if(p == r) s_max = q 
+             s_max = r
+             if(p == r) s_max = q 
              do s = 1,  s_max
 
-              !! TODO: Use chunks instead.
-              write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4(p, q, r, s))
+                !! TODO: Use chunks instead.
+                write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4Intra(p, q, r, s))
 
-           end do
-         end do
+             end do
+          end do
        end do
     end do
 
@@ -189,6 +224,103 @@ contains
     close(CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE)
 
   end subroutine TransformIntegralsD_atomicToMolecularOfOneSpecie
+
+
+  !>
+  !! @brief Transforma integrales de repulsion atomicas entre particulas de diferente especie
+  !!    a integrales moleculares.
+  subroutine TransformIntegralsD_atomicToMolecularOfTwoSpecies( this, &
+       coefficients, otherCoefficients, &
+       speciesID, nameOfSpecies, &
+       otherSpeciesID, nameOfOtherSpecies )
+
+    implicit none
+
+    type(TransformIntegralsD) :: this
+    type(Matrix) :: coefficients
+    type(Matrix) :: otherCoefficients
+    integer :: speciesID, otherSpeciesID
+    character(*) :: nameOfSpecies, nameOfOtherSpecies
+
+    real(8), allocatable, target :: ints(:)
+    real(8), allocatable, target :: coeff(:, :), ocoeff(:, :)
+    integer :: nao, onao, sze, osze, tsze
+    integer :: j, k
+    integer :: p, q, r, s
+
+    type(c_ptr) :: coeff_ptr, ocoeff_ptr, ints_ptr
+
+
+    this%prefixOfFile =""//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)
+    this%fileForCoefficients =""//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//"mo.values"
+
+    nao = size(coefficients%values,dim=1)
+    onao = size(otherCoefficients%values,dim=1)
+
+    this%numberOfContractions = nao 
+    this%otherNumberOfContractions = onao
+    this%specieID = speciesID
+    this%numberOfContractions = nao
+
+    call TransformIntegralsD_checkInterMOIntegralType(speciesID, otherSpeciesID, this)
+
+    !! Read Integrals
+    sze = nao * (nao + 1) / 2
+    osze = onao * (onao + 1) / 2
+    tsze = sze * osze
+
+    if(allocated(ints)) deallocate(ints)
+    allocate(ints(tsze))
+
+    ints = 0.0_8
+    call ReadIntegrals_interSpecies(trim(nameOfSpecies), trim(nameOfOtherSpecies), osze, ints)
+
+    if (allocated(coeff)) deallocate(coeff)
+    allocate(coeff(nao, nao))
+
+    do j = 1, nao
+       do k = 1, nao
+          coeff(j, k) = coefficients%values(j, k)
+       end do
+    end do
+
+    if (allocated(ocoeff)) deallocate(ocoeff)
+    allocate(ocoeff(onao, onao))
+
+    do j = 1, onao
+       do k = 1, onao
+          ocoeff(j, k) = otherCoefficients%values(j, k)
+       end do
+    end do
+
+    ! Calling C function
+    coeff_ptr = c_loc(coeff(1, 1))
+    ocoeff_ptr = c_loc(ocoeff(1, 1))
+    ints_ptr = c_loc(ints(1))
+
+    call TransformIntegralsD_integralsTransformInter_all(coeff_ptr, ocoeff_ptr, ints_ptr, nao, onao)
+
+    !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+    open(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE, file=trim(this%prefixOfFile)//"moint.dat", &
+         status='replace',access='sequential', form='unformatted' )
+
+    do p = 1, nao
+       do q = p, nao
+          do r = 1 , onao
+             do s = r,  onao
+                !! TODO: Use chunks instead.
+                write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4Inter(p, q, r, s, osze))
+                
+             end do
+          end do
+       end do
+    end do
+
+    write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) -1,0,0,0, 0.0_8 
+
+    close(CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE)
+
+  end subroutine TransformIntegralsD_atomicToMolecularOfTwoSpecies
 
   !>
   !! @brief Contructor de la clase
@@ -243,6 +375,48 @@ contains
     !!    end if
 
   end subroutine TransformIntegralsD_checkMOIntegralType
+
+
+  subroutine TransformIntegralsD_checkInterMOIntegralType(speciesID, otherSpeciesID, this)
+    implicit none
+    integer :: speciesID, otherSpeciesID
+    type(TransformIntegralsD) :: this
+    integer :: totalOccupation, otherTotalOccupation
+    integer :: totalNumberOfContractions, otherTotalNumberOfContractions
+
+    totalOccupation = MolecularSystem_getOcupationNumber( speciesID )
+    totalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions ( speciesID )
+    otherTotalOccupation = MolecularSystem_getOcupationNumber( otherSpeciesID )
+    otherTotalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions ( otherSpeciesID )
+
+
+    !! All orbitals. Default
+    this%p_lowerOrbital = 1
+    this%p_upperOrbital = totalNumberOfContractions
+    this%q_lowerOrbital = 1
+    this%q_upperOrbital = totalNumberOfContractions
+    this%r_lowerOrbital = 1
+    this%r_upperOrbital = otherTotalNumberOfContractions
+    this%s_lowerOrbital = 1
+    this%s_upperOrbital = otherTotalNumberOfContractions
+
+
+    !! only the (ia|jb) integrals will be transformed
+    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2  ) then
+
+       this%p_lowerOrbital = 1
+       this%p_upperOrbital = totalOccupation
+       this%q_lowerOrbital = totalOccupation + 1
+       this%q_upperOrbital = totalNumberOfContractions
+       this%r_lowerOrbital = 1
+       this%r_upperOrbital = otherTotalOccupation
+       this%s_lowerOrbital = otherTotalOccupation + 1
+       this%s_upperOrbital = otherTotalNumberOfContractions
+
+    end if
+
+  end subroutine TransformIntegralsD_checkInterMOIntegralType
+
 
   !>
   !! @brief  Maneja excepciones de la clase
