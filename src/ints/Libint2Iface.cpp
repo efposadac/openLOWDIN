@@ -14,7 +14,7 @@ LibintInterface class implementation
 */
 
 LibintInterface::LibintInterface(const int stack_size, const int id)
-    : s_size(stack_size), speciesID(id) {
+    : max_nprim(0), nbasis(0), s_size(stack_size), max_l(0), speciesID(id) {
   // set up thread pool
   {
     using libint2::nthreads;
@@ -326,6 +326,7 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.stop(0);
 #endif
+            if (buf[0] == nullptr) continue;  // all screened out
 
             auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
                                        bf3_first, bf4_first);
@@ -508,6 +509,8 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
             timer.stop(0);
 #endif
 
+            if (buf[0] == nullptr) continue;  // all screened out
+
             for (auto f1 = 0, f1234 = 0; f1 != n1; ++f1) {
               const auto bf1 = f1 + bf1_first;
               for (auto f2 = 0; f2 != n2; ++f2) {
@@ -673,6 +676,8 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.stop(0);
 #endif
+
+            if (buf[0] == nullptr) continue;  // all screened out
 
             for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
               const auto bf1 = f1 + bf1_first;
@@ -927,7 +932,7 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
 /*
 Auxiliary functions
 */
-shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> bs1,
+shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> &bs1,
                                         const std::vector<libint2::Shell> &_bs2,
                                         const double threshold) {
   const std::vector<libint2::Shell> &bs2 = (_bs2.empty() ? bs1 : _bs2);

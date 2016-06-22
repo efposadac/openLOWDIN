@@ -93,7 +93,7 @@ Matrix compute_schwartz_ints(
         libint2::operator_traits<Kernel>::default_params());
 
 shellpair_list_t compute_shellpair_list(
-    const std::vector<libint2::Shell> bs1,
+    const std::vector<libint2::Shell> & bs1,
     const std::vector<libint2::Shell> &_bs2 = std::vector<libint2::Shell>(),
     double threshold = 1e-12);
 
