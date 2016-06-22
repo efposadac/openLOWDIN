@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -46,30 +46,30 @@ module MPFunctions_
   use String_
   implicit none
 
-	!< enum MollerPlesset_correctionFlags {
-	integer, parameter :: FIRST_ORDER = 1
-	integer, parameter :: SECOND_ORDER = 2
-	integer, parameter :: THIRD_ORDER = 3
-	!< }
+  !< enum MollerPlesset_correctionFlags {
+  integer, parameter :: FIRST_ORDER = 1
+  integer, parameter :: SECOND_ORDER = 2
+  integer, parameter :: THIRD_ORDER = 3
+  !< }
 
-	type :: MollerP
+  type :: MollerP
     
-       	character(50) :: name
+        character(50) :: name
         real(8) :: energyHF
         integer :: orderOfCorrection
-       	integer :: numberOfSpecies
-       	integer :: frozenCoreBoundary
-       	real(8) :: totalEnergy
-       	real(8) :: totalCorrection
-       	real(8) :: secondOrderCorrection
-       	real(8) :: thirdOrderCorrection
-       	!! Vectores para almacenamiento de correcciones a la energia.para cada especie
-       	type(Vector) :: energyCorrectionOfSecondOrder
-       	type(Vector) :: energyOfCouplingCorrectionOfSecondOrder
+        integer :: numberOfSpecies
+        integer :: frozenCoreBoundary
+        real(8) :: totalEnergy
+        real(8) :: totalCorrection
+        real(8) :: secondOrderCorrection
+        real(8) :: thirdOrderCorrection
+        !! Vectores para almacenamiento de correcciones a la energia.para cada especie
+        type(Vector) :: energyCorrectionOfSecondOrder
+        type(Vector) :: energyOfCouplingCorrectionOfSecondOrder
 
-       	logical :: isInstanced
+        logical :: isInstanced
 
-	end type MollerP
+  end type MollerP
 
        type(MollerP), target :: MollerPlesset_instance
 !       character(50) :: job
@@ -88,120 +88,120 @@ module MPFunctions_
 
 
 contains
-	!**
-	! Define el constructor para la clase
-	!
-	!**
-	subroutine MollerPlesset_constructor( orderOfCorrection )
-		implicit none
-		integer, intent(in) :: orderOfCorrection
+  !**
+  ! Define el constructor para la clase
+  !
+  !**
+  subroutine MollerPlesset_constructor( orderOfCorrection )
+    implicit none
+    integer, intent(in) :: orderOfCorrection
 
-		integer :: i
-		type(Exception) :: ex
+    integer :: i
+    type(Exception) :: ex
 
-!		if( .not.MollerPlesset_instance%isInstanced ) then
+!   if( .not.MollerPlesset_instance%isInstanced ) then
 
-			MollerPlesset_instance%orderOfCorrection = orderOfCorrection
-			MollerPlesset_instance%numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-
-
-			if ( MollerPlesset_instance%orderOfCorrection >= 2 ) then
-				call Vector_constructor( MollerPlesset_instance%energyCorrectionOfSecondOrder, MollerPlesset_instance%numberOfSpecies)
-
-				i = MollerPlesset_instance%numberOfSpecies * ( MollerPlesset_instance%numberOfSpecies-1 ) / 2
+      MollerPlesset_instance%orderOfCorrection = orderOfCorrection
+      MollerPlesset_instance%numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
 
+      if ( MollerPlesset_instance%orderOfCorrection >= 2 ) then
+        call Vector_constructor( MollerPlesset_instance%energyCorrectionOfSecondOrder, MollerPlesset_instance%numberOfSpecies)
 
-				call Vector_constructor( MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder, i)
-			end if
+        i = MollerPlesset_instance%numberOfSpecies * ( MollerPlesset_instance%numberOfSpecies-1 ) / 2
 
-			if ( MollerPlesset_instance%orderOfCorrection >= 3 ) then
 
-				call Exception_constructor( ex , ERROR )
-				call Exception_setDebugDescription( ex, "Class object MollerPlesset in the constructor() function" )
-				call Exception_setDescription( ex, "This order correction hasn't been implemented" )
-				call Exception_show( ex )
 
-			end if
+        call Vector_constructor( MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder, i)
+      end if
 
-			MollerPlesset_instance%isInstanced =.true.
+      if ( MollerPlesset_instance%orderOfCorrection >= 3 ) then
 
-!		end if
+        call Exception_constructor( ex , ERROR )
+        call Exception_setDebugDescription( ex, "Class object MollerPlesset in the constructor() function" )
+        call Exception_setDescription( ex, "This order correction hasn't been implemented" )
+        call Exception_show( ex )
 
-	end subroutine MollerPlesset_constructor
+      end if
 
-	!**
-	! Define el destructor para clase
-	!
-	!**
-	subroutine MollerPlesset_destructor()
-		implicit none
+      MollerPlesset_instance%isInstanced =.true.
+
+!   end if
+
+  end subroutine MollerPlesset_constructor
+
+  !**
+  ! Define el destructor para clase
+  !
+  !**
+  subroutine MollerPlesset_destructor()
+    implicit none
 
                MollerPlesset_instance%isInstanced =.false.
 
-	end subroutine MollerPlesset_destructor
+  end subroutine MollerPlesset_destructor
 
 
-	!**
-	! @brief Muestra informacion asociada con la correccion MPn
-	!**
-	subroutine MollerPlesset_show()
-		implicit none
+  !**
+  ! @brief Muestra informacion asociada con la correccion MPn
+  !**
+  subroutine MollerPlesset_show()
+    implicit none
 
-		integer :: i
-		integer :: j
-		integer :: k
+    integer :: i
+    integer :: j
+    integer :: k
 
                if ( MollerPlesset_instance%isInstanced )  then
 
                 print *,""
-	        print *," POST HARTREE-FOCK CALCULATION"
-	        print *," MANY-BODY PERTURBATION THEORY:"
-	        print *,"=============================="
-	        print *,""
-	        write (6,"(T10,A25)") "MOLLER-PLESSET FORMALISM "
-	        write (6,"(T10,A23, I5)") "ORDER OF CORRECTION = ",MollerPlesset_instance%orderOfCorrection
+          print *," POST HARTREE-FOCK CALCULATION"
+          print *," MANY-BODY PERTURBATION THEORY:"
+          print *,"=============================="
+          print *,""
+          write (6,"(T10,A25)") "MOLLER-PLESSET FORMALISM "
+          write (6,"(T10,A23, I5)") "ORDER OF CORRECTION = ",MollerPlesset_instance%orderOfCorrection
 
 
-		    print *,""
-		    write (6,'(T10,A15,ES20.12)') "E(0) + E(1) = ", MollerPlesset_instance%energyHF
-		    write (6,'(T10,A15,ES20.12)') "E(2) = ", MollerPlesset_instance%secondOrderCorrection
-		    write (6,'(T25,A20)') "________________________"
-		    write (6,'(T10,A15,ES25.17)') "E(MP2)= ", MollerPlesset_instance%totalEnergy
-		    print *,""
-		    write ( 6,'(T10,A35)') "-----------------------------------------------"
-		    write ( 6,'(T10,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
-		    write ( 6,'(T10,A35)') "-----------------------------------------------"
-		    print *,""
+        print *,""
+        write (6,'(T10,A15,ES20.12)') "E(0) + E(1) = ", MollerPlesset_instance%energyHF
+        write (6,'(T10,A15,ES20.12)') "E(2) = ", MollerPlesset_instance%secondOrderCorrection
+        write (6,'(T25,A20)') "________________________"
+        write (6,'(T10,A15,ES25.17)') "E(MP2)= ", MollerPlesset_instance%totalEnergy
+        print *,""
+        write ( 6,'(T10,A35)') "-----------------------------------------------"
+        write ( 6,'(T10,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
+        write ( 6,'(T10,A35)') "-----------------------------------------------"
+        print *,""
 
-		    do i=1, MollerPlesset_instance%numberOfSpecies
-			 write (*,'(T10,A5,A4,A8,ES16.8)') "E(2){", trim(  MolecularSystem_getNameOfSpecie( i ) ),"   } = ", &
-					     MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
-		    end do
+        do i=1, MollerPlesset_instance%numberOfSpecies
+       write (*,'(T10,A5,A4,A8,ES16.8)') "E(2){", trim(  MolecularSystem_getNameOfSpecie( i ) ),"   } = ", &
+               MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
+        end do
 
-		    print *,""
-		    k=0
-		    do i=1, MollerPlesset_instance%numberOfSpecies
-			 do j=i+1,MollerPlesset_instance%numberOfSpecies
-				   k=k+1
-				   write (*,'(T10,A5,A8,A4,ES16.8)') "E(2){", &
-					     trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
-					     "} = ", MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(k)
-			 end do
-		    end do
+        print *,""
+        k=0
+        do i=1, MollerPlesset_instance%numberOfSpecies
+       do j=i+1,MollerPlesset_instance%numberOfSpecies
+           k=k+1
+           write (*,'(T10,A5,A8,A4,ES16.8)') "E(2){", &
+               trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
+               "} = ", MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(k)
+       end do
+        end do
 
                end if
 
-	end subroutine MollerPlesset_show
+  end subroutine MollerPlesset_show
 
-	!**
-	! @brief realiza la correccion de energia MPn orden dado
-	!**
-	subroutine MollerPlesset_run()
-		implicit none
+  !**
+  ! @brief realiza la correccion de energia MPn orden dado
+  !**
+  subroutine MollerPlesset_run()
+    implicit none
 
-		type(Exception) :: ex
-		integer :: i
+    type(Exception) :: ex
+    integer :: i
 
   character(50) :: wfnFile
   integer :: wfnUnit
@@ -244,69 +244,69 @@ contains
 
    call Vector_getFromFile(unit=wfnUnit, binary=.true., value=MollerPlesset_instance%energyHF, arguments=["TOTALENERGY"])
 
-			MollerPlesset_instance%totalEnergy = MollerPlesset_instance%energyHF + MollerPlesset_instance%totalCorrection
+      MollerPlesset_instance%totalEnergy = MollerPlesset_instance%energyHF + MollerPlesset_instance%totalCorrection
 
 close(wfnUnit)
 
-		else
+    else
 
-			call Exception_constructor( ex , ERROR )
-			call Exception_setDebugDescription( ex, "Class object MollerPlesset in run() function" )
-			call Exception_setDescription( ex, "You should to instance MollerPlesset module before use this function" )
-			call Exception_show( ex )
+      call Exception_constructor( ex , ERROR )
+      call Exception_setDebugDescription( ex, "Class object MollerPlesset in run() function" )
+      call Exception_setDescription( ex, "You should to instance MollerPlesset module before use this function" )
+      call Exception_show( ex )
 
 end if
 
 
-	end subroutine MollerPlesset_run
+  end subroutine MollerPlesset_run
 
 
-	!**
-	! @ Retorna el la correccion a la energia
-	!**
-	function MollerPlesset_getEnergyCorrection() result( output)
-		implicit none
-		real(8) :: output
+  !**
+  ! @ Retorna el la correccion a la energia
+  !**
+  function MollerPlesset_getEnergyCorrection() result( output)
+    implicit none
+    real(8) :: output
 
-		output = MollerPlesset_instance%totalCorrection
+    output = MollerPlesset_instance%totalCorrection
 
-	end function MollerPlesset_getEnergyCorrection
+  end function MollerPlesset_getEnergyCorrection
 
-	!**
-	! @ Retorna el la correccion a la energia
-	!**
-	function MollerPlesset_getSpecieCorrection( specieName) result( output)
-		implicit none
-		character(*) :: specieName
-		real(8) :: output
+  !**
+  ! @ Retorna el la correccion a la energia
+  !**
+  function MollerPlesset_getSpecieCorrection( specieName) result( output)
+    implicit none
+    character(*) :: specieName
+    real(8) :: output
 
-		integer :: i
+    integer :: i
 
-		do i=1, MollerPlesset_instance%numberOfSpecies
+    do i=1, MollerPlesset_instance%numberOfSpecies
 
-			if ( trim(specieName) == trim(  MolecularSystem_getNameOfSpecie( i ) ) ) then
+      if ( trim(specieName) == trim(  MolecularSystem_getNameOfSpecie( i ) ) ) then
 
-				output = MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
-				return
+        output = MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
+        return
 
-			end if
+      end if
 
-		end do
+    end do
 
-	end function MollerPlesset_getSpecieCorrection
+  end function MollerPlesset_getSpecieCorrection
 
 
 
-	!**
-	! @ Retorna la energia final con correccion Moller-Plesset de orrden dado
-	!**
-	function MollerPlesset_getTotalEnergy() result(output)
-		implicit none
-		real(8) :: output
+  !**
+  ! @ Retorna la energia final con correccion Moller-Plesset de orrden dado
+  !**
+  function MollerPlesset_getTotalEnergy() result(output)
+    implicit none
+    real(8) :: output
 
-		output = MollerPlesset_instance%totalEnergy
+    output = MollerPlesset_instance%totalEnergy
 
-	end function MollerPlesset_getTotalEnergy
+  end function MollerPlesset_getTotalEnergy
 
 
  !<
@@ -325,8 +325,6 @@ end if
    integer :: i
    integer :: j
    integer :: m
-   integer :: n
-   integer :: u
    integer :: specieID
    integer :: otherSpecieID
    integer :: electronsID
@@ -334,7 +332,6 @@ end if
    integer :: ocupationNumberOfOtherSpecie
    integer :: numberOfContractions
    integer :: numberOfContractionsOfOtherSpecie
-   integer(4) :: errorNum
    integer(8) :: auxIndex
    character(10) :: nameOfSpecie
    character(10) :: nameOfOtherSpecie
@@ -346,7 +343,6 @@ end if
    real(8) :: lambdaOfOtherSpecie
    real(8) :: independentEnergyCorrection
    real(8) :: couplingEnergyCorrection
-   real(8) :: auxVal
    real(8) :: auxVal_A
    real(8) :: auxVal_B
    type(Matrix) :: eigenVec
@@ -355,8 +351,8 @@ end if
    character(50) :: arguments(2)
    integer :: wfnUnit
    !! TypeOfIntegrals 
-   integer, parameter :: ONE_SPECIE			= 0
-   integer, parameter :: TWO_SPECIES			= 1
+   integer, parameter :: ONE_SPECIE     = 0
+   integer, parameter :: TWO_SPECIES      = 1
 
    wfnFile = "lowdin.wfn"
    wfnUnit = 20
@@ -414,7 +410,7 @@ end if
 !              eigenVec, auxMatrix, specieID, trim(nameOfSpecie) )
 
                 !!**************************************************************************
-                !!	Calcula la correccion de segundo orden a la energia
+                !!  Calcula la correccion de segundo orden a la energia
                 !!****
                 do a=MollerPlesset_instance%frozenCoreBoundary, ocupationNumber
                         do b=MollerPlesset_instance%frozenCoreBoundary,ocupationNumber
@@ -475,10 +471,10 @@ end if
                                 end do
                         end do
                 end do
-       	end if
+        end if
 
-		MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = independentEnergyCorrection &
-			* ( ( MolecularSystem_getCharge( specieID ) )**4.0_8 )
+    MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = independentEnergyCorrection &
+      * ( ( MolecularSystem_getCharge( specieID ) )**4.0_8 )
 
                 if ( nameOfSpecie == "E-ALPHA" .or. nameOfSpecie == "E-BETA" ) then
 
@@ -494,9 +490,9 @@ end if
         
 
 
-		call Matrix_destructor(auxMatrix)
-		!!
-		!!**************************************************************************
+    call Matrix_destructor(auxMatrix)
+    !!
+    !!**************************************************************************
 
   end do
 

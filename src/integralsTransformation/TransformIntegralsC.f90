@@ -1,23 +1,23 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
 !>
 !! @brief Clase encargada de realizar transformacion de integrales atomicas a  moleculares
 !!
-!! 	Esta clase reliza la transformacion de integrales de orbitales atomicos a orbitales moleculares,
-!!	creando una interface al algoritmo de   Yamamoto, Shigeyoshi; Nagashima, Umpei.
-!!	Computer Physics Communications, 2005, 166, 58-65
+!!  Esta clase reliza la transformacion de integrales de orbitales atomicos a orbitales moleculares,
+!!  creando una interface al algoritmo de   Yamamoto, Shigeyoshi; Nagashima, Umpei.
+!!  Computer Physics Communications, 2005, 166, 58-65
 !!
 !! @author Sergio Gonzalez
 !!
@@ -124,7 +124,7 @@ contains
 
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de la misma especie
-  !! 		a integrales moleculares.
+  !!    a integrales moleculares.
   !<
   subroutine TransformIntegralsC_atomicToMolecularOfOneSpecie( this, coefficientsOfAtomicOrbitals, &
        molecularIntegrals, specieID, nameOfSpecie  )
@@ -223,11 +223,11 @@ contains
           !            twoParticlesIntegrals() = shellIntegrals(i)
           !            indexTwoParticlesIntegrals(IndexMap_tensorR4ToVectorC(int(aa(i),4),int(bb(i),4),int(cc(i),4),int(dd(i),4), &
           !                                       this%numberOfContractions )) = m
-          !		if (IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
+          !   if (IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
           !                                       this%numberOfContractions ) < 0 ) then
-          !		print *, aa(i), bb(i), cc(i), dd(i), IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
+          !   print *, aa(i), bb(i), cc(i), dd(i), IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
           !                                       this%numberOfContractions )
-          !		end if
+          !   end if
 
           index = IndexMap_tensorR4ToVectorB(int(aa(i),8),int(bb(i),8),int(cc(i),8),int(dd(i),8), &
                int(this%numberOfContractions,8))
@@ -446,7 +446,7 @@ contains
 
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de diferente especie
-  !! 		a integrales moleculares.
+  !!    a integrales moleculares.
   !<
   !!  subroutine TransformIntegralsC_atomicToMolecularOfTwoSpecies( this, coefficientsOfAtomicOrbitals, &
   !!       otherCoefficientsOfAtomicOrbitals, molecularIntegrals, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )

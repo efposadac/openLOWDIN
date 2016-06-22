@@ -1004,7 +1004,7 @@ contains
     !!*****************************************************
     !! Integrals transformation options
     !!
-    LowdinParameters_integralsTransformationMethod = "A"
+    LowdinParameters_integralsTransformationMethod = "C"
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
@@ -1252,7 +1252,7 @@ contains
     !!*****************************************************
     !! Integrals transformation options
     !!
-    CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = "A"
+    CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = "C"
 
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   

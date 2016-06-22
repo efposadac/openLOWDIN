@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -34,7 +34,7 @@
 !! @warning This programs only works linked to lowdincore library,
 !!          provided by LOWDIN quantum chemistry package
 !!
-program IntegralsTransformationManager
+program IntegralsTransformation
   use CONTROL_
   use MolecularSystem_
   use IndexMap_
@@ -44,13 +44,13 @@ program IntegralsTransformationManager
   use TransformIntegralsA_
   use TransformIntegralsB_
   use TransformIntegralsC_
+  use TransformIntegralsD_
   use String_
   implicit none
 
   character(50) :: job
-  integer :: numberOfSpecies
   integer :: i, j, z
-  integer :: specieID, otherSpecieID, species1ID, species2ID
+  integer :: specieID, otherSpecieID
   integer :: numberOfContractions
   integer :: numberOfContractionsOfOtherSpecie
   character(10) :: nameOfSpecies
@@ -61,6 +61,7 @@ program IntegralsTransformationManager
   type(TransformIntegralsA) :: repulsionTransformer
   type(TransformIntegralsB) :: transformInstanceB
   type(TransformIntegralsC) :: transformInstanceC
+  type(TransformIntegralsD) :: transformInstanceD
   type(Matrix) :: eigenVec
   type(Matrix) :: eigenVecOtherSpecie 
   character(50) :: wfnFile
@@ -79,8 +80,6 @@ program IntegralsTransformationManager
   job = trim(String_getUppercase(job))
 
   !!Start time
-!!  call Stopwatch_constructor(lowdin_stopwatch)
-!!  call Stopwatch_start(lowdin_stopwatch)
   timeA = omp_get_wtime()
 
   !!Load CONTROL Parameters
@@ -106,12 +105,15 @@ program IntegralsTransformationManager
       call TransformIntegralsC_show
       call TransformIntegralsC_constructor( transformInstanceC )
 
+    case ( "D" )
+
+      call TransformIntegralsD_show
+      call TransformIntegralsD_constructor( transformInstanceD )
+
   end select
 
   !!*******************************************************************************************
   !! BEGIN
-!!  if ( .not.CONTROL_instance%OPTIMIZE ) then
-!!  end if
 
    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
    rewind(wfnUnit)
@@ -157,10 +159,6 @@ program IntegralsTransformationManager
            specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
            numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
 
-          !! Reading the number of non-zero integrals
-
-   
-  
           !! Transforms integrals for one species
 
           if ( transformThisSpecies .eqv. .True. ) then
@@ -181,6 +179,11 @@ program IntegralsTransformationManager
 
                 call TransformIntegralsC_atomicToMolecularOfOneSpecie(  transformInstanceC, &
                        eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
+
+              case ( "D" )
+
+                call TransformIntegralsD_atomicToMolecularOfOneSpecie( transformInstanceD, &
+                       eigenVec, specieID,  trim(nameOfSpecies))
 
             end select
 
@@ -253,6 +256,13 @@ program IntegralsTransformationManager
                                  eigenVec, eigenVecOtherSpecie, &
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
 
+                            case ( "D" )
+                              
+                              call TransformIntegralsD_atomicToMolecularOfTwoSpecies( transformInstanceD, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 specieID, nameOfSpecies, &
+                                 otherSpecieID, nameOfOtherSpecie)
+
                             end select
 
                           end if 
@@ -260,17 +270,14 @@ program IntegralsTransformationManager
            end if
      end do
 
-  !!stop time
-!!  call Stopwatch_stop(lowdin_stopwatch)
   timeB = omp_get_wtime()
   
   write(*, *) ""
-!!  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time for integrals transformation : ", lowdin_stopwatch%enlapsetTime ," (s)"
   write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time for integrals transformation : ", timeB - timeA ," (s)"
   write(*, *) ""
   close(30)
 
 close(wfnUnit)
 
-end program IntegralsTransformationManager
+end program IntegralsTransformation
 

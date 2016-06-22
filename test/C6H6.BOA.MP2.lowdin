@@ -1,0 +1,47 @@
+-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test MP2
+%  H2O Single Point
+%  Electronic Hartree Fock
+%  Basis sets used:
+%      6-311g e-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de H2O'
+
+GEOMETRY
+    e-[C] CC-PVDZ	0.000	1.398	0.000
+    e-[C] CC-PVDZ	1.210	0.699	0.000
+    e-[C] CC-PVDZ	1.210	-0.699	0.000
+    e-[C] CC-PVDZ	0.000	-1.398	0.000
+    e-[C] CC-PVDZ	-1.210	-0.699	0.000
+    e-[C] CC-PVDZ	-1.210	0.699	0.000
+    e-[H] CC-PVDZ	0.000	2.484	0.000
+    e-[H] CC-PVDZ	2.152	1.242	0.000
+    e-[H] CC-PVDZ	2.152	-1.242	0.000
+    e-[H] CC-PVDZ	0.000	-2.484	0.000
+    e-[H] CC-PVDZ	-2.152	-1.242	0.000
+    e-[H] CC-PVDZ	-2.152	1.242	0.000
+    C     dirac	         0.000	1.398	0.000
+    C     dirac	         1.210	0.699	0.000
+    C     dirac	         1.210	-0.699	0.000
+    C     dirac	         0.000	-1.398	0.000
+    C     dirac	        -1.210	-0.699	0.000
+    C     dirac	        -1.210	0.699	0.000
+    H     dirac	        0.000	2.484	0.000
+    H     dirac	        2.152	1.242	0.000
+    H     dirac	        2.152	-1.242	0.000
+    H     dirac	        0.000	-2.484	0.000
+    H     dirac	       -2.152	-1.242	0.000
+    H     dirac	       -2.152	1.242	0.000
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+	mollerPlessetCorrection = 2
+END TASKS
+
+CONTROL
+	numberOfCores=8
+	integralsTransformationMethod = "A"
+END CONTROL
+

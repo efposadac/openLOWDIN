@@ -1,6 +1,8 @@
 #!/bin/bash
-#
 SRCMOD=$(ls [!_]*.f90)
+SRCMOD="$SRCMOD $(ls [!_]*.cpp)" 
+# SRCMOD="$SRCMOD $(ls [!_]*.c)" 
+# SRCMOD2=$(ls [!_]*.cu)
 #
 rm -f makefile
 rm -f *.o 
@@ -13,37 +15,44 @@ include \$(TOPDIR)/CONFIG
 
 TARGET=lowdin-integralsTransformation.x
 LDR=\$(FC)
-INC=-I\$(TOPDIR)src/core/
-INCI=-I\$(TOPDIR)src/ints/
+CUDA=\$(CUBAFLAGS)
+INC=-I\$(TOPDIR)src/core/ -I\$(TOPDIR)src/ints/
 LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a
 FLAGS=\$(FCFLAGS)
-LIBS=\$(ALL_LIBS)
+LIBS=\$(ALL_LIBS) -lm 
+HELIOSFLAGS=\$(CPPFLAGS) -D_OPENMP  -Ofast -std=c++11   -finline-functions -g  -ffast-math  -w
 
 OBJECTS=$(for file in $SRCMOD 
           do
-            echo -e "${file%.f90}.o \c"
+            echo -e "${file%.*}.o \c"
+          done
+          ) 
+
+OBJECTS2=$(for file in $SRCMOD2 
+          do
+            echo -e "${file%.*}.o \c"
           done
           ) 
 EOF
-echo -e "\n\$(TARGET) : \$(OBJECTS)" >> makefile
-echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(LDPATH) \$(LIBS)" >> makefile
-echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
-#
+if [ "$CUDA" = "yes" ] ; then
+    echo -e "\n\$(TARGET) : \$(OBJECTS) \$(OBJECTS2)" >> makefile
+    echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(OBJECTS2) \$(LDPATH) \$(LIBS)" >> makefile
+    echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
+else
+    echo -e "\n\$(TARGET) : \$(OBJECTS)" >> makefile
+    echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(LDPATH) \$(LIBS)" >> makefile
+    echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
+fi
+
+SRCMOD=$(ls [!_]*.f90)
+#Fortran
 for file in $SRCMOD 
 do
-  echo -e "${file%.f90}.o:\t${file} \c" >> makefile
-   for ifile in $INC 
+  echo -e "${file%.*}.o:\t${file} \c" >> makefile
+   for ifile in $INC
    do
       inc=$(grep $ifile $file)
       if [[ -n $inc ]]
-      then
-        echo -e "$ifile \c" >> makefile
-      fi
-   done
-   for ifile in $INCI 
-   do
-      inci=$(grep $ifile $file)
-      if [[ -n $inci ]]
       then
         echo -e "$ifile \c" >> makefile
       fi
@@ -61,8 +70,33 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(FLAGS) ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC)  \$(FLAGS) ${file}\n" >> makefile
 done
+#c++ sources
+SRCMOD=$(ls [!_]*.cpp)
+for file in $SRCMOD 
+do
+    echo -e "${file%.cpp}.o:\t${file} \c" >> makefile
+    echo -e "\n\t\$(CXX) -c \$(INC) \$(HELIOSFLAGS) ${file}\n" >> makefile
+# \$(CFLAGS) ${file}\n" >> makefile
+done
+#
+#c sources
+# SRCMOD=$(ls [!_]*.c)
+# for file in $SRCMOD 
+# do
+#     echo -e "${file%.c}.o:\t${file} \c" >> makefile
+#     echo -e "\n\t\$(CU) -c \$(INC) ${file}\n" >> makefile
+# done
+#cuda sources
+if [ "$CUDA" = "yes" ] ; then
+SRCMOD=$(ls [!_]*.cu)
+for file in $SRCMOD 
+do
+    echo -e "${file%.cu}.o:\t${file} \c" >> makefile
+    echo -e "\n\t\$(CU) -c \$(INC) ${file}\n" >> makefile
+done
+fi
 #
 cat >> makefile << EOF
 clean:: 
