@@ -97,8 +97,10 @@ void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
   // Renormalize
   const auto &shell = shells.back();
 
+  // std::cout<<shell<<std::endl;
+
   libint2::Engine engine(libint2::Operator::overlap, shell.nprim(), max_l, 0);
-  const auto& buf = engine.results();
+  const auto &buf = engine.results();
   engine.compute(shell, shell);
   Eigen::Map<const Matrix> buf_mat(buf[0], shell.size(), shell.size());
   for (int i = 0; i < shell.size(); ++i) {
@@ -326,7 +328,8 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.stop(0);
 #endif
-            if (buf[0] == nullptr) continue;  // all screened out
+            if (buf[0] == nullptr)
+              continue; // all screened out
 
             auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
                                        bf3_first, bf4_first);
@@ -509,7 +512,8 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
             timer.stop(0);
 #endif
 
-            if (buf[0] == nullptr) continue;  // all screened out
+            if (buf[0] == nullptr)
+              continue; // all screened out
 
             for (auto f1 = 0, f1234 = 0; f1 != n1; ++f1) {
               const auto bf1 = f1 + bf1_first;
@@ -561,8 +565,9 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
     engines[t].print_timers();
 #endif
 
-  std::cout << " Number of unique integrals for species: " << speciesID << " = "
-            << num_ints_computed << std::endl;
+  // std::cout << " Number of unique integrals for species: " << speciesID << "
+  // = "
+  //           << num_ints_computed << std::endl;
   // symmetrize the result and return
   Matrix GG = 0.25 * (G[0] + G[0].transpose());
   return GG;
@@ -677,7 +682,8 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
             timer.stop(0);
 #endif
 
-            if (buf[0] == nullptr) continue;  // all screened out
+            if (buf[0] == nullptr)
+              continue; // all screened out
 
             for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
               const auto bf1 = f1 + bf1_first;
@@ -849,6 +855,9 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
             timer.stop(0);
 #endif
 
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
             for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
               const auto bf1 = f1 + bf1_first;
 
@@ -923,8 +932,10 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
     engines[t].print_timers();
 #endif
 
-  std::cout << " Number of unique integrals for species: " << speciesID << " / "
-            << other.get_speciesID() << " = " << num_ints_computed << std::endl;
+  // std::cout << " Number of unique integrals for species: " << speciesID << "
+  // / "
+  //           << other.get_speciesID() << " = " << num_ints_computed <<
+  //           std::endl;
 
   return B[0];
 }
@@ -1051,8 +1062,7 @@ Matrix compute_schwartz_ints(
     engines[i] = engines[0];
   }
 
-  // std::cout << "computing Schwartz bound prerequisites (kernel=" <<
-  // (int)Kernel
+  // std::cout << "computing Schwartz bound prerequisites (kernel=" << (int)Kernel
   //           << ") ... ";
 
   libint2::Timers<1> timer;
@@ -1115,24 +1125,30 @@ Fortran interface
 
 LibintInterface *LibintInterface_new(const int stack_size, const int id) {
   return new LibintInterface(stack_size, id);
+  // printf("%s\n", "LibintInterface_new");
 }
 
-void LibintInterface_del(LibintInterface *lint) { lint->~LibintInterface(); }
+void LibintInterface_del(LibintInterface *lint) { 
+  // printf("%s\n", "LibintInterface_del");
+  lint->~LibintInterface(); }
 
 void LibintInterface_add_particle(LibintInterface *lint, const int z,
                                   const double *center) {
+  // printf("%s\n", "LibintInterface_add_particle");
   lint->add_particle(z, center);
 }
 
 void LibintInterface_add_shell(LibintInterface *lint, double *alpha,
                                double *coeff, double *origin, int l,
                                int nprim) {
+  // printf("%s\n", "LibintInterface_add_shell");
   lint->add_shell(alpha, coeff, origin, l, nprim);
 }
 
 void LibintInterface_compute_1body_ints(LibintInterface *lint,
                                         int integral_kind, double *result) {
   // Default case
+  // printf("%s\n", "LibintInterface_compute_1body_ints");
   libint2::Operator obtype = libint2::Operator::overlap;
 
   switch (integral_kind) {
@@ -1155,11 +1171,13 @@ void LibintInterface_compute_1body_ints(LibintInterface *lint,
 }
 
 void LibintInterface_init_2body_ints(LibintInterface *lint) {
+  // printf("%s\n", "LibintInterface_init_2body_ints");
   lint->init_2body_ints();
 }
 
 void LibintInterface_compute_2body_direct(LibintInterface *lint, double *dens,
                                           double *result) {
+  // printf("%s\n", "LibintInterface_compute_2body_direct");
   auto n = lint->get_nbasis();
   Matrix D(n, n);
 
@@ -1177,6 +1195,7 @@ void LibintInterface_compute_2body_direct(LibintInterface *lint, double *dens,
 
 void LibintInterface_compute_2body_disk(LibintInterface *lint,
                                         const char *filename, double *dens) {
+  // printf("%s\n", "LibintInterface_compute_2body_disk");
   auto n = lint->get_nbasis();
   Matrix D(n, n);
 
@@ -1192,6 +1211,7 @@ void LibintInterface_compute_2body_disk(LibintInterface *lint,
 void LibintInterface_compute_coupling_direct(LibintInterface *lint,
                                              LibintInterface *olint,
                                              double *dens, double *result) {
+  // printf("%s\n", "LibintInterface_compute_coupling_direct");
   auto sid = lint->get_speciesID();
   auto osid = olint->get_speciesID();
 
@@ -1216,5 +1236,6 @@ void LibintInterface_compute_coupling_direct(LibintInterface *lint,
 void LibintInterface_compute_coupling_disk(LibintInterface *lint,
                                            LibintInterface *olint,
                                            const char *filename) {
+  // printf("%s\n", "LibintInterface_compute_coupling_disk");
   lint->compute_coupling_disk(*olint, filename);
 }
