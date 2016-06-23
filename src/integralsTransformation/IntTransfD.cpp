@@ -20,7 +20,7 @@
 
  */
 
-#include <IntTransfD.h>
+#include "IntTransfD.h"
 
 inline int Multi_Index(int i, int j, int k, int l) {
   int tmp, ij, kl;
