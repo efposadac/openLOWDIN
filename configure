@@ -124,8 +124,8 @@ else
         CXX="icpc"
         CC="icc"
         CU="nvcc -arch=sm_20"
-        CFLAGS="-g -O2 -D intel"
-        CPPFLAGS="-g -O2 -D intel"
+        CFLAGS="-g -O2 -D intel "
+        CPPFLAGS="-g -O2 -D intel -std=c++11"
     else
         CXX=g++
         CC=gcc
@@ -162,7 +162,7 @@ else
     if [ "$FLAGS" = "1" ] ; then
         
         if [ "$FC" = "ifort" ] ; then
-    	FCFLAGS="-O2 -D intel -fpic -openmp -fpp  $addflagsCuda"
+    	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
         else
     	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran $addflagsCuda"
         fi
@@ -170,7 +170,7 @@ else
 
     if [ "$FLAGS" = "2" ] ; then
         if [ "$FC" = "ifort" ] ; then
-    	FCFLAGS="-O2 -D intel -fpic -openmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+    	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
         else
     	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
         fi
@@ -178,7 +178,7 @@ else
 
     if [ "$FLAGS" = "3" ] ; then
         if [ "$FC" = "ifort" ] ; then	
-    	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -openmp -traceback -g -debug extended  $addflagsCuda"
+    	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -qopenmp -traceback -g -debug extended  $addflagsCuda"
         else
     	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
     	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"

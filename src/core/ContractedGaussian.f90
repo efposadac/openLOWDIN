@@ -104,10 +104,18 @@ contains
     write(unit,*) this%numCartesianOrbital
     write(unit,*) this%owner
     write(unit,*) this%origin
+
+#ifdef intel
+    write(unit,'(<size(this%orbitalExponents)>F)') this%orbitalExponents
+    write(unit,'(<size(this%contractionCoefficients)>F)') this%contractionCoefficients
+    write(unit,'(<size(this%contNormalization)>F)') this%contNormalization
+    write(unit,'(<size(this%primNormalization)>F)') this%primNormalization
+#else
     write(unit,*) this%orbitalExponents
     write(unit,*) this%contractionCoefficients
     write(unit,*) this%contNormalization
     write(unit,*) this%primNormalization
+#endif
 
   end subroutine ContractedGaussian_saveToFile
 
