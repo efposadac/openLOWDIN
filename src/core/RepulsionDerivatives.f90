@@ -657,7 +657,12 @@ contains
     ! !    end do
     ! ! end do
     ! write(*,"(A)") "-----------------------------------------"
-     RepulsionDerivatives_instance%isInstanced = .true.
+    ! deallocate(work)
+    ! deallocate(workForces)
+    ! deallocate(incompletGamma)
+    
+    RepulsionDerivatives_instance%isInstanced = .true.
+    
   end subroutine RepulsionDerivatives_getDerive
 
   !>
@@ -1063,6 +1068,10 @@ contains
        nc4 =  contr(pOtherSpecieID,ss)%numCartesianOrbital
        call RepulsionDerivatives_permute(nc1,nc2,nc3,nc4, p12, p34, p13p24, arraySsize(1), deriveValue)
     end if
+
+    ! deallocate(work)
+    ! deallocate(workForces)
+    ! deallocate(incompletGamma)
 
     ! call RepulsionDerivatives_destructor()
     

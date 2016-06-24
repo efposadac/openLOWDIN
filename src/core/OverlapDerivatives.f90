@@ -194,7 +194,10 @@ contains
        end do
     end do
 
-   ! write(*,"(A)") "Derivadas de overlap"
+    deallocate(x)
+    deallocate(y)
+    deallocate(z)    
+    ! write(*,"(A)") "Derivadas de overlap"
    ! do i = 0, 6*ssize - 1
    !    write(*,"(f17.12)") deriveValue(i)
    ! end do

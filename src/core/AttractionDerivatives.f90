@@ -338,6 +338,12 @@ contains
     !    write(*,"(f12.8)") deriveValue(i)
     ! end do
 
+    deallocate(vi)
+    deallocate(vx)
+    deallocate(vy)    
+    deallocate(vz)
+    deallocate(pointCharges)
+    
   end subroutine AttractionDerivatives_getDerive
 
   !>

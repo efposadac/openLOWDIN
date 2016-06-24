@@ -161,14 +161,7 @@ contains
 
     case( REPULSION_DERIVATIVES )
 
-       if ( present(k) .and. present(l) ) then
           call RepulsionDerivatives_getDerive( contractions, i, j, k, l, deriveVector, specieID)
-       else
-          call Exception_constructor( ex , ERROR )
-          call Exception_setDebugDescription( ex, "Class object DerivativeManager in the getElement(i,j) function" )
-          call Exception_setDescription( ex, "For repulsion derivatives is necessary four indices (p,q|r,s)" )
-          call Exception_show( ex )
-       end if
 
     case( TWOPARTICLE_REPULSION_DERIVATIVES )
        call RepulsionDerivatives_getInterDerive(i, j, k, l, deriveVector, specieID, otherSpecieID)

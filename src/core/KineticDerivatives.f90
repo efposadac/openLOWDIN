@@ -276,6 +276,10 @@ contains
     !    write(*,"(f12.8)") deriveValue(i)
     ! end do
 
+    deallocate(x)
+    deallocate(y)
+    deallocate(z)
+    
   end subroutine KineticDerivatives_getDerive
 
   !>

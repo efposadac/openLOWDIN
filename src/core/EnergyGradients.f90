@@ -406,7 +406,7 @@ contains
     EnergyGradients_instance%gradients%coupling = 0.0_8
 
     if ( EnergyGradients_instance%order == 1 ) then
-     
+      
        if(CONTROL_instance%COSMO)then
           call EnergyGradients_calculateAnalyticUncoupledFirstDerivative(surface_aux)
        else
@@ -416,7 +416,7 @@ contains
        if ( MolecularSystem_instance%numberOfQuantumSpecies > 1) then
           call EnergyGradients_calculateAnalyticCouplingFirstDerivative()
        end if
-
+       
        call EnergyGradients_calculateFistDerivativeOfPuntualEnergy()
 
        k=1
