@@ -301,9 +301,9 @@ contains
     allocate(incompletGamma(0:sumAngularMoment+2))
 
     ! Libderiv constructor (solo una vez)
-    !if( RepulsionDerivatives_isInstanced() ) then
+    ! if( RepulsionDerivatives_isInstanced() ) then
     !   call RepulsionDerivatives_destructor()
-    !end if
+    ! end if
     if( .not. RepulsionDerivatives_isInstanced() ) then
        call RepulsionDerivatives_constructor(maxAngularMoment,maxNPrimSize,maxNCartSize)
        !! DEBUG
@@ -693,6 +693,7 @@ contains
     integer :: arraySize
     integer :: counter, auxCounter
     integer(8) :: control
+    ! integer :: maxAllAngularMoment
     integer,target :: i, j, k, l !< contraction length iterators
     integer :: nc1, nc2, nc3, nc4
     integer :: pSpecieID, pOtherSpecieID !! pointer to species ID
@@ -745,13 +746,19 @@ contains
     if(allocated(incompletGamma)) deallocate(incompletGamma)
     allocate(incompletGamma(0:sumAngularMoment+2))
 
-    ! Libderiv constructor (solo una vez)
+    ! if( .not. RepulsionDerivatives_isInstanced() ) then
+    !    maxAllAngularMoment = maxAngularMoment
+    ! end if
+
+     ! Libderiv constructor (solo una vez)
     if( RepulsionDerivatives_isInstanced() ) then
-       call RepulsionDerivatives_destructor()
+       ! if(RepulsionDerivatives_instance%maxAngularMoment < maxAngularMoment) then
+          call RepulsionDerivatives_destructor()
+       ! end if
     end if
     
     if( .not. RepulsionDerivatives_isInstanced() ) then
-       call RepulsionDerivatives_constructor(sumAngularMoment,maxNPrimSize,maxNCartSize)
+       call RepulsionDerivatives_constructor(maxAngularMoment,maxNPrimSize,maxNCartSize)
        !! DEBUG
        !call RepulsionDerivatives_show()
     end if
@@ -1056,6 +1063,15 @@ contains
        nc4 =  contr(pOtherSpecieID,ss)%numCartesianOrbital
        call RepulsionDerivatives_permute(nc1,nc2,nc3,nc4, p12, p34, p13p24, arraySsize(1), deriveValue)
     end if
+
+    ! call RepulsionDerivatives_destructor()
+    
+    ! if(maxAllAngularMoment < maxAngularMoment) then
+    !    maxAllAngularMoment = maxAngularMoment
+    !    call RepulsionDerivatives_constructor(maxAllAngularMoment,maxNPrimSize,maxNCartSize)
+    ! else
+    !    call RepulsionDerivatives_constructor(maxAllAngularMoment,maxNPrimSize,maxNCartSize)
+    ! end if
 
     ! write(*,"(A)") "-----------------------------------------"
     ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",a,",",b,"|",r,",",s,")"

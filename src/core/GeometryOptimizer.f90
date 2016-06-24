@@ -410,23 +410,23 @@ contains
   !! @brief Muestra en la informacion en un punto de iteracion
   !!
   !<
-  subroutine GeometryOptimizer_showIterationInfo(iterationPoint, size, energy, maxdx, maxdf, coordinates)
+  subroutine GeometryOptimizer_showIterationInfo(iterationPoint, sizeCoord, energy, maxdx, maxdf, coordinates, gradient)
     implicit none
     integer, intent(in) :: iterationPoint
-    integer, intent(in) :: size
+    integer, intent(in) :: sizeCoord
     real(8), intent(in) :: energy, maxdx, maxdf
-    real(8), intent(in) :: coordinates(size)
-
+    real(8), intent(in) :: coordinates(sizeCoord)
+    real(8), intent(in) :: gradient(sizeCoord)
     ! real(8) :: evaluationPoint(:)
-    ! real(8) :: gradient(:)
+
     ! real(8) :: functionValue
 
     integer :: i
-    ! integer :: k
-    ! real(8) :: origin(3)
-    ! integer :: totalNumberOfParticles
+    integer :: k
+    real(8) :: origin(3)
+    integer :: totalNumberOfParticles
 
-    ! totalNumberOfParticles = size( ParticleManager_instance )
+    totalNumberOfParticles = size( ParticleManager_instance )
 
     write(6,"(T20,A65)") "-----------------------------------------------------------------"
     write(6,"(T20,A29,I4)") "GEOMETRY OPTIMIZATION POINT: ", iterationPoint
@@ -440,40 +440,40 @@ contains
     ! do i = 1, size
     !    write(6,"(T20,F20.10)") coordinates(i)
     ! end do
-    !     write (6,"(A10,A16,A20,A20)") "Particle","<x>","<y>","<z>"
-    !     do i = 1, totalNumberOfParticles!ParticleManager_getTotalNumberOfParticles()
+    write (6,"(A10,A16,A20,A20)") "Particle","<x>","<y>","<z>"
+    do i = 1, totalNumberOfParticles!ParticleManager_getTotalNumberOfParticles()
 
-    !        if ( ParticleManager_isCenterOfOptimization( i ) ) then
-    !           origin = ParticleManager_getOrigin( iterator = i )
-    !           if ( CONTROL_instance%UNITS=="ANGSTROMS") then
-    !              origin = origin * AMSTRONG
-    !           end if
-    ! #ifdef intel
-    !           write (6,"(A10,<3>F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
-    ! #else
-    !           write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
-    ! #endif
-    !        end if
+       if ( ParticleManager_isCenterOfOptimization( i ) ) then
+          origin = ParticleManager_getOrigin( iterator = i )
+          if ( CONTROL_instance%UNITS=="ANGSTROMS") then
+             origin = origin * AMSTRONG
+          end if
+#ifdef intel
+          write (6,"(A10,<3>F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
+#else
+          write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
+#endif
+       end if
 
-    !     end do
+    end do
 
 
     !     ! print *,""
-    !     write (6,"(A)") ""
-    !     write (6,"(T20,A25)") "GRADIENT: HARTREE/BOHR"
-    !     write (6,"(A10,A16,A20,A20)") "Particle","dE/dx","dE/dy","dE/dz"
-    !     k=1
-    !     do i = 1, totalNumberOfParticles
+    write (6,"(A)") ""
+    write (6,"(T20,A25)") "GRADIENT: HARTREE/BOHR"
+    write (6,"(A10,A16,A20,A20)") "Particle","dE/dx","dE/dy","dE/dz"
+    k=1
+    do i = 1, totalNumberOfParticles
 
-    !        if ( ParticleManager_isCenterOfOptimization( i ) .and. k < size(gradient)) then
+       if ( ParticleManager_isCenterOfOptimization( i ) .and. k < size(gradient)) then
 
-    !           write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), &
-    !                gradient(k), gradient(k+1),gradient(k+2)
-    !           k=k+3
+          write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), &
+               gradient(k), gradient(k+1),gradient(k+2)
+          k=k+3
 
-    !        end if
+       end if
 
-    !     end do
+    end do
     !     write (6,*) ""
     !     write (6,"(T10,A24,F20.10)") "TOTAL ENERGY (Hartree) =", functionValue
 

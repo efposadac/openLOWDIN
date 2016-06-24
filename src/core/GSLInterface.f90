@@ -53,13 +53,14 @@ module GSLInterface_
             integer, intent(in)    :: getgrad
             real(8), intent(inout) :: grad(n)
           end subroutine f
-          subroutine write_iter_info(iter, n, val, maxdr, maxgrad, x)
+          subroutine write_iter_info(iter, n, val, maxdr, maxgrad, x, grad)
             integer, intent(in) :: iter
             integer, intent(in) :: n
             real(8), intent(in) :: val
             real(8), intent(in) :: maxdr
             real(8), intent(in) :: maxgrad
             real(8), intent(in) :: x(n)
+            real(8), intent(in) :: grad(n)
           end subroutine write_iter_info
        end interface
        real(8), intent(out)   :: minimum

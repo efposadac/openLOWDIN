@@ -78,7 +78,7 @@ my_df (const gsl_vector *v, void *params, gsl_vector *df)
   my_fdf(v, params, NULL, df);
 }
 
-typedef void (*print_f_ptr)(const int*, const int*, const double*, const double*, const double*, const double*);
+typedef void (*print_f_ptr)(const int*, const int*, const double*, const double*, const double*, const double*, const double*);
 
 int FC_FUNC_(low_minimize, LOW_MINIMIZE)
      (const int *method, const int *dim, double *point, const double *step, 
@@ -166,7 +166,7 @@ int FC_FUNC_(low_minimize, LOW_MINIMIZE)
       maxgrad = gsl_vector_max(absgrad);
 
       /* Print information */
-      write_info(&iter, dim, minimum, &maxdr, &maxgrad, point);
+      write_info(&iter, dim, minimum, &maxdr, &maxgrad, point, grad);
       
       /* Store infomation for next iteration */
       /* for(i=0; i<*dim; i++) oldpoint[i] = point[i]; */

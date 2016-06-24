@@ -1,0 +1,21 @@
+SYSTEM_DESCRIPTION='Water optimization'
+
+GEOMETRY
+e-(H) 6-31G  0.000000000000    -0.759061990794     0.521953018295
+e-(H) 6-31G  0.000000000000     0.759061990794     0.521953018295
+e-(O) 6-31G 0.000000000000     0.00000000000      0.00000000000
+H_1   NAKAI-3-SP    0.000000000000    -0.759061990794     0.521953018295
+H     dirac         0.000000000000     0.759061990794     0.521953018295
+O     dirac         0.000000000000     0.00000000000      0.00000000000
+END GEOMETRY
+
+TASKS
+        method = "RHF"
+END TASKS
+
+CONTROL
+	optimize = T 
+        minimizationMethod = 4
+        minimizationToleranceGradient= 1.0E-5
+        minimizationLineTolerance= 0.1E-3
+END CONTROL
