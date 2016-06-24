@@ -279,9 +279,9 @@ contains
     if (current_nmax > -1) then
 
        deallocate (ftable,stat=istat)
-       ! 		if (istat /= 0) then
-       ! 			call stop_memory(routinen,modulen,__line__,"ftable")
-       ! 		end if
+       if (istat /= 0) then
+          stop "ftable"
+       end if
 
        current_nmax = -1
 

@@ -41,12 +41,12 @@ module RepulsionDerivatives_
   
   !> @brief Type for libint/c++ library
   type, public :: RepulsionDerivatives
-     logical :: isInstanced
-     integer :: maxAngularMoment
-     integer :: numberOfPrimitives
-     integer :: numberOfCartesians
-     integer :: libintStorage
-     integer :: libderivStorage
+     logical :: isInstanced = .false.
+     integer :: maxAngularMoment = 0
+     integer :: numberOfPrimitives = 0
+     integer :: numberOfCartesians = 0
+     integer :: libintStorage = 0
+     integer :: libderivStorage = 0
      type(lib_int) :: libint
      type(lib_deriv) :: libderiv
   end type RepulsionDerivatives
@@ -59,7 +59,7 @@ module RepulsionDerivatives_
   !>
   !! pointers to array functions on  libint.a, libderiv.a y libr12.a
   type(c_funptr), dimension(0:3,0:3,0:3,0:3), bind(c) :: build_deriv1_eri
-  
+  logical :: INITIATED_LIBINT = .false.
   interface
 
      !>
@@ -149,7 +149,7 @@ module RepulsionDerivatives_
   end interface
   
   !> @brief Singleton lock
-  type(RepulsionDerivatives), public :: RepulsionDerivatives_instance
+  type(RepulsionDerivatives), allocatable, public :: RepulsionDerivatives_instance(:)
 
 contains
   
@@ -157,42 +157,48 @@ contains
   ! @brief Constructor por omision, se llama una sola vez!
   ! @author J.M. Rodas 2015
   ! @version 1.0
-  subroutine RepulsionDerivatives_constructor(maxAngMoment, numberOfPrimitives, numberOfCartesians)
+  subroutine RepulsionDerivatives_constructor(maxAngMoment, numberOfPrimitives, numberOfCartesians, speciesID)
     implicit none
     integer, intent(in) :: maxAngMoment
     integer, intent(in) :: numberOfPrimitives
     integer, intent(in) :: numberOfCartesians
+    integer, intent(in) :: speciesID
 
-    integer :: storage
     integer(kind=c_int) :: libIntStorage_c
     integer(kind=c_int) :: libDerivStorage_c
     integer(kind=c_int) :: maxAngMoment_c
     integer(kind=c_int) :: numberOfPrimitives_c
     integer(kind=c_int) :: numberOfCartesians_c
 
-    if (.not. RepulsionDerivatives_isInstanced()) then
+    if (.not. RepulsionDerivatives_isInstanced(speciesID)) then
+
+      print*, "Starting Libint for species: ", speciesID
        
-       RepulsionDerivatives_instance%maxAngularMoment = maxAngMoment
-       RepulsionDerivatives_instance%numberOfPrimitives = numberOfPrimitives
-       RepulsionDerivatives_instance%numberOfCartesians = numberOfCartesians
+       RepulsionDerivatives_instance(speciesID)%maxAngularMoment = maxAngMoment
+       RepulsionDerivatives_instance(speciesID)%numberOfPrimitives = numberOfPrimitives
+       RepulsionDerivatives_instance(speciesID)%numberOfCartesians = numberOfCartesians
 
-       call RepulsionDerivatives_initLibIntBase()
-       call RepulsionDerivatives_initLibDerivBase()
+       if(.not. INITIATED_LIBINT) then
+          call RepulsionDerivatives_initLibIntBase()
+          call RepulsionDerivatives_initLibDerivBase()
+          INITIATED_LIBINT = .true.
+       end if
+       
 
-       maxAngMoment_c = RepulsionDerivatives_instance%maxAngularMoment
-       numberOfPrimitives_c = RepulsionDerivatives_instance%numberOfPrimitives
+       maxAngMoment_c = RepulsionDerivatives_instance(speciesID)%maxAngularMoment
+       numberOfPrimitives_c = RepulsionDerivatives_instance(speciesID)%numberOfPrimitives
        numberOfCartesians_c = maxAngMoment_c*maxAngMoment_c*maxAngMoment_c*maxAngMoment_c
 
        libDerivStorage_c = RepulsionDerivatives_initLibDeriv1(&
-            RepulsionDerivatives_instance%libderiv, &
+            RepulsionDerivatives_instance(speciesID)%libderiv, &
             maxAngMoment_c, &
             numberOfPrimitives_c, &
             numberOfCartesians_c)
 
-       RepulsionDerivatives_instance%libintStorage = libIntStorage_c
-       RepulsionDerivatives_instance%libderivStorage = libDerivStorage_c
+       RepulsionDerivatives_instance(speciesID)%libintStorage = libIntStorage_c
+       RepulsionDerivatives_instance(speciesID)%libderivStorage = libDerivStorage_c
           
-       RepulsionDerivatives_instance%isInstanced = .true.
+       RepulsionDerivatives_instance(speciesID)%isInstanced = .true.
        
     else
        
@@ -206,23 +212,23 @@ contains
   !>
   !! @brief Destructor por omision para ser llamado una sola vez
   !! @author J.M. Rodas
-  !! @version 1.0
-  subroutine RepulsionDerivatives_destructor()
-    implicit none
+  ! !! @version 1.0
+  ! subroutine RepulsionDerivatives_destructor()
+  !   implicit none
     
-    if (RepulsionDerivatives_isInstanced()) then
-       !call RepulsionDerivatives_freeLibInt(RepulsionDerivatives_instance%libint)
-       ! call RepulsionDerivatives_freeLibDeriv(RepulsionDerivatives_instance%libderiv) !! it does not work
+  !   if (RepulsionDerivatives_isInstanced()) then
+  !      !call RepulsionDerivatives_freeLibInt(RepulsionDerivatives_instance%libint)
+  !      ! call RepulsionDerivatives_freeLibDeriv(RepulsionDerivatives_instance%libderiv) !! it does not work
           
-       RepulsionDerivatives_instance%isInstanced = .false.
+  !      RepulsionDerivatives_instance%isInstanced = .false.
        
-    else
+  !   else
        
-       call RepulsionDerivatives_exception( ERROR, "in libint interface destructor function", "you must instantiate this object before to destroying it")
+  !      call RepulsionDerivatives_exception( ERROR, "in libint interface destructor function", "you must instantiate this object before to destroying it")
        
-    end if
+  !   end if
     
-  end subroutine RepulsionDerivatives_destructor
+  ! end subroutine RepulsionDerivatives_destructor
 
 
   !>
@@ -254,9 +260,8 @@ contains
     integer :: aux !<auxiliary index
     integer :: arraySsize(1)
     integer :: arraySize
-    integer :: counter, auxCounter
     integer(8) :: control
-    integer,target :: i, j, k, l !< contraction length iterators
+    integer,target :: i, k !< contraction length iterators
     integer :: nc1, nc2, nc3, nc4
     real(8), dimension(:), pointer :: derivativesPtr !< pointer to C array of derivatives
     real(c_double), dimension(:), pointer :: temporalPtr
@@ -271,8 +276,17 @@ contains
     type(prim_data), target :: primitiveQuartet !<Primquartet object needed by LIBINT
     type(c_ptr) :: resultPc !< array of integrals from C (LIBINT)
     procedure(RepulsionDerivatives_buildLibDeriv), pointer :: pBuild !<procedure to calculate eris on LIBINT !x
-    real(8) :: lambda, derivativesum
+    real(8) :: lambda
     
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+
+
+    if (.not. allocated(RepulsionDerivatives_instance)) then
+       allocate(RepulsionDerivatives_instance(nspecies))  
+    endif
+
     maxAngularMoment = MolecularSystem_getMaxAngularMoment(specieID)
     maxNumberOfPrimitives = MolecularSystem_getMaxNumberofPrimitives(specieID)
     maxNumberOfCartesians = MolecularSystem_getMaxNumberofCartesians(specieID)
@@ -304,8 +318,8 @@ contains
     ! if( RepulsionDerivatives_isInstanced() ) then
     !   call RepulsionDerivatives_destructor()
     ! end if
-    if( .not. RepulsionDerivatives_isInstanced() ) then
-       call RepulsionDerivatives_constructor(maxAngularMoment,maxNPrimSize,maxNCartSize)
+    if( .not. RepulsionDerivatives_isInstanced(specieID) ) then
+       call RepulsionDerivatives_constructor(maxAngularMoment,maxNPrimSize,maxNCartSize, specieID)
        !! DEBUG
        !call RepulsionDerivatives_show()
     end if
@@ -425,14 +439,14 @@ contains
 
     ! Asigna valores a la estrucutra Libderiv
     
-    RepulsionDerivatives_instance%libderiv%AB = AB
-    RepulsionDerivatives_instance%libderiv%CD = CD
+    RepulsionDerivatives_instance(specieID)%libderiv%AB = AB
+    RepulsionDerivatives_instance(specieID)%libderiv%CD = CD
     ! write(*,"(A)") "----------------------------------------"
     ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
     ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A6,I1,A1,I1,A1,I1,A1,I1,A1)") "(",am1,",",am2,"|",am3,",",am4,") -> (",am4,",",am3,"|",am2,",",am1,")"
     ! write(*,"(A)") "-----------------------------------------"
     ! write(*,"(A,3(F17.12))") "AB: ", AB(:)
-    ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%AB(:)
+    ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance(specieID)%libderiv%AB(:)
     ! write(*,"(A)") "-----------------------------------------"
 
     numberOfPrimitives = 1
@@ -545,7 +559,7 @@ contains
                 ! write(*,"(A)") "-----------------------------------------"
                 ! arraySsize(1) = arraySize
 
-                RepulsionDerivatives_instance%libderiv%PrimQuartet = c_loc(primitiveQuartet) !ok
+                RepulsionDerivatives_instance(specieID)%libderiv%PrimQuartet = c_loc(primitiveQuartet) !ok
 
                 ! write(*,"(A)") "-----------------------------------------"
                 ! write(*,"(A,I8)") "Array Size: ", arraySsize(1)
@@ -567,7 +581,7 @@ contains
                 ! RepulsionDerivatives_instance%libderiv%PrimQuartet(numberOfPrimitives) = c_loc(primitiveQuartet)
                 call c_f_procpointer(build_deriv1_eri(am4,am3,am2,am1), pBuild)
 
-                call pBuild(RepulsionDerivatives_instance%libderiv,1)
+                call pBuild(RepulsionDerivatives_instance(specieID)%libderiv,1)
                 
                 if(allocated(workForces)) deallocate(workForces)
                 allocate(workForces(arraySize,12))
@@ -577,7 +591,7 @@ contains
                 ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
                 do k=1,12
                    if(k==4 .or. k==5 .or. k==6) cycle
-                    resultPc = RepulsionDerivatives_instance%libderiv%ABCD(k)
+                    resultPc = RepulsionDerivatives_instance(specieID)%libderiv%ABCD(k)
                     call c_f_pointer(resultPc, temporalPtr, arraySsize)
                    
                     derivativesPtr => temporalPtr
@@ -660,9 +674,7 @@ contains
     ! deallocate(work)
     ! deallocate(workForces)
     ! deallocate(incompletGamma)
-    
-    RepulsionDerivatives_instance%isInstanced = .true.
-    
+        
   end subroutine RepulsionDerivatives_getDerive
 
   !>
@@ -696,10 +708,9 @@ contains
     integer :: aux !<auxiliary index
     integer :: arraySsize(1)
     integer :: arraySize
-    integer :: counter, auxCounter
     integer(8) :: control
     ! integer :: maxAllAngularMoment
-    integer,target :: i, j, k, l !< contraction length iterators
+    integer,target :: i, k !< contraction length iterators
     integer :: nc1, nc2, nc3, nc4
     integer :: pSpecieID, pOtherSpecieID !! pointer to species ID
 
@@ -716,7 +727,15 @@ contains
     type(prim_data), target :: primitiveQuartet !<Primquartet object needed by LIBINT
     type(c_ptr) :: resultPc !< array of integrals from C (LIBINT)
     procedure(RepulsionDerivatives_buildLibDeriv), pointer :: pBuild !<procedure to calculate eris on LIBINT !x
-    
+  
+    integer :: nspecies, selected_species
+
+    nspecies = size(MolecularSystem_instance%species)
+
+    if (.not. allocated(RepulsionDerivatives_instance)) then
+       allocate(RepulsionDerivatives_instance(nspecies))  
+    endif  
+
     maxAngularMoment = max(MolecularSystem_getMaxAngularMoment(specieID), MolecularSystem_getMaxAngularMoment(otherSpecieID))
     maxNumberOfPrimitives = max(MolecularSystem_getMaxNumberofPrimitives(specieID), MolecularSystem_getMaxNumberofPrimitives(otherSpecieID))
     maxNumberOfCartesians = max(MolecularSystem_getMaxNumberofCartesians(specieID), MolecularSystem_getMaxNumberofCartesians(otherSpecieID))
@@ -756,14 +775,19 @@ contains
     ! end if
 
      ! Libderiv constructor (solo una vez)
-    if( RepulsionDerivatives_isInstanced() ) then
+     selected_species = specieID
+     if (MolecularSystem_getMaxAngularMoment(otherSpecieID) >  MolecularSystem_getMaxAngularMoment(specieID)) then
+       selected_species = otherSpecieID
+     endif
+
+    ! if( RepulsionDerivatives_isInstanced(selected_species) ) then
        ! if(RepulsionDerivatives_instance%maxAngularMoment < maxAngularMoment) then
-          call RepulsionDerivatives_destructor()
+          !call RepulsionDerivatives_destructor()
        ! end if
-    end if
+    ! end if
     
-    if( .not. RepulsionDerivatives_isInstanced() ) then
-       call RepulsionDerivatives_constructor(maxAngularMoment,maxNPrimSize,maxNCartSize)
+    if( .not. RepulsionDerivatives_isInstanced(selected_species) ) then
+       call RepulsionDerivatives_constructor(maxAngularMoment,maxNPrimSize,maxNCartSize, selected_species)
        !! DEBUG
        !call RepulsionDerivatives_show()
     end if
@@ -889,14 +913,14 @@ contains
     CD2 = dot_product(CD, CD)    
 
     ! Asigna valores a la estrucutra Libderiv
-    RepulsionDerivatives_instance%libderiv%AB = AB
-    RepulsionDerivatives_instance%libderiv%CD = CD
+    RepulsionDerivatives_instance(selected_species)%libderiv%AB = AB
+    RepulsionDerivatives_instance(selected_species)%libderiv%CD = CD
     ! write(*,"(A)") "----------------------------------------"
     ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
     ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A6,I1,A1,I1,A1,I1,A1,I1,A1)") "(",am1,",",am2,"|",am3,",",am4,") -> (",am4,",",am3,"|",am2,",",am1,")"
     ! write(*,"(A)") "-----------------------------------------"
     ! write(*,"(A,3(F17.12))") "AB: ", AB(:)
-    ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%AB(:)
+    ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance(selected_species)%libderiv%AB(:)
     ! write(*,"(A)") "-----------------------------------------"
 
     numberOfPrimitives = 1
@@ -999,7 +1023,7 @@ contains
                 ! write(*,"(A)") "-----------------------------------------"
                 ! arraySsize(1) = arraySize
 
-                RepulsionDerivatives_instance%libderiv%PrimQuartet = c_loc(primitiveQuartet) !ok
+                RepulsionDerivatives_instance(selected_species)%libderiv%PrimQuartet = c_loc(primitiveQuartet) !ok
 
                 ! write(*,"(A)") "-----------------------------------------"
                 ! ! write(*,"(A,I8)") "Array Size: ", arraySsize(1)
@@ -1015,13 +1039,13 @@ contains
                 ! write(*,"(A,f22.8)") "c : ", primitiveQuartet%twozeta_c 
                 ! write(*,"(A,f22.8)") "d : ", primitiveQuartet%twozeta_d 
                 ! write(*,"(A)") "-----------------------------------------"
-                ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%PrimQuartet%oo2z
-                ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance%libderiv%PrimQuartet%oo2n
+                ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance(selected_species)%libderiv%PrimQuartet%oo2z
+                ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance(selected_species)%libderiv%PrimQuartet%oo2n
                 ! write(*,"(A)") "-----------------------------------------"
-                ! RepulsionDerivatives_instance%libderiv%PrimQuartet(numberOfPrimitives) = c_loc(primitiveQuartet)
+                ! RepulsionDerivatives_instance(selected_species)%libderiv%PrimQuartet(numberOfPrimitives) = c_loc(primitiveQuartet)
                 call c_f_procpointer(build_deriv1_eri(am4,am3,am2,am1), pBuild)
 
-                call pBuild(RepulsionDerivatives_instance%libderiv,1)
+                call pBuild(RepulsionDerivatives_instance(selected_species)%libderiv,1)
 
 
                 workForces = 0.0_8
@@ -1029,7 +1053,7 @@ contains
                 ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A1)") "(",aa,",",bb,"|",rr,",",ss,")"
                 do k=1,12
                    if(k==4 .or. k==5 .or. k==6) cycle
-                    resultPc = RepulsionDerivatives_instance%libderiv%ABCD(k)
+                    resultPc = RepulsionDerivatives_instance(selected_species)%libderiv%ABCD(k)
                     call c_f_pointer(resultPc, temporalPtr, arraySsize)
                    
                     derivativesPtr => temporalPtr
@@ -1347,12 +1371,13 @@ contains
   !>
   !! @brief Indica si el objeto ha sido instanciado o no
   
-  function RepulsionDerivatives_isInstanced( ) result( output )
+  function RepulsionDerivatives_isInstanced( speciesID ) result( output )
     implicit  none
 
+    integer, intent(in) :: speciesID
     logical :: output
     
-    output = RepulsionDerivatives_instance%isInstanced
+    output = RepulsionDerivatives_instance(speciesID)%isInstanced
     
   end function RepulsionDerivatives_isInstanced  
 
