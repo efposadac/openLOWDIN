@@ -60,6 +60,7 @@ module RepulsionDerivatives_
   !! pointers to array functions on  libint.a, libderiv.a y libr12.a
   type(c_funptr), dimension(0:3,0:3,0:3,0:3), bind(c) :: build_deriv1_eri
   logical :: INITIATED_LIBINT = .false.
+
   interface
 
      !>
@@ -172,7 +173,7 @@ contains
 
     if (.not. RepulsionDerivatives_isInstanced(speciesID)) then
 
-      print*, "Starting Libint for species: ", speciesID
+      ! print*, "Starting Libint for species: ", speciesID
        
        RepulsionDerivatives_instance(speciesID)%maxAngularMoment = maxAngMoment
        RepulsionDerivatives_instance(speciesID)%numberOfPrimitives = numberOfPrimitives
@@ -312,7 +313,7 @@ contains
     ! if(allocated(incompletGamma)) deallocate(incompletGamma)
     ! allocate(incompletGamma(0:maxAngularMoment+1))
     if(allocated(incompletGamma)) deallocate(incompletGamma)
-    allocate(incompletGamma(0:sumAngularMoment+2))
+    allocate(incompletGamma(0:sumAngularMoment+1))
 
     ! Libderiv constructor (solo una vez)
     ! if( RepulsionDerivatives_isInstanced() ) then
@@ -530,13 +531,13 @@ contains
 
                 incompletGammaArgument = rho*PQ2
                 ! call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
-                call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+2))
-
+                call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+1))
                 s34 = ((Math_PI*oon)**1.5_8) * exp(-auxExponentR*auxExponentS*oon*CD2)*c3*c4
 
                 s1234 = 2.0_8*sqrt(rho/Math_PI) * s12 * s34
 
-                do i=0, sumAngularMoment+2
+                primitiveQuartet%F = 0.0_8
+                do i=0, sumAngularMoment+1
                    primitiveQuartet%F(i+1) = incompletGamma(i)*s1234
                    ! write(*,"(A1,I1,A,f17.12)") "F", i, " : ", primitiveQuartet%F(i+1)
                 end do
@@ -737,8 +738,10 @@ contains
     endif  
 
     maxAngularMoment = max(MolecularSystem_getMaxAngularMoment(specieID), MolecularSystem_getMaxAngularMoment(otherSpecieID))
-    maxNumberOfPrimitives = max(MolecularSystem_getMaxNumberofPrimitives(specieID), MolecularSystem_getMaxNumberofPrimitives(otherSpecieID))
-    maxNumberOfCartesians = max(MolecularSystem_getMaxNumberofCartesians(specieID), MolecularSystem_getMaxNumberofCartesians(otherSpecieID))
+    maxNumberOfPrimitives = max(MolecularSystem_getMaxNumberofPrimitives(specieID), &
+     MolecularSystem_getMaxNumberofPrimitives(otherSpecieID))
+    maxNumberOfCartesians = max(MolecularSystem_getMaxNumberofCartesians(specieID), &
+      MolecularSystem_getMaxNumberofCartesians(otherSpecieID))
     maxNPrimSize = maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives*maxNumberOfPrimitives
     maxNCartSize = maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians*maxNumberOfCartesians
 
@@ -768,7 +771,7 @@ contains
     ! if(allocated(incompletGamma)) deallocate(incompletGamma)
     ! allocate(incompletGamma(0:maxAngularMoment+1))
     if(allocated(incompletGamma)) deallocate(incompletGamma)
-    allocate(incompletGamma(0:sumAngularMoment+2))
+    allocate(incompletGamma(0:sumAngularMoment+1))
 
     ! if( .not. RepulsionDerivatives_isInstanced() ) then
     !    maxAllAngularMoment = maxAngularMoment
@@ -920,6 +923,7 @@ contains
     ! write(*,"(A1,I1,A1,I1,A1,I1,A1,I1,A6,I1,A1,I1,A1,I1,A1,I1,A1)") "(",am1,",",am2,"|",am3,",",am4,") -> (",am4,",",am3,"|",am2,",",am1,")"
     ! write(*,"(A)") "-----------------------------------------"
     ! write(*,"(A,3(F17.12))") "AB: ", AB(:)
+    ! write(*,"(A,3(F17.12))") "CD: ", CD(:)
     ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance(selected_species)%libderiv%AB(:)
     ! write(*,"(A)") "-----------------------------------------"
 
@@ -988,14 +992,15 @@ contains
                 primitiveQuartet%oo2zn = oo2zn
                 primitiveQuartet%poz = rho * ooz
                 primitiveQuartet%pon = rho * oon
-                primitiveQuartet%twozeta_a = 2.0 * auxExponentA
-                primitiveQuartet%twozeta_b = 2.0 * auxExponentB
-                primitiveQuartet%twozeta_c = 2.0 * auxExponentR
-                primitiveQuartet%twozeta_d = 2.0 * auxExponentS
+                primitiveQuartet%twozeta_a = 2.0_8 * auxExponentA
+                primitiveQuartet%twozeta_b = 2.0_8 * auxExponentB
+                primitiveQuartet%twozeta_c = 2.0_8 * auxExponentR
+                primitiveQuartet%twozeta_d = 2.0_8 * auxExponentS
+                primitiveQuartet%ss_r12_ss = 0.0_8
 
                 incompletGammaArgument = rho*PQ2
                 ! call Math_fgamma0(maxAngularMoment+1,incompletGammaArgument,incompletGamma(0:maxAngularMoment+1))
-                call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+2))
+                call Math_fgamma0(sumAngularMoment+1,incompletGammaArgument,incompletGamma(0:sumAngularMoment+1))
 
                 s34 = ((Math_PI*oon)**1.5_8) * exp(-auxExponentR*auxExponentS*oon*CD2)*c3*c4
 
@@ -1016,7 +1021,8 @@ contains
                 !    write(*,"(A1,I1,A,f17.12)") "U", i, " , ", primitiveQuartet%U(i,6)
                 ! end do
 
-                do i=0, sumAngularMoment+2
+                primitiveQuartet%F = 0.0_8
+                do i=0, sumAngularMoment+1
                    primitiveQuartet%F(i+1) = incompletGamma(i)*s1234
                    ! write(*,"(A1,I1,A,f17.12)") "F", i, " : ", primitiveQuartet%F(i+1)
                 end do
@@ -1039,8 +1045,8 @@ contains
                 ! write(*,"(A,f22.8)") "c : ", primitiveQuartet%twozeta_c 
                 ! write(*,"(A,f22.8)") "d : ", primitiveQuartet%twozeta_d 
                 ! write(*,"(A)") "-----------------------------------------"
-                ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance(selected_species)%libderiv%PrimQuartet%oo2z
-                ! write(*,"(A,3(F17.12))") "AB deriv: ", RepulsionDerivatives_instance(selected_species)%libderiv%PrimQuartet%oo2n
+                ! write(*,"(A,3(F17.12))") "AB deriv: ", primitiveQuartet%oo2z
+                ! write(*,"(A,3(F17.12))") "AB deriv: ", primitiveQuartet%oo2n
                 ! write(*,"(A)") "-----------------------------------------"
                 ! RepulsionDerivatives_instance(selected_species)%libderiv%PrimQuartet(numberOfPrimitives) = c_loc(primitiveQuartet)
                 call c_f_procpointer(build_deriv1_eri(am4,am3,am2,am1), pBuild)
@@ -1060,7 +1066,7 @@ contains
                     
                     do i=1,arraySsize(1)
                        workForces(i,k) = derivativesPtr(i)
-                       ! write(*,"(2I, 2f17.12)") k, i, derivativesPtr(i), workForces(i,k)
+                       ! write(*,"(3I4, 2f17.12)") arraySsize(1), k, i, derivativesPtr(i), workForces(i,k)
                     end do
                  end do
 
