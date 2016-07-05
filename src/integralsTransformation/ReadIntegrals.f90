@@ -28,6 +28,7 @@ contains
     integer :: index
     integer :: status, i
 
+    real(8) :: int_value
     real(8) :: integral(CONTROL_instance%INTEGRAL_STACK_SIZE)
     integer :: p(CONTROL_instance%INTEGRAL_STACK_SIZE)
     integer :: q(CONTROL_instance%INTEGRAL_STACK_SIZE)
@@ -39,6 +40,15 @@ contains
     integer :: nthreads
     integer :: threadid
     integer :: unitid
+    integer :: reclen
+    logical :: disk = .false.
+
+    if(.not. allocated(integrals)) disk = .true.
+    
+    if( disk ) then
+       inquire(iolength=reclen) int_value
+       open(unit=50,FILE=trim(nameOfSpecies)//".dints",ACCESS="direct",FORM="Unformatted",RECL=reclen, STATUS="unknown")
+    end if
 
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, p, q, r, s, integral, i, index)
     nthreads = OMP_GET_NUM_THREADS()
@@ -48,12 +58,12 @@ contains
     write(fileid,*) threadid
     fileid = trim(adjustl(fileid))
 
-
     if ( trim(nameOfSpecies) == "E-BETA" ) then
        open( UNIT=unitid,FILE=trim(fileid)//trim("E-ALPHA")//".ints", status='old',access='stream', form='Unformatted')
     else 
        open( unit=unitid,FILE=trim(fileid)//trim(nameOfSpecies)//".ints", status='old',access='stream', form='Unformatted')
     end if
+
 
     loadintegrals : do
 
@@ -67,9 +77,14 @@ contains
        do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
           if( p(i) == -1 ) exit loadintegrals
 
+
           index = ReadIntegrals_index4Intra(int(p(i), 4), int(q(i), 4), int(r(i), 4), int(s(i), 4))
 
-          integrals(index) = integral(i)
+          if (disk) then
+            write(50, rec=index) integral(i)
+          else
+             integrals(index) = integral(i)
+          endif
 
        end do
 
@@ -78,6 +93,8 @@ contains
     close (unitid)
 
     !$OMP END PARALLEL
+    
+    if( disk ) close(50)
 
   end subroutine ReadIntegrals_intraSpecies
 

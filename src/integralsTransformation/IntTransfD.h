@@ -74,6 +74,9 @@ void dgemm_(char *transA, char *transB, int *m, int *n, int *k, double *alpha,
 void dgemv_(char *trans, int *m, int *n, double *alpha, double *A, int *lda,
             double *X, int *incx, double *beta, double *Y, int *incy);
 
+void Similarity_Transform(unsigned n, double Op[], double C[],
+                                 double Work[]);
+
 #ifdef __cplusplus
 }
 #endif

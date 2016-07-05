@@ -104,7 +104,7 @@ void four_index_trans(int nao, mat &C, vec &ERIS) {
     }
 }
 
-static void Similarity_Transform(unsigned n, double Op[], double C[],
+void Similarity_Transform(unsigned n, double Op[], double C[],
                                  double Work[]) {
   char *not_t = "N";
   char *yes_t = "T";
