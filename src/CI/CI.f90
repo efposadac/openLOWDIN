@@ -59,7 +59,7 @@ program CI
   call Stopwatch_stop(lowdin_stopwatch)
   
   write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time CI : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time CI : ", lowdin_stopwatch%enlapsetTime ," (s)"
   write(*, *) ""
   close(30)
 

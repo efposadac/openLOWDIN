@@ -6,12 +6,12 @@
 SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
-e-(Be)  6-31G	0.000	0.000	0.00000 
-Be    	dirac	0.000	0.000	0.0000
+e-(He)  6-311G	0.000	0.000	0.00000 
+He    	dirac	0.000	0.000	0.0000
 END GEOMETRY
 
 TASKS
-	method = "RHF"
+	method = "UHF"
 	configurationInteractionLevel ="CISD"
 END TASKS
 

@@ -160,6 +160,9 @@ module CONTROL_
      !! CISD - FCI
      !!
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
+     integer :: NUMBER_OF_CI_STATES
+     character(20) :: CI_DIAGONALIZATION_METHOD
+
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -405,6 +408,8 @@ module CONTROL_
   !! CISD - FCI
   !!
   character(20) :: LowdinParameters_configurationInteractionLevel
+  integer :: LowdinParameters_numberOfCIStates
+  character(20) :: LowdinParameters_CIdiagonalizationMethod
 
   !!***************************************************************************
   !! CCSD
@@ -643,19 +648,21 @@ module CONTROL_
        LowdinParameters_units    ,&
        LowdinParameters_doubleZeroThreshold,&
        
-                                !!***************************************************************************
-                                !! CISD - FCI
-                                !!
+       !!***************************************************************************
+       !! CISD - FCI
+       !!
        LowdinParameters_configurationInteractionLevel,&
-       
-                                !!***************************************************************************
-                                !! CCSD 
-                                !!
+       LowdinParameters_numberOfCIStates, &
+       LowdinParameters_CIdiagonalizationMethod, &
+
+       !!***************************************************************************
+       !! CCSD 
+       !!
        LowdinParameters_coupledClusterLevel,&
        
-                                !!*****************************************************
-                                !! Parameter to general control
-                                !!
+       !!*****************************************************
+       !! Parameter to general control
+       !!
        LowdinParameters_method,&
        LowdinParameters_transformToCenterOfMass,&
        LowdinParameters_areThereDummyAtoms,&
@@ -917,6 +924,8 @@ contains
     !! CISD - FCI
     !!
     LowdinParameters_configurationInteractionLevel = "NONE"
+    LowdinParameters_numberOfCIStates = 1
+    LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
 
     !!***************************************************************************
     !! CCSD
@@ -1170,6 +1179,8 @@ contains
     !! CISD - FCI                                                                                                              
     !!                                                                                                                         
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "NONE"
+    CONTROL_instance%NUMBER_OF_CI_STATES= 1
+    CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1459,6 +1470,8 @@ contains
     !! CISD - FCI                                                                      
     !!                                                                                 
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
+    CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
+    CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1720,6 +1733,9 @@ contains
     !! CISD - FCI                                                                      
     !!                                                                                 
     LowdinParameters_configurationInteractionLevel = CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+    LowdinParameters_numberOfCIStates        = CONTROL_instance%NUMBER_OF_CI_STATES
+    LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
+
 
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -1966,6 +1982,8 @@ contains
     !! CISD - FCI
     !!
     otherThis%CONFIGURATION_INTERACTION_LEVEL = this%CONFIGURATION_INTERACTION_LEVEL 
+    otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
+    otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
     !!***************************************************************************
     !! CCSD
     !!

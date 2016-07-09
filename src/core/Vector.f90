@@ -101,7 +101,6 @@ contains
     valueTmp = 0.0_8
     
     if ( allocated( this%values ) ) then
-       
        deallocate( this%values )
        
     end if

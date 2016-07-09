@@ -6,12 +6,14 @@
 SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
-e-(Be)  6-31G	0.000	0.000	0.00000 
-Be    	dirac	0.000	0.000	0.0000
+e-(N)  6-31G	0.000	0.000	1.0670
+e-(N)  6-31G	0.000	0.000	0.000000
+N    	dirac	0.000	0.000	1.0670
+N    	dirac	0.000	0.000	0.0000
 END GEOMETRY
 
 TASKS
-	method = "RHF"
+	method = "UHF"
 	configurationInteractionLevel ="CISD"
 END TASKS
 
@@ -19,6 +21,8 @@ CONTROL
 	readCoefficients=F
 	numberOfCores=1
 	integralsTransformationMethod= "C"
+	scfelectronicenergytolerance=1E-8
+	scfnonelectronicenergytolerance=1E-8
 END CONTROL
 
 
