@@ -436,6 +436,7 @@ contains
     type(ConfigurationInteraction) :: this
     integer :: i
     integer :: m
+    real(8) :: davidsonCorrection, HFcoefficient, CIcorrection
  
     if ( ConfigurationInteraction_instance%isInstanced ) then
 
@@ -450,8 +451,27 @@ contains
         write (6,"(T8,A17,I3,A10, F18.12)") "STATE: ", i, " ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(i)
        end do
        print *, ""
-       write (6,"(T8,A34, F20.12)") "GROUND STATE CORRELATION ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(1) - &
+       CIcorrection = ConfigurationInteraction_instance%eigenvalues%values(1) - &
                 HartreeFock_instance%totalEnergy
+
+       write (6,"(T4,A34, F20.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
+
+       if (  ConfigurationInteraction_instance%level == "CISD" ) then
+         print *, ""
+         write (6,"(T2,A34)") "RENORMALIZED DAVIDSON CORRECTION:"
+         print *, ""
+         write (6,"(T8,A54)") "E(CISDTQ) \approx E(CISD) + \delta E(Q)               "
+         write (6,"(T8,A54)") "\delta E(Q) = (1 - c_0^2) * \delta E(CISD) / c_0^2    "
+         print *, ""
+         HFcoefficient = ConfigurationInteraction_instance%eigenVectors%values(1,1) 
+         davidsonCorrection = ( 1 - HFcoefficient*HFcoefficient) * CIcorrection / (HFcoefficient*HFcoefficient)
+  
+  
+         write (6,"(T8,A19, F20.12)") "HF COEFFICIENT = ", HFcoefficient
+         write (6,"(T8,A19, F20.12)") "\delta E(Q) = ", davidsonCorrection
+         write (6,"(T8,A19, F20.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
+            CIcorrection + davidsonCorrection
+       end if
 
        ! do i=1, ConfigurationInteraction_instance%numberOfConfigurations
        !    call Configuration_show (ConfigurationInteraction_instance%configurations(i))
@@ -550,15 +570,34 @@ contains
 
        case ("DSYEVX")
 
+         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
+              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
+              int(ConfigurationInteraction_instance%numberOfConfigurations,8), 0.0_8)
+
          call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
               1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
+              flags = SYMMETRIC)
+
+!         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+!              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+!              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+
 
        case ("DSYEVR")
 
+         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
+              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
+              int(ConfigurationInteraction_instance%numberOfConfigurations,8), 0.0_8)
+
          call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
               1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
+              flags = SYMMETRIC)
+
+!         call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+!              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+!              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
 
         end select
 
@@ -575,8 +614,6 @@ contains
 !!      print *, "eigenvalues"
 !!      call Vector_show (ConfigurationInteraction_instance%eigenValues)
 
-!!      print *, "eigenvectors"
-!!      call Matrix_show (ConfigurationInteraction_instance%eigenVectors)
 
 !!      print *, "hamiltonianMatrix"
 !!      call Matrix_show (ConfigurationInteraction_instance%hamiltonianMatrix)

@@ -19,6 +19,7 @@ CONTROL
 	readCoefficients=F
 	numberOfCores=1
 	integralsTransformationMethod= "C"
+	CIdiagonalizationMethod = "DSYEVX"
 END CONTROL
 
 

@@ -1645,9 +1645,57 @@ contains
 
           end if
 
-             call Matrix_exception( ERROR, "Diagonalization method not implemented yet",&
-                  "Class object Matrix in the eigen_select" )
-       else
+          !! Crea la matriz que almacenara los vectores propios
+!!          call Matrix_copyConstructor( eigenVectorsTmp, this )
+
+          lengthWorkSpace = -1
+          !! calculates the optimal size of the WORK array
+          call dsyevx( &
+               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, &
+               matrixSize, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               ifail, infoProcess )
+
+          lengthWorkSpace = int(workSpace(1))
+
+   !! Crea el vector de trabajo
+   if (allocated(workSpace)) deallocate(workSpace)
+          allocate( workSpace( lengthWorkSpace ) )
+
+          !! Calcula valores propios de la matriz de entrada
+          call dsyevx( &
+               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, &
+               matrixSize, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               ifail, infoProcess )
+
+       else !! only eigenvalues
 
           !! Crea la matriz que almacenara los vectores propios
 !!          call Matrix_copyConstructor( eigenVectorsTmp, this )
