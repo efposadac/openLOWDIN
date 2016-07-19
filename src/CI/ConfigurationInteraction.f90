@@ -107,7 +107,7 @@ contains
     character(*) :: level
 
     integer :: numberOfSpecies
-    integer :: i,j,m,n,p,q,c
+    integer :: i,j,k,m,n,p,q,c,r,s
     integer :: isLambdaEqual1,lambda
     type(vector) :: order
     type(vector) :: occupiedCode
@@ -314,6 +314,111 @@ contains
 
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
 
+    case ( "FCI" )
+
+  !!Count
+       
+       !!Ground State
+       c=1
+
+       do i=1, numberOfSpecies
+
+          print *, "n particles", MolecularSystem_getNumberOfParticles(i)
+          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
+          !!Singles
+          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
+             do m=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+                do p= int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+
+                   if ( mod(m,lambda) == mod(p,lambda) ) then !! alpha -> alpha, beta -> beta
+                     c=c+1
+                   end if
+                end do
+             end do
+          end if
+
+
+       end do
+       !print *, "number OF confi", c 
+
+
+       do i=1, numberOfSpecies
+   !!Doubles of the same specie
+
+          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
+          if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
+             do m=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+                do n=m+1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+                   do p= int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int( ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+                      !print *, "dou", m,n,p
+                      !if ( mod(m,lambda) == mod(p,lambda) ) then !! alpha -> alpha, beta -> beta
+                        do q=p+1,int( ConfigurationInteraction_instance%numberOfOrbitals%values(i)) 
+                   !do q=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
+                      !print *, "dou", m,n,p
+                      if ( mod(m,lambda) == mod(p,lambda) .and.  mod(n,lambda) == mod(q,lambda) .and. (p /= q) ) then !! alpha -> alpha, beta -> beta
+
+                             c=c+1
+                           !end if
+                      end if
+                        end do
+
+                   end do
+                end do
+             end do
+          end if
+
+          !!Doubles of different species
+          do j=i+1, numberOfSpecies
+             if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 .and. ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j) .ge. 1 ) then
+                do m=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) )
+                   do n=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j) )
+                      do p= int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+                         do q= int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(j))
+                            c=c+1
+                         end do
+                      end do
+                   end do
+                end do
+             end if
+          end do
+
+   !!triples of diff specie
+          do j=i+1, numberOfSpecies
+             do k=j+1, numberOfSpecies
+
+             if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 .and. & 
+                ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j) .ge. 1 .and. &
+                ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(k) .ge. 1 ) then
+                do m=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) )
+                   do n=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j) )
+                      do r=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(k) )
+                      do p= int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+                         do q= int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(j))
+                         do s= int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(k))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(k))
+                            c=c+1
+                         end do
+                      end do
+                         end do
+                      end do
+                   end do
+                end do
+             end if
+                         end do
+          end do
+
+
+       end do !! species
+
+!      c = 6
+       print *, "number OF doubles confi", c 
+
+       ConfigurationInteraction_instance%numberOfConfigurations = c
+       allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
+
+       call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
+
+
+
     case ( "FCI-oneSpecie" )
 
     case default
@@ -416,6 +521,29 @@ contains
        call Vector_destructor (ConfigurationInteraction_instance%lambda)
 
     case ( "FCI-oneSpecie" )
+
+    case ( "FCI" )
+
+     !!Destroy configurations
+       !!Ground State
+       c=1
+       call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
+
+       !do i=1, numberOfSpecies
+          !!Singles
+          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
+             do c=2, ConfigurationInteraction_instance%numberOfConfigurations
+               call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
+             end do
+          end if
+       !end do
+
+    deallocate(ConfigurationInteraction_instance%configurations)
+
+    call Matrix_destructor(ConfigurationInteraction_instance%hamiltonianMatrix)
+    call Vector_destructor (ConfigurationInteraction_instance%numberOfOccupiedOrbitals)
+    call Vector_destructor (ConfigurationInteraction_instance%numberOfOrbitals)
+    call Vector_destructor (ConfigurationInteraction_instance%lambda)
 
     case default
 
@@ -572,7 +700,7 @@ contains
 
          call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
               int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), 0.0_8)
+              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
          call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
               1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
@@ -588,14 +716,14 @@ contains
 
          call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
               int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), 0.0_8)
+              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
          call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
               1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
               eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
               flags = SYMMETRIC)
 
-!         call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+!        call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
 !              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
 !              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
 
@@ -672,6 +800,73 @@ contains
        ! call ConfigurationInteraction_getTransformedIntegrals()
        !call ConfigurationInteraction_printTransformedIntegralsToFile()
 
+
+    case ( "FCI" )
+
+       print *, ""
+       print *, "==============================================="
+       print *, "|            BEGIN FCI CALCULATION            |"
+       print *, "-----------------------------------------------"
+       print *, ""
+
+       call ConfigurationInteraction_getTransformedIntegrals()
+       print *, "Building configurations..."
+
+       call ConfigurationInteraction_buildConfigurations()
+       print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
+       print *, ""
+       print *, "Building hamiltonian..."
+       call ConfigurationInteraction_buildHamiltonianMatrix()
+
+       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
+                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
+       print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
+
+       print *, ""
+       print *, "Diagonalizing hamiltonian..."
+       print *, "  Using : ", (CONTROL_instance%CI_DIAGONALIZATION_METHOD)
+
+       select case (CONTROL_instance%CI_DIAGONALIZATION_METHOD) 
+
+       case ("DSYEVX")
+
+         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
+              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
+              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+
+         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
+              flags = SYMMETRIC)
+
+!         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+!              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+!              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+
+
+       case ("DSYEVR")
+
+         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
+              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
+              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+
+         call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
+              flags = SYMMETRIC)
+
+!        call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+!              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+!              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+
+        end select
+
+       print *,""
+       print *, "-----------------------------------------------"
+       print *, "|              END FCI CALCULATION            |"
+       print *, "==============================================="
+       print *, ""
+
     case default
 
        call ConfigurationInteraction_exception( ERROR, "Configuration interactor constructor", "Correction level not implemented")
@@ -691,7 +886,7 @@ contains
     implicit none
 
     integer :: numberOfSpecies
-    integer :: i,j,m,n,p,q,a,b,c,d,cc
+    integer :: i,j,k,m,n,p,q,a,b,c,d,cc,r,s
     integer :: isLambdaEqual1
     type(vector) :: order
     type(vector) :: occupiedCode
@@ -1078,6 +1273,163 @@ contains
        call Vector_Destructor(order)
        call Vector_Destructor(occupiedCode)
        call Vector_Destructor(unoccupiedCode)
+
+    case ( "FCI" )
+
+   !!Build configurations
+       !!Ground State
+       c=1
+       call Vector_constructor (order, numberOfSpecies, 0.0_8)
+       call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
+       call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
+       call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), occupiedCode, unoccupiedCode, order, ConfigurationInteraction_instance%numberOfConfigurations, c) 
+
+       do i=1, numberOfSpecies
+
+          call Vector_constructor (order, numberOfSpecies, 0.0_8)
+          order%values(i)=1
+          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
+          cc = 0
+          !!Singles
+          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
+             do m=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+                call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
+                occupiedCode%values(i)=m
+                do p=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1,int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+                   if ( mod(m,lambda) == mod(p,lambda) ) then !! alpha -> alpha, beta -> beta
+                     call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
+                     unoccupiedCode%values(i)=p
+                     c=c+1
+                     cc=cc+1
+                     call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), occupiedCode, unoccupiedCode, order, &
+                          ConfigurationInteraction_instance%numberOfConfigurations,c) 
+
+                   end if
+
+                end do !! p
+             end do !! m
+          end if
+
+          write (6, "(T4,A20,A21,A3,I4)") "Singles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
+
+        end do !! species
+
+       do i=1, numberOfSpecies
+          !!Doubles of the same specie
+          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
+          call Vector_constructor (order, numberOfSpecies, 0.0_8)
+          order%values(i)=2
+          cc = 0
+          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
+             do m=1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+                do n=m+1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+                   call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
+                   occupiedCode%values(i)=m*1024+n
+                   do p = int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+                     do q=p+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+                   !do q=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
+
+                      if ( mod(m,lambda) == mod(p,lambda) .and.  mod(n,lambda) == mod(q,lambda) .and. (p /= q) ) then !! alpha -> alpha, beta -> beta
+                            call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
+                            unoccupiedCode%values(i)=p*1024+q
+                            c=c+1
+                            cc=cc+1
+                            call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), &
+                                  occupiedCode, unoccupiedCode, order, &
+                                   ConfigurationInteraction_instance%numberOfConfigurations, c) 
+                     end if
+                       end do
+                   end do
+                end do
+             end do
+          end if
+          write (6, "(T4,A20,A21,A3,I4)") "Doubles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
+
+          !!Doubles of different species
+          do j=i+1, numberOfSpecies
+
+             call Vector_constructor (order, numberOfSpecies, 0.0_8)
+             order%values(i)=1
+             order%values(j)=1
+             cc = 0
+
+             if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 .and. ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j) .ge. 1 ) then
+                do m=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+                   do n=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j))
+
+                      call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
+                      occupiedCode%values(i)=m
+                      occupiedCode%values(j)=n
+                      do p= int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i))
+                         do q=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(j) )
+                            call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
+                            unoccupiedCode%values(i)=p
+                            unoccupiedCode%values(j)=q
+                            c=c+1
+                            cc=cc+1
+                            call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), occupiedCode, unoccupiedCode, order, ConfigurationInteraction_instance%numberOfConfigurations, c) 
+                         end do
+                      end do
+                   end do
+                end do
+             end if
+
+            write (6, "(T4,A20,A21,A3,I4)") "Doubles for species ", trim(MolecularSystem_getNameOfSpecie(i))//&
+                                                   "/"//trim(MolecularSystem_getNameOfSpecie(j)), " : ", cc
+          end do
+
+          !!triples of different species
+          do j=i+1, numberOfSpecies
+
+            do k=j+1, numberOfSpecies
+
+             call Vector_constructor (order, numberOfSpecies, 0.0_8)
+             order%values(i)=1
+             order%values(j)=1
+             order%values(k)=1
+             cc = 0
+
+             if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 .and. &
+                 ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j) .ge. 1 .and. &
+                 ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(k) .ge. 1 ) then
+                do m=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+                   do n=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j))
+                     do r=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(k))
+
+                      call Vector_constructor (occupiedCode, numberOfSpecies, 0.0_8)
+                      occupiedCode%values(i)=m
+                      occupiedCode%values(j)=n
+                      occupiedCode%values(k)=r
+
+                      do p= int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i))
+                         do q=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(j) )
+
+                         do s=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(k))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(k) )
+                            call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
+                            unoccupiedCode%values(i)=p
+                            unoccupiedCode%values(j)=q
+                            unoccupiedCode%values(k)=s
+                            c=c+1
+                            cc=cc+1
+                            call Configuration_constructor(ConfigurationInteraction_instance%configurations(c), occupiedCode, unoccupiedCode, order, ConfigurationInteraction_instance%numberOfConfigurations, c) 
+
+                         end do
+                         end do
+                      end do
+                      end do
+                   end do
+                end do
+
+             end if
+
+            write (6, "(T4,A20,A21,A3,I4)") "Triples for species ", trim(MolecularSystem_getNameOfSpecie(i))//&
+                                                   "/"//trim(MolecularSystem_getNameOfSpecie(j))//& 
+                                                   "/"//trim(MolecularSystem_getNameOfSpecie(k)), " : ", cc
+            end do
+          end do
+
+
+       end do
 
     case default
 

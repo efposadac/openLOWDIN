@@ -1,0 +1,21 @@
+GEOMETRY
+	e-(H)   SHARON-E-6S2P 	0.00	0.00 	0.00 addParticles=1 
+	H	dirac			0.00	0.00 	0.00
+	e+	SHARON-E+6S2P	0.00	0.00	0.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="FCI"
+!	mollerPlessetCorrection=2	
+END TASKS
+
+CONTROL
+	numberOfCores = 4
+!	integralsTransformationMethod = "A"
+	numberOfCIstates=3
+	CIdiagonalizationMethod = "DSYEVX"
+END CONTROL
+
+
+

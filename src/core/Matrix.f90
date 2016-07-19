@@ -1824,8 +1824,67 @@ contains
 
           end if
 
-             call Matrix_exception( ERROR, "Diagonalization method not implemented yet",&
-                  "Class object Matrix in the eigen_select" )
+          !! Crea la matriz que almacenara los vectores propios
+!!          call Matrix_copyConstructor( eigenVectorsTmp, this )
+
+          lengthWorkSpace = -1
+          lengthiwork = -1
+
+          !! calculates the optimal size of the WORK array
+          call dsyevr( &
+               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, matrixSize, &
+               largestEigenValue - smallestEigenValue + 1, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               lengthiwork, &
+               infoProcess )
+
+          lengthWorkSpace = int(workSpace(1))
+          lengthiwork = int(iwork(1))
+
+         !! Crea el vector de trabajo
+           if (allocated(workSpace)) deallocate(workSpace)
+          allocate( workSpace( lengthWorkSpace ) )
+
+         !! Crea el vector de trabajo
+           if (allocated(iwork)) deallocate(iwork)
+          allocate( iwork( lengthiwork ) )
+
+
+          !! Calcula valores propios de la matriz de entrada
+          call dsyevr( &
+               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, matrixSize, &
+               largestEigenValue - smallestEigenValue + 1, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               lengthiwork, &
+               infoProcess )
+
+
        else
 
           !! Crea la matriz que almacenara los vectores propios
