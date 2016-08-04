@@ -6,7 +6,7 @@
 SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
-e-(He)  3-21G	0.000	0.000	0.00000 
+e-(He)  6-311G	0.000	0.000	0.00000 
 He    	dirac	0.000	0.000	0.0000
 END GEOMETRY
 
@@ -19,6 +19,7 @@ CONTROL
 	readCoefficients=F
 	numberOfCores=1
 	integralsTransformationMethod= "C"
+	CIdiagonalizationMethod="ARPACK"
 END CONTROL
 
 

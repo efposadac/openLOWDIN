@@ -13,7 +13,7 @@ Li    	dirac	0.000	0.000	0.0000
 END GEOMETRY
 
 TASKS
-	method = "RHF"
+	method = "UHF"
 	configurationInteractionLevel ="CISD"
 END TASKS
 
@@ -22,6 +22,7 @@ CONTROL
 	numberOfCores=1
 	integralsTransformationMethod= "C"
 	scfelectronicenergytolerance=1E-8
+        CIdiagonalizationMethod="ARPACK"
 END CONTROL
 
 

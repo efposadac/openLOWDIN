@@ -115,19 +115,16 @@ contains
 
     do i=1, numberOfSpecies
 
-      if ( this%order%values(i) == 2 )  this%coefficient = this%coefficient * ( 1.0_8 / 4.0_8 )
+!      if ( this%order%values(i) == 2 )  this%coefficient = this%coefficient * ( 1.0_8 / 4.0_8 )
        !spin orbitals not spatial orbitals
        lambda=MolecularSystem_getLambda(i)
        numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(i)*lambda
        numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda
 
        call Vector_constructor ( this%occupations(i,this%nDeterminants), numberOfOrbitals , 0.0_8 )
-       !! print *, "order ", this%order%values(i), int( this%order%values(i))
        if ( this%order%values(i) > 0 ) then
          call Vector_constructor ( this%excitations(i,this%nDeterminants,1), int( this%order%values(i)), 0.0_8)  !! nexcitations (order), occ -> vir
          call Vector_constructor ( this%excitations(i,this%nDeterminants,2), int( this%order%values(i)), 0.0_8)  !! nexcitations (order), occ -> vir
-!!         call Vector_constructor ( this%excitations(i,2,1), int( this%order%values(i)), 0.0_8)  !! nexcitations (order), occ -> vir
-!!         call Vector_constructor ( this%excitations(i,2,2), int( this%order%values(i)), 0.0_8)  !! nexcitations (order), occ -> vir
 
        end if
        !print *, "occ"
@@ -685,16 +682,20 @@ contains
   subroutine Configuration_destructor(this)
     implicit none
     type(Configuration) :: this
-    integer :: i, numberOfSpecies
+    integer :: i, j, numberOfSpecies
 
     call Vector_destructor( this%coefficients )
     call Vector_destructor( this%order )
 
+
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     do i=1, numberOfSpecies
-       call Vector_destructor ( this%occupations(i,1) )
-      
+        do j = 1, this%nDeterminants
+          call Vector_destructor ( this%occupations(i,j) )
+          call Vector_destructor ( this%excitations(i,j,1) )
+          call Vector_destructor ( this%excitations(i,j,2) )
+        end do
     end do
 
     deallocate ( this%occupations )

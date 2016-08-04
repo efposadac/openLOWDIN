@@ -91,6 +91,7 @@ module ConfigurationInteraction_
        ConfigurationInteraction_destructor, &
        ConfigurationInteraction_getTotalEnergy, &
        ConfigurationInteraction_run, &
+       ConfigurationInteraction_diagonalize, &
        ConfigurationInteraction_show
 
   private
@@ -224,8 +225,6 @@ contains
 
 
        end do
-       !print *, "number OF confi", c 
-
 
        do i=1, numberOfSpecies
    !!Doubles of the same specie
@@ -238,12 +237,10 @@ contains
                       !print *, "dou", m,n,p
                       !if ( mod(m,lambda) == mod(p,lambda) ) then !! alpha -> alpha, beta -> beta
                         do q=p+1,int( ConfigurationInteraction_instance%numberOfOrbitals%values(i)) 
-                   !do q=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
-                      !print *, "dou", m,n,p
-                      if ( mod(m,lambda) == mod(p,lambda) .and.  mod(n,lambda) == mod(q,lambda) .and. (p /= q) ) then !! alpha -> alpha, beta -> beta
+                   !do q=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int( ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+                      if ( mod(m,lambda) == mod(p,lambda) .and.  mod(n,lambda) == mod(q,lambda)  ) then !! alpha -> alpha, beta -> beta
 
                              c=c+1
-                           !end if
                       end if
                         end do
 
@@ -445,110 +442,23 @@ contains
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    select case ( trim(ConfigurationInteraction_instance%level) )
+    !!Destroy configurations
+    !!Ground State
+    c=1
+    call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
 
-    case ( "CIS" )
+    if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
+      do c=2, ConfigurationInteraction_instance%numberOfConfigurations
+        call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
+      end do
+    end if
 
-       !!Destroy configurations
-       !!Ground State
-       c=1
-       call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
-
-       !do i=1, numberOfSpecies
-          !!Singles
-          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
-             do c=2, ConfigurationInteraction_instance%numberOfConfigurations
-               call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
-             end do
-          end if
-       !end do
-
-    deallocate(ConfigurationInteraction_instance%configurations)
+    if (allocated(ConfigurationInteraction_instance%configurations)) deallocate(ConfigurationInteraction_instance%configurations)
 
     call Matrix_destructor(ConfigurationInteraction_instance%hamiltonianMatrix)
     call Vector_destructor (ConfigurationInteraction_instance%numberOfOccupiedOrbitals)
     call Vector_destructor (ConfigurationInteraction_instance%numberOfOrbitals)
     call Vector_destructor (ConfigurationInteraction_instance%lambda)
-
-
-    case ( "CISD" )
-
-     !!Destroy configurations
-       !!Ground State
-       c=1
-       call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
-
-       !do i=1, numberOfSpecies
-          !!Singles
-          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
-             do c=2, ConfigurationInteraction_instance%numberOfConfigurations
-               call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
-             end do
-          end if
-       !end do
-
-    deallocate(ConfigurationInteraction_instance%configurations)
-
-    call Matrix_destructor(ConfigurationInteraction_instance%hamiltonianMatrix)
-    call Vector_destructor (ConfigurationInteraction_instance%numberOfOccupiedOrbitals)
-    call Vector_destructor (ConfigurationInteraction_instance%numberOfOrbitals)
-    call Vector_destructor (ConfigurationInteraction_instance%lambda)
-
-    case ( "CIDD" )
-
-       !!Count
-     !!Destroy configurations
-       !!Ground State
-       c=1
-       call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
-
-       !do i=1, numberOfSpecies
-          !!Doubles of the same specie
-          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
-             do c=2, ConfigurationInteraction_instance%numberOfConfigurations
-               call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
-             end do
-          end if
-       !end do
-
-
-
-       deallocate (ConfigurationInteraction_instance%configurations )
-       
-       call Matrix_destructor(ConfigurationInteraction_instance%hamiltonianMatrix)
-       call Vector_destructor (ConfigurationInteraction_instance%numberOfOccupiedOrbitals)
-       call Vector_destructor (ConfigurationInteraction_instance%numberOfOrbitals)
-       call Vector_destructor (ConfigurationInteraction_instance%lambda)
-
-    case ( "FCI-oneSpecie" )
-
-    case ( "FCI" )
-
-     !!Destroy configurations
-       !!Ground State
-       c=1
-       call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
-
-       !do i=1, numberOfSpecies
-          !!Singles
-          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
-             do c=2, ConfigurationInteraction_instance%numberOfConfigurations
-               call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
-             end do
-          end if
-       !end do
-
-    deallocate(ConfigurationInteraction_instance%configurations)
-
-    call Matrix_destructor(ConfigurationInteraction_instance%hamiltonianMatrix)
-    call Vector_destructor (ConfigurationInteraction_instance%numberOfOccupiedOrbitals)
-    call Vector_destructor (ConfigurationInteraction_instance%numberOfOrbitals)
-    call Vector_destructor (ConfigurationInteraction_instance%lambda)
-
-    case default
-
-    end select
-
 
     ConfigurationInteraction_instance%isInstanced=.false.
 
@@ -692,9 +602,22 @@ contains
 
        print *, ""
        print *, "Diagonalizing hamiltonian..."
-       print *, "  Using : ", (CONTROL_instance%CI_DIAGONALIZATION_METHOD)
+       print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
-       select case (CONTROL_instance%CI_DIAGONALIZATION_METHOD) 
+
+       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+
+       case ("ARPACK")
+
+         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
+              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
+              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+        print *, "hola diag"
+        call ConfigurationInteraction_diagonalize(ConfigurationInteraction_instance%numberOfConfigurations, &
+              ConfigurationInteraction_instance%numberOfConfigurations, &
+              ConfigurationInteraction_instance%eigenvalues, &
+              ConfigurationInteraction_instance%eigenVectors )
+  
 
        case ("DSYEVX")
 
@@ -830,34 +753,16 @@ contains
 
        case ("DSYEVX")
 
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
          call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
               1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
-              flags = SYMMETRIC)
-
-!         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-!              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-!              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
 
 
-       case ("DSYEVR")
+      case ("DSYEVR")
 
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
+        call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
               1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
-              flags = SYMMETRIC)
-
-!        call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-!              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-!              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
+              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
 
         end select
 
@@ -1077,9 +982,9 @@ contains
                    occupiedCode%values(i)=m*1024+n
                    do p = int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
                      do q=p+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
-                   !do q=ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)+1, ConfigurationInteraction_instance%numberOfOrbitals%values(i) 
+                   !do q=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
 
-                      if ( mod(m,lambda) == mod(p,lambda) .and.  mod(n,lambda) == mod(q,lambda) .and. (p /= q) ) then !! alpha -> alpha, beta -> beta
+                      if ( mod(m,lambda) == mod(p,lambda) .and.  mod(n,lambda) == mod(q,lambda) ) then !! alpha -> alpha, beta -> beta
                             call Vector_constructor (unoccupiedCode, numberOfSpecies, 0.0_8)
                             unoccupiedCode%values(i)=p*1024+q
                             c=c+1
@@ -1422,7 +1327,7 @@ contains
 
              end if
 
-            write (6, "(T4,A20,A21,A3,I4)") "Triples for species ", trim(MolecularSystem_getNameOfSpecie(i))//&
+            write (6, "(T4,A20,A21,A3,I6)") "Triples for species ", trim(MolecularSystem_getNameOfSpecie(i))//&
                                                    "/"//trim(MolecularSystem_getNameOfSpecie(j))//& 
                                                    "/"//trim(MolecularSystem_getNameOfSpecie(k)), " : ", cc
             end do
@@ -1474,33 +1379,22 @@ contains
     
     real(8) :: CIenergy
 
-!!    n = 2
-!!    auxIndex = IndexMap_tensorR4ToVector( 1, 1, 1, 1, n )
-!!    print *, "1 1 | 1 1", ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(auxIndex, 1)
-
-
+    call omp_set_num_threads(omp_get_max_threads())
     !a,b configuration iterators
-    !i,j specie iterators
-    !k,l orbital iterators
+    do a=1, ConfigurationInteraction_instance%numberOfConfigurations
+      do b=a, ConfigurationInteraction_instance%numberOfConfigurations
 
+        call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
+        ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
+      end do
+    end do
 
-    ! print *, "build H"
-       do a=1, ConfigurationInteraction_instance%numberOfConfigurations
-          do b=a, ConfigurationInteraction_instance%numberOfConfigurations
-
-            !call ConfigurationInteraction_calculateCIenergyB(a,b,CIenergy)
-            call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
-            ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
-               
-          end do
-       end do
-!     print *, "diag hamiltonian" 
-         do a=1, ConfigurationInteraction_instance%numberOfConfigurations
-            do b=a, ConfigurationInteraction_instance%numberOfConfigurations
-!              if ( a == b ) print *, ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
-               ConfigurationInteraction_instance%hamiltonianMatrix%values(b,a)=ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
-            end do
-         end do
+    !! symmetrize
+    do a=1, ConfigurationInteraction_instance%numberOfConfigurations
+      do b=a, ConfigurationInteraction_instance%numberOfConfigurations
+         ConfigurationInteraction_instance%hamiltonianMatrix%values(b,a)=ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b)
+      end do
+    end do
 
    deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
    deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
@@ -1549,8 +1443,6 @@ contains
     if (allocated(differentOrbitals )) deallocate (differentOrbitals)
     allocate(differentOrbitals (numberOfSpecies))
 
-  !  print *, "%%%%%%%Beginng ab", a,b
-   
     do ia = 1, ConfigurationInteraction_instance%configurations(a)%nDeterminants 
       do ib = 1, ConfigurationInteraction_instance%configurations(b)%nDeterminants 
 
@@ -1560,8 +1452,6 @@ contains
  
         do i=1, numberOfSpecies
 
-           !call vector_show(ConfigurationInteraction_instance%configurations(a)%occupations(i,ia))
-           !call vector_show(ConfigurationInteraction_instance%configurations(b)%occupations(i,ib))
            diffAB%values(i)= sum ( abs ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values- & 
                 ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values ) )
         end do
@@ -1571,7 +1461,6 @@ contains
                  ia, ib, numberOfSpecies, occupiedOrbitals, factor )
 
         !print *, "case: ",( sum (diffAB%values) ) 
-        !if ( sum (diffAB%values) > 4 ) print *, "Yina case" 
         select case ( int( sum (diffAB%values) ) )
 
         case (0)
@@ -1705,7 +1594,6 @@ contains
                 !One particle terms
                  !if (spin(1) .eq. spin(2) ) then
                     auxCIenergy= auxCIenergy +  ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( spatialOrbital(1), spatialOrbital(2) )
-!                 print *, "one p", auxCIenergy
                  !end if
 
                  !Two particles, same specie
@@ -1721,7 +1609,6 @@ contains
                                numberOfSpatialOrbitals )
 
                     if (spin(1) .eq. spin(2) ) then
-!                  print *, "J",  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
                           TwoParticlesEnergy=TwoParticlesEnergy + &
                                ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                        end if
@@ -1742,7 +1629,6 @@ contains
 
                           auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(3), spatialOrbital(2), numberOfSpatialOrbitals )
 
- !                 print *, "K",  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
                           TwoParticlesEnergy=TwoParticlesEnergy + &
                                kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                        end if
@@ -3509,5 +3395,398 @@ print*,auxdifferentOrbitals(i)%values(6), auxdifferentOrbitals(i)%values(5), aux
     call Exception_destructor( ex )
 
   end subroutine ConfigurationInteraction_exception
+
+  !>
+  !! @brief Muestra informacion del objeto
+  !!
+  !! @param this 
+  !<
+  subroutine ConfigurationInteraction_diagonalize(maxn,ldv, eigenValues, eigenVectors)
+    implicit none
+
+  !*******************************************************************************
+  !
+  !! SSSIMP is a simple program to call ARPACK for a symmetric eigenproblem.
+  !
+  !    This code shows how to use ARPACK to find a few eigenvalues
+  !    LAMBDA and corresponding eigenvectors X for the standard
+  !    eigenvalue problem:
+  !
+  !      A * X = LAMBDA * X
+  !
+  !    where A is an N by N real symmetric matrix.
+  !
+  !    The only things that must be supplied in order to use this
+  !    routine on your problem is:
+  !
+  !    * to change the array dimensions appropriately, 
+  !    * to specify WHICH eigenvalues you want to compute
+  !    * to supply a matrix-vector product
+  !      w <- A * v
+  !      in place of the call to AV( ) below.
+  !
+  !  Author:
+  !
+  !    Richard Lehoucq, Danny Sorensen, Chao Yang,
+  !    Department of Computational and Applied Mathematics,
+  !    Rice University,
+  !    Houston, Texas.
+  !
+  !  Storage:
+  ! 
+  !    The maximum dimensions for all arrays are set here to accommodate 
+  !    a problem size of N <= MAXN
+  !
+  !    NEV is the number of eigenvalues requested.
+  !    See specifications for ARPACK usage below.
+  !
+  !    NCV is the largest number of basis vectors that will be used in 
+  !    the Implicitly Restarted Arnoldi Process.  Work per major iteration is
+  !    proportional to N*NCV*NCV.
+  !
+  !    You must set: 
+  ! 
+  !    MAXN:   Maximum dimension of the A allowed. 
+  !    MAXNEV: Maximum NEV allowed. 
+  !    MAXNCV: Maximum NCV allowed. 
+  !
+
+!    integer, intent(in) :: nconf
+    integer, intent(in) :: maxn 
+!    integer, parameter :: maxn 
+    integer, parameter :: maxnev = 1 
+    integer, parameter :: maxncv = 15 !! ?  
+
+    integer, intent(in) :: ldv 
+!    integer, parameter :: ldv = maxn
+  
+    intrinsic abs
+    real :: ax(maxn)
+    !real, allocatable :: ax(:)
+    character bmat  
+    real d(maxncv,2)
+    integer ido,ierr,info,iparam(11),ipntr(11),ishfts,j,lworkl,maxitr,mode1,n,nconv,ncv,nev,nx
+    real :: resid(maxn)
+!    real, allocatable :: resid(:)
+    logical rvec
+    external saxpy
+    logical select(maxncv)
+    real sigma
+    real, external :: snrm2
+    real tol
+!    real, allocatable :: v(:,:)
+    real :: v(ldv,maxncv) 
+    character ( len = 2 ) which
+    real workl(maxncv*(maxncv+8))
+    real :: workd(3*maxn)
+!    real, allocatable :: workd(:)
+    real, parameter :: zero = 0.0E+00
+
+    type(Vector), intent(inout) :: eigenValues
+    type(Matrix), intent(inout) :: eigenVectors
+    integer :: ii, jj, iter
+
+!    include 'debug.h'
+
+  !
+  !  The following include statement and assignments control trace output 
+  !  from the internal actions of ARPACK.  See debug.doc in the
+  !  DOCUMENTS directory for usage.  
+  !
+  !  Initially, the most useful information will be a breakdown of
+  !  time spent in the various stages of computation given by setting 
+  !  msaupd = 1.
+  !
+  
+!    ndigit = -3
+!    logfil = 6
+!    msgets = 0
+!    msaitr = 0
+!    msapps = 0
+!    msaupd = 1
+!    msaup2 = 0
+!    mseigt = 0
+!    mseupd = 0
+  !
+  !  Set dimensions for this problem.
+  !
+    nx = ConfigurationInteraction_instance%numberOfConfigurations
+  !  nx = 5
+    n = nx * nx  
+
+  !
+  !  Specifications for ARPACK usage are set below:
+  !
+  !  1) NEV = 4 asks for 4 eigenvalues to be computed.                            !
+  !  2) NCV = 20 sets the length of the Arnoldi factorization.
+  !
+  !  3) This is a standard problem(indicated by bmat  = 'I')
+  !
+  !  4) Ask for the NEV eigenvalues of largest magnitude
+  !     (indicated by which = 'LM')
+  !
+  !  See documentation in SSAUPD for the other options SM, LA, SA, LI, SI.
+  !
+  !  NEV and NCV must satisfy the following conditions:
+  !
+  !    NEV <= MAXNEV
+  !    NEV + 1 <= NCV <= MAXNCV
+  !
+    nev = 1
+    ncv = 15 !! 
+    bmat = 'I'
+    which = 'SA'
+
+!
+!  WHICH   Character*2.  (INPUT)
+!          Specify which of the Ritz values of OP to compute.
+!
+!          'LA' - compute the NEV largest (algebraic) eigenvalues.
+!          'SA' - compute the NEV smallest (algebraic) eigenvalues.
+!          'LM' - compute the NEV largest (in magnitude) eigenvalues.
+!          'SM' - compute the NEV smallest (in magnitude) eigenvalues. 
+!          'BE' - compute NEV eigenvalues, half from each end of the
+!                 spectrum.  When NEV is odd, compute one more from the
+!                 high end than from the low end.
+!           (see remark 1 below)
+
+  
+!    if ( maxn < n ) then
+!      write ( *, '(a)' ) ' '
+!      write ( *, '(a)' ) 'SSSIMP - Fatal error!'
+!      write ( *, '(a)' ) '  N is greater than MAXN '
+!      !stop
+!    else if ( maxnev < nev ) then
+!      write ( *, '(a)' ) ' '
+!      write ( *, '(a)' ) 'SSSIMP - Fatal error!'
+!      write ( *, '(a)' ) '  NEV is greater than MAXNEV '
+!      stop
+!    else if ( maxncv < ncv ) then
+!      write ( *, '(a)' ) ' '
+!      write ( *, '(a)' ) 'SSSIMP - Fatal error!'
+!      write ( *, '(a)' ) '  NCV is greater than MAXNCV '
+!      stop
+!    end if
+  !
+  !  TOL determines the stopping criterion.  Expect
+  !    abs(lambdaC - lambdaT) < TOL*abs(lambdaC)
+  !  computed   true
+  !  If TOL <= 0, then TOL <- macheps (machine precision) is used.
+  !
+  !  IDO is the REVERSE COMMUNICATION parameter
+  !  used to specify actions to be taken on return
+  !  from SSAUPD. (See usage below.)
+  !  It MUST initially be set to 0 before the first
+  !  call to SSAUPD.
+  !
+  !  INFO on entry specifies starting vector information
+  !  and on return indicates error codes
+  !  Initially, setting INFO=0 indicates that a
+  !  random starting vector is requested to 
+  !  start the ARNOLDI iteration.  Setting INFO to
+  !  a nonzero value on the initial call is used 
+  !  if you want to specify your own starting 
+  !  vector. (This vector must be placed in RESID.)
+  !
+  !  The work array WORKL is used in SSAUPD as workspace.  Its dimension
+  !  LWORKL is set as illustrated below. 
+  !
+    lworkl = ncv * ( ncv + 8 )
+    tol = zero
+    ido = 0
+  !
+  !  Specification of Algorithm Mode:
+  !
+  !  This program uses the exact shift strategy
+  !  (indicated by setting PARAM(1) = 1).
+  !
+  !  IPARAM(3) specifies the maximum number of Arnoldi iterations allowed.  
+  !
+  !  Mode 1 of SSAUPD is used (IPARAM(7) = 1). 
+  !
+  !  All these options can be changed by the user.  For details see the
+  !  documentation in SSAUPD.
+  !
+    ishfts = 1
+    maxitr = 300
+    mode1 = 1
+  
+    iparam(1) = ishfts
+    iparam(3) = maxitr
+    iparam(7) = mode1
+  !
+  !  MAIN LOOP (Reverse communication loop)
+  !
+  !  Repeatedly call SSAUPD and take actions indicated by parameter 
+  !  IDO until convergence is indicated or MAXITR is exceeded.
+  !
+
+    call omp_set_num_threads(omp_get_max_threads())
+    iter = 0
+
+    !! starting vector
+    resid = 0
+    info = 1
+    resid(1) = 0.95 !! initial HF coefficient in ground state
+
+    do
+  
+      call ssaupd ( ido, bmat, nx, which, nev, tol, resid, &
+        ncv, v, ldv, iparam, ipntr, workd, workl, &
+        lworkl, info )
+  
+      if ( ido /= -1 .and. ido /= 1 ) then
+        exit
+      end if
+  !
+  !  Perform matrix vector multiplication
+  !
+  !    y <--- OP*x
+  !
+  !  The user supplies a matrix-vector multiplication routine that takes
+  !  workd(ipntr(1)) as the input, and return the result to workd(ipntr(2)).
+  !
+      call av ( nx, workd(ipntr(1)), workd(ipntr(2)), iter )
+  
+     end do
+  !
+  !  Either we have convergence or there is an error.
+  !
+    if ( info < 0 ) then
+  !
+  !  Error message. Check the documentation in SSAUPD.
+  !
+      write ( *, '(a)' ) ' '
+      write ( *, '(a)' ) 'SSSIMP - Fatal error!'
+      write ( *, '(a,i6)' ) '  Error with SSAUPD, INFO = ', info
+      write ( *, '(a)' ) '  Check documentation in SSAUPD.'
+  
+    else
+  !
+  !  No fatal errors occurred.
+  !  Post-Process using SSEUPD.
+  !
+  !  Computed eigenvalues may be extracted.
+  !
+  !  Eigenvectors may be also computed now if
+  !  desired.  (indicated by rvec = .true.)
+  !
+  !  The routine SSEUPD now called to do this
+  !  post processing (Other modes may require
+  !  more complicated post processing than mode1.)
+  !
+      rvec = .true.
+  
+      call sseupd ( rvec, 'All', select, d, v, ldv, sigma, &
+        bmat, nx, which, nev, tol, resid, ncv, v, ldv, &
+        iparam, ipntr, workd, workl, lworkl, ierr )
+  !
+  !  Eigenvalues are returned in the first column of the two dimensional 
+  !  array D and the corresponding eigenvectors are returned in the first 
+  !  NCONV (=IPARAM(5)) columns of the two dimensional array V if requested.
+  !
+  !  Otherwise, an orthogonal basis for the invariant subspace corresponding 
+  !  to the eigenvalues in D is returned in V.
+  !
+   !! Saving the eigenvalues !! Saving the eigenvectors
+      do ii = 1, nx
+        eigenValues%values(ii) = d(ii,1)
+        do jj = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+          eigenVectors%values(ii,jj) = v(ii,jj)
+        end do
+      end do 
+
+      if ( ierr /= 0 ) then
+  
+        write ( *, '(a)' ) ' '
+        write ( *, '(a)' ) 'SSSIMP - Fatal error!'
+        write ( *, '(a,i6)' ) '  Error with SSEUPD, IERR = ', ierr
+        write ( *, '(a)' ) '  Check the documentation of SSEUPD.'
+  !
+  !  Compute the residual norm
+  !
+  !    ||  A*x - lambda*x ||
+  ! 
+  !  for the NCONV accurately computed eigenvalues and 
+  !  eigenvectors.  (iparam(5) indicates how many are 
+  !  accurate to the requested tolerance)
+  !
+      else
+  
+        nconv =  iparam(5)
+  
+        do j = 1, nconv
+          call av ( nx, v(1,j), ax, iter )
+          call saxpy ( nx, -d(j,1), v(1,j), 1, ax, 1 )
+          d(j,2) = snrm2 ( nx, ax, 1)
+          d(j,2) = d(j,2) / abs ( d(j,1) )
+        end do
+  !
+  !  Display computed residuals.
+  !
+        call smout ( 6, nconv, 2, d, maxncv, -6, &
+          'Ritz values and relative residuals' )
+  
+      end if
+  !
+  !  Print additional convergence information.
+  !
+      if ( info == 1) then
+        write ( *, '(a)' ) ' '
+        write ( *, '(a)' ) '  Maximum number of iterations reached.'
+      else if ( info == 3) then
+        write ( *, '(a)' ) ' '
+        write ( *, '(a)' ) '  No shifts could be applied during implicit' &
+          // ' Arnoldi update, try increasing NCV.'
+      end if
+  
+      write ( *, '(a)' ) ' '
+      write ( *, '(a)' ) '====== '
+      write ( *, '(a)' ) ' '
+      write ( *, '(a,i6)' ) '  Size of the matrix is ', nx
+      write ( *, '(a,i6)' ) '  The number of Ritz values requested is ', nev
+      write ( *, '(a,i6)' ) &
+        '  The number of Arnoldi vectors generated (NCV) is ', ncv
+      write ( *, '(a)' ) '  What portion of the spectrum: ' // which
+      write ( *, '(a,i6)' ) &
+        '  The number of converged Ritz values is ', nconv
+      write ( *, '(a,i6)' ) &
+        '  The number of Implicit Arnoldi update iterations taken is ', iparam(3)
+      write ( *, '(a,i6)' ) '  The number of OP*x is ', iparam(9)
+      write ( *, '(a,g14.6)' ) '  The convergence criterion is ', tol
+  
+    end if
+  
+    write ( *, '(a)' ) ' '
+    write ( *, '(a)' ) '  Normal end of execution.'
+  
+    write ( *, '(a)' ) ' '
+    !call timestamp ( )
+  
+  end subroutine ConfigurationInteraction_diagonalize
+
+  subroutine av ( nx, v, w, iter)
+  
+  !*******************************************************************************
+  !! AV computes w <- A * V where A is a discretized Laplacian.
+  !  Parameters:
+  !    Input, integer NX, the length of the vectors.
+  !    Input, real V(NX), the vector to be operated on by A.
+  !    Output, real W(NX), the result of A*V.
+  !
+    implicit none
+  
+    integer nx,i,j,iter
+    real v(nx)
+    real w(nx)
+
+    w = 0
+
+    do i = 1, nx
+        w(:) = w(:) + ConfigurationInteraction_instance%hamiltonianMatrix%values(:,i)*v(i)
+    end do 
+
+    return
+  end subroutine av
 
 end module ConfigurationInteraction_
