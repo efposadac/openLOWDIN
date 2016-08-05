@@ -237,7 +237,7 @@ contains
        inquire(iolength=reclen) integral
        open(unit=50,FILE=trim(nameOfSpecies)//".dints",ACCESS="direct",FORM="Unformatted",RECL=reclen, STATUS="old")
 
-       call TransformIntegralsD_transformIntegrals(50, nao, nameOfSpecies, coeff)
+       call TransformIntegralsD_transformIntegralsIntra(50, nao, nameOfSpecies, coeff)
 
 
        do p = 1, nao
@@ -268,7 +268,7 @@ contains
   end subroutine TransformIntegralsD_atomicToMolecularOfOneSpecie
 
 
-  subroutine TransformIntegralsD_transformIntegrals(unit, nao, nameOfSpecies, coeff)
+  subroutine TransformIntegralsD_transformIntegralsIntra(unit, nao, nameOfSpecies, coeff)
     implicit none
 
     integer :: unit
@@ -354,7 +354,7 @@ contains
     close(60)
 
 
-  end subroutine TransformIntegralsD_transformIntegrals
+  end subroutine TransformIntegralsD_transformIntegralsIntra
 
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de diferente especie
@@ -374,12 +374,14 @@ contains
 
     real(8), allocatable, target :: ints(:)
     real(8), allocatable, target :: coeff(:, :), ocoeff(:, :)
+    real(8) :: integral
+    integer :: reclen
     integer :: nao, onao, sze, osze, tsze
     integer :: j, k
     integer :: p, q, r, s
 
     type(c_ptr) :: coeff_ptr, ocoeff_ptr, ints_ptr
-
+    logical :: direct = .true.
 
     this%prefixOfFile =""//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)
     this%fileForCoefficients =""//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//"mo.values"
@@ -399,12 +401,6 @@ contains
     osze = onao * (onao + 1) / 2
     tsze = sze * osze
 
-    if(allocated(ints)) deallocate(ints)
-    allocate(ints(tsze))
-
-    ints = 0.0_8
-    call ReadIntegrals_interSpecies(trim(nameOfSpecies), trim(nameOfOtherSpecies), osze, ints)
-
     if (allocated(coeff)) deallocate(coeff)
     allocate(coeff(nao, nao))
 
@@ -423,34 +419,170 @@ contains
        end do
     end do
 
-    ! Calling C function
-    coeff_ptr = c_loc(coeff(1, 1))
-    ocoeff_ptr = c_loc(ocoeff(1, 1))
-    ints_ptr = c_loc(ints(1))
-
-    call TransformIntegralsD_integralsTransformInter_all(coeff_ptr, ocoeff_ptr, ints_ptr, nao, onao)
-
+  
     !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
     open(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE, file=trim(this%prefixOfFile)//"moint.dat", &
          status='replace',access='sequential', form='unformatted' )
 
-    do p = 1, nao
-       do q = p, nao
-          do r = 1 , onao
-             do s = r,  onao
-                !! TODO: Use chunks instead.
-                write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4Inter(p, q, r, s, osze))
+    if (.not. direct) then
 
+      if(allocated(ints)) deallocate(ints)
+      allocate(ints(tsze))
+
+      ints = 0.0_8
+      call ReadIntegrals_interSpecies(trim(nameOfSpecies), trim(nameOfOtherSpecies), osze, ints)
+
+      ! Calling C function
+      coeff_ptr = c_loc(coeff(1, 1))
+      ocoeff_ptr = c_loc(ocoeff(1, 1))
+      ints_ptr = c_loc(ints(1))
+
+      call TransformIntegralsD_integralsTransformInter_all(coeff_ptr, ocoeff_ptr, ints_ptr, nao, onao)
+
+      do p = 1, nao
+         do q = p, nao
+            do r = 1 , onao
+               do s = r,  onao
+                  !! TODO: Use chunks instead.
+                  write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4Inter(p, q, r, s, osze))
+
+               end do
+            end do
+         end do
+      end do
+
+    else
+
+       call ReadIntegrals_interSpecies(trim(nameOfSpecies), trim(nameOfOtherSpecies), osze, ints)
+
+       inquire(iolength=reclen) integral
+       open(unit=50,FILE=trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".dints",ACCESS="direct",FORM="Unformatted",RECL=reclen, STATUS="old")
+
+       call TransformIntegralsD_transformIntegralsInter(50, nao, onao,  nameOfSpecies, nameOfOtherSpecies, coeff, ocoeff, osze)
+
+
+       do p = 1, nao
+          do q = p, nao
+             do r = 1 , nao
+                do s = r,  nao
+
+                   !! TODO: Use chunks instead.
+                   read(50, rec=ReadIntegrals_index4Inter(p, q, r, s, osze)) integral
+                   write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, integral
+
+                end do
              end do
           end do
        end do
-    end do
 
+       close(50)
+
+    end if
     write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) -1,0,0,0, 0.0_8 
 
     close(CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE)
 
   end subroutine TransformIntegralsD_atomicToMolecularOfTwoSpecies
+
+
+  subroutine TransformIntegralsD_transformIntegralsInter(unit, nao, onao, nameOfSpecies, nameOfOtherSpecies, coeff, ocoeff, om)
+    implicit none
+
+    integer :: unit
+    integer :: nao, onao, om
+    character(*) :: nameOfSpecies, nameOfOtherSpecies
+    real(8), allocatable, target :: coeff(:, :), ocoeff(:, :)
+
+
+    real(8) :: integral
+    integer :: reclen
+    integer :: i, j, k, l, ij, kl, index
+    real(8), allocatable, target :: X(:,:), OX(:,:)
+    real(8), allocatable, target :: W(:,:), OW(:,:)
+
+    type(c_ptr) :: coeff_ptr, ocoeff_ptr, X_ptr, W_ptr, OX_ptr, OW_ptr
+
+    ! First half-transformation
+    inquire(iolength=reclen) integral
+    open(60,FILE="scratch_transform.tmp",ACCESS="direct",FORM="Unformatted",RECL=reclen, STATUS="replace")
+
+    if(allocated(OW))deallocate(OW)
+    allocate(OW(onao, onao))
+
+    if(allocated(OX))deallocate(OX)
+    allocate(OX(onao, onao))
+
+    ocoeff_ptr = c_loc(ocoeff(1,1))
+    OW_ptr = c_loc(OW(1,1))
+    OX_ptr = c_loc(OX(1,1))
+
+    ij = 0
+    do i = 1, nao
+       do j = 1, i
+          ij = ij + 1
+          do k = 1, onao
+             do l = 1, k
+                index = ReadIntegrals_index4Inter(i, j, k, l, om)
+                read(unit, rec=index) OX(k, l)
+                OX(l, k) = OX(k, l)
+             end do
+          end do
+
+          call TransformIntegralsD_similarityTransform(onao, OX_ptr, ocoeff_ptr, OW_ptr)
+
+          kl = 0
+          do k = 1, onao
+             do l = 1, k
+                kl = kl + 1
+                index = ReadIntegrals_index2(kl, ij)
+                write(60, rec=index) OX(k, l);
+             end do
+          end do
+       end do
+    end do
+
+
+    if(allocated(W))deallocate(W)
+    allocate(W(nao, nao))
+
+    if(allocated(X))deallocate(X)
+    allocate(X(nao, nao))
+
+    coeff_ptr = c_loc(coeff(1,1))
+    W_ptr = c_loc(W(1,1))
+    X_ptr = c_loc(X(1,1))
+
+
+    ! Second half-transformation
+    X = 0
+    kl = 0
+    do k = 1, onao
+       do l = 1, k
+          kl = kl + 1
+          ij = 0
+          do i = 1, nao
+             do j = 1, i
+                ij = ij + 1
+                index = ReadIntegrals_index2(kl, ij)
+                read(60, rec=index) X(i, j)
+                X(j, i) = X(i, j)
+             end do
+          end do
+
+          call TransformIntegralsD_similarityTransform(nao, X_ptr, coeff_ptr, W_ptr)
+
+          do i = 1, nao
+             do j = 1, i
+                index = ReadIntegrals_index4Inter(i, j, k, l, om)
+                write(unit, rec=index) X(i, j)
+             end do
+          end do
+       end do
+    end do
+
+    close(60)
+
+  end subroutine TransformIntegralsD_transformIntegralsInter
 
   !>
   !! @brief Contructor de la clase

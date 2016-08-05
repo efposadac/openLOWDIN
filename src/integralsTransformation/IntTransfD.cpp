@@ -267,7 +267,7 @@ void four_index_trans_inter(int nao, int onao, double C[], double OC[],
   assert((TMP != NULL) && "We have problems allocating TMP!");
 
   memset(TMP, 0.0, eris_size * sizeof(double));
-  memset(OX, 0.0, nao * nao * sizeof(double));
+  memset(OX, 0.0, ox_size * sizeof(double));
 
   /* First half-transformation */
   for (i = 0, ij = 0; i < nao; i++)
@@ -301,7 +301,7 @@ void four_index_trans_inter(int nao, int onao, double C[], double OC[],
   assert((Scratch != NULL) && "We have problems allocating Scratch!");
 
   memset(ERIS, 0.0, eris_size * sizeof(double));
-  memset(X, 0.0, nao * nao * sizeof(double));
+  memset(X, 0.0, x_size * sizeof(double));
 
   for (k = 0, kl = 0; k < onao; k++)
     for (l = 0; l <= k; l++, kl++) {

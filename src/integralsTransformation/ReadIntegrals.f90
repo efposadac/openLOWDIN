@@ -109,6 +109,7 @@ contains
     integer :: index
     integer :: i
 
+    real(8) :: int_value
     real(8) :: integral(CONTROL_instance%INTEGRAL_STACK_SIZE)
     integer :: p(CONTROL_instance%INTEGRAL_STACK_SIZE)
     integer :: q(CONTROL_instance%INTEGRAL_STACK_SIZE)
@@ -120,10 +121,17 @@ contains
     integer :: nthreads
     integer :: threadid
     integer :: unitid
+    integer :: reclen
+    logical :: disk = .false.
 
+    if(.not. allocated(integrals)) disk = .true.
+    
+    if( disk ) then
+       inquire(iolength=reclen) int_value
+       open(unit=50,FILE=trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".dints",ACCESS="direct",FORM="Unformatted",RECL=reclen, STATUS="unknown")
+    end if
 
     !! Read integrals
-
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, p, q, r, s, integral, i, index)
     nthreads = OMP_GET_NUM_THREADS()
     threadid =  OMP_GET_THREAD_NUM()
@@ -147,8 +155,12 @@ contains
           if (p(i) == -1) exit loadintegrals
 
           index = ReadIntegrals_index4Inter(int(p(i), 4), int(q(i), 4), int(r(i), 4), int(s(i), 4), w)
-
-          integrals(index) = integral(i)
+          
+          if (disk) then
+            write(50, rec=index) integral(i)
+          else
+             integrals(index) = integral(i)
+          endif
 
        end do
 
@@ -215,5 +227,6 @@ contains
     output = ij * w + kl + 1
 
   end function ReadIntegrals_index4Inter
+
 
 end module ReadIntegrals_
