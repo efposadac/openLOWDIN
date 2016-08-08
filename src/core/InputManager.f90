@@ -35,6 +35,7 @@ module InputManager_
      integer :: numberOfExternalPots
      integer :: numberOfInterPots
      integer :: numberOfOutputs
+     integer :: numberOfSpeciesInCI
      integer :: numberOfFragments
      !!Task
      character(50) :: method
@@ -74,12 +75,14 @@ contains
     integer:: InputSystem_numberOfExternalPots
     integer:: InputSystem_numberOfInterPots
     integer:: InputSystem_numberOfOutputs
+    integer:: InputSystem_numberOfSpeciesInCI
     
     NAMELIST /InputSystem/ &
          InputSystem_numberOfParticles, &
          InputSystem_numberOfExternalPots, &
          InputSystem_numberOfInterPots, &
          InputSystem_numberOfOutputs, &
+         InputSystem_numberOfSpeciesInCI, & 
          InputSystem_description
     
     !! Get input name
@@ -108,6 +111,7 @@ contains
        InputSystem_numberOfExternalPots=0
        InputSystem_numberOfInterPots=0
        InputSystem_numberOfOutputs=0
+       InputSystem_numberOfSpeciesInCI=0
        InputSystem_numberOfParticles=0
        InputSystem_description=trim(Input_instance%systemName)
 
@@ -126,6 +130,7 @@ contains
        Input_instance%numberOfExternalPots = InputSystem_numberOfExternalPots
        Input_instance%numberOfInterPots = InputSystem_numberOfInterPots
        Input_instance%numberOfOutputs = InputSystem_numberOfOutputs
+       Input_instance%numberOfSpeciesInCI = InputSystem_numberOfSpeciesInCI
 
        !!done
        

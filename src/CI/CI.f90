@@ -32,13 +32,16 @@ program CI
   use Exception_
   use ConfigurationInteraction_
   use String_
+  use InputCI_
   implicit none
 
   character(50) :: job
+  integer :: numberOfSpeciesInCI
 
   job = ""  
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
+  read(job,"(I10)"), numberOfSpeciesInCI
 
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
@@ -49,6 +52,10 @@ program CI
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  print *, "numberOfSpeciesinCI", numberOfSpeciesInCI
+
+  call InputCI_constructor( )
+  call InputCI_load( numberOfSpeciesInCI )
 
   call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
   call ConfigurationInteraction_run()

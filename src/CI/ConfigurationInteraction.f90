@@ -37,6 +37,7 @@ module ConfigurationInteraction_
   use MolecularSystem_
   use String_
   use IndexMap_
+  use InputCI_
   use omp_lib
   implicit none
       
@@ -137,6 +138,18 @@ contains
          arguments=["PUNTUALINTERACTIONENERGY"])
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+
+    print *, "inputci size", size(InputCI_Instance)
+    print *, "inputci size", numberOfSpecies
+    do i = 1,  size(InputCI_Instance)
+      print *, "species", InputCI_Instance(i)%species
+      print *, "core", InputCI_Instance(i)%coreOrbitals
+      print *, "active", InputCI_Instance(i)%activeOrbitals
+      print *, "excitations", InputCI_Instance(i)%excitationType
+    end do 
+
+
 
     do i=1, numberOfSpecies
         nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
