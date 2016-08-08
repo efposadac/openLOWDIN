@@ -49,7 +49,7 @@ build:
           export LIBRARY_PATH=$LIBRARY_PATH:$WORKDIR/lib
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$WORKDIR/lib
           # Build Lowdin
-          ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
+          ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
           make
           make install
     - script:
