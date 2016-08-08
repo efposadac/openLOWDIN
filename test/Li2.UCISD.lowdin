@@ -3,11 +3,13 @@
 %  Electronic Hartree Fock
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SYSTEM_DESCRIPTION='Molecula de H2O'
+SYSTEM_DESCRIPTION='Molecula de Li'
 
 GEOMETRY
-e-(He)  6-311G	0.000	0.000	0.00000 addParticles=2
-He    	dirac	0.000	0.000	0.0000
+e-(Li)  6-31G	0.000	0.000	1.6075621
+e-(Li)  6-31G	0.000	0.000	0.000000
+Li    	dirac	0.000	0.000	1.6075621
+Li    	dirac	0.000	0.000	0.0000
 END GEOMETRY
 
 TASKS
@@ -16,9 +18,9 @@ TASKS
 END TASKS
 
 CONTROL
-	readCoefficients=F
 	numberOfCores=1
-	integralsTransformationMethod= "C"
+	scfelectronicenergytolerance=1E-8
+        CIdiagonalizationMethod="DSYEVX"
 END CONTROL
 
 

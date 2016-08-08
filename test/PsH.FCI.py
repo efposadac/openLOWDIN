@@ -4,14 +4,14 @@ import os
 import sys
 from colorstring import *
 
-testName = "He.CISD"
+testName = "PsH.FCI"
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
 # Reference values
 
-refTotalEnergy = -2.859895424516
-refCISDEnergy = -2.876418360249
+refTotalEnergy = -0.666783062050
+refFCIEnergy = -0.743335967433
 
 # Run calculation
 
@@ -29,18 +29,18 @@ outputRead = output.readlines()
 for line in outputRead:
     if "TOTAL ENERGY =" in line:
         totalEnergy = float(line.split()[3])
-    if "GROUND-STATE ENERGY =" in line:
-        CISDEnergy = float(line.split()[3])
+    if "STATE:   1 ENERGY =" in line:
+        FCIEnergy = float(line.split()[4])
 
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffCISDEnergy = abs(refCISDEnergy - CISDEnergy)
+diffFCIEnergy = abs(refFCIEnergy - FCIEnergy)
 
-if (diffTotalEnergy <= 1E-12 and CISDEnergy <= 1E-12):
+if (diffTotalEnergy <= 1E-10 and FCIEnergy <= 1E-10):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
     print("Difference HF: " + str(diffTotalEnergy))
-    print("Difference CISD: " + str(diffCISDEnergy))
+    print("Difference FCI: " + str(diffFCIEnergy))
     sys.exit(1)
 
 output.close()

@@ -24,6 +24,7 @@ Installation notes.
 
 * A standard FORTRAN compiler. gfortran and intel FORTRAN compiler have been tested.
 * Lapack or MKL libraries.
+* Arpack library.
 * [LIBINT library version 1.1.5](http://sourceforge.net/projects/libint/files/v1-releases/). NOTE: After download LIBINT please compile with default options. If you want to compile with angular momentum higher than `f`	you should compile LIBINT properly and edit the file `src/ints/LibintInterface.f90` accordingly.
 
 NOTE: If you have the libraries in your own path please be sure to export the LIBRARY_PATH environment variable. ie:

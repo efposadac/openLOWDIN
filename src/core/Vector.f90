@@ -58,6 +58,13 @@ module Vector_
      character(50) :: name
      real(8) , allocatable :: values(:)
   end type Vector
+
+  type, public :: IVector
+     character(50) :: name
+     integer , allocatable :: values(:)
+  end type IVector
+  
+
   
   public :: &
        Vector_constructor, &
@@ -67,6 +74,7 @@ module Vector_
        Vector_writeToFile, &
        Vector_getPtr, &
        Vector_sortElements, &
+       Vector_reverseSortElements, &
        Vector_swapElements, &
        Vector_getSize, &
        Vector_getElement, &
@@ -81,7 +89,10 @@ module Vector_
        Vector_dot, &
        Vector_cross, &
        Vector_norm, &
-       Vector_removeElement
+       Vector_removeElement, &
+       Vector_constructorInteger, &
+       Vector_destructorInteger, &
+       Vector_swapIntegerElements
   
 contains
   
@@ -129,6 +140,52 @@ contains
     end if
     
   end subroutine Vector_constructor
+
+  !>
+  !! @brief Constructor por omision
+  subroutine Vector_constructorInteger( this, ssize, value, values, name )
+    implicit none
+    type(IVector), intent(inout) :: this
+    integer, intent(in) :: ssize
+    integer, optional, intent(in) :: value
+    integer, optional, intent(in) :: values(:)
+    character(50), optional :: name
+    
+    integer :: valueTmp
+    character(50) :: auxName
+    
+    valueTmp = 0.0_8
+    
+    if ( allocated( this%values ) ) then
+       deallocate( this%values )
+       
+    end if
+    
+    allocate( this%values( ssize ) )
+    
+    auxName = "none"
+    
+    if( present( name )) then
+       
+       auxName = trim(name)
+       
+    end if
+    
+    if( present(value) ) then
+       
+       valueTmp = value
+       this%values = valueTmp
+       
+    end if
+    
+    if( present(values) ) then
+       
+       this%values = values
+       
+    end if
+    
+  end subroutine Vector_constructorInteger
+
   
   !>
   !! @brief Constructor de copia
@@ -154,6 +211,17 @@ contains
     if( allocated(this%values) ) deallocate( this%values )
     
   end subroutine Vector_destructor
+
+  !>
+  !! @brief Destructor
+  subroutine Vector_destructorInteger( this )
+    implicit none
+    type(IVector), intent(inout) :: this
+    
+    if( allocated(this%values) ) deallocate( this%values )
+    
+  end subroutine Vector_destructorInteger
+
   
   !>
   !! @brief Imprime a salida estandar la matriz realizando cambio de linea
@@ -540,6 +608,39 @@ contains
        end do
     end do
   end subroutine Vector_sortElements
+
+  subroutine Vector_reverseSortElements(this,indexVector)
+    type(Vector) :: this
+    type(IVector), optional :: indexVector
+    
+    integer i,j,n
+    
+    n = Vector_getSize(this)
+    if ( .not. present (indexVector) ) then
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).lt.this%values(i)) then
+               call Vector_swapElements( this, i, j )
+            end if
+         end do
+      end do
+    else
+      do i=1,n
+        indexVector%values(i) = i
+      end do 
+
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).lt.this%values(i)) then
+               call Vector_swapElements( this, i, j )
+               call Vector_swapIntegerElements( indexVector, i, j )
+            end if
+         end do
+      end do
+    end if
+
+  end subroutine Vector_reverseSortElements
+
   
   !>
   !! @brief Intercambia los elementos i y j el vector
@@ -559,6 +660,26 @@ contains
     this%values( j ) = value1
     
   end subroutine Vector_swapElements
+
+  !>
+  !! @brief Intercambia los elementos i y j el vector
+  subroutine Vector_swapIntegerElements( this, i, j )
+    implicit none
+    type(IVector), intent(inout) :: this
+    integer, intent(in) :: i
+    integer, intent(in) :: j
+    
+    integer :: value1
+    integer :: value2
+    
+    value1 = this%values( i )
+    value2 = this%values( j )
+    
+    this%values( i ) = value2
+    this%values( j ) = value1
+    
+  end subroutine Vector_swapIntegerElements
+
   
   !>
   !! @brief Retorna el tamano del vector

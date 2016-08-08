@@ -101,7 +101,7 @@ Program Ints
 
      if(CONTROL_instance%LAST_STEP) then     
         write(*, *) ""
-        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
         write(*, *) ""
      end if
      close(30)
@@ -134,7 +134,7 @@ Program Ints
 
      if(CONTROL_instance%LAST_STEP) then
         write(*, *) ""
-        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
         write(*, *) ""
      end if
      close(40)
@@ -166,7 +166,7 @@ Program Ints
      call Stopwatch_stop(lowdin_stopwatch)
 
      if(CONTROL_instance%LAST_STEP) then
-        write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
      end if
 
   case("TWO_PARTICLE_R12_INTER")
@@ -181,7 +181,7 @@ Program Ints
 
         if(CONTROL_instance%LAST_STEP) then
            write(*, *) ""
-           write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+           write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
            write(*, *) ""
         end if
      end if

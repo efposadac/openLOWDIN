@@ -7,12 +7,9 @@ END GEOMETRY
 TASKS
 	method = "UHF"
 	configurationInteractionLevel ="FCI"
-!	mollerPlessetCorrection=2	
 END TASKS
 
 CONTROL
-	numberOfCores = 4
-!	integralsTransformationMethod = "A"
 	numberOfCIstates=3
 	CIdiagonalizationMethod = "DSYEVX"
 END CONTROL

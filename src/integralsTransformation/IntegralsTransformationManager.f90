@@ -265,8 +265,8 @@ program IntegralsTransformationManager
   timeB = omp_get_wtime()
   
   write(*, *) ""
-!!  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time for integrals transformation : ", lowdin_stopwatch%enlapsetTime ," (s)"
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time for integrals transformation : ", timeB - timeA ," (s)"
+!!  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for integrals transformation : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for integrals transformation : ", timeB - timeA ," (s)"
   write(*, *) ""
   close(30)
 

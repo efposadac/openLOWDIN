@@ -157,12 +157,14 @@ module CONTROL_
      real(8) :: DOUBLE_ZERO_THRESHOLD
 
      !!***************************************************************************
-     !! CISD - FCI
+     !! CI
      !!
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
-
+     integer :: CI_ACTIVE_SPACE
+     integer :: CI_MAX_NCV
+     integer :: CI_SIZE_OF_GUESS_MATRIX
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -410,6 +412,10 @@ module CONTROL_
   character(20) :: LowdinParameters_configurationInteractionLevel
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
+  integer :: LowdinParameters_CIactiveSpace
+  integer :: LowdinParameters_CImaxNCV
+  integer :: LowdinParameters_CIsizeOfGuessMatrix
+
 
   !!***************************************************************************
   !! CCSD
@@ -654,6 +660,9 @@ module CONTROL_
        LowdinParameters_configurationInteractionLevel,&
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
+       LowdinParameters_CIactiveSpace, &
+       LowdinParameters_CImaxNCV, &
+       LowdinParameters_CIsizeOfGuessMatrix, &
 
        !!***************************************************************************
        !! CCSD 
@@ -926,6 +935,9 @@ contains
     LowdinParameters_configurationInteractionLevel = "NONE"
     LowdinParameters_numberOfCIStates = 1
     LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
+    LowdinParameters_CIactiveSpace = 0 !! Full
+    LowdinParameters_CImaxNCV = 30
+    LowdinParameters_CIsizeOfGuessMatrix = 300
 
     !!***************************************************************************
     !! CCSD
@@ -1181,6 +1193,9 @@ contains
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "NONE"
     CONTROL_instance%NUMBER_OF_CI_STATES= 1
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
+    CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
+    CONTROL_instance%CI_MAX_NCV = 30 
+    CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = 300
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1472,6 +1487,10 @@ contains
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
     CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
+    CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
+    CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
+    CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
+
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1736,6 +1755,10 @@ contains
     LowdinParameters_numberOfCIStates        = CONTROL_instance%NUMBER_OF_CI_STATES
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
 
+    LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE 
+    LowdinParameters_CImaxNCV = CONTROL_instance%CI_MAX_NCV 
+    LowdinParameters_CIsizeOfGuessMatrix = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX  
+
 
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -1984,6 +2007,10 @@ contains
     otherThis%CONFIGURATION_INTERACTION_LEVEL = this%CONFIGURATION_INTERACTION_LEVEL 
     otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
     otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
+    otherThis%CI_ACTIVE_SPACE =  this%CI_ACTIVE_SPACE 
+    otherThis%CI_MAX_NCV = this%CI_MAX_NCV
+    otherThis%CI_SIZE_OF_GUESS_MATRIX = this%CI_SIZE_OF_GUESS_MATRIX
+
     !!***************************************************************************
     !! CCSD
     !!

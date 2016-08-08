@@ -14,3 +14,4 @@ find . -name "*.orb*" -exec rm -f {} \;
 find . -name "*.eps" -exec rm -f {} \;
 find . -name "*.gnp" -exec rm -f {} \;
 find . -name "*.vec" -exec rm -f {} \;
+find . -name "*.ci" -exec rm -f {} \;

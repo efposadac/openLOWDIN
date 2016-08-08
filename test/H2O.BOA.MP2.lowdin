@@ -19,8 +19,7 @@ END GEOMETRY
 
 TASKS
 	method = "RHF"
-	!mollerPlessetCorrection = 2
-	propagatorTheoryCorrection =3
+	mollerPlessetCorrection = 2
 END TASKS
 
 CONTROL

@@ -542,9 +542,7 @@ contains
 
       lambda=MolecularSystem_getLambda(s)
       numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
-      !print *, "id ab", thisA%id, thisB%id
 
-      !!
       !!call Vector_constructor (occupiedOrbitals, numberOfOccupiedOrbitals,2))
       call Vector_constructor (occupiedOrbitals(s,1), numberOfOccupiedOrbitals, 0.0_8 )
       call Vector_constructor (occupiedOrbitals(s,2), numberOfOccupiedOrbitals, 0.0_8 )
@@ -557,7 +555,6 @@ contains
       do i = 1, numberOfOccupiedOrbitals
         ii = ii + 1 
         if (thisA%occupations(s,ia)%values(i) > 0 ) then
-          !!occupiedOrbitals(ii,1) = i 
           occupiedOrbitals(s,1)%values(ii) = i 
         end if
       end do 
@@ -565,9 +562,7 @@ contains
       do i = numberOfOccupiedOrbitals+1, size(thisA%occupations(s,ia)%values )
         if (thisA%occupations(s,ia)%values(i) > 0 ) then
           do j = 1, numberOfOccupiedOrbitals
-            !!if ( occupiedOrbitals(j,1) == 0 .and. mod(i,2) == mod(j,2) ) then
             if ( occupiedOrbitals(s,1)%values(j) == 0 .and. mod(i,int(lambda)) == mod(j,int(lambda)) ) then
-              !!occupiedOrbitals(j,1) = i
               occupiedOrbitals(s,1)%values(j) = i
               exit
             end if
@@ -579,7 +574,6 @@ contains
       do i = 1, numberOfOccupiedOrbitals
         ii = ii + 1 
         if (thisB%occupations(s,ib)%values(i) > 0 ) then
-          !!occupiedOrbitals(ii,2) = i 
           occupiedOrbitals(s,2)%values(ii) = i 
         end if
       end do 
@@ -588,40 +582,28 @@ contains
         if (thisB%occupations(s,ib)%values(i) > 0 ) then
           do j = 1, numberOfOccupiedOrbitals
             if ( occupiedOrbitals(s,2)%values(j) == 0 .and. mod(i,int(lambda)) == mod(j,int(lambda))) then
-            !!if ( occupiedOrbitals(j,2) == 0 .and. mod(i,2) == mod(j,2)) then
-              !!occupiedOrbitals(j,2) = i
               occupiedOrbitals(s,2)%values(j) = i
               exit
             end if
           end do
         end if
       end do 
-!      print *, "occ i1", occupiedOrbitals(s,1)%values(:)
-!      call vector_show (occupiedOrbitals(s,1))
-
-!      print *, "occ i2", occupiedOrbitals(s,2)%values(:)
- !     call vector_show (occupiedOrbitals(s,2))
 
 
       diagonal = 0
       do i = 1, numberOfOccupiedOrbitals 
           do j = 1, numberOfOccupiedOrbitals
-             !!if ( occupiedOrbitals(i,1) == occupiedOrbitals(j,2) ) then
              if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
                scoreMatrix(i,j) = 1
-             else  
-               scoreMatrix(i,j) = 0
              end if 
              if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
           end do 
         end do 
-        !print *, "scoreMatrix total0", sum(scoreMatrix)
-        !print *, "diagonal0", diagonal
 
 
       do while ( sum(scoreMatrix) > diagonal )
-        !print *, "while"
-            if (sum(scoreMatrix) > diagonal ) then
+
+          if (sum(scoreMatrix) > diagonal ) then
             
           swap = .false. 
           do i = 1, numberOfOccupiedOrbitals 
@@ -629,10 +611,6 @@ contains
               if ( i /= j ) then
                 if ( scoreMatrix(i,j) == 1 ) then
 
-                  !auxOcc = occupiedOrbitals(i,1)
-                  !occupiedOrbitals(i,1) = occupiedOrbitals(j,1)
-                  !occupiedOrbitals(j,1) = auxOcc
-  
                   auxOcc = occupiedOrbitals(s,1)%values(i)
                   occupiedOrbitals(s,1)%values(i) = occupiedOrbitals(s,1)%values(j)
                   occupiedOrbitals(s,1)%values(j) = auxOcc
@@ -645,14 +623,12 @@ contains
             if ( swap .eqv. .true. ) exit
           end do 
 
-          !print *, "occ 1", occupiedOrbitals(:,1) 
-          !print *, "occ 2", occupiedOrbitals(:,2) 
         diagonal = 0
+
         do i = 1, numberOfOccupiedOrbitals 
           do j = 1, numberOfOccupiedOrbitals
-             !!if ( occupiedOrbitals(i,1) == occupiedOrbitals(j,2) ) then
-             if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
 
+             if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
                scoreMatrix(i,j) = 1
              else  
                scoreMatrix(i,j) = 0
@@ -662,14 +638,9 @@ contains
         end do 
  
           factor = -1.0_8 * factor 
-          !print *, "scoreMatrix total1", sum(scoreMatrix)
-          !print *, "diagonal", diagonal
     
-          !if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 1 ) factor = -1.0_8*factor
-          !if (  mod( sum(scoreMatrix) - diagonal, 2 ) == 0 ) factor = 1.0_8*factor
         end if
       end do! while
-      !print *, "factorF", factor
     end do
 
   end subroutine Configuration_setAtMaximumCoincidence
