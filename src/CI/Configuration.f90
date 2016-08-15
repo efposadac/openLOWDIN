@@ -31,6 +31,7 @@ module Configuration_
   use Vector_
   use Exception_
   use MolecularSystem_
+  use InputCI_
   implicit none
 
   !>
@@ -59,11 +60,23 @@ module Configuration_
      integer :: nDeterminants
      integer :: id
      type(Vector), allocatable :: occupations(:,:)
-     type(Vector) :: order !! 1=single, 2=double, 3=triple, etc
+     type(IVector) :: order !! 1=single, 2=double, 3=triple, etc
      type(Vector), allocatable :: excitations(:,:,:) !! nexcitations (order), ndeterminants, occ -> vir
   end type Configuration
 
+  type, public :: GlobalConfiguration
+
+     logical :: isInstanced
+     type(ivector) :: numberOfOccupiedOrbitals
+     type(ivector) :: numberOfOrbitals
+     type(ivector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
+     type(ivector) :: excitationType
+  end type GlobalConfiguration
+
+  type(GlobalConfiguration) :: GlobalConfiguration_instance
+
   public :: &
+        Configuration_globalConstructor, &
         Configuration_constructor, &
         Configuration_copyConstructor, &
         Configuration_checkMaximumCoincidence, &
@@ -75,6 +88,39 @@ module Configuration_
 contains
 
 
+  subroutine Configuration_globalConstructor()
+    implicit none
+    integer :: i,j,c
+    integer :: numberOfSpecies
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOccupiedOrbitals, numberOfSpecies, 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOrbitals, numberOfSpecies, 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%lambda, numberOfSpecies, 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%excitationType, numberOfSpecies, 0 )
+
+    
+    do i=1, numberOfSpecies
+
+       GlobalConfiguration_instance%lambda%values(i) = MolecularSystem_getLambda(i)
+       GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(i) = MolecularSystem_getOcupationNumber(i) * &
+           GlobalConfiguration_instance%lambda%values(i)
+       GlobalConfiguration_instance%numberOfOrbitals%values(i) =  MolecularSystem_getTotalNumberOfContractions(i) * &
+           GlobalConfiguration_instance%lambda%values(i)
+
+   !   if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
+    !    GlobalConfiguration_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
+     !                               GlobalConfiguration_instance%lambda%values(i)
+     ! end if
+
+      if ( InputCI_Instance(i)%excitationType /= 0 ) then
+        GlobalConfiguration_instance%excitationType%values(i) = InputCI_Instance(i)%excitationType
+      end if
+
+    end do
+
+  end subroutine
   !>
   !! @brief Constructor por omision
   !!
@@ -83,9 +129,9 @@ contains
   subroutine Configuration_constructor(this,occupiedCode,unoccupiedCode,order,numberOfConfigurations, c)
     implicit none
     type(Configuration) :: this
-    type(Vector) :: order
-    type(Vector) :: occupiedCode
-    type(Vector) :: unoccupiedCode
+    type(IVector) :: order
+    type(Vector), allocatable :: occupiedCode(:)
+    type(Vector), allocatable :: unoccupiedCode(:)
     integer :: numberOfConfigurations
 
     integer :: numberOfOccupiedOrbitals 
@@ -96,8 +142,8 @@ contains
     integer :: div2
     integer :: lambda !Ocupation per orbital
 
-    call Vector_constructor( this%coefficients, numberOfConfigurations, 0.0_8 )
-    call Vector_copyConstructor( this%order, order )
+!    call Vector_constructor( this%coefficients, numberOfConfigurations, 0.0_8 ) ???????????
+    call Vector_copyConstructorInteger( this%order, order )
 
     this%auxEnergy = 0.0_8
 
@@ -119,7 +165,7 @@ contains
        !spin orbitals not spatial orbitals
        lambda=MolecularSystem_getLambda(i)
        numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(i)*lambda
-       numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda
+       numberOfOrbitals = GlobalConfiguration_instance%numberOfOrbitals%values(i) 
 
        call Vector_constructor ( this%occupations(i,this%nDeterminants), numberOfOrbitals , 0.0_8 )
        if ( this%order%values(i) > 0 ) then
@@ -136,24 +182,34 @@ contains
           this%occupations(i,this%nDeterminants)%values(j)=1
        end do
 
-       div1= int(occupiedCode%values(i))
-       div2= int(unoccupiedCode%values(i))
+       !div1= int(occupiedCode%values(i))
+       !div2= int(unoccupiedCode%values(i))
 
        do j= int(this%order%values(i)), 1, -1 
 
-          this%excitations(i,this%nDeterminants,1)%values(j) = mod( div1, 1024)
-          this%excitations(i,this%nDeterminants,2)%values(j) = mod( div2, 1024)
+          div1= int(occupiedCode(i)%values(j))
+          div2= int(unoccupiedCode(i)%values(j))
 
-          this%occupations(i,this%nDeterminants)%values( MOD ( div1, 1024 ) ) = &
-                                                       this%occupations(i,this%nDeterminants)%values( MOD ( div1, 1024 ) ) - 1
-          div1= div1/1024
-          this%occupations(i,this%nDeterminants)%values( MOD ( div2, 1024 ) ) = & 
-                                                       this%occupations(i,this%nDeterminants)%values( MOD ( div2, 1024 ) ) + 1
-          div2= div2/1024
+          !this%excitations(i,this%nDeterminants,1)%values(j) = mod( div1, 1024)
+          !this%excitations(i,this%nDeterminants,2)%values(j) = mod( div2, 1024)
+
+          this%excitations(i,this%nDeterminants,1)%values(j) = div1
+          this%excitations(i,this%nDeterminants,2)%values(j) = div2
+
+
+!          this%occupations(i,this%nDeterminants)%values( MOD ( div1, 1024 ) ) = &
+!                                                       this%occupations(i,this%nDeterminants)%values( MOD ( div1, 1024 ) ) - 1
+!          div1= div1/1024
+!          this%occupations(i,this%nDeterminants)%values( MOD ( div2, 1024 ) ) = & 
+!                                                       this%occupations(i,this%nDeterminants)%values( MOD ( div2, 1024 ) ) + 1
+!          div2= div2/1024
+
+          this%occupations(i,this%nDeterminants)%values( div1 ) = &
+                                                       this%occupations(i,this%nDeterminants)%values( div1 ) - 1
+          this%occupations(i,this%nDeterminants)%values( div2  ) = & 
+                                                       this%occupations(i,this%nDeterminants)%values( div2 ) + 1
+
        end do
-
-       !print *, "conf"
-       !call vector_show (this%occupations(i))
 
        !!if ( this%order%values(i) > 0 ) then
        !!  print *, "excitation"
@@ -188,7 +244,7 @@ contains
     integer :: div2
     integer :: lambda !Ocupation per orbital
 
-    call Vector_copyConstructor( otherThis%order, this%order )
+    call Vector_copyConstructorInteger( otherThis%order, this%order )
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     otherThis%nDeterminants = this%nDeterminants
@@ -204,7 +260,8 @@ contains
     do i=1, numberOfSpecies
        !spin orbitals not spatial orbitals
        lambda=MolecularSystem_getLambda(i)
-       numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda
+      ! numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda
+       numberOfOrbitals = GlobalConfiguration_instance%numberOfOrbitals%values(i) 
 
        do j = 1, this%nDeterminants
          call Vector_constructor ( otherThis%occupations(i,j), numberOfOrbitals , 0.0_8 )
@@ -656,7 +713,7 @@ contains
     integer :: i, j, numberOfSpecies
 
     call Vector_destructor( this%coefficients )
-    call Vector_destructor( this%order )
+    call Vector_destructorInteger( this%order )
 
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()

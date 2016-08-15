@@ -21,6 +21,7 @@ CONTROL
 	numberOfCores=1
 	scfelectronicenergytolerance=1E-8
         CIdiagonalizationMethod="DSYEVX"
+        !CIdiagonalizationMethod="ARPACK"
 END CONTROL
 
 

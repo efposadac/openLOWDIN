@@ -52,7 +52,6 @@ program CI
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-  print *, "numberOfSpeciesinCI", numberOfSpeciesInCI
 
   call InputCI_constructor( )
   call InputCI_load( numberOfSpeciesInCI )

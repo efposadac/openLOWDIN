@@ -186,6 +186,22 @@ contains
     
   end subroutine Vector_constructorInteger
 
+  !>
+  !! @brief Constructor de copia
+  !! Reserva la memoria necesaria para otherMatrix y le asigna los valores de this
+  subroutine Vector_copyConstructorInteger( this, otherVector )
+    implicit none
+    type(IVector), intent(inout) :: this
+    type(IVector), intent(in) :: otherVector
+    
+    if ( allocated( this%values ) ) deallocate( this%values )
+    allocate( this%values( size(otherVector%values, DIM=1) ) )
+    
+    this%values = otherVector%values
+    
+  end subroutine Vector_copyConstructorInteger
+
+
   
   !>
   !! @brief Constructor de copia

@@ -35,7 +35,7 @@ for line in outputRead:
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffFCIEnergy = abs(refFCIEnergy - FCIEnergy)
 
-if (diffTotalEnergy <= 1E-10 and FCIEnergy <= 1E-10):
+if (diffTotalEnergy <= 1E-10 and diffFCIEnergy <= 1E-10):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
