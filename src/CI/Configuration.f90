@@ -109,10 +109,10 @@ contains
        GlobalConfiguration_instance%numberOfOrbitals%values(i) =  MolecularSystem_getTotalNumberOfContractions(i) * &
            GlobalConfiguration_instance%lambda%values(i)
 
-   !   if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
-    !    GlobalConfiguration_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
-     !                               GlobalConfiguration_instance%lambda%values(i)
-     ! end if
+      if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
+        GlobalConfiguration_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
+                                    GlobalConfiguration_instance%lambda%values(i)
+     end if
 
       if ( InputCI_Instance(i)%excitationType /= 0 ) then
         GlobalConfiguration_instance%excitationType%values(i) = InputCI_Instance(i)%excitationType

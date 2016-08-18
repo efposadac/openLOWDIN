@@ -1754,11 +1754,10 @@ contains
                  lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
                  kappa=MolecularSystem_getKappa(i) !exchange sign
                  charge=MolecularSystem_getCharge(i)
-!                 numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i)
                  numberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( i )* ConfigurationInteraction_instance%lambda%values(i)
-
                  numberOfSpatialOrbitals=numberOfOrbitals/lambda
                  auxnumberOfSpatialOrbitals = (numberOfSpatialOrbitals * ( numberOfSpatialOrbitals + 1 ) ) / 2
+                 numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i) !! active
 
                  do k=1, numberOfOrbitals
                     if ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values(k)  > 0.0_8 ) then
@@ -1816,12 +1815,12 @@ contains
                        if (numberOfSpecies > 1 ) then
                           do j=i+1, numberOfSpecies
                              lambdaOfOtherSpecie=ConfigurationInteraction_instance%lambda%values(j)
-                             numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j)
-
-                  numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )* ConfigurationInteraction_instance%lambda%values(j)
+                             numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )* ConfigurationInteraction_instance%lambda%values(j)
                              numberOfOtherSpecieSpatialOrbitals=numberOfOtherSpecieOrbitals/lambdaOfOtherSpecie
                              auxnumberOfOtherSpecieSpatialOrbitals = (numberOfOtherSpecieSpatialOrbitals * ( numberOfOtherSpecieSpatialOrbitals + 1 ) ) / 2
                              otherSpecieCharge=MolecularSystem_getCharge(j)
+
+                             numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j) !!active
 
                              couplingEnergy=0
                              do l=1, numberOfOtherSpecieOrbitals
@@ -1856,11 +1855,11 @@ contains
               lambda=ConfigurationInteraction_instance%lambda%values(i)
               kappa=MolecularSystem_getKappa(i)
               charge=MolecularSystem_getCharge(i)
-              numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i)
 
-                 numberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( i )* ConfigurationInteraction_instance%lambda%values(i)
+              numberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( i )* ConfigurationInteraction_instance%lambda%values(i)
               numberOfSpatialOrbitals=numberOfOrbitals/lambda
               auxnumberOfSpatialOrbitals = (numberOfSpatialOrbitals * ( numberOfSpatialOrbitals + 1 ) ) / 2
+              numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i) !! active
 
               !Determine different orbitals
               call Vector_constructor (differentOrbitals(i),2)
@@ -1949,11 +1948,11 @@ contains
                        couplingEnergy=0
                        if (i .ne. j) then
                           lambdaOfOtherSpecie=ConfigurationInteraction_instance%lambda%values(j)
-                          numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j)
-                  numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )* ConfigurationInteraction_instance%lambda%values(j)
+                          numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )* ConfigurationInteraction_instance%lambda%values(j)
                           numberOfOtherSpecieSpatialOrbitals=numberOfOtherSpecieOrbitals/lambdaOfOtherSpecie
                           otherSpecieCharge=MolecularSystem_getCharge(j)
                           auxnumberOfOtherSpecieSpatialOrbitals = (numberOfOtherSpecieSpatialOrbitals * ( numberOfOtherSpecieSpatialOrbitals + 1 ) ) / 2
+                          numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j) !!active
 
                           do l=1, numberOfOtherSpecieOrbitals
                              if (ConfigurationInteraction_instance%configurations(a)%occupations(j,ia)%values(l) > 0.0_8 ) then
@@ -2006,10 +2005,9 @@ contains
               lambda=ConfigurationInteraction_instance%lambda%values(i)
               kappa=MolecularSystem_getKappa(i)
               charge=MolecularSystem_getCharge(i)
-              numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i)
-
-                 numberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( i )* ConfigurationInteraction_instance%lambda%values(i)
+              numberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( i )* ConfigurationInteraction_instance%lambda%values(i)
               numberOfSpatialOrbitals=numberOfOrbitals/lambda
+              numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i) !! active
 
               if (allocated(spin)) deallocate (spin)
               if (allocated(spatialOrbital)) deallocate (spatialOrbital)
@@ -2067,11 +2065,12 @@ contains
               do j=i+1, numberOfSpecies
                  if (i .ne. j) then
                     lambdaOfOtherSpecie=ConfigurationInteraction_instance%lambda%values(j)
-                    numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j)
 
-                  numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )* ConfigurationInteraction_instance%lambda%values(j)
+                    numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )* ConfigurationInteraction_instance%lambda%values(j)
                     numberOfOtherSpecieSpatialOrbitals=numberOfOtherSpecieOrbitals/lambdaOfOtherSpecie
                     otherSpecieCharge=MolecularSystem_getCharge(j)
+
+                    numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j) !!active
 
                     if ( abs(differentOrbitals(i)%values(2)) .gt. 0.1 .and.  abs(differentOrbitals(j)%values(2)) .gt. 0.1) then
 
