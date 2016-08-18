@@ -165,6 +165,7 @@ module CONTROL_
      integer :: CI_ACTIVE_SPACE
      integer :: CI_MAX_NCV
      integer :: CI_SIZE_OF_GUESS_MATRIX
+     integer :: CI_STACK_SIZE
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -415,6 +416,7 @@ module CONTROL_
   integer :: LowdinParameters_CIactiveSpace
   integer :: LowdinParameters_CImaxNCV
   integer :: LowdinParameters_CIsizeOfGuessMatrix
+  integer :: LowdinParameters_CIstackSize
 
 
   !!***************************************************************************
@@ -663,6 +665,7 @@ module CONTROL_
        LowdinParameters_CIactiveSpace, &
        LowdinParameters_CImaxNCV, &
        LowdinParameters_CIsizeOfGuessMatrix, &
+       LowdinParameters_CIstackSize, &
 
        !!***************************************************************************
        !! CCSD 
@@ -938,6 +941,7 @@ contains
     LowdinParameters_CIactiveSpace = 0 !! Full
     LowdinParameters_CImaxNCV = 30
     LowdinParameters_CIsizeOfGuessMatrix = 300
+    LowdinParameters_CIstackSize = 5000
 
     !!***************************************************************************
     !! CCSD
@@ -1196,6 +1200,7 @@ contains
     CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
     CONTROL_instance%CI_MAX_NCV = 30 
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = 300
+    CONTROL_instance%CI_STACK_SIZE = 5000
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1490,7 +1495,7 @@ contains
     CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
     CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
-
+    CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1758,6 +1763,7 @@ contains
     LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE 
     LowdinParameters_CImaxNCV = CONTROL_instance%CI_MAX_NCV 
     LowdinParameters_CIsizeOfGuessMatrix = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX  
+    LowdinParameters_CIstackSize = CONTROL_instance%CI_STACK_SIZE 
 
 
     !!***************************************************************************      
@@ -2010,6 +2016,7 @@ contains
     otherThis%CI_ACTIVE_SPACE =  this%CI_ACTIVE_SPACE 
     otherThis%CI_MAX_NCV = this%CI_MAX_NCV
     otherThis%CI_SIZE_OF_GUESS_MATRIX = this%CI_SIZE_OF_GUESS_MATRIX
+    otherThis%CI_STACK_SIZE = this%CI_STACK_SIZE 
 
     !!***************************************************************************
     !! CCSD

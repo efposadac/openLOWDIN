@@ -514,7 +514,7 @@ contains
 
        write (6,"(T4,A34, F20.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
 
-       if (  ConfigurationInteraction_instance%level == "CISD" ) then
+       if (  ConfigurationInteraction_instance%level == "CISD" .or. ConfigurationInteraction_instance%level == "FCI" ) then
          print *, ""
          write (6,"(T2,A34)") "RENORMALIZED DAVIDSON CORRECTION:"
          print *, ""
@@ -1497,7 +1497,7 @@ contains
     integer :: a,b,c,aa,bb
     real(8) :: timeA, timeB
     real(8) :: CIenergy
-    integer :: initialCIMatrixSize = 300
+    integer :: initialCIMatrixSize 
 
     initialCIMatrixSize = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
 
@@ -1565,63 +1565,70 @@ contains
     character(50) :: CIFile
     integer :: CIUnit
     real(8) :: CIenergy
-    integer, allocatable :: indexArray(:)
-    real(8), allocatable :: energyArray(:)
+    integer, allocatable :: indexArray(:),auxIndexArray(:)
+    real(8), allocatable :: energyArray(:),auxEnergyArray(:)
     integer :: starting, ending, step, maxConfigurations
     character(50) :: fileNumberA, fileNumberB
     integer, allocatable :: cmax(:)
+    integer :: maxStackSize, i, ia, ib, ssize
+
+    maxStackSize = CONTROL_instance%CI_STACK_SIZE 
 
     timeA = omp_get_wtime()
-    !a,b configuration iterators
 
     CIFile = "lowdin.ci"
     CIUnit = 4
 
 #ifdef intel
     open(unit=CIUnit, file=trim(CIFile), action = "write", form="unformatted", BUFFERED="YES")
-    print *, "intel"
 #else
     open(unit=CIUnit, file=trim(CIFile), action = "write", form="unformatted")
 #endif
     
-    print *, "nthread" , omp_get_max_threads()
+    print *, "  OMP Number of threads: " , omp_get_max_threads()
     nproc = omp_get_max_threads()
     !nproc = 1
     call omp_set_num_threads(omp_get_max_threads())
     call omp_set_num_threads(nproc)
 
-    maxConfigurations = ConfigurationInteraction_instance%numberOfConfigurations
-
-    if (allocated(indexArray )) deallocate(indexArray)
-    allocate (indexArray(maxConfigurations))
-    indexArray = 0
-    if (allocated(energyArray )) deallocate(energyArray)
-    allocate (energyArray(maxConfigurations))
-    energyArray = 0
-
     if (allocated(cmax)) deallocate(cmax)
     allocate(cmax(nproc))
     cmax = 0
 
-    step = ceiling ( real( maxConfigurations )/real(nproc))
 
-    do a=1, maxConfigurations
-      cmax = 0
+    do a=1, ConfigurationInteraction_instance%numberOfConfigurations
+
+      maxConfigurations = ConfigurationInteraction_instance%numberOfConfigurations - a + 1 
+      step = ceiling ( real( maxConfigurations )/real(nproc))
+
+      if (allocated(indexArray )) deallocate(indexArray)
+      allocate (indexArray(maxConfigurations))
       indexArray = 0
+      if (allocated(energyArray )) deallocate(energyArray)
+      allocate (energyArray(maxConfigurations))
       energyArray = 0
+
+      !print *, "a maxc step ", a, maxConfigurations, step
+
+      cmax = 0
 !$omp parallel private(n,ending,starting,b,CIenergy) shared(nproc,maxConfigurations,cmax,indexArray,energyArray)
 !$omp do
       do n = 1, nproc
-        ending = n * step 
+!        ending = n * step  
+        ending = n * step  + a - 1
         starting = ending - step + 1
-        if( ending > maxConfigurations ) ending = maxConfigurations
+
+        !print *, "starting ending", starting, ending
+        if( ending > ConfigurationInteraction_instance%numberOfConfigurations ) then
+         ending =ConfigurationInteraction_instance%numberOfConfigurations 
+        end if  
 
         do b= starting, ending
           CIenergy = ConfigurationInteraction_calculateCIenergy(a,b)
           if ( abs(CIenergy) > 1E-9 ) then
             cmax(n) = cmax(n) +1   
-            indexArray(b) = b
-            energyArray(b) = CIenergy
+            indexArray(b-a+1) = b
+            energyArray(b-a+1) = CIenergy
           end if
         end do
       end do
@@ -1632,8 +1639,31 @@ contains
     
       write(CIUnit) c
       write(CIUnit) a
-      write(CIUnit) pack( indexArray, indexArray /= 0 )
-      write(CIUnit) pack( energyArray, energyArray /= 0.0_8)
+
+      allocate (auxIndexArray(c))
+      auxIndexArray = pack( indexArray, indexArray /= 0.0_8)
+
+      do i = 1, ceiling(real(c) / real(maxStackSize) )
+        ib = maxStackSize * i  
+        ia = ib - maxStackSize + 1
+        if ( ib > c ) ib = c
+        write(CIUnit) auxIndexArray(ia:ib)
+      end do
+      deallocate(auxIndexArray)
+
+      allocate (auxEnergyArray(c))
+      auxEnergyArray = pack( energyArray, energyArray /= 0.0_8)
+
+      do i = 1, ceiling(real(c) / real(maxStackSize) )
+        ib = maxStackSize * i  
+        ia = ib - maxStackSize + 1
+        if ( ib >  c ) ib = c
+        write(CIUnit) auxEnergyArray(ia:ib)
+      end do
+      deallocate (auxEnergyArray)
+
+!      write(CIUnit) pack( indexArray, indexArray /= 0 )
+!      write(CIUnit) pack( energyArray, energyArray /= 0.0_8)
 
     end do
 
@@ -1641,8 +1671,8 @@ contains
 
     close(CIUnit)
 
-    deallocate(indexArray)
-    deallocate(energyArray)
+!    deallocate(indexArray)
+!    deallocate(energyArray)
 
     timeB = omp_get_wtime()
   
@@ -3841,7 +3871,7 @@ contains
   !
       write ( *, '(a)' ) ' '
       write ( *, '(a)' ) 'SSSIMP - Fatal error!'
-      write ( *, '(a,i6)' ) '  Error with SSAUPD, INFO = ', info
+      write ( *, '(a,i6)' ) '  Error with DSAUPD, INFO = ', info
       write ( *, '(a)' ) '  Check documentation in SSAUPD.'
   
     else
@@ -3876,7 +3906,7 @@ contains
       do ii = 1, maxnev
         eigenValues%values(ii) = d(ii)
       end do
-      print *, "eigen", eigenValues%values(1)
+
       do ii = 1, nx
         do jj = 1, CONTROL_instance%NUMBER_OF_CI_STATES
           eigenVectors%values(ii,jj) = z(ii,jj)
@@ -3971,10 +4001,12 @@ contains
     integer, allocatable :: jj(:)
     real(8), allocatable :: CIEnergy(:)
     integer :: nonzero,ii, kk
+    integer :: maxStackSize, i, ia, ib
 
     CIFile = "lowdin.ci"
     CIUnit = 20
     nonzero = 0
+    maxStackSize = CONTROL_instance%CI_STACK_SIZE 
 
     w = 0
 #ifdef intel
@@ -3985,25 +4017,43 @@ contains
 
     readmatrix : do
       read (CIUnit) nonzero
-
       if (nonzero > 0 ) then
+
+        read (CIUnit) ii
+
         if ( allocated(jj)) deallocate (jj)
         allocate (jj(nonzero))
+        jj = 0
 
         if ( allocated(CIEnergy)) deallocate (CIEnergy)
         allocate (CIEnergy(nonzero))
-
-        jj = 0
         CIEnergy = 0
-        read (CIUnit) ii
-        read (CIUnit) jj(:)
-        read (CIUnit) CIEnergy(:)
 
-        do kk = 1, nonzero
-  
+        do i = 1, ceiling(real(nonZero) / real(maxStackSize) )
+
+          ib = maxStackSize * i  
+          ia = ib - maxStackSize + 1
+          if ( ib >  nonZero ) ib = nonZero
+          read (CIUnit) jj(ia:ib)
+    
+        end do
+
+        do i = 1, ceiling(real(nonZero) / real(maxStackSize) )
+
+          ib = maxStackSize * i  
+          ia = ib - maxStackSize + 1
+          if ( ib >  nonZero ) ib = nonZero
+          read (CIUnit) CIEnergy(ia:ib)
+    
+        end do
+
+        w(ii) = w(ii) + CIEnergy(1)*v(jj(1)) !! disk
+        do kk = 2, nonzero
           !w(ii) = w(ii) + ConfigurationInteraction_calculateCIenergy(ii,jj(kk))*v(jj(kk))  !! direct
           w(ii) = w(ii) + CIEnergy(kk)*v(jj(kk)) !! disk
+          w(jj(kk)) = w(jj(kk)) + CIEnergy(kk)*v(ii) !! disk
         end do
+
       else if ( nonzero == -1 ) then
         exit readmatrix
       end if
