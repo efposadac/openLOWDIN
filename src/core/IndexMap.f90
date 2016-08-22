@@ -266,9 +266,66 @@ contains
 
 	!<
 	!! @brief Transforma cuatro indices i,j,k,l para un tensor de rango cuatro en un unico indice
-	!!		asociado a un vector(procedimiento para intra -  especies) 
+	!!		asociado a un vector(procedimiento para intra -  especies)
 	!>
 	function IndexMap_tensorR4ToVectorC( i, j, k, l, basisSizeA, basisSizeB ) result ( output )
+		implicit none
+		integer(kind=4), intent(in) :: i
+		integer(kind=4), intent(in) :: j
+		integer(kind=4), intent(in) :: k
+		integer(kind=4), intent(in) :: l
+		integer(kind=4), optional :: basisSizeA
+		integer(kind=4), optional :: basisSizeB
+
+		integer(kind=4) :: output
+		integer(kind=4) :: auxSize
+    integer(kind=4) :: ij, kl
+
+    if ( .not. present ( basisSizeB ) ) then
+
+        ij = IndexMap_tensorR2ToVectorC( i, j, basisSizeA)
+        kl = IndexMap_tensorR2ToVectorC( k, l, basisSizeA)
+
+        auxSize = ( basisSizeA * ( basisSizeA + 1 ) ) / 2
+        output = IndexMap_tensorR2ToVectorC (ij, kl, auxSize)
+    else 
+
+        ij = IndexMap_tensorR2ToVectorC( i, j, basisSizeA) - 1
+        kl = IndexMap_tensorR2ToVectorC( k, l, basisSizeB)
+
+        auxSize = ( basisSizeB * ( basisSizeB + 1 ) ) / 2
+        output = int(auxSize,8) * int(ij,8) + int(kl,8)
+           
+    end if
+
+	end function IndexMap_TensorR4ToVectorC
+
+
+
+	function IndexMap_tensorR2ToVectorC( i, j, basisSizeA, basisSizeB ) result ( output )
+		implicit none
+		integer(kind=4), intent(in) :: i
+		integer(kind=4), intent(in) :: j
+		integer(kind=4), optional :: basisSizeA
+		integer(kind=4), optional :: basisSizeB
+
+		integer(kind=4) :: output
+		integer(kind=4) :: auxSize
+
+                if ( i > j ) then
+                   output = i - j + ( ( ( 2 * basisSizeA * (j -1 )) - ( j * j) + (3*j) ) / 2 )
+                else 
+                   output = j - i + ( ( ( 2 * basisSizeA * (i -1 )) - ( i * i) + (3*i) ) / 2 )
+                end if
+
+	end function IndexMap_TensorR2ToVectorC
+
+
+	!<
+	!! @brief Transforma cuatro indices i,j,k,l para un tensor de rango cuatro en un unico indice
+	!!		asociado a un vector(procedimiento para intra -  especies) 
+	!>
+	function IndexMap_tensorR4ToVectorD( i, j, k, l, basisSizeA, basisSizeB ) result ( output )
 		implicit none
 		integer, intent(in) :: i
 		integer, intent(in) :: j
@@ -301,7 +358,7 @@ contains
                 end if
 
                 
-	end function IndexMap_TensorR4ToVectorC
+	end function IndexMap_TensorR4ToVectorD
 
 	!<
 	!! @brief Transforma cuatro indices i,j,k,l para un tensor de rango cuatro en un unico indice

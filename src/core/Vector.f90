@@ -335,6 +335,103 @@ contains
     end if
     
   end subroutine Vector_show
+
+  !>
+  !! @brief Imprime a salida estandar la matriz realizando cambio de linea
+  !! con un maximo de "CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS" columnas
+  subroutine Vector_showInteger( this, flags, keys )
+    implicit none
+    type(IVector), intent(in) :: this
+    integer, intent(in), optional :: flags
+    character(*), intent(in), optional :: keys(:)
+    
+    integer :: columns
+    integer :: ssize
+    integer :: i
+    integer :: j
+    integer :: k
+    integer :: l
+    integer :: u
+    integer :: tmpFlags
+    character(50) :: formatSize
+    
+    type(Exception) :: ex
+    
+    tmpFlags = HORIZONTAL
+    if( present(flags) ) then
+       if( flags == WITH_KEYS )  then
+          tmpFlags = HORIZONTAL + WITH_KEYS
+       else
+          tmpFlags = flags
+       end if
+    end if
+    
+    ssize = size( this%values , DIM=1 )
+    
+    if( tmpFlags == HORIZONTAL .or. tmpFlags == HORIZONTAL + WITH_KEYS ) then
+       
+       columns = ssize
+       write(formatSize,*) ssize
+       
+       do k=1, ceiling( (ssize * 1.0)/(CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS * 1.0 ) )
+          
+          l = CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS * ( k - 1 ) + 1
+          u = CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS * ( k )
+          
+          if( u > ssize ) then
+             columns = l + CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS*( 1 - k ) +  ssize - 1
+             u = columns
+          end if
+          
+          if( ( tmpFlags - HORIZONTAL ) == WITH_KEYS ) then
+             
+             if( present( keys ) ) then
+                write (6,"("//trim(formatSize)//"A18)") ( trim(keys(i)), i = l, u )
+             else
+                write (6,"("//trim(formatSize)//"I15)") ( i, i = l, u )
+             end if
+             
+          end if
+          
+          print *,""
+          write (6,"("//trim(formatSize)//"F15.6)") ( this%values(i), i = l, u )
+          print *,""
+          
+       end do
+       
+    else if( tmpFlags == VERTICAL .or. tmpFlags == VERTICAL + WITH_KEYS ) then
+       
+       if( ( tmpFlags - VERTICAL ) == WITH_KEYS ) then
+          
+          if( present( keys ) ) then
+             do i=1, ssize
+                
+                write (6,"(A18,F15.6)") trim(keys(i)), this%values(i)
+             end do
+          else
+             do i=1, ssize
+                write (6,"(I5,F15.6)") i, this%values(i)
+             end do
+          end if
+          
+       else
+          
+          do i=1, ssize
+             write (6,"(F15.6)") this%values(i)
+          end do
+          
+       end if
+       
+    else
+       
+       call Exception_constructor( ex , WARNING )
+       call Exception_setDebugDescription( ex, "Class object Vector in the show() function" )
+       call Exception_setDescription( ex, "Bad flags selected" )
+       call Exception_show( ex )
+       
+    end if
+    
+  end subroutine Vector_showInteger
   
   
   !>

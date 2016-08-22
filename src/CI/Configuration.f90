@@ -59,7 +59,7 @@ module Configuration_
      real(8) :: coefficient
      integer :: nDeterminants
      integer :: id
-     type(Vector), allocatable :: occupations(:,:)
+     type(IVector), allocatable :: occupations(:,:)
      type(IVector) :: order !! 1=single, 2=double, 3=triple, etc
      type(Vector), allocatable :: excitations(:,:,:) !! nexcitations (order), ndeterminants, occ -> vir
   end type Configuration
@@ -167,7 +167,7 @@ contains
        numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(i)*lambda
        numberOfOrbitals = GlobalConfiguration_instance%numberOfOrbitals%values(i) 
 
-       call Vector_constructor ( this%occupations(i,this%nDeterminants), numberOfOrbitals , 0.0_8 )
+       call Vector_constructorInteger ( this%occupations(i,this%nDeterminants), numberOfOrbitals , 0 )
        if ( this%order%values(i) > 0 ) then
          call Vector_constructor ( this%excitations(i,this%nDeterminants,1), int( this%order%values(i)), 0.0_8)  !! nexcitations (order), occ -> vir
          call Vector_constructor ( this%excitations(i,this%nDeterminants,2), int( this%order%values(i)), 0.0_8)  !! nexcitations (order), occ -> vir
@@ -264,7 +264,7 @@ contains
        numberOfOrbitals = GlobalConfiguration_instance%numberOfOrbitals%values(i) 
 
        do j = 1, this%nDeterminants
-         call Vector_constructor ( otherThis%occupations(i,j), numberOfOrbitals , 0.0_8 )
+         call Vector_constructorInteger ( otherThis%occupations(i,j), numberOfOrbitals , 0 )
 
          otherThis%occupations(i,j)%values = this%occupations(i,j)%values
 
@@ -296,7 +296,7 @@ contains
     integer :: numberOfOccupiedOrbitals 
     integer :: numberOfOrbitals, numberOfSpatialOrbitals
     integer :: i,j,s,ii
-    type(Vector), allocatable :: auxOccupations (:)
+    type(IVector), allocatable :: auxOccupations (:)
     type(Vector), allocatable :: auxExcitations (:,:)
     real(8), allocatable :: spatialOrbitalA(:)
     real(8), allocatable :: spatialOrbitalB(:)
@@ -330,7 +330,7 @@ contains
       if ( lambda > 1 ) then
 
         do i = 1, numberOfOrbitals
-          if ( thisA%occupations(s,thisA%nDeterminants)%values(i) > 0.0_8 ) then
+          if ( thisA%occupations(s,thisA%nDeterminants)%values(i) > 0 ) then
             spin = mod (i,lambda)
             spatial = int((i+spin)/lambda)
             spatialOrbitalA(spatial) = spatialOrbitalA(spatial) + 1
@@ -338,7 +338,7 @@ contains
         end do    
 
         do i = 1, numberOfOrbitals
-          if ( thisB%occupations(s,thisB%nDeterminants)%values(i) > 0.0_8 ) then
+          if ( thisB%occupations(s,thisB%nDeterminants)%values(i) > 0 ) then
             spin = mod (i,lambda)
             spatial = int((i+spin)/lambda)
             spatialOrbitalB(spatial) = spatialOrbitalB(spatial) + 1
@@ -427,7 +427,7 @@ contains
 
           !! copy from determinant 1 of B to 2 of A
           do i = 1, thisA%nDeterminants
-            call Vector_copyConstructor ( auxOccupations(i), thisA%occupations(s,i) ) 
+            call Vector_copyConstructorInteger ( auxOccupations(i), thisA%occupations(s,i) ) 
             call Vector_copyConstructor ( auxExcitations(i,1), thisA%excitations(s,i,1) ) 
             call Vector_copyConstructor ( auxExcitations(i,2), thisA%excitations(s,i,2) ) 
           end do 
@@ -441,12 +441,12 @@ contains
 
 
           do i = 1, thisA%nDeterminants-1
-            call Vector_copyConstructor ( thisA%occupations(s,i),  auxOccupations(i) ) 
+            call Vector_copyConstructorInteger ( thisA%occupations(s,i),  auxOccupations(i) ) 
             call Vector_copyConstructor ( thisA%excitations(s,i,1), auxExcitations(i,1) ) 
             call Vector_copyConstructor ( thisA%excitations(s,i,2), auxExcitations(i,2) )  
           end do 
 
-          call Vector_copyConstructor ( thisA%occupations(s,thisA%nDeterminants), thisB%occupations(s,1) )
+          call Vector_copyConstructorInteger ( thisA%occupations(s,thisA%nDeterminants), thisB%occupations(s,1) )
 
           if ( thisA%order%values(s) > 0 .and. thisB%order%values(s) > 0 ) then
             call Vector_copyConstructor (thisA%excitations(s,thisA%nDeterminants,1), thisB%excitations(s,1,1) ) !! copy the occ
@@ -608,43 +608,62 @@ contains
       allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
       scoreMatrix = 0
 
-      ii = 0
       do i = 1, numberOfOccupiedOrbitals
-        ii = ii + 1 
-        if (thisA%occupations(s,ia)%values(i) > 0 ) then
-          occupiedOrbitals(s,1)%values(ii) = i 
-        end if
+        occupiedOrbitals(s,1)%values(i) = i
       end do 
 
-      do i = numberOfOccupiedOrbitals+1, size(thisA%occupations(s,ia)%values )
-        if (thisA%occupations(s,ia)%values(i) > 0 ) then
-          do j = 1, numberOfOccupiedOrbitals
-            if ( occupiedOrbitals(s,1)%values(j) == 0 .and. mod(i,int(lambda)) == mod(j,int(lambda)) ) then
-              occupiedOrbitals(s,1)%values(j) = i
-              exit
-            end if
-          end do
-        end if
-      end do 
+      do j= int(thisA%order%values(s)), 1, -1 
+        occupiedOrbitals(s,1)%values( thisA%excitations(s,ia,1)%values(j) ) = thisA%excitations(s,ia,2)%values(j)
+      end do
 
-      ii = 0
       do i = 1, numberOfOccupiedOrbitals
-        ii = ii + 1 
-        if (thisB%occupations(s,ib)%values(i) > 0 ) then
-          occupiedOrbitals(s,2)%values(ii) = i 
-        end if
+        occupiedOrbitals(s,2)%values(i) = i
       end do 
 
-      do i = numberOfOccupiedOrbitals+1, size(thisB%occupations(s,ib)%values )
-        if (thisB%occupations(s,ib)%values(i) > 0 ) then
-          do j = 1, numberOfOccupiedOrbitals
-            if ( occupiedOrbitals(s,2)%values(j) == 0 .and. mod(i,int(lambda)) == mod(j,int(lambda))) then
-              occupiedOrbitals(s,2)%values(j) = i
-              exit
-            end if
-          end do
-        end if
-      end do 
+      do j= int(thisB%order%values(s)), 1, -1 
+        occupiedOrbitals(s,2)%values( thisB%excitations(s,ib,1)%values(j) ) = thisB%excitations(s,ib,2)%values(j)
+      end do
+
+
+
+     ! ii = 0
+     ! do i = 1, numberOfOccupiedOrbitals
+     !   ii = ii + 1 
+     !   if (thisA%occupations(s,ia)%values(i) > 0 ) then
+     !     occupiedOrbitals(s,1)%values(ii) = i 
+     !   end if
+     ! end do 
+
+
+     ! do i = numberOfOccupiedOrbitals+1, size(thisA%occupations(s,ia)%values )
+     !   if (thisA%occupations(s,ia)%values(i) > 0 ) then
+     !     do j = 1, numberOfOccupiedOrbitals
+     !       if ( occupiedOrbitals(s,1)%values(j) == 0 .and. mod(i,int(lambda)) == mod(j,int(lambda)) ) then
+     !         occupiedOrbitals(s,1)%values(j) = i
+     !         exit
+     !       end if
+     !     end do
+     !   end if
+     ! end do 
+
+     ! ii = 0
+     ! do i = 1, numberOfOccupiedOrbitals
+     !   ii = ii + 1 
+     !   if (thisB%occupations(s,ib)%values(i) > 0 ) then
+     !     occupiedOrbitals(s,2)%values(ii) = i 
+     !   end if
+     ! end do 
+
+     ! do i = numberOfOccupiedOrbitals+1, size(thisB%occupations(s,ib)%values )
+     !   if (thisB%occupations(s,ib)%values(i) > 0 ) then
+     !     do j = 1, numberOfOccupiedOrbitals
+     !       if ( occupiedOrbitals(s,2)%values(j) == 0 .and. mod(i,int(lambda)) == mod(j,int(lambda))) then
+     !         occupiedOrbitals(s,2)%values(j) = i
+     !         exit
+     !       end if
+     !     end do
+     !   end if
+     ! end do 
 
 
       diagonal = 0
@@ -720,7 +739,7 @@ contains
 
     do i=1, numberOfSpecies
         do j = 1, this%nDeterminants
-          call Vector_destructor ( this%occupations(i,j) )
+          call Vector_destructorInteger ( this%occupations(i,j) )
           call Vector_destructor ( this%excitations(i,j,1) )
           call Vector_destructor ( this%excitations(i,j,2) )
         end do
@@ -756,7 +775,7 @@ contains
       print *, "Occupations"
       
       do j = 1, this%nDeterminants
-        call Vector_show ( this%occupations(i,j) )
+        call Vector_showInteger ( this%occupations(i,j) )
       end do 
 
       if ( this%order%values(i) > 0 ) then
