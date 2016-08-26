@@ -60,7 +60,6 @@ module Vector_
   end type Vector
 
   type, public :: IVector
-     character(50) :: name
      integer , allocatable :: values(:)
   end type IVector
   
@@ -143,18 +142,16 @@ contains
 
   !>
   !! @brief Constructor por omision
-  subroutine Vector_constructorInteger( this, ssize, value, values, name )
+  subroutine Vector_constructorInteger( this, ssize, value, values )
     implicit none
     type(IVector), intent(inout) :: this
     integer, intent(in) :: ssize
     integer, optional, intent(in) :: value
     integer, optional, intent(in) :: values(:)
-    character(50), optional :: name
     
     integer :: valueTmp
-    character(50) :: auxName
     
-    valueTmp = 0.0_8
+    valueTmp = 0
     
     if ( allocated( this%values ) ) then
        deallocate( this%values )
@@ -162,14 +159,6 @@ contains
     end if
     
     allocate( this%values( ssize ) )
-    
-    auxName = "none"
-    
-    if( present( name )) then
-       
-       auxName = trim(name)
-       
-    end if
     
     if( present(value) ) then
        
@@ -707,25 +696,39 @@ contains
     
   end function Vector_getPtr
   
-  subroutine Vector_sortElements(this)
+  subroutine Vector_sortElements(this, factor)
     type(Vector) :: this
     
     integer i,j,n
+    integer, optional :: factor
     
     n = Vector_getSize(this)
-    do i=1,n
-       do j=i+1,n
-          if (this%values(j).gt.this%values(i)) then
-             call Vector_swapElements( this, i, j )
-          end if
-       end do
-    end do
+    if ( .not. present (factor) ) then
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).gt.this%values(i)) then
+               call Vector_swapElements( this, i, j )
+            end if
+         end do
+      end do
+    else 
+      factor = 0
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).gt.this%values(i)) then
+               factor = factor + 1
+               call Vector_swapElements( this, i, j )
+            end if
+         end do
+      end do
+    end if
+
   end subroutine Vector_sortElements
 
-  subroutine Vector_reverseSortElements(this,indexVector)
+  subroutine Vector_reverseSortElements(this,indexVector,m)
     type(Vector) :: this
     type(IVector), optional :: indexVector
-    
+    integer, optional :: m
     integer i,j,n
     
     n = Vector_getSize(this)
@@ -738,18 +741,36 @@ contains
          end do
       end do
     else
-      do i=1,n
-        indexVector%values(i) = i
-      end do 
+    
+      if ( .not. present (m) ) then
 
-      do i=1,n
-         do j=i+1,n
-            if (this%values(j).lt.this%values(i)) then
-               call Vector_swapElements( this, i, j )
-               call Vector_swapIntegerElements( indexVector, i, j )
-            end if
-         end do
-      end do
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,n
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapElements( this, i, j )
+                 call Vector_swapIntegerElements( indexVector, i, j )
+              end if
+           end do
+        end do
+      else
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,m
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapElements( this, i, j )
+                 call Vector_swapIntegerElements( indexVector, i, j )
+              end if
+           end do
+        end do
+      end if
     end if
 
   end subroutine Vector_reverseSortElements
