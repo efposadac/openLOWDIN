@@ -196,7 +196,7 @@ program lowdin_
  call Stopwatch_stop(lowdin_stopwatch)
  write(*, *)
  write(6,"(A16,i3,A1,i3,A1,i3,A1,i4,A2)") &
-      "Enlapsed Time: ", &
+      "Elapsed Time: ", &
       lowdin_stopwatch%endTime(5),"h", &
       lowdin_stopwatch%endTime(6),"m", &
       lowdin_stopwatch%endTime(7),"s", &

@@ -58,6 +58,12 @@ module Vector_
      character(50) :: name
      real(8) , allocatable :: values(:)
   end type Vector
+
+  type, public :: IVector
+     integer , allocatable :: values(:)
+  end type IVector
+  
+
   
   public :: &
        Vector_constructor, &
@@ -67,6 +73,7 @@ module Vector_
        Vector_writeToFile, &
        Vector_getPtr, &
        Vector_sortElements, &
+       Vector_reverseSortElements, &
        Vector_swapElements, &
        Vector_getSize, &
        Vector_getElement, &
@@ -81,7 +88,10 @@ module Vector_
        Vector_dot, &
        Vector_cross, &
        Vector_norm, &
-       Vector_removeElement
+       Vector_removeElement, &
+       Vector_constructorInteger, &
+       Vector_destructorInteger, &
+       Vector_swapIntegerElements
   
 contains
   
@@ -101,7 +111,6 @@ contains
     valueTmp = 0.0_8
     
     if ( allocated( this%values ) ) then
-       
        deallocate( this%values )
        
     end if
@@ -130,6 +139,58 @@ contains
     end if
     
   end subroutine Vector_constructor
+
+  !>
+  !! @brief Constructor por omision
+  subroutine Vector_constructorInteger( this, ssize, value, values )
+    implicit none
+    type(IVector), intent(inout) :: this
+    integer, intent(in) :: ssize
+    integer, optional, intent(in) :: value
+    integer, optional, intent(in) :: values(:)
+    
+    integer :: valueTmp
+    
+    valueTmp = 0
+    
+    if ( allocated( this%values ) ) then
+       deallocate( this%values )
+       
+    end if
+    
+    allocate( this%values( ssize ) )
+    
+    if( present(value) ) then
+       
+       valueTmp = value
+       this%values = valueTmp
+       
+    end if
+    
+    if( present(values) ) then
+       
+       this%values = values
+       
+    end if
+    
+  end subroutine Vector_constructorInteger
+
+  !>
+  !! @brief Constructor de copia
+  !! Reserva la memoria necesaria para otherMatrix y le asigna los valores de this
+  subroutine Vector_copyConstructorInteger( this, otherVector )
+    implicit none
+    type(IVector), intent(inout) :: this
+    type(IVector), intent(in) :: otherVector
+    
+    if ( allocated( this%values ) ) deallocate( this%values )
+    allocate( this%values( size(otherVector%values, DIM=1) ) )
+    
+    this%values = otherVector%values
+    
+  end subroutine Vector_copyConstructorInteger
+
+
   
   !>
   !! @brief Constructor de copia
@@ -155,6 +216,17 @@ contains
     if( allocated(this%values) ) deallocate( this%values )
     
   end subroutine Vector_destructor
+
+  !>
+  !! @brief Destructor
+  subroutine Vector_destructorInteger( this )
+    implicit none
+    type(IVector), intent(inout) :: this
+    
+    if( allocated(this%values) ) deallocate( this%values )
+    
+  end subroutine Vector_destructorInteger
+
   
   !>
   !! @brief Imprime a salida estandar la matriz realizando cambio de linea
@@ -252,6 +324,103 @@ contains
     end if
     
   end subroutine Vector_show
+
+  !>
+  !! @brief Imprime a salida estandar la matriz realizando cambio de linea
+  !! con un maximo de "CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS" columnas
+  subroutine Vector_showInteger( this, flags, keys )
+    implicit none
+    type(IVector), intent(in) :: this
+    integer, intent(in), optional :: flags
+    character(*), intent(in), optional :: keys(:)
+    
+    integer :: columns
+    integer :: ssize
+    integer :: i
+    integer :: j
+    integer :: k
+    integer :: l
+    integer :: u
+    integer :: tmpFlags
+    character(50) :: formatSize
+    
+    type(Exception) :: ex
+    
+    tmpFlags = HORIZONTAL
+    if( present(flags) ) then
+       if( flags == WITH_KEYS )  then
+          tmpFlags = HORIZONTAL + WITH_KEYS
+       else
+          tmpFlags = flags
+       end if
+    end if
+    
+    ssize = size( this%values , DIM=1 )
+    
+    if( tmpFlags == HORIZONTAL .or. tmpFlags == HORIZONTAL + WITH_KEYS ) then
+       
+       columns = ssize
+       write(formatSize,*) ssize
+       
+       do k=1, ceiling( (ssize * 1.0)/(CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS * 1.0 ) )
+          
+          l = CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS * ( k - 1 ) + 1
+          u = CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS * ( k )
+          
+          if( u > ssize ) then
+             columns = l + CONTROL_instance%FORMAT_NUMBER_OF_COLUMNS*( 1 - k ) +  ssize - 1
+             u = columns
+          end if
+          
+          if( ( tmpFlags - HORIZONTAL ) == WITH_KEYS ) then
+             
+             if( present( keys ) ) then
+                write (6,"("//trim(formatSize)//"A18)") ( trim(keys(i)), i = l, u )
+             else
+                write (6,"("//trim(formatSize)//"I15)") ( i, i = l, u )
+             end if
+             
+          end if
+          
+          print *,""
+          write (6,"("//trim(formatSize)//"F15.6)") ( this%values(i), i = l, u )
+          print *,""
+          
+       end do
+       
+    else if( tmpFlags == VERTICAL .or. tmpFlags == VERTICAL + WITH_KEYS ) then
+       
+       if( ( tmpFlags - VERTICAL ) == WITH_KEYS ) then
+          
+          if( present( keys ) ) then
+             do i=1, ssize
+                
+                write (6,"(A18,F15.6)") trim(keys(i)), this%values(i)
+             end do
+          else
+             do i=1, ssize
+                write (6,"(I5,F15.6)") i, this%values(i)
+             end do
+          end if
+          
+       else
+          
+          do i=1, ssize
+             write (6,"(F15.6)") this%values(i)
+          end do
+          
+       end if
+       
+    else
+       
+       call Exception_constructor( ex , WARNING )
+       call Exception_setDebugDescription( ex, "Class object Vector in the show() function" )
+       call Exception_setDescription( ex, "Bad flags selected" )
+       call Exception_show( ex )
+       
+    end if
+    
+  end subroutine Vector_showInteger
   
   
   !>
@@ -527,20 +696,85 @@ contains
     
   end function Vector_getPtr
   
-  subroutine Vector_sortElements(this)
+  subroutine Vector_sortElements(this, factor)
     type(Vector) :: this
     
     integer i,j,n
+    integer, optional :: factor
     
     n = Vector_getSize(this)
-    do i=1,n
-       do j=i+1,n
-          if (this%values(j).gt.this%values(i)) then
-             call Vector_swapElements( this, i, j )
-          end if
-       end do
-    end do
+    if ( .not. present (factor) ) then
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).gt.this%values(i)) then
+               call Vector_swapElements( this, i, j )
+            end if
+         end do
+      end do
+    else 
+      factor = 0
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).gt.this%values(i)) then
+               factor = factor + 1
+               call Vector_swapElements( this, i, j )
+            end if
+         end do
+      end do
+    end if
+
   end subroutine Vector_sortElements
+
+  subroutine Vector_reverseSortElements(this,indexVector,m)
+    type(Vector) :: this
+    type(IVector), optional :: indexVector
+    integer, optional :: m
+    integer i,j,n
+    
+    n = Vector_getSize(this)
+    if ( .not. present (indexVector) ) then
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).lt.this%values(i)) then
+               call Vector_swapElements( this, i, j )
+            end if
+         end do
+      end do
+    else
+    
+      if ( .not. present (m) ) then
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,n
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapElements( this, i, j )
+                 call Vector_swapIntegerElements( indexVector, i, j )
+              end if
+           end do
+        end do
+      else
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,m
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapElements( this, i, j )
+                 call Vector_swapIntegerElements( indexVector, i, j )
+              end if
+           end do
+        end do
+      end if
+    end if
+
+  end subroutine Vector_reverseSortElements
+
   
   !>
   !! @brief Intercambia los elementos i y j el vector
@@ -560,6 +794,26 @@ contains
     this%values( j ) = value1
     
   end subroutine Vector_swapElements
+
+  !>
+  !! @brief Intercambia los elementos i y j el vector
+  subroutine Vector_swapIntegerElements( this, i, j )
+    implicit none
+    type(IVector), intent(inout) :: this
+    integer, intent(in) :: i
+    integer, intent(in) :: j
+    
+    integer :: value1
+    integer :: value2
+    
+    value1 = this%values( i )
+    value2 = this%values( j )
+    
+    this%values( i ) = value2
+    this%values( j ) = value1
+    
+  end subroutine Vector_swapIntegerElements
+
   
   !>
   !! @brief Retorna el tamano del vector

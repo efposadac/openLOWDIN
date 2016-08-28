@@ -8,5 +8,6 @@ FROM ubuntu:14.04
 #   apt-utils \
 #   build-essential \
 #   libblas-dev \
-#   liblapack-dev
+#   liblapack-dev \
+#   libarpack2-dev
 

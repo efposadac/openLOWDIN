@@ -248,6 +248,9 @@ program SCF
      labels(1) = "ORBITALS"
      call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, unit=wfnUnit, binary=.true., arguments = labels )
 
+     labels(1) = "FOCK"
+     call Matrix_writeToFile(WaveFunction_instance(speciesID)%fockMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
      if (CONTROL_instance%COSMO) then
         labels(1) = "COSMO2"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
@@ -295,7 +298,7 @@ program SCF
 
   if(CONTROL_instance%LAST_STEP) then
      write(*, *) ""
-     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
      write(*, *) ""
   end if
 

@@ -26,6 +26,7 @@ module Solver_
   use MolecularSystem_
   use String_
   use Exception_
+  use InputManager_
   implicit none
 
   type, public :: Solver
@@ -95,7 +96,7 @@ contains
   !> @brief run RHF-based calculation
   subroutine Solver_RHFRun( )
     implicit none
-
+    character(50) :: strAuxNumber
     !! Run HF program in RHF mode
     
     select case(CONTROL_instance%METHOD)
@@ -131,7 +132,9 @@ contains
 
        call system("lowdin-HF.x RHF")
        call system("lowdin-integralsTransformation.x")
-       call system("lowdin-CI.x" )
+
+       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
+       call system("lowdin-CI.x" //trim(strAuxNumber))
 
     case('RHF-PT')
 			 
@@ -219,6 +222,7 @@ contains
   !> @brief run UHF-based calculation
   subroutine Solver_UHFRun( )
     implicit none
+    character(50) :: strAuxNumber
 
     select case(CONTROL_instance%METHOD)
        
@@ -232,7 +236,9 @@ contains
 
        call system("lowdin-HF.x UHF")
        call system("lowdin-integralsTransformation.x")
-       call system("lowdin-CI.x" )
+
+       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
+       call system("lowdin-CI.x" //trim(strAuxNumber))
 
     case('UHF-MP2')
        call system("lowdin-HF.x UHF")

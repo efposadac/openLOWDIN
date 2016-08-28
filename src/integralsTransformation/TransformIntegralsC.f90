@@ -286,7 +286,6 @@ contains
           call TransformIntegralsC_buildArrayA( twoParticlesIntegrals, mu, &
                this%numberOfContractions, ssize2, auxtempA )
 
-
           tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
                auxtempA(:,:,:)
 

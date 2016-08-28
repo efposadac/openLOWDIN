@@ -104,7 +104,8 @@ Program Ints
      call Stopwatch_stop(lowdin_stopwatch)
 
      if(CONTROL_instance%LAST_STEP) then     
-        write(*,"(A,F10.3,A4)") "*** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*, *) ""
+        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
         write(*, *) ""
      end if
      close(30)
@@ -128,7 +129,7 @@ Program Ints
 
      if(CONTROL_instance%LAST_STEP) then
         write(*, *) ""
-        write(*,"(A,F10.3,A4)") "*** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
         write(*, *) ""
      end if
      close(40)
@@ -181,7 +182,7 @@ Program Ints
 
      !stop time
      if(CONTROL_instance%LAST_STEP) then
-        write(*,"(/A)", advance="no") "*** TOTAL enlapsed time intra-species integrals : "
+        write(*,"(/A)", advance="no") "*** TOTAL elapsed time intra-species integrals : "
         call Stopwatch_splitTime()
         write(*,"(A4/)") " (s)"
      end if
@@ -196,7 +197,7 @@ Program Ints
         call Stopwatch_stop(lowdin_stopwatch)
 
         if(CONTROL_instance%LAST_STEP) then
-           write(*,"(/A,F10.3,A4/)") "*** TOTAL enlapsed time inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
+           write(*,"(/A,F10.3,A4/)") "*** TOTAL elapsed time inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
         end if
      end if
 
