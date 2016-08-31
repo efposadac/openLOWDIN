@@ -143,6 +143,8 @@ module CONTROL_
      integer :: PT_ITERATION_METHOD_2_LIMIT
      integer :: PT_ITERATION_SCHEME
      integer :: PT_MAX_NUMBER_POLES_SEARCHED
+     real(8) :: PT_FACTOR_SS
+     real(8) :: PT_FACTOR_OS
 
 
      !!***************************************************************************
@@ -394,6 +396,8 @@ module CONTROL_
   integer :: LowdinParameters_ptIterationMethod2Limit
   integer :: LowdinParameters_ptIterationScheme
   integer :: LowdinParameters_ptMaxNumberOfPolesSearched
+  real(8) :: LowdinParameters_ptFactorSS 
+  real(8) :: LowdinParameters_ptFactorOS 
 
 
   !!***************************************************************************
@@ -643,6 +647,9 @@ module CONTROL_
        LowdinParameters_ptIterationMethod2Limit,&
        LowdinParameters_ptIterationScheme,&
        LowdinParameters_ptMaxNumberOfPolesSearched,&
+       LowdinParameters_ptFactorSS, &
+       LowdinParameters_ptFactorOS, &
+
        
                                 !!***************************************************************************
                                 !! Control print level and units
@@ -918,7 +925,8 @@ contains
     LowdinParameters_ptIterationScheme = 1
     LowdinParameters_ptMaxNumberOfPolesSearched = 10
 
-
+    LowdinParameters_ptFactorSS = 0 
+    LowdinParameters_ptFactorOS = 0
 
     !!***************************************************************************
     !! Control print level and units
@@ -1173,7 +1181,8 @@ contains
     CONTROL_instance%PT_ITERATION_METHOD_2_LIMIT = 1
     CONTROL_instance%PT_ITERATION_SCHEME = 1
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = 10
-
+    CONTROL_instance%PT_FACTOR_SS = 0
+    CONTROL_instance%PT_FACTOR_OS = 0 
 
     !!***************************************************************************                                              
     !! Control print level and units                                                                                           
@@ -1465,6 +1474,9 @@ contains
     CONTROL_instance%PT_ITERATION_METHOD_2_LIMIT = LowdinParameters_ptIterationMethod2Limit
     CONTROL_instance%PT_ITERATION_SCHEME = LowdinParameters_ptIterationScheme
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = LowdinParameters_ptMaxNumberOfPolesSearched
+    CONTROL_instance%PT_FACTOR_SS = LowdinParameters_ptFactorSS
+    CONTROL_instance%PT_FACTOR_OS = LowdinParameters_ptFactorOS
+
 
     !!***************************************************************************      
     !! Control print level and units                                                   
@@ -1731,6 +1743,9 @@ contains
     LowdinParameters_ptIterationMethod2Limit = CONTROL_instance%PT_ITERATION_METHOD_2_LIMIT
     LowdinParameters_ptIterationScheme = CONTROL_instance%PT_ITERATION_SCHEME
     LowdinParameters_ptMaxNumberOfPolesSearched = CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED
+    LowdinParameters_ptFactorSS = CONTROL_instance%PT_FACTOR_SS 
+    LowdinParameters_ptFactorOS = CONTROL_instance%PT_FACTOR_OS 
+
 
     !!***************************************************************************      
     !! Control print level and units                                                   
@@ -1986,6 +2001,8 @@ contains
     otherThis%PT_MAX_NUMBER_POLES_SEARCHED = this%PT_MAX_NUMBER_POLES_SEARCHED 
     otherThis%PT_ITERATION_SCHEME = this%PT_ITERATION_SCHEME 
     otherThis%PT_ORDER = this%PT_ORDER 
+    otherThis%PT_FACTOR_SS = this%PT_FACTOR_SS
+    otherThis%PT_FACTOR_OS = this%PT_FACTOR_OS
 
     !!*****************************************************
     !! Control parametros de formato
