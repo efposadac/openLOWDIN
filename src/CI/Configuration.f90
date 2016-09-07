@@ -610,24 +610,22 @@ contains
   
         do i = 1, numberOfOccupiedOrbitals
           occupiedOrbitals(s,1)%values(i) = i
+          occupiedOrbitals(s,2)%values(i) = i
         end do 
   
         do j= int(thisA%order%values(s)), 1, -1 
           occupiedOrbitals(s,1)%values( thisA%excitations(s,ia,1,j) ) = thisA%excitations(s,ia,2,j)
         end do
   
-        do i = 1, numberOfOccupiedOrbitals
-          occupiedOrbitals(s,2)%values(i) = i
-        end do 
-  
         do j= int(thisB%order%values(s)), 1, -1 
           occupiedOrbitals(s,2)%values( thisB%excitations(s,ib,1,j) ) = thisB%excitations(s,ib,2,j)
         end do
   
         do i = 1, numberOfOccupiedOrbitals 
-            do j = 1, numberOfOccupiedOrbitals
+            do j = i, numberOfOccupiedOrbitals
                if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
                  scoreMatrix(i,j) = 1
+                 scoreMatrix(j,i) = 1
                end if 
             end do 
           end do 
@@ -650,9 +648,10 @@ contains
 
         diagonal = 0
         do i = 1, numberOfOccupiedOrbitals 
-            do j = 1, numberOfOccupiedOrbitals
+            do j = i, numberOfOccupiedOrbitals
                if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
                  scoreMatrix(i,j) = 1
+                 scoreMatrix(j,i) = 1
                end if 
                if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
             end do 
