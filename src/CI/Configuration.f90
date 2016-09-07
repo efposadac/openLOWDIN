@@ -622,10 +622,9 @@ contains
         end do
   
         do i = 1, numberOfOccupiedOrbitals 
-            do j = i, numberOfOccupiedOrbitals
+            do j = 1, numberOfOccupiedOrbitals
                if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
                  scoreMatrix(i,j) = 1
-                 scoreMatrix(j,i) = 1
                end if 
             end do 
           end do 
@@ -648,10 +647,9 @@ contains
 
         diagonal = 0
         do i = 1, numberOfOccupiedOrbitals 
-            do j = i, numberOfOccupiedOrbitals
+            do j = 1, numberOfOccupiedOrbitals
                if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
                  scoreMatrix(i,j) = 1
-                 scoreMatrix(j,i) = 1
                end if 
                if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
             end do 

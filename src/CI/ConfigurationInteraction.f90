@@ -3848,7 +3848,7 @@ contains
     do a=1, ConfigurationInteraction_instance%numberOfConfigurations
       do b=a, ConfigurationInteraction_instance%numberOfConfigurations
 !        call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
-        CIenergy = ConfigurationInteraction_calculateCIenergy(a,b)
+        CIenergy = ConfigurationInteraction_calculateCIenergyB(a,b)
         ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
       end do
     end do
@@ -3905,7 +3905,7 @@ contains
 !$omp& shared(ConfigurationInteraction_instance, HartreeFock_instance,diagonalHamiltonianMatrix)
 !$omp do 
     do a=1, ConfigurationInteraction_instance%numberOfConfigurations
-      CIenergy = ConfigurationInteraction_calculateCIenergy(a,a)
+      CIenergy = ConfigurationInteraction_calculateCIenergyB(a,a)
       diagonalHamiltonianMatrix%values(a) = CIenergy
     end do
 !$omp end do nowait
@@ -3923,7 +3923,7 @@ contains
       aa = ConfigurationInteraction_instance%auxIndexCIMatrix%values(a)
       do b=a+1, initialCIMatrixSize 
         bb = ConfigurationInteraction_instance%auxIndexCIMatrix%values(b)
-        initialHamiltonianMatrix%values(a,b) = ConfigurationInteraction_calculateCIenergy(aa,bb)
+        initialHamiltonianMatrix%values(a,b) = ConfigurationInteraction_calculateCIenergyB(aa,bb)
       end do
     end do
 
