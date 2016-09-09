@@ -1349,14 +1349,16 @@ contains
 
     !!Destroy configurations
     !!Ground State
-    c=1
-    call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
-
-    do c=2, ConfigurationInteraction_instance%numberOfConfigurations
-       call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
-    end do
-
-    if (allocated(ConfigurationInteraction_instance%configurations)) deallocate(ConfigurationInteraction_instance%configurations)
+    if (allocated(ConfigurationInteraction_instance%configurations)) then
+      c=1
+      call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )
+  
+      do c=2, ConfigurationInteraction_instance%numberOfConfigurations
+         call Configuration_destructor(ConfigurationInteraction_instance%configurations(c) )                
+      end do
+  
+      if (allocated(ConfigurationInteraction_instance%configurations)) deallocate(ConfigurationInteraction_instance%configurations)
+    end if
 
     call Matrix_destructor(ConfigurationInteraction_instance%hamiltonianMatrix)
     call Vector_destructor (ConfigurationInteraction_instance%numberOfOccupiedOrbitals)
@@ -1520,9 +1522,8 @@ contains
          print *, "Building and saving hamiltonian..."
          call ConfigurationInteraction_buildAndSaveCIMatrix()
 
-
          !! deallocate transformed integrals
-
+         deallocate (ConfigurationInteraction_instance%configurations)
          deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
          deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
@@ -1641,6 +1642,7 @@ contains
 
          !! deallocate transformed integrals
 
+         deallocate (ConfigurationInteraction_instance%configurations)
          deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
          deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
@@ -1761,6 +1763,7 @@ contains
          call ConfigurationInteraction_buildAndSaveCIMatrix()
 
          !! deallocate transformed integrals
+         deallocate (ConfigurationInteraction_instance%configurations)
          deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
          deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
@@ -1876,6 +1879,7 @@ contains
 
          !! deallocate transformed integrals
 
+         deallocate (ConfigurationInteraction_instance%configurations)
          deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
          deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
@@ -1936,6 +1940,7 @@ contains
 
          !! deallocate transformed integrals
 
+         deallocate (ConfigurationInteraction_instance%configurations)
          deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
          deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
@@ -1994,6 +1999,7 @@ contains
 
          !! deallocate transformed integrals
 
+         deallocate (ConfigurationInteraction_instance%configurations)
          deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
          deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
