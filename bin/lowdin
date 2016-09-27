@@ -5,10 +5,12 @@ source ${VARS_PATH}
 
 usage(){
 	echo "Usage:"
-	echo "   $ lowdin -i file.lowdin [-t [all] [list] [file]] [-v number] [-p] [-s] [-h] "
+	echo "   $ lowdin -i file.lowdin [-t [all] [list] [file]] [-n number] [-v number] [-p] [-s] [-h] "
 	echo ""
 	echo "   -i file.lowdin"
 	echo "      This is the input file name"
+	echo "   -n number"
+	echo "      This will set the number of OMP threads"
         echo "   -t all"
         echo "      This will run all the test files located on the test database."
         echo "   -t list"
@@ -64,12 +66,16 @@ singleton="F"
 version=".x"
 runTest="F"
 
-while getopts 	"i:pt:sv:h" OPTNAME
+while getopts 	"i:pt:sv:n:h" OPTNAME
 do
 	case $OPTNAME in
 		i)
 			nameFile=$OPTARG
 			extFile=${nameFile/#*./}
+			;;
+		n)
+			numberOfThreads=$OPTARG
+			echo $numberOfThreads
 			;;
 		p)
 			printOut="T"
@@ -321,13 +327,19 @@ if [ $extFile="lowdin" ]; then
 	fi
 
 	# setting default number of cores for OpenMP
+
 	if [ -z "$OMP_NUM_THREADS" ]; then
-    	export OMP_NUM_THREADS=4
+	    	export OMP_NUM_THREADS=4
+	fi
+
+	if [ -n "$numberOfThreads" ]; then
+    		export OMP_NUM_THREADS=$numberOfThreads
 	fi
 
 	echo "Running on " $OMP_NUM_THREADS "OMP threads" 
 
 	# Start ...
+	echo "Running on " $OMP_NUM_THREADS "OMP threads" > $nameFile.out
 	echo "Begin job by input: "$nameFile.lowdin, "for user: "$USERNAME " at " `date` > $nameFile.out
 	echo "under operating system" `uname -a` >> $nameFile.out
 	echo "" >> $nameFile.out
