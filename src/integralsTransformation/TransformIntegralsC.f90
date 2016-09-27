@@ -838,19 +838,19 @@ contains
     end if
 
     !! only the (ip|IP) integrals will be transformed.
-    if ( CONTROL_instance%PT_ORDER == 2 .and. speciesID == 1 .and. CONTROL_instance%IONIZE_MO /= 0 .and. CONTROL_instance%IONIZE_MO <= otherTotalOccupation) then
-    
-      this%p_lowerOrbital = 1
-      this%p_upperOrbital = totalOccupation!totalNumberOfContractions
-      this%q_lowerOrbital = 1 
-      this%q_upperOrbital = totalNumberOfContractions
-  
-      this%r_lowerOrbital = 1
-      this%r_upperOrbital = otherTotalOccupation! otherTotalNumberOfContractions
-      this%s_lowerOrbital = otherTotalOccupation + 1
-      this%s_upperOrbital = otherTotalNumberOfContractions
-
-    end if
+!!    if ( CONTROL_instance%PT_ORDER == 2 .and. speciesID == 1 .and. CONTROL_instance%IONIZE_MO /= 0 .and. CONTROL_instance%IONIZE_MO <= otherTotalOccupation) then
+!!    
+!!      this%p_lowerOrbital = 1
+!!      this%p_upperOrbital = totalOccupation!totalNumberOfContractions
+!!      this%q_lowerOrbital = 1 
+!!      this%q_upperOrbital = totalNumberOfContractions
+!!  
+!!      this%r_lowerOrbital = 1
+!!      this%r_upperOrbital = otherTotalOccupation! otherTotalNumberOfContractions
+!!      this%s_lowerOrbital = otherTotalOccupation + 1
+!!      this%s_upperOrbital = otherTotalNumberOfContractions
+!!
+!!    end if
 
   end subroutine TransformIntegralsC_checkInterMOIntegralType
 
