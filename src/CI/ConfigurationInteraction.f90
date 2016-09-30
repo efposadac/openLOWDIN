@@ -101,6 +101,7 @@ module ConfigurationInteraction_
        ConfigurationInteraction_show
 
   private
+
 contains
 
 
@@ -288,7 +289,8 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" ) then
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+        trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "DVDSON"  ) then
 
          call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, &
                 int(ConfigurationInteraction_instance%numberOfConfigurations,8), & 
@@ -348,7 +350,9 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" ) then
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+        trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "DVDSON"  ) then
+
 
          call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, &
                 int(ConfigurationInteraction_instance%numberOfConfigurations,8), & 
@@ -447,7 +451,9 @@ contains
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" ) then
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+        trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "DVDSON"  ) then
+
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
         end if
 
@@ -598,7 +604,9 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" ) then
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+        trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "DVDSON"  ) then
+
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
         end if
 
@@ -935,7 +943,9 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" ) then
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+        trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "DVDSON"  ) then
+
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
         end if
 
@@ -1318,7 +1328,9 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" ) then
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+        trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "DVDSON"  ) then
+
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
         end if
     case ( "FCI-oneSpecie" )
@@ -1782,7 +1794,36 @@ contains
               CONTROL_instance%CI_MAX_NCV, &
               ConfigurationInteraction_instance%eigenvalues, &
               ConfigurationInteraction_instance%eigenVectors )
-  
+
+       case ("JADAMILU")
+
+         !print *, "Building initial hamiltonian..."
+         !call ConfigurationInteraction_buildInitialCIMatrix()
+
+         call ConfigurationInteraction_buildHamiltonianMatrix()
+         print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
+
+         !print *, "Building and saving hamiltonian..."
+         !call ConfigurationInteraction_buildAndSaveCIMatrix()
+
+         !! deallocate transformed integrals
+         !deallocate (ConfigurationInteraction_instance%configurations)
+         !deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
+         !deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
+
+         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
+              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
+              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+
+         print *, ""
+         print *, "Diagonalizing hamiltonian..."
+         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+
+
+         call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
+              CONTROL_instance%NUMBER_OF_CI_STATES, &
+              ConfigurationInteraction_instance%eigenvalues, &
+              ConfigurationInteraction_instance%eigenVectors )
 
        case ("DSYEVX")
 
@@ -6550,5 +6591,128 @@ contains
 
     return
   end subroutine av
+
+
+  subroutine ConfigurationInteraction_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors)
+    implicit none
+    integer :: maxnev
+    integer :: a
+    real(8) :: CIenergy
+    integer :: nproc
+    type(Vector), intent(inout) :: eigenValues
+    type(Matrix), intent(inout) :: eigenVectors
+    type (Vector) :: diagonalHamiltonianMatrix
+
+!   N: size of the problem
+!   MAXEIG: max. number of wanteg eig (NEIG<=MAXEIG)
+!   MAXSP: max. value of MADSPACE
+    integer :: n, maxeig, MAXSP
+    integer :: LX
+    real(8), allocatable :: EIGS(:), RES(:), X(:)!, D(:)
+!   arguments to pass to the routines
+    integer :: NEIG, MADSPACE, ISEARCH, NINIT, ICNTL(5)
+    integer :: ITER, IPRINT, INFO
+    real(8) :: SIGMA, TOL, GAP, MEM, DROPTOL, SHIFT
+    integer :: IJOB, NDX1, NDX2
+!   some local variables
+    integer :: I,J,K
+
+    maxsp = 20
+    LX = N*(3*MAXSP+MAXEIG+1)+4*MAXSP*MAXSP
+
+    if ( allocated ( eigs ) ) deallocate ( eigs )
+    allocate ( eigs ( maxeig ) )
+    if ( allocated ( res ) ) deallocate ( res )
+    allocate ( res ( maxeig ) )
+    if ( allocated ( x ) ) deallocate ( x )
+    allocate ( x ( lx ) )
+
+    call Vector_constructor ( diagonalHamiltonianMatrix, &
+                              ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8 ) 
+
+    nproc = omp_get_max_threads()
+
+    call omp_set_num_threads(omp_get_max_threads())
+    call omp_set_num_threads(nproc)
+
+!$omp parallel & 
+!$omp& private(a,CIenergy),&
+!$omp& shared(ConfigurationInteraction_instance, HartreeFock_instance,diagonalHamiltonianMatrix)
+!$omp do 
+    do a=1, ConfigurationInteraction_instance%numberOfConfigurations
+      CIenergy = ConfigurationInteraction_calculateCIenergyB(a,a)
+      diagonalHamiltonianMatrix%values(a) = CIenergy
+    end do
+!$omp end do nowait
+!$omp end parallel
+
+!    set input variables
+!    the matrix is already in the required format
+
+     IPRINT = 6 !     standard report on standard output
+     ISEARCH = 0 !    we want the smallest eigenvalues
+     NEIG = maxeig !    number of wanted eigenvalues
+     NINIT = 0 !    no initial approximate eigenvectors
+     MADSPACE = maxsp !    desired size of the search space
+     ITER = 100 !    maximum number of iteration steps
+     TOL = 1.0d-8 !    tolerance for the eigenvector residual
+
+!    additional parameters set to default
+     ICNTL(1)=0
+     ICNTL(2)=0
+     ICNTL(3)=0
+     ICNTL(4)=0
+     ICNTL(5)=0
+
+     IJOB=0
+
+10   CALL DPJDREVCOM( N, diagonalHamiltonianMatrix%values ,-1,-1,EIGS, RES, X, LX, NEIG, &
+                      SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
+                      SHIFT, DROPTOL, MEM, ICNTL, &
+                      IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
+
+!    your private matrix-vector multiplication
+      IF (IJOB.EQ.1) THEN
+!       X(NDX1) input,  X(NDX2) output
+         call matvec(N,X(NDX1),X(NDX2))
+         GOTO 10
+      END IF
+!    release internal memory and discard preconditioner
+      CALL DPJDCLEANUP
+
+  end subroutine ConfigurationInteraction_jadamiluInterface
+
+  subroutine matvec ( nx, v, w)
+  
+  !*******************************************************************************
+  !! AV computes w <- A * V where A is a discretized Laplacian.
+  !  Parameters:
+  !    Input, integer NX, the length of the vectors.
+  !    Input, real V(NX), the vector to be operated on by A.
+  !    Output, real W(NX), the result of A*V.
+  !
+    implicit none
+  
+    integer nx
+    real(8) v(nx)
+    real(8) w(nx)
+    character(50) :: CIFile
+    integer :: CIUnit
+    integer, allocatable :: jj(:)
+    real(8), allocatable :: CIEnergy(:)
+    integer :: nonzero,ii, kk
+    integer :: maxStackSize, i, ia, ib
+
+    w = 0
+    
+!! memory
+    do i = 1, nx
+        w(:) = w(:) + ConfigurationInteraction_instance%hamiltonianMatrix%values(:,i)*v(i)
+    end do 
+
+    return
+  end subroutine matvec
+
+
 
 end module ConfigurationInteraction_

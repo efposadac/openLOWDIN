@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+rm -f makefile
+rm -f *.o 
+rm -f *.mod 
+rm -f *~
+#
+cat > makefile << EOF
+TOPDIR=../../
+include \$(TOPDIR)/CONFIG
+
+TARGET=libjadamilu.a
+EOF
+echo -e "all:" >> makefile
+echo -e "\tmv \$(TARGET) \$(TOPDIR)lib/\n" >> makefile
+cat >> makefile << EOF
+clean:: 
+	rm -f *.o
+	rm -f *.mod
+	rm makefile
+EOF
+#
