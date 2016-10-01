@@ -76,6 +76,7 @@ module ConfigurationInteraction_
      type(matrix), allocatable :: FockMatrix(:)
      type(vector), allocatable :: energyofmolecularorbitals(:)
      type(configuration), allocatable :: configurations(:)
+     type (Vector) :: diagonalHamiltonianMatrix
      real(8) :: totalEnergy
 
      character(20) :: level
@@ -1797,11 +1798,11 @@ contains
 
        case ("JADAMILU")
 
-         !print *, "Building initial hamiltonian..."
-         !call ConfigurationInteraction_buildInitialCIMatrix()
+         print *, "Building initial hamiltonian..."
+         call ConfigurationInteraction_buildInitialCIMatrix()
 
-         call ConfigurationInteraction_buildHamiltonianMatrix()
-         print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
+         !call ConfigurationInteraction_buildHamiltonianMatrix()
+         !print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
 
          !print *, "Building and saving hamiltonian..."
          !call ConfigurationInteraction_buildAndSaveCIMatrix()
@@ -1818,6 +1819,12 @@ contains
          print *, ""
          print *, "Diagonalizing hamiltonian..."
          print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+         print *, "============================================================="
+         print *, "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
+         print *, " a software code for computing selected eigenvalues of "
+         print *, " large sparse symmetric matrices, "
+         print *, "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
+         print *, "============================================================="
 
 
          call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
@@ -4462,6 +4469,13 @@ contains
 !$omp end do nowait
 !$omp end parallel
 
+   !! save the unsorted diagonal Matrix )
+   if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU" ) then
+
+     call Vector_copyConstructor (  ConfigurationInteraction_instance%diagonalHamiltonianMatrix, diagonalHamiltonianMatrix)
+
+   end if
+
    !! To get only the lowest 300 values.
    call Vector_reverseSortElements(diagonalHamiltonianMatrix, ConfigurationInteraction_instance%auxIndexCIMatrix, initialCIMatrixSize)
 
@@ -6627,35 +6641,17 @@ contains
     if ( allocated ( x ) ) deallocate ( x )
     allocate ( x ( lx ) )
 
-    call Vector_constructor ( diagonalHamiltonianMatrix, &
-                              ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8 ) 
-
-    nproc = omp_get_max_threads()
-
-    call omp_set_num_threads(omp_get_max_threads())
-    call omp_set_num_threads(nproc)
-
-!$omp parallel & 
-!$omp& private(a,CIenergy),&
-!$omp& shared(ConfigurationInteraction_instance, HartreeFock_instance,diagonalHamiltonianMatrix)
-!$omp do 
-    do a=1, ConfigurationInteraction_instance%numberOfConfigurations
-      CIenergy = ConfigurationInteraction_calculateCIenergyB(a,a)
-      diagonalHamiltonianMatrix%values(a) = CIenergy
-    end do
-!$omp end do nowait
-!$omp end parallel
-
 !    set input variables
 !    the matrix is already in the required format
 
      IPRINT = 6 !     standard report on standard output
      ISEARCH = 0 !    we want the smallest eigenvalues
      NEIG = maxeig !    number of wanted eigenvalues
-     NINIT = 0 !    no initial approximate eigenvectors
+     !NINIT = 0 !    no initial approximate eigenvectors
+     NINIT = 1 !    initial approximate eigenvectors
      MADSPACE = maxsp !    desired size of the search space
      ITER = 100 !    maximum number of iteration steps
-     TOL = 1.0d-8 !    tolerance for the eigenvector residual
+     TOL = 1.0d-6 !    tolerance for the eigenvector residual
 
 !    additional parameters set to default
      ICNTL(1)=0
@@ -6665,8 +6661,12 @@ contains
      ICNTL(5)=0
 
      IJOB=0
+     do i = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
+       X(ConfigurationInteraction_instance%auxIndexCIMatrix%values(i)) = ConfigurationInteraction_instance%initialEigenVectors%values(i,1)
+     end do
 
-10   CALL DPJDREVCOM( N, diagonalHamiltonianMatrix%values ,-1,-1,EIGS, RES, X, LX, NEIG, &
+
+10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1,-1,EIGS, RES, X, LX, NEIG, &
                       SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                       SHIFT, DROPTOL, MEM, ICNTL, &
                       IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
@@ -6679,6 +6679,19 @@ contains
       END IF
 !    release internal memory and discard preconditioner
       CALL DPJDCLEANUP
+
+      !! saving the eigenvalues
+      eigenValues%values = EIGS
+
+      !! saving the eigenvectors
+      k = 0
+      do i = 1, N
+        do j = 1, maxeig
+          k = k + 1
+          eigenVectors%values(i,j) = X(k)
+        end do
+      end do
+
 
   end subroutine ConfigurationInteraction_jadamiluInterface
 
@@ -6696,21 +6709,48 @@ contains
     integer nx
     real(8) v(nx)
     real(8) w(nx)
-    character(50) :: CIFile
-    integer :: CIUnit
     integer, allocatable :: jj(:)
     real(8), allocatable :: CIEnergy(:)
     integer :: nonzero,ii, kk
-    integer :: maxStackSize, i, ia, ib
+    integer :: maxStackSize, i, j, ia, ib
+    integer :: nproc
 
     w = 0
     
 !! memory
+!    do i = 1, nx
+!        w(:) = w(:) + ConfigurationInteraction_instance%hamiltonianMatrix%values(:,i)*v(i)
+!    end do 
+    ia = 0
     do i = 1, nx
-        w(:) = w(:) + ConfigurationInteraction_instance%hamiltonianMatrix%values(:,i)*v(i)
+      if ( abs(v(i) ) > 1E-12 ) ia = ia + 1
+    end do
+    print *, "ia", ia
+
+    nproc = omp_get_max_threads()
+
+    call omp_set_num_threads(omp_get_max_threads())
+    call omp_set_num_threads(nproc)
+
+!! recalculate
+    do i = 1, nx
+      if ( abs(v(i) ) > 1E-12 ) then  
+!$omp parallel & 
+!$omp& private(j),&
+!$omp& shared(ConfigurationInteraction_instance, HartreeFock_instance,w,v)
+!$omp do 
+        do j = 1 , nx
+          w(j) = w(j) + ConfigurationInteraction_calculateCIenergyB(j,i)*v(i)  !! direct
+        end do 
+!$omp end do nowait
+!$omp end parallel
+
+      end if 
     end do 
 
+
     return
+
   end subroutine matvec
 
 

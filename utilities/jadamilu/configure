@@ -9,10 +9,10 @@ cat > makefile << EOF
 TOPDIR=../../
 include \$(TOPDIR)/CONFIG
 
-TARGET=libjadamilu.a
+TARGET=libjadamilu
 EOF
 echo -e "all:" >> makefile
-echo -e "\tmv \$(TARGET) \$(TOPDIR)lib/\n" >> makefile
+echo -e "\tcp \$(TARGET).lib \$(TOPDIR)lib/\$(TARGET).a\n" >> makefile
 cat >> makefile << EOF
 clean:: 
 	rm -f *.o
