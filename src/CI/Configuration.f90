@@ -84,6 +84,7 @@ module Configuration_
         Configuration_destructor, &
         Configuration_show, &
 !        Configuration_checkTwoConfigurations, &
+        Configuration_checkCoincidence, &
         Configuration_setAtMaximumCoincidence
   private		
 contains
@@ -570,78 +571,113 @@ contains
 !!
 !!  end subroutine Configuration_checkMaximumCoincidence
 
-  subroutine Configuration_setAtMaximumCoincidence(thisA,thisB, ia, ib, numberOfSpecies, occupiedOrbitals, factor, numberOfDiffOrbitals, job)
+  function Configuration_checkCoincidence(thisA,thisB, ia, ib, numberOfSpecies) result ( numberOfDiffOrbitals )
     implicit none
-    type(Configuration) :: thisA, thisB
-    real(8) :: factor
-    integer :: numberOfSpecies
+    type(Configuration), intent(in) :: thisA, thisB
+    integer, intent(in) :: ia, ib
+    integer, intent(in) :: numberOfSpecies
+    integer :: numberOfDiffOrbitals
     
-    real(8) :: lambda
     integer :: numberOfOccupiedOrbitals 
-    integer :: numberOfOrbitals 
-    integer :: i,j,k,ia,ib,s,ii,jj
-    type(Vector), allocatable :: occupiedOrbitals(:,:) !! spescies, confA confB
-    real(8) :: auxOcc
+    integer :: i,j,s
+    !type(IVector), allocatable :: occupiedOrbitals(:,:) !! spescies, confA confB
+    integer, allocatable :: occupiedOrbitalsA(:),occupiedOrbitalsB(:) !! spescies, confA confB
+    integer, allocatable :: scoreMatrix(:,:)
+
+!    allocate (occupiedOrbitals(numberOfSpecies,2))
+    numberOfDiffOrbitals = 0 
+    do s = 1, numberOfSpecies
+  
+      !numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
+      numberOfOccupiedOrbitals = GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(s) 
+  
+      !!call Vector_constructor (occupiedOrbitals, numberOfOccupiedOrbitals,2))
+      !call Vector_constructorInteger (occupiedOrbitals(s,1), numberOfOccupiedOrbitals, 0 )
+      !call Vector_constructorInteger (occupiedOrbitals(s,2), numberOfOccupiedOrbitals, 0 )
+
+      allocate (occupiedOrbitalsA ( numberOfOccupiedOrbitals ) )
+      occupiedOrbitalsA = 0
+      allocate (occupiedOrbitalsB ( numberOfOccupiedOrbitals ) )
+      occupiedOrbitalsB = 0
+
+  
+      allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
+      scoreMatrix = 0
+  
+      do i = 1, numberOfOccupiedOrbitals
+        occupiedOrbitalsA(i) = i
+        occupiedOrbitalsB(i) = i
+      end do 
+  
+      do j= thisA%order%values(s), 1, -1 
+        occupiedOrbitalsA( thisA%excitations(s,ia,1,j) ) = thisA%excitations(s,ia,2,j)
+      end do
+  
+      do j= thisB%order%values(s), 1, -1 
+        occupiedOrbitalsB( thisB%excitations(s,ib,1,j) ) = thisB%excitations(s,ib,2,j)
+      end do
+  
+      do i = 1, numberOfOccupiedOrbitals 
+          do j = 1, numberOfOccupiedOrbitals
+             if ( occupiedOrbitalsA(i) == occupiedOrbitalsB(j) ) then
+               scoreMatrix(i,j) = 1
+             end if 
+          end do 
+        end do 
+  
+       numberOfDiffOrbitals = numberOfDiffOrbitals + (numberOfOccupiedOrbitals- sum(scoreMatrix) )
+
+      deallocate (scoreMatrix)
+      deallocate (occupiedOrbitalsB )
+      deallocate (occupiedOrbitalsA )
+
+ !     call Vector_destructorInteger (occupiedOrbitals(s,1) )
+ !     call Vector_destructorInteger (occupiedOrbitals(s,2) )
+
+    end do 
+ !   deallocate (occupiedOrbitals)
+
+  end function Configuration_checkCoincidence
+
+
+  subroutine Configuration_setAtMaximumCoincidence(thisA,thisB, ia, ib, numberOfSpecies, occupiedOrbitals, factor)
+    implicit none
+    type(Configuration), intent(in) :: thisA, thisB
+    integer, intent(out) :: factor
+    integer, intent(in) :: numberOfSpecies
+    
+    integer :: numberOfOccupiedOrbitals 
+    integer :: i,j,k,ia,ib,s
+    type(IVector), allocatable, intent(out) :: occupiedOrbitals(:,:) !! spescies, confA confB
+    integer :: auxOcc
     integer, allocatable :: scoreMatrix(:,:)
     integer :: diagonal
-    logical :: swap
-    integer :: job
-    integer :: numberOfDiffOrbitals
+    logical(2) :: swap
 
-    select case (job)
-
-    case (0) 
-  
+      factor = 1
       if (allocated(occupiedOrbitals) ) deallocate (occupiedOrbitals)
       allocate (occupiedOrbitals(numberOfSpecies,2))
-      numberOfDiffOrbitals = 0 
       do s = 1, numberOfSpecies
   
-        lambda=MolecularSystem_getLambda(s)
-        numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
+        numberOfOccupiedOrbitals = GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(s) 
   
         !!call Vector_constructor (occupiedOrbitals, numberOfOccupiedOrbitals,2))
-        call Vector_constructor (occupiedOrbitals(s,1), numberOfOccupiedOrbitals, 0.0_8 )
-        call Vector_constructor (occupiedOrbitals(s,2), numberOfOccupiedOrbitals, 0.0_8 )
-  
-        if (allocated(scoreMatrix) ) deallocate (scoreMatrix)
-        allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
-        scoreMatrix = 0
+        call Vector_constructorInteger (occupiedOrbitals(s,1), numberOfOccupiedOrbitals, 0 )
+        call Vector_constructorInteger (occupiedOrbitals(s,2), numberOfOccupiedOrbitals, 0 )
   
         do i = 1, numberOfOccupiedOrbitals
           occupiedOrbitals(s,1)%values(i) = i
           occupiedOrbitals(s,2)%values(i) = i
         end do 
   
-        do j= int(thisA%order%values(s)), 1, -1 
+        do j= thisA%order%values(s), 1, -1 
           occupiedOrbitals(s,1)%values( thisA%excitations(s,ia,1,j) ) = thisA%excitations(s,ia,2,j)
         end do
   
-        do j= int(thisB%order%values(s)), 1, -1 
+        do j= thisB%order%values(s), 1, -1 
           occupiedOrbitals(s,2)%values( thisB%excitations(s,ib,1,j) ) = thisB%excitations(s,ib,2,j)
         end do
   
-        do i = 1, numberOfOccupiedOrbitals 
-            do j = 1, numberOfOccupiedOrbitals
-               if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
-                 scoreMatrix(i,j) = 1
-               end if 
-            end do 
-          end do 
-  
-         numberOfDiffOrbitals = numberOfDiffOrbitals + (numberOfOccupiedOrbitals- sum(scoreMatrix) )*2
-      end do 
-
-    case (1)
-
-      factor = 1
-
-      do s = 1, numberOfSpecies
-
-        lambda=MolecularSystem_getLambda(s)
-        numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
-  
-        if (allocated(scoreMatrix) ) deallocate (scoreMatrix)
         allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
         scoreMatrix = 0
 
@@ -655,8 +691,6 @@ contains
             end do 
          end do 
   
-
-
         do while ( sum(scoreMatrix) > diagonal )
 
             if (sum(scoreMatrix) > diagonal ) then
@@ -693,14 +727,15 @@ contains
             end do 
           end do 
  
-            factor = -1.0_8 * factor 
+            factor = -1 * factor 
     
           end if
         end do! while
 
+        deallocate (scoreMatrix)
+
       end do
 
-    end select
 
   end subroutine Configuration_setAtMaximumCoincidence
 
