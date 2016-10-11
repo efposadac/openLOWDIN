@@ -1,5 +1,5 @@
 GEOMETRY
-	e-(H)   SHARON-E-6S2P 	0.00	0.00 	0.00 addParticles=1 
+	e-(H)   aug-cc-pVTZ 	0.00	0.00 	0.00 addParticles=1 
 	H	dirac			0.00	0.00 	0.00
 	e+	SHARON-E+6S2P	0.00	0.00	0.00
 END GEOMETRY
@@ -13,9 +13,9 @@ END TASKS
 CONTROL
 	numberOfCIstates=1
 	!CIdiagonalizationMethod = "DSYEVX"
-	!CIdiagonalizationMethod = "ARPACK"
-	CIdiagonalizationMethod = "JADAMILU"
-	CISizeOfGuessMatrix=500
+	CIdiagonalizationMethod = "ARPACK"
+	!CIdiagonalizationMethod = "JADAMILU"
+	CISizeOfGuessMatrix=2000
 END CONTROL
 INPUT_CI
 	species="E-ALPHA" core=0 active=0 excitation=2

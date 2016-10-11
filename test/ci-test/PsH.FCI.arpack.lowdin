@@ -13,9 +13,8 @@ END TASKS
 CONTROL
 	numberOfCIstates=1
 	!CIdiagonalizationMethod = "DSYEVX"
-	!CIdiagonalizationMethod = "ARPACK"
-	CIdiagonalizationMethod = "JADAMILU"
-	CISizeOfGuessMatrix=500
+	CIdiagonalizationMethod = "ARPACK"
+	!CIdiagonalizationMethod = "JADAMILU"
 END CONTROL
 INPUT_CI
 	species="E-ALPHA" core=0 active=0 excitation=2

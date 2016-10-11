@@ -52,17 +52,18 @@ module Configuration_
   !!
   !<
   type, public :: Configuration
-    ! character(20) :: name
-     logical(2) :: isInstanced
+     !character(20) :: name
+     !logical(2) :: isInstanced
      !type(Vector) :: coefficients
-!     real(8) :: auxEnergy
-!     real(8) :: coefficient
-     integer(2) :: nDeterminants
-     integer :: id
-!     type(IVector), allocatable :: occupations(:,:)
-     type(IVector) :: order !! 1=single, 2=double, 3=triple, etc
+     !real(8) :: auxEnergy
+     !real(8) :: coefficient
+     !integer(2) :: nDeterminants
+     !integer :: id
+     !type(IVector), allocatable :: occupations(:,:)
+     !integer, allocatable :: order(:) !! 1=single, 2=double, 3=triple, etc
      !type(IVector), allocatable :: excitations(:,:,:) !! nexcitations (order), ndeterminants, occ -> vir
-     integer, allocatable :: excitations(:,:,:,:) !! nexcitations (order), ndeterminants, occ -> vir
+     !integer, allocatable :: excitations(:,:,:) !! nexcitations (order), ndeterminants, occ -> vir
+     integer, allocatable :: occupations(:,:) !! species, occ
   end type Configuration
 
   type, public :: GlobalConfiguration
@@ -84,9 +85,11 @@ module Configuration_
         Configuration_destructor, &
         Configuration_show, &
 !        Configuration_checkTwoConfigurations, &
-        Configuration_checkCoincidence, &
-        Configuration_setAtMaximumCoincidence
-  private		
+!        Configuration_checkCoincidence, &
+        Configuration_checkCoincidenceB, &
+!        Configuration_setAtMaximumCoincidence, &
+        Configuration_setAtMaximumCoincidenceB
+  private
 contains
 
 
@@ -145,22 +148,32 @@ contains
     integer :: lambda !Ocupation per orbital
 
 !    call Vector_constructor( this%coefficients, numberOfConfigurations, 0.0_8 ) ???????????
-    call Vector_copyConstructorInteger( this%order, order )
+!    call Vector_copyConstructorInteger( this%order, order )
 
 !    this%auxEnergy = 0.0_8
 
-    this%id = c
+!    this%id = c
 
 !    this%coefficient = 1.0_8
 
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-    this%nDeterminants = 1
+
+!    allocate ( this%order ( numberOfSpecies ) )
+!    this%order = order%values
+
+!    this%nDeterminants = 1
 !    allocate ( this%occupations(numberOfSpecies,this%nDeterminants))
 
-    if (allocated ( this%excitations )) deallocate ( this%excitations ) 
-    allocate ( this%excitations(numberOfSpecies,this%nDeterminants,2,maxval(this%order%values) ) )
-    this%excitations = 0
+!    if (allocated ( this%excitations )) deallocate ( this%excitations ) 
+!    allocate ( this%excitations(2,maxval(this%order),numberOfSpecies ) )
+
+    if (allocated ( this%occupations )) deallocate ( this%occupations ) 
+    allocate ( this%occupations( maxval(GlobalConfiguration_instance%numberOfOccupiedOrbitals%values), numberOfSpecies ) )
+    this%occupations = 0
+
+    !allocate ( this%excitations(numberOfSpecies,this%nDeterminants,2,maxval(this%order%values) ) )
+    !this%excitations = 0
     do i=1, numberOfSpecies
 
 !      if ( this%order%values(i) == 2 )  this%coefficient = this%coefficient * ( 1.0_8 / 4.0_8 )
@@ -176,14 +189,14 @@ contains
 
 !       end if
 
-!       do j=1, numberOfOccupiedOrbitals
-!          this%occupations(i,this%nDeterminants)%values(j)=1
-!       end do
+       do j=1, numberOfOccupiedOrbitals
+          this%occupations(j,i)=j
+       end do
 
        !div1= int(occupiedCode%values(i))
        !div2= int(unoccupiedCode%values(i))
 
-       do j= int(this%order%values(i)), 1, -1 
+       do j= int(order%values(i)), 1, -1 
 
           div1= int(occupiedCode(i)%values(j))
           div2= int(unoccupiedCode(i)%values(j))
@@ -191,8 +204,14 @@ contains
           !this%excitations(i,this%nDeterminants,1)%values(j) = mod( div1, 1024)
           !this%excitations(i,this%nDeterminants,2)%values(j) = mod( div2, 1024)
 
-          this%excitations(i,this%nDeterminants,1,j) = div1
-          this%excitations(i,this%nDeterminants,2,j) = div2
+          !this%excitations(1,j,i) = div1
+          !this%excitations(2,j,i) = div2
+
+          this%occupations(div1,i)=div2
+
+!          this%excitations(i,this%nDeterminants,1,j) = div1
+!          this%excitations(i,this%nDeterminants,2,j) = div2
+
 
 
 !          this%occupations(i,this%nDeterminants)%values( MOD ( div1, 1024 ) ) = &
@@ -209,6 +228,7 @@ contains
 
        end do
 
+       !call Configuration_reverseSortElements(this%occupations(:,i),this%factor)
        !!if ( this%order%values(i) > 0 ) then
        !!  print *, "excitation"
        !!  call vector_show ( this%excitations(i,1,1))
@@ -220,7 +240,7 @@ contains
        
     end do
 
-    this%isInstanced = .true.
+    !this%isInstanced = .true.
 
   end subroutine Configuration_constructor
 
@@ -232,7 +252,6 @@ contains
   subroutine Configuration_copyConstructor(this,otherThis)
     implicit none
     type(Configuration) :: this, otherThis
-    type(Vector) :: order
 
     integer :: numberOfOccupiedOrbitals 
     integer :: numberOfOrbitals 
@@ -242,19 +261,23 @@ contains
     integer :: div2
     integer :: lambda !Ocupation per orbital
 
-    call Vector_copyConstructorInteger( otherThis%order, this%order )
-
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-    otherThis%nDeterminants = this%nDeterminants
+
+    !call Vector_copyConstructorInteger( otherThis%order, this%order )
+!    if (allocated( otherThis%order )) deallocate ( otherThis%order )
+!    allocate ( otherThis%order(numberOfSpecies) )
+!    otherThis%order = this%order
+
+!    otherThis%nDeterminants = this%nDeterminants
 
 !    otherThis%Coefficient = this%coefficient
 
-!    if (allocated( otherThis%occupations )) deallocate ( otherThis%occupations ) !...
-    if (allocated( otherThis%excitations )) deallocate ( otherThis%excitations )
+!    if (allocated( otherThis%excitations )) deallocate ( otherThis%excitations )
+!    allocate ( otherThis%excitations(2, maxval(this%order), numberOfSpecies ) )
+!    allocate ( otherThis%excitations(numberOfSpecies,otherThis%nDeterminants, 2, maxval(this%order%values)) )
 
-!    allocate ( otherThis%occupations(numberOfSpecies,otherThis%nDeterminants ) )
-    !allocate ( otherThis%excitations(numberOfSpecies,otherThis%nDeterminants, 2) )
-    allocate ( otherThis%excitations(numberOfSpecies,otherThis%nDeterminants, 2, maxval(this%order%values)) )
+    if (allocated ( otherThis%occupations )) deallocate ( otherThis%occupations ) 
+    allocate ( otherThis%occupations( maxval(GlobalConfiguration_instance%numberOfOccupiedOrbitals%values), numberOfSpecies ) )
 
     do i=1, numberOfSpecies
        !spin orbitals not spatial orbitals
@@ -275,9 +298,10 @@ contains
 !       end do 
 
     end do
-    otherThis%excitations = this%excitations !! copy the occ
+    !otherThis%excitations = this%excitations !! copy the occ
+    otherThis%occupations = this%occupations !! copy the occ
 
-    otherThis%isInstanced = .true.
+    !otherThis%isInstanced = .true.
 
   end subroutine Configuration_copyConstructor
 
@@ -571,139 +595,156 @@ contains
 !!
 !!  end subroutine Configuration_checkMaximumCoincidence
 
-  function Configuration_checkCoincidence(thisA,thisB, ia, ib, numberOfSpecies) result ( numberOfDiffOrbitals )
+!  function Configuration_checkCoincidence(thisA,thisB, numberOfSpecies) result ( numberOfDiffOrbitals )
+!    implicit none
+!    type(Configuration), intent(in) :: thisA, thisB
+!    integer, intent(in) :: numberOfSpecies
+!    integer :: numberOfDiffOrbitals
+!    
+!    integer :: numberOfOccupiedOrbitals 
+!    integer :: i,j,s
+!    !type(IVector), allocatable :: occupiedOrbitals(:,:) !! spescies, confA confB
+!    integer, allocatable :: occupiedOrbitalsA(:),occupiedOrbitalsB(:) !! spescies, confA confB
+!    !integer, allocatable :: scoreMatrix(:,:)
+!    integer :: score
+!
+!!    allocate (occupiedOrbitals(numberOfSpecies,2))
+!    numberOfDiffOrbitals = 0 
+!    do s = 1, numberOfSpecies
+!  
+!      !numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
+!      numberOfOccupiedOrbitals = GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(s) 
+!  
+!      !!call Vector_constructor (occupiedOrbitals, numberOfOccupiedOrbitals,2))
+!      !call Vector_constructorInteger (occupiedOrbitals(s,1), numberOfOccupiedOrbitals, 0 )
+!      !call Vector_constructorInteger (occupiedOrbitals(s,2), numberOfOccupiedOrbitals, 0 )
+!
+!      allocate (occupiedOrbitalsA ( numberOfOccupiedOrbitals ) )
+!      occupiedOrbitalsA = 0
+!      allocate (occupiedOrbitalsB ( numberOfOccupiedOrbitals ) )
+!      occupiedOrbitalsB = 0
+!
+!  
+!!      allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
+!!      scoreMatrix = 0
+!      score = 0
+!  
+!      do i = 1, numberOfOccupiedOrbitals
+!        occupiedOrbitalsA(i) = i
+!        occupiedOrbitalsB(i) = i
+!      end do 
+!  
+!      do j= thisA%order(s), 1, -1 
+!        occupiedOrbitalsA( thisA%excitations(1,j,s) ) = thisA%excitations(2,j,s)
+!      end do
+!
+!      do j= thisB%order(s), 1, -1 
+!        occupiedOrbitalsB( thisB%excitations(1,j,s) ) = thisB%excitations(2,j,s)
+!      end do
+!  
+!      do i = 1, numberOfOccupiedOrbitals 
+!          do j = 1, numberOfOccupiedOrbitals
+!             if ( occupiedOrbitalsA(i) == occupiedOrbitalsB(j) ) then
+!               !scoreMatrix(i,j) = 1
+!               score = score + 1
+!             end if 
+!          end do 
+!        end do 
+!  
+!       numberOfDiffOrbitals = numberOfDiffOrbitals + (numberOfOccupiedOrbitals- score )
+!
+! !     deallocate (scoreMatrix)
+!      deallocate (occupiedOrbitalsB )
+!      deallocate (occupiedOrbitalsA )
+!
+! !     call Vector_destructorInteger (occupiedOrbitals(s,1) )
+! !     call Vector_destructorInteger (occupiedOrbitals(s,2) )
+!
+!    end do 
+! !   deallocate (occupiedOrbitals)
+!
+!  end function Configuration_checkCoincidence
+
+  function Configuration_checkCoincidenceB(thisA,thisB, numberOfSpecies) result ( numberOfDiffOrbitals )
     implicit none
     type(Configuration), intent(in) :: thisA, thisB
-    integer, intent(in) :: ia, ib
     integer, intent(in) :: numberOfSpecies
     integer :: numberOfDiffOrbitals
     
     integer :: numberOfOccupiedOrbitals 
     integer :: i,j,s
-    !type(IVector), allocatable :: occupiedOrbitals(:,:) !! spescies, confA confB
-    integer, allocatable :: occupiedOrbitalsA(:),occupiedOrbitalsB(:) !! spescies, confA confB
-    integer, allocatable :: scoreMatrix(:,:)
+    !integer, allocatable :: occupiedOrbitalsA(:),occupiedOrbitalsB(:) !! spescies, confA confB
+    integer :: score
 
-!    allocate (occupiedOrbitals(numberOfSpecies,2))
     numberOfDiffOrbitals = 0 
     do s = 1, numberOfSpecies
   
-      !numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(s)*lambda
       numberOfOccupiedOrbitals = GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(s) 
   
-      !!call Vector_constructor (occupiedOrbitals, numberOfOccupiedOrbitals,2))
-      !call Vector_constructorInteger (occupiedOrbitals(s,1), numberOfOccupiedOrbitals, 0 )
-      !call Vector_constructorInteger (occupiedOrbitals(s,2), numberOfOccupiedOrbitals, 0 )
-
-      allocate (occupiedOrbitalsA ( numberOfOccupiedOrbitals ) )
-      occupiedOrbitalsA = 0
-      allocate (occupiedOrbitalsB ( numberOfOccupiedOrbitals ) )
-      occupiedOrbitalsB = 0
-
-  
-      allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
-      scoreMatrix = 0
-  
-      do i = 1, numberOfOccupiedOrbitals
-        occupiedOrbitalsA(i) = i
-        occupiedOrbitalsB(i) = i
-      end do 
-  
-      do j= thisA%order%values(s), 1, -1 
-        occupiedOrbitalsA( thisA%excitations(s,ia,1,j) ) = thisA%excitations(s,ia,2,j)
-      end do
-  
-      do j= thisB%order%values(s), 1, -1 
-        occupiedOrbitalsB( thisB%excitations(s,ib,1,j) ) = thisB%excitations(s,ib,2,j)
-      end do
+      score = 0
   
       do i = 1, numberOfOccupiedOrbitals 
           do j = 1, numberOfOccupiedOrbitals
-             if ( occupiedOrbitalsA(i) == occupiedOrbitalsB(j) ) then
-               scoreMatrix(i,j) = 1
+             if ( thisA%occupations(i,s) == thisB%occupations(j,s) ) then
+               score = score + 1
              end if 
           end do 
         end do 
   
-       numberOfDiffOrbitals = numberOfDiffOrbitals + (numberOfOccupiedOrbitals- sum(scoreMatrix) )
-
-      deallocate (scoreMatrix)
-      deallocate (occupiedOrbitalsB )
-      deallocate (occupiedOrbitalsA )
-
- !     call Vector_destructorInteger (occupiedOrbitals(s,1) )
- !     call Vector_destructorInteger (occupiedOrbitals(s,2) )
+       numberOfDiffOrbitals = numberOfDiffOrbitals + (numberOfOccupiedOrbitals- score )
 
     end do 
- !   deallocate (occupiedOrbitals)
 
-  end function Configuration_checkCoincidence
+  end function Configuration_checkCoincidenceB
 
 
-  subroutine Configuration_setAtMaximumCoincidence(thisA,thisB, ia, ib, numberOfSpecies, occupiedOrbitals, factor)
+  subroutine Configuration_setAtMaximumCoincidenceB(thisA,thisB, numberOfSpecies, factor)
     implicit none
-    type(Configuration), intent(in) :: thisA, thisB
-    integer, intent(out) :: factor
+    type(Configuration), intent(inout) :: thisA, thisB
+    integer :: factor
     integer, intent(in) :: numberOfSpecies
     
     integer :: numberOfOccupiedOrbitals 
-    integer :: i,j,k,ia,ib,s
-    type(IVector), allocatable, intent(out) :: occupiedOrbitals(:,:) !! spescies, confA confB
+    integer :: i,j,k,s
+    !type(IVector), allocatable, intent(out) :: occupiedOrbitals(:,:) !! spescies, confA confB
+    !integer, allocatable, intent(out) :: occupiedOrbitalsA(:,:),occupiedOrbitalsB(:,:) !! spescies, confA confB
     integer :: auxOcc
-    integer, allocatable :: scoreMatrix(:,:)
-    integer :: diagonal
-    logical(2) :: swap
+    integer(2) :: score, auxscore
+    integer(2) :: diagonal
+    logical(1) :: swap
 
-      factor = 1
-      if (allocated(occupiedOrbitals) ) deallocate (occupiedOrbitals)
-      allocate (occupiedOrbitals(numberOfSpecies,2))
-      do s = 1, numberOfSpecies
+    factor = 1
   
+    do s = 1, numberOfSpecies
         numberOfOccupiedOrbitals = GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(s) 
   
-        !!call Vector_constructor (occupiedOrbitals, numberOfOccupiedOrbitals,2))
-        call Vector_constructorInteger (occupiedOrbitals(s,1), numberOfOccupiedOrbitals, 0 )
-        call Vector_constructorInteger (occupiedOrbitals(s,2), numberOfOccupiedOrbitals, 0 )
-  
-        do i = 1, numberOfOccupiedOrbitals
-          occupiedOrbitals(s,1)%values(i) = i
-          occupiedOrbitals(s,2)%values(i) = i
-        end do 
-  
-        do j= thisA%order%values(s), 1, -1 
-          occupiedOrbitals(s,1)%values( thisA%excitations(s,ia,1,j) ) = thisA%excitations(s,ia,2,j)
-        end do
-  
-        do j= thisB%order%values(s), 1, -1 
-          occupiedOrbitals(s,2)%values( thisB%excitations(s,ib,1,j) ) = thisB%excitations(s,ib,2,j)
-        end do
-  
-        allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
-        scoreMatrix = 0
-
+        score = 0
+        auxscore = 0
         diagonal = 0
+
         do i = 1, numberOfOccupiedOrbitals 
             do j = 1, numberOfOccupiedOrbitals
-               if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
-                 scoreMatrix(i,j) = 1
+               if ( thisA%occupations(i,s) == thisB%occupations(j,s) ) then
+                 auxscore = 1
+               else 
+                 auxscore = 0
                end if 
-               if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
+               if ( i == j ) diagonal = diagonal + auxscore
+               score = score + auxscore
             end do 
          end do 
   
-        do while ( sum(scoreMatrix) > diagonal )
-
-            if (sum(scoreMatrix) > diagonal ) then
-              
+        do while ( (score) > diagonal )
+            if ((score) > diagonal ) then
             swap = .false. 
             do i = 1, numberOfOccupiedOrbitals 
               do j = 1, numberOfOccupiedOrbitals
                 if ( i /= j ) then
-                  if ( scoreMatrix(i,j) == 1 ) then
+                  if ( thisA%occupations(i,s) == thisB%occupations(j,s) ) then
 
-                    auxOcc = occupiedOrbitals(s,1)%values(i)
-                    occupiedOrbitals(s,1)%values(i) = occupiedOrbitals(s,1)%values(j)
-                    occupiedOrbitals(s,1)%values(j) = auxOcc
+                    auxOcc = thisA%occupations(i,s)
+                    thisA%occupations(i,s) = thisA%occupations(j,s)
+                    thisA%occupations(j,s) = auxOcc
                     swap = .true.  
                   end if
                 end if
@@ -714,30 +755,125 @@ contains
             end do 
 
           diagonal = 0
-
+          score = 0
           do i = 1, numberOfOccupiedOrbitals 
             do j = 1, numberOfOccupiedOrbitals
 
-               if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
-                 scoreMatrix(i,j) = 1
+               if ( thisA%occupations(i,s) == thisB%occupations(j,s) ) then
+                  auxscore = 1
                else  
-                 scoreMatrix(i,j) = 0
+                 auxscore = 0
                end if 
-               if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
+               if ( i == j ) diagonal = diagonal + auxscore
+               score = score + auxscore
             end do 
           end do 
- 
             factor = -1 * factor 
-    
           end if
         end do! while
 
-        deallocate (scoreMatrix)
+     end do
 
-      end do
+  end subroutine Configuration_setAtMaximumCoincidenceB
 
 
-  end subroutine Configuration_setAtMaximumCoincidence
+!  subroutine Configuration_setAtMaximumCoincidence(thisA,thisB, numberOfSpecies, occupiedOrbitals, factor)
+!    implicit none
+!    type(Configuration), intent(in) :: thisA, thisB
+!    integer :: factor
+!    integer, intent(in) :: numberOfSpecies
+!    
+!    integer :: numberOfOccupiedOrbitals 
+!    integer :: i,j,k,s
+!    type(IVector), allocatable, intent(out) :: occupiedOrbitals(:,:) !! spescies, confA confB
+!    integer, allocatable :: occupiedOrbitalsA(:,:),occupiedOrbitalsB(:,:) !! spescies, confA confB
+!    integer :: auxOcc
+!    integer, allocatable :: scoreMatrix(:,:)
+!    integer :: diagonal
+!    logical(2) :: swap
+!
+!      factor = 1
+!      if (allocated(occupiedOrbitals) ) deallocate (occupiedOrbitals)
+!      allocate (occupiedOrbitals(numberOfSpecies,2))
+!  
+!    do s = 1, numberOfSpecies
+!        numberOfOccupiedOrbitals = GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(s) 
+!  
+!        !!call Vector_constructor (occupiedOrbitals, numberOfOccupiedOrbitals,2))
+!        call Vector_constructorInteger (occupiedOrbitals(s,1), numberOfOccupiedOrbitals, 0 )
+!        call Vector_constructorInteger (occupiedOrbitals(s,2), numberOfOccupiedOrbitals, 0 )
+!  
+!        do i = 1, numberOfOccupiedOrbitals
+!          occupiedOrbitals(s,1)%values(i) = i
+!          occupiedOrbitals(s,2)%values(i) = i
+!        end do 
+!  
+!        do j= thisA%order(s), 1, -1 
+!          occupiedOrbitals(s,1)%values( thisA%excitations(1,j,s) ) = thisA%excitations(2,j,s)
+!        end do
+!  
+!        do j= thisB%order(s), 1, -1 
+!          occupiedOrbitals(s,2)%values( thisB%excitations(1,j,s) ) = thisB%excitations(2,j,s)
+!        end do
+!
+!        allocate (scoreMatrix(numberOfOccupiedOrbitals,numberOfOccupiedOrbitals))
+!        scoreMatrix = 0
+!
+!        diagonal = 0
+!        do i = 1, numberOfOccupiedOrbitals 
+!            do j = 1, numberOfOccupiedOrbitals
+!               if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
+!                 scoreMatrix(i,j) = 1
+!               end if 
+!               if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
+!            end do 
+!         end do 
+!  
+!        do while ( sum(scoreMatrix) > diagonal )
+!
+!            if (sum(scoreMatrix) > diagonal ) then
+!              
+!            swap = .false. 
+!            do i = 1, numberOfOccupiedOrbitals 
+!              do j = 1, numberOfOccupiedOrbitals
+!                if ( i /= j ) then
+!                  if ( scoreMatrix(i,j) == 1 ) then
+!
+!                    auxOcc = occupiedOrbitals(s,1)%values(i)
+!                    occupiedOrbitals(s,1)%values(i) = occupiedOrbitals(s,1)%values(j)
+!                    occupiedOrbitals(s,1)%values(j) = auxOcc
+!                    swap = .true.  
+!                  end if
+!                end if
+!
+!                if ( swap .eqv. .true. ) exit
+!              end do 
+!              if ( swap .eqv. .true. ) exit
+!            end do 
+!
+!          diagonal = 0
+!
+!          do i = 1, numberOfOccupiedOrbitals 
+!            do j = 1, numberOfOccupiedOrbitals
+!
+!               if ( occupiedOrbitals(s,1)%values(i) == occupiedOrbitals(s,2)%values(j) ) then
+!                 scoreMatrix(i,j) = 1
+!               else  
+!                 scoreMatrix(i,j) = 0
+!               end if 
+!               if ( i == j ) diagonal = diagonal + scoreMatrix(i,j)
+!            end do 
+!          end do 
+! 
+!            factor = -1 * factor 
+!          end if
+!        end do! while
+!
+!        deallocate (scoreMatrix)
+!     end do
+!
+!  end subroutine Configuration_setAtMaximumCoincidence
+
 
   !>
   !! @brief Destructor por omision
@@ -750,10 +886,11 @@ contains
     integer :: i, j, numberOfSpecies
 
     !call Vector_destructor( this%coefficients )
-    call Vector_destructorInteger( this%order )
+    !call Vector_destructorInteger( this%order )
+    !deallocate ( this%order )
 
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    !numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
 !    do i=1, numberOfSpecies
 !        do j = 1, this%nDeterminants
@@ -762,11 +899,12 @@ contains
 !          call Vector_destructorInteger ( this%excitations(i,j,2) )
 !        end do
 !    end do
-    deallocate(this%excitations)
+
+    !deallocate(this%excitations)
+    deallocate(this%occupations)
 
 !!    deallocate ( this%occupations )
-
-    this%isInstanced = .false.
+!    this%isInstanced = .false.
 
   end subroutine Configuration_destructor
 
@@ -783,13 +921,13 @@ contains
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    print *, "Configuration", this%id
+    !print *, "Configuration", this%id
     print *, "-------------"
 
     
     do i=1, numberOfSpecies
       print *, "For specie ", MolecularSystem_getNameOfSpecie ( i )
-      print *, "Excitations: ", this%order%values(i)
+!      print *, "Excitations: ", this%order(i)
 !      print *, "Ndeterminants: ",this%nDeterminants
 !      print *, "Occupations"
       
@@ -797,18 +935,63 @@ contains
 !!        call Vector_showInteger ( this%occupations(i,j) )
 !!      end do 
 
-      if ( this%order%values(i) > 0 ) then
+!      if ( this%order(i) > 0 ) then
 
-        do j = 1, this%nDeterminants
-          print *, "excitation ndet ", j
-          print *, this%excitations(i,j,1,:)
-          print *, this%excitations(i,j,2,:)
-        end do   
-      end if
+        !do j = 1, this%nDeterminants
+        !  print *, "excitation ndet ", j
+        !  print *, this%excitations(i,j,1,:)
+        !  print *, this%excitations(i,j,2,:)
+        !end do   
+!          print *, this%excitations(i,1,:)
+!          print *, this%excitations(i,2,:)
+
+        do j = 1, int( MolecularSystem_instance%species(i)%ocupationNumber)
+          print *, this%occupations(j,i)
+        end do
+      !end if
 
     end do
 
   end subroutine Configuration_show
+
+!!  subroutine Configuration_reverseSortElements(this,m)
+!!    integer :: this(:)
+!!    integer(1) :: m
+!!    integer i,j,n
+!!    
+!!    n = size(this)
+!!    m = 1 
+!!    do i=1,n
+!!       do j=i+1,n
+!!          if (this(j).lt.this(i)) then
+!!             call Configuration_swapElements( this, i, j )
+!!             m = -1 * m 
+!!          end if
+!!       end do
+!!    end do
+!!
+!!  end subroutine Configuration_reverseSortElements
+!!
+!!  
+!!  !>
+!!  !! @brief Intercambia los elementos i y j el vector
+!!  subroutine Configuration_swapElements( this, i, j )
+!!    implicit none
+!!    integer, intent(inout) :: this(:)
+!!    integer, intent(in) :: i
+!!    integer, intent(in) :: j
+!!    integer :: value1
+!!    integer :: value2
+!!    
+!!    value1 = this( i )
+!!    value2 = this( j )
+!!    
+!!    this( i ) = value2
+!!    this( j ) = value1
+!!    
+!!  end subroutine Configuration_swapElements
+
+
 
   !!>
   !! @brief Indica si el objeto ha sido instanciado o no
@@ -819,7 +1002,7 @@ contains
     type(Configuration), intent(in) :: this
     logical :: output
 
-    output = this%isInstanced
+    !output = this%isInstanced
 
   end function Configuration_isInstanced
 
