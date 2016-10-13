@@ -26,7 +26,7 @@ program CC
   use CONTROL_
   use MolecularSystem_
   use Exception_
-  use CoupledCluster_
+  !use CoupledCluster_
   use CCSD_
   use CCD_
   use String_
@@ -56,14 +56,14 @@ program CC
 
     case ( "CCSD" )
 
-       ! call CCSD_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
-       ! call CCSD_run()
-       ! call CCSD_show()
-       ! call CCSD_destructor()
-       call CoupledCluster_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
-       call CoupledCluster_run()
-       call CoupledCluster_show()
-       call CoupledCluster_destructor()
+       call CCSD_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
+       call CCSD_run()
+       call CCSD_show()
+       call CCSD_destructor()
+       ! call CoupledCluster_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
+       ! call CoupledCluster_run()
+       ! call CoupledCluster_show()
+       ! call CoupledCluster_destructor()
 
        !!stop time
        call Stopwatch_stop(lowdin_stopwatch)
@@ -92,7 +92,7 @@ program CC
 
     case default
 
-      call CoupledCluster_exception( ERROR, "Coupled interactor constructor", "Correction level not implemented")
+      call CCSD_exception( ERROR, "Coupled interactor constructor", "Correction level not implemented")
 
   end select
 
