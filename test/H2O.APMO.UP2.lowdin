@@ -28,7 +28,9 @@ TASKS
 END TASKS
 
 CONTROL
-        integralsTransformationMethod = "C"
+	ptFactorSS = 1.000
+	ptFactorOS = 1.000
+	integralsTransformationMethod = "C"
 END CONTROL
 
 

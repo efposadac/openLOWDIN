@@ -291,7 +291,6 @@ program HF
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = WaveFunction_instance(speciesID)%energyofmolecularorbital )     
 
-
      if(CONTROL_instance%COSMO)then
 
         arguments(1) = "COSMO2"
@@ -476,7 +475,7 @@ program HF
 
   if(CONTROL_instance%LAST_STEP) then
      write(*, *) ""
-     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time HF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time HF : ", lowdin_stopwatch%enlapsetTime ," (s)"
      write(*, *) ""
   end if
 

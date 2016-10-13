@@ -286,7 +286,6 @@ contains
           call TransformIntegralsC_buildArrayA( twoParticlesIntegrals, mu, &
                this%numberOfContractions, ssize2, auxtempA )
 
-
           tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
                auxtempA(:,:,:)
 
@@ -752,19 +751,20 @@ contains
 
     end if
 
-    !!    !! only the (ia|bc) integrals will be transformed
-    !!    if ( CONTROL_instance%PT_ORDER == 2 .and.  CONTROL_instance%IONIZE_MO <= totalOCcupation ) then
-    !!
-    !!      this%p_lowerOrbital = 1
-    !!      this%p_upperOrbital = totalOccupation
-    !!      this%q_lowerOrbital = 1
-    !!      this%q_upperOrbital = totalNumberOfContractions
-    !!      this%r_lowerOrbital = 1
-    !!      this%r_upperOrbital = totalNumberOfContractions
-    !!      this%s_lowerOrbital = 1
-    !!      this%s_upperOrbital = totalNumberOfContractions
-    !!
-    !!    end if
+    !! only the (ip|aq) integrals will be transformed
+    if ( CONTROL_instance%PT_ORDER == 2  ) then
+    
+      this%p_lowerOrbital = 1
+      this%p_upperOrbital = totalOccupation 
+      this%q_lowerOrbital = 1
+      this%q_upperOrbital = totalNumberOfContractions
+
+      this%r_lowerOrbital = totalOccupation + 1
+      this%r_upperOrbital = totalNumberOfContractions
+      this%s_lowerOrbital = 1
+      this%s_upperOrbital = totalNumberOfContractions
+
+    end if
 
   end subroutine TransformIntegralsC_checkMOIntegralType
 
@@ -806,6 +806,51 @@ contains
        this%s_upperOrbital = otherTotalNumberOfContractions
 
     end if
+
+    !! only the (ip|IP) integrals will be transformed.
+    if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_MO /= 0 .and. CONTROL_instance%IONIZE_MO <= otherTotalOccupation ) then
+    
+      this%p_lowerOrbital = 1
+      this%p_upperOrbital = totalOccupation!totalNumberOfContractions
+      this%q_lowerOrbital = 1 
+      this%q_upperOrbital = totalNumberOfContractions
+  
+      this%r_lowerOrbital = 1
+      this%r_upperOrbital = otherTotalOccupation! otherTotalNumberOfContractions
+      this%s_lowerOrbital = 1
+      this%s_upperOrbital = otherTotalNumberOfContractions
+
+    end if
+
+    !! only the (ip|IP) integrals will be transformed.
+    if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_MO /= 0 .and. CONTROL_instance%IONIZE_MO > otherTotalOccupation ) then
+    
+      this%p_lowerOrbital = 1 
+      this%p_upperOrbital = totalNumberOfContractions
+      this%q_lowerOrbital = totalOccupation + 1
+      this%q_upperOrbital = totalNumberOfContractions
+  
+      this%r_lowerOrbital = 1
+      this%r_upperOrbital = otherTotalNumberOfContractions
+      this%s_lowerOrbital = otherTotalOccupation + 1
+      this%s_upperOrbital = otherTotalNumberOfContractions
+
+    end if
+
+    !! only the (ip|IP) integrals will be transformed.
+!!    if ( CONTROL_instance%PT_ORDER == 2 .and. speciesID == 1 .and. CONTROL_instance%IONIZE_MO /= 0 .and. CONTROL_instance%IONIZE_MO <= otherTotalOccupation) then
+!!    
+!!      this%p_lowerOrbital = 1
+!!      this%p_upperOrbital = totalOccupation!totalNumberOfContractions
+!!      this%q_lowerOrbital = 1 
+!!      this%q_upperOrbital = totalNumberOfContractions
+!!  
+!!      this%r_lowerOrbital = 1
+!!      this%r_upperOrbital = otherTotalOccupation! otherTotalNumberOfContractions
+!!      this%s_lowerOrbital = otherTotalOccupation + 1
+!!      this%s_upperOrbital = otherTotalNumberOfContractions
+!!
+!!    end if
 
   end subroutine TransformIntegralsC_checkInterMOIntegralType
 

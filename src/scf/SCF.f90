@@ -134,6 +134,16 @@ program SCF
            print *,"---------------------------------------------------------"
         end if
 
+!     do i = 1, numberOfSpecies
+!        nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
+!        call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
+!        call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
+!
+!        if (CONTROL_instance%COSMO) then
+!           call WaveFunction_buildCosmo2Matrix(trim(nameOfSpecie))
+!        end if
+!     end do
+
         do while( status == SCF_GLOBAL_CONVERGENCE_CONTINUE .and. &
              MultiSCF_getNumberOfIterations() <= CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS )
 
@@ -248,6 +258,9 @@ program SCF
      labels(1) = "ORBITALS"
      call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, unit=wfnUnit, binary=.true., arguments = labels )
 
+     labels(1) = "FOCK"
+     call Matrix_writeToFile(WaveFunction_instance(speciesID)%fockMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
      if (CONTROL_instance%COSMO) then
         labels(1) = "COSMO2"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
@@ -295,7 +308,7 @@ program SCF
 
   if(CONTROL_instance%LAST_STEP) then
      write(*, *) ""
-     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
      write(*, *) ""
   end if
 

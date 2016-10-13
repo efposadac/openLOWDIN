@@ -5,6 +5,7 @@
 *.aux
 *.out
 *.a
+*.swp
 CONFIG
 makefile
 __pycache__

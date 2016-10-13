@@ -13,7 +13,7 @@
 !!******************************************************************************
 
 !>
-!! @brief This module handles all matrices for SCF program.
+!! @brief This module handles all matrices for SCF program. - Felix modificara este archivo en el futuro cercano
 !! @author E. F. Posada, 20130
 !! @warning This module is differs from the Wavefunction.f90 located in HF program.
 module WaveFunction_

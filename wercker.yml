@@ -21,7 +21,7 @@ build:
     # http://devcenter.wercker.com/docs/steps/index.html
   steps:
     - install-packages:
-        packages: git build-essential liblapack-dev libblas-dev libgsl0-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev
+        packages: git build-essential liblapack-dev libblas-dev libgsl0-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev
     - script:
         name: setup
         code: |
@@ -63,7 +63,7 @@ build:
           export LIBRARY_PATH=$LIBRARY_PATH:$WORKDIR/lib
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$WORKDIR/lib
           # Build Lowdin
-          ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
+          ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
           make -j 4
           make install
     - script:
