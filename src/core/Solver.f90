@@ -152,6 +152,12 @@ contains
        call system("lowdin-integralsTransformation.x")
 
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+
+    case('RHF-CC')
+
+       call system("lowdin-HF.x RHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-CC.x" )
        
     case default
 
@@ -253,6 +259,12 @@ contains
        !rfm call system("lowdin-EPT.x UHF")
        call system("lowdin-integralsTransformation.x")
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+
+    case('UHF-CC')
+
+       call system("lowdin-HF.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-CC.x" )
 
        
     case default

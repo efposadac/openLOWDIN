@@ -248,7 +248,7 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="core ints HF scf integralsTransformation MP2 PT CalcProp aduw gepol cosmo output CI MM molden2aim"
+SUBDIRS="core ints HF scf integralsTransformation MP2 PT CalcProp aduw gepol cosmo output CI MM molden2aim CC"
 
 for DIR in $SRCDIR ; do
     cd $DIR
