@@ -29,8 +29,8 @@ outputRead = output.readlines()
 for line in outputRead:
     if "TOTAL ENERGY =" in line:
         totalEnergy = float(line.split()[3])
-    if "GROUND-STATE ENERGY =" in line:
-        CISDEnergy = float(line.split()[3])
+    if "STATE:   1 ENERGY =" in line:
+        CISDEnergy = float(line.split()[4])
 
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffCISDEnergy = abs(refCISDEnergy - CISDEnergy)

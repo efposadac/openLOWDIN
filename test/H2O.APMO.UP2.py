@@ -37,13 +37,13 @@ for line in outputRead:
 
     if "Results for spin-orbital: 5 of species: E-ALPHA" in line:
         Orb5 = True
-    if "factorOS: 1.00000 factorSS: 1.00000" in line and Orb5 is True:
+    if "FactorOS: 1.00000 FactorSS: 1.00000" in line and Orb5 is True:
         Orb5alpha_P2 = float(outputRead[count + 1].split()[4])
 
-    if "factorOS: 1.20000 factorSS: 0.33333" in line and Orb5 is True:
+    if "FactorOS: 1.20000 FactorSS: 0.33333" in line and Orb5 is True:
         Orb5alphascs_P2 = float(outputRead[count + 1].split()[4])
 
-    if "factorOS: 1.30000 factorSS: 0.00000" in line and Orb5 is True:
+    if "FactorOS: 1.30000 FactorSS: 0.00000" in line and Orb5 is True:
         Orb5alphasos_P2 = float(outputRead[count + 1].split()[4])
         Orb5 = False
 
