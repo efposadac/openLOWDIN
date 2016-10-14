@@ -11,7 +11,7 @@ cat > makefile << EOF
 TOPDIR=../../
 include \$(TOPDIR)/CONFIG
 
-TARGET=lowdin-HF.x
+TARGET=lowdin-CC.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 LDPATH=\$(TOPDIR)lib/lowdincore.a
