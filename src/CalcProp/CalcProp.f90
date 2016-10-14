@@ -53,6 +53,8 @@ program CalcProp_
   use CalculateProperties_ ! module name
   implicit none
 
+  type(CalculateProperties) :: CalculateProperties_instance
+
   character(50) :: job
 
   job = ""
@@ -71,6 +73,9 @@ program CalcProp_
 
  !! Calculate properties subroutines
   call CalculateProperties_showPopulationAnalyses()
+
+  call CalculateProperties_expectedPosition(CalculateProperties_instance)
+  call CalculateProperties_showExpectedPositions(CalculateProperties_instance)
     
 end program CalcProp_
 

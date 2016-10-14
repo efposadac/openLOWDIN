@@ -674,9 +674,9 @@ contains
 
        do component = 1, 3 !! components x, y, z
 
-          write(30) job
+          write(30) trim(job)//trim(coordinate(component))
           write(30) MolecularSystem_instance%species(f)%name
-          write(30) coordinate(component)
+          !write(30) coordinate(component)
 
           ii = 0
           do g = 1, size(MolecularSystem_instance%species(f)%particles)
