@@ -41,6 +41,7 @@ module InputManager_
      character(50) :: method
      integer :: mollerPlessetCorrection
      character(20) :: configurationInteractionLevel
+     character(20) :: coupledClusterLevel
      integer :: propagatorTheoryCorrection
      logical :: optimizeGeometry
      logical :: TDHF
@@ -171,6 +172,7 @@ contains
     !! Namelist definition
     character(50):: InputTasks_method
     character(20):: InputTasks_configurationInteractionLevel
+    character(20):: InputTasks_coupledClusterLevel
     integer:: InputTasks_mollerPlessetCorrection
     integer:: InputTasks_propagatorTheoryCorrection
     logical:: InputTasks_optimizeGeometry
@@ -181,6 +183,7 @@ contains
     NAMELIST /InputTasks/ &
          InputTasks_method, &
          InputTasks_configurationInteractionLevel, &
+         InputTasks_coupledClusterLevel, &
          InputTasks_mollerPlessetCorrection, &
          InputTasks_propagatorTheoryCorrection, &
          InputTasks_optimizeGeometry, &
@@ -192,6 +195,7 @@ contains
     InputTasks_method = "NONE"
     InputTasks_mollerPlessetCorrection = 0
     InputTasks_configurationInteractionLevel = "NONE"
+    InputTasks_coupledClusterLevel = "NONE"
     InputTasks_propagatorTheoryCorrection = 0
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
@@ -211,6 +215,7 @@ contains
     Input_instance%method = trim(String_getUppercase(trim(InputTasks_method)))
     Input_instance%mollerPlessetCorrection = InputTasks_mollerPlessetCorrection
     Input_instance%configurationInteractionLevel = trim(String_getUppercase(trim(InputTasks_configurationInteractionLevel)))
+    Input_instance%coupledClusterLevel = trim(String_getUppercase(trim(InputTasks_coupledClusterLevel)))
     Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
@@ -233,6 +238,7 @@ contains
     CONTROL_instance%METHOD = trim(input_instance%method)
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = input_instance%mollerPlessetCorrection
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = input_instance%configurationInteractionLevel
+    CONTROL_instance%COUPLED_CLUSTER_LEVEL = input_instance%coupledClusterLevel
     CONTROL_instance%PT_ORDER = input_instance%propagatorTheoryCorrection
 
     if ( input_instance%mollerPlessetCorrection /= 0 ) then
@@ -241,6 +247,10 @@ contains
         
     if ( input_instance%configurationInteractionLevel /= "NONE" ) then
        CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-CI"
+    end if
+
+    if ( input_instance%coupledClusterLevel /= "NONE" ) then
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-CC"
     end if
 
     if ( input_instance%propagatorTheoryCorrection /= 0 ) then
