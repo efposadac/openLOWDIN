@@ -445,6 +445,28 @@ contains
     print *,""
     print *," END INFORMATION OF PARTICLES"
     print *,""
+
+    !!***********************************************************************
+    !! Prints information about number of occupied orbitales and basis set size
+    !!
+    print *,""
+    print *," INFORMATION OF THE QUANTUM SYSTEM "
+    write (6,"(T5,A70)") "---------------------------------------------------------------------"
+    write (6,"(T10,A10,A5,A17,A5,A10)") "ID", " ", "Occupied Orbitals", " " ,"Basis size"
+    write (6,"(T5,A70)") "---------------------------------------------------------------------"
+
+    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          write (6,'(T10,A10,A5,I8,A5,I12)') &
+               trim(MolecularSystem_instance%species(i)%symbol)," ",&
+                MolecularSystem_getOcupationNumber( i )," ",&
+               MolecularSystem_getTotalNumberOfContractions(i)
+    end do
+
+    print *,""
+    print *," END INFORMATION OF QUANTUM SYSTEM"
+    print *,""
+ 
+
     
   end subroutine MolecularSystem_showParticlesInformation
 
