@@ -75,7 +75,6 @@ do
 			;;
 		n)
 			numberOfThreads=$OPTARG
-			echo $numberOfThreads
 			;;
 		p)
 			printOut="T"

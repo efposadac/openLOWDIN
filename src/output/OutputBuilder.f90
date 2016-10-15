@@ -633,18 +633,17 @@ contains
      
      do i =1, numberOfContractions
                 j =1
-
      !if (mod(numberOfContractions,2)) then
      if (mod(numberOfContractions,2) == 1 ) then
  !!!Se activa cuando el numberOfContractions es impar                                  
-                write (29,"(I3,I3)",advance='no') i,j
+                write (29,"(I2,I3)",advance='no') mod(i,100),j
                 do m=1,numberOfContractions
 
                    if (mod(m,5)==0) then
                       write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
                       j=j+1
                       if (m<numberOfContractions) then
-                         write (29,"(I3,I3)",advance='no') i,j
+                         write (29,"(I2,I3)",advance='no') mod(i,100),j
                       end if
                    else
                       write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
@@ -653,32 +652,33 @@ contains
                 !write (29, "(A)", advance='yes')" "
                 if (m<numberOfContractions) then
                     write (29,"(A)", advance='no')" "
-                    write (29,"(A)")" "
+                    !write (29,"(A)")" "
                 end if
 
      else
  ! !!!Se activa cuando el numberOfContractions es par                                  
-                       write (29,"(I3,I3)",advance='no') i,j
+                       write (29,"(I2,I3)",advance='no') mod(i,100),j
                 do m=1,numberOfContractions
 
                    if (mod(m,5)==0) then
                       write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
                       j=j+1
                       if (m<numberOfContractions) then
-                         write (29,"(I3,I3)",advance='no') i,j
+                         write (29,"(I2,I3)",advance='no') mod(i,100),j
                       end if
                    else
                       write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
                    end if
                 end do
-                 write (29, "(A)", advance='yes')" "
+                 !write (29, "(A)", advance='yes')" "
                 if (m<numberOfContractions) then
                       write (29,"(A)", advance='no')" "
-                    write (29,"(A)")" "
+                    !write (29,"(A)")" "
                 end if
 
     end if
              
+                if (.not. mod(m-1,5)==0)write (29,"(A)", advance='yes')" "
              end do
 
            close(29)
