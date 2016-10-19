@@ -12,8 +12,8 @@ END TASKS
 
 CONTROL
 	numberOfCIstates=3
-	!CIdiagonalizationMethod = "DSYEVX"
-	CIdiagonalizationMethod = "ARPACK"
+	CIdiagonalizationMethod = "DSYEVX"
+	!CIdiagonalizationMethod = "ARPACK"
 END CONTROL
 INPUT_CI
 	species="E-ALPHA" core=0 active=0 excitation=2

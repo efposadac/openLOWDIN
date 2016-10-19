@@ -299,7 +299,7 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .and. &
         trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "JADAMILU"  ) then
 
          call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, &
@@ -360,7 +360,7 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .and. &
         trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "JADAMILU"  ) then
 
 
@@ -461,7 +461,7 @@ contains
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .and. &
         trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "JADAMILU"  ) then
 
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
@@ -614,7 +614,7 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .and. &
         trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "JADAMILU"  ) then
 
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
@@ -953,7 +953,7 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .and. &
         trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "JADAMILU"  ) then
 
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
@@ -1338,7 +1338,7 @@ contains
        ConfigurationInteraction_instance%numberOfConfigurations = c
        allocate (ConfigurationInteraction_instance%configurations(ConfigurationInteraction_instance%numberOfConfigurations) )
 
-       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .or. &
+       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "ARPACK" .and. &
         trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) /= "JADAMILU"  ) then
 
        call Matrix_Constructor(ConfigurationInteraction_instance%hamiltonianMatrix, int(ConfigurationInteraction_instance%numberOfConfigurations,8),int(ConfigurationInteraction_instance%numberOfConfigurations,8),0.0_8)
