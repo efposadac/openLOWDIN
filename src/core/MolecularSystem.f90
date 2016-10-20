@@ -223,6 +223,10 @@ contains
     
     call MecanicProperties_destructor(MolecularSystem_instance%mechanicalProp)
 
+    call ExternalPotential_destructor()
+    call InterPotential_destructor()
+
+
   end subroutine MolecularSystem_destroy
 
   !>
@@ -608,13 +612,20 @@ contains
     do i = 1, MolecularSystem_instance%numberOfPointCharges
        call Particle_saveToFile(MolecularSystem_instance%pointCharges(i), unit=40)
     end do
-    
+
     !! Saving the total of particles on the system
     write(40,*) MolecularSystem_instance%numberOfParticles
     write(40,*) MolecularSystem_instance%numberOfQuantumParticles
 
-    !! Saving External/Inter-particle potentials information
+    ! Saving External/Inter-particle potentials information
     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      write(40,*) ExternalPotential_instance%ssize 
+      do i = 1, ExternalPotential_instance%ssize 
+        write(40,*) i 
+        write(40,*) ExternalPotential_instance%potentials(i)%name
+        write(40,*) ExternalPotential_instance%potentials(i)%specie 
+      end do
+
       ! Insert code here
       ! save number of potentials
       ! for each potential:
@@ -626,6 +637,15 @@ contains
       ! save number of potentials
       ! for each potential:
       ! save name, specie and otherspecie
+
+      write(40,*) InterPotential_instance%ssize 
+      do i = 1, InterPotential_instance%ssize 
+        write(40,*) i 
+        write(40,*) InterPotential_instance%potentials(i)%name
+        write(40,*) InterPotential_instance%potentials(i)%specie 
+        write(40,*) InterPotential_instance%potentials(i)%otherSpecie 
+      end do
+
     end if
 
     close(40)
@@ -713,8 +733,10 @@ contains
     integer :: counter
     integer :: i, j
     logical :: existFile
-    
-    
+    character(20) :: name
+    character(50) :: species
+    character(50) :: otherSpecies
+
     select case (trim(form))
        
     case("LOWDIN.BAS")
@@ -869,7 +891,6 @@ contains
           read(40,*) MolecularSystem_instance%numberOfParticles
           read(40,*) MolecularSystem_instance%numberOfQuantumParticles
           
-          close(40)
 
           !! Set the particles manager (all pointers)              
           allocate(molecularSystem_instance%allParticles(MolecularSystem_instance%numberOfParticles ))
@@ -899,13 +920,44 @@ contains
             ! Insert code here to load information
             ! call constructor
             ! call load for each potential
+            read(40,*) ExternalPotential_instance%ssize 
+
+            allocate(ExternalPotential_instance%potentials( ExternalPotential_instance%ssize ))
+            ExternalPotential_instance%isInstanced = .true.
+
+            do j = 1, ExternalPotential_instance%ssize 
+              read(40,*) i 
+              read(40,*) name
+              read(40,*) species
+              call ExternalPotential_load(i, name, species)
+
+            end do
+
           end if
 
           if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
             ! Insert code here to load information
             ! call constructor
             ! call load for each potential
+
+            read(40,*) InterPotential_instance%ssize 
+
+            allocate(InterPotential_instance%potentials(InterPotential_instance%ssize))
+            InterPotential_instance%isInstanced = .true.
+
+            do j = 1, ExternalPotential_instance%ssize 
+              read(40,*) i 
+              read(40,*) name
+              read(40,*) species
+              read(40,*) otherSpecies
+  
+              call InterPotential_load(i, name, species, otherSpecies)
+
+            end do
+
           end if
+
+          close(40)
 
        else
           

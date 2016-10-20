@@ -617,7 +617,7 @@ contains
       !! Reload input file
       rewind(4)
       
-      do potId = 1, InterPotential_instance%size
+      do potId = 1, InterPotential_instance%ssize
         !! Read InputTask namelist from input file
         read(4,NML=InterPot, iostat=stat)
     
@@ -639,7 +639,7 @@ contains
       !! Reload input file
       rewind(4)
       
-      do potId = 1, ExternalPotential_instance%size
+      do potId = 1, ExternalPotential_instance%ssize
         !! Read InputTask namelist from input file
         read(4,NML=ExternalPot, iostat=stat)
     
