@@ -23,6 +23,8 @@ module InputManager_
   use Exception_
   use Particle_
   use MolecularSystem_
+  use InterPotential_
+  use ExternalPotential_
   implicit none
 
   
@@ -44,7 +46,7 @@ module InputManager_
      integer :: propagatorTheoryCorrection
      logical :: optimizeGeometry
      logical :: TDHF
-     logical :: cosmo		
+     logical :: cosmo
 
   end type InputManager
 
@@ -55,7 +57,8 @@ module InputManager_
        InputManager_loadSystem, &
        InputManager_loadControl, &
        InputManager_loadTask, &
-       InputManager_loadGeometry
+       InputManager_loadGeometry, &
+       InputManager_loadPotentials
 
 contains
 
@@ -195,7 +198,7 @@ contains
     InputTasks_propagatorTheoryCorrection = 0
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
-    InputTasks_cosmo= .false.	
+    InputTasks_cosmo= .false.
     
     !! reload input file
     rewind(4)
@@ -214,7 +217,7 @@ contains
     Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
-    Input_instance%cosmo = InputTasks_cosmo	
+    Input_instance%cosmo = InputTasks_cosmo
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -255,13 +258,14 @@ contains
        CONTROL_instance%TDHF = .true.
     end if    
     
-    if (input_instance%cosmo) then 	
-       CONTROL_instance%cosmo = .true.	
+    if (input_instance%cosmo) then
+       CONTROL_instance%cosmo = .true.
        CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
     end if
     
     if( Input_instance%numberOfExternalPots > 0) then    
        CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL=.true.
+
     end if
         
     if(Input_instance%numberOfInterPots > 0) then
@@ -456,7 +460,7 @@ contains
        InputParticle_basisSetName = "NONE"
        InputParticle_charge=0.0_8
        InputParticle_origin=0.0_8
-       InputParticle_fixedCoordinates = "NONE"
+       InputParticle_fixedCoordinates = "NON"
        InputParticle_multiplicity = 1.0_8
        InputParticle_addParticles = 0
        
@@ -575,6 +579,80 @@ contains
     end do
 
   end subroutine InputManager_loadGeometry
+
+  !>
+  !! @brief Load all potentials
+  !! @author E. F. Posada
+  !! @version 1.0
+  subroutine InputManager_loadPotentials()
+    implicit none
+    integer :: stat
+    integer :: potId
+
+    !! Namelist definition
+
+    ! External
+    character(15) :: ExternalPot_name
+    character(15) :: ExternalPot_specie
+
+    ! Inter
+    character(15) :: InterPot_name
+    character(15) :: InterPot_specie
+    character(15) :: InterPot_otherSpecie
+    
+    NAMELIST /ExternalPot/ &
+         ExternalPot_name, &
+         ExternalPot_specie
+    
+    NAMELIST /InterPot/ &
+         InterPot_name, &
+         InterPot_specie, &
+         InterPot_otherSpecie
+
+    ! Load interpotentials
+    if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+
+      call InterPotential_constructor(Input_instance%numberOfInterPots)
+
+      !! Reload input file
+      rewind(4)
+      
+      do potId = 1, InterPotential_instance%size
+        !! Read InputTask namelist from input file
+        read(4,NML=InterPot, iostat=stat)
+    
+        if( stat > 0 ) then       
+          call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
+        end if
+
+        call InterPotential_load(potId, trim(InterPot_name), trim(InterPot_specie), trim(InterPot_otherSpecie))
+
+      end do
+    
+    end if
+
+    ! Load External Potentials
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+
+      call ExternalPotential_constructor(Input_instance%numberOfInterPots)
+
+      !! Reload input file
+      rewind(4)
+      
+      do potId = 1, ExternalPotential_instance%size
+        !! Read InputTask namelist from input file
+        read(4,NML=ExternalPot, iostat=stat)
+    
+        if( stat > 0 ) then       
+          call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
+        end if
+
+        call ExternalPotential_load(potId, trim(ExternalPot_name), trim(ExternalPot_specie))
+
+      end do
+    end if
+      
+  end subroutine InputManager_loadPotentials
 
   !>
   !! @brief Retorna la descripcion del sistema
