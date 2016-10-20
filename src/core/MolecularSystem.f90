@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -38,6 +38,8 @@ module MolecularSystem_
   use Matrix_
   use Vector_
   use InternalCoordinates_
+  use ExternalPotential_
+  use InterPotential_
   implicit none
   
   type , public :: MolecularSystem
@@ -465,9 +467,26 @@ contains
     print *,""
     print *," END INFORMATION OF QUANTUM SYSTEM"
     print *,""
- 
 
-    
+
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      print *,""
+      print *," INFORMATION OF EXTERNAL POTENTIALS "
+      call ExternalPotential_show()
+      print *,""
+      print *," END INFORMATION OF EXTERNAL POTENTIALS"
+      print *,""
+    end if
+
+    if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+      print *,""
+      print *," INFORMATION OF INTER-PARTICLE POTENTIALS "
+      call InterPotential_show()
+      print *,""
+      print *," END INFORMATION OF INTER-PARTICLE POTENTIALS"
+      print *,""
+    end if
+ 
   end subroutine MolecularSystem_showParticlesInformation
 
   !>
@@ -594,6 +613,21 @@ contains
     write(40,*) MolecularSystem_instance%numberOfParticles
     write(40,*) MolecularSystem_instance%numberOfQuantumParticles
 
+    !! Saving External/Inter-particle potentials information
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      ! Insert code here
+      ! save number of potentials
+      ! for each potential:
+      ! save name, and specie
+    end if
+
+    if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+      ! Insert code here
+      ! save number of potentials
+      ! for each potential:
+      ! save name, specie and otherspecie
+    end if
+
     close(40)
     
     !!****************************************************************************
@@ -635,35 +669,35 @@ contains
     !!****************************************************************************
     !! Saving info for gepol program
     !!
-	
+  
     call get_command_argument (1,value=title)
-		150 format (4(F10.5))
-		open(unit=41, file="gepol.xyzr",status="replace",form="formatted")
+    150 format (4(F10.5))
+    open(unit=41, file="gepol.xyzr",status="replace",form="formatted")
 
-			do i = 1,MolecularSystem_instance%numberOfQuantumSpecies 	
-				if (MolecularSystem_instance%species(i)%isElectron .eqv. .true.) then
-				write(41,"(I8)") size(MolecularSystem_instance%species(i)%particles)
-       	do j = 1, size(MolecularSystem_instance%species(i)%particles)
-          	write(41,150)&
-		  				MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
-		  				MolecularSystem_instance%species(i)%particles(j)%origin(2)*AMSTRONG, &
-		  				MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
-		  				MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
-       	end do
-				end if
-    	end do
-		close(41)
-		
-		160 format (A,A)
-		open(unit=42, file="gepol.inp",status="replace", form="formatted")
-			write(42,160)"TITL=",trim(title)
-			write(42,160)"COOF=gepol.xyzr"
-			write(42,160)"VECF=vectors.vec"
-			write(42,160)"LPRIN"
-			write(42,160)"NDIV=5"
-			! write(42,160)"ESURF"
-		
-		close(42)
+      do i = 1,MolecularSystem_instance%numberOfQuantumSpecies  
+        if (MolecularSystem_instance%species(i)%isElectron .eqv. .true.) then
+        write(41,"(I8)") size(MolecularSystem_instance%species(i)%particles)
+        do j = 1, size(MolecularSystem_instance%species(i)%particles)
+            write(41,150)&
+              MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(2)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
+        end do
+        end if
+      end do
+    close(41)
+    
+    160 format (A,A)
+    open(unit=42, file="gepol.inp",status="replace", form="formatted")
+      write(42,160)"TITL=",trim(title)
+      write(42,160)"COOF=gepol.xyzr"
+      write(42,160)"VECF=vectors.vec"
+      write(42,160)"LPRIN"
+      write(42,160)"NDIV=5"
+      ! write(42,160)"ESURF"
+    
+    close(42)
     
   end subroutine MolecularSystem_saveToFile
 
@@ -858,6 +892,20 @@ contains
           end do
           
           particleManager_instance => molecularSystem_instance%allParticles
+
+          
+          !! Loading External/Inter-particle potentials information
+          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+            ! Insert code here to load information
+            ! call constructor
+            ! call load for each potential
+          end if
+
+          if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+            ! Insert code here to load information
+            ! call constructor
+            ! call load for each potential
+          end if
 
        else
           
