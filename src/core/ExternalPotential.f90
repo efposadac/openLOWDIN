@@ -42,7 +42,7 @@ module ExternalPotential_
   end type
 
   type, public :: ExternalPotential
-    integer :: size
+    integer :: ssize
     type(ExternalPot), allocatable :: potentials(:)
     logical :: isInstanced
   end type
@@ -60,7 +60,7 @@ contains
 
     integer :: numberOfPotentials
 
-    ExternalPotential_instance%size = numberOfPotentials
+    ExternalPotential_instance%ssize = numberOfPotentials
     allocate(ExternalPotential_instance%potentials(numberOfPotentials))
     ExternalPotential_instance%isInstanced = .true.
 
@@ -74,11 +74,11 @@ contains
       
       integer :: i
 
-      do i = 1, ExternalPotential_instance%size
-        deallocate(ExternalPotential_instance%potentials(i)%gaussianComponents)
+      do i = 1, ExternalPotential_instance%ssize
+        if (allocated(ExternalPotential_instance%potentials(i)%gaussianComponents)) deallocate(ExternalPotential_instance%potentials(i)%gaussianComponents)
       end do
 
-      deallocate(ExternalPotential_instance%potentials)
+      if (allocated(ExternalPotential_instance%potentials) ) deallocate(ExternalPotential_instance%potentials)
       ExternalPotential_instance%isInstanced=.false.
 
   end subroutine ExternalPotential_destructor
@@ -91,7 +91,7 @@ contains
       type(ExternalPot), pointer :: this
       integer ::  potId, i
 
-      do potId = 1, ExternalPotential_instance%size
+      do potId = 1, ExternalPotential_instance%ssize
         this => ExternalPotential_instance%potentials(potId)
 
         print *,""
