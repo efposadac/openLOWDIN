@@ -229,7 +229,6 @@ contains
     !! Get number of shells and Cartesian contractions
     numberOfContractions = size(contractions)
     totalNumberOfContractions = MolecularSystem_instance%species(SpecieID)%basisSetSize
-    
     !! Get contractions labels for integrals index
     if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
     allocate(labelsOfContractions(numberOfContractions))
@@ -712,7 +711,6 @@ contains
                       end do
                    end do
                 end do !! done by shell
-
 
                 !!write to disk
                 m = 0
