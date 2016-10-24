@@ -916,6 +916,7 @@ contains
               read(40,*) i 
               read(40,*) name
               read(40,*) species
+
               call ExternalPotential_load(i, name, species)
 
             end do
