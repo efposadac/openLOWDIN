@@ -1062,7 +1062,8 @@ Matrix compute_schwartz_ints(
     engines[i] = engines[0];
   }
 
-  // std::cout << "computing Schwartz bound prerequisites (kernel=" << (int)Kernel
+  // std::cout << "computing Schwartz bound prerequisites (kernel=" <<
+  // (int)Kernel
   //           << ") ... ";
 
   libint2::Timers<1> timer;
@@ -1128,9 +1129,10 @@ LibintInterface *LibintInterface_new(const int stack_size, const int id) {
   // printf("%s\n", "LibintInterface_new");
 }
 
-void LibintInterface_del(LibintInterface *lint) { 
+void LibintInterface_del(LibintInterface *lint) {
   // printf("%s\n", "LibintInterface_del");
-  lint->~LibintInterface(); }
+  lint->~LibintInterface();
+}
 
 void LibintInterface_add_particle(LibintInterface *lint, const int z,
                                   const double *center) {
@@ -1238,4 +1240,355 @@ void LibintInterface_compute_coupling_disk(LibintInterface *lint,
                                            const char *filename) {
   // printf("%s\n", "LibintInterface_compute_coupling_disk");
   lint->compute_coupling_disk(*olint, filename);
+}
+
+void libintinterface_buildg12_(int *nd, int *nc, int *nb, int *na,
+            int *max_am, int *size, lowdin_t *data,
+            double *output) {
+  Libint_t inteval;
+
+  LIBINT2_PREFIXED_NAME( libint2_init_r12kg12)(&inteval, *max_am, 0);
+
+  LibintInterface_setLibint(&inteval, data);
+
+  inteval.contrdepth = 1;
+
+  // Calculate integrals
+  LIBINT2_PREFIXED_NAME(libint2_build_r12kg12)[*na][*nb][*nc][*nd](&inteval);
+
+  for (int i = 0; i <= *size - 1; ++i) {
+    output[i] = inteval.targets[0][i];
+    //     printf("output %d %d %d %d %f \n", *na, *nb, *nc, *nd,
+    //     inteval.targets[0][i]);
+  }
+
+  //   this releases all memory that was allocated for this object
+  // LIBINT2_PREFIXED_NAME( libint2_cleanup_r12kg12)(&inteval);
+}
+
+/*
+Set values for Libint_t
+*/
+void LibintInterface_setLibint(Libint_t *erieval, lowdin_t *data) {
+/** Appear in standard OS RR for ERI and almost all other recurrence relations
+ */
+#if LIBINT2_DEFINED(eri, WP_x)
+  erieval->WP_x[0] = data->WP_x;
+#endif
+#if LIBINT2_DEFINED(eri, WP_y)
+  erieval->WP_y[0] = data->WP_y;
+#endif
+#if LIBINT2_DEFINED(eri, WP_z)
+  erieval->WP_z[0] = data->WP_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, WQ_x)
+  erieval->WQ_x[0] = data->WQ_x;
+#endif
+#if LIBINT2_DEFINED(eri, WQ_y)
+  erieval->WQ_y[0] = data->WQ_y;
+#endif
+#if LIBINT2_DEFINED(eri, WQ_z)
+  erieval->WQ_z[0] = data->WQ_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, PA_x)
+  erieval->PA_x[0] = data->PA_x;
+#endif
+#if LIBINT2_DEFINED(eri, PA_y)
+  erieval->PA_y[0] = data->PA_y;
+#endif
+#if LIBINT2_DEFINED(eri, PA_z)
+  erieval->PA_z[0] = data->PA_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, QC_x)
+  erieval->QC_x[0] = data->QC_x;
+#endif
+#if LIBINT2_DEFINED(eri, QC_y)
+  erieval->QC_y[0] = data->QC_y;
+#endif
+#if LIBINT2_DEFINED(eri, QC_z)
+  erieval->QC_z[0] = data->QC_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, AB_x)
+  erieval->AB_x[0] = data->AB_x;
+#endif
+#if LIBINT2_DEFINED(eri, AB_y)
+  erieval->AB_y[0] = data->AB_y;
+#endif
+#if LIBINT2_DEFINED(eri, AB_z)
+  erieval->AB_z[0] = data->AB_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, CD_x)
+  erieval->CD_x[0] = data->CD_x;
+#endif
+#if LIBINT2_DEFINED(eri, CD_y)
+  erieval->CD_y[0] = data->CD_y;
+#endif
+#if LIBINT2_DEFINED(eri, CD_z)
+  erieval->CD_z[0] = data->CD_z;
+#endif
+
+/** Appear in OS RR for ERIs */
+#if LIBINT2_DEFINED(eri, oo2z)
+  /** One over 2.0*zeta */
+  erieval->oo2z[0] = data->oo2z;
+#endif
+#if LIBINT2_DEFINED(eri, oo2e)
+  /** One over 2.0*eta */
+  erieval->oo2e[0] = data->oo2e;
+#endif
+#if LIBINT2_DEFINED(eri, oo2ze)
+  /** One over 2.0*(zeta+eta) */
+  erieval->oo2ze[0] = data->oo2ze;
+#endif
+#if LIBINT2_DEFINED(eri, roz)
+  /** rho over zeta */
+  erieval->roz[0] = data->roz;
+#endif
+#if LIBINT2_DEFINED(eri, roe)
+  /** rho over eta */
+  erieval->roe[0] = data->roe;
+#endif
+
+/** Exponents */
+#if LIBINT2_DEFINED(eri, zeta_A)
+  erieval->zeta_A[0] = data->zeta_A;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_B)
+  erieval->zeta_B[0] = data->zeta_B;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_C)
+  erieval->zeta_C[0] = data->zeta_C;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_D)
+  erieval->zeta_D[0] = data->zeta_D;
+#endif
+/** Squared exponents */
+#if LIBINT2_DEFINED(eri, zeta_A_2)
+  erieval->zeta_A_2[0] = data->zeta_A_2;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_B_2)
+  erieval->zeta_B_2[0] = data->zeta_B_2;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_C_2)
+  erieval->zeta_C_2[0] = data->zeta_C_2;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_D_2)
+  erieval->zeta_D_2[0] = data->zeta_D_2;
+#endif
+
+// Prefactors for interelecttron transfer relation
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_0_x)
+  erieval->TwoPRepITR_pfac0_0_x[0] = data->TwoPRepITR_pfac0_0_x;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_0_y)
+  erieval->TwoPRepITR_pfac0_0_y[0] = data->TwoPRepITR_pfac0_0_y;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_0_z)
+  erieval->TwoPRepITR_pfac0_0_z[0] = data->TwoPRepITR_pfac0_0_z;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_1_x)
+  erieval->TwoPRepITR_pfac0_1_x[0] = data->TwoPRepITR_pfac0_1_x;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_1_y)
+  erieval->TwoPRepITR_pfac0_1_y[0] = data->TwoPRepITR_pfac0_1_y;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_1_z)
+  erieval->TwoPRepITR_pfac0_1_z[0] = data->TwoPRepITR_pfac0_1_z;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac1_0)
+  erieval->TwoPRepITR_pfac1_0[0] = data->TwoPRepITR_pfac1_0;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac1_1)
+  erieval->TwoPRepITR_pfac1_1[0] = data->TwoPRepITR_pfac1_1;
+#endif
+
+/** WD2004, Eq. 30, prefactor in front of (a0|k|c0) */
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_0_x)
+  erieval->R12kG12_pfac0_0_x[0] = data->R12kG12_pfac0_0_x;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_0_y)
+  erieval->R12kG12_pfac0_0_y[0] = data->R12kG12_pfac0_0_y;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_0_z)
+  erieval->R12kG12_pfac0_0_z[0] = data->R12kG12_pfac0_0_z;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_1_x)
+  erieval->R12kG12_pfac0_1_x[0] = data->R12kG12_pfac0_1_x;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_1_y)
+  erieval->R12kG12_pfac0_1_y[0] = data->R12kG12_pfac0_1_y;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_1_z)
+  erieval->R12kG12_pfac0_1_z[0] = data->R12kG12_pfac0_1_z;
+#endif
+
+/** WD2004, Eq. 30, prefactor in front of (a-1 0|k|c0) */
+#if LIBINT2_DEFINED(eri, R12kG12_pfac1_0)
+  erieval->R12kG12_pfac1_0[0] = data->R12kG12_pfac1_0;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac1_1)
+  erieval->R12kG12_pfac1_1[0] = data->R12kG12_pfac1_1;
+#endif
+
+/** WD2004, Eq. 30, prefactor in front of (a0|k|c-1 0) */
+#if LIBINT2_DEFINED(eri, R12kG12_pfac2)
+  erieval->R12kG12_pfac2[0] = data->R12kG12_pfac2;
+#endif
+
+/** WD2004, Eq. 30, prefactor in front of curly brakets (excludes k) */
+#if LIBINT2_DEFINED(eri, R12kG12_pfac3_0)
+  erieval->R12kG12_pfac3_0[0] = data->R12kG12_pfac3_0;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac3_1)
+  erieval->R12kG12_pfac3_1[0] = data->R12kG12_pfac3_1;
+#endif
+
+// * WD2004, Eq. 30, prefactor in front of (a0|k-2|c0) 
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_0_x)
+  erieval->R12kG12_pfac4_0_x[0] = data->R12kG12_pfac4_0_x;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_0_y)
+  erieval->R12kG12_pfac4_0_y[0] = data->R12kG12_pfac4_0_y;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_0_z)
+  erieval->R12kG12_pfac4_0_z[0] = data->R12kG12_pfac4_0_z;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_1_x)
+  erieval->R12kG12_pfac4_1_x[0] = data->R12kG12_pfac4_1_x;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_1_y)
+  erieval->R12kG12_pfac4_1_y[0] = data->R12kG12_pfac4_1_y;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_1_z)
+  erieval->R12kG12_pfac4_1_z[0] = data->R12kG12_pfac4_1_z;
+#endif
+
+// using dangerous macros from libint2.h
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(0))
+  erieval->LIBINT_T_SS_EREP_SS(0)[0] = data->LIBINT_T_SS_EREP_SS0;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(1))
+  erieval->LIBINT_T_SS_EREP_SS(1)[0] = data->LIBINT_T_SS_EREP_SS1;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(2))
+  erieval->LIBINT_T_SS_EREP_SS(2)[0] = data->LIBINT_T_SS_EREP_SS2;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(3))
+  erieval->LIBINT_T_SS_EREP_SS(3)[0] = data->LIBINT_T_SS_EREP_SS3;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(4))
+  erieval->LIBINT_T_SS_EREP_SS(4)[0] = data->LIBINT_T_SS_EREP_SS4;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(5))
+  erieval->LIBINT_T_SS_EREP_SS(5)[0] = data->LIBINT_T_SS_EREP_SS5;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(6))
+  erieval->LIBINT_T_SS_EREP_SS(6)[0] = data->LIBINT_T_SS_EREP_SS6;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(7))
+  erieval->LIBINT_T_SS_EREP_SS(7)[0] = data->LIBINT_T_SS_EREP_SS7;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(8))
+  erieval->LIBINT_T_SS_EREP_SS(8)[0] = data->LIBINT_T_SS_EREP_SS8;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(9))
+  erieval->LIBINT_T_SS_EREP_SS(9)[0] = data->LIBINT_T_SS_EREP_SS9;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(10))
+  erieval->LIBINT_T_SS_EREP_SS(10)[0] = data->LIBINT_T_SS_EREP_SS10;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(11))
+  erieval->LIBINT_T_SS_EREP_SS(11)[0] = data->LIBINT_T_SS_EREP_SS11;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(12))
+  erieval->LIBINT_T_SS_EREP_SS(12)[0] = data->LIBINT_T_SS_EREP_SS12;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(13))
+  erieval->LIBINT_T_SS_EREP_SS(13)[0] = data->LIBINT_T_SS_EREP_SS13;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(14))
+  erieval->LIBINT_T_SS_EREP_SS(14)[0] = data->LIBINT_T_SS_EREP_SS14;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(15))
+  erieval->LIBINT_T_SS_EREP_SS(15)[0] = data->LIBINT_T_SS_EREP_SS15;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(16))
+  erieval->LIBINT_T_SS_EREP_SS(16)[0] = data->LIBINT_T_SS_EREP_SS16;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(17))
+  erieval->LIBINT_T_SS_EREP_SS(17)[0] = data->LIBINT_T_SS_EREP_SS17;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(18))
+  erieval->LIBINT_T_SS_EREP_SS(18)[0] = data->LIBINT_T_SS_EREP_SS18;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(19))
+  erieval->LIBINT_T_SS_EREP_SS(19)[0] = data->LIBINT_T_SS_EREP_SS19;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(20))
+  erieval->LIBINT_T_SS_EREP_SS(20)[0] = data->LIBINT_T_SS_EREP_SS20;
+#endif
+
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_K0G12_SS_0)
+  erieval->LIBINT_T_SS_K0G12_SS_0[0] = data->LIBINT_T_SS_K0G12_SS_0;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_K2G12_SS_0)
+  erieval->LIBINT_T_SS_K2G12_SS_0[0] = data->LIBINT_T_SS_K2G12_SS_0;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(0))
+  erieval->LIBINT_T_SS_Km1G12_SS(0)[0] = data->LIBINT_T_SS_Km1G12_SS0;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(1))
+  erieval->LIBINT_T_SS_Km1G12_SS(1)[0] = data->LIBINT_T_SS_Km1G12_SS1;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(2))
+  erieval->LIBINT_T_SS_Km1G12_SS(2)[0] = data->LIBINT_T_SS_Km1G12_SS2;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(3))
+  erieval->LIBINT_T_SS_Km1G12_SS(3)[0] = data->LIBINT_T_SS_Km1G12_SS3;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(4))
+  erieval->LIBINT_T_SS_Km1G12_SS(4)[0] = data->LIBINT_T_SS_Km1G12_SS4;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(5))
+  erieval->LIBINT_T_SS_Km1G12_SS(5)[0] = data->LIBINT_T_SS_Km1G12_SS5;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(6))
+  erieval->LIBINT_T_SS_Km1G12_SS(6)[0] = data->LIBINT_T_SS_Km1G12_SS6;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(7))
+  erieval->LIBINT_T_SS_Km1G12_SS(7)[0] = data->LIBINT_T_SS_Km1G12_SS7;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(8))
+  erieval->LIBINT_T_SS_Km1G12_SS(8)[0] = data->LIBINT_T_SS_Km1G12_SS8;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(9))
+  erieval->LIBINT_T_SS_Km1G12_SS(9)[0] = data->LIBINT_T_SS_Km1G12_SS9;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(10))
+  erieval->LIBINT_T_SS_Km1G12_SS(10)[0] = data->LIBINT_T_SS_Km1G12_SS10;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(11))
+  erieval->LIBINT_T_SS_Km1G12_SS(11)[0] = data->LIBINT_T_SS_Km1G12_SS11;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(12))
+  erieval->LIBINT_T_SS_Km1G12_SS(12)[0] = data->LIBINT_T_SS_Km1G12_SS12;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(13))
+  erieval->LIBINT_T_SS_Km1G12_SS(13)[0] = data->LIBINT_T_SS_Km1G12_SS13;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(14))
+  erieval->LIBINT_T_SS_Km1G12_SS(14)[0] = data->LIBINT_T_SS_Km1G12_SS14;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(15))
+  erieval->LIBINT_T_SS_Km1G12_SS(15)[0] = data->LIBINT_T_SS_Km1G12_SS15;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(16))
+  erieval->LIBINT_T_SS_Km1G12_SS(16)[0] = data->LIBINT_T_SS_Km1G12_SS16;
+#endif
+  
 }
