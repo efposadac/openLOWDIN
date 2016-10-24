@@ -125,7 +125,7 @@ else
         CC="icc"
         CU="nvcc -arch=sm_20"
         CFLAGS="-g -O2 -D intel "
-        CPPFLAGS="-g -O2 -D intel -std=c++11"
+        CPPFLAGS="-g -O2 -D intel -std=c++11 -lc++"
     else
         CXX=g++
         CC=gcc
@@ -200,8 +200,12 @@ else
     else
         CUDA_LIBS=""
     fi
-
-    STDCPP_LIBS="-lstdc++"
+    
+    if [ "$FC" = "ifort" ] ; then
+        STDCPP_LIBS="-lstdc++ -lc++"
+    else
+        STDCPP_LIBS="-lstdc++"
+    fi
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
     ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
