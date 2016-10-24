@@ -626,7 +626,7 @@ contains
                    if(status == -1) then
                       
                       call Matrix_exception( ERROR, "End of file!",&
-                           "Class object Matrix in the getfromFile() function" )
+                           "Class object Matrix in the getfromFile() function "//trim(arguments(1))//" "//trim(arguments(2)) )
                    end if
                    
                    if(trim(line) == trim(arguments(1))) then

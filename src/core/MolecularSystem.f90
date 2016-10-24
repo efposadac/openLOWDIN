@@ -626,18 +626,9 @@ contains
         write(40,*) ExternalPotential_instance%potentials(i)%specie 
       end do
 
-      ! Insert code here
-      ! save number of potentials
-      ! for each potential:
-      ! save name, and specie
     end if
 
     if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
-      ! Insert code here
-      ! save number of potentials
-      ! for each potential:
-      ! save name, specie and otherspecie
-
       write(40,*) InterPotential_instance%ssize 
       do i = 1, InterPotential_instance%ssize 
         write(40,*) i 
@@ -917,18 +908,15 @@ contains
           
           !! Loading External/Inter-particle potentials information
           if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-            ! Insert code here to load information
-            ! call constructor
-            ! call load for each potential
-            read(40,*) ExternalPotential_instance%ssize 
 
-            allocate(ExternalPotential_instance%potentials( ExternalPotential_instance%ssize ))
-            ExternalPotential_instance%isInstanced = .true.
+            read(40,*) auxValue
+            call ExternalPotential_constructor(auxValue)
 
             do j = 1, ExternalPotential_instance%ssize 
               read(40,*) i 
               read(40,*) name
               read(40,*) species
+
               call ExternalPotential_load(i, name, species)
 
             end do
@@ -936,16 +924,11 @@ contains
           end if
 
           if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
-            ! Insert code here to load information
-            ! call constructor
-            ! call load for each potential
 
-            read(40,*) InterPotential_instance%ssize 
+            read(40,*) auxValue 
+            call InterPotential_constructor(auxValue)
 
-            allocate(InterPotential_instance%potentials(InterPotential_instance%ssize))
-            InterPotential_instance%isInstanced = .true.
-
-            do j = 1, ExternalPotential_instance%ssize 
+            do j = 1, InterPotential_instance%ssize 
               read(40,*) i 
               read(40,*) name
               read(40,*) species
