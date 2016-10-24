@@ -142,27 +142,22 @@ contains
        libIntStorage_c = LibintInterface_libint2NeedMemoryR12kg12(maxAngMoment_c)
        G12Integrals_instance%libintStorage = libIntStorage_c
 
-
-       allocate (eris%a(CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            eris%b(CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            eris%c(CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            eris%d(CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            eris%integrals(CONTROL_instance%INTEGRAL_STACK_SIZE))
-
        G12Integrals_instance%isInstanced = .true.
+
     end if
+
   end subroutine G12Integrals_constructor
 
 
 
   !<
   !! @brief calculate G12 eris using libint library for all basis set (intra-specie)
-  subroutine G12Integrals_diskIntraSpecie(nameOfSpecie, specieID)
+  subroutine G12Integrals_diskIntraSpecie(specieID)
     implicit none
 
-    character(*), intent(in) :: nameOfSpecie
     integer, intent(in) :: specieID
 
+    character(150) :: nameOfSpecie
     integer :: numberOfContractions
     integer :: totalNumberOfContractions
     integer :: numberOfPrimitives
@@ -187,15 +182,12 @@ contains
     integer,pointer :: poi, poj, pok, pol !! pointer to contraction length iterators
     integer, allocatable :: labelsOfContractions(:) !! Cartesian position of contractions in all basis set
 
-    integer :: contador 
-
     integer :: potID, potSize, potLength
 
     real(8), dimension(:), pointer :: integralsPtr !! pointer to C array of integrals
     real(8), dimension(:), pointer :: temporalPtr
 
     real(8), allocatable :: auxIntegrals(:) !!array with permuted integrals aux!
-    real(8), allocatable :: auxIntegralsValue (:) !!array with permuted integrals auxiliary
     real(8), allocatable :: integralsValue (:) !!array with permuted integrals
     real(8), allocatable :: incompletGamma(:) !!array with incomplete gamma integrals
 
@@ -211,15 +203,22 @@ contains
     type(ContractedGaussian), pointer :: contractionG12
     type(ContractedGaussian), allocatable :: contractions(:) !< Basis set for specie
     type(libint2), target :: primitiveQuartet !!Prim-quartet object needed by LIBINT
+    type(erisStack) :: buffer
+
+    !! OpenMP related variables
+    character(50) :: fileid
+    integer :: nthreads
+    integer :: threadid
+    integer :: unitid
+    integer :: i1234
 
     procedure(LibintInterface_buildLibInt), pointer :: pBuild !!procedure to calculate eris on LIBINT
 
     G12_ptr => G12Integrals_instance%libintG12
 
-    call cpu_time(startTime)
+    nameOfSpecie = trim(MolecularSystem_getNameOfSpecie(specieID))
 
-    !! open file for integrals
-    open( UNIT=34,FILE=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//".ints", STATUS='REPLACE', ACCESS='SEQUENTIAL', FORM='Unformatted')
+    call cpu_time(startTime)
 
     !! Get basisSet
     call MolecularSystem_getBasisSet(specieID, contractions)
@@ -229,17 +228,7 @@ contains
     !! Get number of shells and Cartesian contractions
     numberOfContractions = size(contractions)
     totalNumberOfContractions = MolecularSystem_instance%species(SpecieID)%basisSetSize
-
-    if( .not. G12Integrals_isInstanced() ) then
-       call G12Integrals_Constructor( maxAngularMoment, numberOfPrimitives)
-    end if
-
-    !! allocating space for integrals just one time (do not put it inside do loop!!!)
-    arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
-
-    sizeTotal = (totalNumberOfContractions *(totalNumberOfContractions + 1 ))/2
-    sizeTotal = (sizeTotal *(sizeTotal + 1))/2
-
+    
     !! Get contractions labels for integrals index
     if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
     allocate(labelsOfContractions(numberOfContractions))
@@ -256,27 +245,66 @@ contains
        aux = aux + contractions(i)%numCartesianOrbital          
     end do
 
-    if(allocated(incompletGamma)) deallocate(incompletGamma)
-    if(allocated(auxIntegrals)) deallocate(auxIntegrals)
-    if(allocated(integralsValue)) deallocate(integralsValue)
-    if(allocated(auxIntegralsValue)) deallocate(integralsValue)
+    arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
 
-    allocate(auxIntegrals(arraySize* arraySize* arraySize * arraySize), &
-         integralsValue(arraySize* arraySize* arraySize* arraySize), &
-         auxIntegralsValue(arraySize* arraySize* arraySize* arraySize), &
-         incompletGamma(0:MaxAngularMoment*4))
+    sizeTotal = (totalNumberOfContractions *(totalNumberOfContractions + 1 ))/2
+    sizeTotal = (sizeTotal *(sizeTotal + 1))/2
 
-    contador = 0
-    counter = 0
-    auxCounter = 0
-
-    do i=1, InterPotential_instance%size
-       if( trim(InterPotential_instance%Potentials(i)%specie)==trim(nameOfSpecie) .and. &
-            trim(InterPotential_instance%Potentials(i)%otherSpecie)==trim(nameOfSpecie)) then
+    do i=1, InterPotential_instance%ssize
+       if( String_getUppercase(trim(InterPotential_instance%Potentials(i)%specie))==trim(nameOfSpecie) .and. &
+            String_getUppercase(trim(InterPotential_instance%Potentials(i)%otherSpecie))==trim(nameOfSpecie)) then
           potID=i
           exit
        end if
     end do
+
+    !$OMP PARALLEL default(private), shared(contractions, maxAngularMoment, numberOfPrimitives, numberOfContractions), &
+    !$OMP& shared(totalNumberOfContractions, labelsOfContractions, arraySize, sizeTotal, InterPotential_instance, nameOfSpecie, potID), &
+    !$OMP& shared(G12Integrals_instance, CONTROL_instance, MolecularSystem_instance, specieID, auxCounter)
+
+    nthreads = OMP_GET_NUM_THREADS()
+    threadid =  OMP_GET_THREAD_NUM()
+    unitid = 400 + threadid
+
+    write(fileid,*) threadid
+    fileid = trim(adjustl(fileid))
+
+    !! open file for integrals
+    if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(specieID)%isElectron) then
+      open( UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.ints", status='unknown', access='stream', form='unformatted')
+    else
+      open( UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//".ints", status='unknown', access='stream', form='unformatted')
+    end if
+    
+    if( .not. G12Integrals_isInstanced()) then
+      call G12Integrals_Constructor(maxAngularMoment, numberOfPrimitives)
+    end if
+
+    i1234 = -1
+    G12_ptr => G12Integrals_instance%libIntG12
+
+    if( .not. G12Integrals_isInstanced() ) then
+       call G12Integrals_Constructor( maxAngularMoment, numberOfPrimitives)
+    end if
+
+    !! allocating space for integrals just one time (do not put it inside do loop!!!)
+    if(allocated(incompletGamma)) deallocate(incompletGamma)
+    if(allocated(auxIntegrals)) deallocate(auxIntegrals)
+    if(allocated(integralsValue)) deallocate(integralsValue)
+
+    allocate(auxIntegrals(arraySize* arraySize* arraySize * arraySize), &
+         integralsValue(arraySize* arraySize* arraySize* arraySize), &
+         incompletGamma(0:MaxAngularMoment*4))
+
+    allocate (buffer%a(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            buffer%b(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            buffer%c(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            buffer%d(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            buffer%integrals(CONTROL_instance%INTEGRAL_STACK_SIZE))
+
+
+    counter = 0
+    auxCounter = 0
 
     !!Start Calculating integrals for each shell
     do a = 1, numberOfContractions
@@ -285,6 +313,12 @@ contains
           u = b
           do r = n , numberOfContractions
              do s = u,  numberOfContractions
+              
+              i1234 = i1234 + 1
+              if ( mod(i1234, nthreads) /= threadid) cycle
+
+                !$OMP CRITICAL
+
                 !! Calculates total angular moment
                 sumAngularMoment =  contractions(a)%angularMoment + &
                      contractions(b)%angularMoment + &
@@ -429,7 +463,6 @@ contains
 
                 do potSize=1, size(InterPotential_instance%Potentials(potID)%gaussianComponents)
 
-                   auxIntegralsValue(1:arraySize) = 0.0_8
                    contractionG12 => InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)
 
                    do potLength = 1, contractionG12%length
@@ -623,7 +656,6 @@ contains
 
                                   end if !!done by primitives
 
-                                  !!Normalize by primitives
                                   !!Normalize by primitive
                                   m = 0
                                   do ii = 1, contractions(aa)%numCartesianOrbital
@@ -721,24 +753,26 @@ contains
                                   if(abs(integralsValue(m)) > 1.0D-10) then
 
                                      counter = counter + 1
+                                     
+                                     !$OMP ATOMIC
                                      auxCounter = auxCounter + 1
 
-                                     eris%a(counter) = pa
-                                     eris%b(counter) = pb
-                                     eris%c(counter) = pr
-                                     eris%d(counter) = ps
-                                     eris%integrals(counter) = integralsValue(m)
+                                     buffer%a(counter) = pa
+                                     buffer%b(counter) = pb
+                                     buffer%c(counter) = pr
+                                     buffer%d(counter) = ps
+                                     buffer%integrals(counter) = integralsValue(m)
 
                                   end if
 
                                   if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
 
-                                     write(34) &
-                                          eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                          eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                          eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                          eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                          eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+                                     write(unitid) &
+                                          buffer%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                          buffer%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                          buffer%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                          buffer%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                          buffer%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
                                      counter = 0
 
                                   end if
@@ -751,27 +785,33 @@ contains
                    end do
                 end do
 
+                !$OMP END CRITICAL
+
              end do
              u=r+1
           end do
        end do
     end do !! done by basis set
 
-    eris%a(counter+1) = -1
-    eris%b(counter+1) = -1
-    eris%c(counter+1) = -1
-    eris%d(counter+1) = -1
-    eris%integrals(counter+1) = 0.0_8
+    buffer%a(counter+1) = -1
+    buffer%b(counter+1) = -1
+    buffer%c(counter+1) = -1
+    buffer%d(counter+1) = -1
+    buffer%integrals(counter+1) = 0.0_8
 
 
-    write(34) &
-         eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+    write(unitid) &
+         buffer%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         buffer%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         buffer%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         buffer%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         buffer%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-    close(34)
+    close(unitid)
+
+    deallocate(buffer%a, buffer%b, buffer%c, buffer%d, buffer%integrals)
+
+    !$OMP END PARALLEL
 
     call cpu_time(endTime)
 
