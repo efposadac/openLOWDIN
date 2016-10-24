@@ -34,7 +34,7 @@ module InterPotential_
   end type
 
   type, public :: InterPotential
-    integer :: size
+    integer :: ssize
     type(InterPot), allocatable :: Potentials(:)
     logical :: isInstanced
   end type
@@ -51,7 +51,7 @@ contains
       implicit none
       integer :: numberOfPotentials
 
-      InterPotential_instance%size = numberOfPotentials
+      InterPotential_instance%ssize = numberOfPotentials
       allocate(InterPotential_instance%potentials(numberOfPotentials))
       InterPotential_instance%isInstanced = .true.
       
@@ -66,11 +66,11 @@ contains
 
       integer :: i
 
-      do i = 1, InterPotential_instance%size
-        deallocate(InterPotential_instance%potentials(i)%gaussianComponents)
+      do i = 1, InterPotential_instance%ssize
+        if (allocated(InterPotential_instance%potentials(i)%gaussianComponents) ) deallocate(InterPotential_instance%potentials(i)%gaussianComponents)
       end do
 
-      deallocate(InterPotential_instance%potentials)
+      if (allocated(InterPotential_instance%potentials) )deallocate(InterPotential_instance%potentials)
 
   end subroutine InterPotential_destructor
 
@@ -82,7 +82,7 @@ contains
     integer :: i, j
     type(InterPot), pointer :: this
 
-    do i=1,InterPotential_instance%size
+    do i=1,InterPotential_instance%ssize
       this => InterPotential_instance%potentials(i)
       print *,""
       print *,"======="
