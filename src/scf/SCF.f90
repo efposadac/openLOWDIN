@@ -43,7 +43,7 @@ program SCF
   character :: convergenceType
 
   !! Open file for wfn
-  wfnUnit = 30
+  wfnUnit = 300
   wfnFile = "lowdin.wfn"
 
   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")

@@ -225,9 +225,9 @@ program HF
   !! Calculate two-particle integrals (not building 2 particles and coupling matrix... those matrices are done by SCF program)
   !!
 
-  if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL ) then        
+  if( CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL ) then
 
-     call system(" lowdin-ints.x TWO_PARTICLE_F12")
+     call system(" lowdin-ints.x TWO_PARTICLE_G12")
 
   else        
 

@@ -203,7 +203,6 @@ contains
        WaveFunction_instance(speciesID)%builtTwoParticlesMatrix = .true.
 
     end do
-
   end subroutine WaveFunction_constructor
 
   !>
