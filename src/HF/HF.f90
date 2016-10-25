@@ -151,6 +151,10 @@ program HF
      !! Transformation Matrix
      call WaveFunction_buildTransformationMatrix( trim(integralsFile), speciesID, 2 )
 
+     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+       call WaveFunction_buildExternalPotentialMatrix(trim(integralsFile), speciesID)
+     end if
+
      !! Hcore Matrix
      call WaveFunction_HCoreMatrix(trim(integralsFile), speciesID)
 
@@ -204,6 +208,11 @@ program HF
      arguments(1) = "TRANSFORMATION"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
 
+     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+       arguments(1) = "EXTERNAL_POTENTIAL"
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., &
+               arguments = arguments(1:2) )
+     end if
 
      if(CONTROL_instance%COSMO)then
 
