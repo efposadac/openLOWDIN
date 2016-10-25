@@ -154,6 +154,12 @@ contains
        WaveFunction_instance(speciesID)%transformationMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
             columns= int(numberOfContractions,4), binary=.true., arguments=labels)
 
+       if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+         labels(1) = "EXTERNAL_POTENTIAL"
+         WaveFunction_instance(speciesID)%externalPotentialMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=labels)
+       end if
+
        !! Cosmo things
 
        if (CONTROL_instance%COSMO) then
@@ -726,6 +732,16 @@ contains
     if (  CONTROL_instance%DEBUG_SCFS) then
        print *,"MATRIZ DE FOCK 3 (+ coupling): "//trim(nameOfSpecieSelected)
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
+    end if
+
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
+         wavefunction_instance(speciesID)%externalPotentialMatrix%values
+      if (  CONTROL_instance%DEBUG_SCFS) then
+       print *,"MATRIZ DE FOCK 4 (+ external potential): "//trim(nameOfSpecieSelected)
+       call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
+
+      end if
     end if
 
     if (  CONTROL_instance%DEBUG_SCFS) then
