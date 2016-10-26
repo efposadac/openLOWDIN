@@ -5180,6 +5180,7 @@ contains
     real(8) :: otherSpecieCharge
 
     integer :: ssize1, ssize2
+    type(Matrix) :: externalPotential
 
     character(50) :: wfnFile
     character(50) :: arguments(20)
@@ -5239,6 +5240,33 @@ contains
         hcoreMatrix = &
           Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
           columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+        !arguments(1) = "FOCK"
+        !ConfigurationInteraction_instance%FockMatrix(i) = &
+        !  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+        !  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+        !arguments(1) = "ORBITALS"
+        !call Vector_getFromFile( elementsNum = numberOfContractions, &
+        !  unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+        !  output =ConfigurationInteraction_instance%energyofmolecularorbitals(i) )     
+
+        !do m=1,numberOfContractions
+        !   ConfigurationInteraction_instance%fockMatrix(i)%values(m,m) = &
+        !        ConfigurationInteraction_instance%energyofmolecularorbitals(i)%values(m) 
+        !end do
+
+        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+          arguments(1) = "EXTERNAL_POTENTIAL"
+
+          externalPotential = &
+            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+          hcoreMatrix%values = hcoreMatrix%values + externalPotential%values
+        end if
+        !print *, "fock matrix for species", i
+        !call matrix_show ( ConfigurationInteraction_instance%fockMatrix(i) )
 
         do m=1,numberOfContractions
           do n=m, numberOfContractions
