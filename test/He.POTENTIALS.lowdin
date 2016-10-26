@@ -19,6 +19,7 @@ END GEOMETRY
 
 TASKS
         method = "RHF"
+	configurationInteractionLevel ="FCI"
 END TASKS
 
 INTERPOTENTIAL
