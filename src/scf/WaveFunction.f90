@@ -737,6 +737,7 @@ contains
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
 
+
     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
       wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
          wavefunction_instance(speciesID)%externalPotentialMatrix%values
