@@ -1,0 +1,38 @@
+! Calculo usando potenciales internos y externos ajustados de un atomo de He
+! Para comparar con los resultados de los potenciales internos y externos
+!
+!         TOTAL_ENERGY =      -2.854269877628
+!         Repulsion energy          =         1.0264773649
+!         ExternalPotential energy  =        -6.7340802413
+!
+! Resultados de un calculo normal - sin usar potenciales
+!        TOTAL_ENERGY =      -2.855160426154
+!        Q/Fixed potential energy  =        -6.7373927626
+!        Repulsion energy          =         1.0269072107
+!
+!
+!
+
+GEOMETRY
+        e-(He) 6-31G 0 0 0
+END GEOMETRY
+
+TASKS
+        method = "RHF"
+END TASKS
+
+INTERPOTENTIAL
+	e- e- ee
+END INTERPOTENTIAL
+
+EXTERPOTENTIAL
+	e- Hee
+END EXTERPOTENTIAL
+
+CONTROL
+	transformToCenterOfMass=F
+	convergenceMethod=1
+	iterationScheme=3
+END CONTROL
+
+

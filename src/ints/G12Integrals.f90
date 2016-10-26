@@ -188,6 +188,7 @@ contains
     real(8), dimension(:), pointer :: temporalPtr
 
     real(8), allocatable :: auxIntegrals(:) !!array with permuted integrals aux!
+    real(8), allocatable :: auxIntegralsB(:) !!array with permuted integrals aux!
     real(8), allocatable :: integralsValue (:) !!array with permuted integrals
     real(8), allocatable :: incompletGamma(:) !!array with incomplete gamma integrals
 
@@ -290,9 +291,11 @@ contains
     !! allocating space for integrals just one time (do not put it inside do loop!!!)
     if(allocated(incompletGamma)) deallocate(incompletGamma)
     if(allocated(auxIntegrals)) deallocate(auxIntegrals)
+    if(allocated(auxIntegralsB)) deallocate(auxIntegralsB)
     if(allocated(integralsValue)) deallocate(integralsValue)
 
     allocate(auxIntegrals(arraySize* arraySize* arraySize * arraySize), &
+         auxIntegralsB(arraySize* arraySize* arraySize * arraySize), &
          integralsValue(arraySize* arraySize* arraySize* arraySize), &
          incompletGamma(0:MaxAngularMoment*4))
 
@@ -461,17 +464,17 @@ contains
                 !!start :)                                
                 integralsValue(1:arraySize) = 0.0_8
 
-                do potSize=1, size(InterPotential_instance%Potentials(potID)%gaussianComponents)
+                do l = 1, contractions(s)%length
+                   do k = 1, contractions(r)%length
+                      do j = 1, contractions(b)%length
+                         do i = 1, contractions(a)%length
 
-                   contractionG12 => InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)
+                            auxIntegrals = 0
 
-                   do potLength = 1, contractionG12%length
+                            do potSize=1, size(InterPotential_instance%Potentials(potID)%gaussianComponents)
+                               contractionG12 => InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)
 
-                      do l = 1, contractions(s)%length
-                         do k = 1, contractions(r)%length
-                            do j = 1, contractions(b)%length
-                               do i = 1, contractions(a)%length
-
+                               do potLength = 1, contractionG12%length
                                   !!LIBINT2 PRIMQUARTET
 
                                   zeta = contractions(aa)%orbitalExponents(pi) + contractions(bb)%orbitalExponents(pj)
@@ -634,7 +637,7 @@ contains
 
                                   if(arraySize == 1) then
 
-                                     auxIntegrals(1) = primitiveQuartet%LIBINT_T_SS_K0G12_SS_0
+                                     auxIntegralsB(1) = primitiveQuartet%LIBINT_T_SS_K0G12_SS_0
 
                                   else
 
@@ -652,62 +655,64 @@ contains
 
                                      integralsPtr => temporalPtr
 
-                                     auxIntegrals(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy
+                                     auxIntegralsB(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy
 
                                   end if !!done by primitives
 
-                                  !!Normalize by primitive
-                                  m = 0
-                                  do ii = 1, contractions(aa)%numCartesianOrbital
-                                     do jj = 1, contractions(bb)%numCartesianOrbital
-                                        do kk = 1, contractions(rr)%numCartesianOrbital
-                                           do ll = 1, contractions(ss)%numCartesianOrbital
-                                              m = m + 1
-                                              auxIntegrals(m) = auxIntegrals(m) &
-                                                   * contractions(aa)%primNormalization(pi,ii) &
-                                                   * contractions(bb)%primNormalization(pj,jj) &
-                                                   * contractions(rr)%primNormalization(pk,kk) &
-                                                   * contractions(ss)%primNormalization(pl,ll)
-                                           end do
-                                        end do
-                                     end do
-                                  end do !! done by cartesian of contractions 
-
-                                  auxIntegrals(1:arraySize) = auxIntegrals(1:arraySize) &
-                                       * contractions(aa)%contractionCoefficients(pi) &
-                                       * contractions(bb)%contractionCoefficients(pj) &
-                                       * contractions(rr)%contractionCoefficients(pk) &
-                                       * contractions(ss)%contractionCoefficients(pl) &
+                                  auxIntegrals = auxIntegrals + auxIntegralsB &
                                        * InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)%contractionCoefficients(potLength)
 
-                                  integralsValue(1:arraySize) = integralsValue(1:arraySize) + auxIntegrals(1:arraySize)
+                               end do !! G12 length
+                            end do!! done for potential
 
-                               end do !l
-                            end do !k
-                         end do !j
-                      end do !i   !! done by contractions
+                            !!Normalize by primitive
+                            m = 0
+                            do ii = 1, contractions(aa)%numCartesianOrbital
+                               do jj = 1, contractions(bb)%numCartesianOrbital
+                                  do kk = 1, contractions(rr)%numCartesianOrbital
+                                     do ll = 1, contractions(ss)%numCartesianOrbital
+                                        m = m + 1
+                                        auxIntegrals(m) = auxIntegrals(m) &
+                                             * contractions(aa)%primNormalization(pi,ii) &
+                                             * contractions(bb)%primNormalization(pj,jj) &
+                                             * contractions(rr)%primNormalization(pk,kk) &
+                                             * contractions(ss)%primNormalization(pl,ll)
+                                     end do
+                                  end do
+                               end do
+                            end do !! done by cartesian of contractions 
 
-                   end do !! G12 length
+                            auxIntegrals(1:arraySize) = auxIntegrals(1:arraySize) &
+                                 * contractions(aa)%contractionCoefficients(pi) &
+                                 * contractions(bb)%contractionCoefficients(pj) &
+                                 * contractions(rr)%contractionCoefficients(pk) &
+                                 * contractions(ss)%contractionCoefficients(pl) !&
 
-                   !!normalize by shell
-                   m = 0
-                   do ii = 1,  contractions(aa)%numCartesianOrbital
-                      do jj = 1,  contractions(bb)%numCartesianOrbital
-                         do kk = 1,  contractions(rr)%numCartesianOrbital
-                            do ll = 1, contractions(ss)%numCartesianOrbital
-                               m = m + 1
-                               integralsValue(m) = integralsValue(m) &
-                                    * contractions(aa)%contNormalization(ii) &
-                                    * contractions(bb)%contNormalization(jj) &
-                                    * contractions(rr)%contNormalization(kk) &
-                                    * contractions(ss)%contNormalization(ll)                            
-                            end do
+                            integralsValue(1:arraySize) = integralsValue(1:arraySize) + auxIntegrals(1:arraySize)
+
+                         end do !l
+                      end do !k
+                   end do !j
+                end do !i   !! done by contractions
+
+
+                !!normalize by shell
+                m = 0
+                do ii = 1,  contractions(aa)%numCartesianOrbital
+                   do jj = 1,  contractions(bb)%numCartesianOrbital
+                      do kk = 1,  contractions(rr)%numCartesianOrbital
+                         do ll = 1, contractions(ss)%numCartesianOrbital
+                            m = m + 1
+                            integralsValue(m) = integralsValue(m) &
+                                 * contractions(aa)%contNormalization(ii) &
+                                 * contractions(bb)%contNormalization(jj) &
+                                 * contractions(rr)%contNormalization(kk) &
+                                 * contractions(ss)%contNormalization(ll)
                          end do
                       end do
-                   end do !! done by shell  
+                   end do
+                end do !! done by shell
 
-
-                end do!! done for potential
 
                 !!write to disk
                 m = 0
@@ -752,6 +757,7 @@ contains
 
                                   if(abs(integralsValue(m)) > 1.0D-10) then
 
+                                     !print *, m,integralsValue(m)
                                      counter = counter + 1
                                      
                                      !$OMP ATOMIC
@@ -768,10 +774,10 @@ contains
                                   if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
 
                                      write(unitid) &
-                                          buffer%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                          buffer%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                                          buffer%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                           buffer%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                          buffer%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                          buffer%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                          buffer%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                           buffer%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
                                      counter = 0
 
@@ -801,10 +807,10 @@ contains
 
 
     write(unitid) &
-         buffer%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         buffer%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         buffer%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          buffer%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         buffer%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         buffer%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         buffer%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
          buffer%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
     close(unitid)
