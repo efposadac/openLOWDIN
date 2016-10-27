@@ -26,20 +26,16 @@ program CC
   use CONTROL_
   use MolecularSystem_
   use Exception_
-  !use CoupledCluster_
+  use CoupledCluster_
   use CCSD_
-  use CCD_
   use String_
   implicit none
 
-  character(50) :: job
 
-  job = ""  
-  call get_command_argument(1,value=job)  
-  job = trim(String_getUppercase(job))
 
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
+
   call Stopwatch_start(lowdin_stopwatch)
 
   !!Load CONTROL Parameters
@@ -48,54 +44,33 @@ program CC
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
- 
- print *," Control: ", CONTROL_instance%COUPLED_CLUSTER_LEVEL
 
-
-  select case ( trim(CONTROL_instance%COUPLED_CLUSTER_LEVEL) )
-
-    case ( "CCSD" )
-
-       call CCSD_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
-       call CCSD_run()
-       call CCSD_show()
-       call CCSD_destructor()
-       ! call CoupledCluster_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
-       ! call CoupledCluster_run()
-       ! call CoupledCluster_show()
-       ! call CoupledCluster_destructor()
-
-       !!stop time
-       call Stopwatch_stop(lowdin_stopwatch)
+  !! Loads General information
+  call CoupledCluster_constructor()
+  call CoupledCluster_init()
   
-       write(*, *) ""
-       write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time CC : ", lowdin_stopwatch%enlapsetTime ," (s)"
-       write(*, *) ""
+  select case(CONTROL_instance%COUPLED_CLUSTER_LEVEL)
 
-    case ( "CCD" )
+    case("CCSD")
 
+      print*, "CoupledCluster_"      
+      call CCSD_constructor()
 
- print *," Control: ", CONTROL_instance%COUPLED_CLUSTER_LEVEL
-       call CCD_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
-       call CCD_run()
-       call CCD_show()
-       call CCD_destructor()
-
-       !!stop time
-       call Stopwatch_stop(lowdin_stopwatch)
-  
-       write(*, *) ""
-       write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time CC : ", lowdin_stopwatch%enlapsetTime ," (s)"
-       write(*, *) ""
-
- print *," Control: ", CONTROL_instance%COUPLED_CLUSTER_LEVEL
 
     case default
 
-      call CCSD_exception( ERROR, "Coupled interactor constructor", "Correction level not implemented")
+      ! call Exception_.....
 
   end select
 
+  
+  !!stop time
+
+  call Stopwatch_stop(lowdin_stopwatch)
+  
+  write(*, *) ""
+  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Coupled Cluster : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*, *) ""
   close(30)
 
 
