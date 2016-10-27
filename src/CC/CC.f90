@@ -1,26 +1,33 @@
 !!******************************************************************************
 !!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
-!!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!    http://www.qcc.unal.edu.co/
 !!
 !!		Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
 !>
-!! @brief Coupled Cluster (CC) program
-!!        This module allows to make CC calculations in the APMO framework
-!! @author  A. Peña (apenat@unal.edu.co)
+!! @brief Coupled Cluster program
+!!        This program allows to make calculations in Coupled Cluster over APMO approach (CC-APMO)
+!!                from energy and amplitude equations obtained from SympyMaquinola (SymPyMaq see more: caraortizmah@una.edu.co) (based on SymPy). 
+!! @author  Carlos Andres Ortiz Mahecha (CAOM) (caraortizmah@unal.edu.co)
 !!
-!! <b> Creation date : </b> 2015
+!! <b> Creation date : </b> 2016-10-26
 !!
 !! <b> History: </b>
 !!
+!!   - <tt> 2016-10-26 </tt>: (CAOM) ( caraortizmah@unal.edu.co )
+!!        -# Development of Coupled Cluster (CC) program:
+!!                This Program calls a number of modules that solve equations of CC-APMO.
+!!   - <tt> data </tt>:  
+!!
+!!
+!! @warning <em>  All characters and events in this Quantum chemistry package -- even those based on real source code -- are entirely fictional. </br>
+!!                All celebrity lines are impersonated.....poorly. </br> 
+!!                The following program contains corase language and due to it's cintent should not be viewed by anyone. </em>
+!!
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 program CC
   use CONTROL_
@@ -53,9 +60,7 @@ program CC
 
     case("CCSD")
 
-      print*, "CoupledCluster_"      
       call CCSD_constructor()
-
 
     case default
 

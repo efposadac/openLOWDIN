@@ -1,3 +1,32 @@
+!!******************************************************************************
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!    http://www.qcc.unal.edu.co/
+!!
+!!    Todos los derechos reservados, 2013
+!!
+!!******************************************************************************
+
+!>
+!! @brief Coupled Cluster module
+!!        This module initializes all information necessary to make a calculation of Coupled Cluster over APMO approach (CC-APMO).
+!! @author  Carlos Andres Ortiz Mahecha (CAOM) (caraortizmah@unal.edu.co)
+!!
+!! <b> Creation date : </b> 2016-10-26
+!!
+!! <b> History: </b>
+!!
+!!   - <tt> 2016-10-26 </tt>: (CAOM) ( caraortizmah@unal.edu.co )
+!!        -# Development of Coupled Cluster (CC) module:
+!!                This Program calls three modules that load information about of equations of CC-APMO.
+!!   - <tt> data </tt>:  
+!!
+!!
+!! @warning <em>  All characters and events in this module -- even those based on real source code -- are entirely fictional. </br>
+!!                All celebrity lines are impersonated.....poorly. </br> 
+!!                The following module contains corase language and due to it's cintent should not be viewed by anyone. </em>
+!!
+!!
+!!
 module CoupledCluster_
   use Vector_
   use Matrix_
@@ -26,7 +55,7 @@ module CoupledCluster_
 
   end type CoupledCluster
 
-  ! Tensor is used to auxiliar matrices from integrals transformed
+  ! Tensor is used to auxiliry matrices from integrals transformed
   type, public :: Tensor
 
       real(8), allocatable :: valuesp(:,:,:,:) !values of one species
@@ -55,10 +84,8 @@ contains
   !! @author Carlos Andres Ortiz-Mahecha (CAOM) 
   subroutine CoupledCluster_constructor()
     implicit none
-    !integer :: nspecies
-
+    
     CoupledCluster_instance%isInstanced = .true.
-
 
   end subroutine CoupledCluster_constructor
 
@@ -83,19 +110,14 @@ contains
     call CoupledCluster_loadWaveFunction()
 
     ! Calculate MP2 and load energies
-    ! Point auxiliar matriz from MPFuntions.f90
-
     call CoupledCluster_MP2()
-
-         
-    !call CoupledCluster_pairing_function()
 
   end subroutine CoupledCluster_init
 
   !>
   !! @brief Load HF wave-function matrices
   !!        Build in a diagonal matrix with the eigenvectors
-  !! @author Carlos Ortiz
+  !! @author CAOM
   subroutine CoupledCluster_loadWaveFunction()
       implicit none
       
@@ -155,7 +177,7 @@ contains
   !>
   ! @brief load: MP2 energy
   !              Two Vectors that contain all of energies by species of correction and coupling energies
-  !              Point auxiliar matrix of transformed integrals of one and two species from MPFunctions.f90 to here
+  ! @author CAOM
   subroutine CoupledCluster_MP2()
       implicit none
       integer :: i, m, j
@@ -190,26 +212,27 @@ contains
         end if
       
       end do
-      
-      ! Point auxiliar matrix of integrals transformed from MollerPlesset class to CoupledCluster class:
-      
-      !CoupledCluster_instance%MP2_axMx1sp => MollerPlesset_instance%auxMatrix1sp
-      !CoupledCluster_instance%MP2_axMx2sp => MollerPlesset_instance%auxMatrix2sp
-            
+                
   end subroutine CoupledCluster_MP2
 
-  subroutine CoupledCluster_pairing_function(speciesId)
+  !>
+  ! @brief load: Auxiliary matrices from transformed integrals of one and two species
+  !        build: Coulomb integrals of one and two species
+  !               Exchange integrals of one species
+  ! @author CAOM
+  subroutine CoupledCluster_pairing_function(speciesId, OtherspeciesId)
       implicit none
       integer, intent(in) :: speciesId
-      integer :: OtherspeciesId, i
+      integer, intent(in), optional :: OtherspeciesId
+      integer :: i
       integer :: p, q, r, s
       integer :: num_species
       integer :: noc, nocs
       real(8) :: v1, v2, v_a, v_b, xv_a, xv_b
-      character(30) :: nameOtherSpId
+      ! character(30) :: nameOtherSpId
       ! real(8), allocatable ::
 
-      !array of matrices for auxiliar matrices from integrals transformed
+      !array of matrices for auxiliary matrices from transformed integrals
 
       type(Tensor), allocatable :: spints(:)
 
@@ -238,9 +261,9 @@ contains
         do q=1, noc
           do r=1, noc
             do s=1, noc
-              v1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2) !! integrales de Coulomb
+              v1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2) !! Coulomb integrals
               v_a= CoupledCluster_instance%MP2_axMx1sp%values(v1, 1)
-              v2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,noc/2) !! integrales de intercambio
+              v2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,noc/2) !! Exchange integrals
               v_b= CoupledCluster_instance%MP2_axMx1sp%values(v2, 1)
               xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
               xv_b = v_b * logic2dbl(mod(p,2) == mod(s,2)) * logic2dbl(mod(q,2) == mod(r,2))
@@ -250,7 +273,47 @@ contains
           end do
         end do
       end do
+
+      ! If there are two or more different species
+
+      if ( present(OtherspeciesId)) then
       
+        if (OtherspeciesId > 1) then
+
+          do i = speciesId + 1, num_species
+            !mmm = mmm + 1
+  
+            nocs = MolecularSystem_getTotalNumberOfContractions(i)
+            nocs = nocs*2
+
+            if (allocated(spints(i)%valuesp)) deallocate(spints(i)%valuesp)
+            allocate(spints(i)%valuesp(noc,nocs,noc,nocs))
+
+            spints(i)%valuesp(:,:,:,:)=0.0_8
+
+            ! Read transformed integrals from file
+            call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axMx2sp)
+  
+            !different species
+            do p=1, noc
+              do q=1, nocs
+                do r=1, noc
+                  do s=1, nocs
+                    v1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,nocs/2) !! Coulomb integrals
+                    v_a= CoupledCluster_instance%MP2_axMx2sp%values(v1, 1)
+                    xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
+                    spints(speciesId)%valuesp(p,q,r,s) = xv_a
+                  end do
+                end do
+              end do
+            end do
+
+          end do
+  
+        end if
+        
+      end if
+
   end subroutine CoupledCluster_pairing_function
 
 
