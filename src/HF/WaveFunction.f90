@@ -689,8 +689,10 @@ contains
       !!end if
 
     !! Debug
-    !!print *,"EXTERNAL POTENTIAL MATRIX FOR: ", arguments(2)
-    !!call Matrix_show(WaveFunction_instance(speciesID)%externalPotentialMatrix)
+    if (  CONTROL_instance%DEBUG_SCFS) then
+      print *,"EXTERNAL POTENTIAL MATRIX FOR: ", arguments(2)
+      call Matrix_show(WaveFunction_instance(speciesID)%externalPotentialMatrix)
+    end if
 
   end subroutine WaveFunction_buildExternalPotentialMatrix
 
