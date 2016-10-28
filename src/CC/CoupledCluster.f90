@@ -36,6 +36,7 @@ module CoupledCluster_
 
   type, public :: CoupledCluster
       
+      integer :: noc, nocs, nop
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy
       real(8) :: MP2_EnergyCorr
@@ -237,15 +238,19 @@ contains
       type(Tensor), allocatable :: spints(:)
 
       num_species = MolecularSystem_getNumberOfQuantumSpecies()
+      CoupledCluster_instance%nop = MolecularSystem_getNumberOfParticles(speciesID)
 
       if (allocated(spints)) deallocate(spints)
       allocate(spints(num_species))
 
       ! do speciesId = 1, num_species
 
-      noc = MolecularSystem_getTotalNumberOfContractions(speciesId)
-      ! number of contraction to nomber of molecular orbitals
-      noc = noc*2
+      CoupledCluster_instance%noc = MolecularSystem_getTotalNumberOfContractions(speciesId)
+      ! This information is necesarry in other modules: 
+      ! number of contraction to number of molecular orbitals
+      CoupledCluster_instance%noc = CoupledCluster_instance%noc*2
+      ! For simplicity here
+      noc = CoupledCluster_instance%noc
 
       if (allocated(spints(speciesId)%valuesp)) deallocate(spints(speciesId)%valuesp)
       allocate(spints(speciesId)%valuesp(noc,noc,noc,noc))
@@ -283,8 +288,12 @@ contains
           do i = speciesId + 1, num_species
             !mmm = mmm + 1
   
-            nocs = MolecularSystem_getTotalNumberOfContractions(i)
-            nocs = nocs*2
+            CoupledCluster_instance%nocs = MolecularSystem_getTotalNumberOfContractions(i)
+            ! This information is necesarry in other modules: 
+            ! number of contraction to number of molecular orbitals
+            CoupledCluster_instance%nocs = CoupledCluster_instance%nocs*2
+            ! For simplicity here
+            nocs = CoupledCluster_instance%nocs
 
             if (allocated(spints(i)%valuesp)) deallocate(spints(i)%valuesp)
             allocate(spints(i)%valuesp(noc,nocs,noc,nocs))

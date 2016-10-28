@@ -61,6 +61,8 @@ program CC
     case("CCSD")
 
       call CCSD_constructor()
+      call CCSD_run()
+
 
     case default
 
