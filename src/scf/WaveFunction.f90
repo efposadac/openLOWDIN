@@ -447,8 +447,10 @@ contains
 
        end if
 
-       wavefunction_instance(speciesID)%twoParticlesMatrix%values = &
-            wavefunction_instance(speciesID)%twoParticlesMatrix%values * ( MolecularSystem_getCharge(speciesID=speciesID ) )**2.0_8
+       if ( .not. InterPotential_instance%isInstanced) then
+         wavefunction_instance(speciesID)%twoParticlesMatrix%values = &
+              wavefunction_instance(speciesID)%twoParticlesMatrix%values * ( MolecularSystem_getCharge(speciesID=speciesID ) )**2.0_8
+       end if
 
     end if
 
