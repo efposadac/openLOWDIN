@@ -1806,13 +1806,13 @@ contains
          print *, "Building initial hamiltonian..."
          call ConfigurationInteraction_buildInitialCIMatrix()
 
-         print *, "Building and saving hamiltonian..."
-         call ConfigurationInteraction_buildAndSaveCIMatrix()
+         !print *, "Building and saving hamiltonian..."
+         !call ConfigurationInteraction_buildAndSaveCIMatrix()
 
-         !! deallocate transformed integrals
-         deallocate (ConfigurationInteraction_instance%configurations)
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
+         !!! deallocate transformed integrals
+         !deallocate (ConfigurationInteraction_instance%configurations)
+         !deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
+         !deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
          call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
               int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
@@ -4589,7 +4589,8 @@ contains
 
 
    !! save the unsorted diagonal Matrix )
-   if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU" ) then
+   if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU" .or. &
+      trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "ARPACK"  ) then
 
      call Vector_copyConstructor (  ConfigurationInteraction_instance%diagonalHamiltonianMatrix, diagonalHamiltonianMatrix)
 
@@ -6576,6 +6577,7 @@ contains
     integer :: maxnev 
     integer :: maxncv 
     integer :: ldv 
+    integer :: iter
   
 !    intrinsic abs
     character(1) bmat  
@@ -6585,7 +6587,7 @@ contains
     external saxpy
     real(8) sigma
     real(8) tol
-    real(8), parameter :: zero = 1E-09
+    real(8), parameter :: zero = 1E-08
 
 !    real(8) :: v(ldv,maxncv) 
 !    real(8) :: ax(maxn)
@@ -6600,7 +6602,7 @@ contains
 !    real(8) :: workd(3*maxn)
     real(8), allocatable :: v(:,:) 
     real(8), allocatable :: d(:)
-    real(8), allocatable :: resid(:)
+    real(8), allocatable :: resid(:),residi(:)
     real(8), allocatable :: z(:,:) 
     real(8), allocatable :: workl(:)
     real(8), allocatable :: workd(:)
@@ -6608,7 +6610,7 @@ contains
 
     type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
-    integer :: ii, jj
+    integer :: ii, jj, ia
 
     if (allocated(v) ) deallocate(v)
     allocate (v(ldv,maxncv))
@@ -6616,6 +6618,9 @@ contains
     allocate (d(maxnev))
     if (allocated(resid) ) deallocate(resid)
     allocate (resid(maxn))
+    if (allocated(residi) ) deallocate(residi)
+    allocate (residi(maxn))
+
     if (allocated(z) ) deallocate(z)
     allocate (z(ldv,maxnev))
     if (allocated(workl) ) deallocate(workl)
@@ -6628,6 +6633,7 @@ contains
     v = 0.0_8
     d = 0.0_8
     resid = 0.0_8
+    residi = 0.0_8
     z = 0.0_8
     workl = 0.0_8
     workd = 0.0_8
@@ -6773,14 +6779,17 @@ contains
 
     do ii = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
       resid(ConfigurationInteraction_instance%auxIndexCIMatrix%values(ii)) = ConfigurationInteraction_instance%initialEigenVectors%values(ii,1)
+      residi(ConfigurationInteraction_instance%auxIndexCIMatrix%values(ii)) = ConfigurationInteraction_instance%initialEigenVectors%values(ii,1)
     end do
 
+    print *, ConfigurationInteraction_instance%initialEigenValues%values(1)
+    iter = 0
     do
   
       call dsaupd ( ido, bmat, nx, which, nev, tol, resid, &
         ncv, v, ldv, iparam, ipntr, workd, workl, &
         lworkl, info )
-  
+      iter = iter + 1
       if ( ido /= -1 .and. ido /= 1 ) then
         exit
       end if
@@ -6793,6 +6802,7 @@ contains
   !  workd(ipntr(1)) as the input, and return the result to workd(ipntr(2)).
   !
       call av ( nx, workd(ipntr(1)), workd(ipntr(2)) )
+  !    call matvec ( nx, residi+workd(ipntr(1)), workd(ipntr(2)), iter )
   
      end do
   !
@@ -6840,11 +6850,15 @@ contains
         eigenValues%values(ii) = d(ii)
       end do
 
+      ia = 0
       do ii = 1, nx
         do jj = 1, CONTROL_instance%NUMBER_OF_CI_STATES
           eigenVectors%values(ii,jj) = z(ii,jj)
+          if ( abs(z(ii,jj)) > 1E-6) ia = ia + 1 
         end do
       end do 
+      print *, "ia ", ia
+
 
       if ( ierr /= 0 ) then
   
@@ -6941,6 +6955,13 @@ contains
     nonzero = 0
     maxStackSize = CONTROL_instance%CI_STACK_SIZE 
 
+    ia = 0
+    do i = 1 , nx
+      if ( abs(v(i) ) > 1E-6) ia = ia + 1
+    end do
+    print *, "ia", ia
+
+
     w = 0
 #ifdef intel
     open(unit=CIUnit, file=trim(CIFile), action = "read", form="unformatted", BUFFERED="YES")
@@ -7025,36 +7046,36 @@ contains
     real(8) :: SIGMA, TOL, GAP, MEM, DROPTOL, SHIFT
     integer :: IJOB, NDX1, NDX2, NDX3
 !   some local variables
-    integer :: I,J,K
+    integer :: I,J,K,iiter
 
-    maxsp = 25
+    maxsp = 20
     LX = N*(3*MAXSP+MAXEIG+1)+4*MAXSP*MAXSP
 
     if ( allocated ( eigs ) ) deallocate ( eigs )
     allocate ( eigs ( maxeig ) )
-    eigs = 0
+    eigs = 0.0_8
     if ( allocated ( res ) ) deallocate ( res )
     allocate ( res ( maxeig ) )
-    res = 0 
+    res = 0.0_8
     if ( allocated ( x ) ) deallocate ( x )
     allocate ( x ( lx ) )
-    x = 0
+    x = 0.0_8
 
 !    set input variables
 !    the matrix is already in the required format
 
      IPRINT = 5 !     standard report on standard output
-     ISEARCH = 0 !    we want the smallest eigenvalues
+     ISEARCH = 1 !    we want the smallest eigenvalues
      NEIG = maxeig !    number of wanted eigenvalues
      !NINIT = 0 !    no initial approximate eigenvectors
      NINIT = 1 !    initial approximate eigenvectors
      MADSPACE = maxsp !    desired size of the search space
      ITER = 100 !    maximum number of iteration steps
-     TOL = 1.0d-6 !    tolerance for the eigenvector residual
+     TOL = 1.0d-4 !    tolerance for the eigenvector residual
 
 !    additional parameters set to default
      ICNTL(1)=0
-     ICNTL(2)=0
+     ICNTL(2)=1
      ICNTL(3)=0
      ICNTL(4)=0
      ICNTL(5)=1
@@ -7069,17 +7090,19 @@ contains
      end do
 
      SIGMA = EIGS(1)
-      print *, "eigs", eigs(1)
+     SHIFT = EIGS(1)
+      print *, "eigs", eigs(1), x(1)
+      iiter = 0
 
 10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1,-1,EIGS, RES, X, LX, NEIG, &
                       SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                       SHIFT, DROPTOL, MEM, ICNTL, &
                       IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-    print *, "iter", iter, info, gap
 !    your private matrix-vector multiplication
+      iiter = iiter +1
       IF (IJOB.EQ.1) THEN
 !       X(NDX1) input,  X(NDX2) output
-         call matvec(N,X(NDX1),X(NDX2),ITER,GAP)
+         call matvec(N,X(1),X(NDX1),X(NDX2),iiter)
          GOTO 10
       END IF
 
@@ -7101,7 +7124,7 @@ contains
 
   end subroutine ConfigurationInteraction_jadamiluInterface
 
-  subroutine matvec ( nx, v, w, iter, gap)
+  subroutine matvec ( nx, y, v, w, iter)
   
   !*******************************************************************************
   !! AV computes w <- A * V where A is a discretized Laplacian.
@@ -7113,6 +7136,7 @@ contains
     implicit none
   
     integer nx
+    real(8) y(nx)
     real(8) v(nx)
     real(8) w(nx)
     integer, allocatable :: jj(:)
@@ -7122,8 +7146,13 @@ contains
     integer :: nproc
     real(8) :: wi
     real(8) :: timeA, timeB
+    type(Configuration) :: auxConfigurationI, auxConfigurationJ
+    real(8) :: tol
     integer :: iter
-    real(8) :: gap
+    tol = 1E-7
+
+    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationI )
+    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationJ )
 
     w = 0
     
@@ -7138,73 +7167,70 @@ contains
     call omp_set_num_threads(omp_get_max_threads())
     call omp_set_num_threads(nproc)
     CIenergy = 0
-!    ia = 0
-!    do i = 1 , nx
-!      if ( abs(v(i) ) > 1E-5 ) ia = ia + 1
-!    end do
-    print *, "v1", v(1)
-    
-!! recalculate
-    if ( iter == 0 .or. abs(v(1)) >= 0.9 ) then
-      do i = 1, nx
-  
-        w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
-        wi = 0
-  !$omp parallel & 
-  !$omp& firstprivate(i),&
-  !$omp& private(j,CIEnergy),&
-  !$omp& shared(ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w) reduction (+:wi)
-  !$omp do 
-          do j = i+1 , nx
-            if ( abs(v(i) ) > 1E-5 .or.  abs(v(j) ) > 1E-5 ) then
-              !CIEnergy = ConfigurationInteraction_calculateCIenergyC(i,j)
-!              CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
-!                      ConfigurationInteraction_instance%configurations(i), &
-!                      ConfigurationInteraction_instance%configurations(j) )
+    ia = 0
+    do i = 1 , nx
+      if ( abs(y(i)+v(i) ) > tol) ia = ia + 1
+    end do
+    ib = 0
 
-              w(j) = w(j) + CIEnergy*v(i)  !! direct
-              wi = wi + CIEnergy*v(j)  !! direct
-            end if
+    if ( iter == 1 ) then
+    do i = 1, nx
   
-          end do 
-  !$omp end do nowait
-  !$omp end parallel
+      w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
+      wi = 0
+!$omp parallel &
+!$omp& private(j,CIEnergy),&
+!$omp& private(auxConfigurationI ),&
+!$omp& private(auxConfigurationJ ),&
+!$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,y) reduction (+:wi)
+!$omp do 
+        do j = i+1 , nx
+          if ( abs(y(i)+v(i) ) > tol .or. abs(y(j)+v(j)) > tol ) then
+            auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(i)%occupations
+            auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(j)%occupations
+            CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
+                    auxConfigurationI, auxConfigurationJ )
+
+            w(j) = w(j) + CIEnergy*v(i)  !! direct
+            wi = wi + CIEnergy*v(j)  !! direct
+            ib = ib + 1
+          end if
+        end do 
+!$omp end do nowait
+!$omp end parallel
         w(i) = w(i) + wi
       end do 
-      timeB = omp_get_wtime()
-      write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Building CI matrix : ", timeB - timeA ," (s)"
-    else 
-      do i = 1, nx
-  
-        w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
-        wi = 0
-  !$omp parallel & 
-  !$omp& firstprivate(i),&
-  !$omp& private(j,CIEnergy),&
-  !$omp& shared(ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w) reduction (+:wi)
-  !$omp do 
-          do j = i+1 , nx
-            if ( abs(v(i) ) > 1E-3 .or.  abs(v(j) ) > 1E-3  ) then
-              if (ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i) < 0  ) then
-                !CIEnergy = ConfigurationInteraction_calculateCIenergyC(i,j)
-                !CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
-                !      ConfigurationInteraction_instance%configurations(i), &
-                !      ConfigurationInteraction_instance%configurations(j) )
+else
+    do i = 1, nx
+          if ( abs(y(i)+v(i) ) > tol  ) then
+!$omp parallel &
+!$omp& private(j,CIEnergy),&
+!$omp& private(auxConfigurationI ),&
+!$omp& private(auxConfigurationJ ),&
+!$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,y) reduction (+:wi)
+!$omp do 
 
-                w(j) = w(j) + CIEnergy*v(i)  !! direct
-                wi = wi + CIEnergy*v(j)  !! direct
-              end if
-            end if
-  
-          end do 
-  !$omp end do nowait
-  !$omp end parallel
-        w(i) = w(i) + wi
-      end do 
-      timeB = omp_get_wtime()
-      write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Building CI matrix : ", timeB - timeA ," (s)"
+         do j = 1 , nx
+          !if ( abs(y(j) ) > tol  ) then
+          if ( abs(y(j)+v(j) ) > tol  ) then
+            auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(i)%occupations
+            auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(j)%occupations
+            CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
+                    auxConfigurationI, auxConfigurationJ )
 
-    end if
+            w(j) = w(j) + CIEnergy*v(i)  !! direct
+            ib = ib + 1
+          end if
+        end do 
+!$omp end do nowait
+!$omp end parallel
+end if
+end do 
+end if
+
+      print *, "ia ib ",ia,ib
+      timeB = omp_get_wtime()
+      !write(*,"(A,I4,A,F10.3,A4)") "** iter ", iter, " time: ", timeB - timeA ," (s)"
 
     return
 
