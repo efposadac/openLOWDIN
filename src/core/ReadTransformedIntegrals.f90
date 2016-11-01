@@ -95,7 +95,7 @@ contains
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
 
-       call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+       call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
        matrixContainer%values = 0.0_8
 
        do
@@ -127,7 +127,7 @@ contains
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
 
-       call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+       call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
        matrixContainer%values = 0.0_8
 
 
@@ -155,7 +155,7 @@ contains
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
 
-       call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+       call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
        matrixContainer%values = 0.0_8
 
        !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
@@ -182,7 +182,7 @@ contains
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
 
-       call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+       call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
        matrixContainer%values = 0.0_8
 
        !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
@@ -259,7 +259,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+          call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -344,7 +344,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+          call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -435,7 +435,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+          call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -478,7 +478,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+          call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -515,7 +515,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+          call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -559,7 +559,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+          call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -596,7 +596,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
+          call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
 
           matrixContainer%values = 0.0_8
 

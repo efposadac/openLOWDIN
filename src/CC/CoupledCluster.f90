@@ -161,7 +161,7 @@ contains
             CoupledCluster_instance%HF_orbitals)
 
         ! FF vector
-        call Vector_constructor (CoupledCluster_instance%HF_ff,int(nao,4)*2,0.0_8)
+        call Vector_constructor (CoupledCluster_instance%HF_ff,nao*2,0.0_8)
 
         do x=1, nao
           do i=1, 2
@@ -173,8 +173,8 @@ contains
         call Matrix_diagonalConstructor (CoupledCluster_instance%HF_fs, CoupledCluster_instance%HF_ff)
 
         ! Load initial guess for T2 from MP2 correction
-        call Vector_constructor(CoupledCluster_instance%CCSDCorr, int(num_species,4)) !CCSD
-        call Vector_constructor(CoupledCluster_instance%ECorr2dOr, int(num_species,4)) !MP2
+        call Vector_constructor(CoupledCluster_instance%CCSDCorr, num_species) !CCSD
+        call Vector_constructor(CoupledCluster_instance%ECorr2dOr, num_species) !MP2
 
       end do
       

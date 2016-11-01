@@ -34,6 +34,8 @@
 !!        -# Creo operadores y funciones para operaciones basicas entre vectores
 !!   - <tt> 2011-02-11 </tt>: Fernando Posada ( efposadac@unal.edu.co )
 !!        -# Apadta el Modulo a LOWDIN, no usa Blas
+!!   - <tt> 2016-11-01 </tt>: CAOM ( caraortizmah@unal.edu.co )
+!!        -# Clase abstracta para Vector_constructor
 module Vector_
   use CONTROL_
   use Exception_
@@ -92,12 +94,22 @@ module Vector_
        Vector_constructorInteger, &
        Vector_destructorInteger, &
        Vector_swapIntegerElements
+
+  private :: &
+       Vector_constructor_4, &
+       Vector_constructor_8
+
+  !>
+  !! @brief Clase abstracta para el constructor de la clase Vector.
+  interface Vector_constructor
+    module procedure Vector_constructor_4 , Vector_constructor_8
+  end interface
   
 contains
   
   !>
   !! @brief Constructor por omision
-  subroutine Vector_constructor( this, ssize, value, values, name )
+  subroutine Vector_constructor_4( this, ssize, value, values, name )
     implicit none
     type(Vector), intent(inout) :: this
     integer, intent(in) :: ssize
@@ -138,7 +150,50 @@ contains
        
     end if
     
-  end subroutine Vector_constructor
+  end subroutine Vector_constructor_4
+
+    subroutine Vector_constructor_8( this, ssize, value, values, name )
+    implicit none
+    type(Vector), intent(inout) :: this
+    integer(8), intent(in) :: ssize
+    real(8), optional, intent(in) :: value
+    real(8), optional, intent(in) :: values(:)
+    character(50), optional :: name
+    
+    real(8) :: valueTmp
+    character(50) :: auxName
+    
+    valueTmp = 0.0_8
+    
+    if ( allocated( this%values ) ) then
+       deallocate( this%values )
+       
+    end if
+    
+    allocate( this%values( ssize ) )
+    
+    auxName = "none"
+    
+    if( present( name )) then
+       
+       auxName = trim(name)
+       
+    end if
+    
+    if( present(value) ) then
+       
+       valueTmp = value
+       this%values = valueTmp
+       
+    end if
+    
+    if( present(values) ) then
+       
+       this%values = values
+       
+    end if
+    
+  end subroutine Vector_constructor_8
 
   !>
   !! @brief Constructor por omision
