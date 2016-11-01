@@ -337,7 +337,7 @@ end if
    character(10) :: nameOfOtherSpecie
    type(Vector) :: eigenValues
    type(Vector) :: eigenValuesOfOtherSpecie
-   type(Matrix) :: auxMatrix
+   type(Vector) :: auxMatrix
 !   type(TransformIntegrals) :: repulsionTransformer
    real(8) :: lambda
    real(8) :: lambdaOfOtherSpecie
@@ -419,7 +419,7 @@ end if
                                                 auxIndex = IndexMap_tensorR4ToVectorB(int(a,8),int(r,8),int(b,8),int(s,8), &
                                                              int(numberOfContractions,8) )
 
-                                                auxVal_A= auxMatrix%values(auxIndex, 1)
+                                                auxVal_A= auxMatrix%values(auxIndex)
 
                                                 if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
 
@@ -438,7 +438,7 @@ end if
                                                                 else
 
                                                                         auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
-                                                                        auxVal_B= auxMatrix%values(auxIndex, 1)
+                                                                        auxVal_B= auxMatrix%values(auxIndex)
 
                                                                         independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A  &
                                                                         * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(a) + eigenValues%values(b) &
@@ -490,7 +490,7 @@ end if
         
 
 
-    call Matrix_destructor(auxMatrix)
+    call Vector_destructor(auxMatrix)
     !!
     !!**************************************************************************
 
@@ -582,7 +582,7 @@ if ( MollerPlesset_instance%numberOfSpecies > 1 ) then
                     auxIndex = IndexMap_tensorR4ToVector(a,r,p,t, numberOfContractions, &
                          numberOfContractionsOfOtherSpecie )
                     couplingEnergyCorrection = couplingEnergyCorrection +  &
-                         ( ( auxMatrix%values(auxIndex,1) )**2.0_8 ) &
+                         ( ( auxMatrix%values(auxIndex) )**2.0_8 ) &
                          / (eigenValues%values(a) + eigenValuesOfOtherSpecie%values(p) &
                          -eigenValues%values(r)-eigenValuesOfOtherSpecie%values(t) )
 
@@ -597,7 +597,7 @@ if ( MollerPlesset_instance%numberOfSpecies > 1 ) then
      end do
   end do
 
-  call Matrix_destructor(auxMatrix)
+  call Vector_destructor(auxMatrix)
   !! Adiciona la correccion del termino de acoplamiento
   MollerPlesset_instance%secondOrderCorrection = MollerPlesset_instance%secondOrderCorrection + &
        sum( MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values )

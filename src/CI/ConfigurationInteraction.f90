@@ -70,7 +70,7 @@ module ConfigurationInteraction_
      type(vector) :: numberOfOrbitals
      type(vector) :: eigenvalues
      type(vector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
-     type(matrix), allocatable :: fourCenterIntegrals(:,:)
+     type(vector), allocatable :: fourCenterIntegrals(:,:)
      type(matrix), allocatable :: twoCenterIntegrals(:)
      type(matrix), allocatable :: FockMatrix(:)
      type(vector), allocatable :: energyofmolecularorbitals(:)
@@ -4201,7 +4201,7 @@ contains
 
                              !Coulomb
                              twoParticlesEnergy=twoParticlesEnergy + &
-                                 ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+                                 ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex)
 
                              !Exchange, depends on spin
                              if ( spin(1) .eq. spin(2) ) then
@@ -4211,7 +4211,7 @@ contains
                                             numberOfSpatialOrbitals )
 
                                 TwoParticlesEnergy=TwoParticlesEnergy + &
-                                     kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+                                     kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex)
 
                              end if
                           !end if
@@ -4244,7 +4244,7 @@ contains
                                                 spatialOrbital(2), numberOfOtherSpecieSpatialOrbitals )
                                    auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
 
-                                   couplingEnergy=couplingEnergy+ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
+                                   couplingEnergy=couplingEnergy+ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex)
 
                                 !end if
 
@@ -4334,7 +4334,7 @@ contains
                           !     numberOfSpatialOrbitals )
 
                           TwoParticlesEnergy=TwoParticlesEnergy + &
-                               ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+                               ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex)
 
                        end if
                     end do
@@ -4361,7 +4361,7 @@ contains
                                        spatialOrbital(3), spatialOrbital(2), & 
                                        numberOfSpatialOrbitals )
                           TwoParticlesEnergy=TwoParticlesEnergy + &
-                               kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+                               kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex)
                        end if
                     end if
                  end do
@@ -4396,7 +4396,7 @@ contains
                                 auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
 
 
-                                couplingEnergy=couplingEnergy+ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1) 
+                                couplingEnergy=couplingEnergy+ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex)
                              !end if
                           end do
                           auxCIenergy = auxCIenergy + couplingEnergy*charge*otherSpecieCharge
@@ -4475,7 +4475,7 @@ contains
                                 spatialOrbital(4), numberOfSpatialOrbitals )
 
                     auxCIenergy = auxCIenergy + &
-                         ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
+                         ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex)*charge*charge
                  end if
 
                  !Exchange
@@ -4486,7 +4486,7 @@ contains
                                  spatialOrbital(2), spatialOrbital(3), numberOfSpatialOrbitals )
 
                     auxCIenergy = auxCIenergy + &
-                         kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
+                         kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex)*charge*charge
 
                  end if
 
@@ -4525,7 +4525,7 @@ contains
                                spatialOrbital(2), spatialOrbital(4), numberOfSpatialOrbitals, numberOfOtherSpecieSpatialOrbitals )
 
                           auxCIenergy = auxCIenergy + &
-                               ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)*charge*otherSpecieCharge
+                               ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex)*charge*otherSpecieCharge
                        end if
 
 
@@ -4708,7 +4708,7 @@ contains
 !       call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer, MolecularSystem_getEigenvectors(specieID), &
 !            ConfigurationInteraction_instance%fourCenterIntegrals(i,i), specieID, trim(nameOfSpecie) )
 
-        call ReadTransformedIntegrals_readOneSpecies( specieID, ConfigurationInteraction_instance%fourCenterIntegrals(i,i)   )
+        call ReadTransformedIntegrals_readOneSpecies( specieID, ConfigurationInteraction_instance%fourCenterIntegrals(i,i) )
         !print *, "two Particle"
         !call Matrix_show(ConfigurationInteraction_instance%fourCenterIntegrals(i,i))
 
@@ -4728,7 +4728,7 @@ contains
 !                     ConfigurationInteraction_instance%fourCenterIntegrals(i,j), specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
 
                  call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, &
-                         ConfigurationInteraction_instance%fourCenterIntegrals(i,j) )
+                         ConfigurationInteraction_instance%fourCenterIntegrals(i,j))
 
              end if
           end do

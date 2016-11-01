@@ -33,6 +33,7 @@
 !<
 module ReadTransformedIntegrals_
   use Matrix_
+  use Vector_
   use IndexMap_
   use Exception_
   use MolecularSystem_
@@ -50,7 +51,7 @@ contains
 
   subroutine ReadTransformedIntegrals_readOneSpecies( specieID, matrixContainer )
     implicit none
-    type(Matrix) :: matrixContainer
+    type(Vector) :: matrixContainer
 
     integer(8) :: numberOfIntegrals
     integer(8) :: auxIndex
@@ -94,7 +95,7 @@ contains
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
 
-       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+       call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
        matrixContainer%values = 0.0_8
 
        do
@@ -108,7 +109,7 @@ contains
                 auxIndex = IndexMap_tensorR4ToVector(indexBuffer(1,iter),indexBuffer(2,iter), &
                      indexBuffer(3,iter), indexBuffer(4,iter), numberOfContractions )
 
-                matrixContainer%values( auxIndex, 1 ) = integralValue(iter)
+                matrixContainer%values( auxIndex ) = integralValue(iter)
 
              end do
           end if
@@ -126,7 +127,7 @@ contains
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
 
-       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+       call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
        matrixContainer%values = 0.0_8
 
 
@@ -141,7 +142,7 @@ contains
           if ( p <= 0 ) exit
 
           auxIndex = IndexMap_tensorR4ToVector( p, q, r, s, numberOfContractions )
-          matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+          matrixContainer%values( auxIndex ) = auxIntegralValue
 
        end do
 
@@ -154,7 +155,7 @@ contains
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
 
-       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+       call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
        matrixContainer%values = 0.0_8
 
        !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
@@ -168,7 +169,7 @@ contains
           if ( p <= 0 ) exit
 
           auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(numberOfContractions,8 ))
-          matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+          matrixContainer%values( auxIndex ) = auxIntegralValue
 
        end do
 
@@ -181,7 +182,7 @@ contains
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
 
-       call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+       call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
        matrixContainer%values = 0.0_8
 
        !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
@@ -195,7 +196,7 @@ contains
           if ( p <= 0 ) exit
 
           auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(numberOfContractions,8 ))
-          matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+          matrixContainer%values( auxIndex ) = auxIntegralValue
 
        end do
 
@@ -207,7 +208,7 @@ contains
 
   subroutine ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, matrixContainer )
     implicit none
-    type(Matrix) :: matrixContainer
+    type(Vector) :: matrixContainer
 
     integer(8) :: numberOfIntegrals
     integer(8) :: auxIndex
@@ -258,7 +259,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -309,7 +310,7 @@ contains
                    auxIndex = IndexMap_tensorR4ToVector(lowerIndices(1),lowerIndices(2),upperIndeces(1),upperIndeces(2), &
                         bias, numberOfContractions - bias )
 
-                   matrixContainer%values(auxIndex,1)=integralValue(iter)
+                   matrixContainer%values(auxIndex)=integralValue(iter)
 
                 end do
              end if
@@ -343,7 +344,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -394,7 +395,7 @@ contains
                    auxIndex = IndexMap_tensorR4ToVector(upperIndeces(1),upperIndeces(2),lowerIndices(1),lowerIndices(2), &
                         numberOfContractions - bias, bias )
 
-                   matrixContainer%values(auxIndex,1)=integralValue(iter)
+                   matrixContainer%values(auxIndex)=integralValue(iter)
 
                 end do
              end if
@@ -434,7 +435,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -445,7 +446,7 @@ contains
 
              auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(bias,8), &
                   int(numberOfContractions - bias,8)  )
-             matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+             matrixContainer%values( auxIndex ) = auxIntegralValue
 
           end do
 
@@ -477,7 +478,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -488,7 +489,7 @@ contains
 
              auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(bias,8),  &
                   int(numberOfContractions - bias,8)  )
-             matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+             matrixContainer%values( auxIndex ) = auxIntegralValue
 
           end do
 
@@ -514,7 +515,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -525,7 +526,7 @@ contains
 
              auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(bias,8),  &
                   int(numberOfContractions - bias,8)  )
-             matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+             matrixContainer%values( auxIndex ) = auxIntegralValue
 
           end do
 
@@ -558,7 +559,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -569,7 +570,7 @@ contains
 
              auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(bias,8),  &
                   int(numberOfContractions - bias,8)  )
-             matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+             matrixContainer%values( auxIndex ) = auxIntegralValue
 
           end do
 
@@ -595,7 +596,7 @@ contains
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          call Matrix_constructor( matrixContainer, numberOfIntegrals, 1_8, 0.0_8 )
+          call Vector_constructor( matrixContainer, int(numberOfIntegrals,4), 0.0_8 )
 
           matrixContainer%values = 0.0_8
 
@@ -606,7 +607,7 @@ contains
 
              auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(bias,8),  &
                   int(numberOfContractions - bias,8)  )
-             matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
+             matrixContainer%values( auxIndex ) = auxIntegralValue
 
           end do
 

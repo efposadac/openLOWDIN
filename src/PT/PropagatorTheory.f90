@@ -394,7 +394,8 @@ contains
     real(8) :: lambdaOfSpeciesA,  lambdaOfSpeciesB,  lambdaOfSpeciesC 
     real(8) :: chargeOfSpeciesA, chargeOfSpeciesB, chargeOfSpeciesC
 !    type(TransformIntegrals) :: repulsionTransformer
-    type(Matrix),allocatable :: auxMatrix2(:), selfEnergy2hp(:), selfEnergy2ph(:), selfEnergyhp(:)
+    type(Matrix),allocatable :: selfEnergy2hp(:), selfEnergy2ph(:), selfEnergyhp(:)
+    type(Vector),allocatable :: auxMatrix2(:)
     real(8) :: auxVal, auxVal_1, auxVal_2, auxVal_3
     real(8) :: auxValue_A, auxValue_B, auxValue_C, auxValue_D 
     real(8) :: auxValue_E, auxValue_F, auxValue_G, auxValue_H
@@ -667,9 +668,9 @@ contains
                       do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                          
                          auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, numberOfContractionsOfSpeciesA )
-                         auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
+                         auxValue_A= auxMatrix2(j)%values(auxIndex)
                          auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, numberOfContractionsOfSpeciesA )
-                         auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
+                         auxValue_B= auxMatrix2(j)%values(auxIndex)
                         
                          id1 = id1 + 1
      
@@ -693,9 +694,9 @@ contains
                             id2 = id2 + 1
                             
                             auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, numberOfContractionsOfSpeciesA )
-                            auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
+                            auxValue_A= auxMatrix2(j)%values(auxIndex)
                             auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, numberOfContractionsOfSpeciesA )
-                            auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
+                            auxValue_B= auxMatrix2(j)%values(auxIndex)
                             
                             selfEnergy2hp(j)%values(1,id2) = occupationsOfSpeciesA%values(ia)*occupationsOfSpeciesA%values(ja)*&
                                  auxValue_A*(lambdaOfSpeciesA*auxValue_A - auxValue_B)
@@ -727,9 +728,9 @@ contains
                          id3 = id3 + 1
                          
                          auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
-                         auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
+                         auxValue_A= auxMatrix2(j)%values(auxIndex)
                          auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
-                         auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
+                         auxValue_B= auxMatrix2(j)%values(auxIndex)
                          
                          selfEnergyhp(j)%values(1,id3) = auxValue_A*(lambdaOfSpeciesA*auxValue_A - auxValue_B)
                          
@@ -773,7 +774,7 @@ contains
                       do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                          
                          auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                         auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
+                         auxValue_A= auxMatrix2(j)%values(auxIndex)
                          
                          id1 = id1 + 1
                          
@@ -795,7 +796,7 @@ contains
                          id2 = id2 + 1
                          
                          auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                         auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
+                         auxValue_A = auxMatrix2(j)%values(auxIndex)
                          
                          selfEnergy2hp(j)%values(1,id2) = occupationsOfSpeciesA%values(ia)*&
                               lambdaOfSpeciesA*lambdaOfSpeciesB*((auxValue_A)**2.0_8)
@@ -828,7 +829,7 @@ contains
                       id3 = id3 + 1
                       
                       auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                      auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
+                      auxValue_A= auxMatrix2(j)%values(auxIndex)
                       
                       selfEnergyhp(j)%values(1,id3) = lambdaOfSpeciesA*lambdaOfSpeciesB*((auxValue_A)**2.0_8)
                       
@@ -9596,7 +9597,8 @@ contains
     real(8) :: lambdaOfSpeciesA,  lambdaOfSpeciesB,  lambdaOfSpeciesC 
     real(8) :: chargeOfSpeciesA, chargeOfSpeciesB, chargeOfSpeciesC
 !    type(TransformIntegrals) :: repulsionTransformer
-    type(Matrix),allocatable :: auxMatrix2(:,:), selfEnergy2hp(:), selfEnergy2ph(:)
+    type(Vector),allocatable :: auxMatrix2(:,:)
+    type(Matrix),allocatable :: selfEnergy2hp(:), selfEnergy2ph(:)
     type(Matrix),allocatable :: secondOrderDensities(:)
     type(Matrix) :: diagram_A, diagram_B, auxMatrix, auxMatrix3
     type(Matrix) :: partialMO1, partialMO2    
@@ -9836,9 +9838,9 @@ contains
                    do ja = 1 , occupationNumberOfSpeciesA
                       
                       auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
-                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
+                      auxValue_E= auxMatrix2(p,p)%values(auxIndex)
                       auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
-                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
+                      auxValue_F= auxMatrix2(p,p)%values(auxIndex)
                       
                       partialValue = 0.0_8
                       
@@ -9847,14 +9849,14 @@ contains
                             do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                
                                auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, numberOfContractionsOfSpeciesA )
-                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(p,p)%values(auxIndex)
                                
                                auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
-                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(p,p)%values(auxIndex)
                                
                                partialValue = partialValue &
                                     - 0.5_8*(auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/(( eigenValuesOfSpeciesA%values(ia)&
@@ -9875,9 +9877,9 @@ contains
                    do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                       
                       auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
-                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
+                      auxValue_E= auxMatrix2(p,p)%values(auxIndex)
                       auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
-                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
+                      auxValue_F= auxMatrix2(p,p)%values(auxIndex)
                       
                       partialValue = 0.0_8                      
                       
@@ -9886,14 +9888,14 @@ contains
                             do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                
                                auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, numberOfContractionsOfSpeciesA )
-                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(p,p)%values(auxIndex)
                                
                                auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
-                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
-                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(p,p)%values(auxIndex)
                                
                                partialValue = partialValue &
                                     + 0.5_8*(auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/(( eigenValuesOfSpeciesA%values(ia)&
@@ -9914,9 +9916,9 @@ contains
                    do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                       
                       auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
-                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
+                      auxValue_E= auxMatrix2(p,p)%values(auxIndex)
                       auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
-                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
+                      auxValue_F= auxMatrix2(p,p)%values(auxIndex)
                       
                       partialValue = 0.0_8
                       
@@ -9925,14 +9927,14 @@ contains
                             do ka = 1 , occupationNumberOfSpeciesA
                                
                                auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, numberOfContractionsOfSpeciesA )
-                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, numberOfContractionsOfSpeciesA )
-                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(p,p)%values(auxIndex)
                                
                                auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
-                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(p,p)%values(auxIndex)
                                
                                partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
                                     +eigenValuesOfSpeciesA%values(ka) - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesA%values(ba))
@@ -9946,14 +9948,14 @@ contains
                             do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                
                                auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, numberOfContractionsOfSpeciesA )
-                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(p,p)%values(auxIndex)
                                
                                auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
-                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
-                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(p,p)%values(auxIndex)
                                
                                partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
                                     +eigenValuesOfSpeciesA%values(ia) - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesA%values(ca))
@@ -9996,12 +9998,12 @@ contains
                       if (p>i) then
                          
                          auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                         auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
+                         auxValue_E= auxMatrix2(i,p)%values(auxIndex)
                          
                       else
 
                          auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                         auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
+                         auxValue_E= auxMatrix2(p,i)%values(auxIndex)
 
                       end if
 
@@ -10012,14 +10014,14 @@ contains
                             do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                                
                                auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, numberOfContractionsOfSpeciesB )
-                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, numberOfContractionsOfSpeciesB )
-                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(p,p)%values(auxIndex)
                                
                                auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
-                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
-                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(p,p)%values(auxIndex)
                                
                                partialValue = partialValue &
                                     - 0.5_8*(auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/(( eigenValuesOfSpeciesB%values(ib)&
@@ -10042,12 +10044,12 @@ contains
                       if (p>i) then
 
                          auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                         auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
+                         auxValue_E= auxMatrix2(i,p)%values(auxIndex)
                       
                       else
 
                          auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                         auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
+                         auxValue_E= auxMatrix2(p,i)%values(auxIndex)
 
                       end if
                       partialValue = 0.0_8                      
@@ -10057,14 +10059,14 @@ contains
                             do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                                
                                auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, numberOfContractionsOfSpeciesB )
-                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, numberOfContractionsOfSpeciesB )
-                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(p,p)%values(auxIndex)
                                
                                auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
-                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
-                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(p,p)%values(auxIndex)
                                
                                partialValue = partialValue &
                                     + 0.5_8*(auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/(( eigenValuesOfSpeciesB%values(ib)&
@@ -10087,12 +10089,12 @@ contains
                       if (p>i) then
                          
                          auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                         auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
+                         auxValue_E= auxMatrix2(i,p)%values(auxIndex)
                       
                       else
                          
                          auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                         auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
+                         auxValue_E= auxMatrix2(p,i)%values(auxIndex)
 
                       end if
 
@@ -10103,14 +10105,14 @@ contains
                             do kb = 1 , occupationNumberOfSpeciesB
                                
                                auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, numberOfContractionsOfSpeciesB )
-                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, numberOfContractionsOfSpeciesB )
-                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(p,p)%values(auxIndex)
                                
                                auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
-                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
-                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(p,p)%values(auxIndex)
                                
                                partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
                                     +eigenValuesOfSpeciesB%values(kb) - eigenValuesOfSpeciesB%values(ab) - eigenValuesOfSpeciesB%values(bb))
@@ -10124,14 +10126,14 @@ contains
                             do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                                
                                auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, numberOfContractionsOfSpeciesB )
-                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, numberOfContractionsOfSpeciesB )
-                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(p,p)%values(auxIndex)
                                
                                auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
-                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(p,p)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
-                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(p,p)%values(auxIndex)
                                
                                partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
                                     +eigenValuesOfSpeciesB%values(ib) - eigenValuesOfSpeciesB%values(bb) - eigenValuesOfSpeciesB%values(cb))
@@ -10154,9 +10156,9 @@ contains
                    do ja = 1 , occupationNumberOfSpeciesA
 
                       auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
-                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
+                      auxValue_E= auxMatrix2(i,i)%values(auxIndex)
                       auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
-                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
+                      auxValue_F= auxMatrix2(i,i)%values(auxIndex)
                       
                       partialValue = 0.0_8
 
@@ -10167,16 +10169,16 @@ contains
                                if (p>i) then
                                   
                                   auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex)
 
                                else
 
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex)
 
                                end if
 
@@ -10199,9 +10201,9 @@ contains
                    do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                       
                       auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
-                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
+                      auxValue_E= auxMatrix2(i,i)%values(auxIndex)
                       auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
-                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
+                      auxValue_F= auxMatrix2(i,i)%values(auxIndex)
                       
                       partialValue = 0.0_8
                       
@@ -10212,16 +10214,16 @@ contains
                                if (p>i) then                               
                                   
                                   auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex)
 
                                else
 
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex)
 
                                end if
 
@@ -10244,9 +10246,9 @@ contains
                    do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                       
                       auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
-                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
+                      auxValue_E= auxMatrix2(i,i)%values(auxIndex)
                       auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
-                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
+                      auxValue_F= auxMatrix2(i,i)%values(auxIndex)
                       
                       partialValue = 0.0_8
                       
@@ -10257,16 +10259,16 @@ contains
                                if (p>i) then                                                              
                                   
                                   auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex)
 
                                else
 
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex)
 
                                end if
 
@@ -10284,16 +10286,16 @@ contains
                                if (p>i) then                                                              
 
                                   auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex)
 
                                else
 
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, aa, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex)
 
 
                                end if
@@ -10345,12 +10347,12 @@ contains
                             if (p>i) then                                                              
 
                                auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                               auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(i,p)%values(auxIndex)
 
                             else
 
                                auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                               auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(p,i)%values(auxIndex)
 
                             end if
 
@@ -10362,16 +10364,16 @@ contains
 
                                      if (r>p) then                                                                                                   
                                         auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
+                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex)
 
                                      else
 
                                         auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
+                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex)
 
                                      end if
 
@@ -10396,12 +10398,12 @@ contains
                             if (p>i) then
                                
                                auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                               auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(i,p)%values(auxIndex)
 
                             else
 
                                auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                               auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(p,i)%values(auxIndex)
 
                             end if
 
@@ -10413,16 +10415,16 @@ contains
       
                                      if (r>p) then                                                                                                                                  
                                         auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
+                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex)
 
                                      else
 
                                         auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
+                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex)
 
                                      end if
 
@@ -10447,12 +10449,12 @@ contains
                             if (p>i) then
                                
                                auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                               auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(i,p)%values(auxIndex)
 
                             else
 
                                auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                               auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(p,i)%values(auxIndex)
                                
                             end if
 
@@ -10465,16 +10467,16 @@ contains
                                      if (r>p) then
                                                                                 
                                         auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
+                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex)
 
                                      else
 
                                         auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, jb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
+                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex)
 
                                      end if
                                      
@@ -10492,18 +10494,18 @@ contains
                                      if (r>p) then
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
+                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex)
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex)
 
                                      else
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(ic, ac, ab, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
+                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex)
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex)
                                         
                                      end if
 
@@ -10558,9 +10560,9 @@ contains
                       do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                          
                          auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, numberOfContractionsOfSpeciesA )
-                         auxValue_A= auxMatrix2(i,j)%values(auxIndex, 1)
+                         auxValue_A= auxMatrix2(i,j)%values(auxIndex)
                          auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, numberOfContractionsOfSpeciesA )
-                         auxValue_B= auxMatrix2(i,j)%values(auxIndex, 1)
+                         auxValue_B= auxMatrix2(i,j)%values(auxIndex)
                          
                          id1 = id1 + 1
                          
@@ -10575,13 +10577,13 @@ contains
                             do ka = 1, occupationNumberOfSpeciesA
                                
                                auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, numberOfContractionsOfSpeciesA )
-                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, numberOfContractionsOfSpeciesA )
-                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
-                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_F= auxMatrix2(i,j)%values(auxIndex)
                                
                                valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
                                     /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesA%values(ka) &
@@ -10594,26 +10596,26 @@ contains
                             do ja = 1, occupationNumberOfSpeciesA
                                
                                auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, numberOfContractionsOfSpeciesA )
-                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, numberOfContractionsOfSpeciesA )
-                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, numberOfContractionsOfSpeciesA )
-                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_F= auxMatrix2(i,j)%values(auxIndex)
                                
                                valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
                                     /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ja) &
                                     - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesA%values(ca) )
                                
                                auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, numberOfContractionsOfSpeciesA )
-                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_C= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, numberOfContractionsOfSpeciesA )
-                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_D= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, numberOfContractionsOfSpeciesA )
-                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_E= auxMatrix2(i,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_F= auxMatrix2(i,j)%values(auxIndex)
                                
                                valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
                                     /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ja) &
@@ -10639,9 +10641,9 @@ contains
                             id2 = id2 + 1
                             
                             auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, numberOfContractionsOfSpeciesA )
-                            auxValue_A= auxMatrix2(i,j)%values(auxIndex, 1)
+                            auxValue_A= auxMatrix2(i,j)%values(auxIndex)
                             auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, numberOfContractionsOfSpeciesA )
-                            auxValue_B= auxMatrix2(i,j)%values(auxIndex, 1)
+                            auxValue_B= auxMatrix2(i,j)%values(auxIndex)
                             
                             selfEnergy2hp(j)%values(1,id2) = auxValue_A - auxValue_B
                             
@@ -10654,13 +10656,13 @@ contains
                                   do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                      
                                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, numberOfContractionsOfSpeciesA )
-                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, numberOfContractionsOfSpeciesA )
-                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, numberOfContractionsOfSpeciesA )
-                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, numberOfContractionsOfSpeciesA )
-                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex)
                                      
                                      valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
                                           /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ja) &
@@ -10673,26 +10675,26 @@ contains
                                   do ka = 1, occupationNumberOfSpeciesA
                                      
                                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, numberOfContractionsOfSpeciesA )
-                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, numberOfContractionsOfSpeciesA )
-                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, numberOfContractionsOfSpeciesA )
-                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, numberOfContractionsOfSpeciesA )
-                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex)
                                      
                                      valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
                                           /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesA%values(ka) &
                                           - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesA%values(ba) )
                                      
                                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, numberOfContractionsOfSpeciesA )
-                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, numberOfContractionsOfSpeciesA )
-                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, numberOfContractionsOfSpeciesA )
-                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, numberOfContractionsOfSpeciesA )
-                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex)
                                      
                                      valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
                                           /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ka) &
@@ -10748,12 +10750,12 @@ contains
                             if (j>i) then
                                
                                auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                               auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_A = auxMatrix2(i,j)%values(auxIndex)
 
                             else
                                
                                auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                               auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                               auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                
                             end if
 
@@ -10773,19 +10775,19 @@ contains
 
                                      auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, jb, &
                                           numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
                                           numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex)
 
                                   else
 
                                      auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, ia, &
                                           numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(jb, ab, ia, aa, &
                                           numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
+                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex)
 
                                   end if
 
@@ -10803,19 +10805,19 @@ contains
                                      
                                      auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, ab, &
                                           numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib,  bb, &
                                           numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex)
 
                                   else
 
                                      auxIndex = IndexMap_tensorR4ToVector(bb, ab, pa, ia, &
                                           numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ib, bb, ia, aa, &
                                           numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
+                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex)
 
                                   end if
 
@@ -10830,17 +10832,17 @@ contains
                                do ia = 1 , occupationNumberOfSpeciesA                                  
 
                                   auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, numberOfContractionsOfSpeciesA )
-                                  auxValue_A = auxMatrix2(i,i)%values(auxIndex, 1)
+                                  auxValue_A = auxMatrix2(i,i)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, numberOfContractionsOfSpeciesA )
-                                  auxValue_B = auxMatrix2(i,i)%values(auxIndex, 1)
+                                  auxValue_B = auxMatrix2(i,i)%values(auxIndex)
                                   if (j>i) then
                                      auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, &
                                           numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                     auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                   else
                                      auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, &
                                           numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                     auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
+                                     auxValue_C = auxMatrix2(j,i)%values(auxIndex)
                                   end if
                                   valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
                                        /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesB%values(ib) &
@@ -10853,17 +10855,17 @@ contains
                                do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                                   
                                   auxIndex = IndexMap_tensorR4ToVector(jb, ab, ib, bb, numberOfContractionsOfSpeciesB )
-                                  auxValue_A= auxMatrix2(j,j)%values(auxIndex, 1)
+                                  auxValue_A= auxMatrix2(j,j)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, numberOfContractionsOfSpeciesB )
-                                  auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
+                                  auxValue_B= auxMatrix2(j,j)%values(auxIndex)
                                   if (j>i) then
                                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, jb, bb, &
                                           numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                     auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                   else
                                      auxIndex = IndexMap_tensorR4ToVector(jb, bb, pa, aa, &
                                           numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                     auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
+                                     auxValue_C = auxMatrix2(j,i)%values(auxIndex)
                                   end if
                                   valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
                                        /( eigenValuesOfSpeciesB%values(ib) + eigenValuesOfSpeciesB%values(jb) &
@@ -10890,13 +10892,13 @@ contains
 
                                auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, &
                                     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                               auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_A = auxMatrix2(i,j)%values(auxIndex)
 
                             else
 
                                auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ia, &
                                     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                               auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                               auxValue_A = auxMatrix2(j,i)%values(auxIndex)
 
                             end if
 
@@ -10913,19 +10915,19 @@ contains
                                   if (j>i) then                                                                                                                                           
                                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, &
                                           numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, &
                                           numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex)
 
                                   else
 
                                      auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, aa, &
                                           numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(ib, bb, ia, aa, &
                                           numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
+                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex)
 
                                   end if
 
@@ -10942,19 +10944,19 @@ contains
                                if (j>i) then                                                                                                                                           
                                   auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, &
                                        numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                  auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
                                        numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                  auxValue_B = auxMatrix2(i,j)%values(auxIndex)
 
                                else
 
                                   auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, aa, &
                                        numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                  auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                   auxIndex = IndexMap_tensorR4ToVector(jb, ab, ia, aa, &
                                        numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
+                                  auxValue_B = auxMatrix2(j,i)%values(auxIndex)
 
                                end if
 
@@ -10969,17 +10971,17 @@ contains
                             do ja = 1 , occupationNumberOfSpeciesA
 
                                auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, numberOfContractionsOfSpeciesA )
-                               auxValue_A = auxMatrix2(i,i)%values(auxIndex, 1)
+                               auxValue_A = auxMatrix2(i,i)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, numberOfContractionsOfSpeciesA )
-                               auxValue_B = auxMatrix2(i,i)%values(auxIndex, 1)
+                               auxValue_B = auxMatrix2(i,i)%values(auxIndex)
                                if (j>i) then
                                   auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, &
                                        numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                  auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                  auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                else
                                   auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, &
                                        numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                  auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
+                                  auxValue_C = auxMatrix2(j,i)%values(auxIndex)
                                end if
                                valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
                                     /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesB%values(ib) &
@@ -10992,17 +10994,17 @@ contains
                             do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                                
                                auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, numberOfContractionsOfSpeciesB )
-                               auxValue_A= auxMatrix2(j,j)%values(auxIndex, 1)
+                               auxValue_A= auxMatrix2(j,j)%values(auxIndex)
                                auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, numberOfContractionsOfSpeciesB )
-                               auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
+                               auxValue_B= auxMatrix2(j,j)%values(auxIndex)
                                if (j>i) then
                                auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb,&
                                     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                               auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                               auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                else
                                auxIndex = IndexMap_tensorR4ToVector(jb, bb, pa, ia,&
                                     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                               auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
+                               auxValue_C = auxMatrix2(j,i)%values(auxIndex)
                                end if
                                valueOfW = valueOfW + (auxValue_A - auxValue_B)*(auxValue_C)&
                                     /( eigenValuesOfSpeciesB%values(ib) + eigenValuesOfSpeciesB%values(jb) &
@@ -11269,13 +11271,13 @@ contains
                                      do da = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, numberOfContractionsOfSpeciesA )
-                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, numberOfContractionsOfSpeciesA )
-                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, numberOfContractionsOfSpeciesA )
-                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex)
                                         
                                         a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
                                         c = lastOmega + eigenValuesOfSpeciesA%values(ia) &
@@ -11291,13 +11293,13 @@ contains
                                      do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, numberOfContractionsOfSpeciesA )
-                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, numberOfContractionsOfSpeciesA )
-                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, numberOfContractionsOfSpeciesA )
-                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex)
                                         
                                         a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
                                         c = lastOmega + eigenValuesOfSpeciesA%values(ja) &
@@ -11307,13 +11309,13 @@ contains
                                         valueOfdU = valueOfdU - a2/(c**2.0_8)
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, numberOfContractionsOfSpeciesA )
-                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, numberOfContractionsOfSpeciesA )
-                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, numberOfContractionsOfSpeciesA )
-                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex)
                                         
                                         a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
                                         c = lastOmega + eigenValuesOfSpeciesA%values(ja) &
@@ -11377,13 +11379,13 @@ contains
                                      do la = 1 , occupationNumberOfSpeciesA
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, numberOfContractionsOfSpeciesA )
-                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, numberOfContractionsOfSpeciesA )
-                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, numberOfContractionsOfSpeciesA )
-                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex)
                                         
                                         a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
                                         c = lastOmega + eigenValuesOfSpeciesA%values(aa) &
@@ -11399,13 +11401,13 @@ contains
                                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, numberOfContractionsOfSpeciesA )
-                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, numberOfContractionsOfSpeciesA )
-                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, numberOfContractionsOfSpeciesA )
-                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex)
                                         
                                         a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
                                         c = lastOmega + eigenValuesOfSpeciesA%values(ba) &
@@ -11415,13 +11417,13 @@ contains
                                         valueOfdU = valueOfdU + a2/(c**2.0_8)
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, numberOfContractionsOfSpeciesA )
-                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, numberOfContractionsOfSpeciesA )
-                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, numberOfContractionsOfSpeciesA )
-                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex)
                                         
                                         a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
                                         c = lastOmega + eigenValuesOfSpeciesA%values(ba) &
@@ -11508,17 +11510,17 @@ contains
                                               if (k>i) then
                                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib,&
                                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
+                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex)
                                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib,&
                                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
+                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex)
                                               else
                                                  auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ba,&
                                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
+                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex)
                                                  auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, aa, &
                                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
+                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex)
                                               end if
 
                                               a2 = auxValue_A*auxValue_B
@@ -11534,17 +11536,17 @@ contains
                                               if (k>i) then
                                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, &
                                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
+                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex)
                                                  auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, &
                                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
+                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex)
                                               else
                                                  auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, aa, &
                                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
+                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex)
                                                  auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, ba, &
                                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
+                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex)
                                               end if
                                                  
                                               a2 = auxValue_A*auxValue_B
@@ -11612,19 +11614,19 @@ contains
                                                  
                                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, &
                                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
+                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex)
                                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, &
                                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
+                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex)
                                                  
                                               else
 
                                                  auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ja, &
                                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
+                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex)
                                                  auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, aa, &
                                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
+                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex)
 
                                               end if
                                                     
@@ -11642,19 +11644,19 @@ contains
                                                  
                                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, &
                                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
+                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex)
                                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, &
                                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
+                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex)
                                                  
                                               else
 
                                                  auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ia, &
                                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
+                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex)
                                                  auxIndex = IndexMap_tensorR4ToVector(ab, ib, ja, aa, &
                                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
+                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex)
 
                                               end if
 
@@ -11753,20 +11755,20 @@ contains
                                            
                                            auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, &
                                                 numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex)
 
                                         else
 
                                            auxIndex = IndexMap_tensorR4ToVector(bb, jb, pa, aa, &
                                                 numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex)
 
                                         end if
 
                                         auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, ab, numberOfContractionsOfSpeciesB )
-                                        auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
+                                        auxValue_B= auxMatrix2(j,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ib, ab, bb, jb, numberOfContractionsOfSpeciesB )
-                                        auxValue_C= auxMatrix2(j,j)%values(auxIndex, 1)
+                                        auxValue_C= auxMatrix2(j,j)%values(auxIndex)
                                         
                                         a2 = (auxValue_A)*(auxValue_B - auxValue_C)
                                         c = lastOmega + eigenValuesOfSpeciesB%values(jb) &
@@ -11785,19 +11787,19 @@ contains
                                            
                                            auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, &
                                                 numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                            auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, &
                                                 numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                           auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                           auxValue_B = auxMatrix2(i,j)%values(auxIndex)
 
                                         else
 
                                            auxIndex = IndexMap_tensorR4ToVector(bb, ab, ba, aa, &
                                                 numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                            auxIndex = IndexMap_tensorR4ToVector(ib, bb, pa, ba, &
                                                 numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                           auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
+                                           auxValue_B = auxMatrix2(j,i)%values(auxIndex)
 
                                         end if
 
@@ -11818,19 +11820,19 @@ contains
                                            
                                            auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, &
                                                 numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                            auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, &
                                                 numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                           auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                           auxValue_B = auxMatrix2(i,j)%values(auxIndex)
 
                                         else
 
                                            auxIndex = IndexMap_tensorR4ToVector(ib, jb, aa, ba, &
                                                 numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                            auxIndex = IndexMap_tensorR4ToVector(jb, ab, pa, ba, &
                                                 numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                           auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
+                                           auxValue_B = auxMatrix2(j,i)%values(auxIndex)
 
                                         end if
 
@@ -11898,20 +11900,20 @@ contains
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb,&
                                              numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
 
                                      else
 
                                         auxIndex = IndexMap_tensorR4ToVector(bb, jb, pa, ia, &
                                              numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                         
                                      end if
 
                                      auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, numberOfContractionsOfSpeciesB )
-                                     auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
+                                     auxValue_B= auxMatrix2(j,j)%values(auxIndex)
                                      auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, numberOfContractionsOfSpeciesB )
-                                     auxValue_C= auxMatrix2(j,j)%values(auxIndex, 1)
+                                     auxValue_C= auxMatrix2(j,j)%values(auxIndex)
                                      
                                      a2 = (auxValue_A)*(auxValue_B - auxValue_C)
                                      c = lastOmega + eigenValuesOfSpeciesB%values(bb) &
@@ -11930,19 +11932,19 @@ contains
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb,&
                                              numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb,&
                                              numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex)
 
                                      else
 
                                         auxIndex = IndexMap_tensorR4ToVector(ib, jb, ia, ja, &
                                              numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(ab, jb, pa, ja,&
                                              numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                        auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(j,i)%values(auxIndex)
 
                                      end if
 
@@ -11963,19 +11965,19 @@ contains
                                         
                                         auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab,&
                                              numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib,&
                                              numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex)
 
                                      else
 
                                         auxIndex = IndexMap_tensorR4ToVector(bb, ab, ia, ja,&
                                              numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
+                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex)
                                         auxIndex = IndexMap_tensorR4ToVector(bb, ib, pa, ja,&
                                              numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                        auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
+                                        auxValue_B = auxMatrix2(j,i)%values(auxIndex)
 
                                      end if
 
@@ -12056,20 +12058,20 @@ contains
                                            if (k>i) then
                                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac,&
                                                    numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
-                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)                                              
+                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex)                                              
                                            else
                                               auxIndex = IndexMap_tensorR4ToVector(ic, ac, pa, aa,&
                                                    numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesA )
-                                              auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
+                                              auxValue_A = auxMatrix2(k,i)%values(auxIndex)
                                            end if
                                            if (k>j) then
                                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac,&
                                                    numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                              auxValue_B = auxMatrix2(j,k)%values(auxIndex, 1)
+                                              auxValue_B = auxMatrix2(j,k)%values(auxIndex)
                                            else
                                               auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab,&
                                                    numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                              auxValue_B = auxMatrix2(k,j)%values(auxIndex, 1)
+                                              auxValue_B = auxMatrix2(k,j)%values(auxIndex)
                                            end if
                                               
                                            a2 = auxValue_A*auxValue_B
@@ -12124,20 +12126,20 @@ contains
                                            if (k>i) then
                                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac,&
                                                    numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
-                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
+                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex)
                                            else
                                               auxIndex = IndexMap_tensorR4ToVector(ic, ac, pa, ia,&
                                                    numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesA )
-                                              auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
+                                              auxValue_A = auxMatrix2(k,i)%values(auxIndex)
                                            end if
                                            if (k>j) then
                                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac,&
                                                    numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                              auxValue_B = auxMatrix2(j,k)%values(auxIndex, 1)
+                                              auxValue_B = auxMatrix2(j,k)%values(auxIndex)
                                            else
                                               auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab,&
                                                    numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                              auxValue_B = auxMatrix2(k,j)%values(auxIndex, 1)
+                                              auxValue_B = auxMatrix2(k,j)%values(auxIndex)
                                            end if
 
                                            a2 = auxValue_A*auxValue_B
