@@ -44,8 +44,8 @@ module CoupledCluster_
       type(matrix) :: HF_orbitals_dmatrix
 
       type(matrix) :: HF_fs
-      type(Matrix) :: MP2_axMx1sp
-      type(Matrix), pointer :: MP2_axMx2sp
+      type(Vector) :: MP2_axVc1sp
+      type(Vector) :: MP2_axVc2sp
       type(Vector) :: HF_ff
       type(vector) :: CCSDCorr
       type(vector) :: ECorr2dOr
@@ -60,10 +60,15 @@ module CoupledCluster_
   type, public :: Tensor
 
       real(8), allocatable :: valuesp(:,:,:,:) !values of one species
-  end type
+      logical :: isInstanced
+  end type Tensor
 
+  
   type(CoupledCluster), public :: CoupledCluster_instance
+  type(Tensor), public :: Tensor_instance
+  type(Tensor), allocatable :: spints(:)
 
+  
   character(50), private :: wfnFile = "lowdin.wfn"
   integer, private :: wfnUnit = 20
 
@@ -125,7 +130,7 @@ contains
       character(50) :: arguments(2)
       integer :: speciesId
       integer(8) :: x, i
-      integer :: nao, num_species
+      integer(8) :: nao, num_species
 
       num_species = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -148,7 +153,7 @@ contains
         arguments(2) = trim(MolecularSystem_getNameOfSpecie(speciesId))
 
         arguments(1) = "ORBITALS"
-        call Vector_getFromFile( elementsNum = nao, unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+        call Vector_getFromFile( elementsNum = int(nao,4), unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = CoupledCluster_instance%HF_orbitals )
 
         ! Build amplitudes from diagonal matrix HF for all species
@@ -156,7 +161,7 @@ contains
             CoupledCluster_instance%HF_orbitals)
 
         ! FF vector
-        call Vector_constructor (CoupledCluster_instance%HF_ff,nao*2,0.0_8)
+        call Vector_constructor (CoupledCluster_instance%HF_ff,int(nao,4)*2,0.0_8)
 
         do x=1, nao
           do i=1, 2
@@ -168,8 +173,8 @@ contains
         call Matrix_diagonalConstructor (CoupledCluster_instance%HF_fs, CoupledCluster_instance%HF_ff)
 
         ! Load initial guess for T2 from MP2 correction
-        call Vector_constructor(CoupledCluster_instance%CCSDCorr, num_species) !CCSD
-        call Vector_constructor(CoupledCluster_instance%ECorr2dOr, num_species) !MP2
+        call Vector_constructor(CoupledCluster_instance%CCSDCorr, int(num_species,4)) !CCSD
+        call Vector_constructor(CoupledCluster_instance%ECorr2dOr, int(num_species,4)) !MP2
 
       end do
       
@@ -235,7 +240,7 @@ contains
 
       !array of matrices for auxiliary matrices from transformed integrals
 
-      type(Tensor), allocatable :: spints(:)
+      ! type(Tensor), allocatable :: spints(:)
 
       num_species = MolecularSystem_getNumberOfQuantumSpecies()
       CoupledCluster_instance%nop = MolecularSystem_getNumberOfParticles(speciesID)
@@ -258,7 +263,7 @@ contains
       spints(speciesId)%valuesp(:,:,:,:)=0.0_8
 
       ! Read transformed integrals from file
-      call ReadTransformedIntegrals_readOneSpecies( speciesID, CoupledCluster_instance%MP2_axMx1sp)
+      call ReadTransformedIntegrals_readOneSpecies( speciesID, CoupledCluster_instance%MP2_axVc1sp)
 
       !! pairing function
       !same species
@@ -267,13 +272,14 @@ contains
           do r=1, noc
             do s=1, noc
               v1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2) !! Coulomb integrals
-              v_a= CoupledCluster_instance%MP2_axMx1sp%values(v1, 1)
+              v_a= CoupledCluster_instance%MP2_axVc1sp%values(v1)
               v2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,noc/2) !! Exchange integrals
-              v_b= CoupledCluster_instance%MP2_axMx1sp%values(v2, 1)
+              v_b= CoupledCluster_instance%MP2_axVc1sp%values(v2)
               xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
               xv_b = v_b * logic2dbl(mod(p,2) == mod(s,2)) * logic2dbl(mod(q,2) == mod(r,2))
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
               write (*,*) spints(speciesId)%valuesp(p,q,r,s)
+              !Tensor_getValue4(this, p, q, r, s)
             end do
           end do
         end do
@@ -301,7 +307,7 @@ contains
             spints(i)%valuesp(:,:,:,:)=0.0_8
 
             ! Read transformed integrals from file
-            call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axMx2sp)
+            call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axVc2sp)
   
             !different species
             do p=1, noc
@@ -309,7 +315,7 @@ contains
                 do r=1, noc
                   do s=1, nocs
                     v1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,nocs/2) !! Coulomb integrals
-                    v_a= CoupledCluster_instance%MP2_axMx2sp%values(v1, 1)
+                    v_a= CoupledCluster_instance%MP2_axVc2sp%values(v1)
                     xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
                     spints(speciesId)%valuesp(p,q,r,s) = xv_a
                   end do
