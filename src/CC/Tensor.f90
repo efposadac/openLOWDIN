@@ -6,7 +6,7 @@ module Tensor_
   type :: Tensor
       type(Vector) :: container
       logical :: isInterSpecies=.false.
-      integer :: otherSpeciesID = 0
+      integer :: otherSpeciesID=0
 
   end type Tensor
 
@@ -14,15 +14,23 @@ module Tensor_
 
 contains
 
-  subroutine Tensor_constructor(this, speciesID, isInterspecies, isMolecular, otherSpeciesID)
+  subroutine Tensor_constructor(this, speciesID, this2, otherSpeciesID, isMolecular)
       implicit none
 
       type(Vector), intent(in):: this
-      logical, optional :: isInterspecies
+      type(Vector), intent(in), optional :: this2
+      ! logical, optional :: isInterspecies
       logical, optional :: isMolecular
       integer, optional :: otherSpeciesID
       integer :: speciesID
-      ! call ReadTransformedIntegrals_readOneSpecies(speciesID, )
+      
+      call ReadTransformedIntegrals_readOneSpecies(speciesID, this)
+
+      if (present(otherSpeciesID)) then 
+        if (otherSpeciesID > 1) then
+          call ReadTransformedIntegrals_readTwoSpecies(speciesID, otherSpeciesID, this)
+        end if
+      end if
     
 
   end subroutine Tensor_constructor
