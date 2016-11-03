@@ -24,7 +24,6 @@ contains
     implicit none
     character(*) :: nameOfSpecies
     type(Vector), target :: integrals
-    ! real(8), allocatable, target :: integrals(:)
 
     integer :: index
     integer :: status, i
@@ -106,7 +105,6 @@ contains
     character(*) :: nameOfSpecies, nameOfOtherSpecies
     integer :: w
     type(Vector), target :: integrals
-    ! real(8), allocatable, target :: integrals(:)
 
     integer :: index
     integer :: i

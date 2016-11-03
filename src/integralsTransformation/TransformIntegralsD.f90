@@ -163,7 +163,6 @@ contains
     integer :: reclen
     real(8) :: integral
     type(Vector), target :: ints
-    ! real(8), allocatable, target :: ints(:)
     real(8), allocatable, target :: coeff(:, :)
 
     type(c_ptr) :: coeff_ptr, ints_ptr
@@ -374,7 +373,6 @@ contains
     character(*) :: nameOfSpecies, nameOfOtherSpecies
 
     type(Vector), target :: ints
-    ! real(8), allocatable, target :: ints(:)
     real(8), allocatable, target :: coeff(:, :), ocoeff(:, :)
     real(8) :: integral
     integer :: reclen

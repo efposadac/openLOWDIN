@@ -1,3 +1,4 @@
+
 module Tensor_
   use MolecularSystem_
   use Vector_
@@ -7,57 +8,70 @@ module Tensor_
 
   type :: Tensor
       type(Vector) :: container
-      logical :: isInterSpecies=.false.
-      logical :: isMolecular=.true.
-      integer :: otherSpeciesID=0
+      logical :: isInterSpecies!=.false.
+      logical :: isMolecular!=.true.
+      integer :: otherSpeciesID!=0
       logical :: IsInstanced
 
   end type Tensor
 
-  type(Tensor), allocatable :: ints(:)
+  type(Tensor), public, target :: int1
+  type(Tensor), public, target :: int2
+
+    !>
+  !! @brief Abstract class
+  !! @author Carlos Andres Ortiz-Mahecha (CAOM)
+
+  interface Tensor_index
+    module procedure Tensor_index2, Tensor_index4Intra, Tensor_index4Inter
+  end interface
+
+  private :: &
+    Tensor_index2, &
+    Tensor_index4Intra, &
+    Tensor_index4Inter
 
 
 contains
 
-! option 1
-!  type(Tensor) :: mytensor
-!  call Tensor_constructor(mytensor%container, speciesID, isMolecular, this2, otherSpeciesID, isInterspecies)
-
-! option 2
-!  type(Tensor) :: mytensor
-!  call Tensor_constructor(mytensor, speciesID, isMolecular, this2, otherSpeciesID, isInterspecies)
-!  subroutine Tensor_constructor(this, speciesID, isMolecular, this2, otherSpeciesID, isInterspecies)
-!      type(Tensor), intent(inout):: this
-!      this%isMolecular = isMolecular 
-!      call ReadTransformedIntegrals_readOneSpecies(speciesID, this%container)
-
-
-  subroutine Tensor_constructor(this, speciesID, isMolecular, this2, otherSpeciesID, isInterspecies)
+  !>
+  !! @brief Constructor of the class
+  !! @author CAOM
+  
+  subroutine Tensor_constructor(this, speciesID, otherSpeciesID, isMolecular, isInterspecies)
       implicit none
 
-      type(Vector), intent(inout):: this
-      type(Vector), intent(inout), optional :: this2
+      type(Tensor), intent(inout), pointer :: this
+      ! type(Tensor), intent(inout), pointer, optional :: this2
       logical, optional :: isInterspecies
       logical, optional :: isMolecular
-      real(8), allocatable :: intls(:)
       integer, optional :: otherSpeciesID
       integer :: speciesID
       integer :: nao, sze, onao, osze, tsze
 
-!!      if ( .not. present(isMolecular) ) isMolecular = .false.      
-!!      if ( .not. present(isMolecular) ) isMolecular = this%isMolecular      
+      
+      if ( .not. present(isMolecular) ) isMolecular = .true.
+      ! if ( .not. present(this2) ) then 
+      !   if(allocated(this2%container%values)) deallocate(this2%container%values)
+      ! end if
+      if ( .not. present(otherSpeciesID) ) otherSpeciesID = 0!this%otherSpeciesID
+      if ( .not. present(isInterspecies) ) isInterspecies = .false.!this%isInterspecies
+
 
 
       if (isMolecular) then
 
-        call ReadTransformedIntegrals_readOneSpecies(speciesID, this)
+        call ReadTransformedIntegrals_readOneSpecies(speciesID, this%container)
 
-        
+        ! this%container => int1%container
+
           if (present(otherSpeciesID)) then 
 
             if (otherSpeciesID > 1) then
 
-              call ReadTransformedIntegrals_readTwoSpecies(speciesID, otherSpeciesID, this2)
+              call ReadTransformedIntegrals_readTwoSpecies(speciesID, otherSpeciesID, this%container)
+
+              ! this2%container => int2%container
 
             end if
 
@@ -72,14 +86,14 @@ contains
           sze = nao * (nao + 1) / 2
           sze = sze * (sze + 1) / 2
 
-          if(allocated(intls)) deallocate(intls)
-          allocate(intls(sze))
-          intls = 0.0_8
+          if(allocated(this%container%values)) deallocate(this%container%values)
+          allocate(this%container%values(sze))
+          this%container%values = 0.0_8
           
-          call ReadIntegrals_intraSpecies(trim(MolecularSystem_getNameOfSpecie(speciesID)), this)
+          call ReadIntegrals_intraSpecies(trim(MolecularSystem_getNameOfSpecie(speciesID)), this%container)
 
-          this%values = intls
-
+          ! this%container => int1%container
+  
         else
 
           onao = MolecularSystem_getTotalNumberOfContractions(otherspeciesID)
@@ -87,14 +101,14 @@ contains
           osze = onao * (onao + 1) / 2
           tsze = sze * osze
     
-          if(allocated(intls)) deallocate(intls)
-          allocate(intls(tsze))
-          intls = 0.0_8
+          if(allocated(this%container%values)) deallocate(this%container%values)
+          allocate(this%container%values(tsze))
+          this%container%values = 0.0_8
 
           call ReadIntegrals_interSpecies(trim(MolecularSystem_getNameOfSpecie(speciesID)), &
-              trim(MolecularSystem_getNameOfSpecie(otherSpeciesID)), osze, this)
+              trim(MolecularSystem_getNameOfSpecie(otherSpeciesID)), osze, this%container)
 
-          this2%values = intls
+          ! this%container => int1%container
 
         end if
       end if
@@ -106,11 +120,12 @@ contains
   subroutine Tensor_destructor()
       implicit none
       
-      if(allocated(ints)) deallocate(ints)
+      if(allocated(int1%container%values)) deallocate(int1%container%values)
+      if(allocated(int2%container%values)) deallocate(int2%container%values)
     
   end subroutine Tensor_destructor
 
-  ! function Tensor_getValue4(this, a, b, r, s) result(output)
+  ! function Tensor_indexnumber(this, a, b, r, s) result(output)
   !     implicit none
   !     type(Tensor) :: this
   !     integer :: a, b, r, s
@@ -119,14 +134,10 @@ contains
   !     ! Convert 4 intex to 1
   !     index = 
   !     ! Get value from container
-  !     this%container(index)
+  !     this%container%container(index)
 
     
-  ! end function Tensor_getValue4
-
-  !....
-  ! t(a, b, r, s)
-
+  ! end function Tensor_indexnumber
     
   function Tensor_index2(i, j) result(output)
     implicit none
