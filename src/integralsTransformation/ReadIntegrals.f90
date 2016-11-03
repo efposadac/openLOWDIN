@@ -23,7 +23,8 @@ contains
   subroutine ReadIntegrals_intraSpecies(nameOfSpecies, integrals)
     implicit none
     character(*) :: nameOfSpecies
-    real(8), allocatable, target :: integrals(:)
+    type(Vector), target :: integrals
+    ! real(8), allocatable, target :: integrals(:)
 
     integer :: index
     integer :: status, i
@@ -43,7 +44,7 @@ contains
     integer :: reclen
     logical :: disk = .false.
 
-    if(.not. allocated(integrals)) disk = .true.
+    if(.not. allocated(integrals%values)) disk = .true.
     
     if( disk ) then
        inquire(iolength=reclen) int_value
@@ -83,7 +84,7 @@ contains
           if (disk) then
             write(50, rec=index) integral(i)
           else
-             integrals(index) = integral(i)
+             integrals%values(index) = integral(i)
           endif
 
        end do
@@ -104,7 +105,8 @@ contains
     implicit none
     character(*) :: nameOfSpecies, nameOfOtherSpecies
     integer :: w
-    real(8), allocatable, target :: integrals(:)
+    type(Vector), target :: integrals
+    ! real(8), allocatable, target :: integrals(:)
 
     integer :: index
     integer :: i
@@ -124,7 +126,7 @@ contains
     integer :: reclen
     logical :: disk = .false.
 
-    if(.not. allocated(integrals)) disk = .true.
+    if(.not. allocated(integrals%values)) disk = .true.
     
     if( disk ) then
        inquire(iolength=reclen) int_value
@@ -159,7 +161,7 @@ contains
           if (disk) then
             write(50, rec=index) integral(i)
           else
-             integrals(index) = integral(i)
+             integrals%values(index) = integral(i)
           endif
 
        end do

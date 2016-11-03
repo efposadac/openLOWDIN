@@ -32,6 +32,7 @@ module CoupledCluster_
   use Matrix_
   use MolecularSystem_
   use MPFunctions_
+  use Tensor_
   implicit none
 
   type, public :: CoupledCluster
@@ -57,16 +58,16 @@ module CoupledCluster_
   end type CoupledCluster
 
   ! Tensor is used to auxiliry matrices from integrals transformed
-  type, public :: Tensor
+  type, public :: TensorCC
 
       real(8), allocatable :: valuesp(:,:,:,:) !values of one species
       logical :: isInstanced
-  end type Tensor
+  end type TensorCC
 
   
   type(CoupledCluster), public :: CoupledCluster_instance
-  type(Tensor), public :: Tensor_instance
-  type(Tensor), allocatable :: spints(:)
+  type(TensorCC), public :: TensorCC_instance
+  type(TensorCC), allocatable :: spints(:)
 
   
   character(50), private :: wfnFile = "lowdin.wfn"
@@ -271,6 +272,7 @@ contains
         do q=1, noc
           do r=1, noc
             do s=1, noc
+              ! v1 = Tensor_index4Intra((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2) !! Coulomb integrals
               v1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2) !! Coulomb integrals
               v_a= CoupledCluster_instance%MP2_axVc1sp%values(v1)
               v2 = IndexMap_tensorR4ToVector((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2,noc/2) !! Exchange integrals

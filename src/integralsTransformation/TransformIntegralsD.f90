@@ -25,6 +25,7 @@ module TransformIntegralsD_
   use IndexMap_
   use Exception_
   use ReadIntegrals_
+  use Vector_
   implicit none
 
   type, public :: TransformIntegralsD
@@ -161,7 +162,8 @@ contains
     integer :: p, q, r, s, s_max
     integer :: reclen
     real(8) :: integral
-    real(8), allocatable, target :: ints(:)
+    type(Vector), target :: ints
+    ! real(8), allocatable, target :: ints(:)
     real(8), allocatable, target :: coeff(:, :)
 
     type(c_ptr) :: coeff_ptr, ints_ptr
@@ -195,16 +197,15 @@ contains
          status='replace',access='sequential', form='unformatted' )
 
     if (.not. direct) then
-
-       if(allocated(ints)) deallocate(ints)
-       allocate(ints(sze))
-       ints = 0.0_8
-
+     
+       call Vector_constructor(ints, sze)
+       ints%values(:) = 0.0_8
+       
        call ReadIntegrals_intraSpecies(trim(nameOfSpecies), ints)
 
        ! Calling C function
        coeff_ptr = c_loc(coeff(1, 1))
-       ints_ptr = c_loc(ints(1))
+       ints_ptr = c_loc(ints%values(1))
 
        call TransformIntegralsD_integralsTransform_all(coeff_ptr, ints_ptr, nao)
 
@@ -222,7 +223,7 @@ contains
                 do s = 1,  s_max
 
                    !! TODO: Use chunks instead.
-                   write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4Intra(p, q, r, s))
+                   write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints%values(ReadIntegrals_index4Intra(p, q, r, s))
 
                 end do
              end do
@@ -372,7 +373,8 @@ contains
     integer :: speciesID, otherSpeciesID
     character(*) :: nameOfSpecies, nameOfOtherSpecies
 
-    real(8), allocatable, target :: ints(:)
+    type(Vector), target :: ints
+    ! real(8), allocatable, target :: ints(:)
     real(8), allocatable, target :: coeff(:, :), ocoeff(:, :)
     real(8) :: integral
     integer :: reclen
@@ -426,16 +428,16 @@ contains
 
     if (.not. direct) then
 
-      if(allocated(ints)) deallocate(ints)
-      allocate(ints(tsze))
+      call Vector_constructot(ints, tsze)
 
-      ints = 0.0_8
+      ints%values(tsze) = 0.0_8
+
       call ReadIntegrals_interSpecies(trim(nameOfSpecies), trim(nameOfOtherSpecies), osze, ints)
 
       ! Calling C function
       coeff_ptr = c_loc(coeff(1, 1))
       ocoeff_ptr = c_loc(ocoeff(1, 1))
-      ints_ptr = c_loc(ints(1))
+      ints_ptr = c_loc(ints%values(1))
 
       call TransformIntegralsD_integralsTransformInter_all(coeff_ptr, ocoeff_ptr, ints_ptr, nao, onao)
 
@@ -444,7 +446,7 @@ contains
             do r = 1 , onao
                do s = r,  onao
                   !! TODO: Use chunks instead.
-                  write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints(ReadIntegrals_index4Inter(p, q, r, s, osze))
+                  write(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p, q, r, s, ints%values(ReadIntegrals_index4Inter(p, q, r, s, osze))
 
                end do
             end do

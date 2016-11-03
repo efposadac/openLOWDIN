@@ -1,45 +1,114 @@
 module Tensor_
+  use MolecularSystem_
   use Vector_
   use ReadTransformedIntegrals_
+  use ReadIntegrals_
   implicit none
 
   type :: Tensor
       type(Vector) :: container
       logical :: isInterSpecies=.false.
+      logical :: isMolecular=.true.
       integer :: otherSpeciesID=0
+      logical :: IsInstanced
 
   end type Tensor
 
+  type(Tensor), allocatable :: ints(:)
 
 
 contains
 
-  subroutine Tensor_constructor(this, speciesID, this2, otherSpeciesID, isMolecular)
+! option 1
+!  type(Tensor) :: mytensor
+!  call Tensor_constructor(mytensor%container, speciesID, isMolecular, this2, otherSpeciesID, isInterspecies)
+
+! option 2
+!  type(Tensor) :: mytensor
+!  call Tensor_constructor(mytensor, speciesID, isMolecular, this2, otherSpeciesID, isInterspecies)
+!  subroutine Tensor_constructor(this, speciesID, isMolecular, this2, otherSpeciesID, isInterspecies)
+!      type(Tensor), intent(inout):: this
+!      this%isMolecular = isMolecular 
+!      call ReadTransformedIntegrals_readOneSpecies(speciesID, this%container)
+
+
+  subroutine Tensor_constructor(this, speciesID, isMolecular, this2, otherSpeciesID, isInterspecies)
       implicit none
 
-      type(Vector), intent(in):: this
-      type(Vector), intent(in), optional :: this2
-      ! logical, optional :: isInterspecies
+      type(Vector), intent(inout):: this
+      type(Vector), intent(inout), optional :: this2
+      logical, optional :: isInterspecies
       logical, optional :: isMolecular
+      real(8), allocatable :: intls(:)
       integer, optional :: otherSpeciesID
       integer :: speciesID
-      
-      call ReadTransformedIntegrals_readOneSpecies(speciesID, this)
+      integer :: nao, sze, onao, osze, tsze
 
-      if (present(otherSpeciesID)) then 
-        if (otherSpeciesID > 1) then
-          call ReadTransformedIntegrals_readTwoSpecies(speciesID, otherSpeciesID, this)
+!!      if ( .not. present(isMolecular) ) isMolecular = .false.      
+!!      if ( .not. present(isMolecular) ) isMolecular = this%isMolecular      
+
+
+      if (isMolecular) then
+
+        call ReadTransformedIntegrals_readOneSpecies(speciesID, this)
+
+        
+          if (present(otherSpeciesID)) then 
+
+            if (otherSpeciesID > 1) then
+
+              call ReadTransformedIntegrals_readTwoSpecies(speciesID, otherSpeciesID, this2)
+
+            end if
+
+          end if
+
+      else
+
+          nao = MolecularSystem_getTotalNumberOfContractions(speciesID)
+
+        if(isInterspecies) then
+
+          sze = nao * (nao + 1) / 2
+          sze = sze * (sze + 1) / 2
+
+          if(allocated(intls)) deallocate(intls)
+          allocate(intls(sze))
+          intls = 0.0_8
+          
+          call ReadIntegrals_intraSpecies(trim(MolecularSystem_getNameOfSpecie(speciesID)), this)
+
+          this%values = intls
+
+        else
+
+          onao = MolecularSystem_getTotalNumberOfContractions(otherspeciesID)
+          sze = nao * (nao + 1) / 2
+          osze = onao * (onao + 1) / 2
+          tsze = sze * osze
+    
+          if(allocated(intls)) deallocate(intls)
+          allocate(intls(tsze))
+          intls = 0.0_8
+
+          call ReadIntegrals_interSpecies(trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+              trim(MolecularSystem_getNameOfSpecie(otherSpeciesID)), osze, this)
+
+          this2%values = intls
+
         end if
       end if
+
     
 
   end subroutine Tensor_constructor
 
-  ! subroutine Tensor_destructor(args)
-  !     implicit none
-  !     real :: args
+  subroutine Tensor_destructor()
+      implicit none
+      
+      if(allocated(ints)) deallocate(ints)
     
-  ! end subroutine Tensor_destructor
+  end subroutine Tensor_destructor
 
   ! function Tensor_getValue4(this, a, b, r, s) result(output)
   !     implicit none
