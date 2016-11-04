@@ -149,8 +149,8 @@ contains
        close(unidOfOutputForIntegrals)
 
     case ( "C" ) 
-
        if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
+       print*," Read T_I C"
 
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )

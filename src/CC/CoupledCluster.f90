@@ -45,8 +45,8 @@ module CoupledCluster_
       type(matrix) :: HF_orbitals_dmatrix
 
       type(matrix) :: HF_fs
-      type(Tensor), pointer :: MP2_axVc1sp
-      type(Tensor), pointer :: MP2_axVc2sp
+      type(Tensor) :: MP2_axVc1sp
+      type(Tensor) :: MP2_axVc2sp
       type(Vector) :: HF_ff
       type(vector) :: CCSDCorr
       type(vector) :: ECorr2dOr
@@ -103,7 +103,7 @@ contains
     implicit none
 
     CoupledCluster_instance%isInstanced = .false.
-            
+
   end subroutine CoupledCluster_destructor
 
   !>
@@ -229,6 +229,7 @@ contains
   ! @author CAOM
   subroutine CoupledCluster_pairing_function(speciesId, OtherspeciesId)
       implicit none
+      type(Tensor), pointer :: axVc1sp
       integer, intent(in) :: speciesId
       integer, intent(in), optional :: OtherspeciesId
       integer :: i
@@ -265,30 +266,52 @@ contains
 
       ! Read transformed integrals from file
       ! call ReadTransformedIntegrals_readOneSpecies( speciesID, CoupledCluster_instance%MP2_axVc1sp)
-      call Tensor_constructor(CoupledCluster_instance%MP2_axVc1sp, speciesID)
+      call Tensor_constructor(CoupledCluster_instance%MP2_axVc1sp, speciesID, isMolecular=.true.)
 
-      !! pairing function
-      !same species
+      ! pairing function
+      ! same species
+      print*,"same species"
       do p=1, noc
         do q=1, noc
           do r=1, noc
             do s=1, noc
-              v1 = Tensor_index((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2) !! Coulomb integrals
-              ! v1 = IndexMap_tensorR4ToVector((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2) !! Coulomb integrals
-              v_a= CoupledCluster_instance%MP2_axVc1sp%container%values(v1)
-              v2 = Tensor_index((p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2) !! Exchange integrals
-              v_b= CoupledCluster_instance%MP2_axVc1sp%container%values(v2)
+              v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2)
+              v_b = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2)
+            
               xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
               xv_b = v_b * logic2dbl(mod(p,2) == mod(s,2)) * logic2dbl(mod(q,2) == mod(r,2))
+              ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
               write (*,*) spints(speciesId)%valuesp(p,q,r,s)
-              !Tensor_getValue4(this, p, q, r, s)
             end do
           end do
         end do
       end do
 
-      ! If there are two or more different species
+      !Test: it is temporal
+      do p=1, noc
+        do q=1, noc
+          do r=1, noc
+            do s=1, noc
+              if ( ( abs(spints(speciesId)%valuesp(p,q,r,s) - spints(speciesId)%valuesp(p,q,s,r)) < 1.0e-8 ) &
+               .and. (abs (spints(speciesId)%valuesp(p,q,s,r) - spints(speciesId)%valuesp(q,p,r,s)) < 1.0e-8 ) &
+                .and. (abs (spints(speciesId)%valuesp(q,p,r,s) - spints(speciesId)%valuesp(q,p,s,r)) < 1.0e-8 ) &
+                 .and. (abs (spints(speciesId)%valuesp(q,p,s,r) - spints(speciesId)%valuesp(r,s,p,q)) < 1.0e-8 ) &
+                  .and. (abs (spints(speciesId)%valuesp(r,s,p,q) - spints(speciesId)%valuesp(r,s,q,p)) < 1.0e-8 ) &
+                   .and. (abs (spints(speciesId)%valuesp(r,s,q,p) - spints(speciesId)%valuesp(s,r,p,q)) < 1.0e-8 ) &
+                    .and. (abs (spints(speciesId)%valuesp(s,r,p,q) - spints(speciesId)%valuesp(s,r,q,p)) < 1.0e-8 ) ) then
+
+              else  
+                print*,"Same - NO Simetria: "
+                write (*,"(4I3, 8F12.8)") p, q, r, s, spints(speciesId)%valuesp(p,q,r,s), spints(speciesId)%valuesp(p,q,s,r), &
+                  spints(speciesId)%valuesp(q,p,r,s), spints(speciesId)%valuesp(q,p,s,r), spints(speciesId)%valuesp(r,s,p,q), &
+                  spints(speciesId)%valuesp(r,s,q,p), spints(speciesId)%valuesp(s,r,p,q), spints(speciesId)%valuesp(s,r,q,p)
+              end if
+            end do
+          end do
+        end do
+      end do
+      ! ! If there are two or more different species
 
       if ( present(OtherspeciesId)) then
       
@@ -311,27 +334,57 @@ contains
 
             ! Read transformed integrals from file
             ! call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axVc2sp)
-            call Tensor_constructor(CoupledCluster_instance%MP2_axVc2sp, speciesID, OtherspeciesId)
+            call Tensor_constructor(CoupledCluster_instance%MP2_axVc2sp, speciesID, otherSpeciesID=OtherspeciesId, &
+                isMolecular=.true.)
   
             !different species
+            print*,"different species"
             do p=1, noc
               do q=1, nocs
                 do r=1, noc
                   do s=1, nocs
-                    v1 = Tensor_index((p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,nocs/2) !! Coulomb integrals
-                    v_a= CoupledCluster_instance%MP2_axVc2sp%container%values(v1)
+                    v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,nocs/2) !! Coulomb integrals
+                    
                     xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
-                    spints(speciesId)%valuesp(p,q,r,s) = xv_a
+                    spints(i)%valuesp(p,q,r,s) = xv_a
+                    write (*,*) spints(i)%valuesp(p,q,r,s)    
                   end do
                 end do
               end do
             end do
+
+
+            !Test: it is temporal
+
+            do p=1, noc
+              do q=1, noc
+                do r=1, noc
+                  do s=1, noc
+                    if ( ( abs(spints(i)%valuesp(p,q,r,s) - spints(i)%valuesp(p,q,s,r)) < 1.0e-8 ) &
+                     .and. (abs (spints(i)%valuesp(p,q,s,r) - spints(i)%valuesp(q,p,r,s)) < 1.0e-8 ) &
+                      .and. (abs (spints(i)%valuesp(q,p,r,s) - spints(i)%valuesp(q,p,s,r)) < 1.0e-8 ) &
+                       .and. (abs (spints(i)%valuesp(q,p,s,r) - spints(i)%valuesp(r,s,p,q)) < 1.0e-8 ) &
+                        .and. (abs (spints(i)%valuesp(r,s,p,q) - spints(i)%valuesp(r,s,q,p)) < 1.0e-8 ) &
+                         .and. (abs (spints(i)%valuesp(r,s,q,p) - spints(i)%valuesp(s,r,p,q)) < 1.0e-8 ) &
+                          .and. (abs (spints(i)%valuesp(s,r,p,q) - spints(i)%valuesp(s,r,q,p)) < 1.0e-8 ) ) then
+                    else  
+                      print*,"Diff - NO Simetria: "
+                      write (*,"(4I3, 8F12.8)") p, q, r, s, spints(i)%valuesp(p,q,r,s), spints(i)%valuesp(p,q,s,r), &
+                        spints(i)%valuesp(q,p,r,s), spints(i)%valuesp(q,p,s,r), spints(i)%valuesp(r,s,p,q), &
+                        spints(i)%valuesp(r,s,q,p), spints(i)%valuesp(s,r,p,q), spints(i)%valuesp(s,r,q,p)
+                    end if
+                  end do
+                end do
+              end do
+            end do
+
 
           end do
   
         end if
         
       end if
+
 
   end subroutine CoupledCluster_pairing_function
 

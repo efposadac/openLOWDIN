@@ -1,4 +1,32 @@
+!!******************************************************************************
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!    http://www.qcc.unal.edu.co/
+!!
+!!    Todos los derechos reservados, 2013
+!!
+!!******************************************************************************
 
+!>
+!! @brief Tensor module
+!!        This module calls and initializes all information necessary to use transformedintegrals and return a one index from four indices.
+!! @author  Carlos Andres Ortiz Mahecha (CAOM) (caraortizmah@unal.edu.co)
+!!
+!! <b> Creation date : </b> 2016-11-02
+!!
+!! <b> History: </b>
+!!
+!!   - <tt> 2016-10-26 </tt>: (CAOM) ( caraortizmah@unal.edu.co )
+!!        -# Development of Tensor module:
+!!                This Tensor ... jue jue 
+!!   - <tt> data </tt>:  
+!!
+!!
+!! @warning <em>  All characters and events in this module -- even those based on real source code -- are entirely fictional. </br>
+!!                All celebrity lines are impersonated.....poorly. </br> 
+!!                The following module contains corase language and due to it's cintent should not be viewed by anyone. </em>
+!!
+!!
+!!
 module Tensor_
   use MolecularSystem_
   use Vector_
@@ -8,11 +36,11 @@ module Tensor_
 
   type :: Tensor
       type(Vector) :: container
-      logical :: isInterSpecies!=.false.
-      logical :: isMolecular!=.true.
-      integer :: otherSpeciesID!=0
-      logical :: IsInstanced
-
+      integer :: speciesID
+      integer :: otherSpeciesID
+      logical :: isInterSpecies = .false.
+      logical :: isMolecular = .false.
+      logical :: IsInstanced = .false.
   end type Tensor
 
   type(Tensor), public, target :: int1
@@ -23,13 +51,20 @@ module Tensor_
   !! @author Carlos Andres Ortiz-Mahecha (CAOM)
 
   interface Tensor_index
-    module procedure Tensor_index2, Tensor_index4Intra, Tensor_index4Inter
+    module procedure Tensor_index4Intra, Tensor_index4Inter
   end interface
+
+ interface Tensor_getValue
+    module procedure Tensor_getValue_intra, Tensor_getValue_inter
+  end interface
+
 
   private :: &
     Tensor_index2, &
     Tensor_index4Intra, &
-    Tensor_index4Inter
+    Tensor_index4Inter, &
+    Tensor_getValue_inter, &
+    Tensor_getValue_intra
 
 
 contains
@@ -38,61 +73,49 @@ contains
   !! @brief Constructor of the class
   !! @author CAOM
   
-  subroutine Tensor_constructor(this, speciesID, otherSpeciesID, isMolecular, isInterspecies)
+  subroutine Tensor_constructor(this, speciesID, otherSpeciesID, isMolecular)
       implicit none
 
-      type(Tensor), intent(inout), pointer :: this
-      ! type(Tensor), intent(inout), pointer, optional :: this2
-      logical, optional :: isInterspecies
-      logical, optional :: isMolecular
-      integer, optional :: otherSpeciesID
-      integer :: speciesID
-      integer :: nao, sze, onao, osze, tsze
+      type(Tensor), intent(inout) :: this
+      integer, intent(in) :: speciesID
+      integer, optional, intent(in) :: otherSpeciesID
+      logical, optional, intent(in) :: isMolecular
 
+      integer sze, nao, onao, osze, tsze
       
-      if ( .not. present(isMolecular) ) isMolecular = .true.
-      ! if ( .not. present(this2) ) then 
-      !   if(allocated(this2%container%values)) deallocate(this2%container%values)
-      ! end if
-      if ( .not. present(otherSpeciesID) ) otherSpeciesID = 0!this%otherSpeciesID
-      if ( .not. present(isInterspecies) ) isInterspecies = .false.!this%isInterspecies
+      this%speciesID = speciesID
 
+      if(present(otherspeciesID)) then
+        this%otherspeciesID = otherspeciesID
+        this%isInterspecies = .true.
+      end if
 
+      if(present(isMolecular)) this%isMolecular = isMolecular
 
-      if (isMolecular) then
+      print*," Begin Tensor_constructor", this%isMolecular,  this%isInterSpecies
 
-        call ReadTransformedIntegrals_readOneSpecies(speciesID, this%container)
+      if (this%isMolecular) then
 
-        ! this%container => int1%container
+        print*," Begin Tensor_constructor"
 
-          if (present(otherSpeciesID)) then 
+        call ReadTransformedIntegrals_readOneSpecies(this%speciesID, this%container)
 
-            if (otherSpeciesID > 1) then
+          if (this%isInterSpecies) then
 
-              call ReadTransformedIntegrals_readTwoSpecies(speciesID, otherSpeciesID, this%container)
-
-              ! this2%container => int2%container
-
-            end if
+            call ReadTransformedIntegrals_readTwoSpecies(this%speciesID, this%otherSpeciesID, this%container)
 
           end if
 
       else
+  
+        nao = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
-          nao = MolecularSystem_getTotalNumberOfContractions(speciesID)
-
-        if(isInterspecies) then
+        if (this%isInterspecies) then
 
           sze = nao * (nao + 1) / 2
           sze = sze * (sze + 1) / 2
-
-          if(allocated(this%container%values)) deallocate(this%container%values)
-          allocate(this%container%values(sze))
-          this%container%values = 0.0_8
-          
+        
           call ReadIntegrals_intraSpecies(trim(MolecularSystem_getNameOfSpecie(speciesID)), this%container)
-
-          ! this%container => int1%container
   
         else
 
@@ -100,34 +123,60 @@ contains
           sze = nao * (nao + 1) / 2
           osze = onao * (onao + 1) / 2
           tsze = sze * osze
-    
-          if(allocated(this%container%values)) deallocate(this%container%values)
-          allocate(this%container%values(tsze))
-          this%container%values = 0.0_8
 
           call ReadIntegrals_interSpecies(trim(MolecularSystem_getNameOfSpecie(speciesID)), &
               trim(MolecularSystem_getNameOfSpecie(otherSpeciesID)), osze, this%container)
 
-          ! this%container => int1%container
-
         end if
+
       end if
 
-    
+      this%IsInstanced = .true.
 
   end subroutine Tensor_constructor
 
-  subroutine Tensor_destructor()
+  subroutine Tensor_destructor(this)
       implicit none
-      
-      if(allocated(int1%container%values)) deallocate(int1%container%values)
-      if(allocated(int2%container%values)) deallocate(int2%container%values)
-    
+
+      type(Tensor), intent(inout) :: this
+
+      call Vector_destructor(this%container)
+
+      this%otherspeciesID = -1
+      this%isInterSpecies = .false.
+      this%isMolecular = .false.
+      this%IsInstanced = .false.
+
   end subroutine Tensor_destructor
+
+  function Tensor_getValue_intra(this, a, b, r, s) result(output)
+      implicit none
+      type(Tensor), intent(in) :: this
+      integer, intent(in) :: a, b, r, s
+
+      integer(8) :: index
+      real(8) :: output
+
+      index = Tensor_index4Intra(a, b, r, s)
+      output = this%container%values(index)
+      
+  end function Tensor_getValue_intra
+
+  function Tensor_getValue_inter(this, a, b, r, s, w) result(output)
+      implicit none
+      type(Tensor), intent(in) :: this
+      integer, intent(in) :: a, b, r, s, w
+
+      integer(8) :: index
+      real(8) :: output
+
+      index = Tensor_index4Inter(a, b, r, s, w)
+      output = this%container%values(index)
+      
+  end function Tensor_getValue_inter
 
   ! function Tensor_indexnumber(this, a, b, r, s) result(output)
   !     implicit none
-  !     type(Tensor) :: this
   !     integer :: a, b, r, s
   !     real(8) :: output
 
@@ -201,4 +250,4 @@ end module Tensor_
 ! type(Tensor) :: test
 ! call Tensor_constructor(test, isInterspecie=.false., isMolecular=.false., speciesID=speciesID, otherSpeciesID=0)
 ! integral = Tensor_getValue(this, a, b, r, s)
-! integral = Tensor_getValue(this, a, b)
+

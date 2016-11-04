@@ -103,7 +103,7 @@ contains
       print*, "INFORMATION IN CCSD_constructor() MP2_energy: ", CoupledCluster_instance%MP2_EnergyCorr
       CCSD_instance%sum = CoupledCluster_instance%HF_energy + CoupledCluster_instance%MP2_EnergyCorr
       print*, "INFORMATION IN CCSD_constructor() Total_energy: ", CCSD_instance%sum
-      call CoupledCluster_pairing_function(1)
+      call CoupledCluster_pairing_function(1,2)
 
   end subroutine CCSD_show
 end module CCSD_
