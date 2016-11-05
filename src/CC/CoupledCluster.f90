@@ -33,11 +33,13 @@ module CoupledCluster_
   use MolecularSystem_
   use MPFunctions_
   use Tensor_
+  use String_
   implicit none
 
   type, public :: CoupledCluster
       
-      integer :: noc, nocs, nop
+      integer :: noc, nocs, nop, nops
+      integer(8) :: num_species
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy
       real(8) :: MP2_EnergyCorr
@@ -66,6 +68,7 @@ module CoupledCluster_
 
   
   type(CoupledCluster), public :: CoupledCluster_instance
+  type(CoupledCluster), allocatable :: Allspecies(:)
   type(TensorCC), public :: TensorCC_instance
   type(TensorCC), allocatable :: spints(:)
 
@@ -134,6 +137,7 @@ contains
       integer(8) :: nao, num_species
 
       num_species = MolecularSystem_getNumberOfQuantumSpecies()
+      CoupledCluster_instance%num_species = num_species
 
       !! Open file for wave-function
       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
@@ -146,7 +150,11 @@ contains
       call Vector_getFromFile(unit=wfnUnit, binary=.true., value=CoupledCluster_instance%HF_puntualInteractionEnergy, &
         arguments=["PUNTUALINTERACTIONENERGY"])
 
-      ! One species
+      ! allocate array for many results by species
+      if (allocated(Allspecies)) deallocate(Allspecies)
+      allocate(Allspecies(num_species))
+
+      ! All species
       do speciesId = 1, num_species ! number of species is the size of CoupledCluster_instance
 
         nao = MolecularSystem_getTotalNumberOfContractions(speciesId)
@@ -162,16 +170,22 @@ contains
             CoupledCluster_instance%HF_orbitals)
 
         ! FF vector
-        call Vector_constructor (CoupledCluster_instance%HF_ff,nao*2,0.0_8)
+
+        ! call Vector_constructor (CoupledCluster_instance%HF_ff,nao*2,0.0_8)
+        call Vector_constructor (Allspecies(speciesId)%HF_ff,nao*2,0.0_8)
 
         do x=1, nao
           do i=1, 2
-            CoupledCluster_instance%HF_ff%values((x-1)*2+i) = CoupledCluster_instance%HF_orbitals%values(x)
+            Allspecies(speciesId)%HF_ff%values((x-1)*2+i) = CoupledCluster_instance%HF_orbitals%values(x)
           end do
         end do
 
         ! FS matrix
-        call Matrix_diagonalConstructor (CoupledCluster_instance%HF_fs, CoupledCluster_instance%HF_ff)
+        call Matrix_diagonalConstructor (Allspecies(speciesId)%HF_fs, Allspecies(speciesId)%HF_ff)
+
+        ! print*,"fs%new"
+        ! write(*,*) Allspecies(speciesId)%HF_fs%values
+
 
         ! Load initial guess for T2 from MP2 correction
         call Vector_constructor(CoupledCluster_instance%CCSDCorr, num_species) !CCSD
@@ -234,9 +248,9 @@ contains
       integer, intent(in), optional :: OtherspeciesId
       integer :: i
       integer :: p, q, r, s
-      integer :: num_species
+      integer(8) :: num_species
       integer :: noc, nocs
-      real(8) :: v1, v2, v_a, v_b, xv_a, xv_b
+      real(8) :: v_a, v_b, xv_a, xv_b
       ! character(30) :: nameOtherSpId
       ! real(8), allocatable ::
 
@@ -244,7 +258,7 @@ contains
 
       ! type(Tensor), allocatable :: spints(:)
 
-      num_species = MolecularSystem_getNumberOfQuantumSpecies()
+      num_species = CoupledCluster_instance%num_species
       CoupledCluster_instance%nop = MolecularSystem_getNumberOfParticles(speciesID)
 
       if (allocated(spints)) deallocate(spints)
@@ -288,29 +302,7 @@ contains
         end do
       end do
 
-      !Test: it is temporal
-      do p=1, noc
-        do q=1, noc
-          do r=1, noc
-            do s=1, noc
-              if ( ( abs(spints(speciesId)%valuesp(p,q,r,s) - spints(speciesId)%valuesp(p,q,s,r)) < 1.0e-8 ) &
-               .and. (abs (spints(speciesId)%valuesp(p,q,s,r) - spints(speciesId)%valuesp(q,p,r,s)) < 1.0e-8 ) &
-                .and. (abs (spints(speciesId)%valuesp(q,p,r,s) - spints(speciesId)%valuesp(q,p,s,r)) < 1.0e-8 ) &
-                 .and. (abs (spints(speciesId)%valuesp(q,p,s,r) - spints(speciesId)%valuesp(r,s,p,q)) < 1.0e-8 ) &
-                  .and. (abs (spints(speciesId)%valuesp(r,s,p,q) - spints(speciesId)%valuesp(r,s,q,p)) < 1.0e-8 ) &
-                   .and. (abs (spints(speciesId)%valuesp(r,s,q,p) - spints(speciesId)%valuesp(s,r,p,q)) < 1.0e-8 ) &
-                    .and. (abs (spints(speciesId)%valuesp(s,r,p,q) - spints(speciesId)%valuesp(s,r,q,p)) < 1.0e-8 ) ) then
 
-              else  
-                print*,"Same - NO Simetria: "
-                write (*,"(4I3, 8F12.8)") p, q, r, s, spints(speciesId)%valuesp(p,q,r,s), spints(speciesId)%valuesp(p,q,s,r), &
-                  spints(speciesId)%valuesp(q,p,r,s), spints(speciesId)%valuesp(q,p,s,r), spints(speciesId)%valuesp(r,s,p,q), &
-                  spints(speciesId)%valuesp(r,s,q,p), spints(speciesId)%valuesp(s,r,p,q), spints(speciesId)%valuesp(s,r,q,p)
-              end if
-            end do
-          end do
-        end do
-      end do
       ! ! If there are two or more different species
 
       if ( present(OtherspeciesId)) then
@@ -320,6 +312,8 @@ contains
           do i = speciesId + 1, num_species
             !mmm = mmm + 1
   
+            CoupledCluster_instance%nops = MolecularSystem_getNumberOfParticles(i)
+
             CoupledCluster_instance%nocs = MolecularSystem_getTotalNumberOfContractions(i)
             ! This information is necesarry in other modules: 
             ! number of contraction to number of molecular orbitals
@@ -353,37 +347,15 @@ contains
               end do
             end do
 
-
-            !Test: it is temporal
-
-            do p=1, noc
-              do q=1, noc
-                do r=1, noc
-                  do s=1, noc
-                    if ( ( abs(spints(i)%valuesp(p,q,r,s) - spints(i)%valuesp(p,q,s,r)) < 1.0e-8 ) &
-                     .and. (abs (spints(i)%valuesp(p,q,s,r) - spints(i)%valuesp(q,p,r,s)) < 1.0e-8 ) &
-                      .and. (abs (spints(i)%valuesp(q,p,r,s) - spints(i)%valuesp(q,p,s,r)) < 1.0e-8 ) &
-                       .and. (abs (spints(i)%valuesp(q,p,s,r) - spints(i)%valuesp(r,s,p,q)) < 1.0e-8 ) &
-                        .and. (abs (spints(i)%valuesp(r,s,p,q) - spints(i)%valuesp(r,s,q,p)) < 1.0e-8 ) &
-                         .and. (abs (spints(i)%valuesp(r,s,q,p) - spints(i)%valuesp(s,r,p,q)) < 1.0e-8 ) &
-                          .and. (abs (spints(i)%valuesp(s,r,p,q) - spints(i)%valuesp(s,r,q,p)) < 1.0e-8 ) ) then
-                    else  
-                      print*,"Diff - NO Simetria: "
-                      write (*,"(4I3, 8F12.8)") p, q, r, s, spints(i)%valuesp(p,q,r,s), spints(i)%valuesp(p,q,s,r), &
-                        spints(i)%valuesp(q,p,r,s), spints(i)%valuesp(q,p,s,r), spints(i)%valuesp(r,s,p,q), &
-                        spints(i)%valuesp(r,s,q,p), spints(i)%valuesp(s,r,p,q), spints(i)%valuesp(s,r,q,p)
-                    end if
-                  end do
-                end do
-              end do
-            end do
-
-
           end do
   
         end if
         
       end if
+
+
+      call Tensor_destructor(CoupledCluster_instance%MP2_axVc1sp)
+      call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
 
 
   end subroutine CoupledCluster_pairing_function
