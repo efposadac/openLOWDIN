@@ -4308,6 +4308,37 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 		22, 22.05645, , , 
 /
 &ELEMENT
+	NAME = "CARBON"
+	SYMBOL = "C-C"
+	ATOMICNUMBER = 6
+	MASS = 12.0107
+	MELTINGPOINT = 3825
+	BOILINGPOINT = 5100
+	DENSITY = 3.51
+	ELECTRONAFFINITY = -122
+	IONIZATIONENERGY1 = 1087.72
+	COVALENT = 0.77
+	ATOMIC = 0.70
+	VANDERWAALS = 1.70
+  KLAMT = 2.00
+	ELECTRONEGATIVITY = 2.55
+	ISOTOPES = 8, 8.037675, , , 
+		9, 9.0310401, , , 
+		10, 10.0168531, , , 
+		11, 11.0114338, , , 
+		12, 12.0000000, 98.93, , 
+		13, 13.0033548378, 1.07, , 
+		14, 14.003241988, , , 
+		15, 15.0105993, , , 
+		16, 16.014701, , , 
+		17, 17.022584, , , 
+		18, 18.026760, , , 
+		19, 19.03525, , , 
+		20, 20.04032, , , 
+		21, 21.04934, , , 
+		22, 22.05645, , , 
+/
+&ELEMENT
 	NAME = "NITROGEN"
 	SYMBOL = "N-A"
 	ATOMICNUMBER = 7
