@@ -352,6 +352,7 @@ if [ $extFile="lowdin" ]; then
 	cp $nameFile.lowdin $LOWDIN_SCRATCH/$nameFile
 	mv $nameFile $LOWDIN_SCRATCH/$nameFile
 	cp lowdin.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp lowdin.civec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	echo "" >> $nameFile.out
 	mv $nameFile.out $LOWDIN_SCRATCH/$nameFile
 	mv $nameFile.aux $LOWDIN_SCRATCH/$nameFile
@@ -392,6 +393,7 @@ if [ $extFile="lowdin" ]; then
         mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.civec $currentPath &> 2
         # mv $LOWDIN_SCRATCH/$nameFile/*.ci $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.coeff $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*coup $currentPath &> 2

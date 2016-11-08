@@ -168,6 +168,9 @@ module CONTROL_
      integer :: CI_MAX_NCV
      integer :: CI_SIZE_OF_GUESS_MATRIX
      integer :: CI_STACK_SIZE
+     real(8) :: CI_CONVERGENCE
+     logical :: CI_SAVE_EIGENVECTOR
+     logical :: CI_LOAD_EIGENVECTOR
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -421,6 +424,9 @@ module CONTROL_
   integer :: LowdinParameters_CImaxNCV
   integer :: LowdinParameters_CIsizeOfGuessMatrix
   integer :: LowdinParameters_CIstackSize
+  real(8) :: LowdinParameters_CIConvergence
+  logical :: LowdinParameters_CISaveEigenVector
+  logical :: LowdinParameters_CILoadEigenVector
 
 
   !!***************************************************************************
@@ -672,6 +678,9 @@ module CONTROL_
        LowdinParameters_CImaxNCV, &
        LowdinParameters_CIsizeOfGuessMatrix, &
        LowdinParameters_CIstackSize, &
+       LowdinParameters_CIConvergence, &
+       LowdinParameters_CISaveEigenVector, &
+       LowdinParameters_CILoadEigenVector, &
 
        !!***************************************************************************
        !! CCSD 
@@ -949,6 +958,9 @@ contains
     LowdinParameters_CImaxNCV = 30
     LowdinParameters_CIsizeOfGuessMatrix = 300
     LowdinParameters_CIstackSize = 5000
+    LowdinParameters_CIConvergence = 1E-4
+    LowdinParameters_CISaveEigenVector = .false.
+    LowdinParameters_CILoadEigenVector = .false.
 
     !!***************************************************************************
     !! CCSD
@@ -1205,6 +1217,9 @@ contains
     CONTROL_instance%CI_MAX_NCV = 30 
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = 300
     CONTROL_instance%CI_STACK_SIZE = 5000
+    CONTROL_instance%CI_CONVERGENCE = 1E-4
+    CONTROL_instance%CI_SAVE_EIGENVECTOR = .FALSE.
+    CONTROL_instance%CI_LOAD_EIGENVECTOR = .FALSE.
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1499,6 +1514,9 @@ contains
     CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
     CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
+    CONTROL_instance%CI_CONVERGENCE = LowdinParameters_CIConvergence
+    CONTROL_instance%CI_SAVE_EIGENVECTOR = LowdinParameters_CISaveEigenVector
+    CONTROL_instance%CI_LOAD_EIGENVECTOR = LowdinParameters_CILoadEigenVector
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -2023,6 +2041,9 @@ contains
     otherThis%CI_MAX_NCV = this%CI_MAX_NCV
     otherThis%CI_SIZE_OF_GUESS_MATRIX = this%CI_SIZE_OF_GUESS_MATRIX
     otherThis%CI_STACK_SIZE = this%CI_STACK_SIZE 
+    otherThis%CI_CONVERGENCE = this%CI_CONVERGENCE
+    otherThis%CI_SAVE_EIGENVECTOR = this%CI_SAVE_EIGENVECTOR
+    otherThis%CI_LOAD_EIGENVECTOR = this%CI_LOAD_EIGENVECTOR
 
     !!***************************************************************************
     !! CCSD

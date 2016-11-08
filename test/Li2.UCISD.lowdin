@@ -22,6 +22,9 @@ CONTROL
 	scfelectronicenergytolerance=1E-8
         CIdiagonalizationMethod="DSYEVX"
         !CIdiagonalizationMethod="ARPACK"
+        !CIdiagonalizationMethod="JADAMILU"
+	!CISaveEigenvector = true
+	!CILoadEigenvector = true
 END CONTROL
 
 

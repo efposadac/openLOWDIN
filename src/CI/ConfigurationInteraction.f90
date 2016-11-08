@@ -1421,7 +1421,7 @@ contains
 
        write (6,"(T4,A34, F20.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
 
-       if (  ConfigurationInteraction_instance%level == "CISD" .or. ConfigurationInteraction_instance%level == "FCI" ) then
+       if (  ConfigurationInteraction_instance%level == "CISD" ) then
          print *, ""
          write (6,"(T2,A34)") "RENORMALIZED DAVIDSON CORRECTION:"
          print *, ""
@@ -1464,63 +1464,11 @@ contains
     integer :: m
     real(8), allocatable :: eigenValues(:) 
 
-    select case ( trim(ConfigurationInteraction_instance%level) )
-
-    case ( "CIS" )
+!    select case ( trim(ConfigurationInteraction_instance%level) )
 
        print *, ""
        print *, "==============================================="
-       print *, "|            BEGIN CIS CALCULATION            |"
-       print *, "-----------------------------------------------"
-       print *, ""
-
-       call ConfigurationInteraction_getTransformedIntegrals()
-       print *, "Building configurations..."
-
-       call ConfigurationInteraction_buildConfigurations()
-       print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
-       print *, ""
-       print *, "Building hamiltonian..."
-       call ConfigurationInteraction_buildHamiltonianMatrix()
-
-       !! deallocate transformed integrals
-       deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-       deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
-                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
-       print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
-
-       print *, ""
-       print *, "Diagonalizing hamiltonian..."
-
-       select case (CONTROL_instance%CI_DIAGONALIZATION_METHOD) 
-
-       case ("DSYEVX")
-
-         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
-
-       case ("DSYEVR")
-
-         call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
-
-        end select
-
-       print *,""
-       print *, "-----------------------------------------------"
-       print *, "|              END CIS CALCULATION            |"
-       print *, "==============================================="
-       print *, ""
-
-    case ( "CISD" )
-
-       print *, ""
-       print *, "==============================================="
-       print *, "|            BEGIN CISD CALCULATION           |"
+       print *, "|         BEGIN ", trim(ConfigurationInteraction_instance%level)," CALCULATION"
        print *, "-----------------------------------------------"
        print *, ""
 
@@ -1541,13 +1489,13 @@ contains
          print *, "Building initial hamiltonian..."
          call ConfigurationInteraction_buildInitialCIMatrix()
 
-         print *, "Building and saving hamiltonian..."
-         call ConfigurationInteraction_buildAndSaveCIMatrix()
+         !print *, "Building and saving hamiltonian..."
+         !call ConfigurationInteraction_buildAndSaveCIMatrix()
 
          !! deallocate transformed integrals
-         deallocate (ConfigurationInteraction_instance%configurations)
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
+         !deallocate (ConfigurationInteraction_instance%configurations)
+         !deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
+         !deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
          call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
               int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
@@ -1574,6 +1522,11 @@ contains
               int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
+         if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
+           call ConfigurationInteraction_loadEigenVector (ConfigurationInteraction_instance%eigenvalues, &
+                  ConfigurationInteraction_instance%eigenVectors) 
+         end if 
+
          print *, ""
          print *, "Diagonalizing hamiltonian..."
          print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
@@ -1590,7 +1543,9 @@ contains
               ConfigurationInteraction_instance%eigenvalues, &
               ConfigurationInteraction_instance%eigenVectors )
 
-
+         if ( CONTROL_instance%CI_SAVE_EIGENVECTOR ) then 
+           call ConfigurationInteraction_saveEigenVector () 
+         end if
        case ("DSYEVX")
 
          call ConfigurationInteraction_buildHamiltonianMatrix()
@@ -1647,7 +1602,12 @@ contains
 !              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
 !              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
 
-        end select
+       case default
+
+         call ConfigurationInteraction_exception( ERROR, "Configuration interactor constructor", "Diagonalization method not implemented")
+
+
+       end select
 
        print *,""
        print *, "-----------------------------------------------"
@@ -1655,532 +1615,19 @@ contains
        print *, "==============================================="
        print *, ""
 
-    case ( "CIDD" )
-
-       print *, ""
-       print *, ""
-       print *, "==============================================="
-       print *, "|            BEGIN CID CALCULATION            |"
-       print *, "|       ONLY EXCITATIONS TO THE SAME ORBITAL  |"
-       print *, "-----------------------------------------------"
-       print *, ""
-
-
-       print *, "Getting transformed integrals..."
-       call ConfigurationInteraction_getTransformedIntegrals()
-       print *, "Building configurations..."
-
-       call ConfigurationInteraction_buildConfigurations()
-       print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
-       print *, ""
-       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
-                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
-
-       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-       case ("ARPACK")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         print *, "Building and saving hamiltonian..."
-         call ConfigurationInteraction_buildAndSaveCIMatrix()
-
-
-         !! deallocate transformed integrals
-
-         deallocate (ConfigurationInteraction_instance%configurations)
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call ConfigurationInteraction_diagonalize(ConfigurationInteraction_instance%numberOfConfigurations, &
-              ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              CONTROL_instance%CI_MAX_NCV, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-  
-
-       case ("DSYEVX")
-
-         call ConfigurationInteraction_buildHamiltonianMatrix()
-         print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         !! deallocate transformed integrals
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
-              flags = SYMMETRIC)
-
-       case ("DSYEVR")
-
-         call ConfigurationInteraction_buildHamiltonianMatrix()
-         print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         !! deallocate transformed integrals
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
-              flags = SYMMETRIC)
-
-
-        end select
-
-       print *,""
-       print *, "-----------------------------------------------"
-       print *, "|              END CID CALCULATION            |"
-       print *, "==============================================="
-       print *, ""
-
-    case ( "FCI-oneSpecie" )
-
-       print *, ""
-       print *, ""
-       print *, "==============================================="
-       print *, "|  Full CI for one specie calculation          |"
-       print *, "|  Use fci program to perform the calculation  |"
-       print *, "-----------------------------------------------"
-       print *, ""
-       ! call ConfigurationInteraction_getTransformedIntegrals()
-       !call ConfigurationInteraction_printTransformedIntegralsToFile()
-
-
-    case ( "FCI" )
-
-       print *, ""
-       print *, "==============================================="
-       print *, "|            BEGIN FCI CALCULATION            |"
-       print *, "-----------------------------------------------"
-       print *, ""
-
-       call ConfigurationInteraction_getTransformedIntegrals()
-       print *, "Building configurations..."
-
-       call ConfigurationInteraction_buildConfigurations()
-       print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
-       print *, ""
-
-
-       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
-                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
-
-
-       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-       case ("ARPACK")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         !print *, "Building and saving hamiltonian..."
-         !call ConfigurationInteraction_buildAndSaveCIMatrix()
-
-         !!! deallocate transformed integrals
-         !deallocate (ConfigurationInteraction_instance%configurations)
-         !deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         !deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call ConfigurationInteraction_diagonalize(ConfigurationInteraction_instance%numberOfConfigurations, &
-              ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              CONTROL_instance%CI_MAX_NCV, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-
-       case ("JADAMILU")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-         print *, "============================================================="
-         print *, "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
-         print *, " a software code for computing selected eigenvalues of "
-         print *, " large sparse symmetric matrices, "
-         print *, "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
-         print *, "============================================================="
-
-
-         call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-
-       case ("DSYEVX")
-
-         call ConfigurationInteraction_buildHamiltonianMatrix()
-         print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         !! deallocate transformed integrals
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
-              flags = SYMMETRIC)
-
-!         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-!              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-!              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
-
-
-       case ("DSYEVR")
-
-         call ConfigurationInteraction_buildHamiltonianMatrix()
-         print *, "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         !! deallocate transformed integrals
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-              eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
-              flags = SYMMETRIC)
-
-!        call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-!              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-!              flags = SYMMETRIC, dm = ConfigurationInteraction_instance%numberOfConfigurations )
-
-        end select
-
-       print *,""
-       print *, "-----------------------------------------------"
-       print *, "|              END FCI CALCULATION            |"
-       print *, "==============================================="
-       print *, ""
-
-    case ( "CISDT" )
-
-       print *, ""
-       print *, "==============================================="
-       print *, "|           BEGIN CISDT CALCULATION           |"
-       print *, "-----------------------------------------------"
-       print *, ""
-
-       print *, "Getting transformed integrals..."
-       call ConfigurationInteraction_getTransformedIntegrals()
-       print *, "Building configurations..."
-
-       call ConfigurationInteraction_buildConfigurations()
-       print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
-       print *, ""
-
-       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
-                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
-
-       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-       case ("ARPACK")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         print *, "Building and saving hamiltonian..."
-         call ConfigurationInteraction_buildAndSaveCIMatrix()
-
-         !! deallocate transformed integrals
-
-         deallocate (ConfigurationInteraction_instance%configurations)
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call ConfigurationInteraction_diagonalize(ConfigurationInteraction_instance%numberOfConfigurations, &
-              ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              CONTROL_instance%CI_MAX_NCV, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-  
-       case ("JADAMILU")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-         print *, "============================================================="
-         print *, "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
-         print *, " a software code for computing selected eigenvalues of "
-         print *, " large sparse symmetric matrices, "
-         print *, "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
-         print *, "============================================================="
-
-
-         call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-
-
-        end select
-
-       print *,""
-       print *, "-----------------------------------------------"
-       print *, "|             END CISDT CALCULATION           |"
-       print *, "==============================================="
-       print *, ""
-
-
-
-    case ( "CISDTQ" )
-
-       print *, ""
-       print *, "==============================================="
-       print *, "|          BEGIN CISDTQ CALCULATION           |"
-       print *, "-----------------------------------------------"
-       print *, ""
-
-       print *, "Getting transformed integrals..."
-       call ConfigurationInteraction_getTransformedIntegrals()
-       print *, "Building configurations..."
-
-       call ConfigurationInteraction_buildConfigurations()
-       print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
-       print *, ""
-
-       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
-                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
-
-       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-       case ("ARPACK")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         print *, "Building and saving hamiltonian..."
-         call ConfigurationInteraction_buildAndSaveCIMatrix()
-
-         !! deallocate transformed integrals
-
-         deallocate (ConfigurationInteraction_instance%configurations)
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call ConfigurationInteraction_diagonalize(ConfigurationInteraction_instance%numberOfConfigurations, &
-              ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              CONTROL_instance%CI_MAX_NCV, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-
-       case ("JADAMILU")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-         print *, "============================================================="
-         print *, "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
-         print *, " a software code for computing selected eigenvalues of "
-         print *, " large sparse symmetric matrices, "
-         print *, "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
-         print *, "============================================================="
-
-
-         call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-
-  
-        end select
-
-       print *,""
-       print *, "-----------------------------------------------"
-       print *, "|            END CISDTQ CALCULATION           |"
-       print *, "==============================================="
-       print *, ""
-
-    case ( "CISDTQQ" )
-
-       print *, ""
-       print *, "==============================================="
-       print *, "|       BEGIN CISDTQ + Q CALCULATION           |"
-       print *, "-----------------------------------------------"
-       print *, ""
-
-       print *, "Getting transformed integrals..."
-       call ConfigurationInteraction_getTransformedIntegrals()
-       print *, "Building configurations..."
-
-       call ConfigurationInteraction_buildConfigurations()
-       print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
-       print *, ""
-
-       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
-                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
-
-       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-       case ("ARPACK")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         print *, "Building and saving hamiltonian..."
-         call ConfigurationInteraction_buildAndSaveCIMatrix()
-
-         !! deallocate transformed integrals
-
-         deallocate (ConfigurationInteraction_instance%configurations)
-         deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
-         deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
-         call ConfigurationInteraction_diagonalize(ConfigurationInteraction_instance%numberOfConfigurations, &
-              ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              CONTROL_instance%CI_MAX_NCV, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-  
-       case ("JADAMILU")
-
-         print *, "Building initial hamiltonian..."
-         call ConfigurationInteraction_buildInitialCIMatrix()
-
-         call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
-              int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
-              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-         print *, ""
-         print *, "Diagonalizing hamiltonian..."
-         print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-         print *, "============================================================="
-         print *, "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
-         print *, " a software code for computing selected eigenvalues of "
-         print *, " large sparse symmetric matrices, "
-         print *, "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
-         print *, "============================================================="
-
-
-         call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
-              ConfigurationInteraction_instance%eigenvalues, &
-              ConfigurationInteraction_instance%eigenVectors )
-
-        end select
-
-       print *,""
-       print *, "-----------------------------------------------"
-       print *, "|          END CISDTQ+Q CALCULATION           |"
-       print *, "==============================================="
-       print *, ""
-
-    case default
-
-       call ConfigurationInteraction_exception( ERROR, "Configuration interactor constructor", "Correction level not implemented")
-
-    end select
-
+         
+!    case ( "FCI-oneSpecie" )
+!
+!       print *, ""
+!       print *, ""
+!       print *, "==============================================="
+!       print *, "|  Full CI for one specie calculation          |"
+!       print *, "|  Use fci program to perform the calculation  |"
+!       print *, "-----------------------------------------------"
+!       print *, ""
+!       ! call ConfigurationInteraction_getTransformedIntegrals()
+!       !call ConfigurationInteraction_printTransformedIntegralsToFile()
+!
 
   end subroutine ConfigurationInteraction_run
 
@@ -5640,9 +5087,12 @@ contains
    
         numberOfDiffOrbitals = Configuration_checkCoincidenceB( auxthisA, auxthisB, numberOfSpecies )
 
+
         factor = 1
         if  (  numberOfDiffOrbitals == 1 .or. numberOfDiffOrbitals == 2  ) then
           call Configuration_setAtMaximumCoincidenceB( auxthisA,auxthisB, numberOfSpecies, factor )
+        else if ( numberOfDiffOrbitals > 2 ) then
+          return
         end if
 
         select case (  numberOfDiffOrbitals )
@@ -6519,6 +5969,126 @@ contains
 
   end subroutine ConfigurationInteraction_exception
 
+  subroutine ConfigurationInteraction_saveEigenVector () 
+    implicit none
+    character(50) :: nameFile
+    integer :: unitFile
+    integer :: i, ia, ib, nonzero
+    integer, allocatable :: auxIndexArray(:)
+    real(8), allocatable :: auxArray(:)
+    integer :: maxStackSize
+
+    maxStackSize = CONTROL_instance%CI_STACK_SIZE 
+    nameFile = "lowdin.civec"
+    unitFile = 20
+
+    nonzero = 0
+    do i = 1, ConfigurationInteraction_instance%numberOfConfigurations
+      if ( abs(ConfigurationInteraction_instance%eigenVectors%values(i,1) ) >= 1E-8 ) nonzero = nonzero + 1
+    end do 
+
+    print *, "nonzero", nonzero
+
+    allocate(auxArray(nonzero))
+    allocate(auxIndexArray(nonzero))
+
+    ia = 0
+    do i = 1, ConfigurationInteraction_instance%numberOfConfigurations
+      if ( abs(ConfigurationInteraction_instance%eigenVectors%values(i,1) ) >= 1E-8 ) then 
+        ia = ia + 1
+        auxIndexArray(ia) = i 
+        auxArray(ia) = ConfigurationInteraction_instance%eigenVectors%values(i,1) 
+      end if
+    end do 
+
+    open(unit=unitFile, file=trim(nameFile), status="replace", form="unformatted")
+
+    write(unitFile) ConfigurationInteraction_instance%eigenValues%values(1)
+    write(unitFile) nonzero
+
+    do i = 1, ceiling(real(nonzero) / real(maxStackSize) )
+      ib = maxStackSize * i  
+      ia = ib - maxStackSize + 1
+      if ( ib > nonzero ) ib = nonzero
+      write(unitFile) auxIndexArray(ia:ib)
+    end do
+    deallocate(auxIndexArray)
+
+    do i = 1, ceiling(real(nonzero) / real(maxStackSize) )
+      ib = maxStackSize * i  
+      ia = ib - maxStackSize + 1
+      if ( ib > nonzero ) ib = nonzero
+      write(unitFile) auxArray(ia:ib)
+    end do
+    deallocate(auxArray)
+
+    close(unitFile)
+
+  end subroutine ConfigurationInteraction_saveEigenVector
+
+  subroutine ConfigurationInteraction_loadEigenVector (eigenValues,eigenVectors) 
+    implicit none
+    type(Vector) :: eigenValues
+    type(Matrix) :: eigenVectors
+    character(50) :: nameFile
+    integer :: unitFile
+    integer :: i, ia, ib, nonzero
+    real(8) :: eigenValue
+    integer, allocatable :: auxIndexArray(:)
+    real(8), allocatable :: auxArray(:)
+    integer :: maxStackSize
+
+    maxStackSize = CONTROL_instance%CI_STACK_SIZE 
+ 
+
+    nameFile = "lowdin.civec"
+    unitFile = 20
+
+
+    open(unit=unitFile, file=trim(nameFile), status="old", action="read", form="unformatted")
+
+    readvectors : do
+      read (unitFile) eigenValue
+      read (unitFile) nonzero
+      print *, "eigenValue", eigenValue
+      print *, "nonzero", nonzero
+
+      allocate (auxIndexArray(nonzero))
+      auxIndexArray = 0
+
+      do i = 1, ceiling(real(nonZero) / real(maxStackSize) )
+        ib = maxStackSize * i  
+        ia = ib - maxStackSize + 1
+        if ( ib >  nonZero ) ib = nonZero
+       read (unitFile) auxIndexArray(ia:ib)
+      end do
+
+      allocate (auxArray(nonzero))
+      auxArray = 0
+
+      do i = 1, ceiling(real(nonZero) / real(maxStackSize) )
+        ib = maxStackSize * i  
+        ia = ib - maxStackSize + 1
+        if ( ib >  nonZero ) ib = nonZero
+       read (unitFile) auxArray(ia:ib)
+      end do
+      exit readvectors
+    end do readvectors
+
+    eigenValues%values(1) = eigenValue
+    do i = 1, nonzero
+      eigenVectors%values(auxIndexArray(i),1) = auxArray(i)
+    end do
+
+    deallocate (auxIndexArray )
+    deallocate (auxArray )
+
+
+    close(unitFile)
+
+  end subroutine ConfigurationInteraction_loadEigenVector
+
+
   !>
   !! @brief Muestra informacion del objeto
   !!
@@ -6742,7 +6312,8 @@ contains
   !  LWORKL is set as illustrated below. 
   !
     lworkl = ncv * ( ncv + 8 )
-    tol = zero
+    !tol = zero
+    TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
     ido = 0
   !
   !  Specification of Algorithm Mode:
@@ -6801,8 +6372,8 @@ contains
   !  The user supplies a matrix-vector multiplication routine that takes
   !  workd(ipntr(1)) as the input, and return the result to workd(ipntr(2)).
   !
-      call av ( nx, workd(ipntr(1)), workd(ipntr(2)) )
-  !    call matvec ( nx, residi+workd(ipntr(1)), workd(ipntr(2)), iter )
+      !call av ( nx, workd(ipntr(1)), workd(ipntr(2)) )
+      call matvec ( nx, residi,workd(ipntr(1)), workd(ipntr(2)), iter )
   
      end do
   !
@@ -6857,8 +6428,6 @@ contains
           if ( abs(z(ii,jj)) > 1E-6) ia = ia + 1 
         end do
       end do 
-      print *, "ia ", ia
-
 
       if ( ierr /= 0 ) then
   
@@ -6954,13 +6523,6 @@ contains
     CIUnit = 20
     nonzero = 0
     maxStackSize = CONTROL_instance%CI_STACK_SIZE 
-
-    ia = 0
-    do i = 1 , nx
-      if ( abs(v(i) ) > 1E-6) ia = ia + 1
-    end do
-    print *, "ia", ia
-
 
     w = 0
 #ifdef intel
@@ -7071,7 +6633,7 @@ contains
      NINIT = 1 !    initial approximate eigenvectors
      MADSPACE = maxsp !    desired size of the search space
      ITER = 100 !    maximum number of iteration steps
-     TOL = 1.0d-4 !    tolerance for the eigenvector residual
+     TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
 
 !    additional parameters set to default
      ICNTL(1)=0
@@ -7081,13 +6643,25 @@ contains
      ICNTL(5)=1
 
      IJOB=0
-     do i = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
-       X(ConfigurationInteraction_instance%auxIndexCIMatrix%values(i)) = ConfigurationInteraction_instance%initialEigenVectors%values(i,1)
-     end do
 
-     do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-      EIGS(i) = ConfigurationInteraction_instance%initialEigenValues%values(i)
-     end do
+     !! set initial eigenpairs
+     if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
+       do i = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
+         X(ConfigurationInteraction_instance%auxIndexCIMatrix%values(i)) = eigenVectors%values(i,1)
+       end do
+
+       do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+         EIGS(i) = eigenValues%values(i)
+       end do
+     else
+       do i = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
+         X(ConfigurationInteraction_instance%auxIndexCIMatrix%values(i)) = ConfigurationInteraction_instance%initialEigenVectors%values(i,1)
+       end do
+
+       do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+         EIGS(i) = ConfigurationInteraction_instance%initialEigenValues%values(i)
+       end do
+     end if
 
      SIGMA = EIGS(1)
      SHIFT = EIGS(1)
@@ -7139,17 +6713,17 @@ contains
     real(8) y(nx)
     real(8) v(nx)
     real(8) w(nx)
-    integer, allocatable :: jj(:)
     real(8) :: CIEnergy
-    integer :: nonzero,ii, kk
-    integer :: maxStackSize, i, j, ia, ib
+    integer :: nonzero
+    integer :: i, j, ia, ib, ii, jj
     integer :: nproc
     real(8) :: wi
     real(8) :: timeA, timeB
     type(Configuration) :: auxConfigurationI, auxConfigurationJ
     real(8) :: tol
     integer :: iter
-    tol = 1E-7
+    integer, allocatable :: indexArray(:)
+    tol = 1E-8
 
     call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationI )
     call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationJ )
@@ -7166,13 +6740,26 @@ contains
 
     call omp_set_num_threads(omp_get_max_threads())
     call omp_set_num_threads(nproc)
-    CIenergy = 0
-    ia = 0
-    do i = 1 , nx
-      if ( abs(y(i)+v(i) ) > tol) ia = ia + 1
-    end do
-    ib = 0
 
+    CIenergy = 0
+    nonzero = 0
+
+      do i = 1 , nx
+        if ( abs(y(i)+v(i) ) > tol) nonzero = nonzero + 1
+      end do
+  
+      allocate(indexArray(nonzero))
+      indexArray = 0
+  
+      ia = 0
+      do i = 1 , nx
+        if ( abs(y(i)+v(i) ) > tol) then
+          ia = ia + 1
+          indexArray(ia) = i
+        end if
+      end do
+
+    ib = 0
     if ( iter == 1 ) then
     do i = 1, nx
   
@@ -7185,7 +6772,7 @@ contains
 !$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,y) reduction (+:wi)
 !$omp do 
         do j = i+1 , nx
-          if ( abs(y(i)+v(i) ) > tol .or. abs(y(j)+v(j)) > tol ) then
+          if ( abs(v(i) ) > tol .or. abs(v(j)) > tol ) then
             auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(i)%occupations
             auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(j)%occupations
             CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
@@ -7201,32 +6788,33 @@ contains
         w(i) = w(i) + wi
       end do 
 else
-    do i = 1, nx
-          if ( abs(y(i)+v(i) ) > tol  ) then
+    do i = 1, nonzero
+      ii = indexArray(i)
 !$omp parallel &
-!$omp& private(j,CIEnergy),&
+!$omp& private(j,jj,CIEnergy),&
 !$omp& private(auxConfigurationI ),&
 !$omp& private(auxConfigurationJ ),&
-!$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,y) reduction (+:wi)
+!$omp& shared(i,ii,ConfigurationInteraction_instance, HartreeFock_instance,v,nonzero,w,indexArray) 
 !$omp do 
 
          do j = 1 , nx
+          !jj = indexArray(j)
+          jj = j
           !if ( abs(y(j) ) > tol  ) then
-          if ( abs(y(j)+v(j) ) > tol  ) then
-            auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(i)%occupations
-            auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(j)%occupations
+            auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(ii)%occupations
+            auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(jj)%occupations
             CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
                     auxConfigurationI, auxConfigurationJ )
 
-            w(j) = w(j) + CIEnergy*v(i)  !! direct
+            w(jj) = w(jj) + CIEnergy*v(ii)  !! direct
             ib = ib + 1
-          end if
         end do 
 !$omp end do nowait
 !$omp end parallel
-end if
 end do 
 end if
+
+      deallocate(indexArray)
 
       print *, "ia ib ",ia,ib
       timeB = omp_get_wtime()
