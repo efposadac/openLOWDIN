@@ -62,8 +62,8 @@ program CC
 
       call CCSD_constructor()
       call CCSD_run()
-
-
+      print*, "CCSD_constrolinstance"
+      !call CCSD_destructor()
 
     case default
 
@@ -71,7 +71,9 @@ program CC
 
   end select
 
-  
+  ! call CCSD_destructor()
+  call CoupledCluster_destructor()
+
   !!stop time
 
   call Stopwatch_stop(lowdin_stopwatch)

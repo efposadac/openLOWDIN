@@ -105,6 +105,24 @@ contains
   subroutine CoupledCluster_destructor()
     implicit none
 
+    integer(8) :: i, num_species
+
+    num_species = MolecularSystem_getNumberOfQuantumSpecies()
+
+    ! if (allocated(spints(1)%valuesp)) deallocate(spints(1)%valuesp)
+    !if (allocated(spints)) deallocate(spints)
+    ! do i=1, num_species
+
+    !   !call Matrix_destructor(Allspecies(i)%HF_fs)
+    !   !call Vector_destructor(Allspecies(i)%HF_ff)
+    !   if (allocated(spints(i)%valuesp)) deallocate(spints(i))!print*,"deallocate spints"!
+    
+    ! end do
+
+    ! if (allocated(spints)) print*, "CoupledCluster_destructor"!deallocate(spints)
+    
+    ! if (allocated(Allspecies)) deallocate(Allspecies)
+
     CoupledCluster_instance%isInstanced = .false.
 
   end subroutine CoupledCluster_destructor
@@ -192,6 +210,8 @@ contains
         call Vector_constructor(CoupledCluster_instance%ECorr2dOr, num_species) !MP2
 
       end do
+
+      close(wfnUnit)
       
   end subroutine CoupledCluster_loadWaveFunction
 

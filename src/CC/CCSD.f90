@@ -35,17 +35,26 @@ module CCSD_
   type, public :: CCSD
       
       
-      real(8), allocatable :: Dai(:,:)
+      ! real(8), allocatable :: Dai(:,:)
       real(8), allocatable :: Tssame(:,:)
       real(8), allocatable :: Tdsame(:,:,:,:)
-      real(8), allocatable :: tau(:,:,:,:), ttau(:,:,:,:)
+      real(8), allocatable :: tau(:,:,:,:)
+      real(8), allocatable :: ttau(:,:,:,:)
       real(8) :: sum
 
       logical :: isInstanced
 
   end type CCSD
 
+  type, public :: CCSDiter
+      
+
+      real(8), allocatable :: Dai(:,:)
+
+  end type CCSDiter
+
   type(CCSD), public :: CCSD_instance
+  type(CCSDiter), public :: CCSDinit
 
 
 contains
@@ -68,9 +77,9 @@ contains
       call CoupledCluster_pairing_function(1,2)
 
       ! Denominator in T1 D^{a}_{i}
-      if (allocated(CCSD_instance%Dai)) deallocate (CCSD_instance%Dai)
-      allocate(CCSD_instance%Dai(CoupledCluster_instance%noc,CoupledCluster_instance%noc))
-      CCSD_instance%Dai(:,:) = 0.0_8
+      if (allocated(CCSDinit%Dai)) deallocate (CCSDinit%Dai)
+      allocate(CCSDinit%Dai(CoupledCluster_instance%noc,CoupledCluster_instance%noc))
+      CCSDinit%Dai(:,:) = 0.0_8
 
       ! t^{a}_{i} amplitude for single excitation
       if (allocated(CCSD_instance%Tssame)) deallocate(CCSD_instance%Tssame)
@@ -105,11 +114,11 @@ contains
   subroutine CCSD_destructor()
       implicit none
 
-      if (allocated(CCSD_instance%Dai)) deallocate (CCSD_instance%Dai)
+      ! if (allocated(CCSD_instance%Dai)) deallocate (CCSD_instance%Dai)
       if (allocated(CCSD_instance%Tssame)) deallocate (CCSD_instance%Tssame)
-      if (allocated(CCSD_instance%Tdsame)) deallocate (CCSD_instance%Tdsame)
-      if (allocated(CCSD_instance%ttau)) deallocate (CCSD_instance%ttau)
-      if (allocated(CCSD_instance%tau)) deallocate (CCSD_instance%tau)
+      ! if (allocated(CCSD_instance%Tdsame)) deallocate (CCSD_instance%Tdsame)
+      ! if (allocated(CCSD_instance%ttau)) deallocate (CCSD_instance%ttau)
+      ! if (allocated(CCSD_instance%tau)) deallocate (CCSD_instance%tau)
 
       CCSD_instance%isInstanced = .false.
       
@@ -138,6 +147,7 @@ contains
       ! \tau^{ab}_{ij} = t^{ab}_{ij} + \frac{1}{2}(t^{a}_{i}t^{b}_{j} - t^{b}_{i}t^{a}_{j})
       ! \tau^{ab}_{ij} = t^{ab}_{ij} + t^{a}_{i}t^{b}_{j} - t^{b}_{i}t^{a}_{j}
 
+      print*, "before loop"
       do a=nop+1, noc
         do b=nop+1, noc
           do i=1, nop
@@ -149,11 +159,11 @@ contains
               
               !under construction        
               
-              ! CCSD_instance%ttau(a-nop,b-nop,i,j) = CCSD_instance%Tdsame(a-nop,b-nop,i,j) !+ 0.5*( CCSD_instance%Tssame(a-nop,i)*CCSD_instance%Tssame(b-nop,j) &
-                !-CCSD_instance%Tssame(b-nop,i)*CCSD_instance%Tssame(a-nop,j) )
+              CCSD_instance%ttau(a-nop,b-nop,i,j) = CCSD_instance%Tdsame(a-nop,b-nop,i,j) + 0.5*( CCSD_instance%Tssame(a-nop,i)*CCSD_instance%Tssame(b-nop,j) &
+                -CCSD_instance%Tssame(b-nop,i)*CCSD_instance%Tssame(a-nop,j) )
 
-              ! CCSD_instance%tau(a-nop,b-nop,i,j) = CCSD_instance%Tdsame(a-nop,b-nop,i,j) + CCSD_instance%Tssame(a-nop,i)*CCSD_instance%Tssame(b-nop,j) &
-              !   -CCSD_instance%Tssame(b-nop,i)*CCSD_instance%Tssame(a-nop,j)
+              CCSD_instance%tau(a-nop,b-nop,i,j) = CCSD_instance%Tdsame(a-nop,b-nop,i,j) !+ CCSD_instance%Tssame(a-nop,i)*CCSD_instance%Tssame(b-nop,j) &
+                ! -CCSD_instance%Tssame(b-nop,i)*CCSD_instance%Tssame(a-nop,j)
 
               write(*,*) CCSD_instance%Tdsame(a,b,i,j), "Tdsame"
             end do
@@ -165,30 +175,31 @@ contains
       ! Denominator D^{a}_{i}
       do a=nop+1, noc
          do i=1, nop
-            CCSD_instance%Dai(a,i) = Allspecies(speciesId)%HF_fs%values(i,i) - Allspecies(speciesId)%HF_fs%values(a,a)
-            write(*,*) a,i,CCSD_instance%Dai(a,i)
+            CCSDinit%Dai(a,i) = Allspecies(speciesId)%HF_fs%values(i,i) - Allspecies(speciesId)%HF_fs%values(a,a)
+            write(*,*) a,i,CCSDinit%Dai(a,i)
          end do
       end do
-      
 
+
+      ! call Vector_destructor (Allspecies(speciesId)%HF_ff)
+      ! call Matrix_destructor (Allspecies(speciesId)%HF_fs)
       ! Loop to obtain T1 and T2 intermediates values
 
       ! This could be a subroutine: 
 
-      do while (convergence >= 1.0D-8)
+      ! do while (convergence >= 1.0D-8)
           
-        prev_ccsdE = ccsdE
+      !   prev_ccsdE = ccsdE
 
 
-        !intermediates loop
+      !   !intermediates loop
 
-        convergence = abs( ccsdE - prev_ccsdE )
+      !   convergence = abs( ccsdE - prev_ccsdE )
 
-        write (*,*) speciesID, "Species"
-        write (*,*) ccsdE, "CCSD Energy " 
+      !   write (*,*) speciesID, "Species"
+      !   write (*,*) ccsdE, "CCSD Energy " 
 
-      end do
-
+      ! end do
 
 
   end subroutine CCSD_init
@@ -198,6 +209,7 @@ contains
       
       call CCSD_init()
       call CCSD_show()
+      print*, "CCSD_show()"
       
   end subroutine CCSD_run
 
@@ -208,6 +220,15 @@ contains
       print*, "INFORMATION IN CCSD_constructor() MP2_energy: ", CoupledCluster_instance%MP2_EnergyCorr
       CCSD_instance%sum = CoupledCluster_instance%HF_energy + CoupledCluster_instance%MP2_EnergyCorr
       print*, "INFORMATION IN CCSD_constructor() Total_energy: ", CCSD_instance%sum
+      print*, "INFORMATION IN CCSD_constructor() Td: ", CCSD_instance%Tdsame(1,1,1,1)
+      print*, "INFORMATION IN CCSD_constructor() Dai: ", CCSDinit%Dai(1,3)
+      ! print*, "INFORMATION IN CCSD_constructor() ttau: ",CCSD_instance%ttau(1,1,1,1)
+      print*, "INFORMATION IN CCSD_constructor() tau: ",CCSD_instance%tau(1,1,1,1)
+
+      !if (allocated(CCSD_instance%tau)) deallocate (CCSD_instance%tau)
+
+      !call CCSD_destructor()
+      print*, "CCSD_show()x2"
 
   end subroutine CCSD_show
 end module CCSD_
