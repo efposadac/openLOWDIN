@@ -115,11 +115,11 @@ contains
 
     !   !call Matrix_destructor(Allspecies(i)%HF_fs)
     !   !call Vector_destructor(Allspecies(i)%HF_ff)
-    !   if (allocated(spints(i)%valuesp)) deallocate(spints(i))!print*,"deallocate spints"!
+    !   if (allocated(spints(i)%valuesp)) deallocate(spints(i))!!print*,"deallocate spints"!
     
     ! end do
 
-    ! if (allocated(spints)) print*, "CoupledCluster_destructor"!deallocate(spints)
+    ! if (allocated(spints)) !print*, "CoupledCluster_destructor"!deallocate(spints)
     
     ! if (allocated(Allspecies)) deallocate(Allspecies)
 
@@ -201,8 +201,8 @@ contains
         ! FS matrix
         call Matrix_diagonalConstructor (Allspecies(speciesId)%HF_fs, Allspecies(speciesId)%HF_ff)
 
-        ! print*,"fs%new"
-        ! write(*,*) Allspecies(speciesId)%HF_fs%values
+        ! !print*,"fs%new"
+        ! !write(*,*) Allspecies(speciesId)%HF_fs%values
 
 
         ! Load initial guess for T2 from MP2 correction
@@ -304,7 +304,7 @@ contains
 
       ! pairing function
       ! same species
-      print*,"same species"
+      !print*,"same species"
       do p=1, noc
         do q=1, noc
           do r=1, noc
@@ -316,7 +316,7 @@ contains
               xv_b = v_b * logic2dbl(mod(p,2) == mod(s,2)) * logic2dbl(mod(q,2) == mod(r,2))
               ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
-              write (*,*) spints(speciesId)%valuesp(p,q,r,s)
+              ! !write (*,*) spints(speciesId)%valuesp(p,q,r,s)
             end do
           end do
         end do
@@ -352,7 +352,7 @@ contains
                 isMolecular=.true.)
   
             !different species
-            print*,"different species"
+            !print*,"different species"
             do p=1, noc
               do q=1, nocs
                 do r=1, noc
@@ -361,7 +361,7 @@ contains
                     
                     xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
                     spints(i)%valuesp(p,q,r,s) = xv_a
-                    write (*,*) spints(i)%valuesp(p,q,r,s)    
+                    !write (*,*) spints(i)%valuesp(p,q,r,s)    
                   end do
                 end do
               end do

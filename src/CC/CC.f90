@@ -60,28 +60,30 @@ program CC
 
     case("CCSD")
 
-      call CCSD_constructor()
-      call CCSD_run()
-      print*, "CCSD_constrolinstance"
+    call CCSD_constructor()
+    call CCSD_run()
+!      print*, "CCSD_constrolinstance"
       !call CCSD_destructor()
 
-    case default
+  !   case default
 
-      ! call Exception_.....
+  !     ! call Exception_.....
 
   end select
 
   ! call CCSD_destructor()
-  call CoupledCluster_destructor()
+  ! print*,"CoupledCluster_destructor"
+  ! call CoupledCluster_destructor()
+  ! print*,"CoupledCluster_destructor*2"
 
   !!stop time
-
   call Stopwatch_stop(lowdin_stopwatch)
-  
+  ! print*,"close(30)"
+
   write(*, *) ""
   write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Coupled Cluster : ", lowdin_stopwatch%enlapsetTime ," (s)"
   write(*, *) ""
-  close(30)
+  ! close(30)
 
 
 end program CC
