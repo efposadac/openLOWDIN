@@ -62,7 +62,7 @@ module CoupledCluster_
   ! Tensor is used to auxiliry matrices from integrals transformed
   type, public :: TensorCC
 
-      real(8), allocatable :: valuesp(:,:,:,:) !values of one species
+      real(8), allocatable :: valuesp(:,:,:,:)
       logical :: isInstanced
   end type TensorCC
 
@@ -70,7 +70,10 @@ module CoupledCluster_
   type(CoupledCluster), public :: CoupledCluster_instance
   type(CoupledCluster), allocatable :: Allspecies(:)
   type(TensorCC), public :: TensorCC_instance
+  !values in a array of arrays of single species <ab||ij> a,b,i,j are alpha species
   type(TensorCC), allocatable :: spints(:)
+  !values of multiple species <ab|ij> a,i are alpha while b,j are beta species
+  type(TensorCC), allocatable :: spintm(:)
 
   
   character(50), private :: wfnFile = "lowdin.wfn"
@@ -140,6 +143,9 @@ contains
     ! Calculate MP2 and load energies
     call CoupledCluster_MP2()
 
+    ! Load matrices from transformed integrals
+    call CoupledCluster_load_PFunction()
+
   end subroutine CoupledCluster_init
 
   !>
@@ -152,7 +158,8 @@ contains
       character(50) :: arguments(2)
       integer :: speciesId
       integer(8) :: x, i
-      integer(8) :: nao, num_species
+      integer(8) :: nao
+      integer :: num_species
 
       num_species = MolecularSystem_getNumberOfQuantumSpecies()
       CoupledCluster_instance%num_species = num_species
@@ -256,42 +263,50 @@ contains
                 
   end subroutine CoupledCluster_MP2
 
+  subroutine CoupledCluster_load_PFunction()
+      implicit none
+      integer :: num_species
+      integer :: i
+
+      num_species = 1!CoupledCluster_instance%num_species
+
+      do i=1, num_species
+        call CoupledCluster_pairing_function(i, num_species)
+      end do
+      
+  end subroutine CoupledCluster_load_PFunction
+
+
   !>
   ! @brief load: Auxiliary matrices from transformed integrals of one and two species
   !        build: Coulomb integrals of one and two species
   !               Exchange integrals of one species
   ! @author CAOM
-  subroutine CoupledCluster_pairing_function(speciesId, OtherspeciesId)
+  subroutine CoupledCluster_pairing_function(speciesId, num_species)
       implicit none
       type(Tensor), pointer :: axVc1sp
       integer, intent(in) :: speciesId
-      integer, intent(in), optional :: OtherspeciesId
+      integer, intent(in) :: num_species
+
       integer :: i
       integer :: p, q, r, s
-      integer(8) :: num_species
       integer :: noc, nocs
       real(8) :: v_a, v_b, xv_a, xv_b
-      ! character(30) :: nameOtherSpId
-      ! real(8), allocatable ::
 
-      !array of matrices for auxiliary matrices from transformed integrals
-
-      ! type(Tensor), allocatable :: spints(:)
-
-      num_species = CoupledCluster_instance%num_species
-      CoupledCluster_instance%nop = MolecularSystem_getNumberOfParticles(speciesID)
-
+      
+      Allspecies(speciesId)%nop = MolecularSystem_getNumberOfParticles(speciesID)
+      
       if (allocated(spints)) deallocate(spints)
       allocate(spints(num_species))
 
       ! do speciesId = 1, num_species
 
-      CoupledCluster_instance%noc = MolecularSystem_getTotalNumberOfContractions(speciesId)
+      Allspecies(speciesId)%noc = MolecularSystem_getTotalNumberOfContractions(speciesId)
       ! This information is necesarry in other modules: 
       ! number of contraction to number of molecular orbitals
-      CoupledCluster_instance%noc = CoupledCluster_instance%noc*2
+      Allspecies(speciesId)%noc = Allspecies(speciesId)%noc*2
       ! For simplicity here
-      noc = CoupledCluster_instance%noc
+      noc = Allspecies(speciesId)%noc
 
       if (allocated(spints(speciesId)%valuesp)) deallocate(spints(speciesId)%valuesp)
       allocate(spints(speciesId)%valuesp(noc,noc,noc,noc))
@@ -316,7 +331,7 @@ contains
               xv_b = v_b * logic2dbl(mod(p,2) == mod(s,2)) * logic2dbl(mod(q,2) == mod(r,2))
               ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
-              ! !write (*,*) spints(speciesId)%valuesp(p,q,r,s)
+              ! write (*,*) spints(speciesId)%valuesp(p,q,r,s)
             end do
           end do
         end do
@@ -325,60 +340,74 @@ contains
 
       ! ! If there are two or more different species
 
-      if ( present(OtherspeciesId)) then
-      
-        if (OtherspeciesId > 1) then
+      if ( num_species>1 ) then
 
-          do i = speciesId + 1, num_species
-            !mmm = mmm + 1
+        if (allocated(spintm)) deallocate(spintm)
+        ! number of posible combinations if there are more than one species
+        allocate(spintm(f(num_species)/(2*f(num_species-2))))
+       
+        do i = speciesId + 1, num_species
+          !mmm = mmm + 1
   
-            CoupledCluster_instance%nops = MolecularSystem_getNumberOfParticles(i)
+          Allspecies(i)%nop = MolecularSystem_getNumberOfParticles(i)
 
-            CoupledCluster_instance%nocs = MolecularSystem_getTotalNumberOfContractions(i)
-            ! This information is necesarry in other modules: 
-            ! number of contraction to number of molecular orbitals
-            CoupledCluster_instance%nocs = CoupledCluster_instance%nocs*2
-            ! For simplicity here
-            nocs = CoupledCluster_instance%nocs
+          Allspecies(i)%noc = MolecularSystem_getTotalNumberOfContractions(i)
+          ! This information is necesarry in other modules: 
+          ! number of contraction to number of molecular orbitals
+          Allspecies(i)%noc = Allspecies(i)%noc*2
+          ! For simplicity here
+          nocs = Allspecies(speciesId)%noc
 
-            if (allocated(spints(i)%valuesp)) deallocate(spints(i)%valuesp)
-            allocate(spints(i)%valuesp(noc,nocs,noc,nocs))
+          if (allocated(spintm(i)%valuesp)) deallocate(spintm(i)%valuesp)
+          allocate(spintm(i)%valuesp(noc,nocs,noc,nocs))
 
-            spints(i)%valuesp(:,:,:,:)=0.0_8
+          spintm(i)%valuesp(:,:,:,:)=0.0_8
 
-            ! Read transformed integrals from file
-            ! call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axVc2sp)
-            call Tensor_constructor(CoupledCluster_instance%MP2_axVc2sp, speciesID, otherSpeciesID=OtherspeciesId, &
-                isMolecular=.true.)
+          ! Read transformed integrals from file
+          ! call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axVc2sp)
+          call Tensor_constructor(CoupledCluster_instance%MP2_axVc2sp, speciesID, otherSpeciesID=i, &
+            isMolecular=.true.)
   
-            !different species
-            !print*,"different species"
-            do p=1, noc
-              do q=1, nocs
-                do r=1, noc
-                  do s=1, nocs
-                    v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,nocs/2) !! Coulomb integrals
-                    
-                    xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
-                    spints(i)%valuesp(p,q,r,s) = xv_a
-                    !write (*,*) spints(i)%valuesp(p,q,r,s)    
-                  end do
+          !different species
+          !print*,"different species"
+          do p=1, noc
+            do q=1, nocs
+              do r=1, noc
+                do s=1, nocs
+                  print*, "num combinations", f(num_species)/(2*f(num_species-2))
+                  stop "test"
+                  v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,nocs/2) !! Coulomb integrals
+          
+                  xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
+                  spintm(i)%valuesp(p,q,r,s) = xv_a
+                  write (*,*) spintm(i)%valuesp(p,q,r,s)    
                 end do
               end do
             end do
-
           end do
-  
-        end if
-        
+
+        end do
+          
       end if
 
 
       call Tensor_destructor(CoupledCluster_instance%MP2_axVc1sp)
       call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
 
-
   end subroutine CoupledCluster_pairing_function
 
+  ! Factorial function just used to know the combination if there are more than one species
+  recursive function f(n) result(output)
+      implicit none
+      integer :: n
+      integer :: output
+
+      if (n<2) then 
+        output=1
+      else
+        output = n*f(n-1)
+      end if
+
+  end function f
 
 end module CoupledCluster_

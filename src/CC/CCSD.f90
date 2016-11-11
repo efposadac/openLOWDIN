@@ -35,7 +35,6 @@ module CCSD_
   type, public :: CCSD
       
       
-      ! real(8), allocatable :: Dai(:,:)
       real(8), allocatable :: Tssame(:,:)
       real(8), allocatable :: Tdsame(:,:,:,:)
       real(8), allocatable :: tau(:,:,:,:)
@@ -57,6 +56,8 @@ module CCSD_
       real(8), allocatable :: Wklij(:,:,:,:)
       real(8), allocatable :: Wabcd(:,:,:,:)
       real(8), allocatable :: Wkbcj(:,:,:,:)
+      real(8), allocatable :: Tai(:,:)
+      real(8), allocatable :: Tabij(:,:,:,:)
 
 
 
@@ -65,6 +66,7 @@ module CCSD_
   type(CCSD), public :: CCSD_instance
   type(CCSDiter), public :: CCSDinit
   type(CCSDiter), public :: CCSDloop
+  type(CCSDiter), public :: CCSDT1T2
 
 
 contains
@@ -76,21 +78,22 @@ contains
       implicit none
 
       integer noc, nocs, nop, nops
+      integer :: speciesId=1
       
-      call CoupledCluster_pairing_function(1,2)
+      ! call CoupledCluster_pairing_function(1,2)
       
-      noc = CoupledCluster_instance%noc
-      nocs = CoupledCluster_instance%nocs
-      nop = CoupledCluster_instance%nop
-      nops = CoupledCluster_instance%nops
+      noc = Allspecies(speciesId)%noc
+      ! nocs = CoupledCluster_instance%nocs
+      nop = Allspecies(speciesId)%nop
+      ! nops = CoupledCluster_instance%nops
 
-      write(*, "(A,I4,A,I4,A,I4,A,I4)") "noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
+      write(*, "(A,I4,A,I4,A,I4,A,I4) ") "CCSD_constructor: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
       ! allocate all that you can...
       ! All transformed integrals are loaded using the previous subroutine
 
       ! Denominator in T1 D^{a}_{i}
       if (allocated(CCSDinit%Dai)) deallocate (CCSDinit%Dai)
-      allocate(CCSDinit%Dai(CoupledCluster_instance%noc,CoupledCluster_instance%noc))
+      allocate(CCSDinit%Dai(noc,noc))
       CCSDinit%Dai(:,:) = 0.0_8
 
       ! t^{a}_{i} amplitude for single excitation
@@ -146,10 +149,10 @@ contains
       integer :: a, b, i, j
       integer :: speciesId=1
 
-      noc = CoupledCluster_instance%noc
-      nocs = CoupledCluster_instance%nocs
-      nop = CoupledCluster_instance%nop
-      nops = CoupledCluster_instance%nops
+      noc = Allspecies(speciesId)%noc
+      ! nocs = CoupledCluster_instance%nocs
+      nop = Allspecies(speciesId)%nop
+      ! nops = CoupledCluster_instance%nops
 
       ! Effective two-particle excitation operators \tilde{\tau} and \tau:
 
@@ -204,22 +207,20 @@ contains
 
       ! This could be a subroutine: 
 
-
-
   end subroutine CCSD_init
-
 
   subroutine CCSD_loop_constructor()
       implicit none
 
       integer noc, nocs, nop, nops
+      integer :: speciesId=1
       
-      noc = CoupledCluster_instance%noc
-      nocs = CoupledCluster_instance%nocs
-      nop = CoupledCluster_instance%nop
-      nops = CoupledCluster_instance%nops
+      noc = Allspecies(speciesId)%noc
+      ! nocs = CoupledCluster_instance%nocs
+      nop = Allspecies(speciesId)%nop
+      ! nops = CoupledCluster_instance%nops
 
-      write(*, "(A,I4,A,I4,A,I4,A,I4)") "noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
+      write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_loop_constructor: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
 
       !
       if (allocated(CCSDloop%Fac)) deallocate (CCSDloop%Fac)
@@ -250,20 +251,33 @@ contains
       if (allocated(CCSDloop%Wkbcj)) deallocate (CCSDloop%Wkbcj)
       allocate(CCSDloop%Wkbcj(nop,noc-nop,noc-nop,nop))
       CCSDloop%Wkbcj=0.0_8
-
-      ! if (allocated(CoupledClusterold_instance%Wmbejtest)) deallocate(CoupledClusterold_instance%Wmbejtest)
-      ! allocate(CoupledClusterold_instance%Wmbejtest(nop,noc-nop,noc-nop,nop)) ! 01f
-      ! CoupledClusterold_instance%Wmbejtest(:,:,:,:) = 0.0_8
-      ! if (allocated(TsNew)) deallocate (TsNew)
-      ! !!  allocate(TsNew(numberOfContractions,numberOfContractions))
-      ! allocate(TsNew(noc-nop,nop))
-      ! TsNew=0.0_8
-      ! if (allocated(TdNew)) deallocate (TdNew)
-      ! allocate(TdNew(noc-nop,noc-nop,nop,nop))
-      ! TdNew=0.0_8
-
       
   end subroutine CCSD_loop_constructor
+
+  subroutine CCSD_T1T2_constructor()
+      implicit none
+
+      integer noc, nocs, nop, nops
+      integer :: speciesId=1
+
+      noc = Allspecies(speciesId)%noc
+      ! nocs = CoupledCluster_instance%nocs
+      nop = Allspecies(speciesId)%nop
+      ! nops = CoupledCluster_instance%nops
+
+      write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_T1T2_constructor: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops     
+
+      !
+      if (allocated(CCSDT1T2%Tai)) deallocate (CCSDT1T2%Tai)
+      allocate(CCSDT1T2%Tai(noc-nop,nop))
+      CCSDT1T2%Tai=0.0_8
+      
+      !
+      if (allocated(CCSDT1T2%Tabij)) deallocate (CCSDT1T2%Tabij)
+      allocate(CCSDT1T2%Tabij(noc-nop,noc-nop,nop,nop))
+      CCSDT1T2%Tabij=0.0_8
+
+  end subroutine CCSD_T1T2_constructor
 
   subroutine CCSD_loop()
       implicit none
@@ -272,27 +286,33 @@ contains
       
       integer :: a, b, e, i, j, f, m, n
       real(8) :: ccsdE=0.0_8
-      real(8) :: convergence = 1.0_8
+      real(8) :: convergence = 1.0D-8
       real(8) :: prev_ccsdE
+      real(8) :: tmp_ccsdE
       integer :: speciesId=1
 
-      noc = CoupledCluster_instance%noc
-      nocs = CoupledCluster_instance%nocs
-      nop = CoupledCluster_instance%nop
-      nops = CoupledCluster_instance%nops
+      noc = Allspecies(speciesId)%noc
+      ! nocs = CoupledCluster_instance%nocs
+      nop = Allspecies(speciesId)%nop
+      ! nops = CoupledCluster_instance%nops
+      write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_loop: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
 
+      
       do while (convergence >= 1.0D-8)
-          
+
         prev_ccsdE = ccsdE
 
+        call CCSD_loop_constructor()
+        call CCSD_T1T2_constructor()
+          
         !intermediates loop
 
-        !CCSDloop%Fac
+        ! CCSDloop%Fac
         do a=nop+1, noc
           do e=nop+1, noc
 
             CCSDloop%Fac(a-nop,e-nop) = CCSDloop%Fac(a-nop,e-nop) &
-              +(1 + logic2dbl(a==e))*Allspecies(speciesId)%HF_fs%values(a,e)
+              +(1 - logic2dbl(a==e))*Allspecies(speciesId)%HF_fs%values(a,e)
             
             do m=1, nop
               CCSDloop%Fac(a-nop,e-nop) = CCSDloop%Fac(a-nop,e-nop) &
@@ -309,13 +329,14 @@ contains
             end do
           end do
         end do
+        ! write(*,*) CCSD_instance%ttau
 
-        !CCSDloop%Fki
+        ! CCSDloop%Fki
         do m=1, nop
           do i=1, nop
              
             CCSDloop%Fki(m,i) = CCSDloop%Fki(m,i) &
-              + (1 + logic2dbl(m==i))*Allspecies(speciesId)%HF_fs%values(m,i)
+              + (1 - logic2dbl(m==i))*Allspecies(speciesId)%HF_fs%values(m,i)
             
             do e=nop+1, noc
               CCSDloop%Fki(m,i) = CCSDloop%Fki(m,i) &
@@ -333,7 +354,7 @@ contains
           end do
         end do
 
-        !CCSDloop%Fkc_aa
+        ! CCSDloop%Fkc_aa
         do m=1, nop
           do e=nop+1, noc
 
@@ -413,7 +434,7 @@ contains
                     CCSDloop%Wkbcj(m,b-nop,e-nop,j) = CCSDloop%Wkbcj(m,b-nop,e-nop,j) &
                       - ((0.5*CCSD_instance%Tdsame(f-nop,b-nop,j,n) &
                           + CCSD_instance%Tssame(f-nop,j)*CCSD_instance%Tssame(b-nop,n))*spints(speciesId)%valuesp(m,n,e,f))
-                    write(*,*) m,n,i,j,CCSDloop%Wkbcj(m,n,i,j)
+                    ! write(*,*) m,n,i,j,CCSDloop%Wkbcj(m,n,i,j)
                   end do
                 end do
               end do
@@ -421,20 +442,159 @@ contains
           end do
         end do
 
+        ! CCSD Energy
+        tmp_ccsdE=0.0_8
+        do i=1, nop
+          do a=nop+1, noc
+            tmp_ccsdE = tmp_ccsdE + Allspecies(speciesId)%HF_fs%values(i,a)*CCSD_instance%Tssame(a-nop,i)
+            do j=1, nop
+              do b=nop+1, noc
+                tmp_ccsdE = tmp_ccsdE + (0.25*spints(speciesId)%valuesp(i,j,a,b) *CCSD_instance%Tdsame(a-nop,b-nop,i,j) &
+                  + 0.5*spints(speciesId)%valuesp(i,j,a,b)*CCSD_instance%Tssame(a-nop,i)*CCSD_instance%Tssame(b-nop,j))
+              end do
+            end do
+          end do
+        end do
+        ccsdE = tmp_ccsdE
 
         convergence = abs( ccsdE - prev_ccsdE )
 
-        write (*,*) ccsdE, "CCSD Energy " 
+        write (*,*) ccsdE, "CCSD Energy ", prev_ccsdE, "previous Energy" 
+        write (*,*) convergence, "Convergence " 
+
+        call CCSD_T1T2()
+
+        if (convergence > 100) then 
+          stop "test"
+        end if
 
       end do
       
   end subroutine CCSD_loop
 
+  subroutine CCSD_T1T2()
+      implicit none
+
+      integer noc, nocs, nop, nops
+      integer :: a, b, e, f, i, j, m, n
+      integer :: speciesId=1
+
+      noc = Allspecies(speciesId)%noc
+      ! nocs = CoupledCluster_instance%nocs
+      nop = Allspecies(speciesId)%nop
+      ! nops = CoupledCluster_instance%nops
+
+      ! T^{a}_{i}D^{a}_{i} = ...
+      do a=nop+1, noc
+        do i=1, nop
+          CCSDT1T2%Tai(a-nop,i) = CCSDT1T2%Tai(a-nop,i) + Allspecies(speciesId)%HF_fs%values(i,a)
+          do e=nop+1, noc
+            CCSDT1T2%Tai(a-nop,i) = CCSDT1T2%Tai(a-nop,i) &
+              + CCSD_instance%Tssame(e-nop,i)*CCSDloop%Fac(a-nop,e-nop)
+          end do
+          do m=1, nop
+            CCSDT1T2%Tai(a-nop,i) = CCSDT1T2%Tai(a-nop,i) &
+              + (-CCSD_instance%Tssame(a-nop,m)*CCSDloop%Fki(m,i))
+            do e=nop+1, noc
+              CCSDT1T2%Tai(a-nop,i) = CCSDT1T2%Tai(a-nop,i) &
+                + CCSD_instance%Tdsame(a-nop,e-nop,i,m)*CCSDloop%Fkc_aa(m,e-nop)
+              do f=nop+1, noc
+                CCSDT1T2%Tai(a-nop,i) = CCSDT1T2%Tai(a-nop,i) &
+                  + (-0.5*CCSD_instance%Tdsame(e-nop,f-nop,i,m)*spints(speciesId)%valuesp(m,a,e,f))
+              end do
+              do n=1, nop
+                CCSDT1T2%Tai(a-nop,i) = CCSDT1T2%Tai(a-nop,i) &
+                  + (-0.5*CCSD_instance%Tdsame(a-nop,e-nop,m,n)*spints(speciesId)%valuesp(n,m,e,i))
+              end do
+            end do
+          end do
+          do n=1,nop
+            do f=nop+1, noc
+              CCSDT1T2%Tai(a-nop,i) = CCSDT1T2%Tai(a-nop,i) &
+                + (-CCSD_instance%Tssame(f-nop,n)*spints(speciesId)%valuesp(n,a,i,f))
+            end do
+          end do
+          CCSDT1T2%Tai(a-nop,i) = CCSDT1T2%Tai(a-nop,i)/CCSDinit%Dai(a,i)
+          CCSD_instance%Tssame(a-nop,i) = CCSDT1T2%Tai(a-nop,i)
+          ! write(*,*) a,i,CCSD_instance%Tssame(a,i),CCSDT1T2%Tai(a,i)
+        end do
+      end do
+
+      ! T^{ab}_{ij}D^{ab}_{ij} = ...
+      do a=nop+1, noc
+         do b=nop+1, noc
+            do i=1, nop
+               do j=1, nop
+                  CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                    + spints(speciesId)%valuesp(i,j,a,b) !A
+                  ! 1er ciclo
+                  do e=nop+1, noc
+                     CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                      + (CCSD_instance%Tdsame(a-nop,e-nop,i,j)*CCSDloop%Fac(b-nop,e-nop) &
+                        -CCSD_instance%Tdsame(b-nop,e-nop,i,j)*CCSDloop%Fac(a-nop,e-nop)) !B
+                     CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                      + (CCSD_instance%Tssame(e-nop,i)*spints(speciesId)%valuesp(a,b,e,j) &
+                        -CCSD_instance%Tssame(e-nop,j)*spints(speciesId)%valuesp(a,b,e,i)) !G
+                     do f=nop+1, noc
+                        CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                          + 0.5*CCSD_instance%tau(e-nop,f-nop,i,j)*CCSDloop%Wabcd(a-nop,b-nop,e-nop,f-nop) !D
+                     end do
+                     do m=1, nop
+                        CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                          + (-0.5*CCSD_instance%Tdsame(a-nop,e-nop,i,j)*CCSD_instance%Tssame(b-nop,m)*CCSDloop%Fkc_aa(m,e-nop) &
+                              +0.5*CCSD_instance%Tdsame(b-nop,e-nop,i,j)*CCSD_instance%Tssame(a-nop,m)*CCSDloop%Fkc_aa(m,e-nop)) !B'
+                     end do
+                  end do
+                  ! 2do ciclo
+                  do m=1, nop
+                     CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                      + (-CCSD_instance%Tdsame(a-nop,b-nop,i,m)*CCSDloop%Fki(m,j) &
+                          +CCSD_instance%Tdsame(a-nop,b-nop,j,m)*CCSDloop%Fki(m,i)) !C
+                     CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                      + (-CCSD_instance%Tssame(a-nop,m)*spints(speciesId)%valuesp(m,b,i,j) &
+                          +CCSD_instance%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,i,j)) !H
+                     do n=1, nop
+                        CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                          + 0.5*CCSD_instance%tau(a-nop,b-nop,m,n)*CCSDloop%Wklij(m,n,i,j) !E
+                     end do
+                     do e=nop+1, noc
+                        CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                          + (-0.5*CCSD_instance%Tdsame(a-nop,b-nop,i,m)*CCSD_instance%Tssame(e-nop,j)*CCSDloop%Fkc_aa(m,e-nop) &
+                              +0.5*CCSD_instance%Tdsame(a-nop,b-nop,j,m)*CCSD_instance%Tssame(e-nop,i)*CCSDloop%Fkc_aa(m,e-nop)) !C'
+                        CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                          + CCSD_instance%Tdsame(a-nop,e-nop,i,m)*CCSDloop%Wkbcj(m,b-nop,e-nop,j) &
+                            - CCSD_instance%Tssame(e-nop,i)*CCSD_instance%Tssame(a-nop,m)*spints(speciesId)%valuesp(m,b,e,j) &
+                              -CCSD_instance%Tdsame(a-nop,e-nop,j,m)*CCSDloop%Wkbcj(m,b-nop,e-nop,i) &
+                                + CCSD_instance%Tssame(e-nop,j)*CCSD_instance%Tssame(a-nop,m)*spints(speciesId)%valuesp(m,b,e,i) &
+                                  -CCSD_instance%Tdsame(b-nop,e-nop,i,m)*CCSDloop%Wkbcj(m,a-nop,e-nop,j) &
+                                    - CCSD_instance%Tssame(e-nop,i)*CCSD_instance%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,e,j) &
+                                      + CCSD_instance%Tdsame(b-nop,e-nop,j,m)*CCSDloop%Wkbcj(m,a-nop,e-nop,i) &
+                                       - CCSD_instance%Tssame(e-nop,j)*CCSD_instance%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,e,i) !F
+                     end do
+                  end do
+                  ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
+                  CCSDT1T2%Tabij(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j) &
+                    /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j)-Allspecies(speciesId)%HF_fs%values(a,a) &
+                       -Allspecies(speciesId)%HF_fs%values(b,b))
+                  
+                  CCSD_instance%Tdsame(a-nop,b-nop,i,j) = CCSDT1T2%Tabij(a-nop,b-nop,i,j)
+
+                  CCSD_instance%ttau(a-nop,b-nop,i,j) = CCSD_instance%Tdsame(a-nop,b-nop,i,j) &
+                    + 0.5*(CCSD_instance%Tssame(a-nop,i)*CCSD_instance%Tssame(b-nop,j) - CCSD_instance%Tssame(b-nop,i)*CCSD_instance%Tssame(a-nop,j))
+                  CCSD_instance%tau(a-nop,b-nop,i,j) = CCSD_instance%Tdsame(a-nop,b-nop,i,j) &
+                    + CCSD_instance%Tssame(a-nop,i)*CCSD_instance%Tssame(b-nop,j) - CCSD_instance%Tssame(b-nop,i)*CCSD_instance%Tssame(a-nop,j)
+               ! write(*,*) a,b,i,j,CCSD_instance%Tdsame(a,b,i,j),CCSDT1T2%Tabij(a,b,i,j)
+               end do
+            end do
+         end do
+      end do
+      
+  end subroutine CCSD_T1T2
+
   subroutine CCSD_run()
       implicit none
       
       call CCSD_init()
-      call CCSD_loop_constructor()
       call CCSD_loop()
       call CCSD_show()
       print*, "CCSD_show()"

@@ -98,12 +98,14 @@ contains
 
         print*," Begin Tensor_constructor"
 
-        call ReadTransformedIntegrals_readOneSpecies(this%speciesID, this%container)
+        ! call ReadTransformedIntegrals_readOneSpecies(this%speciesID, this%container)
 
           if (this%isInterSpecies) then
-
+            print*, "test",this%speciesID, this%otherSpeciesID
             call ReadTransformedIntegrals_readTwoSpecies(this%speciesID, this%otherSpeciesID, this%container)
-
+            print*, "test"
+          else
+            call ReadTransformedIntegrals_readOneSpecies(this%speciesID, this%container)
           end if
 
       else
