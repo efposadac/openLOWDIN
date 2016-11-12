@@ -98,7 +98,14 @@ contains
   subroutine CoupledCluster_constructor()
     implicit none
     
+    type(Vector) :: this
     CoupledCluster_instance%isInstanced = .true.
+    print *, "cc coonstructor"
+
+    call ReadTransformedIntegrals_readTwoSpecies( 1, 2, this)
+
+    print *, "end cc coonstructor"
+
 
   end subroutine CoupledCluster_constructor
 
@@ -268,9 +275,10 @@ contains
       integer :: num_species
       integer :: i
 
-      num_species = 1!CoupledCluster_instance%num_species
+      num_species = CoupledCluster_instance%num_species
 
       do i=1, num_species
+        print*, "load_PF"
         call CoupledCluster_pairing_function(i, num_species)
       end do
       
@@ -365,6 +373,7 @@ contains
 
           ! Read transformed integrals from file
           ! call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axVc2sp)
+           print *, "i",i
           call Tensor_constructor(CoupledCluster_instance%MP2_axVc2sp, speciesID, otherSpeciesID=i, &
             isMolecular=.true.)
   
