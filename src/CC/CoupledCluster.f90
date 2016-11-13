@@ -98,13 +98,13 @@ contains
   subroutine CoupledCluster_constructor()
     implicit none
     
-    type(Vector) :: this
+    !type(Vector) :: this
     CoupledCluster_instance%isInstanced = .true.
-    print *, "cc coonstructor"
+    ! print *, "cc coonstructor"
 
-    call ReadTransformedIntegrals_readTwoSpecies( 1, 2, this)
+    ! call ReadTransformedIntegrals_readTwoSpecies( 1, 2, this)
 
-    print *, "end cc coonstructor"
+    ! print *, "end cc coonstructor"
 
 
   end subroutine CoupledCluster_constructor
@@ -277,8 +277,15 @@ contains
 
       num_species = CoupledCluster_instance%num_species
 
+      if (allocated(spints)) deallocate(spints)
+      allocate(spints(num_species))
+
+      if (allocated(spintm)) deallocate(spintm)
+      allocate(spintm(f(num_species)/(2*f(num_species-2)))) ! nc = n!/(2!*(n-2)!)
+      ! nc is a number of posible combinations if there are more than one species (n>1)
+
       do i=1, num_species
-        print*, "load_PF"
+        ! print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", f(num_species)/(2*f(num_species-2))
         call CoupledCluster_pairing_function(i, num_species)
       end do
       
@@ -297,24 +304,22 @@ contains
       integer, intent(in) :: num_species
 
       integer :: i
+      integer :: m=0
       integer :: p, q, r, s
-      integer :: noc, nocs
+      integer :: noc, nocs, nop
       real(8) :: v_a, v_b, xv_a, xv_b
 
       
       Allspecies(speciesId)%nop = MolecularSystem_getNumberOfParticles(speciesID)
-      
-      if (allocated(spints)) deallocate(spints)
-      allocate(spints(num_species))
-
-      ! do speciesId = 1, num_species
+      nop = Allspecies(speciesId)%nop
 
       Allspecies(speciesId)%noc = MolecularSystem_getTotalNumberOfContractions(speciesId)
-      ! This information is necesarry in other modules: 
+      ! This information is necessary in other modules: 
       ! number of contraction to number of molecular orbitals
       Allspecies(speciesId)%noc = Allspecies(speciesId)%noc*2
       ! For simplicity here
       noc = Allspecies(speciesId)%noc
+      ! print*, "in one species. noc: ", noc, " nop: ", nop
 
       if (allocated(spints(speciesId)%valuesp)) deallocate(spints(speciesId)%valuesp)
       allocate(spints(speciesId)%valuesp(noc,noc,noc,noc))
@@ -324,10 +329,10 @@ contains
       ! Read transformed integrals from file
       ! call ReadTransformedIntegrals_readOneSpecies( speciesID, CoupledCluster_instance%MP2_axVc1sp)
       call Tensor_constructor(CoupledCluster_instance%MP2_axVc1sp, speciesID, isMolecular=.true.)
+      print*, "end Tensor_constructor one species"
 
       ! pairing function
       ! same species
-      !print*,"same species"
       do p=1, noc
         do q=1, noc
           do r=1, noc
@@ -344,38 +349,36 @@ contains
           end do
         end do
       end do
-
+      ! print*, "spints(speciesId) complete"
 
       ! ! If there are two or more different species
 
       if ( num_species>1 ) then
 
-        if (allocated(spintm)) deallocate(spintm)
-        ! number of posible combinations if there are more than one species
-        allocate(spintm(f(num_species)/(2*f(num_species-2))))
-       
         do i = speciesId + 1, num_species
-          !mmm = mmm + 1
-  
+
+          m = m + 1
+          ! print*, "inside interspecies loop. i=speciesId+1: ", i
           Allspecies(i)%nop = MolecularSystem_getNumberOfParticles(i)
+          ! print*, "Allspecies(i)%nop: ", Allspecies(i)%nop
 
           Allspecies(i)%noc = MolecularSystem_getTotalNumberOfContractions(i)
           ! This information is necesarry in other modules: 
           ! number of contraction to number of molecular orbitals
           Allspecies(i)%noc = Allspecies(i)%noc*2
           ! For simplicity here
-          nocs = Allspecies(speciesId)%noc
-
-          if (allocated(spintm(i)%valuesp)) deallocate(spintm(i)%valuesp)
-          allocate(spintm(i)%valuesp(noc,nocs,noc,nocs))
-
-          spintm(i)%valuesp(:,:,:,:)=0.0_8
+          nocs = Allspecies(i)%noc
+          ! print*, "i of allspecies: ",i
+          ! print*, "noc: ", noc, " nocs: ",nocs
+          if (allocated(spintm(m)%valuesp)) deallocate(spintm(m)%valuesp)
+          allocate(spintm(m)%valuesp(noc,nocs,noc,nocs))
+          spintm(m)%valuesp(:,:,:,:)=0.0_8
 
           ! Read transformed integrals from file
           ! call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axVc2sp)
-           print *, "i",i
           call Tensor_constructor(CoupledCluster_instance%MP2_axVc2sp, speciesID, otherSpeciesID=i, &
             isMolecular=.true.)
+          print*, "end Tensor_constructor two species"
   
           !different species
           !print*,"different species"
@@ -383,25 +386,25 @@ contains
             do q=1, nocs
               do r=1, noc
                 do s=1, nocs
-                  print*, "num combinations", f(num_species)/(2*f(num_species-2))
-                  stop "test"
                   v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,nocs/2) !! Coulomb integrals
           
                   xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
-                  spintm(i)%valuesp(p,q,r,s) = xv_a
-                  write (*,*) spintm(i)%valuesp(p,q,r,s)    
+                  spintm(m)%valuesp(p,q,r,s) = xv_a
+                  write (*,*) spintm(m)%valuesp(p,q,r,s)    
                 end do
               end do
             end do
           end do
 
+          call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
+
         end do
           
       end if
 
-
       call Tensor_destructor(CoupledCluster_instance%MP2_axVc1sp)
-      call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
+      
+      print*, "fin CoupledCluster_pairing_function"
 
   end subroutine CoupledCluster_pairing_function
 

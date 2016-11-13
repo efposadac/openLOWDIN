@@ -150,11 +150,11 @@ contains
 
     case ( "C" ) 
        if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
-       print*," Read T_I C"
+       print*," Read T_I C one species"
 
        numberOfIntegrals = int( ( (  numberOfContractions * ( numberOfContractions + 1.0_8 ) / 4.0_8 ) * &
             ( (  numberOfContractions * (  numberOfContractions + 1.0_8) / 2.0_8 ) + 1.0_8) ), 8 )
-
+       
        call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
        matrixContainer%values = 0.0_8
 
@@ -465,32 +465,22 @@ contains
           nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
           nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
           !print*, "prefixOfFile: ", prefixOfFile
-          print*,"specieID: ", specieID, "otherSpecieID: ", otherSpecieID
-          print*, "test2: nameOfSpecie: ", nameOfSpecie, " nameOfOtherSpecie: ", nameOfOtherSpecie
-          prefixOfFile = ""
-          prefixOfFile =""//trim(nameOfSpecie)
-          prefixOfFile =trim(nameOfOtherSpecie)
+          print*," Read T_I C two species"
           prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
 
-          print *, "hola 0", prefixOfFile
           unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
           
-          print *, "hola 1"
           !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
           open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
                status='old',access='sequential', form='unformatted' )
 
-          print *, "hola 2"
           if ( allocated(matrixContainer%values ) ) deallocate(matrixContainer%values)
 
-          print *, "hola 3"
           numberOfIntegrals = ( bias    *  ( ( bias + 1.0_8) / 2.0_8 ) ) * &
                ( (numberOfContractions-bias) * ( ( (numberOfContractions-bias) + 1.0_8 ) / 2.0_8 ) )
 
-          print *, "hola 4"
           call Vector_constructor( matrixContainer, numberOfIntegrals, 0.0_8 )
 
-          print *, "hola 5"
           matrixContainer%values = 0.0_8
 
           do

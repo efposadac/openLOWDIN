@@ -94,17 +94,17 @@ contains
 
       print*," Begin Tensor_constructor", this%isMolecular,  this%isInterSpecies
 
+      print*, "size of container", size(this%container%values)
+
       if (this%isMolecular) then
 
         print*," Begin Tensor_constructor"
 
-        ! call ReadTransformedIntegrals_readOneSpecies(this%speciesID, this%container)
-
           if (this%isInterSpecies) then
-            print*, "test",this%speciesID, this%otherSpeciesID
+            print*, "test two species",this%speciesID, this%otherSpeciesID
             call ReadTransformedIntegrals_readTwoSpecies(this%speciesID, this%otherSpeciesID, this%container)
-            print*, "test"
           else
+            print*, "test one species"
             call ReadTransformedIntegrals_readOneSpecies(this%speciesID, this%container)
           end if
 
@@ -177,19 +177,6 @@ contains
       
   end function Tensor_getValue_inter
 
-  ! function Tensor_indexnumber(this, a, b, r, s) result(output)
-  !     implicit none
-  !     integer :: a, b, r, s
-  !     real(8) :: output
-
-  !     ! Convert 4 intex to 1
-  !     index = 
-  !     ! Get value from container
-  !     this%container%container(index)
-
-    
-  ! end function Tensor_indexnumber
-    
   function Tensor_index2(i, j) result(output)
     implicit none
     integer :: i, j
@@ -245,11 +232,3 @@ contains
   end function Tensor_index4Inter
 
 end module Tensor_
-
-
-
-! TEST
-! type(Tensor) :: test
-! call Tensor_constructor(test, isInterspecie=.false., isMolecular=.false., speciesID=speciesID, otherSpeciesID=0)
-! integral = Tensor_getValue(this, a, b, r, s)
-
