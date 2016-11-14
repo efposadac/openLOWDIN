@@ -40,9 +40,12 @@ module CoupledCluster_
       
       integer :: noc, nocs, nop, nops
       integer(8) :: num_species
+      real(8) :: CCSD_ones_Energy
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy
       real(8) :: MP2_EnergyCorr
+      real(8), allocatable :: CCSD_E_intra(:)
+      real(8), allocatable :: CCSD_E_inter(:)
       type(Vector) :: HF_orbitals
       type(matrix) :: HF_orbitals_dmatrix
 
@@ -277,9 +280,19 @@ contains
 
       num_species = CoupledCluster_instance%num_species
 
+      !for the intra-species energies in CC
+      if (allocated(CoupledCluster_instance%CCSD_E_intra)) deallocate(CoupledCluster_instance%CCSD_E_intra)
+      allocate(CoupledCluster_instance%CCSD_E_intra(num_species))
+
+      !for the inter-species energies in CC
+      if (allocated(CoupledCluster_instance%CCSD_E_inter)) deallocate(CoupledCluster_instance%CCSD_E_inter)
+      allocate(CoupledCluster_instance%CCSD_E_inter(f(num_species)/(2*f(num_species-2)))) 
+
+      !for the one-species matrices from transformed integrals for CC    
       if (allocated(spints)) deallocate(spints)
       allocate(spints(num_species))
 
+      !for the two-species matrices from transformed integrals for CC
       if (allocated(spintm)) deallocate(spintm)
       allocate(spintm(f(num_species)/(2*f(num_species-2)))) ! nc = n!/(2!*(n-2)!)
       ! nc is a number of posible combinations if there are more than one species (n>1)
