@@ -60,7 +60,7 @@ program CC
 
     case("CCSD")
 
-    call CCSD_constructor()
+    !call CCSD_constructor()
     call CCSD_run()
 !      print*, "CCSD_constrolinstance"
       !call CCSD_destructor()

@@ -218,8 +218,8 @@ contains
         ! FS matrix
         call Matrix_diagonalConstructor (Allspecies(speciesId)%HF_fs, Allspecies(speciesId)%HF_ff)
 
-        ! !print*,"fs%new"
-        ! !write(*,*) Allspecies(speciesId)%HF_fs%values
+        print*, "HF_fs%values"
+        write(*,*) Allspecies(speciesId)%HF_fs%values
 
 
         ! Load initial guess for T2 from MP2 correction
@@ -297,8 +297,8 @@ contains
       allocate(spintm(f(num_species)/(2*f(num_species-2)))) ! nc = n!/(2!*(n-2)!)
       ! nc is a number of posible combinations if there are more than one species (n>1)
 
-      do i=1, num_species
-        ! print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", f(num_species)/(2*f(num_species-2))
+      do i=2, num_species
+        print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", f(num_species)/(2*f(num_species-2))
         call CoupledCluster_pairing_function(i, num_species)
       end do
       
@@ -342,7 +342,7 @@ contains
       ! Read transformed integrals from file
       ! call ReadTransformedIntegrals_readOneSpecies( speciesID, CoupledCluster_instance%MP2_axVc1sp)
       call Tensor_constructor(CoupledCluster_instance%MP2_axVc1sp, speciesID, isMolecular=.true.)
-      print*, "end Tensor_constructor one species"
+      print*, "end Tensor_constructor one species", speciesId, num_species
 
       ! pairing function
       ! same species
@@ -357,7 +357,8 @@ contains
               xv_b = v_b * logic2dbl(mod(p,2) == mod(s,2)) * logic2dbl(mod(q,2) == mod(r,2))
               ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
-              ! write (*,*) spints(speciesId)%valuesp(p,q,r,s)
+              ! print*, "spints speciesId=2"
+              ! if (speciesId==2) write (*,*) spints(speciesId)%valuesp(p,q,r,s)
             end do
           end do
         end do
@@ -371,6 +372,7 @@ contains
         do i = speciesId + 1, num_species
 
           m = m + 1
+          nocs=0
           ! print*, "inside interspecies loop. i=speciesId+1: ", i
           Allspecies(i)%nop = MolecularSystem_getNumberOfParticles(i)
           ! print*, "Allspecies(i)%nop: ", Allspecies(i)%nop
@@ -403,7 +405,7 @@ contains
           
                   xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
                   spintm(m)%valuesp(p,q,r,s) = xv_a
-                  write (*,*) spintm(m)%valuesp(p,q,r,s)    
+                  ! write (*,*) spintm(m)%valuesluesp(p,q,r,s)    
                 end do
               end do
             end do
