@@ -1,0 +1,28 @@
+GEOMETRY
+	e-(He)   6-311G 	0.00	0.00 	0.00 
+	He	dirac			0.00	0.00 	0.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	!configurationInteractionLevel ="FCI"
+	configurationInteractionLevel ="CISD"
+END TASKS
+
+CONTROL
+	numberOfCIstates=1
+	CIdiagonalizationMethod = "DSYEVX"
+	!CIdiagonalizationMethod = "ARPACK"
+	!CIdiagonalizationMethod = "JADAMILU"
+	CIConvergence=1E-4
+	CIsizeOfGuessMatrix=4
+END CONTROL
+INPUT_CI
+	species="E-ALPHA" core=0 active=0 excitation=2
+	species="E-BETA" core=0 active=0 excitation=2
+END INPUT_CI
+
+
+
+
+

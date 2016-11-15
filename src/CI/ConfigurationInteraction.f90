@@ -76,6 +76,7 @@ module ConfigurationInteraction_
      type(matrix), allocatable :: twoCenterIntegrals(:)
      type(matrix), allocatable :: FockMatrix(:)
      type(imatrix), allocatable :: twoIndexArray(:)
+     type(imatrix), allocatable :: fourIndexArray(:)
      type(vector), allocatable :: energyofmolecularorbitals(:)
      type(configuration), allocatable :: configurations(:)
      type (Vector) :: diagonalHamiltonianMatrix
@@ -3944,24 +3945,82 @@ contains
     implicit none
 
     type(Configuration) :: auxConfigurationA, auxConfigurationB
+    !integer(2), allocatable :: auxConfiguration(:,:), auxConfigurationA(:,:)
     integer :: a,b,c
+    integer :: size1, size2
     real(8) :: timeA, timeB
-    real(8) :: CIenergy
+    real(8) :: CIenergyb, CIenergy
+    integer(2) coupingCoefficient 
+    integer(2), allocatable :: auxMatrix( :,:)
 
     timeA = omp_get_wtime()
     !a,b configuration iterators
-    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationA )
-    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationB )
+
+    size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
+    size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
+     allocate(auxMatrix(size1,size2))
+    auxMatrix = 0
 
     do a=1, ConfigurationInteraction_instance%numberOfConfigurations
       do b=a, ConfigurationInteraction_instance%numberOfConfigurations
-!        call ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
-          auxConfigurationA%occupations = ConfigurationInteraction_instance%configurations(a)%occupations
-          auxConfigurationB%occupations = ConfigurationInteraction_instance%configurations(b)%occupations
-          CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
-                      auxConfigurationA, auxConfigurationB )
+!
+        coupingCoefficient = ConfigurationInteraction_calculateCoupling( & 
+          auxMatrix, &
+          auxMatrix )
 
-        ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergy
+        !coupingCoefficient = ConfigurationInteraction_calculateCoupling( & 
+        !  ConfigurationInteraction_instance%configurations(a)%occupations, &
+        !  ConfigurationInteraction_instance%configurations(b)%occupations )
+
+
+      end do
+    end do
+
+    timeB = omp_get_wtime()
+    write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for Building Couping coefficients : ", timeB - timeA ," (s)"
+
+    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationA )
+    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationB )
+    auxConfigurationA%occupations = 0
+    auxConfigurationB%occupations = 0
+
+    !allocate ( auxConfiguration( size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1), &
+    !   size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2)  ) )
+    size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
+    size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
+
+    !auxConfiguration = 0
+    !auxConfigurationA = 0
+
+
+    !allocate ( auxMatrix ( ConfigurationInteraction_instance%numberOfConfigurations, &
+    !      ConfigurationInteraction_instance%numberOfConfigurations ))
+    !auxMatrix=0
+
+    timeA = omp_get_wtime()
+
+    do a=1, ConfigurationInteraction_instance%numberOfConfigurations
+     !auxConfiguration = ConfigurationInteraction_instance%configurations(a)%occupations
+      do b=a, ConfigurationInteraction_instance%numberOfConfigurations
+          !auxConfigurationA = auxConfiguration
+          !auxConfigurationB%occupations = ConfigurationInteraction_instance%configurations(b)%occupations
+
+          !CIenergy = ConfigurationInteraction_calculateCIenergyB( & 
+          !auxConfigurationA, &
+          !ConfigurationInteraction_instance%configurations(b)%occupations )
+
+          CIenergyb = ConfigurationInteraction_calculateCIenergyB( & 
+          ConfigurationInteraction_instance%configurations(a)%occupations, &
+          ConfigurationInteraction_instance%configurations(b)%occupations, size1, size2 )
+
+          !auxConfigurationA%occupations = ConfigurationInteraction_instance%configurations(a)%occupations
+          !auxConfigurationB%occupations = ConfigurationInteraction_instance%configurations(b)%occupations
+          !CIenergy = ConfigurationInteraction_calculateCIenergyC(&
+          !            auxConfigurationA, auxConfigurationB )
+
+          !ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergyB
+          ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergyB
+          !auxMatrix(a,b) = CIenergyB
       end do
     end do
 
@@ -3976,7 +4035,7 @@ contains
     end do
 
   
-  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Building CI matrix : ", timeB - timeA ," (s)"
+  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for Building CI matrix : ", timeB - timeA ," (s)"
 
   end subroutine ConfigurationInteraction_buildHamiltonianMatrix
 
@@ -4230,489 +4289,27 @@ contains
   end subroutine ConfigurationInteraction_buildAndSaveCIMatrix
 
 
-!  subroutine ConfigurationInteraction_calculateCIenergy(a,b,CIenergy)
-!  function ConfigurationInteraction_calculateCIenergy(a,b) result (CIenergy)
-!    implicit none
-!
-!!    type(TransformIntegrals) :: repulsionTransformer
-!    integer :: i,j,a,b,pos,neg,ia,ib
-!    integer :: m,n,l,k,z,kk,ll
-!    integer :: specieID
-!    integer :: otherSpecieID
-!    integer :: numberOfSpecies
-!    character(10) :: nameOfSpecie
-!    character(10) :: nameOfOtherSpecie
-!    integer :: numberOfOrbitals
-!    integer :: numberOfSpatialOrbitals
-!    integer :: auxnumberOfSpatialOrbitals
-!    integer :: numberOfOtherSpecieOrbitals
-!    integer :: numberOfOtherSpecieSpatialOrbitals
-!    integer :: auxnumberOfOtherSpecieSpatialOrbitals
-!    integer, allocatable :: spin(:)
-!    integer, allocatable :: spatialOrbital(:)
-!    integer :: auxSpatialOrbital
-!    integer :: lambda !occupation per orbital
-!    integer :: lambdaOfOtherSpecie !occupation per orbital
-!    integer :: numberOfOccupiedOrbitals
-!    real(8) :: kappa !positive or negative exchange
-!    real(8) :: charge
-!    real(8) :: otherSpecieCharge
-!    real(8) :: twoParticlesEnergy
-!    real(8) :: couplingEnergy
-!    real(8) :: factor
-!    integer :: numberOfDiffOrbitals
-!    integer :: auxIndex1, auxIndex2, auxIndex
-!    integer :: oa,ordera,ob,orderb
-!    !type(vector) :: diffAB
-!    type(Ivector), allocatable :: differentOrbitals(:)
-!    type(Ivector), allocatable :: occupiedOrbitals(:,:) !! nspecies
-!    real(8) :: CIenergy
-!    real(8) :: auxCIenergy,prefactor, auxDiff
-!
-!    CIenergy = 0.0_8
-!
-!    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-!    factor = 1.0
-!
-!    if (allocated(differentOrbitals )) deallocate (differentOrbitals)
-!    allocate(differentOrbitals (numberOfSpecies))
-!
-!    do ia = 1, ConfigurationInteraction_instance%configurations(a)%nDeterminants 
-!      do ib = 1, ConfigurationInteraction_instance%configurations(b)%nDeterminants 
-!
-!        auxCIenergy = 0.0_8
-!   
-!        !call Vector_constructor (diffAB, numberOfSpecies,0.0_8)
-! 
-!        !do i=1, numberOfSpecies
-!
-!        !   diffAB%values(i)= sum ( abs ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values- & 
-!        !        ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values ) )
-!
-!        !end do
-!
-!          call Configuration_checkCoincidence( ConfigurationInteraction_instance%configurations(a),&
-!                   ConfigurationInteraction_instance%configurations(b), &
-!                   ia, ib, numberOfSpecies, occupiedOrbitals, factor, numberOfDiffOrbitals, 0 )
-!
-!        !if ( int( sum (diffAB%values) ) <= 4 ) then
-!        if ( int( numberOfDiffOrbitals ) <= 4 ) then
-!          call Configuration_setAtMaximumCoincidence( ConfigurationInteraction_instance%configurations(a),&
-!                   ConfigurationInteraction_instance%configurations(b), &
-!                   ia, ib, numberOfSpecies, occupiedOrbitals, factor, numberOfDiffOrbitals, 1 )
-!        end if
-!
-!        !select case ( int( sum (diffAB%values) ) )
-!        select case ( int( numberOfDiffOrbitals ) )
-!
-!        case (0)
-!          
-!              do i=1, numberOfSpecies
-!                 lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
-!                 kappa=MolecularSystem_getKappa(i) !exchange sign
-!                 charge=MolecularSystem_getCharge(i)
-!                 numberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( i )* ConfigurationInteraction_instance%lambda%values(i)
-!                 numberOfSpatialOrbitals=numberOfOrbitals/lambda
-!                 auxnumberOfSpatialOrbitals = (numberOfSpatialOrbitals * ( numberOfSpatialOrbitals + 1 ) ) / 2
-!                 numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i) !! active
-!
-!                 !do k=1, numberOfOrbitals
-!                 do kk=1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-!
-!                    k = occupiedOrbitals(i,1)%values(kk)
-!                    !if ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values(k)  > 0 ) then
-!
-!                       !!Uneven orbital > alpha (0) spin
-!                       !!Even orbital > beta(1) spin
-!                       if (allocated(spin)) deallocate (spin)
-!                       if (allocated(spatialOrbital)) deallocate (spatialOrbital)
-!                       allocate(spin(2))
-!                       allocate(spatialOrbital(2))
-!                       spin = 0 
-!                       spatialOrbital = 0 
-!                       spin(1)= mod(k,lambda)
-!                       spatialOrbital(1)=int((k+spin(1))/lambda)
-!
-!                       !One particle terms
-!                       auxCIenergy= auxCIenergy + &
-!                            ConfigurationInteraction_instance%twoCenterIntegrals(i)%values(spatialOrbital(1),spatialOrbital(1))
-!
-!                       !Two particles, same specie
-!                       twoParticlesEnergy=0
-!
-!                       auxIndex1 = IndexMap_tensorR2ToVectorC( spatialOrbital(1), spatialOrbital(1), numberOfSpatialOrbitals )
-!
-!                       !do l=k+1, numberOfOrbitals 
-!                       !   if ( ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values(l)  > 0 ) then
-!                       do ll=kk+1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-!                             l = occupiedOrbitals(i,1)%values(ll)
-!  
-!                             spin(2)= mod(l,lambda)
-!                             spatialOrbital(2)=int((l+spin(2))/lambda)
-!
-!
-!                             auxIndex2 = IndexMap_tensorR2ToVectorC( spatialOrbital(2), spatialOrbital(2), numberOfSpatialOrbitals )
-!                             auxIndex = IndexMap_tensorR2ToVectorC( auxIndex1, auxIndex2, auxnumberOfSpatialOrbitals )
-!
-!                             !Coulomb
-!                             twoParticlesEnergy=twoParticlesEnergy + &
-!                                 ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
-!
-!                             !Exchange, depends on spin
-!                             if ( spin(1) .eq. spin(2) ) then
-!
-!                                auxIndex = IndexMap_tensorR4ToVectorC( spatialOrbital(1), spatialOrbital(2), &
-!                                            spatialOrbital(2), spatialOrbital(1), & 
-!                                            numberOfSpatialOrbitals )
-!
-!                                TwoParticlesEnergy=TwoParticlesEnergy + &
-!                                     kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
-!
-!                             end if
-!                          !end if
-!                       end do
-!
-!                       auxCIenergy = auxCIenergy + twoParticlesEnergy*charge*charge
-!
-!                       ! !Two particles, different species
-!                       if (numberOfSpecies > 1 ) then
-!                          do j=i+1, numberOfSpecies
-!                             lambdaOfOtherSpecie=ConfigurationInteraction_instance%lambda%values(j)
-!                             numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )*lambdaOfOtherSpecie 
-!                             numberOfOtherSpecieSpatialOrbitals=numberOfOtherSpecieOrbitals/lambdaOfOtherSpecie
-!                             auxnumberOfOtherSpecieSpatialOrbitals = (numberOfOtherSpecieSpatialOrbitals * ( numberOfOtherSpecieSpatialOrbitals + 1 ) ) / 2
-!                             otherSpecieCharge=MolecularSystem_getCharge(j)
-!
-!                             numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j) !!active
-!
-!                             couplingEnergy=0
-!                             !do l=1, numberOfOtherSpecieOrbitals
-!                                !! (j,ia) this could be a problem latter...
-!                             !   if (ConfigurationInteraction_instance%configurations(a)%occupations(j,ia)%values(l) > 0 ) then
-!                             do ll=1, size(occupiedOrbitals(j,1)%values ) !! 1 is from a and 2 from b
-!                                   l = occupiedOrbitals(j,1)%values(ll)
-!
-!                                   spin(2)= mod(l,lambdaOfOtherSpecie)
-!                                   spatialOrbital(2)=(l+spin(2))/lambdaOfOtherSpecie
-!
-!                                   auxIndex2 = IndexMap_tensorR2ToVectorC( spatialOrbital(2), & 
-!                                                spatialOrbital(2), numberOfOtherSpecieSpatialOrbitals )
-!                                   auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
-!
-!                                   couplingEnergy=couplingEnergy+ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
-!
-!                                !end if
-!
-!                             end do
-!
-!                             auxCIenergy = auxCIenergy + couplingEnergy*charge*otherSpecieCharge
-!
-!                          end do
-!
-!                       end if
-!
-!                    !end if
-!                 end do
-!              end do
-!              !Interaction with point charges
-!              auxCIenergy= auxCIenergy + HartreeFock_instance%puntualInteractionEnergy
-!
-!        case (2)
-!           do i=1, numberOfSpecies
-!              lambda=ConfigurationInteraction_instance%lambda%values(i)
-!              kappa=MolecularSystem_getKappa(i)
-!              charge=MolecularSystem_getCharge(i)
-!
-!              numberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( i )* lambda
-!              numberOfSpatialOrbitals=numberOfOrbitals/lambda
-!              auxnumberOfSpatialOrbitals = (numberOfSpatialOrbitals * ( numberOfSpatialOrbitals + 1 ) ) / 2
-!              numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i) !! active
-!
-!              !Determine different orbitals
-!              call Vector_constructorInteger (differentOrbitals(i), 2)
-!
-!              differentOrbitals(i)%values = 0
-!
-!              !!z=0
-!              !!do k=1, numberOfOrbitals
-!              !!   if ( abs(ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values(k)-&
-!              !!        ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values(k)) > 0 ) then
-!              !!      z=z+1
-!              !!      differentOrbitals(i)%values(z)=k
-!              !!   end if
-!              !!end do
-!
-!              do kk=1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-!                if ( abs (occupiedOrbitals(i,1)%values(kk) - occupiedOrbitals(i,2)%values(kk) ) > 0 ) then
-!                  differentOrbitals(i)%values(1)= occupiedOrbitals(i,1)%values(kk) 
-!                  differentOrbitals(i)%values(2)= occupiedOrbitals(i,2)%values(kk) 
-!                end if
-!              end do
-!
-!              !call vector_show(differentOrbitals(i))
-!              if ( abs( differentOrbitals(i)%values(2)) > 0 ) then !?
-!                 if (allocated(spin)) deallocate (spin)
-!                 if (allocated(spatialOrbital)) deallocate (spatialOrbital)
-!                 allocate(spin(3))
-!                 allocate(spatialOrbital(3))
-!                 spin = 0
-!                 spatialOrbital = 0
-!
-!                 spin(1)=mod( differentOrbitals(i)%values(1),lambda)
-!                 spatialOrbital(1)=int((differentOrbitals(i)%values(1)+spin(1))/lambda)
-!                 spin(2)=mod( differentOrbitals(i)%values(2),lambda)
-!                 spatialOrbital(2)=int((differentOrbitals(i)%values(2)+spin(2))/lambda)
-!
-!                !One particle terms
-!                auxCIenergy= auxCIenergy +  ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( spatialOrbital(1), spatialOrbital(2) )
-!
-!                 !Two particles, same specie
-!                 !Coulomb
-!
-!
-!                 twoParticlesEnergy=0.0_8
-!                 if (spin(1) .eq. spin(2) ) then
-!
-!                    auxIndex1 = IndexMap_tensorR2ToVectorC( spatialOrbital(1), spatialOrbital(2),  numberOfSpatialOrbitals )
-!                    !do l=1, numberOfOrbitals 
-!                    !   if ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values(l) > 0 .and. &
-!                    !        ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values(l) > 0 ) then
-!                    do ll=1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-!                      if ( abs (occupiedOrbitals(i,1)%values(ll) - occupiedOrbitals(i,2)%values(ll) ) == 0 ) then
-!                          l = occupiedOrbitals(i,1)%values(ll) !! or b
-!                          spin(3)=mod(l,lambda)
-!                          spatialOrbital(3)=int((l+spin(3))/lambda)
-!
-!                          auxIndex2 = IndexMap_tensorR2ToVectorC( spatialOrbital(3), spatialOrbital(3), numberOfSpatialOrbitals )
-!                          auxIndex = IndexMap_tensorR2ToVectorC( auxIndex1, auxIndex2, auxnumberOfSpatialOrbitals )
-!                          !auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(3), &
-!                          !     numberOfSpatialOrbitals )
-!
-!                          TwoParticlesEnergy=TwoParticlesEnergy + &
-!                               ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
-!
-!                       end if
-!                    end do
-!                 end if
-!
-!                 !Exchange
-!                ! do l=1, numberOfOrbitals 
-!                !    spin(3)=mod(l,lambda)
-!                !    spatialOrbital(3)=int((l+spin(3))/lambda)
-!                !    !if (spin(1) .eq. spin(3) .and. spin(2) .eq. spin(3) )
-!                !    if (spin(1) .eq. spin(3) .and. spin(2) .eq. spin(3) ) then
-!                !    !if (spin(1) .eq. spin(3) ) then
-!                !       if ( ConfigurationInteraction_instance%configurations(a)%occupations(i,ia)%values(l) > 0 .and. &
-!                !            ConfigurationInteraction_instance%configurations(b)%occupations(i,ib)%values(l) > 0 ) then
-!                 do ll=1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-!                    if ( abs (occupiedOrbitals(i,1)%values(ll) - occupiedOrbitals(i,2)%values(ll) ) == 0 ) then
-!                       l = occupiedOrbitals(i,1)%values(ll) !! or b
-!                       spin(3)=mod(l,lambda)
-!                       spatialOrbital(3)=int((l+spin(3))/lambda)
-!                       if (spin(1) .eq. spin(3) .and. spin(2) .eq. spin(3) ) then
-!
-!                          !!auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(3), spatialOrbital(3), spatialOrbital(2), numberOfSpatialOrbitals )
-!                          auxIndex = IndexMap_tensorR4ToVectorC( spatialOrbital(1), spatialOrbital(3), &
-!                                       spatialOrbital(3), spatialOrbital(2), & 
-!                                       numberOfSpatialOrbitals )
-!                          TwoParticlesEnergy=TwoParticlesEnergy + &
-!                               kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
-!                       end if
-!                    end if
-!                 end do
-!
-!                 auxCIenergy = auxCIenergy + twoParticlesEnergy*charge*charge
-!
-!                 ! !Two particles, different species
-!
-!                 if (numberOfSpecies .gt. 1 .and. spin(1) .eq. spin(2) ) then
-!                    do j=1, numberOfSpecies
-!
-!                       couplingEnergy=0
-!                       if (i .ne. j) then
-!                          lambdaOfOtherSpecie=ConfigurationInteraction_instance%lambda%values(j)
-!                          numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )* lambdaOfOtherSpecie
-!                          numberOfOtherSpecieSpatialOrbitals=numberOfOtherSpecieOrbitals/lambdaOfOtherSpecie
-!                          otherSpecieCharge=MolecularSystem_getCharge(j)
-!                          auxnumberOfOtherSpecieSpatialOrbitals = (numberOfOtherSpecieSpatialOrbitals * ( numberOfOtherSpecieSpatialOrbitals + 1 ) ) / 2
-!                          numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j) !!active
-!
-!!                          do l=1, numberOfOtherSpecieOrbitals
-!!                             if (ConfigurationInteraction_instance%configurations(a)%occupations(j,ia)%values(l) > 0 ) then
-!                          do ll=1, size(occupiedOrbitals(j,1)%values ) !! 1 is from a and 2 from b
-!                                l = occupiedOrbitals(j,1)%values(ll)
-!
-!                                spin(3)=mod(l,lambdaOfOtherSpecie)
-!                                spatialOrbital(3)=(l+spin(3))/lambdaOfOtherSpecie
-!
-!                                !auxIndex = IndexMap_tensorR4ToVector( spatialOrbital(1), spatialOrbital(2), spatialOrbital(3), spatialOrbital(3), &
-!                                !     numberOfSpatialOrbitals, numberOfOtherSpecieSpatialOrbitals)
-!                                auxIndex2 = IndexMap_tensorR2ToVectorC( spatialOrbital(3),spatialOrbital(3),numberOfOtherSpecieSpatialOrbitals )
-!                                auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
-!
-!
-!                                couplingEnergy=couplingEnergy+ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1) 
-!                             !end if
-!                          end do
-!                          auxCIenergy = auxCIenergy + couplingEnergy*charge*otherSpecieCharge
-!
-!                       end if
-!                    end do
-!                 end if
-!              end if
-!              
-!           end do
-!
-!        case (4)
-!
-!           do i=1, numberOfSpecies
-!              call Vector_constructorInteger (differentOrbitals(i),4)
-!              lambda=ConfigurationInteraction_instance%lambda%values(i)
-!              differentOrbitals(i)%values = 0
-!              numberOfOccupiedOrbitals  =MolecularSystem_getOcupationNumber(i)*lambda
-!
-!              z = 1
-!              do k = 1, numberOfOccupiedOrbitals
-!                if ( z > 4 ) exit
-!
-!                if ( abs(occupiedOrbitals(i,1)%values(k) - occupiedOrbitals(i,2)%values(k)) > 0 ) then
-!                  differentOrbitals(i)%values(z) = occupiedOrbitals(i,1)%values(k)
-!                  differentOrbitals(i)%values(z+1) = -occupiedOrbitals(i,2)%values(k)
-!                  z = z + 2
-!                end if 
-!              end do 
-!
-!           end do
-!           ! !Two cases: 4 different orbitals of the same species, and 2 and 2 of different species
-!
-!           do i=1, numberOfSpecies
-!
-!              lambda=ConfigurationInteraction_instance%lambda%values(i)
-!              kappa=MolecularSystem_getKappa(i)
-!              charge=MolecularSystem_getCharge(i)
-!              numberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( i )* lambda
-!              numberOfSpatialOrbitals=numberOfOrbitals/lambda
-!              numberOfOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(i) !! active
-!
-!              if (allocated(spin)) deallocate (spin)
-!              if (allocated(spatialOrbital)) deallocate (spatialOrbital)
-!              allocate(spin(4))
-!              allocate(spatialOrbital(4))
-!          
-!              spin=0.0
-!              spatialOrbital = 0
-!
-!              if ( abs( differentOrbitals(i)%values(3)) > 0 ) then
-!
-!                 !Negative with negative, positive with positive, to identify which orbitals belongs to the same configuration
-!                 z=0
-!                 pos=0
-!                 neg=2
-!
-!                 do z=1, 4
-!                    if ( differentOrbitals(i)%values(z) > 0 ) then
-!                       pos=pos+1
-!                       spin(pos)=mod( differentOrbitals(i)%values(z),lambda)
-!                       spatialOrbital(pos)=int((differentOrbitals(i)%values(z)+spin(pos))/lambda)
-!                    end if
-!                    if ( differentOrbitals(i)%values(z) < 0.0_8) then
-!                       neg=neg+1
-!                       spin(neg)=mod( -differentOrbitals(i)%values(z),lambda)
-!                       spatialOrbital(neg)=int((-differentOrbitals(i)%values(z)+spin(neg))/lambda)
-!                    end if
-!                 end do
-!
-!                 !Coulomb
-!                  !! 12|34
-!                 if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
-!
-!                    auxIndex = IndexMap_tensorR4ToVectorC( spatialOrbital(1), spatialOrbital(3), spatialOrbital(2), &
-!                                spatialOrbital(4), numberOfSpatialOrbitals )
-!
-!                    auxCIenergy = auxCIenergy + &
-!                         ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
-!                 end if
-!
-!                 !Exchange
-!
-!                 if ( spin(1) .eq. spin(4) .and. spin(2) .eq. spin(3) ) then
-!
-!                    auxIndex = IndexMap_tensorR4ToVectorC( spatialOrbital(1), spatialOrbital(4), &
-!                                 spatialOrbital(2), spatialOrbital(3), numberOfSpatialOrbitals )
-!
-!                    auxCIenergy = auxCIenergy + &
-!                         kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)*charge*charge
-!
-!                 end if
-!
-!              end if
-!
-!              !! different species
-!
-!              do j=i+1, numberOfSpecies
-!                 if (i .ne. j) then
-!                    lambdaOfOtherSpecie=ConfigurationInteraction_instance%lambda%values(j)
-!
-!                    numberOfOtherSpecieOrbitals = MolecularSystem_getTotalNumberOfContractions( j )* lambdaOfOtherSpecie
-!                    numberOfOtherSpecieSpatialOrbitals=numberOfOtherSpecieOrbitals/lambdaOfOtherSpecie
-!                    otherSpecieCharge=MolecularSystem_getCharge(j)
-!
-!                    numberOfOtherSpecieOrbitals=ConfigurationInteraction_instance%numberOfOrbitals%values(j) !!active
-!
-!                    if ( abs(differentOrbitals(i)%values(2)) .gt. 0 .and.  abs(differentOrbitals(j)%values(2)) .gt. 0 ) then
-!
-!                       !Negative with negative, positive with positive, to identify which orbitals belongs to the same configuration
-!
-!                       spin(1)=mod( abs(differentOrbitals(i)%values(1)),lambda)
-!                       spatialOrbital(1)=(abs(differentOrbitals(i)%values(1))+spin(1))/lambda
-!
-!                       spin(3)=mod( abs(differentOrbitals(i)%values(2)),lambdaOfOtherSpecie)!!lambda??
-!                       spatialOrbital(3)=(abs(differentOrbitals(i)%values(2))+spin(3))/lambda
-!
-!                       spin(2)=mod( abs(differentOrbitals(j)%values(1)),lambdaOfOtherSpecie)
-!                       spatialOrbital(2)=(abs(differentOrbitals(j)%values(1))+spin(2))/lambdaOfOtherSpecie
-!
-!                       spin(4)=mod( abs(differentOrbitals(j)%values(2)),lambdaOfOtherSpecie)
-!                       spatialOrbital(4)=(abs(differentOrbitals(j)%values(2))+spin(4))/lambdaOfOtherSpecie
-!
-!                       if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
-!                          auxIndex = IndexMap_tensorR4ToVectorC( spatialOrbital(1), spatialOrbital(3), &
-!                               spatialOrbital(2), spatialOrbital(4), numberOfSpatialOrbitals, numberOfOtherSpecieSpatialOrbitals )
-!
-!                          auxCIenergy = auxCIenergy + &
-!                               ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)*charge*otherSpecieCharge
-!                       end if
-!
-!
-!                    end if
-!                 end if
-!              end do
-!           end do
-!
-!        case default
-!
-!           auxCIenergy= 0.0_8
-!
-!        end select
-!
-!        CIenergy= auxCIenergy * factor + CIenergy
-!
-!      end do  ! ib
-!    end do ! ia 
-!
-!    prefactor =  1.0_8/sqrt(real(ConfigurationInteraction_instance%configurations(a)%nDeterminants) * &!! (1/n!) 
-!             real(ConfigurationInteraction_instance%configurations(b)%nDeterminants))
-!
-!    CIenergy = CIenergy * prefactor
-!
-!!  end subroutine ConfigurationInteraction_calculateCIenergy
-!  end function ConfigurationInteraction_calculateCIenergy
-
-  function ConfigurationInteraction_calculateCIenergyB(a,b) result (CIenergy)
+  function ConfigurationInteraction_calculateCoupling(auxthisA, auxthisB) result (numberOfDiffOrbitals)
     implicit none
+    !type(Configuration) :: auxthisA, auxthisB
+    integer(2), intent(in) :: auxthisA(:,:), auxthisB(:,:)
+    integer(2) :: numberOfDiffOrbitals
+    integer :: numberOfSpecies
 
-    integer :: i,j,a,b,ia,ib
-    integer :: l,k,z,kk,ll
+    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+    numberOfDiffOrbitals = Configuration_checkCoincidenceB( auxthisA, auxthisB, numberOfSpecies )
+    numberOfDiffOrbitals=1
+
+  end function ConfigurationInteraction_calculateCoupling
+
+  function ConfigurationInteraction_calculateCIenergyB( thisA, auxthisB, m, n) result (CIenergy)
+    implicit none
+    !type(Configuration), intent(in) :: thisA
+    !type(Configuration), intent(in) :: auxthisB
+    integer(2), intent(in) :: thisA(:,:), auxthisB(:,:)
+    integer, intent(in) :: m,n
+    integer :: i,j,a,b,ia,ib,s
+    integer :: l,k,z,kk,ll,za,zb
     integer :: numberOfSpecies
     integer :: numberOfSpatialOrbitals
     integer :: auxnumberOfSpatialOrbitals
@@ -4726,45 +4323,119 @@ contains
     integer :: factor
     integer :: numberOfDiffOrbitals
     integer :: auxIndex1, auxIndex2, auxIndex
-    type(Ivector), allocatable :: differentOrbitals(:)
-    type(Ivector), allocatable :: occupiedOrbitals(:,:) !! nspecies
+    !type(Ivector), allocatable :: differentOrbitals(:)
+!    integer, allocatable :: differentOrbitals(:,:)
+    integer :: diffOrb1, diffOrb2, diffOrb3, diffOrb4, otherdiffOrb1,otherdiffOrb3
+    !type(Ivector), allocatable :: occupiedOrbitals(:,:) !! nspecies
+    !integer, allocatable :: occupiedOrbitalsA(:,:) !! nspecies
+   ! integer, allocatable :: occupiedOrbitalsB(:,:) !! nspecies
     real(8) :: CIenergy
     real(8) :: auxCIenergy
+    integer :: auxOcc
+    integer(2) :: score, auxscore
+    integer(2) :: diagonal
+    logical(1) :: swap
+    integer(2) :: auxthisA(m,n)
 
     CIenergy = 0.0_8
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-    factor = 1
+    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
 
-    allocate(differentOrbitals (numberOfSpecies))
+    !allocate(differentOrbitals (numberOfSpecies))
 
-    !do ia = 1, ConfigurationInteraction_instance%configurations(a)%nDeterminants 
-    !  do ib = 1, ConfigurationInteraction_instance%configurations(b)%nDeterminants 
+    !do ia = 1, thisA%nDeterminants 
+    !  do ib = 1, thisB%nDeterminants 
 
         auxCIenergy = 0.0_8
    
-        !numberOfDiffOrbitals = Configuration_checkCoincidence( ConfigurationInteraction_instance%configurations(a),&
-        !           ConfigurationInteraction_instance%configurations(b), &
-        !           numberOfSpecies )
+        numberOfDiffOrbitals = Configuration_checkCoincidenceB( thisA, auxthisB, numberOfSpecies )
 
-        if ( numberOfDiffOrbitals <= 2 ) then
-        !  call Configuration_setAtMaximumCoincidence( ConfigurationInteraction_instance%configurations(a),&
-        !           ConfigurationInteraction_instance%configurations(b), &
-        !           numberOfSpecies, occupiedOrbitals, factor )
+        factor = 1
+        auxthisA = thisA
+        if  (  numberOfDiffOrbitals == 1 .or. numberOfDiffOrbitals == 2  ) then
+          !call Configuration_setAtMaximumCoincidenceC( auxthisA,auxthisB%occupations, m, n, numberOfSpecies, factor )
+          !factor = Configuration_setAtMaximumCoincidenceB( numberOfSpecies)
+          do s = 1, numberOfSpecies
+              numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(s) 
+        
+              score = 0
+              auxscore = 0
+              diagonal = 0
+      
+              do i = 1, numberOfOccupiedOrbitals 
+                  do j = 1, numberOfOccupiedOrbitals
+                     if ( auxthisA(i,s) == auxthisB(j,s) ) then
+                       auxscore = 1
+                     else 
+                       auxscore = 0
+                     end if 
+                     if ( i == j ) diagonal = diagonal + auxscore
+                     score = score + auxscore
+                  end do 
+               end do 
+        
+              !do while ( (score) > diagonal )
+              do k = 1, numberOfOccupiedOrbitals 
+
+                  if ((score) > diagonal ) then
+                  swap = .false. 
+                  do i = 1, numberOfOccupiedOrbitals 
+                    do j = 1, numberOfOccupiedOrbitals
+                      if ( i /= j ) then
+                        if ( auxthisA(i,s) == auxthisB(j,s) ) then
+      
+                          auxOcc = auxthisA(i,s)
+                          auxthisA(i,s) = auxthisA(j,s)
+                          auxthisA(j,s) = auxOcc
+                          swap = .true.  
+                        end if
+                      end if
+      
+                      if ( swap .eqv. .true. ) exit
+                    end do 
+                    if ( swap .eqv. .true. ) exit
+                  end do 
+      
+                diagonal = 0
+                score = 0
+                do i = 1, numberOfOccupiedOrbitals 
+                  do j = 1, numberOfOccupiedOrbitals
+      
+                     if ( auxthisA(i,s) == auxthisB(j,s) ) then
+                        auxscore = 1
+                     else  
+                       auxscore = 0
+                     end if 
+                     if ( i == j ) diagonal = diagonal + auxscore
+                     score = score + auxscore
+                  end do 
+                end do 
+                  factor = -1 * factor 
+                else
+                  exit
+                end if
+              end do! while
+      
+           end do
+
+        else if ( numberOfDiffOrbitals > 2 ) then
+          return
         end if
+
+        !numberOfDiffOrbitals = 3
         select case (  numberOfDiffOrbitals )
 
         case (0)
           
               do i=1, numberOfSpecies
 
-                 kappa=MolecularSystem_getKappa(i) !exchange sign
-                 numberOfSpatialOrbitals = MolecularSystem_getTotalNumberOfContractions( i )
+                 kappa = MolecularSystem_instance%species(i)%kappa
+                 numberOfSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( i )
                  auxnumberOfSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) 
 
-                 do kk=1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
+                 do kk=1, int( MolecularSystem_instance%species(i)%ocupationNumber) !! 1 is from a and 2 from b
 
-                    k = occupiedOrbitals(i,1)%values(kk)
+                    k = auxthisA(kk,i)
 
                        !One particle terms
                        auxCIenergy= auxCIenergy + &
@@ -4775,13 +4446,16 @@ contains
 
                        !auxIndex1 = IndexMap_tensorR2ToVectorC( k, k, numberOfSpatialOrbitals )
                        auxIndex1= ConfigurationInteraction_instance%twoIndexArray(i)%values(k,k)
-                       do ll=kk+1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-                             l = occupiedOrbitals(i,1)%values(ll)
+                       do ll=kk+1, int( MolecularSystem_instance%species(i)%ocupationNumber )!! 1 is from a and 2 from b
+                             l = auxthisA(ll,i)
                              !auxIndex2 = IndexMap_tensorR2ToVectorC( l, l, numberOfSpatialOrbitals )
                              auxIndex2= ConfigurationInteraction_instance%twoIndexArray(i)%values(l,l)
-                             auxIndex = IndexMap_tensorR2ToVectorC( auxIndex1, auxIndex2, &
-                                       auxnumberOfSpatialOrbitals  )
+                             !print *, auxIndex1, auxIndex2, l
+                             auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values(auxIndex1,auxIndex2) 
+                             !auxIndex = IndexMap_tensorR2ToVectorC( auxIndex1, auxIndex2, &
+                             !          auxnumberOfSpatialOrbitals  )
 
+                             ! print *, auxIndex
                              !Coulomb
                              twoParticlesEnergy=twoParticlesEnergy + &
                                  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
@@ -4789,10 +4463,14 @@ contains
                              !Exchange, depends on spin
                              !if ( spin(1) .eq. spin(2) ) then
 
-                                auxIndex = IndexMap_tensorR2ToVectorC(&
+                             !   auxIndex = IndexMap_tensorR2ToVectorC(&
+                             !              ConfigurationInteraction_instance%twoIndexArray(i)%values(k,l), &
+                             !              ConfigurationInteraction_instance%twoIndexArray(i)%values(l,k), &
+                             !              auxnumberOfSpatialOrbitals )
+
+                             auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
                                            ConfigurationInteraction_instance%twoIndexArray(i)%values(k,l), &
-                                           ConfigurationInteraction_instance%twoIndexArray(i)%values(l,k), &
-                                           auxnumberOfSpatialOrbitals )
+                                           ConfigurationInteraction_instance%twoIndexArray(i)%values(l,k) )
                                             !k, l, l, k, numberOfSpatialOrbitals )
 
                                 TwoParticlesEnergy=TwoParticlesEnergy + &
@@ -4808,13 +4486,13 @@ contains
                        if (numberOfSpecies > 1 ) then
                           do j=i+1, numberOfSpecies
 
-                             numberOfOtherSpecieSpatialOrbitals=MolecularSystem_getTotalNumberOfContractions( j )
+                             numberOfOtherSpecieSpatialOrbitals= ConfigurationInteraction_instance%totalNumberOfContractions ( j )
                              auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
 
                              couplingEnergy=0
 
-                             do ll=1, size(occupiedOrbitals(j,1)%values ) !! 1 is from a and 2 from b
-                                   l = occupiedOrbitals(j,1)%values(ll)
+                             do ll=1, int( MolecularSystem_instance%species(j)%ocupationNumber )!! 1 is from a and 2 from b
+                                   l = auxthisA(ll,j)
                                    auxIndex2= ConfigurationInteraction_instance%twoIndexArray(j)%values(l,l)
                                    !auxIndex2 = IndexMap_tensorR2ToVectorC( l, & 
                                    !             l, numberOfOtherSpecieSpatialOrbitals )
@@ -4834,35 +4512,51 @@ contains
                  end do
               end do
 
-              !Interaction with point charges
+             !Interaction with point charges
               auxCIenergy= auxCIenergy + HartreeFock_instance%puntualInteractionEnergy
 
         case (1)
 
+           !if ( allocated (differentOrbitals) ) deallocate (differentOrbitals)
+           !allocate (differentOrbitals (numberOfSpecies,2 ) )
+           !differentOrbitals= 0
+
            do i=1, numberOfSpecies
 
-              kappa=MolecularSystem_getKappa(i)
-              numberOfSpatialOrbitals = MolecularSystem_getTotalNumberOfContractions( i )
+              diffOrb1 = 0
+              diffOrb2 = 0
+
+              kappa = MolecularSystem_instance%species(i)%kappa
+              numberOfSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( i )
               auxnumberOfSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) 
 
               !Determine different orbitals
-              call Vector_constructorInteger (differentOrbitals(i), 2)
+              !call Vector_constructorInteger (differentOrbitals(i), 2)
 
-              differentOrbitals(i)%values = 0
+              !differentOrbitals(i)%values = 0
 
-              do kk=1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-                if ( abs (occupiedOrbitals(i,1)%values(kk) - occupiedOrbitals(i,2)%values(kk) ) > 0 ) then
-                  differentOrbitals(i)%values(1)= occupiedOrbitals(i,1)%values(kk) 
-                  differentOrbitals(i)%values(2)= occupiedOrbitals(i,2)%values(kk) 
+              do kk=1, int( MolecularSystem_instance%species(i)%ocupationNumber )!! 1 is from a and 2 from b
+                if ( abs (auxthisA(kk,i) - auxthisB(kk,i) ) > 0 ) then
+                  !differentOrbitals(i)%values(1)= occupiedOrbitals(i,1)%values(kk) 
+                  !differentOrbitals(i)%values(2)= occupiedOrbitals(i,2)%values(kk) 
+                  !differentOrbitals(i,1)= auxthisA%occupations(kk,i) 
+                  !differentOrbitals(i,2)= auxthisB%occupations(kk,i) 
+                  diffOrb1= auxthisA(kk,i) 
+                  diffOrb2= auxthisB(kk,i) 
+
                 end if
               end do
 
               !call vector_show(differentOrbitals(i))
-              if (  differentOrbitals(i)%values(2) > 0 ) then !?
+              !if (  differentOrbitals(i)%values(2) > 0 ) then !?
+              !if (  differentOrbitals(i,2) > 0 ) then !?
+              if (  diffOrb2 > 0 ) then !?
 
                 !One particle terms
                 auxCIenergy= auxCIenergy +  ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( &
-                                  differentOrbitals(i)%values(1), differentOrbitals(i)%values(2) )
+                                  !differentOrbitals(i)%values(1), differentOrbitals(i)%values(2) )
+                                  !differentOrbitals(i,1), differentOrbitals(i,2) )
+                                  diffOrb1, diffOrb2 )
 
                  twoParticlesEnergy=0.0_8
                  !if (spin(1) .eq. spin(2) ) then
@@ -4870,17 +4564,19 @@ contains
                     !auxIndex1 = IndexMap_tensorR2ToVectorC(differentOrbitals(i)%values(1), differentOrbitals(i)%values(2), &
                     !                              numberOfSpatialOrbitals )
                     auxIndex1= ConfigurationInteraction_instance%twoIndexArray(i)%values( & 
-                                differentOrbitals(i)%values(1), differentOrbitals(i)%values(2))
+                                !differentOrbitals(i)%values(1), differentOrbitals(i)%values(2))
+                                diffOrb1, diffOrb2)
 
-                    do ll=1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-                      if ( abs (occupiedOrbitals(i,1)%values(ll) - occupiedOrbitals(i,2)%values(ll) ) == 0 ) then
-                          l = occupiedOrbitals(i,1)%values(ll) !! or b
+                    do ll=1, int( MolecularSystem_instance%species(i)%ocupationNumber) !! 1 is from a and 2 from b
+                      if ( abs (auxthisA(ll,i) - auxthisB(ll,i) ) == 0 ) then
+                          l = auxthisA(ll,i) !! or b
 
                           !auxIndex2 = IndexMap_tensorR2ToVectorC( l, l, numberOfSpatialOrbitals )
                           auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(i)%values( l,l) 
 
-                          auxIndex = IndexMap_tensorR2ToVectorC( auxIndex1, auxIndex2, &
-                                       auxnumberOfSpatialOrbitals )
+                          auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( auxIndex1, auxIndex2 )
+                          !auxIndex = IndexMap_tensorR2ToVectorC( auxIndex1, auxIndex2, &
+                          !             auxnumberOfSpatialOrbitals )
 
                           TwoParticlesEnergy=TwoParticlesEnergy + &
                                ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
@@ -4890,19 +4586,30 @@ contains
                  !end if
 
                  !Exchange
-                 do ll=1, size(occupiedOrbitals(i,1)%values ) !! 1 is from a and 2 from b
-                    if ( abs (occupiedOrbitals(i,1)%values(ll) - occupiedOrbitals(i,2)%values(ll) ) == 0 ) then
-                       l = occupiedOrbitals(i,1)%values(ll) !! or b
+                 do ll=1, int( MolecularSystem_instance%species(i)%ocupationNumber) !! 1 is from a and 2 from b
+                    if ( abs (auxthisA(ll,i) -&
+                         auxthisB(ll,i) ) == 0 ) then
+                       l = auxthisA(ll,i) !! or b
                        !if (spin(1) .eq. spin(3) .and. spin(2) .eq. spin(3) ) then
                           !auxIndex = IndexMap_tensorR4ToVectorC( differentOrbitals(i)%values(1), l,  &
                           !             l, differentOrbitals(i)%values(2), & 
                           !             numberOfSpatialOrbitals )
-                          auxIndex = IndexMap_tensorR2ToVectorC(&
+                          !auxIndex = IndexMap_tensorR2ToVectorC(&
+                          !             ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+                          !               !differentOrbitals(i)%values(1),l), &
+                          !               !differentOrbitals(i,1),l), &
+                          !               diffOrb1,l), &
+                          !             ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+                          !               !l,differentOrbitals(i)%values(2)), &
+                          !               !l,differentOrbitals(i,2)), &
+                          !               l,diffOrb2), &
+                          !             auxnumberOfSpatialOrbitals  )
+
+                          auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
                                        ConfigurationInteraction_instance%twoIndexArray(i)%values(&
-                                         differentOrbitals(i)%values(1),l), &
+                                         diffOrb1,l), &
                                        ConfigurationInteraction_instance%twoIndexArray(i)%values(&
-                                         l,differentOrbitals(i)%values(2)), &
-                                       auxnumberOfSpatialOrbitals  )
+                                         l,diffOrb2) ) 
 
                           TwoParticlesEnergy=TwoParticlesEnergy + &
                                kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
@@ -4920,11 +4627,11 @@ contains
                        couplingEnergy=0
                        if (i .ne. j) then
 
-                          numberOfOtherSpecieSpatialOrbitals = MolecularSystem_getTotalNumberOfContractions( j ) 
+                          numberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( j )
                           auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
 
-                          do ll=1, size(occupiedOrbitals(j,1)%values ) !! 1 is from a and 2 from b
-                                l = occupiedOrbitals(j,1)%values(ll)
+                          do ll=1, int( MolecularSystem_instance%species(j)%ocupationNumber )!! 1 is from a and 2 from b
+                                l = auxthisA(ll,j)
 
                                ! auxIndex2 = IndexMap_tensorR2ToVectorC( l, l, numberOfOtherSpecieSpatialOrbitals )
                                 auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(j)%values( l,l) 
@@ -4943,33 +4650,50 @@ contains
 
         case (2)
 
+           !if ( allocated (differentOrbitals) ) deallocate (differentOrbitals)
+           !allocate (differentOrbitals (numberOfSpecies,4 ) )
+           !differentOrbitals = 0
+
+
            do i=1, numberOfSpecies
-              call Vector_constructorInteger (differentOrbitals(i),4)
-              lambda=ConfigurationInteraction_instance%lambda%values(i)
-              differentOrbitals(i)%values = 0
-              numberOfOccupiedOrbitals  =MolecularSystem_getOcupationNumber(i)*lambda
+              !call Vector_constructorInteger (differentOrbitals(i),4)
+              !lambda=ConfigurationInteraction_instance%lambda%values(i)
+              !differentOrbitals(i)%values = 0
+              numberOfOccupiedOrbitals = MolecularSystem_instance%species(i)%ocupationNumber!*lambda
+
+              diffOrb1 = 0
+              diffOrb2 = 0
+              diffOrb3 = 0
+              diffOrb4 = 0
 
               z = 1
               do k = 1, numberOfOccupiedOrbitals
-                if ( z > 3 ) exit
-
-                if ( abs(occupiedOrbitals(i,1)%values(k) - occupiedOrbitals(i,2)%values(k)) > 0 ) then
-                  differentOrbitals(i)%values(z) = occupiedOrbitals(i,1)%values(k)
-                  differentOrbitals(i)%values(z+2) = occupiedOrbitals(i,2)%values(k)
+                if ( z > 2 ) exit
+                if ( abs(auxthisA(k,i) - auxthisB(k,i)) > 0 ) then
+                  if ( z == 1 ) then
+                    diffOrb1 = auxthisA(k,i)
+                    diffOrb3 = auxthisB(k,i)
+                  else if ( z == 2 ) then
+                    diffOrb2 = auxthisA(k,i)
+                    diffOrb4 = auxthisB(k,i)
+                  end if 
                   z = z + 1
                 end if 
               end do 
 
-           end do
+              !print *, "c", diffOrb1, diffOrb2, diffOrb3, diffOrb4
+           !end do
            ! !Two cases: 4 different orbitals of the same species, and 2 and 2 of different species
 
-           do i=1, numberOfSpecies
+           !do i=1, numberOfSpecies
 
-              kappa=MolecularSystem_getKappa(i)
-              numberOfSpatialOrbitals = MolecularSystem_getTotalNumberOfContractions( i )
+              kappa = MolecularSystem_instance%species(i)%kappa
+              numberOfSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( i )
               auxnumberOfSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) 
 
-              if (  differentOrbitals(i)%values(2) > 0 ) then
+              if (  diffOrb2 > 0 ) then
+              !if (  differentOrbitals(i,2) > 0 ) then
+              !if (  differentOrbitals(i)%values(2) > 0 ) then
 
                  !Coulomb
                   !! 12|34
@@ -4978,13 +4702,26 @@ contains
                     !auxIndex = IndexMap_tensorR4ToVectorC( differentOrbitals(i)%values(1), differentOrbitals(i)%values(3), &
                     !            differentOrbitals(i)%values(2), differentOrbitals(i)%values(4), numberOfSpatialOrbitals )
 
-                    auxIndex = IndexMap_tensorR2ToVectorC(&
+                    !auxIndex = IndexMap_tensorR2ToVectorC(&
+                    !             ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+                    !                !differentOrbitals(i)%values(1),differentOrbitals(i)%values(3)),&
+                    !                !differentOrbitals(i,1),differentOrbitals(i,3)),&
+                    !                diffOrb1,diffOrb3),&
+                    !             ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+                    !                !differentOrbitals(i)%values(2),differentOrbitals(i)%values(4)),&
+                    !                !differentOrbitals(i,2),differentOrbitals(i,4)),&
+                    !                diffOrb2,diffOrb4),&
+                    !             auxnumberOfSpatialOrbitals )
+                     auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
                                  ConfigurationInteraction_instance%twoIndexArray(i)%values(&
-                                    differentOrbitals(i)%values(1),differentOrbitals(i)%values(3)),&
+                                    !differentOrbitals(i)%values(1),differentOrbitals(i)%values(3)),&
+                                    !differentOrbitals(i,1),differentOrbitals(i,3)),&
+                                    diffOrb1,diffOrb3),&
                                  ConfigurationInteraction_instance%twoIndexArray(i)%values(&
-                                    differentOrbitals(i)%values(2),differentOrbitals(i)%values(4)),&
-                                 auxnumberOfSpatialOrbitals )
-
+                                    !differentOrbitals(i)%values(2),differentOrbitals(i)%values(4)),&
+                                    !differentOrbitals(i,2),differentOrbitals(i,4)),&
+                                    diffOrb2,diffOrb4) )
+ 
 
                     auxCIenergy = auxCIenergy + &
                          ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
@@ -4994,13 +4731,22 @@ contains
                  !if ( spin(1) .eq. spin(4) .and. spin(2) .eq. spin(3) ) then
                     !auxIndex = IndexMap_tensorR4ToVectorC(  differentOrbitals(i)%values(1),  differentOrbitals(i)%values(4), &
                     !             differentOrbitals(i)%values(2),  differentOrbitals(i)%values(3), numberOfSpatialOrbitals )
-                    auxIndex = IndexMap_tensorR2ToVectorC(&
-                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(&
-                                    differentOrbitals(i)%values(1),differentOrbitals(i)%values(4)),&
-                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(&
-                                    differentOrbitals(i)%values(2),differentOrbitals(i)%values(3)),&
-                                 auxnumberOfSpatialOrbitals  )
 
+                    !auxIndex = IndexMap_tensorR2ToVectorC(&
+                    !             ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+                    !                diffOrb1,diffOrb4),&
+                    !                !differentOrbitals(i,1),differentOrbitals(i,4)),&
+                    !                !differentOrbitals(i)%values(1),differentOrbitals(i)%values(4)),&
+                    !             ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+                    !                diffOrb2,diffOrb3),&
+                    !                !differentOrbitals(i,2),differentOrbitals(i,3)),&
+                    !                !differentOrbitals(i)%values(2),differentOrbitals(i)%values(3)),&
+                    !             auxnumberOfSpatialOrbitals  )
+                    auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
+                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+                                    diffOrb1,diffOrb4),&
+                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+                                    diffOrb2,diffOrb3) )
                     auxCIenergy = auxCIenergy + &
                          kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
                  !end if
@@ -5010,19 +4756,40 @@ contains
               !! different species
 
               do j=i+1, numberOfSpecies
-                    numberOfOtherSpecieSpatialOrbitals = MolecularSystem_getTotalNumberOfContractions( j )
+                    numberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( j )
                     auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
+                    numberOfOccupiedOrbitals = MolecularSystem_instance%species(j)%ocupationNumber!* &
+                                                !ConfigurationInteraction_instance%lambda%values(j)
+                    otherdiffOrb1 = 0
+                    otherdiffOrb3 = 0
 
-                    if ( differentOrbitals(i)%values(3) .gt. 0 .and.  differentOrbitals(j)%values(3) .gt. 0 ) then
+                    z = 1
+                    do k = 1, numberOfOccupiedOrbitals
+                      if ( z > 1 ) exit
+                      if ( abs(auxthisA(k,j) - auxthisB(k,j)) > 0 ) then
+                        otherdiffOrb1 = auxthisA(k,j)
+                        otherdiffOrb3 = auxthisB(k,j)
+                        z = z + 1
+                      end if 
+                    end do 
+
+
+                    !if ( differentOrbitals(i)%values(3) .gt. 0 .and.  differentOrbitals(j)%values(3) .gt. 0 ) then
+                    !if ( differentOrbitals(i,3) .gt. 0 .and.  differentOrbitals(j,3) .gt. 0 ) then
+                    if ( diffOrb3 .gt. 0 .and. otherdiffOrb3 .gt. 0 ) then
 
                        !if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
                           !auxIndex = IndexMap_tensorR4ToVectorC( differentOrbitals(i)%values(1), differentOrbitals(i)%values(3), &
                           !             differentOrbitals(j)%values(1), differentOrbitals(j)%values(3), &
                           !             numberOfSpatialOrbitals, numberOfOtherSpecieSpatialOrbitals )
                           auxIndex1 = ConfigurationInteraction_instance%twoIndexArray(i)%values(&
-                                          differentOrbitals(i)%values(1),differentOrbitals(i)%values(3) )
+                                          diffOrb1,diffOrb3 )
+                                          !differentOrbitals(i,1),differentOrbitals(i,3) )
+                                          !differentOrbitals(i)%values(1),differentOrbitals(i)%values(3) )
                           auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(j)%values(&
-                                          differentOrbitals(j)%values(1),differentOrbitals(j)%values(3) )
+                                          otherdiffOrb1,otherdiffOrb3 )
+                                          !differentOrbitals(j,1),differentOrbitals(j,3) )
+                                          !differentOrbitals(j)%values(1),differentOrbitals(j)%values(3) )
                           auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
 
                           auxCIenergy = auxCIenergy + &
@@ -5040,12 +4807,479 @@ contains
         end select
         CIenergy= auxCIenergy * factor + CIenergy
 
-      !end do  ! ib
-    !end do ! ia 
 
-    deallocate (differentOrbitals)
+!    CIenergy = 0.0_8
+!
+!    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+!
+!    !allocate(differentOrbitals (numberOfSpecies))
+!
+!    !do ia = 1, thisA%nDeterminants 
+!    !  do ib = 1, thisB%nDeterminants 
+!
+!        auxCIenergy = 0.0_8
+!   
+!        !numberOfDiffOrbitals = Configuration_checkCoincidenceB( auxthisA, auxthisB, numberOfSpecies )
+!        numberOfDiffOrbitals = Configuration_checkCoincidenceB( auxthisA%occupations, auxthisB%occupations, numberOfSpecies )
+!
+!        !if (allocated ( auxthisA )) deallocate ( auxthisA ) 
+!        !allocate ( auxthisA( maxval( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values) , numberOfSpecies ) )
+!
+!        factor = 1
+!        if  (  numberOfDiffOrbitals == 1 .or. numberOfDiffOrbitals == 2  ) then
+!          call Configuration_setAtMaximumCoincidence( auxthisA%occupations,auxthisB%occupations, numberOfSpecies, factor )
+!          !call Configuration_setAtMaximumCoincidenceB( numberOfSpecies, factor )
+!          !factor = Configuration_setAtMaximumCoincidenceB( numberOfSpecies)
+!        !print *, "b", factor, numberOfDiffOrbitals
+!        else if ( numberOfDiffOrbitals > 2 ) then
+!          return
+!        end if
+!
+!
+!        !numberOfDiffOrbitals = 3
+!        select case (  numberOfDiffOrbitals )
+!
+!        case (0)
+!          
+!              do i=1, numberOfSpecies
+!
+!                 kappa = MolecularSystem_instance%species(i)%kappa
+!                 numberOfSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( i )
+!                 auxnumberOfSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) 
+!
+!                 do kk=1, int( MolecularSystem_instance%species(i)%ocupationNumber) !! 1 is from a and 2 from b
+!
+!                    k = auxthisA%occupations(kk,i)
+!
+!                       !One particle terms
+!                       auxCIenergy= auxCIenergy + &
+!                            ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( k, k )
+!
+!                       !Two particles, same specie
+!                       twoParticlesEnergy=0
+!
+!                       !auxIndex1 = IndexMap_tensorR2ToVectorC( k, k, numberOfSpatialOrbitals )
+!                       auxIndex1= ConfigurationInteraction_instance%twoIndexArray(i)%values(k,k)
+!                       do ll=kk+1, int( MolecularSystem_instance%species(i)%ocupationNumber )!! 1 is from a and 2 from b
+!                             l = auxthisA%occupations(ll,i)
+!                             !auxIndex2 = IndexMap_tensorR2ToVectorC( l, l, numberOfSpatialOrbitals )
+!                             auxIndex2= ConfigurationInteraction_instance%twoIndexArray(i)%values(l,l)
+!                             auxIndex = IndexMap_tensorR2ToVectorC( auxIndex1, auxIndex2, &
+!                                       auxnumberOfSpatialOrbitals  )
+!
+!                             !Coulomb
+!                             twoParticlesEnergy=twoParticlesEnergy + &
+!                                 ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+!
+!                             !Exchange, depends on spin
+!                             !if ( spin(1) .eq. spin(2) ) then
+!
+!                                auxIndex = IndexMap_tensorR2ToVectorC(&
+!                                           ConfigurationInteraction_instance%twoIndexArray(i)%values(k,l), &
+!                                           ConfigurationInteraction_instance%twoIndexArray(i)%values(l,k), &
+!                                           auxnumberOfSpatialOrbitals )
+!                                            !k, l, l, k, numberOfSpatialOrbitals )
+!
+!                                TwoParticlesEnergy=TwoParticlesEnergy + &
+!                                     kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+!
+!                             !end if
+!                          !end if
+!                       end do
+!
+!                       auxCIenergy = auxCIenergy + twoParticlesEnergy
+!
+!                       ! !Two particles, different species
+!                       if (numberOfSpecies > 1 ) then
+!                          do j=i+1, numberOfSpecies
+!
+!                             numberOfOtherSpecieSpatialOrbitals= ConfigurationInteraction_instance%totalNumberOfContractions ( j )
+!                             auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
+!
+!                             couplingEnergy=0
+!
+!                             do ll=1, int( MolecularSystem_instance%species(j)%ocupationNumber )!! 1 is from a and 2 from b
+!                                   l = auxthisA%occupations(ll,j)
+!                                   auxIndex2= ConfigurationInteraction_instance%twoIndexArray(j)%values(l,l)
+!                                   !auxIndex2 = IndexMap_tensorR2ToVectorC( l, & 
+!                                   !             l, numberOfOtherSpecieSpatialOrbitals )
+!                                   auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
+!
+!                                   couplingEnergy=couplingEnergy+ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
+!
+!                             end do
+!
+!                             auxCIenergy = auxCIenergy + couplingEnergy
+!
+!                          end do
+!
+!                       end if
+!
+!                    !end if
+!                 end do
+!              end do
+!
+!             !Interaction with point charges
+!              auxCIenergy= auxCIenergy + HartreeFock_instance%puntualInteractionEnergy
+!
+!        case (1)
+!
+!           !if ( allocated (differentOrbitals) ) deallocate (differentOrbitals)
+!           !allocate (differentOrbitals (numberOfSpecies,2 ) )
+!           !differentOrbitals= 0
+!
+!           do i=1, numberOfSpecies
+!
+!              diffOrb1 = 0
+!              diffOrb2 = 0
+!
+!              kappa = MolecularSystem_instance%species(i)%kappa
+!              numberOfSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( i )
+!              auxnumberOfSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) 
+!
+!              !Determine different orbitals
+!              !call Vector_constructorInteger (differentOrbitals(i), 2)
+!
+!              !differentOrbitals(i)%values = 0
+!
+!              !do kk=1, int( MolecularSystem_instance%species(i)%ocupationNumber )!! 1 is from a and 2 from b
+!              !  if ( abs (auxthisA%occupations(kk,i) - &
+!              !       auxthisB%occupations(kk,i) ) > 0 ) then
+!              !    diffOrb1= auxthisA%occupations(kk,i) 
+!              !    diffOrb2= auxthisB%occupations(kk,i) 
+!
+!              !  end if
+!              !end do
+!              !print *, "1", diffOrb1, diffOrb2
+!              z = 0 
+!              do kk=1, numberOfSpatialOrbitals !! 1 is from a and 2 from b
+!                if ( abs (auxthisA%orbitals(kk,i) - auxthisB%orbitals(kk,i) ) > 0 ) then
+!                  z = z + 1 
+!                  if ( z == 1 ) diffOrb1 = kk 
+!                  if ( z == 2 ) diffOrb2 = kk 
+!                end if
+!              end do
+!              !print *, "2", diffOrb1, diffOrb2
+!
+!              if (  diffOrb2 > 0 ) then !?
+!
+!                !One particle terms
+!                auxCIenergy= auxCIenergy +  ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( &
+!                                  !differentOrbitals(i)%values(1), differentOrbitals(i)%values(2) )
+!                                  !differentOrbitals(i,1), differentOrbitals(i,2) )
+!                                  diffOrb1, diffOrb2 )
+!
+!                 twoParticlesEnergy=0.0_8
+!                 !if (spin(1) .eq. spin(2) ) then
+!
+!                    !auxIndex1 = IndexMap_tensorR2ToVectorC(differentOrbitals(i)%values(1), differentOrbitals(i)%values(2), &
+!                    !                              numberOfSpatialOrbitals )
+!                    auxIndex1= ConfigurationInteraction_instance%twoIndexArray(i)%values( & 
+!                                !differentOrbitals(i)%values(1), differentOrbitals(i)%values(2))
+!                                diffOrb1, diffOrb2)
+!
+!                    !do ll=1, int( MolecularSystem_instance%species(i)%ocupationNumber) !! 1 is from a and 2 from b
+!                    !  if ( abs (auxthisA%occupations(ll,i) - &
+!                    !        auxthisB%occupations(ll,i) ) == 0 ) then
+!                    do ll=1, numberOfSpatialOrbitals !! 1 is from a and 2 from b
+!                      if ( abs (auxthisA%orbitals(ll,i) - auxthisB%orbitals(ll,i) ) == 0 ) then
+!                      if ( auxthisA%orbitals(ll,i) > 0 .and. auxthisB%orbitals(ll,i) > 0) then
+!                          !l = auxthisA%occupations(ll,i) !! or b
+!                          l = ll !! or b
+!
+!                          !auxIndex2 = IndexMap_tensorR2ToVectorC( l, l, numberOfSpatialOrbitals )
+!                          auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(i)%values( l,l) 
+!
+!                          auxIndex = IndexMap_tensorR2ToVectorC( auxIndex1, auxIndex2, &
+!                                       auxnumberOfSpatialOrbitals )
+!
+!                          TwoParticlesEnergy=TwoParticlesEnergy + &
+!                               ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+!
+!                       end if
+!                       end if
+!                    end do
+!                 !end if
+!
+!                 !Exchange
+!                 !do ll=1, int( MolecularSystem_instance%species(i)%ocupationNumber) !! 1 is from a and 2 from b
+!                 !   if ( abs (auxthisA%occupations(ll,i) -&
+!                 !        auxthisB%occupations(ll,i) ) == 0 ) then
+!                 !      l = auxthisA%occupations(ll,i) !! or b
+!
+!                    do ll=1, numberOfSpatialOrbitals !! 1 is from a and 2 from b
+!                      if ( abs (auxthisA%orbitals(ll,i) - auxthisB%orbitals(ll,i) ) == 0 ) then
+!                      if ( auxthisA%orbitals(ll,i) > 0 .or. auxthisB%orbitals(ll,i) > 0) then
+!                          !l = auxthisA%occupations(ll,i) !! or b
+!                          l = ll !! or b
+!
+!                       !if (spin(1) .eq. spin(3) .and. spin(2) .eq. spin(3) ) then
+!                          !auxIndex = IndexMap_tensorR4ToVectorC( differentOrbitals(i)%values(1), l,  &
+!                          !             l, differentOrbitals(i)%values(2), & 
+!                          !             numberOfSpatialOrbitals )
+!                          auxIndex = IndexMap_tensorR2ToVectorC(&
+!                                       ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+!                                         !differentOrbitals(i)%values(1),l), &
+!                                         !differentOrbitals(i,1),l), &
+!                                         diffOrb1,l), &
+!                                       ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+!                                         !l,differentOrbitals(i)%values(2)), &
+!                                         !l,differentOrbitals(i,2)), &
+!                                         l,diffOrb2), &
+!                                       auxnumberOfSpatialOrbitals  )
+!
+!                          TwoParticlesEnergy=TwoParticlesEnergy + &
+!                               kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+!                       end if
+!                    end if
+!                 end do
+!
+!                 auxCIenergy = auxCIenergy + twoParticlesEnergy
+!
+!                 ! !Two particles, different species
+!
+!                 if (numberOfSpecies .gt. 1 ) then !.and. spin(1) .eq. spin(2) ) then
+!                    do j=1, numberOfSpecies
+!
+!                       couplingEnergy=0
+!                       if (i .ne. j) then
+!
+!                          numberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( j )
+!                          auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
+!
+!                          !do ll=1, int( MolecularSystem_instance%species(j)%ocupationNumber )!! 1 is from a and 2 from b
+!                          !if ( auxthisA%orbitals(ll,j) > 0 ) then
+!                          !      l = auxthisA%occupations(ll,j)
+!                          do ll=1, numberOfOtherSPecieSpatialOrbitals !! 1 is from a and 2 from b
+!                            !if ( abs (auxthisA%orbitals(ll,j) - auxthisB%orbitals(ll,j) ) == 0 ) then
+!                              if ( auxthisA%orbitals(ll,j) > 0 .or. auxthisB%orbitals(ll,j) > 0) then
+!                               l = ll 
+!
+!                               ! auxIndex2 = IndexMap_tensorR2ToVectorC( l, l, numberOfOtherSpecieSpatialOrbitals )
+!                                auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(j)%values( l,l) 
+!                                auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
+!
+!                                couplingEnergy=couplingEnergy+ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1) 
+!                              end if
+!                            !end if
+!                          end do
+!                          auxCIenergy = auxCIenergy + couplingEnergy
+!
+!                       end if
+!                    end do
+!                 end if
+!
+!              end if
+!              
+!           end do! spcies
+!
+!        case (2)
+!
+!           !if ( allocated (differentOrbitals) ) deallocate (differentOrbitals)
+!           !allocate (differentOrbitals (numberOfSpecies,4 ) )
+!           !differentOrbitals = 0
+!
+!
+!           do i=1, numberOfSpecies
+!              !call Vector_constructorInteger (differentOrbitals(i),4)
+!              !lambda=ConfigurationInteraction_instance%lambda%values(i)
+!              !differentOrbitals(i)%values = 0
+!              numberOfOccupiedOrbitals = MolecularSystem_instance%species(i)%ocupationNumber!*lambda
+!              numberOfSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( i )
+!
+!              !diffOrb1 = 0
+!              !!diffOrb2 = 0
+!              !!diffOrb3 = 0
+!              !!diffOrb4 = 0
+!
+!              !!z = 1
+!              !!do k = 1, numberOfOccupiedOrbitals
+!              !!  if ( z > 2 ) exit
+!              !!  if ( abs(auxthisA%occupations(k,i) - auxthisB%occupations(k,i)) > 0 ) then
+!              !!    if ( z == 1 ) then
+!              !!      diffOrb1 = auxthisA%occupations(k,i)
+!              !!      diffOrb3 = auxthisB%occupations(k,i)
+!              !!    else if ( z == 2 ) then
+!              !!      diffOrb2 = auxthisA%occupations(k,i)
+!              !!      diffOrb4 = auxthisB%occupations(k,i)
+!              !!    end if 
+!              !!    z = z + 1
+!              !!  end if 
+!              !!end do 
+!
+!              !!print *, "1", diffOrb1, diffOrb2, diffOrb3, diffOrb4
+!              diffOrb1 = 0
+!              diffOrb2 = 0
+!              diffOrb3 = 0
+!              diffOrb4 = 0
+!
+!
+!              za = 0 
+!              zb = 0 
+!              do kk=1, numberOfSpatialOrbitals !! 1 is from a and 2 from b
+!                if ( abs (auxthisA%orbitals(kk,i) - auxthisB%orbitals(kk,i) ) > 0 ) then
+!                  if ( auxthisA%orbitals(kk,i) == 1 ) then
+!                    za = za + 1 
+!                    if ( za == 1 ) diffOrb1 = kk 
+!                    if ( za == 2 ) diffOrb2 = kk 
+!                  end if
+!                  if ( auxthisB%orbitals(kk,i) == 1 ) then 
+!                    zb = zb + 1 
+!                    if ( zb == 1 ) diffOrb3 = kk 
+!                    if ( zb == 2 ) diffOrb4 = kk 
+!                  end if
+!                end if
+!              end do
+!
+!              pos1 = 0
+!              pos2 = 0
+!              pos3 = 0
+!              pos4 = 0
+!
+!              do kk = 1, numberOfOccupiedOrbitals
+!                if (auxthisA%occupations(kk,i) == diffOrb1) pos1 = kk
+!                if (auxthisA%occupations(kk,i) == diffOrb2) pos2 = kk
+!                if (auxthisB%occupations(kk,i) == diffOrb3) pos3 = kk
+!                if (auxthisB%occupations(kk,i) == diffOrb4) pos4 = kk
+!               end do
+!
+!              !print *, "b1"//char(i), diffOrb1, diffOrb2, diffOrb3, diffOrb4
+!              !print *, "b2"//char(i), pos1, pos2, pos3, pos4
+!              if ( pos1 > pos2 .and. pos2 > 0) then
+!                z = diffOrb2
+!                diffOrb2 = diffOrb1
+!                diffOrb1 = z
+!              end if
+!              if ( pos3 > pos4 .and. pos4 > 0) then
+!                z = diffOrb4
+!                diffOrb4 = diffOrb3
+!                diffOrb3 = z
+!              end if
+!
+!           !end do
+!           ! !Two cases: 4 different orbitals of the same species, and 2 and 2 of different species
+!
+!           !do i=1, numberOfSpecies
+!
+!              kappa = MolecularSystem_instance%species(i)%kappa
+!              numberOfSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( i )
+!              auxnumberOfSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) 
+!
+!              if (  diffOrb2 > 0 ) then
+!              !if (  differentOrbitals(i,2) > 0 ) then
+!              !if (  differentOrbitals(i)%values(2) > 0 ) then
+!
+!                 !Coulomb
+!                  !! 12|34
+!                 !if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
+!
+!                    !auxIndex = IndexMap_tensorR4ToVectorC( differentOrbitals(i)%values(1), differentOrbitals(i)%values(3), &
+!                    !            differentOrbitals(i)%values(2), differentOrbitals(i)%values(4), numberOfSpatialOrbitals )
+!
+!                    auxIndex = IndexMap_tensorR2ToVectorC(&
+!                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+!                                    !differentOrbitals(i)%values(1),differentOrbitals(i)%values(3)),&
+!                                    !differentOrbitals(i,1),differentOrbitals(i,3)),&
+!                                    diffOrb1,diffOrb3),&
+!                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+!                                    !differentOrbitals(i)%values(2),differentOrbitals(i)%values(4)),&
+!                                    !differentOrbitals(i,2),differentOrbitals(i,4)),&
+!                                    diffOrb2,diffOrb4),&
+!                                 auxnumberOfSpatialOrbitals )
+!
+!
+!                    auxCIenergy = auxCIenergy + &
+!                         ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+!                 !end if
+!
+!                 !Exchange
+!                 !if ( spin(1) .eq. spin(4) .and. spin(2) .eq. spin(3) ) then
+!                    !auxIndex = IndexMap_tensorR4ToVectorC(  differentOrbitals(i)%values(1),  differentOrbitals(i)%values(4), &
+!                    !             differentOrbitals(i)%values(2),  differentOrbitals(i)%values(3), numberOfSpatialOrbitals )
+!                    auxIndex = IndexMap_tensorR2ToVectorC(&
+!                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+!                                    diffOrb1,diffOrb4),&
+!                                    !differentOrbitals(i,1),differentOrbitals(i,4)),&
+!                                    !differentOrbitals(i)%values(1),differentOrbitals(i)%values(4)),&
+!                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+!                                    diffOrb2,diffOrb3),&
+!                                    !differentOrbitals(i,2),differentOrbitals(i,3)),&
+!                                    !differentOrbitals(i)%values(2),differentOrbitals(i)%values(3)),&
+!                                 auxnumberOfSpatialOrbitals  )
+!
+!                    auxCIenergy = auxCIenergy + &
+!                         kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+!                 !end if
+!
+!              end if
+!
+!              !! different species
+!
+!              do j=i+1, numberOfSpecies
+!                    numberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%totalNumberOfContractions ( j )
+!                    auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
+!                    numberOfOccupiedOrbitals = MolecularSystem_instance%species(j)%ocupationNumber!* &
+!                                                !ConfigurationInteraction_instance%lambda%values(j)
+!                    otherdiffOrb1 = 0
+!                    otherdiffOrb3 = 0
+!
+!                    !z = 1
+!                    !do k = 1, numberOfOccupiedOrbitals
+!                    !  if ( z > 1 ) exit
+!                    !  if ( abs(auxthisA%occupations(k,j) - auxthisB%occupations(k,j)) > 0 ) then
+!                    !    otherdiffOrb1 = auxthisA%occupations(k,j)
+!                    !    otherdiffOrb3 = auxthisB%occupations(k,j)
+!                    !    z = z + 1
+!                    !  end if 
+!                    !end do 
+!
+!                    z = 0 
+!                    do kk=1, numberOfOtherSpecieSpatialOrbitals !! 1 is from a and 2 from b
+!                      if ( abs (auxthisA%orbitals(kk,j) - auxthisB%orbitals(kk,j) ) > 0 ) then
+!                        z = z + 1 
+!                        if ( z == 1 ) otherdiffOrb1 = kk 
+!                        if ( z == 2 ) otherdiffOrb3 = kk 
+!                      end if
+!                    end do
+!
+!                    !if ( differentOrbitals(i)%values(3) .gt. 0 .and.  differentOrbitals(j)%values(3) .gt. 0 ) then
+!                    !if ( differentOrbitals(i,3) .gt. 0 .and.  differentOrbitals(j,3) .gt. 0 ) then
+!                    if ( diffOrb3 .gt. 0 .and. otherdiffOrb3 .gt. 0 ) then
+!
+!                       !if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
+!                          !auxIndex = IndexMap_tensorR4ToVectorC( differentOrbitals(i)%values(1), differentOrbitals(i)%values(3), &
+!                          !             differentOrbitals(j)%values(1), differentOrbitals(j)%values(3), &
+!                          !             numberOfSpatialOrbitals, numberOfOtherSpecieSpatialOrbitals )
+!                          auxIndex1 = ConfigurationInteraction_instance%twoIndexArray(i)%values(&
+!                                          diffOrb1,diffOrb3 )
+!                                          !differentOrbitals(i,1),differentOrbitals(i,3) )
+!                                          !differentOrbitals(i)%values(1),differentOrbitals(i)%values(3) )
+!                          auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(j)%values(&
+!                                          otherdiffOrb1,otherdiffOrb3 )
+!                                          !differentOrbitals(j,1),differentOrbitals(j,3) )
+!                                          !differentOrbitals(j)%values(1),differentOrbitals(j)%values(3) )
+!                          auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
+!
+!                          auxCIenergy = auxCIenergy + &
+!                               ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
+!                       !end if
+!
+!                    end if
+!              end do
+!           end do
+!
+!        case default
+!
+!           auxCIenergy= 0.0_8
+!
+!        end select
+!        CIenergy= auxCIenergy * factor + CIenergy
+
+
 
   end function ConfigurationInteraction_calculateCIenergyB
+
+
 
   function ConfigurationInteraction_calculateCIenergyC(auxthisA, auxthisB) result (CIenergy)
     implicit none
@@ -5085,16 +5319,19 @@ contains
 
         auxCIenergy = 0.0_8
    
-        numberOfDiffOrbitals = Configuration_checkCoincidenceB( auxthisA, auxthisB, numberOfSpecies )
-
+        numberOfDiffOrbitals = Configuration_checkCoincidenceB( auxthisA%occupations, auxthisB%occupations, numberOfSpecies )
 
         factor = 1
         if  (  numberOfDiffOrbitals == 1 .or. numberOfDiffOrbitals == 2  ) then
-          call Configuration_setAtMaximumCoincidenceB( auxthisA,auxthisB, numberOfSpecies, factor )
+          call Configuration_setAtMaximumCoincidenceB( auxthisA%occupations,auxthisB%occupations, numberOfSpecies, factor )
+          !call Configuration_setAtMaximumCoincidenceB( numberOfSpecies, factor )
+          !factor = Configuration_setAtMaximumCoincidenceB( numberOfSpecies)
+        !print *, "c", factor
         else if ( numberOfDiffOrbitals > 2 ) then
           return
         end if
 
+        !numberOfDiffOrbitals = 3
         select case (  numberOfDiffOrbitals )
 
         case (0)
@@ -5341,6 +5578,7 @@ contains
                 end if 
               end do 
 
+              !print *, "c", diffOrb1, diffOrb2, diffOrb3, diffOrb4
            !end do
            ! !Two cases: 4 different orbitals of the same species, and 2 and 2 of different species
 
@@ -5451,7 +5689,7 @@ contains
 
         end select
         CIenergy= auxCIenergy * factor + CIenergy
-
+        !print *, "factor", factor
     !  end do  ! ib
     !end do ! ia 
 !    thisA%occupations2 = thisA%occupations
@@ -5472,7 +5710,7 @@ contains
 
 !    type(TransformIntegrals) :: repulsionTransformer
     integer :: numberOfSpecies
-    integer :: i,j,m,n,mu,nu,a,b
+    integer :: i,j,m,n,mu,nu,a,b,c
     integer :: specieID
     integer :: otherSpecieID
     character(10) :: nameOfSpecie
@@ -5490,6 +5728,8 @@ contains
     real(8) :: charge
     real(8) :: otherSpecieCharge
 
+    integer :: ssize1, ssize2
+
     character(50) :: wfnFile
     character(50) :: arguments(20)
     integer :: wfnUnit
@@ -5501,6 +5741,7 @@ contains
     !allocate(ConfigurationInteraction_instance%energyofmolecularorbitals(numberOfSpecies))
 
     allocate(ConfigurationInteraction_instance%twoIndexArray(numberOfSpecies))
+    allocate(ConfigurationInteraction_instance%fourIndexArray(numberOfSpecies))
 
 !    print *,""
 !    print *,"BEGIN INTEGRALS TRANFORMATION:"
@@ -5589,12 +5830,31 @@ contains
         call Matrix_constructorInteger(ConfigurationInteraction_instance%twoIndexArray(i), &
                           int( numberOfContractions,8), int( numberOfContractions,8) , 0 )
 
+       c = 0
        do a=1,numberOfContractions
          do b=a, numberOfContractions
-           ConfigurationInteraction_instance%twoIndexArray(i)%values(a,b) = IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
+           c = c + 1
+           ConfigurationInteraction_instance%twoIndexArray(i)%values(a,b) = c !IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
            ConfigurationInteraction_instance%twoIndexArray(i)%values(b,a) = ConfigurationInteraction_instance%twoIndexArray(i)%values(a,b)
          end do 
        end do
+
+
+          ssize1 = MolecularSystem_getTotalNumberOfContractions( i )
+          ssize1 = ( ssize1 * ( ssize1 + 1 ) ) / 2
+
+          call Matrix_constructorInteger(ConfigurationInteraction_instance%fourIndexArray(i), &
+                          int( ssize1,8), int( ssize1,8) , 0 )
+          c = 0
+          do a=1, ssize1
+            do b=a, ssize1
+              c = c + 1
+              !print *, a,b, c
+              ConfigurationInteraction_instance%fourIndexArray(i)%values(a,b) = c! IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
+              ConfigurationInteraction_instance%fourIndexArray(i)%values(b,a) = &
+                ConfigurationInteraction_instance%fourIndexArray(i)%values(a,b)
+             end do 
+           end do
 
 
         call ReadTransformedIntegrals_readOneSpecies( specieID, ConfigurationInteraction_instance%fourCenterIntegrals(i,i)   )
@@ -6372,8 +6632,8 @@ contains
   !  The user supplies a matrix-vector multiplication routine that takes
   !  workd(ipntr(1)) as the input, and return the result to workd(ipntr(2)).
   !
-      !call av ( nx, workd(ipntr(1)), workd(ipntr(2)) )
-      call matvec ( nx, residi,workd(ipntr(1)), workd(ipntr(2)), iter )
+      call av ( nx, workd(ipntr(1)), workd(ipntr(2)) )
+      !call matvec ( nx, residi,workd(ipntr(1)), workd(ipntr(2)), iter )
   
      end do
   !
@@ -6602,6 +6862,7 @@ contains
     integer :: n, maxeig, MAXSP
     integer :: LX
     real(8), allocatable :: EIGS(:), RES(:), X(:)!, D(:)
+    real(8) :: xx(n)
 !   arguments to pass to the routines
     integer :: NEIG, MADSPACE, ISEARCH, NINIT, ICNTL(5)
     integer :: ITER, IPRINT, INFO
@@ -6676,7 +6937,8 @@ contains
       iiter = iiter +1
       IF (IJOB.EQ.1) THEN
 !       X(NDX1) input,  X(NDX2) output
-         call matvec(N,X(1),X(NDX1),X(NDX2),iiter)
+         !call matvec(N,X(1),X(NDX1),X(NDX2),iiter)
+         call matvec(N,X(1),X(NDX1),X(NDX2),xx,iiter)
          GOTO 10
       END IF
 
@@ -6698,7 +6960,7 @@ contains
 
   end subroutine ConfigurationInteraction_jadamiluInterface
 
-  subroutine matvec ( nx, y, v, w, iter)
+  subroutine matvec ( nx, y, v, w, w2, iter)
   
   !*******************************************************************************
   !! AV computes w <- A * V where A is a discretized Laplacian.
@@ -6712,7 +6974,7 @@ contains
     integer nx
     real(8) y(nx)
     real(8) v(nx)
-    real(8) w(nx)
+    real(8) w(nx), w2(nx)
     real(8) :: CIEnergy
     integer :: nonzero
     integer :: i, j, ia, ib, ii, jj
@@ -6721,7 +6983,7 @@ contains
     real(8) :: timeA, timeB
     type(Configuration) :: auxConfigurationI, auxConfigurationJ
     real(8) :: tol
-    integer :: iter
+    integer :: iter, size1, size2
     integer, allocatable :: indexArray(:)
     tol = 1E-8
 
@@ -6729,19 +6991,19 @@ contains
     call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationJ )
 
     w = 0
+    w2 = 0
     
 !! memory
 !    do i = 1, nx
 !        w(:) = w(:) + ConfigurationInteraction_instance%hamiltonianMatrix%values(:,i)*v(i)
 !    end do 
 
-    timeA = omp_get_wtime()
     nproc = omp_get_max_threads()
 
     call omp_set_num_threads(omp_get_max_threads())
     call omp_set_num_threads(nproc)
 
-    CIenergy = 0
+    CIenergy = 0.0_8
     nonzero = 0
 
       do i = 1 , nx
@@ -6760,7 +7022,13 @@ contains
       end do
 
     ib = 0
-    if ( iter == 1 ) then
+
+    size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
+    size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
+
+
+    timeA = omp_get_wtime()
+    if ( iter > -1 ) then
     do i = 1, nx
   
       w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
@@ -6769,14 +7037,18 @@ contains
 !$omp& private(j,CIEnergy),&
 !$omp& private(auxConfigurationI ),&
 !$omp& private(auxConfigurationJ ),&
-!$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,y) reduction (+:wi)
+!$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,y,size1,size2) reduction (+:wi)
 !$omp do 
         do j = i+1 , nx
           if ( abs(v(i) ) > tol .or. abs(v(j)) > tol ) then
-            auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(i)%occupations
-            auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(j)%occupations
-            CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
-                    auxConfigurationI, auxConfigurationJ )
+            !auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(i)%occupations
+            !auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(j)%occupations
+            !CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
+            !        auxConfigurationI, auxConfigurationJ )
+            CIenergy = ConfigurationInteraction_calculateCIenergyB( & 
+                    ConfigurationInteraction_instance%configurations(i)%occupations, &
+                    ConfigurationInteraction_instance%configurations(j)%occupations, &
+                    size1, size2  )
 
             w(j) = w(j) + CIEnergy*v(i)  !! direct
             wi = wi + CIEnergy*v(j)  !! direct
@@ -6788,37 +7060,39 @@ contains
         w(i) = w(i) + wi
       end do 
 else
-    do i = 1, nonzero
-      ii = indexArray(i)
-!$omp parallel &
-!$omp& private(j,jj,CIEnergy),&
-!$omp& private(auxConfigurationI ),&
-!$omp& private(auxConfigurationJ ),&
-!$omp& shared(i,ii,ConfigurationInteraction_instance, HartreeFock_instance,v,nonzero,w,indexArray) 
-!$omp do 
-
+    !do i = 1, nonzero
+    do i = 1, nx
+      !ii = indexArray(i)
          do j = 1 , nx
           !jj = indexArray(j)
-          jj = j
+          !jj = j
           !if ( abs(y(j) ) > tol  ) then
-            auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(ii)%occupations
-            auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(jj)%occupations
-            CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
-                    auxConfigurationI, auxConfigurationJ )
+            !auxConfigurationI%occupations = ConfigurationInteraction_instance%configurations(ii)%occupations
+            !auxConfigurationJ%occupations = ConfigurationInteraction_instance%configurations(jj)%occupations
+            !CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
+            !        auxConfigurationI, auxConfigurationJ )
 
-            w(jj) = w(jj) + CIEnergy*v(ii)  !! direct
-            ib = ib + 1
+            CIenergy = ConfigurationInteraction_calculateCIenergyB( & 
+                    ConfigurationInteraction_instance%configurations(i)%occupations, &
+                    ConfigurationInteraction_instance%configurations(j)%occupations, &
+                    size1, size2  )
+
+            !w(jj) = v(ii)  !! direct
+            !w(jj) = CIenergy
+            !w(jj) = w(jj) + CIEnergy*v(ii)  !! direct
+            !w2(jj) = w2(jj) + CIEnergy*v(ii)  !! direct
+            w2(j) = w2(j) + CIEnergy*v(i)  !! direct
+            !ib = ib + 1
         end do 
-!$omp end do nowait
-!$omp end parallel
 end do 
 end if
 
       deallocate(indexArray)
 
-      print *, "ia ib ",ia,ib
+      !print *, "ia ib ",ia,ib
       timeB = omp_get_wtime()
-      !write(*,"(A,I4,A,F10.3,A4)") "** iter ", iter, " time: ", timeB - timeA ," (s)"
+      write(*,"(A,I4,A,E10.3,A4)") "** iter ", iter, " time: ", timeB - timeA ," (s)"
+      !w = w2
 
     return
 

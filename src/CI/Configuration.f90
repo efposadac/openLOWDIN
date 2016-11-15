@@ -63,7 +63,8 @@ module Configuration_
      !integer, allocatable :: order(:) !! 1=single, 2=double, 3=triple, etc
      !type(IVector), allocatable :: excitations(:,:,:) !! nexcitations (order), ndeterminants, occ -> vir
      !integer, allocatable :: excitations(:,:,:) !! nexcitations (order), ndeterminants, occ -> vir
-     integer, allocatable :: occupations(:,:) !! species, occ
+     integer(2), allocatable :: occupations(:,:) !! species, occ
+     !integer(1), allocatable :: orbitals(:,:) !! species, occ
   end type Configuration
 
   type, public :: GlobalConfiguration
@@ -88,7 +89,9 @@ module Configuration_
 !        Configuration_checkCoincidence, &
         Configuration_checkCoincidenceB, &
 !        Configuration_setAtMaximumCoincidence, &
-        Configuration_setAtMaximumCoincidenceB
+        Configuration_setAtMaximumCoincidence, &
+        Configuration_setAtMaximumCoincidenceB, &
+        Configuration_setAtMaximumCoincidenceC
   private
 contains
 
@@ -172,6 +175,11 @@ contains
     allocate ( this%occupations( maxval(GlobalConfiguration_instance%numberOfOccupiedOrbitals%values), numberOfSpecies ) )
     this%occupations = 0
 
+!    if (allocated ( this%orbitals )) deallocate ( this%orbitals ) 
+!    allocate ( this%orbitals( maxval(GlobalConfiguration_instance%numberOfOrbitals%values), numberOfSpecies ) )
+!    this%orbitals = 0
+
+
     !allocate ( this%excitations(numberOfSpecies,this%nDeterminants,2,maxval(this%order%values) ) )
     !this%excitations = 0
     do i=1, numberOfSpecies
@@ -191,6 +199,7 @@ contains
 
        do j=1, numberOfOccupiedOrbitals
           this%occupations(j,i)=j
+!          this%orbitals(j,i) = 1
        end do
 
        !div1= int(occupiedCode%values(i))
@@ -208,6 +217,8 @@ contains
           !this%excitations(2,j,i) = div2
 
           this%occupations(div1,i)=div2
+!          this%orbitals(div1,i)=0
+!          this%orbitals(div2,i)=1
 
 !          this%excitations(i,this%nDeterminants,1,j) = div1
 !          this%excitations(i,this%nDeterminants,2,j) = div2
@@ -667,9 +678,10 @@ contains
 
   function Configuration_checkCoincidenceB(thisA,thisB, numberOfSpecies) result ( numberOfDiffOrbitals )
     implicit none
-    type(Configuration), intent(in) :: thisA, thisB
+    !type(Configuration) :: thisA, thisB
+    integer(2), intent(in) :: thisA(:,:), thisB(:,:)
     integer, intent(in) :: numberOfSpecies
-    integer :: numberOfDiffOrbitals
+    integer(2) :: numberOfDiffOrbitals
     
     integer :: numberOfOccupiedOrbitals 
     integer :: i,j,s
@@ -685,7 +697,7 @@ contains
   
       do i = 1, numberOfOccupiedOrbitals 
           do j = 1, numberOfOccupiedOrbitals
-             if ( thisA%occupations(i,s) == thisB%occupations(j,s) ) then
+             if ( thisA(i,s) == thisB(j,s) ) then
                score = score + 1
              end if 
           end do 
@@ -698,9 +710,12 @@ contains
   end function Configuration_checkCoincidenceB
 
 
-  subroutine Configuration_setAtMaximumCoincidenceB(thisA,thisB, numberOfSpecies, factor)
+  subroutine Configuration_setAtMaximumCoincidence(thisA,thisB, numberOfSpecies, factor)
+  ! subroutine Configuration_setAtMaximumCoincidenceB(numberOfSpecies, factor)
+  !function Configuration_setAtMaximumCoincidenceB(thisA, thisB, numberOfSpecies) result ( factor)
     implicit none
-    type(Configuration), intent(inout) :: thisA, thisB
+    !type(Configuration) :: thisA, thisB
+    integer(2) :: thisA(:,:), thisB(:,:)
     integer :: factor
     integer, intent(in) :: numberOfSpecies
     
@@ -724,7 +739,56 @@ contains
 
         do i = 1, numberOfOccupiedOrbitals 
             do j = 1, numberOfOccupiedOrbitals
-               if ( thisA%occupations(i,s) == thisB%occupations(j,s) ) then
+               if ( thisA(i,s) == thisB(j,s) ) then
+                 auxscore = 1
+                if ( i /= j ) then
+                   factor = -1*factor
+!                  if ( mod(abs(i - j ),2) == 0 ) factor = factor
+                end if
+
+               else 
+                 auxscore = 0
+               end if 
+               if ( i == j ) diagonal = diagonal + auxscore
+               score = score + auxscore
+            end do 
+         end do 
+         ! print *, thisA(:,s), thisB(:,s)
+        
+     end do
+
+  end subroutine Configuration_setAtMaximumCoincidence
+
+  subroutine Configuration_setAtMaximumCoincidenceB(thisA,thisB, numberOfSpecies, factor)
+  ! subroutine Configuration_setAtMaximumCoincidenceB(numberOfSpecies, factor)
+  !function Configuration_setAtMaximumCoincidenceB(thisA, thisB, numberOfSpecies) result ( factor)
+    implicit none
+    !type(Configuration) :: thisA, thisB
+    integer(2) :: thisA(:,:), thisB(:,:)
+    integer :: factor
+    integer, intent(in) :: numberOfSpecies
+    
+    integer :: numberOfOccupiedOrbitals 
+    integer :: i,j,k,s, m ,n
+    !type(IVector), allocatable, intent(out) :: occupiedOrbitals(:,:) !! spescies, confA confB
+    !integer, allocatable, intent(out) :: occupiedOrbitalsA(:,:),occupiedOrbitalsB(:,:) !! spescies, confA confB
+    integer :: auxOcc
+    integer(2) :: score, auxscore
+    integer(2) :: diagonal
+    logical(1) :: swap
+
+    factor = 1
+  
+    do s = 1, numberOfSpecies
+        numberOfOccupiedOrbitals = GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(s) 
+  
+        score = 0
+        auxscore = 0
+        diagonal = 0
+
+        do i = 1, numberOfOccupiedOrbitals 
+            do j = 1, numberOfOccupiedOrbitals
+               if ( thisA(i,s) == thisB(j,s) ) then
                  auxscore = 1
                else 
                  auxscore = 0
@@ -740,11 +804,11 @@ contains
             do i = 1, numberOfOccupiedOrbitals 
               do j = 1, numberOfOccupiedOrbitals
                 if ( i /= j ) then
-                  if ( thisA%occupations(i,s) == thisB%occupations(j,s) ) then
+                  if ( thisA(i,s) == thisB(j,s) ) then
 
-                    auxOcc = thisA%occupations(i,s)
-                    thisA%occupations(i,s) = thisA%occupations(j,s)
-                    thisA%occupations(j,s) = auxOcc
+                    auxOcc = thisA(i,s)
+                    thisA(i,s) = thisA(j,s)
+                    thisA(j,s) = auxOcc
                     swap = .true.  
                   end if
                 end if
@@ -759,7 +823,7 @@ contains
           do i = 1, numberOfOccupiedOrbitals 
             do j = 1, numberOfOccupiedOrbitals
 
-               if ( thisA%occupations(i,s) == thisB%occupations(j,s) ) then
+               if ( thisA(i,s) == thisB(j,s) ) then
                   auxscore = 1
                else  
                  auxscore = 0
@@ -775,6 +839,90 @@ contains
      end do
 
   end subroutine Configuration_setAtMaximumCoincidenceB
+
+  subroutine Configuration_setAtMaximumCoincidenceC(thisA,thisB, m, n, numberOfSpecies, factor)
+  ! subroutine Configuration_setAtMaximumCoincidenceB(numberOfSpecies, factor)
+  !function Configuration_setAtMaximumCoincidenceB(thisA, thisB, numberOfSpecies) result ( factor)
+    implicit none
+    !type(Configuration) :: thisA, thisB
+    integer(2) :: thisA(m,n)
+    integer(2), intent(in) :: thisB(:,:)
+    integer :: factor
+    integer, intent(in) :: numberOfSpecies
+    
+    integer :: numberOfOccupiedOrbitals 
+    integer :: i,j,k,s, m ,n
+    !type(IVector), allocatable, intent(out) :: occupiedOrbitals(:,:) !! spescies, confA confB
+    !integer, allocatable, intent(out) :: occupiedOrbitalsA(:,:),occupiedOrbitalsB(:,:) !! spescies, confA confB
+    integer :: auxOcc
+    integer(2) :: score, auxscore
+    integer(2) :: diagonal
+    logical(1) :: swap
+
+    factor = 1
+  
+    do s = 1, numberOfSpecies
+        numberOfOccupiedOrbitals = GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(s) 
+  
+        score = 0
+        auxscore = 0
+        diagonal = 0
+
+        do i = 1, numberOfOccupiedOrbitals 
+            do j = 1, numberOfOccupiedOrbitals
+               if ( thisA(i,s) == thisB(j,s) ) then
+                 auxscore = 1
+               else 
+                 auxscore = 0
+               end if 
+               if ( i == j ) diagonal = diagonal + auxscore
+               score = score + auxscore
+            end do 
+         end do 
+  
+        do while ( (score) > diagonal )
+            if ((score) > diagonal ) then
+            swap = .false. 
+            do i = 1, numberOfOccupiedOrbitals 
+              do j = 1, numberOfOccupiedOrbitals
+                if ( i /= j ) then
+                  if ( thisA(i,s) == thisB(j,s) ) then
+
+                    auxOcc = thisA(i,s)
+                    thisA(i,s) = thisA(j,s)
+                    thisA(j,s) = auxOcc
+                    swap = .true.  
+                  end if
+                end if
+
+                if ( swap .eqv. .true. ) exit
+              end do 
+              if ( swap .eqv. .true. ) exit
+            end do 
+
+          diagonal = 0
+          score = 0
+          do i = 1, numberOfOccupiedOrbitals 
+            do j = 1, numberOfOccupiedOrbitals
+
+               if ( thisA(i,s) == thisB(j,s) ) then
+                  auxscore = 1
+               else  
+                 auxscore = 0
+               end if 
+               if ( i == j ) diagonal = diagonal + auxscore
+               score = score + auxscore
+            end do 
+          end do 
+            factor = -1 * factor 
+          end if
+        end do! while
+
+     end do
+
+  end subroutine Configuration_setAtMaximumCoincidenceC
+!  
+!  end function Configuration_setAtMaximumCoincidenceB
 
 
 !  subroutine Configuration_setAtMaximumCoincidence(thisA,thisB, numberOfSpecies, occupiedOrbitals, factor)

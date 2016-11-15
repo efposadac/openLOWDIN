@@ -164,7 +164,7 @@ else
         if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
         else
-    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran $addflagsCuda"
+    	FCFLAGS="-ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -g -D gfortran $addflagsCuda"
         fi
     fi
 
