@@ -54,17 +54,16 @@ module Tensor_
     module procedure Tensor_index4Intra, Tensor_index4Inter
   end interface
 
- interface Tensor_getValue
+  interface Tensor_getValue
     module procedure Tensor_getValue_intra, Tensor_getValue_inter
   end interface
-
 
   private :: &
     Tensor_index2, &
     Tensor_index4Intra, &
     Tensor_index4Inter, &
-    Tensor_getValue_inter, &
-    Tensor_getValue_intra
+    Tensor_getValue_intra, &
+    Tensor_getValue_inter
 
 
 contains
@@ -151,20 +150,7 @@ contains
 
   end subroutine Tensor_destructor
 
-  function Tensor_getValue_intra(this, a, b, r, s) result(output)
-      implicit none
-      type(Tensor), intent(in) :: this
-      integer, intent(in) :: a, b, r, s
-
-      integer(8) :: index
-      real(8) :: output
-
-      index = Tensor_index4Intra(a, b, r, s)
-      output = this%container%values(index)
-      
-  end function Tensor_getValue_intra
-
-  function Tensor_getValue_inter(this, a, b, r, s, w) result(output)
+  function Tensor_getValue_intra(this, a, b, r, s, w) result(output)
       implicit none
       type(Tensor), intent(in) :: this
       integer, intent(in) :: a, b, r, s, w
@@ -172,7 +158,22 @@ contains
       integer(8) :: index
       real(8) :: output
 
-      index = Tensor_index4Inter(a, b, r, s, w)
+      ! index = Tensor_index4Intra(a, b, r, s)
+      index = IndexMap_tensorR4ToVectorB(a, b, r, s, w)
+      output = this%container%values(index)
+      
+  end function Tensor_getValue_intra
+
+  function Tensor_getValue_inter(this, a, b, r, s, w, w2) result(output)
+      implicit none
+      type(Tensor), intent(in) :: this
+      integer, intent(in) :: a, b, r, s, w, w2
+
+      integer(8) :: index
+      real(8) :: output
+
+      ! index = Tensor_index4Inter(a, b, r, s, w)
+      index = IndexMap_tensorR4ToVectorB(a, b, r, s, w, w2)
       output = this%container%values(index)
       
   end function Tensor_getValue_inter
@@ -230,5 +231,53 @@ contains
     output = ij * w + kl + 1
 
   end function Tensor_index4Inter
+
+  function IndexMap_tensorR4ToVectorB( i, j, k, l, basisSizeA, basisSizeB ) result ( output )
+    implicit none
+    integer, intent(in) :: i
+    integer, intent(in) :: j
+    integer, intent(in) :: k
+    integer, intent(in) :: l
+    integer, optional :: basisSizeA
+    integer, optional :: basisSizeB
+
+    integer(kind=8) :: output
+    integer :: auxSize
+    integer :: ij, kl
+
+      if ( .not. present ( basisSizeB ) ) then
+
+        ij = int(IndexMap_tensorR2ToVectorB( i, j, basisSizeA),4)
+        kl = int(IndexMap_tensorR2ToVectorB( k, l, basisSizeA),4)
+
+        auxSize = ( basisSizeA * ( basisSizeA + 1 ) ) / 2
+        output = IndexMap_tensorR2ToVectorB (ij, kl, auxSize)
+      else 
+
+        ij = int(IndexMap_tensorR2ToVectorB( i, j, basisSizeA),4) - 1
+        kl = int(IndexMap_tensorR2ToVectorB( k, l, basisSizeB),4)
+
+        auxSize = ( basisSizeB * ( basisSizeB + 1 ) ) / 2
+        output = int(auxSize,8) * int(ij,8) + int(kl,8)
+                       
+      end if
+
+  end function IndexMap_TensorR4ToVectorB
+
+  function IndexMap_tensorR2ToVectorB( i, j, basisSizeA ) result ( output )
+      implicit none
+      integer, intent(in) :: i
+      integer, intent(in) :: j
+      integer, optional :: basisSizeA
+
+      integer(kind=8) :: output
+
+        if ( i > j ) then
+           output = i - j + ( ( ( 2 * basisSizeA * (j -1 )) - ( j * j) + (3*j) ) / 2 )
+        else 
+           output = j - i + ( ( ( 2 * basisSizeA * (i -1 )) - ( i * i) + (3*i) ) / 2 )
+        end if
+
+  end function IndexMap_TensorR2ToVectorB
 
 end module Tensor_

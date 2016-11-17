@@ -1,0 +1,32 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    Test RHF
+%    H2 BOA Single Point
+%    Basis set used:
+%       6-311G e-
+%    Results
+%    TEST HF ENERGY = -1.12727489491304
+%    TEST MP2 ENERGY = -1.1448669169067
+%    TEST CCSD ENERGY = -1.1520073923782
+%    End Results
+%        Author: Carlos A. Ortiz-Mahecha (CAOM) - QCC 2016
+%  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='G1'
+
+GEOMETRY
+e-[H] 6-311G     0.0000    0.0000    0.0000
+e-[H] 6-311G     0.0       0.0       0.7
+   H   dirac      0.0       0.0       0.0
+   H   dirac      0.0       0.0       0.7
+END GEOMETRY
+
+TASKS
+        method = "RHF"
+        coupledClusterLevel= "CCSD"
+END TASKS
+
+CONTROL
+	integralsTransformationMethod= "C"
+END CONTROL
+

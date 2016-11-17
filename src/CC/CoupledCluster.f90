@@ -297,7 +297,7 @@ contains
       allocate(spintm(f(num_species)/(2*f(num_species-2)))) ! nc = n!/(2!*(n-2)!)
       ! nc is a number of posible combinations if there are more than one species (n>1)
 
-      do i=2, num_species
+      do i=1, num_species
         print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", f(num_species)/(2*f(num_species-2))
         call CoupledCluster_pairing_function(i, num_species)
       end do
@@ -350,15 +350,16 @@ contains
         do q=1, noc
           do r=1, noc
             do s=1, noc
-              v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2)
-              v_b = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2)
+
+              v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2, noc/2)
+              v_b = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2, noc/2)
             
               xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
               xv_b = v_b * logic2dbl(mod(p,2) == mod(s,2)) * logic2dbl(mod(q,2) == mod(r,2))
               ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
               ! print*, "spints speciesId=2"
-              ! if (speciesId==2) write (*,*) spints(speciesId)%valuesp(p,q,r,s)
+              write (*,*) spints(speciesId)%valuesp(p,q,r,s)
             end do
           end do
         end do
@@ -401,7 +402,7 @@ contains
             do q=1, nocs
               do r=1, noc
                 do s=1, nocs
-                  v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,nocs/2) !! Coulomb integrals
+                  v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2,nocs/2) !! Coulomb integrals
           
                   xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
                   spintm(m)%valuesp(p,q,r,s) = xv_a
