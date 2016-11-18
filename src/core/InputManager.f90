@@ -430,7 +430,7 @@ contains
     end do
     
     !! Reshape arrays
-    quantumSpeciesName = reshape(quantumSpeciesName, (/numberOfQuantumSpecies/))
+    !quantumSpeciesName = reshape(quantumSpeciesName, (/numberOfQuantumSpecies/))
     numberOfParticlesForSpecies = reshape(numberOfParticlesForSpecies, (/numberOfQuantumSpecies/))
     
 

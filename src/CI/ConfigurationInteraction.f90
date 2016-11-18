@@ -6335,7 +6335,7 @@ contains
 !    set input variables
 !    the matrix is already in the required format
 
-     IPRINT = 5 !     standard report on standard output
+     IPRINT = 6 !     standard report on standard output
      ISEARCH = 1 !    we want the smallest eigenvalues
      NEIG = maxeig !    number of wanted eigenvalues
      !NINIT = 0 !    no initial approximate eigenvectors
@@ -6344,12 +6344,18 @@ contains
      ITER = 100 !    maximum number of iteration steps
      TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
 
+      NDX1 = 0
+      NDX2 = 0
+      MEM = 0
+
 !    additional parameters set to default
      ICNTL(1)=0
-     ICNTL(2)=1
+     ICNTL(2)=0
      ICNTL(3)=0
      ICNTL(4)=0
-     ICNTL(5)=1
+     ICNTL(5)=0
+
+    DROPTOL = 1E-4
 
      IJOB=0
 
@@ -6374,10 +6380,10 @@ contains
 
      SIGMA = EIGS(1)
      SHIFT = EIGS(1)
-      print *, "eigs", eigs(1), x(1)
+      print *, "Eigenvalue(1)", eigs(1), "Eigenvector(1)", x(1)
       iiter = 0
 
-10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1,-1,EIGS, RES, X, LX, NEIG, &
+10   CALL PJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1,-1,EIGS, RES, X, LX, NEIG, &
                       SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                       SHIFT, DROPTOL, MEM, ICNTL, &
                       IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
@@ -6391,7 +6397,7 @@ contains
       END IF
 
 !    release internal memory and discard preconditioner
-      CALL DPJDCLEANUP
+      CALL PJDCLEANUP
 
       !! saving the eigenvalues
       eigenValues%values = EIGS
@@ -6439,7 +6445,6 @@ contains
     call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationJ )
 
     w = 0
-    
 !! memory
 !    do i = 1, nx
 !        w(:) = w(:) + ConfigurationInteraction_instance%hamiltonianMatrix%values(:,i)*v(i)
