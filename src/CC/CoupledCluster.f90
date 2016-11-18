@@ -40,6 +40,7 @@ module CoupledCluster_
       
       integer :: noc, nocs, nop, nops
       integer(8) :: num_species
+      integer(8) :: num_intersp
       real(8) :: CCSD_ones_Energy
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy
@@ -48,6 +49,11 @@ module CoupledCluster_
       real(8), allocatable :: CCSD_E_inter(:)
       type(Vector) :: HF_orbitals
       type(matrix) :: HF_orbitals_dmatrix
+
+      real(8), allocatable :: Tssame(:,:)
+      real(8), allocatable :: Tdsame(:,:,:,:)
+      real(8), allocatable :: tau(:,:,:,:)
+      real(8), allocatable :: ttau(:,:,:,:)
 
       type(matrix) :: HF_fs
       type(Tensor) :: MP2_axVc1sp
@@ -71,7 +77,10 @@ module CoupledCluster_
 
   
   type(CoupledCluster), public :: CoupledCluster_instance
+  ! for same species
   type(CoupledCluster), allocatable :: Allspecies(:)
+  ! for different species
+  type(CoupledCluster), allocatable :: Allinterspecies(:)
   type(TensorCC), public :: TensorCC_instance
   !values in a array of arrays of single species <ab||ij> a,b,i,j are alpha species
   type(TensorCC), allocatable :: spints(:)
@@ -170,9 +179,13 @@ contains
       integer(8) :: x, i
       integer(8) :: nao
       integer :: num_species
+      integer :: num_intersp
 
       num_species = MolecularSystem_getNumberOfQuantumSpecies()
       CoupledCluster_instance%num_species = num_species
+
+      num_intersp = num_species*(num_species-1)
+      CoupledCluster_instance%num_intersp = num_intersp
 
       !! Open file for wave-function
       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
@@ -185,9 +198,14 @@ contains
       call Vector_getFromFile(unit=wfnUnit, binary=.true., value=CoupledCluster_instance%HF_puntualInteractionEnergy, &
         arguments=["PUNTUALINTERACTIONENERGY"])
 
-      ! allocate array for many results by species
+      ! allocate array for many results by full number of species
       if (allocated(Allspecies)) deallocate(Allspecies)
       allocate(Allspecies(num_species))
+
+      ! allocate array for many results by full number of interactions of interspecies
+      ! if num_species=1 Allinterspecies can not be used
+      if (allocated(Allinterspecies)) deallocate(Allinterspecies)
+      allocate(Allinterspecies(num_intersp))
 
       ! All species
       do speciesId = 1, num_species ! number of species is the size of CoupledCluster_instance
@@ -286,7 +304,7 @@ contains
 
       !for the inter-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_inter)) deallocate(CoupledCluster_instance%CCSD_E_inter)
-      allocate(CoupledCluster_instance%CCSD_E_inter(f(num_species)/(2*f(num_species-2)))) 
+      allocate(CoupledCluster_instance%CCSD_E_inter((num_species*(num_species-1))/2)) 
 
       !for the one-species matrices from transformed integrals for CC    
       if (allocated(spints)) deallocate(spints)
@@ -294,11 +312,11 @@ contains
 
       !for the two-species matrices from transformed integrals for CC
       if (allocated(spintm)) deallocate(spintm)
-      allocate(spintm(f(num_species)/(2*f(num_species-2)))) ! nc = n!/(2!*(n-2)!)
+      allocate(spintm((num_species*(num_species-1))/2)) ! nc = (n*(n-1))/2
       ! nc is a number of posible combinations if there are more than one species (n>1)
 
       do i=1, num_species
-        print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", f(num_species)/(2*f(num_species-2))
+        print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", (num_species*(num_species-1))/2
         call CoupledCluster_pairing_function(i, num_species)
       end do
       
@@ -424,18 +442,18 @@ contains
 
   end subroutine CoupledCluster_pairing_function
 
-  ! Factorial function just used to know the combination if there are more than one species
-  recursive function f(n) result(output)
-      implicit none
-      integer :: n
-      integer :: output
+  ! ! Factorial function just used to know the combination if there are more than one species
+  ! recursive function f(n) result(output)
+  !     implicit none
+  !     integer :: n
+  !     integer :: output
 
-      if (n<2) then 
-        output=1
-      else
-        output = n*f(n-1)
-      end if
+  !     if (n<2) then 
+  !       output=1
+  !     else
+  !       output = n*f(n-1)
+  !     end if
 
-  end function f
+  ! end function f
 
 end module CoupledCluster_

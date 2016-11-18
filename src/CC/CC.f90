@@ -34,6 +34,7 @@ program CC
   use MolecularSystem_
   use Exception_
   use CoupledCluster_
+  use CoupledClusterold_
   use CCSD_
   use String_
   implicit none
@@ -60,11 +61,17 @@ program CC
 
     case("CCSD")
 
-    !call CCSD_constructor()
     call CCSD_run()
-!      print*, "CCSD_constrolinstance"
       !call CCSD_destructor()
   
+    ! case("CCSDOLD")
+
+    !   print*, "CoupledCluster_"
+    !   call CoupledClusterold_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
+    !   call CoupledClusterold_run()
+    !   ! call Cou:pledClusterold_iterateIntermediates_SameSpecies()
+    !   call CoupledClusterold_show()
+    !   call CoupledClusterold_destructor()
 
   !   case default
 

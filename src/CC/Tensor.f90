@@ -58,6 +58,9 @@ module Tensor_
     module procedure Tensor_getValue_intra, Tensor_getValue_inter
   end interface
 
+  public :: &
+    IndexMap_tensorR2ToVector
+
   private :: &
     Tensor_index2, &
     Tensor_index4Intra, &
@@ -247,15 +250,15 @@ contains
 
       if ( .not. present ( basisSizeB ) ) then
 
-        ij = int(IndexMap_tensorR2ToVectorB( i, j, basisSizeA),4)
-        kl = int(IndexMap_tensorR2ToVectorB( k, l, basisSizeA),4)
+        ij = int(IndexMap_tensorR2ToVector( i, j, basisSizeA),4)
+        kl = int(IndexMap_tensorR2ToVector( k, l, basisSizeA),4)
 
         auxSize = ( basisSizeA * ( basisSizeA + 1 ) ) / 2
-        output = IndexMap_tensorR2ToVectorB (ij, kl, auxSize)
+        output = IndexMap_tensorR2ToVector (ij, kl, auxSize)
       else 
 
-        ij = int(IndexMap_tensorR2ToVectorB( i, j, basisSizeA),4) - 1
-        kl = int(IndexMap_tensorR2ToVectorB( k, l, basisSizeB),4)
+        ij = int(IndexMap_tensorR2ToVector( i, j, basisSizeA),4) - 1
+        kl = int(IndexMap_tensorR2ToVector( k, l, basisSizeB),4)
 
         auxSize = ( basisSizeB * ( basisSizeB + 1 ) ) / 2
         output = int(auxSize,8) * int(ij,8) + int(kl,8)
@@ -264,7 +267,7 @@ contains
 
   end function IndexMap_TensorR4ToVectorB
 
-  function IndexMap_tensorR2ToVectorB( i, j, basisSizeA ) result ( output )
+  function IndexMap_tensorR2ToVector( i, j, basisSizeA ) result ( output )
       implicit none
       integer, intent(in) :: i
       integer, intent(in) :: j
@@ -278,6 +281,6 @@ contains
            output = j - i + ( ( ( 2 * basisSizeA * (i -1 )) - ( i * i) + (3*i) ) / 2 )
         end if
 
-  end function IndexMap_TensorR2ToVectorB
+  end function IndexMap_TensorR2ToVector
 
 end module Tensor_
