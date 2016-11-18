@@ -34,7 +34,6 @@ program CC
   use MolecularSystem_
   use Exception_
   use CoupledCluster_
-  use CoupledClusterold_
   use CCSD_
   use String_
   implicit none

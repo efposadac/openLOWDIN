@@ -58,9 +58,6 @@ module Tensor_
     module procedure Tensor_getValue_intra, Tensor_getValue_inter
   end interface
 
-  public :: &
-    IndexMap_tensorR2ToVector
-
   private :: &
     Tensor_index2, &
     Tensor_index4Intra, &
@@ -282,5 +279,18 @@ contains
         end if
 
   end function IndexMap_TensorR2ToVector
+
+  function Tix2(i, j, w) result(output)
+    implicit none
+    integer :: i, j, w
+    integer :: output
+
+    if(i > j) then
+       output = (w * j) - (w - i) - ((j * (j + 1)) / 2)
+    else
+       output = (w * i) - (w - j) - ((i * (i + 1)) / 2)
+    end if
+
+  end function Tix2
 
 end module Tensor_
