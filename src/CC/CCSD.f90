@@ -54,6 +54,7 @@ module CCSD_
       real(8), allocatable :: Fki(:,:)
       real(8), allocatable :: Fkc_aba(:,:)
       real(8), allocatable :: Fkc_aa(:,:)
+      real(8), allocatable :: Fkca_ab(:,:)
       real(8), allocatable :: Wklij(:,:,:,:)
       real(8), allocatable :: Wabcd(:,:,:,:)
       real(8), allocatable :: Wkbcj(:,:,:,:)
@@ -243,6 +244,11 @@ contains
       allocate(CCSDloop%Fkc_aa(nop,noc-nop))
       CCSDloop%Fkc_aa=0.0_8
 
+      !Same species just initialized for interspecies
+      if (allocated(CCSDloop%Fkca_ab)) deallocate (CCSDloop%Fkca_ab)
+      allocate(CCSDloop%Fkca_ab(nop,noc-nop))
+      CCSDloop%Fkca_ab=0.0_8
+
       !
       if (allocated(CCSDloop%Wklij)) deallocate (CCSDloop%Wklij)
       allocate(CCSDloop%Wklij(nop,nop,nop,nop))
@@ -316,7 +322,8 @@ contains
       allocate(Allinterspecies(speciesId)%Tdsame(noc-nop,nocs-nops,nop,nops))
       Allinterspecies(speciesId)%Tdsame(:,:,:,:) = 0.0_8
 
-      ! Effective two-particle excitation operators \check{\tau} and \ddot{\tau} for different species:
+      ! Effective two-particle excitation operators \check{\tau}, \ddot{\tau} and \tilde{\tau} 
+      !   for different species:
 
       ! \check{\tau}
       if (allocated(Allinterspecies(speciesId)%ttau)) deallocate (Allinterspecies(speciesId)%ttau)
@@ -327,6 +334,11 @@ contains
       if (allocated(Allinterspecies(speciesId)%tau)) deallocate (Allinterspecies(speciesId)%tau)
       allocate(Allinterspecies(speciesId)%tau(noc-nop,noc-nop,nop,nop))
       Allinterspecies(speciesId)%tau(:,:,:,:) = 0.0_8
+
+      ! \tilde{\tau}
+      if (allocated(Allinterspecies(speciesId)%intau)) deallocate (Allinterspecies(speciesId)%intau)
+      allocate(Allinterspecies(speciesId)%intau(noc-nop,noc-nop,nop,nop))
+      Allinterspecies(speciesId)%intau(:,:,:,:) = 0.0_8
 
   end subroutine CCSD_constructor_inter
 
@@ -356,12 +368,14 @@ contains
 
       ! lowercase = alpha species | uppercase = beta species
 
-      ! Effective two-particle excitation operators \ddot{\tau} and \check{\tau} for inter-species:
+      ! Effective two-particle excitation operators \ddot{\tau}, \check{\tau} and \tilde{\tau} for inter-species:
 
       ! \check{\tau} _{ijk}^{abc}=t_{i}^{a}t_{j}^{b}t_{k}^{c}+\frac{1}{2}\left(t_{i}^{a}t_{jk}^{bc} &
       !   + t_{j}^{b}t_{ik}^{ac} + t_{k}^{c}t_{ji}^{ba} \right)
 
-      ! \ddot{\tau} _{iJ}^{aB}=t_{iJ}^{aB} - t_{i}^{a}t_{J}^{B} 
+      ! \ddot{\tau} _{iJ}^{aB}=t_{iJ}^{aB} - t_{i}^{a}t_{J}^{B}
+
+      ! \tilde{\tau} _{iJ}^{aB}=t_{iJ}^{aB} - 0.5*t_{i}^{a}t_{J}^{B}
 
       print*, "before loop inter"
       print*, Allinterspecies(speciesId)%Tdsame(1,1,1,1)
@@ -383,13 +397,17 @@ contains
               !  \check{\tau} triple excitation holy shit!!
               Allinterspecies(num_inter)%ttau(a-nop,b-nops,i,j) = Allspecies(speciesId)%Tssame(a-nop,i)* &
                 Allspecies(OtherspeciesId)%Tssame(b-nops,j)*Allspecies(OtherspeciesId)%Tssame(c-nops,k) &!check this 
-                + 0.5*( Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tdsame(b-nop,c-nops,i,k) &
+                + 0.5*( Allspecies(speciesId)%Tssame(a-nop,i)*Allinterspecies(num_inter)%Tdsame(b-nop,c-nops,i,k) &
                   + Allspecies(OtherspeciesId)%Tssame(b-nops,j)*Allinterspecies(num_inter)%Tdsame(a-nop,c-nops,i,k) &
                     + Allspecies(OtherspeciesId)%Tssame(c-nops,k)*Allinterspecies(num_inter)%Tdsame(a-nop,b-nops,i,j) )
 
               ! \ddot{\tau} 
               Allinterspecies(num_inter)%tau(a-nop,b-nops,i,j) = Allinterspecies(num_inter)%Tdsame(a-nop,b-nops,i,j) &
                 - Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(b-nops,j)
+
+              ! \tilde{\tau} 
+              Allinterspecies(num_inter)%intau(a-nop,b-nops,i,j) = Allinterspecies(num_inter)%Tdsame(a-nop,b-nops,i,j) &
+                - 0.5*Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(b-nops,j)
 
               ! write(*,*) Allinterspecies(speciesId)%Tdsame(a-nop,b-nop,i,j), "Tdsame"
               ! , Allinterspecies(speciesId)%HF_fs%values(a,a), "HF_fs%values", spintm(n_sp)%valuesp(i,j,a,b), "spintm"
@@ -476,7 +494,6 @@ contains
                 CCSDloop%Fac(a-nop,e-nop) = CCSDloop%Fac(a-nop,e-nop) &
                   + (-0.5*Allspecies(speciesId)%ttau(a-nop,f-nop,m,n)*spints(speciesId)%valuesp(m,n,e,f))
                 ! write(*,*) a,e,CCSDloop%Fac(a,e)
-                ! write(*,*) a-nop,f-nop,m,n,spints(speciesId)%valuesp(m,n,e,f)*(-0.5*Allspecies(speciesId)%ttau(a-nop,f-nop,m,n))
               end do
             end do
           end do
@@ -500,7 +517,6 @@ contains
                 CCSDloop%Fki(m,i) = CCSDloop%Fki(m,i) &
                   + 0.5*Allspecies(speciesId)%ttau(e-nop,f-nop,i,n)*spints(speciesId)%valuesp(m,n,e,f)
                 ! write(*,*) a,e,CCSDloop%Fki(a,e)
-                ! write(*,*) a,e,e-nop,f-nop,0.5*Allspecies(speciesId)%ttau(e-nop,f-nop,i,n)*spints(speciesId)%valuesp(m,n,e,f)
               end do
             end do
           end do
@@ -537,7 +553,8 @@ contains
 
       integer :: noc, nop, nocs, nops
       integer :: num_intersp, num_species
-      integer :: a, b, e, ee, i, j, f, m, mm, n, ii
+      integer :: a, aa, b, e, ee, i, j, f
+      integer :: ff, m, mm, n, nn, ii
 
       noc = Allspecies(speciesId)%noc
       nocs = Allspecies(OtherspeciesId)%noc
@@ -546,6 +563,7 @@ contains
 
       num_species = CoupledCluster_instance%num_species
 
+      !Tix2 function return the number of inter-specie matrix depending on two species assigned
       num_intersp = Tix2(speciesId, OtherspeciesId, num_species)
 
       print*,"noc: ", noc, "nop: ", nop, "nocs: ", nocs, "nops: ", nops
@@ -553,24 +571,23 @@ contains
       ! CCSDloop%Fac
       do a=nop+1, noc
         do e=nop+1, noc
+          do mm=1, nops
+            do ee=nop+1, nops
 
-          CCSDloop%Fac(a-nop,e-nop) = CCSDloop%Fac(a-nop,e-nop) & 
-            +(1 - logic2dbl(a==e))*Allspecies(speciesId)%HF_fs%values(a,e)
-            
-          do m=1, nop
-            CCSDloop%Fac(a-nop,e-nop) = CCSDloop%Fac(a-nop,e-nop) &
-              + (-0.5*Allspecies(speciesId)%HF_fs%values(m,e)*Allspecies(speciesId)%Tssame(a-nop,m))
-            do f=nop+1, noc
               CCSDloop%Fac(a-nop,e-nop) = CCSDloop%Fac(a-nop,e-nop) &
-                + Allspecies(speciesId)%Tssame(f-nop,m)*spints(speciesId)%valuesp(m,a,f,e)
-              do n=1, nop
+                + ( 0.25*Allspecies(OtherspeciesId)%HF_fs%values(mm,ee)* &
+                    spintm(num_intersp)%valuesp(m,mm,e,ee))
+
+              do m=1, nop
+
                 CCSDloop%Fac(a-nop,e-nop) = CCSDloop%Fac(a-nop,e-nop) &
-                  + (-0.5*Allspecies(speciesId)%ttau(a-nop,f-nop,m,n)*spints(speciesId)%valuesp(m,n,e,f))
-                ! write(*,*) a,e,CCSDloop%Fac(a,e)
-                ! write(*,*) a-nop,f-nop,m,n,spints(speciesId)%valuesp(m,n,e,f)*(-0.5*Allspecies(speciesId)%ttau(a-nop,f-nop,m,n))
+                  - ( 0.25*Allinterspecies(num_intersp)%intau(a-nop,ee-nops,m,mm)* &
+                      spintm(num_intersp)%valuesp(m,mm,e,ee))
+                  ! write(*,*) a,e,CCSDloop%Fac(a,e)
               end do
             end do
           end do
+
         end do
       end do
 
@@ -578,47 +595,94 @@ contains
       do m=1, nop
         do i=1, nop
              
-          CCSDloop%Fki(m,i) = CCSDloop%Fki(m,i) &
-            + (1 - logic2dbl(m==i))*Allspecies(speciesId)%HF_fs%values(m,i)
-            
-          do e=nop+1, noc
-            CCSDloop%Fki(m,i) = CCSDloop%Fki(m,i) &
-               + 0.5*Allspecies(speciesId)%Tssame(e-nop,i)*Allspecies(speciesId)%HF_fs%values(m,e)
-            do n=1, nop
+          do mm=1, nops
+            do ee=nops+1, nocs
+
               CCSDloop%Fki(m,i) = CCSDloop%Fki(m,i) &
-                + Allspecies(speciesId)%Tssame(e-nop,n)*spints(speciesId)%valuesp(m,n,i,e)
-              do f=nop+1, noc
+                 + ( 0.25*Allspecies(OtherspeciesId)%Tssame(ee-nops,mm)* &
+                    spintm(num_intersp)%valuesp(m,mm,i,ee))
+            
+              do e=nop+1, noc
+
                 CCSDloop%Fki(m,i) = CCSDloop%Fki(m,i) &
-                  + 0.5*Allspecies(speciesId)%ttau(e-nop,f-nop,i,n)*spints(speciesId)%valuesp(m,n,e,f)
-                ! write(*,*) a,e,CCSDloop%Fki(a,e)
-                ! write(*,*) a,e,e-nop,f-nop,0.5*Allspecies(speciesId)%ttau(e-nop,f-nop,i,n)*spints(speciesId)%valuesp(m,n,e,f)
+                  + ( 0.25*Allinterspecies(num_intersp)%intau(e-nop,ee-nops,i,mm)* &
+                      spintm(num_intersp)%valuesp(m,mm,e,ee))
+                ! write(*,*) a,e,CCSDloop%Fki(m,i)
               end do
             end do
           end do
+
         end do
       end do
 
-      ! CCSDloop%Fkc_aba
+      ! CCSDloop%Fkc_aa(m,e-nop)
       do m=1, nop
         do e=nop+1, noc
-          do a=nops+1, nocs
+
+          do mm=1, nops
+            do ee=nops+1, nocs
+              CCSDloop%Fkc_aa(m,e-nop) = CCSDloop%Fkc_aa(m,e-nop) &
+                + ( 0.25*Allspecies(OtherspeciesId)%Tssame(ee-nops,mm)* &
+                    spintm(num_intersp)%valuesp(m,mm,e,ee))
+              ! write(*,*) a,e,CCSDloop%Fkc_aa(m,e-nop)
+            end do
+          end do
+
+        end do
+      end do
+
+      ! CCSDloop%Fkca_ab(mm,ee-nops)
+      do mm=1, nops
+        do ee=nops+1, nocs
+
+          CCSDloop%Fkca_ab(mm,ee-nops) = CCSDloop%Fkca_ab(mm,ee-nops) &
+            + ( 0.5*Allspecies(OtherspeciesId)%HF_fs%values(mm,ee-nops))
+
+          do nn=1, nops
+            do ff=nops+1, nocs
+
+              CCSDloop%Fkca_ab(mm,ee-nops) = CCSDloop%Fkca_ab(mm,ee-nops) &
+                + ( 0.5*Allspecies(OtherspeciesId)%Tssame(ff-nops,nn)* &
+                    spints(OtherspeciesId)%valuesp(mm,nn,ee,ff))
+            end do
+          end do
+
+          do m=1, nop
+            do e=nop+1, noc
+
+              CCSDloop%Fkca_ab(mm,ee-nops) = CCSDloop%Fkca_ab(mm,ee-nops) &
+                + ( 0.125*Allspecies(speciesId)%Tssame(e-nop,m)* &
+                    spintm(num_intersp)%valuesp(m,mm,e,ee))
+              ! write(*,*) a,e,CCSDloop%Fkca_ab(mm,ee-nops)
+            end do
+          end do
+
+        end do
+      end do
+
+      ! CCSDloop%Fkc_aba(m,e-nop)
+      do m=1, nop
+        do e=nop+1, noc
+          do aa=nops+1, nocs
             do ii=1, nops
 
               CCSDinter(num_inter)%Fkc_aba(m,e-nop) = CCSDinter(num_inter)%Fkc_aba(m,e-nop) &
-                - (0.5* spintm(num_intersp)%valuesp(m,a,e,ii))
+                - (0.5* spintm(num_intersp)%valuesp(m,aa,e,ii))
 
               do ee=1, nops
 
                 CCSDinter(num_inter)%Fkc_aba(m,e-nop) = CCSDinter(num_inter)%Fkc_aba(m,e-nop) &
-                  -(0.25* Allspecies(OtherspeciesId)%Tssame(ee-nops,ii)*spintm(num_intersp)%valuesp(m,a,e,ee))
+                  -(0.25* Allspecies(OtherspeciesId)%Tssame(ee-nops,ii)*spintm(num_intersp)%valuesp(m,aa,e,ee))
 
                 do mm=1, nops
 
                   CCSDinter(num_inter)%Fkc_aba(m,e-nop) = CCSDinter(num_inter)%Fkc_aba(m,e-nop) &
-                    -(0.25* Allspecies(OtherspeciesId)%Tdsame(a-nops,ee-nops,ii,mm)*spintm(num_intersp)%valuesp(m,mm,e,ee))
+                    -(0.25* Allspecies(OtherspeciesId)%Tdsame(aa-nops,ee-nops,ii,mm)* &
+                        spintm(num_intersp)%valuesp(m,mm,e,ee))
 
                   CCSDinter(num_inter)%Fkc_aba(m,e-nop) = CCSDinter(num_inter)%Fkc_aba(m,e-nop) &
-                    +(0.25* Allspecies(OtherspeciesId)%Tssame(a-nops,mm)*Allspecies(OtherspeciesId)%Tssame(ee-nops,ii) &
+                    +(0.25* Allspecies(OtherspeciesId)%Tssame(aa-nops,mm)* &
+                        Allspecies(OtherspeciesId)%Tssame(ee-nops,ii) &
                         *spintm(num_intersp)%valuesp(m,mm,e,ee))
                 end do
               end do
@@ -626,7 +690,7 @@ contains
               do mm=1, nops
 
                 CCSDinter(num_inter)%Fkc_aba(m,e-nop) = CCSDinter(num_inter)%Fkc_aba(m,e-nop) &
-                  +(0.25* Allspecies(OtherspeciesId)%Tssame(a-nops,mm)*spintm(num_intersp)%valuesp(m,mm,e,ii))
+                  +(0.25* Allspecies(OtherspeciesId)%Tssame(aa-nops,mm)*spintm(num_intersp)%valuesp(m,mm,e,ii))
               end do
 
               
@@ -639,7 +703,8 @@ contains
                 do ee=nops+1, nocs
 
                   CCSDinter(num_inter)%Fkc_aba(m,e-nop) = CCSDinter(num_inter)%Fkc_aba(m,e-nop) &
-                    -(0.125* Allinterspecies(num_intersp)%Tdsame(a-nop,ee-nops,i,mm)*spintm(num_intersp)%valuesp(m,mm,e,ee))
+                    -(0.125* Allinterspecies(num_intersp)%Tdsame(a-nop,ee-nops,i,mm)* &
+                        spintm(num_intersp)%valuesp(m,mm,e,ee))
                 end do
               end do
             end do
@@ -727,7 +792,8 @@ contains
                 do f=nop+1, noc
                   CCSDloop%Wkbcj(m,b-nop,e-nop,j) = CCSDloop%Wkbcj(m,b-nop,e-nop,j) &
                     - ((0.5*Allspecies(speciesId)%Tdsame(f-nop,b-nop,j,n) &
-                        + Allspecies(speciesId)%Tssame(f-nop,j)*Allspecies(speciesId)%Tssame(b-nop,n))*spints(speciesId)%valuesp(m,n,e,f))
+                        + Allspecies(speciesId)%Tssame(f-nop,j)*Allspecies(speciesId)%Tssame(b-nop,n))* &
+                          spints(speciesId)%valuesp(m,n,e,f))
                   ! write(*,*) m,n,i,j,CCSDloop%Wkbcj(m,n,i,j)
                 end do
               end do
@@ -784,13 +850,13 @@ contains
         call W_onespecies_intermediates(speciesId)
 
  
-        if (speciesId>1) then
+        if (num_species>1) then
           do j=1, num_species
-            if (i /= j) then
-              num_inter = num_inter +1
+            if (speciesId /= j) then
+              num_inter = num_inter + 1
               call CCSD_constructor_inter(speciesId, j)
               call CCSD_init_inter(speciesId, j, num_inter)
-              !call F_inter()
+              call F_twospecies_intermediates(speciesId, j, num_inter)
               !call W_inter()
             end if
           end do
@@ -804,8 +870,10 @@ contains
             tmp_ccsdE = tmp_ccsdE + Allspecies(speciesId)%HF_fs%values(i,a)*Allspecies(speciesId)%Tssame(a-nop,i)
             do j=1, nop
               do b=nop+1, noc
-                tmp_ccsdE = tmp_ccsdE + (0.25*spints(speciesId)%valuesp(i,j,a,b) *Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
-                  + 0.5*spints(speciesId)%valuesp(i,j,a,b)*Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j))
+                tmp_ccsdE = tmp_ccsdE + (0.25*spints(speciesId)%valuesp(i,j,a,b)* &
+                    Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
+                      + 0.5*spints(speciesId)%valuesp(i,j,a,b)*Allspecies(speciesId)%Tssame(a-nop,i)* &
+                        Allspecies(speciesId)%Tssame(b-nop,j))
               end do
             end do
           end do
@@ -822,6 +890,17 @@ contains
         ! if ((convergence > 10) .and. speciesId>1) stop "test"
         ! Resolve T1 and T2 amplitude equations
         call CCSD_T1T2(speciesId)
+
+        ! T1 and T2 equation energies for interspecies
+        if (num_species>1) then
+          num_inter = 0
+          do j=1, num_species
+            if (speciesId /= j) then
+              num_inter = num_inter + 1
+              call CCSD_T1T2_inter(speciesId, j, num_inter)
+            end if
+          end do
+        end if
 
         if (convergence > 100) then 
           stop "Error: There are not convergence. The differences between energies is more than 100 eV"
@@ -842,17 +921,20 @@ contains
       integer, intent(in) :: speciesId
 
       integer noc, nocs, nop, nops
+      integer :: num_species
       integer :: a, b, e, f, i, j, m, n
 
       noc = Allspecies(speciesId)%noc
       ! nocs = CoupledCluster_instance%nocs
       nop = Allspecies(speciesId)%nop
       ! nops = CoupledCluster_instance%nops
+      num_species = CoupledCluster_instance%num_species
 
       ! T^{a}_{i}D^{a}_{i} = ...
       do a=nop+1, noc
         do i=1, nop
-          CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + Allspecies(speciesId)%HF_fs%values(i,a)
+          CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+            + Allspecies(speciesId)%HF_fs%values(i,a)
           do e=nop+1, noc
             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
               + Allspecies(speciesId)%Tssame(e-nop,i)*CCSDloop%Fac(a-nop,e-nop)
@@ -879,6 +961,140 @@ contains
                 + (-Allspecies(speciesId)%Tssame(f-nop,n)*spints(speciesId)%valuesp(n,a,i,f))
             end do
           end do
+          if (num_species==1) then
+            CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit%Dai(a,i)
+            Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
+          end if
+          ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
+        end do
+      end do
+
+
+      ! T^{ab}_{ij}D^{ab}_{ij} = ...
+      do a=nop+1, noc
+         do b=nop+1, noc
+            do i=1, nop
+               do j=1, nop
+                  CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                    + spints(speciesId)%valuesp(i,j,a,b) !A
+                  ! 1er ciclo
+                  do e=nop+1, noc
+                     CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                      + (Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,j)*CCSDloop%Fac(b-nop,e-nop) &
+                        -Allspecies(speciesId)%Tdsame(b-nop,e-nop,i,j)*CCSDloop%Fac(a-nop,e-nop)) !B
+                     CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                      + (Allspecies(speciesId)%Tssame(e-nop,i)*spints(speciesId)%valuesp(a,b,e,j) &
+                        -Allspecies(speciesId)%Tssame(e-nop,j)*spints(speciesId)%valuesp(a,b,e,i)) !G
+                     do f=nop+1, noc
+                        CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                          + 0.5*Allspecies(speciesId)%tau(e-nop,f-nop,i,j)*CCSDloop%Wabcd(a-nop,b-nop,e-nop,f-nop) !D
+                     end do
+                     do m=1, nop
+                        CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                          + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,j)* &
+                              Allspecies(speciesId)%Tssame(b-nop,m)*CCSDloop%Fkc_aa(m,e-nop) &
+                                +0.5*Allspecies(speciesId)%Tdsame(b-nop,e-nop,i,j)* &
+                                  Allspecies(speciesId)%Tssame(a-nop,m)*CCSDloop%Fkc_aa(m,e-nop)) !B'
+                     end do
+                  end do
+                  ! 2do ciclo
+                  do m=1, nop
+                     CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                      + (-Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,m)*CCSDloop%Fki(m,j) &
+                          +Allspecies(speciesId)%Tdsame(a-nop,b-nop,j,m)*CCSDloop%Fki(m,i)) !C
+                     CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                      + (-Allspecies(speciesId)%Tssame(a-nop,m)*spints(speciesId)%valuesp(m,b,i,j) &
+                          +Allspecies(speciesId)%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,i,j)) !H
+                     do n=1, nop
+                        CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                          + 0.5*Allspecies(speciesId)%tau(a-nop,b-nop,m,n)*CCSDloop%Wklij(m,n,i,j) !E
+                     end do
+                     do e=nop+1, noc
+                        CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                          + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,m)* &
+                              Allspecies(speciesId)%Tssame(e-nop,j)*CCSDloop%Fkc_aa(m,e-nop) &
+                                +0.5*Allspecies(speciesId)%Tdsame(a-nop,b-nop,j,m)* &
+                                  Allspecies(speciesId)%Tssame(e-nop,i)*CCSDloop%Fkc_aa(m,e-nop)) !C'
+                        CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                          + Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)*CCSDloop%Wkbcj(m,b-nop,e-nop,j) &
+                            - Allspecies(speciesId)%Tssame(e-nop,i)*Allspecies(speciesId)%Tssame(a-nop,m)* &
+                              spints(speciesId)%valuesp(m,b,e,j) &
+                                -Allspecies(speciesId)%Tdsame(a-nop,e-nop,j,m)*CCSDloop%Wkbcj(m,b-nop,e-nop,i) &
+                                  + Allspecies(speciesId)%Tssame(e-nop,j)*Allspecies(speciesId)%Tssame(a-nop,m)* &
+                                    spints(speciesId)%valuesp(m,b,e,i) &
+                                    -Allspecies(speciesId)%Tdsame(b-nop,e-nop,i,m)*CCSDloop%Wkbcj(m,a-nop,e-nop,j) &
+                                      - Allspecies(speciesId)%Tssame(e-nop,i)*Allspecies(speciesId)%Tssame(b-nop,m)* &
+                                        spints(speciesId)%valuesp(m,a,e,j) &
+                                        + Allspecies(speciesId)%Tdsame(b-nop,e-nop,j,m)* &
+                                          CCSDloop%Wkbcj(m,a-nop,e-nop,i)- Allspecies(speciesId)%Tssame(e-nop,j)* &
+                                          Allspecies(speciesId)%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,e,i) !F
+                     end do
+                  end do
+                  ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
+                  CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                    /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
+                      -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))
+                  
+                  Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)
+
+                  Allspecies(speciesId)%ttau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
+                    + 0.5*(Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
+                      - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j))
+                  Allspecies(speciesId)%tau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
+                    + Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
+                      - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j)
+               ! write(*,*) a,b,i,j,Allspecies(speciesId)%Tdsame(a,b,i,j),CCSDT1T2(speciesId)%Tabij(a,b,i,j)
+               end do
+            end do
+         end do
+      end do
+      
+  end subroutine CCSD_T1T2
+
+  !>
+  ! @brief Calculate T1 and T2 energy equations for intra-species
+  ! @author CAOM
+  subroutine CCSD_T1T2_inter(speciesId, OtherspeciesId, num_inter)
+      implicit none
+
+      integer, intent(in) :: speciesId
+      integer, intent(in) :: OtherspeciesId
+      integer, intent(in) :: num_inter
+
+      integer noc, nocs, nop, nops
+      integer :: a, b, e, ee, f, i
+      integer :: j, m, mm, n
+
+      noc = Allspecies(speciesId)%noc
+      nocs = Allspecies(OtherspeciesId)%nocs
+      nop = Allspecies(speciesId)%nop
+      nops = Allspecies(OtherspeciesId)%nops
+
+      ! T^{a}_{i}D^{a}_{i} = ...
+      do a=nop+1, noc
+        do i=1, nop
+
+          do ee=nops+1, nocs
+            do mm=1, nops
+
+              CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                + (Allinterspecies(num_inter)%Tdsame(a-nop,ee-nops,i,mm)*CCSDloop%Fkca_ab(mm,ee-nops))
+
+              do m=1, nop
+                CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                  - Allinterspecies(num_inter)%Tdsame(a-nop,ee-nops,m,mm)* &
+                      (0.25*spintm(speciesId)%valuesp(m,mm,i,ee))
+              end do
+
+              do e=nop+1, noc
+                CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                  + Allinterspecies(num_inter)%Tdsame(e-nop,ee-nops,i,mm)* &
+                      (0.25*spintm(speciesId)%valuesp(a-nop,mm,e,ee))
+              end do
+
+            end do
+          end do
+
           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit%Dai(a,i)
           Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
           ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
@@ -907,8 +1123,10 @@ contains
                      end do
                      do m=1, nop
                         CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
-                          + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,j)*Allspecies(speciesId)%Tssame(b-nop,m)*CCSDloop%Fkc_aa(m,e-nop) &
-                              +0.5*Allspecies(speciesId)%Tdsame(b-nop,e-nop,i,j)*Allspecies(speciesId)%Tssame(a-nop,m)*CCSDloop%Fkc_aa(m,e-nop)) !B'
+                          + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,j)* &
+                              Allspecies(speciesId)%Tssame(b-nop,m)*CCSDloop%Fkc_aa(m,e-nop) &
+                                +0.5*Allspecies(speciesId)%Tdsame(b-nop,e-nop,i,j)* &
+                                  Allspecies(speciesId)%Tssame(a-nop,m)*CCSDloop%Fkc_aa(m,e-nop)) !B'
                      end do
                   end do
                   ! 2do ciclo
@@ -925,37 +1143,45 @@ contains
                      end do
                      do e=nop+1, noc
                         CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
-                          + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,m)*Allspecies(speciesId)%Tssame(e-nop,j)*CCSDloop%Fkc_aa(m,e-nop) &
-                              +0.5*Allspecies(speciesId)%Tdsame(a-nop,b-nop,j,m)*Allspecies(speciesId)%Tssame(e-nop,i)*CCSDloop%Fkc_aa(m,e-nop)) !C'
+                          + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,m)* &
+                              Allspecies(speciesId)%Tssame(e-nop,j)*CCSDloop%Fkc_aa(m,e-nop) &
+                                +0.5*Allspecies(speciesId)%Tdsame(a-nop,b-nop,j,m)* &
+                                  Allspecies(speciesId)%Tssame(e-nop,i)*CCSDloop%Fkc_aa(m,e-nop)) !C'
                         CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
                           + Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)*CCSDloop%Wkbcj(m,b-nop,e-nop,j) &
-                            - Allspecies(speciesId)%Tssame(e-nop,i)*Allspecies(speciesId)%Tssame(a-nop,m)*spints(speciesId)%valuesp(m,b,e,j) &
-                              -Allspecies(speciesId)%Tdsame(a-nop,e-nop,j,m)*CCSDloop%Wkbcj(m,b-nop,e-nop,i) &
-                                + Allspecies(speciesId)%Tssame(e-nop,j)*Allspecies(speciesId)%Tssame(a-nop,m)*spints(speciesId)%valuesp(m,b,e,i) &
-                                  -Allspecies(speciesId)%Tdsame(b-nop,e-nop,i,m)*CCSDloop%Wkbcj(m,a-nop,e-nop,j) &
-                                    - Allspecies(speciesId)%Tssame(e-nop,i)*Allspecies(speciesId)%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,e,j) &
-                                      + Allspecies(speciesId)%Tdsame(b-nop,e-nop,j,m)*CCSDloop%Wkbcj(m,a-nop,e-nop,i) &
-                                       - Allspecies(speciesId)%Tssame(e-nop,j)*Allspecies(speciesId)%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,e,i) !F
+                            - Allspecies(speciesId)%Tssame(e-nop,i)*Allspecies(speciesId)%Tssame(a-nop,m)* &
+                              spints(speciesId)%valuesp(m,b,e,j) &
+                                -Allspecies(speciesId)%Tdsame(a-nop,e-nop,j,m)*CCSDloop%Wkbcj(m,b-nop,e-nop,i) &
+                                  + Allspecies(speciesId)%Tssame(e-nop,j)*Allspecies(speciesId)%Tssame(a-nop,m)* &
+                                    spints(speciesId)%valuesp(m,b,e,i) &
+                                    -Allspecies(speciesId)%Tdsame(b-nop,e-nop,i,m)*CCSDloop%Wkbcj(m,a-nop,e-nop,j) &
+                                      - Allspecies(speciesId)%Tssame(e-nop,i)*Allspecies(speciesId)%Tssame(b-nop,m)* &
+                                        spints(speciesId)%valuesp(m,a,e,j) &
+                                        + Allspecies(speciesId)%Tdsame(b-nop,e-nop,j,m)* &
+                                          CCSDloop%Wkbcj(m,a-nop,e-nop,i)- Allspecies(speciesId)%Tssame(e-nop,j)* &
+                                          Allspecies(speciesId)%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,e,i) !F
                      end do
                   end do
                   ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
                   CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
-                    /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j)-Allspecies(speciesId)%HF_fs%values(a,a) &
-                       -Allspecies(speciesId)%HF_fs%values(b,b))
+                    /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
+                      -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))
                   
                   Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)
 
                   Allspecies(speciesId)%ttau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
-                    + 0.5*(Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j))
+                    + 0.5*(Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
+                      - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j))
                   Allspecies(speciesId)%tau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
-                    + Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j)
+                    + Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
+                      - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j)
                ! write(*,*) a,b,i,j,Allspecies(speciesId)%Tdsame(a,b,i,j),CCSDT1T2(speciesId)%Tabij(a,b,i,j)
                end do
             end do
          end do
       end do
       
-  end subroutine CCSD_T1T2
+  end subroutine CCSD_T1T2_inter 
 
   !>
   ! @brief Manager of Coupled Cluster maths
