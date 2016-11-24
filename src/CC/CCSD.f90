@@ -69,6 +69,10 @@ module CCSD_
       real(8), allocatable :: Wcjb(:,:,:,:)
       real(8), allocatable :: Wakic_a(:,:,:,:)
       real(8), allocatable :: Wbkjc_b(:,:,:,:)
+      real(8), allocatable :: Wklcd_b(:,:,:,:)
+      real(8), allocatable :: Wklcd_a(:,:,:,:)
+      real(8), allocatable :: Wakic(:,:,:,:)
+      real(8), allocatable :: Wbkjc(:,:,:,:)
       real(8), allocatable :: Tai(:,:)
       real(8), allocatable :: Tabij(:,:,:,:)
 
@@ -507,6 +511,26 @@ contains
       if (allocated(CCSDinter(OtherspeciesId)%Wbkjc_b)) deallocate (CCSDinter(OtherspeciesId)%Wbkjc_b)
       allocate(CCSDinter(OtherspeciesId)%Wbkjc_b(nocs-nops,nops,nops,nocs-nops))
       CCSDinter(OtherspeciesId)%Wbkjc_b=0.0_8
+
+      !Initial guess: Information of another species T2: alpha-beta
+      if (allocated(CCSDinter(speciesId)%Wklcd_a)) deallocate (CCSDinter(speciesId)%Wklcd_a)
+      allocate(CCSDinter(speciesId)%Wklcd_a(nop,nop,noc-nop,noc-nop))
+      CCSDinter(speciesId)%Wklcd_a=0.0_8
+
+      !Initial guess: Information of another species T2: alpha-beta
+      if (allocated(CCSDinter(OtherspeciesId)%Wklcd_b)) deallocate (CCSDinter(OtherspeciesId)%Wklcd_b)
+      allocate(CCSDinter(OtherspeciesId)%Wklcd_b(nops,nops,nocs-nops,nocs-nops))
+      CCSDinter(OtherspeciesId)%Wklcd_b=0.0_8
+
+      !Initial guess: Information of another species T2: alpha-beta
+      if (allocated(CCSDinter(speciesId)%Wakic)) deallocate (CCSDinter(speciesId)%Wakic)
+      allocate(CCSDinter(speciesId)%Wakic(noc-nop,nops,nop,nocs-nops))
+      CCSDinter(speciesId)%Wakic=0.0_8
+
+      !Initial guess: Information of another species T2: alpha-beta
+      if (allocated(CCSDinter(OtherspeciesId)%Wbkjc)) deallocate (CCSDinter(OtherspeciesId)%Wbkjc)
+      allocate(CCSDinter(OtherspeciesId)%Wbkjc(noc-nop,nops,nop,nocs-nops))
+      CCSDinter(OtherspeciesId)%Wbkjc=0.0_8
       
   end subroutine CCSD_loop_constructor_inter
 
@@ -1222,11 +1246,127 @@ contains
               do e=nop+1, noc
                 do m=1, nop
                   CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops) = CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops) &
-                    + (0.125*Allinterspecies(num_inter)%Tdsame(bb-nops,e-nop,jj,m)* &
+                    + (0.125*Allinterspecies(num_inter)%Tdsame(e-nop,bb-nops,m,jj)* &
                         spintm(num_intersp)%valuesp(m,mm,e,ee))
                 end do
               end do
               ! write(*,*) bb-nops,mm,jj,ee-nops,CCSDinter(speciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops)
+            end do
+          end do
+        end do
+      end do
+
+      ! CCSDinter(speciesId)%Wklcd_a
+      do m=1, nop
+        do n=1, nop
+          do e=nop+1, noc
+            do f=nop+1, noc
+
+              do bb=nops+1, nocs
+                do jj=1, nops
+                  CCSDinter(speciesId)%Wklcd_a(m,n,e-nop,f-nop) = CCSDinter(speciesId)%Wklcd_a(m,n,e-nop,f-nop) &
+                    + spints(speciesId)%valuesp(m,n,e,f)* &
+                      (Allinterspecies(num_inter)%Tdsame(e-nop,bb-nops,m,jj) &
+                        + (Allspecies(speciesId)%Tssame(e-nop,m)*Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)))
+                end do
+              end do
+              ! write(*,*) m,n,e-nop,f-nop,CCSDinter(speciesId)%Wklcd_a(m,n,e-nop,f-nop)
+            end do
+          end do
+        end do
+      end do
+
+      ! CCSDinter(OtherspeciesId)%Wklcd_b
+      do mm=1, nops
+        do nn=1, nops
+          do ee=nops+1, nocs
+            do ff=nops+1, nocs
+
+              do a=nop+1, noc
+                do i=1, nop
+                  CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops) = CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops) &
+                    + spints(OtherspeciesId)%valuesp(mm,nn,ee,ff)* &
+                      (Allinterspecies(num_inter)%Tdsame(a-nop,ee-nops,i,mm) &
+                        + (Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(ee-nops,mm)))
+                end do
+              end do
+              ! write(*,*) mm,nn,ee-nops,ff-nops,CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops)
+            end do
+          end do
+        end do
+      end do
+
+      ! CCSDinter(speciesId)%Wakic
+      do a=nop+1, noc
+        do mm=1, nops
+          do i=1, nop
+            do ee=nops+1, nocs
+
+              CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops) = CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops) &
+                + spintm(num_intersp)%valuesp(a,mm,i,ee) &
+                  + (Allspecies(OtherspeciesId)%HF_fs%values(mm,ee)* &
+                    Allspecies(speciesId)%Tssame(a-nop,i))
+
+              do m=1, nop
+                CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops) = CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops) &
+                  - (0.5*Allspecies(speciesId)%Tssame(a-nop,m)* &
+                    spintm(num_intersp)%valuesp(m,mm,i,ee))
+              end do
+
+              do e=nop+1, noc
+                CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops) = CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops) &
+                  + (0.5*Allspecies(speciesId)%Tssame(e-nop,i)* &
+                    spintm(num_intersp)%valuesp(a,mm,e,ee))
+              end do
+
+              do e=nop+1, noc
+                do m=1, nop
+                  CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops) = CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops) &
+                    + ( Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(e-nop,m) &
+                      + (0.5*Allspecies(speciesId)%tau(a-nop,e-nop,i,m)) &
+                        - (0.25*Allspecies(speciesId)%Tdsame(a-nop,e-nop,m,i)))* &
+                         spintm(num_intersp)%valuesp(m,mm,e,ee)
+                end do
+              end do
+              ! write(*,*) a-nop,mm,i,ee-nops,CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops)
+            end do
+          end do
+        end do
+      end do
+
+      ! CCSDinter(speciesId)%Wbkjc
+      do m=1, nop
+        do bb=nops+1, nocs
+          do e=nop+1, noc
+            do jj=1, nops
+
+              CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj) = CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj) &
+                + spintm(num_intersp)%valuesp(m,bb,e,jj) &
+                  + (Allspecies(speciesId)%HF_fs%values(m,e)* &
+                    Allspecies(OtherspeciesId)%Tssame(bb-nops,jj))
+
+              do mm=1, nops
+                CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj) = CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj) &
+                  - (0.5*Allspecies(OtherspeciesId)%Tssame(bb-nops,mm)* &
+                    spintm(num_intersp)%valuesp(m,mm,e,jj))
+              end do
+
+              do ee=nops+1, nocs
+                CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj) = CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj) &
+                  + (0.5*Allspecies(OtherspeciesId)%Tssame(ee-nops,jj)* &
+                    spintm(num_intersp)%valuesp(m,bb,e,ee))
+              end do
+
+              do ee=nops+1, nocs
+                do mm=1, nops
+                  CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj) = CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj) &
+                    +((Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)*Allspecies(OtherspeciesId)%Tssame(ee-nops,mm)) &
+                      + (0.5*Allspecies(OtherspeciesId)%tau(bb-nops,ee-nops,jj,mm)) &
+                        - (0.25*Allspecies(OtherspeciesId)%Tdsame(bb-nops,ee-nops,mm,jj)) )* &
+                        spintm(num_intersp)%valuesp(m,mm,e,ee)
+                end do
+              end do
+              ! write(*,*) m,bb-nops,e-nop,jj,CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj)
             end do
           end do
         end do
