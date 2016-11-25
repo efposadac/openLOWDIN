@@ -75,6 +75,7 @@ module CCSD_
       real(8), allocatable :: Wbkjc(:,:,:,:)
       real(8), allocatable :: Tai(:,:)
       real(8), allocatable :: Tabij(:,:,:,:)
+      real(8), allocatable :: Tabij_AB(:,:,:,:)
 
   end type CCSDiter
 
@@ -303,6 +304,31 @@ contains
       CCSDT1T2(speciesId)%Tabij=0.0_8
 
   end subroutine CCSD_T1T2_constructor
+
+  !>
+  ! @brief Build T1 and T2 amplitude equations that will be information of intermediates
+  ! @author CAOM
+  subroutine CCSD_T2AB_constructor(speciesId, OtherspeciesId, num_inter)
+      implicit none
+
+      integer, intent(in) :: speciesId
+      integer, intent(in) :: OtherspeciesId
+      integer, intent(in) :: num_inter
+      integer noc, nocs, nop, nops
+
+      noc = Allspecies(speciesId)%noc
+      nocs = Allspecies(OtherspeciesId)%noc
+      nop = Allspecies(speciesId)%nop
+      nops = Allspecies(OtherspeciesId)%noc
+
+      write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_T1T2_constructor: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops     
+
+      !
+      if (allocated(CCSDT1T2(speciesId)%Tabij_AB)) deallocate (CCSDT1T2(speciesId)%Tabij_AB)
+      allocate(CCSDT1T2(speciesId)%Tabij_AB(noc-nop,nocs-nops,nop,nops))
+      CCSDT1T2(speciesId)%Tabij_AB=0.0_8
+
+  end subroutine CCSD_T2AB_constructor
 
   !>
   ! @brief Build a amplitudes and Denominators guesses from MP2 information
@@ -1721,6 +1747,170 @@ contains
       end do
       
   end subroutine CCSD_T1T2_inter
+
+  !>
+  ! @brief Calculate T1 and T2 energy equations for intra-species
+  ! @author CAOM
+  subroutine CCSD_T2_AB(speciesId, OtherspeciesId, num_inter)
+      implicit none
+
+      integer, intent(in) :: speciesId
+      integer, intent(in) :: OtherspeciesId
+      integer, intent(in) :: num_inter
+
+      integer noc, nocs, nop, nops
+      integer :: a, b, bb, e, ee, f, ff
+      integer :: i, j, jj, m, mm, n, nn
+
+      noc = Allspecies(speciesId)%noc
+      nocs = Allspecies(OtherspeciesId)%nocs
+      nop = Allspecies(speciesId)%nop
+      nops = Allspecies(OtherspeciesId)%nops
+
+      ! T^{a}_{i}D^{a}_{i} = ...
+      ! do a=nop+1, noc
+      !   do i=1, nop
+
+      !     do ee=nops+1, nocs
+      !       do mm=1, nops
+
+      !         CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+      !           + (Allinterspecies(num_inter)%Tdsame(a-nop,ee-nops,i,mm)* &
+      !               CCSDinter(speciesId)%Fkca_ab(mm,ee-nops))
+
+      !         do m=1, nop
+      !           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+      !             - Allinterspecies(num_inter)%Tdsame(a-nop,ee-nops,m,mm)* &
+      !                 (0.25*spintm(speciesId)%valuesp(m,mm,i,ee))
+
+      !           do e=nop+1, noc
+      !             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+      !               - Allspecies(speciesId)%Tssame(e-nop,m)*CCSDinter(speciesId)%Fkc_aba(m,e-nop)
+      !           end do
+      !         end do
+
+      !         do e=nop+1, noc
+      !           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+      !             + Allinterspecies(num_inter)%Tdsame(e-nop,ee-nops,i,mm)* &
+      !                 (0.25*spintm(speciesId)%valuesp(a-nop,mm,e,ee))
+      !         end do
+
+      !       end do
+      !     end do
+
+      !     CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit%Dai(a,i)
+      !     Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
+      !     ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
+      !   end do
+      ! end do
+
+
+      ! T^{aB}_{iJ}D^{aB}_{iJ} = ...
+      do a=nop+1, noc
+        do bb=nops+1, nocs
+          do i=1, nop
+            do jj=1, nops
+
+              do e=nop+1, noc
+                CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                 + 0.5*(Allinterspecies(num_inter)%Tdsame(e-nop,bb-nops,i,jj)* &
+                    CCSDinter(speciesId)%Faca(a-nop,e-nop))
+
+                CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                  + 0.5*(Allspecies(speciesId)%Tssame(e-nop,i)* &
+                      CCSDinter(speciesId)%Wcia(a-nop,bb-nops,e-nop,jj))
+              end do
+
+              do ee=nops+1, nocs
+                CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                 + 0.5*(Allinterspecies(num_inter)%Tdsame(a-nop,ee-nops,i,jj)* &
+                    CCSDinter(speciesId)%Fbcb(bb-nops,ee-nops))
+
+                CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                  - 0.5*(Allspecies(OtherspeciesId)%Tssame(ee-nops,jj)* &
+                      CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops))
+              end do
+
+              do m=1, noc
+                CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                 - 0.5*(Allinterspecies(num_inter)%Tdsame(a-nop,bb-nops,m,jj)* &
+                    CCSDinter(speciesId)%Fkia(m,i))
+
+                CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                  - 0.5*(Allspecies(speciesId)%Tssame(a-nop,m)* &
+                      CCSDinter(speciesId)%Waka(m,bb-nops,i,jj))
+
+                do e=nop+1, noc
+                  CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                   + 0.5*(Allinterspecies(num_inter)%Tdsame(e-nop,bb-nops,m,jj)* &
+                      CCSDinter(speciesId)%Wakic_a(a-nop,m,i,e-nop))
+
+                  CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                   + 0.5*(Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)* &
+                      CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj))
+
+                  do f=nop+1, noc
+                    do n=1, noc
+                      CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                       + 0.5*(Allspecies(speciesId)%Tdsame(a-nop,f-nop,i,n)* &
+                          CCSDinter(speciesId)%Wklcd_a(m,n,e-nop,f-nop))
+                    end do
+                  end do
+                end do
+              end do
+
+              do mm=1, nops
+                CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                 - 0.5*(Allinterspecies(num_inter)%Tdsame(a-nop,bb-nops,i,mm)* &
+                    CCSDinter(speciesId)%Fkjb(mm,jj))
+
+                CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                  - 0.5*(Allspecies(OtherspeciesId)%Tssame(bb-nops,mm)* &
+                      CCSDinter(speciesId)%Wbkb(a-nop,mm,i,jj))
+
+                do ee=nops+1, nocs
+                  CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                   + 0.5*(Allinterspecies(num_inter)%Tdsame(a-nop,ee-nops,i,mm)* &
+                      CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops))
+
+                  CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                   + 0.5*(Allspecies(OtherspeciesId)%Tdsame(bb-nops,ee-nops,jj,mm)* &
+                      CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops))
+
+
+                  do ff=nops+1, nocs
+                    do nn=1, nocs
+                      CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                       + 0.5*(Allspecies(OtherspeciesId)%Tdsame(bb-nops,ff-nops,jj,nn)* &
+                          CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops))
+                    end do
+                  end do
+                end do
+              end do
+
+              !UNDER CONSTRUCTION
+              ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
+              CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
+                  -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))
+                  
+              Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,b-nop,i,j)
+
+              Allspecies(speciesId)%ttau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
+                + 0.5*(Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
+                  - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j))
+              Allspecies(speciesId)%tau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
+                + Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
+                  - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j)
+              !case for inter-species... is it necessary?
+  
+              ! write(*,*) a,b,i,j,Allspecies(speciesId)%Tdsame(a,b,i,j),CCSDT1T2(speciesId)%Tabij_AB(a,b,i,j)
+            end do
+          end do
+        end do
+      end do
+      
+  end subroutine CCSD_T2_AB
 
   !>
   ! @brief Manager of Coupled Cluster maths
