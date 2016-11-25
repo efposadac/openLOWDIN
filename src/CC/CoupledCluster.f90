@@ -55,6 +55,8 @@ module CoupledCluster_
       real(8), allocatable :: tau(:,:,:,:)
       real(8), allocatable :: ttau(:,:,:,:)
       real(8), allocatable :: intau(:,:,:,:)
+      real(8), allocatable :: chtau_a(:,:,:,:,:,:)
+      real(8), allocatable :: chtau_b(:,:,:,:,:,:)
 
       type(matrix) :: HF_fs
       type(Tensor) :: MP2_axVc1sp
