@@ -173,6 +173,9 @@ module CONTROL_
      !! CCSD Parameters
      !!
      character(20) :: COUPLED_CLUSTER_LEVEL
+     logical :: COUPLED_CLUSTER_FULL
+     character(50) :: CC_SAME_SPECIES(10)
+     character(50) :: CC_INTER_SPECIES(10)
 
      !!*****************************************************
      !! Parameter to general control
@@ -427,6 +430,9 @@ module CONTROL_
   !! CCSD
   !! 
   character(20) :: LowdinParameters_coupledClusterLevel
+  logical :: LowdinParameters_ccFull
+  character(50) :: LowdinParameters_ccSameSpecies(10)
+  character(50) :: LowdinParameters_ccInterSpecies(10)
 
   !!*****************************************************
   !! Parameter to general control
@@ -677,6 +683,9 @@ module CONTROL_
        !! CCSD 
        !!
        LowdinParameters_coupledClusterLevel,&
+       LowdinParameters_ccFull,&
+       LowdinParameters_ccSameSpecies,&
+       LowdinParameters_ccInterSpecies,&
        
        !!*****************************************************
        !! Parameter to general control
@@ -954,6 +963,9 @@ contains
     !! CCSD
     !!
     LowdinParameters_coupledClusterLevel = "NONE"
+    LowdinParameters_ccFull = .true.
+    LowdinParameters_ccSameSpecies = "NONE"
+    LowdinParameters_ccInterSpecies = "NONE"
 
     !!*****************************************************
     !! Parameter to general control
@@ -1210,6 +1222,9 @@ contains
     !! CCSD                                                                                                              
     !!                                                                                                                         
     CONTROL_instance%COUPLED_CLUSTER_LEVEL = "NONE"
+    CONTROL_instance%COUPLED_CLUSTER_FULL = .true.
+    CONTROL_instance%CC_SAME_SPECIES = "NONE"
+    CONTROL_instance%CC_INTER_SPECIES = "NONE"
 
     !!*****************************************************                                                                    
     !! Parameter to general control                                                                                            
@@ -1504,6 +1519,9 @@ contains
     !! CCSD                                                                       
     !!                                                                                 
     CONTROL_instance%COUPLED_CLUSTER_LEVEL = LowdinParameters_coupledClusterLevel
+    CONTROL_instance%COUPLED_CLUSTER_FULL = LowdinParameters_ccFull
+    CONTROL_instance%CC_SAME_SPECIES = LowdinParameters_ccSameSpecies
+    CONTROL_instance%CC_INTER_SPECIES = LowdinParameters_ccInterSpecies
 
     !!*****************************************************                            
     !! Parameter to general control                                                    
@@ -1775,6 +1793,9 @@ contains
     !! CCSD                                                                      
     !!                                                                                 
     LowdinParameters_coupledClusterLevel = CONTROL_instance%COUPLED_CLUSTER_LEVEL
+    LowdinParameters_ccFull = CONTROL_instance%COUPLED_CLUSTER_FULL
+    LowdinParameters_ccSameSpecies = CONTROL_instance%CC_SAME_SPECIES 
+    LowdinParameters_ccInterSpecies = CONTROL_instance%CC_INTER_SPECIES
 
     !!*****************************************************                            
     !! Parameter to general control                                                    
@@ -2027,7 +2048,11 @@ contains
     !!***************************************************************************
     !! CCSD
     !!
-    otherThis%COUPLED_CLUSTER_LEVEL = this%COUPLED_CLUSTER_LEVEL 
+    otherThis%COUPLED_CLUSTER_LEVEL = this%COUPLED_CLUSTER_LEVEL
+    otherThis%COUPLED_CLUSTER_FULL = this%COUPLED_CLUSTER_FULL
+    otherThis%CC_INTER_SPECIES = this%CC_INTER_SPECIES
+    otherThis%CC_SAME_SPECIES = this%CC_SAME_SPECIES
+
     !!*****************************************************
     !! Parametros de control general
     !!
@@ -2194,6 +2219,45 @@ contains
     if(CONTROL_instance%COUPLED_CLUSTER_LEVEL /= "NONE" ) then
 
        write (*,"(T10,A,A)") "COUPLED CLUSTER LEVEL:  ", CONTROL_instance%COUPLED_CLUSTER_LEVEL
+
+    end if
+
+    if(CONTROL_instance%COUPLED_CLUSTER_FULL) then
+
+       write (*,"(T10,A,A)") "COUPLED CLUSTER FULL:  ", CONTROL_instance%COUPLED_CLUSTER_FULL
+
+    end if
+
+    if(.not.CONTROL_instance%COUPLED_CLUSTER_FULL) then
+
+       write (*,"(T10,A,A)") "COUPLED CLUSTER FULL:  ", CONTROL_instance%COUPLED_CLUSTER_FULL
+       write (*,"(T10,A)") "COUPLED CLUSTER SETTINGS: "
+
+       if(CONTROL_instance%CC_SAME_SPECIES(1) /= "NONE" ) then
+
+          write (*,"(T10,A)") "COUPLED CLUSTER INTERACTION: *INTRA-SPECIES* "
+          write (*,"(T10,A)") "CC INTRA-SPECIES FOR THE FOLLOWING SPECIES: "
+
+          do i = 1, size(CONTROL_instance%CC_SAME_SPECIES)
+             if ( trim(CONTROL_instance%CC_SAME_SPECIES(i)) /= "NONE" ) then
+                write (*,"(T10,A,A)") " **** ", trim(CONTROL_instance%CC_SAME_SPECIES(i))
+             end if
+          end do
+
+       end if
+
+       if(CONTROL_instance%CC_INTER_SPECIES(1) /= "NONE" ) then
+
+          write (*,"(T10,A)") "COUPLED CLUSTER INTERACTION: *INTER-SPECIES* "
+          write (*,"(T10,A)") "CC INTER-SPECIES FOR THE FOLLOWING SPECIES: "
+
+          do i = 1, size(CONTROL_instance%CC_INTER_SPECIES)
+             if ( trim(CONTROL_instance%CC_INTER_SPECIES(i)) /= "NONE" ) then
+                write (*,"(T10,A,A)") " **** ", trim(CONTROL_instance%CC_INTER_SPECIES(i))
+             end if
+          end do
+
+       end if
 
     end if
 

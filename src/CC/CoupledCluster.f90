@@ -325,7 +325,6 @@ contains
       
   end subroutine CoupledCluster_load_PFunction
 
-
   !>
   ! @brief load: Auxiliary matrices from transformed integrals of one and two species
   !        build: Coulomb integrals of one and two species
