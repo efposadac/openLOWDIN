@@ -239,14 +239,15 @@ private:
   int s_size; // stack size
   int max_l;
   int speciesID;
+  bool is_electron;
   shellpair_list_t obs_shellpair_list;
   std::vector<libint2::Atom> atoms;
   std::vector<libint2::Shell> shells;
   std::vector<double> norma;
   Matrix compute_shellblock_norm(const Matrix &A);
 
-public:
-  LibintInterface(const int stack_size, const int id);
+ public:
+  LibintInterface(const int stack_size, const int id, const bool el);
 
   ~LibintInterface() { libint2::finalize(); };
 
@@ -294,7 +295,7 @@ extern "C" {
 /*
 Fortran interface routines.
 */
-LibintInterface *LibintInterface_new(const int stack_size, const int id);
+LibintInterface *LibintInterface_new(const int stack_size, const int id, const bool el);
 
 void LibintInterface_del(LibintInterface *lint);
 

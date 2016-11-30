@@ -162,86 +162,87 @@ module Libint2Interface_
   !!Interface to libint_iface.cpp
   interface
 
-     function c_LibintInterface_new (stack_size, id) result(this) bind(C,name="LibintInterface_new")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       integer(c_int), value :: stack_size
-       integer(c_int), value :: id
-       type(c_ptr) :: this
-     end function c_LibintInterface_new
+    function c_LibintInterface_new (stack_size, id, el) result(this) bind(C,name="LibintInterface_new")
+     use, intrinsic :: iso_c_binding
+     implicit none
+     integer(c_int), value :: stack_size
+     integer(c_int), value :: id
+     logical(c_bool), value :: el
+     type(c_ptr) :: this
+    end function c_LibintInterface_new
 
-     subroutine c_LibintInterface_del(this) bind(C, name="LibintInterface_del")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this
-     end subroutine c_LibintInterface_del
+    subroutine c_LibintInterface_del(this) bind(C, name="LibintInterface_del")
+     use, intrinsic :: iso_c_binding
+     implicit none
+     type(c_ptr), value :: this
+    end subroutine c_LibintInterface_del
 
-     subroutine c_LibintInterface_addParticle(this, z, origin) bind(C, name="LibintInterface_add_particle")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this
-       integer(c_int), value :: z
-       type(c_ptr), value :: origin
-     end subroutine c_LibintInterface_addParticle
+    subroutine c_LibintInterface_addParticle(this, z, origin) bind(C, name="LibintInterface_add_particle")
+     use, intrinsic :: iso_c_binding
+     implicit none
+     type(c_ptr), value :: this
+     integer(c_int), value :: z
+     type(c_ptr), value :: origin
+    end subroutine c_LibintInterface_addParticle
 
-     subroutine c_LibintInterface_addShell(this, alpha, coeff, origin, l, nprim) bind(C, name="LibintInterface_add_shell")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this
-       type(c_ptr), value :: alpha
-       type(c_ptr), value :: coeff
-       type(c_ptr), value :: origin
-       integer(c_int), value :: l
-       integer(c_int), value :: nprim
-     end subroutine c_LibintInterface_addShell
+    subroutine c_LibintInterface_addShell(this, alpha, coeff, origin, l, nprim) bind(C, name="LibintInterface_add_shell")
+     use, intrinsic :: iso_c_binding
+     implicit none
+     type(c_ptr), value :: this
+     type(c_ptr), value :: alpha
+     type(c_ptr), value :: coeff
+     type(c_ptr), value :: origin
+     integer(c_int), value :: l
+     integer(c_int), value :: nprim
+    end subroutine c_LibintInterface_addShell
 
-     subroutine c_LibintInterface_compute1BodyInts(this, integral_kind, result) bind(C, name="LibintInterface_compute_1body_ints")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this
-       integer(c_int), value :: integral_kind
-       type(c_ptr), value :: result
+    subroutine c_LibintInterface_compute1BodyInts(this, integral_kind, result) bind(C, name="LibintInterface_compute_1body_ints")
+     use, intrinsic :: iso_c_binding
+     implicit none
+     type(c_ptr), value :: this
+     integer(c_int), value :: integral_kind
+     type(c_ptr), value :: result
 
-     end subroutine c_LibintInterface_compute1BodyInts
+    end subroutine c_LibintInterface_compute1BodyInts
 
-     subroutine c_LibintInterface_init2BodyInts(this) bind(C, name="LibintInterface_init_2body_ints")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this
-     end subroutine c_LibintInterface_init2BodyInts
+    subroutine c_LibintInterface_init2BodyInts(this) bind(C, name="LibintInterface_init_2body_ints")
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: this
+    end subroutine c_LibintInterface_init2BodyInts
 
-     subroutine c_LibintInterface_compute2BodyDirect(this, density, result) bind(C, name="LibintInterface_compute_2body_direct")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this        
-       type(c_ptr), value :: density
-       type(c_ptr), value :: result
-     end subroutine c_LibintInterface_compute2BodyDirect
+    subroutine c_LibintInterface_compute2BodyDirect(this, density, result) bind(C, name="LibintInterface_compute_2body_direct")
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: this        
+      type(c_ptr), value :: density
+      type(c_ptr), value :: result
+    end subroutine c_LibintInterface_compute2BodyDirect
 
-     subroutine c_LibintInterface_compute2BodyDisk(this, filename, density) bind(C, name="LibintInterface_compute_2body_disk")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this        
-       character(c_char) :: filename(*)
-       type(c_ptr), value :: density
-     end subroutine c_LibintInterface_compute2BodyDisk
+    subroutine c_LibintInterface_compute2BodyDisk(this, filename, density) bind(C, name="LibintInterface_compute_2body_disk")
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: this        
+      character(c_char) :: filename(*)
+      type(c_ptr), value :: density
+    end subroutine c_LibintInterface_compute2BodyDisk
 
-     subroutine c_LibintInterface_computeCouplingDirect(this, othis, density, result) bind(C, name="LibintInterface_compute_coupling_direct")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this        
-       type(c_ptr), value :: othis        
-       type(c_ptr), value :: density
-       type(c_ptr), value :: result
-     end subroutine c_LibintInterface_computeCouplingDirect
+    subroutine c_LibintInterface_computeCouplingDirect(this, othis, density, result) bind(C, name="LibintInterface_compute_coupling_direct")
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: this        
+      type(c_ptr), value :: othis        
+      type(c_ptr), value :: density
+      type(c_ptr), value :: result
+    end subroutine c_LibintInterface_computeCouplingDirect
 
-     subroutine c_LibintInterface_computeCouplingDisk(this, othis, filename) bind(C, name="LibintInterface_compute_coupling_disk")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: this        
-       type(c_ptr), value :: othis        
-       character(c_char) :: filename(*)
-     end subroutine c_LibintInterface_computeCouplingDisk
+    subroutine c_LibintInterface_computeCouplingDisk(this, othis, filename) bind(C, name="LibintInterface_compute_coupling_disk")
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: this        
+      type(c_ptr), value :: othis        
+      character(c_char) :: filename(*)
+    end subroutine c_LibintInterface_computeCouplingDisk
 
   end interface
 
@@ -267,7 +268,8 @@ contains
     integer :: p, c
 
     ! Create Libint object
-    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID)
+    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID, &
+                  MolecularSystem_instance%species(speciesID)%isElectron)
 
     ! Iterate over particles
     do p = 1, size(MolecularSystem_instance%species(speciesID)%particles)
