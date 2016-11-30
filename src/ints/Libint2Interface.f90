@@ -40,11 +40,12 @@ module Libint2Interface_
   !!Interface to libint_iface.cpp
   interface
 
-    function c_LibintInterface_new (stack_size, id) result(this) bind(C,name="LibintInterface_new")
+    function c_LibintInterface_new (stack_size, id, el) result(this) bind(C,name="LibintInterface_new")
      use, intrinsic :: iso_c_binding
      implicit none
      integer(c_int), value :: stack_size
      integer(c_int), value :: id
+     logical(c_bool), value :: el
      type(c_ptr) :: this
     end function c_LibintInterface_new
 
@@ -145,7 +146,8 @@ contains
     integer :: p, c
 
     ! Create Libint object
-    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID)
+    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID, &
+                  MolecularSystem_instance%species(speciesID)%isElectron)
 
     ! Iterate over particles
     do p = 1, size(MolecularSystem_instance%species(speciesID)%particles)

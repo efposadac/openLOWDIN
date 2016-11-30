@@ -13,8 +13,10 @@ efposadac@unal.edu.co
 LibintInterface class implementation
 */
 
-LibintInterface::LibintInterface(const int stack_size, const int id)
-    : max_nprim(0), nbasis(0), s_size(stack_size), max_l(0), speciesID(id) {
+LibintInterface::LibintInterface(const int stack_size, const int id,
+                                 const bool el)
+    : max_nprim(0), nbasis(0), s_size(stack_size), max_l(0), speciesID(id),
+      is_electron(el) {
   // set up thread pool
   {
     using libint2::nthreads;
@@ -204,7 +206,11 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
 
   using libint2::nthreads;
 
-  const auto do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  bool do_schwartz_screen = is_electron;
+  if (is_electron) {
+    do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  }
+
   Matrix D_shblk_norm; // matrix of infty-norms of shell blocks
   if (do_schwartz_screen) {
     D_shblk_norm = compute_shellblock_norm(D);
@@ -215,10 +221,17 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
   // engine precision controls primitive truncation, assume worst-casescenario
   // (all primitive combinations add up constructively)
   auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
-  auto engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
-                                   std::numeric_limits<double>::epsilon()) /
-                          max_nprim4;
 
+  auto engine_precision = 0.0;
+  if (do_schwartz_screen) {
+    engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
+                                std::numeric_limits<double>::epsilon()) /
+                       max_nprim4;
+  } else {
+    engine_precision =
+        std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+        max_nprim4;
+  }
   // construct the 2-electron repulsion integrals engine pool
   using libint2::Engine;
   std::vector<Engine> engines(nthreads);
@@ -394,7 +407,11 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
 
   std::vector<Matrix> G(nthreads, Matrix::Zero(n, n));
 
-  const auto do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  bool do_schwartz_screen = is_electron;
+  if (is_electron) {
+    do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  }
+
   Matrix D_shblk_norm; // matrix of infty-norms of shell blocks
   if (do_schwartz_screen) {
     D_shblk_norm = compute_shellblock_norm(D);
@@ -405,9 +422,17 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
   // engine precision controls primitive truncation, assume worst-casescenario
   // (all primitive combinations add up constructively)
   auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
-  auto engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
-                                   std::numeric_limits<double>::epsilon()) /
-                          max_nprim4;
+
+  auto engine_precision = 0.0;
+  if (do_schwartz_screen) {
+    engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
+                                std::numeric_limits<double>::epsilon()) /
+                       max_nprim4;
+  } else {
+    engine_precision =
+        std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+        max_nprim4;
+  }
 
   // construct the 2-electron repulsion integrals engine pool
   using libint2::Engine;
@@ -1062,7 +1087,8 @@ Matrix compute_schwartz_ints(
     engines[i] = engines[0];
   }
 
-  // std::cout << "computing Schwartz bound prerequisites (kernel=" << (int)Kernel
+  // std::cout << "computing Schwartz bound prerequisites (kernel=" <<
+  // (int)Kernel
   //           << ") ... ";
 
   libint2::Timers<1> timer;
@@ -1123,14 +1149,16 @@ __inline__ void write_buffer(const libint2::QuartetBuffer &buffer,
 Fortran interface
 */
 
-LibintInterface *LibintInterface_new(const int stack_size, const int id) {
-  return new LibintInterface(stack_size, id);
+LibintInterface *LibintInterface_new(const int stack_size, const int id,
+                                     const bool el) {
+  return new LibintInterface(stack_size, id, el);
   // printf("%s\n", "LibintInterface_new");
 }
 
-void LibintInterface_del(LibintInterface *lint) { 
+void LibintInterface_del(LibintInterface *lint) {
   // printf("%s\n", "LibintInterface_del");
-  lint->~LibintInterface(); }
+  lint->~LibintInterface();
+}
 
 void LibintInterface_add_particle(LibintInterface *lint, const int z,
                                   const double *center) {
