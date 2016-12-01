@@ -38,7 +38,9 @@ program CC
   use String_
   implicit none
 
-
+  logical :: cc_full
+  character(50) :: same_species(10)
+  character(50) :: inter_species(10)
 
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
@@ -52,9 +54,13 @@ program CC
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
 
+  cc_full = CONTROL_instance%COUPLED_CLUSTER_FULL
+  same_species = CONTROL_instance%CC_SAME_SPECIES
+  inter_species = CONTROL_instance%CC_INTER_SPECIES
+
   !! Loads General information
   call CoupledCluster_constructor()
-  call CoupledCluster_init()
+  call CoupledCluster_init(cc_full,same_species,inter_species)
   
   select case(CONTROL_instance%COUPLED_CLUSTER_LEVEL)
 

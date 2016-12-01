@@ -155,11 +155,17 @@ contains
   !>
   !! @brief Initialize Coupled Cluster Theory for SD and D cases
   !! @author CAOM
-  subroutine CoupledCluster_init()
+  subroutine CoupledCluster_init(cc_full,same_species,inter_species)
     implicit none
+    logical, intent(in) :: cc_full
+    character(50), intent(in) :: same_species(10)
+    character(50), intent(in) :: inter_species(10)
     
     ! Load matrices
     ! Build diagonal matrix
+    print*, "cc_full: ", cc_full
+    print*, "same_species: ", same_species
+    print*, "inter_species: ", inter_species
     call CoupledCluster_loadWaveFunction()
 
     ! Calculate MP2 and load energies
