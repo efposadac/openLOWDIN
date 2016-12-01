@@ -150,7 +150,7 @@ contains
 
   end subroutine Tensor_destructor
 
-  function Tensor_getValue_intra(this, a, b, r, s, w) result(output)
+  function Tensor_getValue_intra(this, a, b, r, s,w) result(output)
       implicit none
       type(Tensor), intent(in) :: this
       integer, intent(in) :: a, b, r, s, w

@@ -379,7 +379,7 @@ contains
               ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
               ! print*, "spints speciesId=2"
-              write (*,*) spints(speciesId)%valuesp(p,q,r,s)
+              ! write (*,*) spints(speciesId)%valuesp(p,q,r,s)
             end do
           end do
         end do

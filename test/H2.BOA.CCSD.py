@@ -55,7 +55,7 @@ else:
     print("Difference MP2: " + str(diffTotalEnergy))
     sys.exit(1)
 
-if (diffccsdEnergy <= 1E-10):
+if (diffccsdEnergy <= 1E-9):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

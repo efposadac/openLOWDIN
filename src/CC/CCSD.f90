@@ -966,6 +966,9 @@ contains
       noc = Allspecies(speciesId)%noc
       nop = Allspecies(speciesId)%nop
 
+      !Baisc parallelization
+      !$OMP PARALLEL
+      !$OMP DO
       ! CCSDloop%Wklij
       do m=1, nop
         do n=1, nop
@@ -988,7 +991,9 @@ contains
           end do
         end do
       end do
+      !$OMP END DO
 
+      !$OMP DO
       !CCSDloop%Wabcd
       do a=nop+1, noc
         do b=nop+1, noc
@@ -1011,7 +1016,9 @@ contains
           end do
         end do
       end do
+      !$OMP END DO
 
+      !$OMP DO
       !CCSDloop%Wkbcj
       do m=1, nop
         do b=nop+1, noc
@@ -1038,6 +1045,8 @@ contains
           end do
         end do
       end do
+      !$OMP END DO
+      !$OMP END PARALLEL
 
   end subroutine W_onespecies_intermediates
 
@@ -1595,7 +1604,10 @@ contains
       nop = Allspecies(speciesId)%nop
       ! nops = CoupledCluster_instance%nops
       num_species = CoupledCluster_instance%num_species
-
+      
+      !Baisc parallelization
+      !$OMP PARALLEL
+      !$OMP DO
       ! T^{a}_{i}D^{a}_{i} = ...
       do a=nop+1, noc
         do i=1, nop
@@ -1634,8 +1646,11 @@ contains
           ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
         end do
       end do
+      !$OMP END DO
 
+      !!$OMP PARALLEL default(shared) private(a, b, i, j, e, m, n, f)
 
+      !$OMP DO 
       ! T^{ab}_{ij}D^{ab}_{ij} = ...
       do a=nop+1, noc
          do b=nop+1, noc
@@ -1716,7 +1731,9 @@ contains
             end do
          end do
       end do
-      
+      !$OMP END DO
+      !$OMP END PARALLEL
+
   end subroutine CCSD_T1T2
 
   !>
