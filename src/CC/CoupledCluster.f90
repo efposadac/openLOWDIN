@@ -39,8 +39,9 @@ module CoupledCluster_
   type, public :: CoupledCluster
       
       integer :: noc, nocs, nop, nops
-      integer(8) :: num_species
+      integer(8) :: num_species, counterID
       integer(8) :: num_intersp
+      integer :: n_intersp(10), i_counterID(10)
       real(8) :: CCSD_ones_Energy
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy
@@ -160,19 +161,145 @@ contains
     logical, intent(in) :: cc_full
     character(50), intent(in) :: same_species(10)
     character(50), intent(in) :: inter_species(10)
+
+    integer :: i
+    integer :: i_s=0
+    integer :: i_i=1
+    integer :: counter_i
+    integer :: times_i=0
+    integer :: min, max, split
+    integer :: s_species(10), i_species(20), maxm(10), minm(10)
+    integer :: num_species, counterID
+    logical :: default_s=.true.
+    logical :: default_i=.true.
+    logical :: deft_s=.true.
+    logical :: deft_i=.true.
+    logical :: excp=.false.
+    character(50) :: inter_sp(20)
     
+    !INPUT CONTROL Coupled Cluster
+    !ccFull=
+    if (.not.cc_full) then
+      !print*, "cc_full False: ", cc_full
+      do i=1, size(same_species)
+        !ccSameSpecies
+        if (same_species(i)/= "NONE") then
+          i_s=i_s+1
+          print*, "same_species: ", same_species(i)
+          default_s=.false.
+        end if
+        s_species(i) = MolecularSystem_getSpecieID(same_species(i))
+        if (s_species(i)/=0) deft_s=.false.
+
+      end do
+
+      ! print*, "s_species: ", s_species
+
+      if (.not.default_s) then
+        if (.not.deft_s) then
+          max = maxval(s_species,mask=s_species.lt.10)
+          min = minval(s_species,mask=s_species.gt.0)
+        else
+          min = 0
+          max = 0
+        end if
+        print*, "min and max value for same species: ", min, max
+
+        !All subroutines in CoupledCluster_init depends on the next variables
+        counterID = min
+        num_species = max
+
+      end if
+
+      do i=1, size(inter_species)
+        deft_i=.true.
+        !ccInterSpecies
+        if (inter_species(i)/= "NONE") then
+          ! print*, "inter_species: ", inter_species(i)
+          split = index(inter_species(i),".")
+          if (split==0) excp=.true.
+          inter_sp(i_i) = inter_species(i)(1:split-1)
+          inter_sp(i_i+1) = inter_species(i)(split+1:)
+          i_i=i_i+2
+            
+          default_i=.false.
+          i_species((i*2)-1) = MolecularSystem_getSpecieID(inter_sp((i*2)-1))
+          i_species(i*2) = MolecularSystem_getSpecieID(inter_sp(i*2))
+
+          print*, "inter_species: ", inter_sp((i*2)-1)
+          print*, "inter_species: ", inter_sp(i*2)
+
+        else
+          i_species((i*2)-1) = MolecularSystem_getSpecieID(inter_species(i))
+          i_species(i*2) = MolecularSystem_getSpecieID(inter_species(i))
+
+          ! print*, "inter_species: ", inter_species(i)
+
+        end if
+
+        ! print*, "inter_species ID: ", i_species((i*2)-1)
+        ! print*, "inter_species ID: ", i_species(i*2)
+
+      
+        if (i_species((i*2)-1)/=0) deft_i=.false.
+
+        if (.not.default_i) then
+          if (.not.deft_i) then
+            if(i_species((i*2)-1)>i_species(i*2)) then
+              maxm(i) = i_species((i*2)-1)
+              minm(i) = i_species(i*2)
+            else
+              minm(i) = i_species((i*2)-1)
+              maxm(i) = i_species(i*2)
+              if (minm(i)==0) minm(i)=1!num_species
+            end if
+            counter_i=counter_i+1
+            print*, "min and max value for inter species: ", minm(i), maxm(i)
+            print*, "counter_i: ", counter_i
+
+
+          else
+            maxm(i) = 0
+            minm(i) = 0
+          end if
+
+        else
+          maxm(i) = 0
+          minm(i) = 0
+        end if
+
+        CoupledCluster_instance%i_counterID = minm
+        CoupledCluster_instance%n_intersp = maxm
+        ! print*, "min and max value for inter species: ", minm(i), maxm(i)
+      
+      end do
+
+      if (excp) write(*,*) "Error: Check the input CONTROL, ccInterSpecies has a wrong parameter"
+      ! print*, "i_species: ", i_species
+
+    else
+
+      !All subroutines in CoupledCluster_init depends on the next variables
+      counterID = 1
+      num_species = MolecularSystem_getNumberOfQuantumSpecies()
+
+
+
+    end if
+
+
+
+    ! stop "fin"
+
     ! Load matrices
     ! Build diagonal matrix
-    print*, "cc_full: ", cc_full
-    print*, "same_species: ", same_species
-    print*, "inter_species: ", inter_species
     call CoupledCluster_loadWaveFunction()
 
     ! Calculate MP2 and load energies
     call CoupledCluster_MP2()
 
     ! Load matrices from transformed integrals
-    call CoupledCluster_load_PFunction()
+    call CoupledCluster_load_PFunction(counterID, num_species)
 
   end subroutine CoupledCluster_init
 
@@ -182,6 +309,9 @@ contains
   !! @author CAOM
   subroutine CoupledCluster_loadWaveFunction()
       implicit none
+
+      ! integer, intent(in) :: counterID
+      ! integer, intent(in) :: num_species
       
       character(50) :: arguments(2)
       integer :: speciesId
@@ -265,6 +395,12 @@ contains
   ! @author CAOM
   subroutine CoupledCluster_MP2()
       implicit none
+
+      integer :: num_species
+
+      ! integer, intent(in) :: counterID
+      ! integer, intent(in) :: num_species
+
       integer :: i, m, j
           
       call MollerPlesset_constructor( 2 )
@@ -274,20 +410,22 @@ contains
       ! allocation of MP2 energy to CoupledCluster class
       CoupledCluster_instance%MP2_EnergyCorr= MollerPlesset_instance%secondOrderCorrection
 
+      num_species = CoupledCluster_instance%num_species
+
       ! allocation of energy contributions of MP2 correction energy and coupling energy
 
-      call Vector_constructor(CoupledCluster_instance%MP2_ECorr, MollerPlesset_instance%numberOfSpecies)
+      call Vector_constructor(CoupledCluster_instance%MP2_ECorr, num_species)
       call Vector_constructor(CoupledCluster_instance%MP2_ECpCorr, &
-        MollerPlesset_instance%numberOfSpecies * (MollerPlesset_instance%numberOfSpecies -1) / 2 )
+        num_species * (num_species -1) / 2 )
 
       m = 0
-      do i=1, MollerPlesset_instance%numberOfSpecies
+      do i=1, num_species
      
         CoupledCluster_instance%MP2_ECorr%values(i) = MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
         
-        if (MollerPlesset_instance%numberOfSpecies > 1) then
+        if (num_species > 1) then
 
-          do j = i + 1, MollerPlesset_instance%numberOfSpecies
+          do j = i + 1, num_species
             
             m = m + 1
             CoupledCluster_instance%MP2_ECpCorr%values(m) = MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(m)
@@ -300,12 +438,16 @@ contains
                 
   end subroutine CoupledCluster_MP2
 
-  subroutine CoupledCluster_load_PFunction()
+  subroutine CoupledCluster_load_PFunction(counterID, num_species)
       implicit none
-      integer :: num_species
+
+      integer, intent(in) :: counterID
+      integer, intent(in) :: num_species
+
       integer :: i
 
-      num_species = CoupledCluster_instance%num_species
+      !num_species = CoupledCluster_instance%num_species
+      CoupledCluster_instance%counterID = counterID
 
       !for the intra-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_intra)) deallocate(CoupledCluster_instance%CCSD_E_intra)
@@ -324,17 +466,21 @@ contains
       allocate(spintm((num_species*(num_species-1))/2)) ! nc = (n*(n-1))/2
       ! nc is a number of posible combinations if there are more than one species (n>1)
 
-      do i=1, num_species
+      do i=counterID, num_species
         print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", (num_species*(num_species-1))/2
         call CoupledCluster_pairing_function(i, num_species)
+      end do
+
+      do i=counterID, num_species
+        print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", (num_species*(num_species-1))/2
+        call CoupledCluster_pairing_function_interspecies(i, num_species)
       end do
       
   end subroutine CoupledCluster_load_PFunction
 
   !>
-  ! @brief load: Auxiliary matrices from transformed integrals of one and two species
-  !        build: Coulomb integrals of one and two species
-  !               Exchange integrals of one species
+  ! @brief load: Auxiliary matrices from transformed integrals of one species
+  !        build: Coulomb and Exchange integrals of one species
   ! @author CAOM
   subroutine CoupledCluster_pairing_function(speciesId, num_species)
       implicit none
@@ -342,10 +488,8 @@ contains
       integer, intent(in) :: speciesId
       integer, intent(in) :: num_species
 
-      integer :: i
-      integer :: m=0
       integer :: p, q, r, s
-      integer :: noc, nocs, nop
+      integer :: noc, nop
       real(8) :: v_a, v_b, xv_a, xv_b
 
       
@@ -392,63 +536,93 @@ contains
       end do
       ! print*, "spints(speciesId) complete"
 
-      ! ! If there are two or more different species
-
-      if ( num_species>1 ) then
-
-        do i = speciesId + 1, num_species
-
-          m = m + 1
-          nocs=0
-          ! print*, "inside interspecies loop. i=speciesId+1: ", i
-          Allspecies(i)%nop = MolecularSystem_getNumberOfParticles(i)
-          ! print*, "Allspecies(i)%nop: ", Allspecies(i)%nop
-
-          Allspecies(i)%noc = MolecularSystem_getTotalNumberOfContractions(i)
-          ! This information is necesarry in other modules: 
-          ! number of contraction to number of molecular orbitals
-          Allspecies(i)%noc = Allspecies(i)%noc*2
-          ! For simplicity here
-          nocs = Allspecies(i)%noc
-          ! print*, "i of allspecies: ",i
-          ! print*, "noc: ", noc, " nocs: ",nocs
-          if (allocated(spintm(m)%valuesp)) deallocate(spintm(m)%valuesp)
-          allocate(spintm(m)%valuesp(noc,nocs,noc,nocs))
-          spintm(m)%valuesp(:,:,:,:)=0.0_8
-
-          ! Read transformed integrals from file
-          ! call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axVc2sp)
-          call Tensor_constructor(CoupledCluster_instance%MP2_axVc2sp, speciesID, otherSpeciesID=i, &
-            isMolecular=.true.)
-          print*, "end Tensor_constructor two species"
-  
-          !different species
-          !print*,"different species"
-          do p=1, noc
-            do q=1, nocs
-              do r=1, noc
-                do s=1, nocs
-                  v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2,nocs/2) !! Coulomb integrals
-          
-                  xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
-                  spintm(m)%valuesp(p,q,r,s) = xv_a
-                  ! write (*,*) spintm(m)%valuesluesp(p,q,r,s)    
-                end do
-              end do
-            end do
-          end do
-
-          call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
-
-        end do
-          
-      end if
-
       call Tensor_destructor(CoupledCluster_instance%MP2_axVc1sp)
       
       print*, "fin CoupledCluster_pairing_function"
 
   end subroutine CoupledCluster_pairing_function
+
+    !>
+  ! @brief load: Auxiliary matrices from transformed integrals of two species
+  !        build: Coulomb integrals of two species
+  !               There are not Exchange integrals of two species
+  ! @author CAOM
+  subroutine CoupledCluster_pairing_function_interspecies(speciesId, num_species)
+      implicit none
+      integer, intent(in) :: speciesId
+      integer, intent(in) :: num_species
+
+      integer :: i
+      integer :: m=0
+      integer :: p, q, r, s
+      integer :: noc, nocs, nop
+      real(8) :: v_a, xv_a
+
+      
+      Allspecies(speciesId)%nop = MolecularSystem_getNumberOfParticles(speciesID)
+      nop = Allspecies(speciesId)%nop
+
+      Allspecies(speciesId)%noc = MolecularSystem_getTotalNumberOfContractions(speciesId)
+      ! This information is necessary in other modules: 
+      ! number of contraction to number of molecular orbitals
+      Allspecies(speciesId)%noc = Allspecies(speciesId)%noc*2
+      ! For simplicity here
+      noc = Allspecies(speciesId)%noc
+
+      ! Read transformed integrals from file
+      ! ! If there are two or more different species
+
+      do i = speciesId + 1, num_species
+
+        m = m + 1
+        nocs=0
+        ! print*, "inside interspecies loop. i=speciesId+1: ", i
+        Allspecies(i)%nop = MolecularSystem_getNumberOfParticles(i)
+        ! print*, "Allspecies(i)%nop: ", Allspecies(i)%nop
+
+        Allspecies(i)%noc = MolecularSystem_getTotalNumberOfContractions(i)
+        ! This information is necesarry in other modules: 
+        ! number of contraction to number of molecular orbitals
+        Allspecies(i)%noc = Allspecies(i)%noc*2
+        ! For simplicity here
+        nocs = Allspecies(i)%noc
+        ! print*, "i of allspecies: ",i
+        ! print*, "noc: ", noc, " nocs: ",nocs
+        if (allocated(spintm(m)%valuesp)) deallocate(spintm(m)%valuesp)
+        allocate(spintm(m)%valuesp(noc,nocs,noc,nocs))
+        spintm(m)%valuesp(:,:,:,:)=0.0_8
+
+        ! Read transformed integrals from file
+        ! call ReadTransformedIntegrals_readTwoSpecies( speciesId, OtherspeciesId, CoupledCluster_instance%MP2_axVc2sp)
+        call Tensor_constructor(CoupledCluster_instance%MP2_axVc2sp, speciesID, otherSpeciesID=i, &
+          isMolecular=.true.)
+        print*, "end Tensor_constructor two species"
+  
+        !different species
+        !print*,"different species"
+        do p=1, noc
+          do q=1, nocs
+            do r=1, noc
+              do s=1, nocs
+                v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2,nocs/2) !! Coulomb integrals
+          
+                xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
+                spintm(m)%valuesp(p,q,r,s) = xv_a
+                ! write (*,*) spintm(m)%valuesluesp(p,q,r,s)    
+              end do
+            end do
+          end do
+        end do
+
+        call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
+
+      end do
+          
+      call Tensor_destructor(CoupledCluster_instance%MP2_axVc1sp)
+      
+      print*, "fin CoupledCluster_pairing_function_interspecies"
+
+  end subroutine CoupledCluster_pairing_function_interspecies
 
   ! ! Factorial function just used to know the combination if there are more than one species
   ! recursive function f(n) result(output)

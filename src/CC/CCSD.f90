@@ -2074,12 +2074,14 @@ contains
   subroutine CCSD_run()
       implicit none
 
-      integer :: num_species
+      integer :: num_species, counterID
+      integer :: n_species(10), i_counterID(10)
       integer :: num_inter
       integer :: i
       real(8) :: intra=0
       
       num_species = CoupledCluster_instance%num_species
+      counterID = CoupledCluster_instance%counterID
       num_inter = CoupledCluster_instance%num_intersp
 
       ! allocate array for many results by species in CCSD
@@ -2090,8 +2092,9 @@ contains
       if (allocated(CCSDinter)) deallocate(CCSDinter)
       allocate(CCSDinter(num_inter))
 
-      do i=1, num_species
+      do i=counterID, num_species
         
+        print*, "num_species: CCSD_constructor(): ", num_species, i
         call CCSD_constructor(i)
         print*, "num_species: CCSD_run(): ", num_species, i
         call CCSD_init(i)
