@@ -1624,24 +1624,24 @@ contains
   subroutine Matrix_eigen_select( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method )
     implicit none
     type(Matrix), intent(in) :: this
-    type(Vector), intent(inout) :: eigenValues
+    type(Vector8), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
-    integer, intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
+    integer(4), intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
     !! of the eigenvalues to be computed. Start at 1
-    integer, intent(in), optional :: flags
-    integer, intent(in), optional :: dm
+    integer(4), intent(in), optional :: flags
+    integer(4), intent(in), optional :: dm
     real(8), intent(in), optional :: m(:,:)
-    integer, intent(in), optional :: method
-    integer :: lengthWorkSpace
-    integer :: matrixSize
-    integer :: infoProcess
+    integer(4), intent(in), optional :: method
+    integer(4) :: lengthWorkSpace
+    integer(4) :: matrixSize
+    integer(4) :: infoProcess
     real(8), allocatable :: workSpace(:)
     type(Matrix) :: eigenVectorsTmp
-    integer :: i
+    integer(4) :: i
     real(8) :: vl, vu  !! If RANGE='V', the lower and upper bounds of the interval to be searched for eigenvalues.
     real(8) :: abstol
-    integer :: m_dsyevx   !! The total number of eigenvalues found.
-    integer, allocatable :: iFail(:), iwork(:)
+    integer(4) :: m_dsyevx   !! The total number of eigenvalues found.
+    integer(4), allocatable :: iFail(:), iwork(:)
 
     !!Negative ABSTOL means using the default value
     abstol = -1.0
@@ -1803,7 +1803,7 @@ contains
   subroutine Matrix_eigen_dsyevr( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method )
     implicit none
     type(Matrix), intent(in) :: this
-    type(Vector), intent(inout) :: eigenValues
+    type(Vector8), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
     integer, intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
     !! of the eigenvalues to be computed. Start at 1

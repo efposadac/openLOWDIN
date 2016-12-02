@@ -1,0 +1,44 @@
+ v1.2.2 
+
+#  maug-cc-pVDZ  EMSL  Basis Set Exchange Library  12/1/16 4:17 AM
+# Elements                             References
+# --------                             ----------
+# H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar: E. Papajak, H. R. Leverentz, J. Zheng, and D. G. Truhlar, J. Chem. Theory Comput. 5, 1197-1202 (2009).
+# H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar: E. Papajak, D. G. Truhlar, J. Chem. Theory Comput. 6, 597 (2010).
+# H, Li-Ne: T.H. Dunning, Jr., J. Chem. Phys. 90, 1007 (1989).
+# He: D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 2975, 1994 (100).
+# B - F: R.A. Kendall, T.H. Dunning, Jr. and R.J. Harrison, J. Chem. Phys. 96, 6796 (1992).
+# Na - Mg: D.E. Woon and T.H. Dunning, Jr., to be published .
+# Al - Ar: D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 98, 1358 (1993).
+# Al - Ar: T.H. Dunning, Jr., K.A. Peterson and A.K. Wilson, J. Chem. Phys. 114, 9244 (2001).
+# 
+
+# This basis set uses spherical components
+O-HYDROGEN H (maug-cc-pVDZ)
+#
+# Primary Functions: (4s,1p) -> [2s,1p]
+# Augmenting Functions: (4s,1p) -> [2s,1p]
+    3
+    1    0    3
+     13.0100000              0.0196850        
+      1.9620000              0.1379770        
+      0.4446000              0.4781480        
+    2    0    1
+      0.1220000              1.0000000        
+    3    1    1
+      0.7270000              1.0000000        
+
+# This basis set uses spherical components
+O-POSITRON E+ (maug-cc-pVDZ)
+#
+# Primary Functions: (4s,1p) -> [2s,1p]
+# Augmenting Functions: (4s,1p) -> [2s,1p]
+    3
+    1    0    3
+     13.0100000              0.0196850        
+      1.9620000              0.1379770        
+      0.4446000              0.4781480        
+    2    0    1
+      0.1220000              1.0000000        
+    3    1    1
+      0.7270000              1.0000000        
