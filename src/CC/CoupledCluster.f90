@@ -41,7 +41,7 @@ module CoupledCluster_
       integer :: noc, nocs, nop, nops
       integer(8) :: num_species, counterID
       integer(8) :: num_intersp
-      integer :: n_intersp(10), i_counterID(10)
+      integer :: n_intersp(10), i_counterID(10), info_ispecies(20)
       real(8) :: CCSD_ones_Energy
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy
@@ -174,6 +174,8 @@ contains
     logical :: deft_s=.true.
     logical :: deft_i=.true.
     logical :: excp=.false.
+    logical :: order_1=.false.
+    logical :: order_2=.false.
     character(50) :: inter_sp(20)
     
     !INPUT CONTROL Coupled Cluster
@@ -188,6 +190,7 @@ contains
           default_s=.false.
         end if
         s_species(i) = MolecularSystem_getSpecieID(same_species(i))
+
         if (s_species(i)/=0) deft_s=.false.
 
       end do
@@ -199,16 +202,22 @@ contains
           max = maxval(s_species,mask=s_species.lt.10)
           min = minval(s_species,mask=s_species.gt.0)
         else
-          min = 0
-          max = 0
+          min = 1
+          max = MolecularSystem_getNumberOfQuantumSpecies()
         end if
         print*, "min and max value for same species: ", min, max
 
-        !All subroutines in CoupledCluster_init depends on the next variables
-        counterID = min
-        num_species = max
+      else
+
+        min = 1
+        max = MolecularSystem_getNumberOfQuantumSpecies()
 
       end if
+
+      !All subroutines in CoupledCluster_init depends on the next variables (1/2)
+      counterID = min
+      num_species = max
+      !**
 
       do i=1, size(inter_species)
         deft_i=.true.
@@ -229,6 +238,7 @@ contains
           print*, "inter_species: ", inter_sp(i*2)
 
         else
+
           i_species((i*2)-1) = MolecularSystem_getSpecieID(inter_species(i))
           i_species(i*2) = MolecularSystem_getSpecieID(inter_species(i))
 
@@ -244,52 +254,99 @@ contains
 
         if (.not.default_i) then
           if (.not.deft_i) then
-            if(i_species((i*2)-1)>i_species(i*2)) then
-              maxm(i) = i_species((i*2)-1)
-              minm(i) = i_species(i*2)
+            !if the principal interaction species is wrong (equal to 0) then ignore the order
+            if (i_species((i*2)-1)==0) then
+              minm(i) = 0
+              maxm(i) = 0
+            
+            else if (i_species((i*2)-1)==i_species(i*2)) then
+              minm(i) = 0
+              maxm(i) = 0
+              order_1 = .true.
+
             else
-              minm(i) = i_species((i*2)-1)
-              maxm(i) = i_species(i*2)
-              if (minm(i)==0) minm(i)=1!num_species
-            end if
+
+            !number of correct orders in inter-species input control options
             times_i=times_i+1
+            
+              if(i_species((i*2)-1)>i_species(i*2)) then
+                maxm(times_i) = i_species((i*2)-1)
+                minm(times_i) = i_species(i*2)
+              
+                ! if the seconday interaction species are wrong (equal to 0) then 
+                ! principal interaction species will be with all quantum species
+                if (minm(times_i)==0) then
+                  maxm(times_i) = MolecularSystem_getNumberOfQuantumSpecies()
+                  minm(times_i) = i_species((i*2)-1)
+                  order_2 = .true.
+                end if
+              
+              else
+
+                minm(times_i) = i_species((i*2)-1)
+                maxm(times_i) = i_species(i*2)
+              
+              end if
+            
+            
+            end if
             print*, "min and max value for inter species: ", minm(i), maxm(i)
             ! print*, "times_i: ", times_i
 
           else
+
             maxm(i) = 0
             minm(i) = 0
+
           end if
 
         else
+
           maxm(i) = 0
           minm(i) = 0
+
         end if
 
-        CoupledCluster_instance%i_counterID = minm
-        CoupledCluster_instance%n_intersp = maxm
-        ! print*, "min and max value for inter species: ", minm(i), maxm(i)
+        if (excp) print*, "Error: Check the input CONTROL, ccInterSpecies has a wrong parameter"
+        if (order_1) print*, "Default ccInterSpecies:  order ", i, ": speciesID (", minm(times_i), &
+        ") will interact with all quantum species in this input"
+        if (order_2) then
+          print*, "Default ccInterSpecies: Order ", i, " was rejected: speciesID (", i_species((i*2)-1), &
+            ") has not interaction with speciesID (", i_species(i*2),")."
+          print*, "In inter-species APMO-CC there is not interaction between quantum species of the same type"
+        end if
       
       end do
-
-      if (excp) write(*,*) "Error: Check the input CONTROL, ccInterSpecies has a wrong parameter"
-      ! print*, "i_species: ", i_species
+      
+      !All subroutines in CoupledCluster_init depends on the next variables (2/2)
       counter_i=1
+      !times_i already has allocation
+      CoupledCluster_instance%i_counterID = minm
+      CoupledCluster_instance%n_intersp = maxm
+      ! information for CCSD_run()
+      CoupledCluster_instance%info_ispecies = i_species
+      !**
 
     else
 
-      !All subroutines in CoupledCluster_init depends on the next variables
+      !All subroutines in CoupledCluster_init depends on the next variables (default)
+      !For same species
       counterID = 1
       num_species = MolecularSystem_getNumberOfQuantumSpecies()
-      !default values for inter-species
-      counter_i = counterID
+      !For different species
+      counter_i = counterID + 1
       times_i = num_species
+      CoupledCluster_instance%i_counterID = 0
+      CoupledCluster_instance%n_intersp = 0
+      ! information for CCSD_run()
+      CoupledCluster_instance%info_ispecies = 0
 
     end if
 
-
-
     ! stop "fin"
+
+    ! CoupledCluster_loadWaveFunction() and CoupledCluster_MP2() work independently of 
+    ! input control information of Coupled Cluster
 
     ! Load matrices
     ! Build diagonal matrix
@@ -298,8 +355,10 @@ contains
     ! Calculate MP2 and load energies
     call CoupledCluster_MP2()
 
+    ! Depends on input control information of Coupled Cluster
     ! Load matrices from transformed integrals
-    call CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i, cc_full)
+    call CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i, &
+      CoupledCluster_instance%i_counterID, CoupledCluster_instance%n_intersp)
 
   end subroutine CoupledCluster_init
 
@@ -438,35 +497,50 @@ contains
                 
   end subroutine CoupledCluster_MP2
 
-  subroutine CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i, cc_full)
+  subroutine CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i, i_counterID, n_intersp)
       implicit none
 
       integer, intent(in) :: counterID
       integer, intent(in) :: num_species
       integer, intent(in) :: counter_i
       integer, intent(in) :: times_i
-      logical, intent(in) :: cc_full
+      integer, intent(inout) :: i_counterID(10)
+      integer, intent(inout) :: n_intersp(10)
 
-      integer :: i, aux_min, aux_max
+      integer :: i, j, aux_min, aux_max
+      integer :: cont=0
 
       !num_species = CoupledCluster_instance%num_species
       CoupledCluster_instance%counterID = counterID
 
+      do i=1, times_i
+        do j=i+1, times_i
+          if (i_counterID(i) == i_counterID(j)) then
+            if (n_intersp(i) < n_intersp(j)) then
+              n_intersp(i) = n_intersp(j)
+            end if
+            n_intersp(j) = 0
+            i_counterID(i) = 0
+          end if
+        end do
+        cont = cont + (n_intersp(i) - i_counterID(i))
+      end do
+
       !for the intra-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_intra)) deallocate(CoupledCluster_instance%CCSD_E_intra)
-      allocate(CoupledCluster_instance%CCSD_E_intra(num_species))
+      allocate(CoupledCluster_instance%CCSD_E_intra(num_species-(counterID-1)))
 
       !for the inter-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_inter)) deallocate(CoupledCluster_instance%CCSD_E_inter)
-      allocate(CoupledCluster_instance%CCSD_E_inter((times_i*(times_i-1))/2)) 
+      allocate(CoupledCluster_instance%CCSD_E_inter(cont)) 
 
       !for the one-species matrices from transformed integrals for CC    
       if (allocated(spints)) deallocate(spints)
-      allocate(spints(num_species))
+      allocate(spints(num_species-(counterID-1)))
 
       !for the two-species matrices from transformed integrals for CC
       if (allocated(spintm)) deallocate(spintm)
-      allocate(spintm((times_i*(times_i-1))/2)) ! nc = (n*(n-1))/2
+      allocate(spintm(cont)) ! nc = (n*(n-1))/2
       ! nc is a number of posible combinations if there are more than one species (n>1)
 
       do i=counterID, num_species
@@ -475,13 +549,14 @@ contains
       end do
 
       do i=counter_i, times_i
-        if (cc_full) then
-          aux_min=i+1
-          aux_max=times_i
-        else
-          aux_min = CoupledCluster_instance%i_counterID(i)
-          aux_max = CoupledCluster_instance%n_intersp(i)
-        end if
+        ! if (.not.cc_full) then
+        !   ! if 
+        !   aux_min = CoupledCluster_instance%i_counterID(i)
+        !   aux_max = CoupledCluster_instance%n_intersp(i)
+        ! else
+        !   aux_max=times_i
+        !   aux_min=i+1
+        ! end if
         print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", (num_species*(num_species-1))/2
         call CoupledCluster_pairing_function_interspecies(i, times_i, aux_min, aux_max)
       end do
