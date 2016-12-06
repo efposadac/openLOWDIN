@@ -41,6 +41,7 @@ module CoupledCluster_
       integer :: noc, nocs, nop, nops
       integer(8) :: num_species, counterID
       integer(8) :: num_intersp
+      integer :: spintm_m
       integer :: n_intersp(10), i_counterID(10), info_ispecies(20)
       real(8) :: CCSD_ones_Energy
       real(8) :: HF_energy
@@ -334,8 +335,8 @@ contains
       counterID = 1
       num_species = MolecularSystem_getNumberOfQuantumSpecies()
       !For different species
-      counter_i = counterID + 1
-      times_i = num_species
+      counter_i = 0!counterID + 1
+      times_i = 0
       CoupledCluster_instance%i_counterID = 0
       CoupledCluster_instance%n_intersp = 0
       ! information for CCSD_run()
@@ -357,8 +358,8 @@ contains
 
     ! Depends on input control information of Coupled Cluster
     ! Load matrices from transformed integrals
-    call CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i, &
-      CoupledCluster_instance%i_counterID, CoupledCluster_instance%n_intersp)
+    call CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i)!, &
+      ! CoupledCluster_instance%i_counterID, CoupledCluster_instance%n_intersp)
 
   end subroutine CoupledCluster_init
 
@@ -497,34 +498,39 @@ contains
                 
   end subroutine CoupledCluster_MP2
 
-  subroutine CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i, i_counterID, n_intersp)
+  subroutine CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i)
       implicit none
 
       integer, intent(in) :: counterID
       integer, intent(in) :: num_species
       integer, intent(in) :: counter_i
       integer, intent(in) :: times_i
-      integer, intent(inout) :: i_counterID(10)
-      integer, intent(inout) :: n_intersp(10)
+      integer :: i_counterID(10)
+      integer :: n_intersp(10)
 
-      integer :: i, j, aux_min, aux_max
+      integer :: i, j
       integer :: cont=0
+      integer :: m=0
 
       !num_species = CoupledCluster_instance%num_species
       CoupledCluster_instance%counterID = counterID
 
-      do i=1, times_i
-        do j=i+1, times_i
-          if (i_counterID(i) == i_counterID(j)) then
-            if (n_intersp(i) < n_intersp(j)) then
-              n_intersp(i) = n_intersp(j)
+      if (times_i>0) then
+        do i=1, times_i
+          do j=i+1, times_i
+            if (i_counterID(i) == i_counterID(j)) then
+              if (n_intersp(i) < n_intersp(j)) then
+                n_intersp(i) = n_intersp(j)
+              end if
+              n_intersp(j) = 0
+              i_counterID(i) = 0
             end if
-            n_intersp(j) = 0
-            i_counterID(i) = 0
-          end if
+          end do
+          cont = cont + (n_intersp(i) - i_counterID(i))
         end do
-        cont = cont + (n_intersp(i) - i_counterID(i))
-      end do
+      else
+        cont = 0
+      end if
 
       !for the intra-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_intra)) deallocate(CoupledCluster_instance%CCSD_E_intra)
@@ -548,18 +554,17 @@ contains
         call CoupledCluster_pairing_function(i, num_species)
       end do
 
-      do i=counter_i, times_i
-        ! if (.not.cc_full) then
-        !   ! if 
-        !   aux_min = CoupledCluster_instance%i_counterID(i)
-        !   aux_max = CoupledCluster_instance%n_intersp(i)
-        ! else
-        !   aux_max=times_i
-        !   aux_min=i+1
-        ! end if
-        print*, "load_PF. i: ", i, " num_species: ", num_species, "combinations: ", (num_species*(num_species-1))/2
-        call CoupledCluster_pairing_function_interspecies(i, times_i, aux_min, aux_max)
-      end do
+      if (times_i>0) then
+        do i=1, times_i
+          i_counterID(i) = CoupledCluster_instance%i_counterID(i)
+          n_intersp(i) = CoupledCluster_instance%n_intersp(i)
+          print*, "load_PF. i: ", i, " times_i: ", times_i, "Total inter-species matrices: ", cont
+          call CoupledCluster_pairing_function_interspecies(i_counterID(i), n_intersp(i), m)
+          ! public counter for spintm matrix
+          m = CoupledCluster_instance%spintm_m
+        end do
+        !At final, m should be equal to cont
+      end if
       
   end subroutine CoupledCluster_load_PFunction
 
@@ -640,15 +645,14 @@ contains
   !              and num_species/=times_i
   !
   ! @author CAOM
-  subroutine CoupledCluster_pairing_function_interspecies(speciesId, num_species, aux_min, aux_max)
+  subroutine CoupledCluster_pairing_function_interspecies(speciesId, aux_max, m)
       implicit none
+
       integer, intent(in) :: speciesId
-      integer, intent(in) :: num_species
-      integer, intent(in) :: aux_min
       integer, intent(in) :: aux_max
+      integer, intent(inout) :: m
 
       integer :: i
-      integer :: m=0
       integer :: p, q, r, s
       integer :: noc, nocs, nop
       real(8) :: v_a, xv_a
@@ -667,7 +671,7 @@ contains
       ! Read transformed integrals from file
       ! ! If there are two or more different species
 
-      do i = aux_min, aux_max
+      do i = speciesId+1, aux_max
 
         m = m + 1
         nocs=0
@@ -712,7 +716,9 @@ contains
         call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
 
       end do
-          
+
+      CoupledCluster_instance%spintm_m = m
+
       call Tensor_destructor(CoupledCluster_instance%MP2_axVc1sp)
       
       print*, "fin CoupledCluster_pairing_function_interspecies"
