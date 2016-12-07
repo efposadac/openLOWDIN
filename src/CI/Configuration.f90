@@ -140,11 +140,11 @@ contains
     type(IVector) :: order
     type(Vector), allocatable :: occupiedCode(:)
     type(Vector), allocatable :: unoccupiedCode(:)
-    integer :: numberOfConfigurations
+    integer(8) :: numberOfConfigurations, c
 
     integer :: numberOfOccupiedOrbitals 
     integer :: numberOfOrbitals 
-    integer :: i,j,c
+    integer :: i,j
     integer :: numberOfSpecies
     integer :: div1
     integer :: div2

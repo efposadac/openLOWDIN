@@ -62,15 +62,15 @@ module ConfigurationInteraction_
   type, public :: ConfigurationInteraction
      logical :: isInstanced
      type(matrix) :: hamiltonianMatrix
-     type(ivector) :: auxIndexCIMatrix
+     type(ivector8) :: auxIndexCIMatrix
      type(matrix) :: eigenVectors
      type(matrix) :: initialEigenVectors
-     type(vector) :: initialEigenValues
-     integer :: numberOfConfigurations
+     type(vector8) :: initialEigenValues
+     integer(8) :: numberOfConfigurations
      type(vector) :: numberOfOccupiedOrbitals
      type(vector) :: numberOfOrbitals
      type(vector) ::  numberOfSpatialOrbitals2 
-     type(vector) :: eigenvalues
+     type(vector8) :: eigenvalues
      type(vector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
      type(matrix), allocatable :: fourCenterIntegrals(:,:)
      type(matrix), allocatable :: twoCenterIntegrals(:)
@@ -79,7 +79,7 @@ module ConfigurationInteraction_
      type(imatrix), allocatable :: fourIndexArray(:)
      type(vector), allocatable :: energyofmolecularorbitals(:)
      type(configuration), allocatable :: configurations(:)
-     type (Vector) :: diagonalHamiltonianMatrix
+     type (Vector8) :: diagonalHamiltonianMatrix
      real(8) :: totalEnergy
      integer, allocatable :: totalNumberOfContractions(:)
 
@@ -120,7 +120,8 @@ contains
     character(*) :: level
 
     integer :: numberOfSpecies
-    integer :: i,j,k,l,m,n,p,q,c,cc,r,s
+    integer :: i,j,k,l,m,n,p,q,cc,r,s
+    integer(8) :: c
     integer :: ma,mb,mc,md,me,pa,pb,pc,pd,pe
     integer :: isLambdaEqual1,lambda,otherlambda
     type(vector) :: occupiedCode
@@ -1480,7 +1481,7 @@ contains
        call ConfigurationInteraction_buildConfigurations()
        print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
        print *, ""
-       call Vector_constructor ( ConfigurationInteraction_instance%eigenvalues, &
+       call Vector_constructor8 ( ConfigurationInteraction_instance%eigenvalues, &
                                  ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
 
        select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
@@ -1540,7 +1541,7 @@ contains
 
 
          call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
-              CONTROL_instance%NUMBER_OF_CI_STATES, &
+              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
               ConfigurationInteraction_instance%eigenvalues, &
               ConfigurationInteraction_instance%eigenVectors )
 
@@ -1567,9 +1568,9 @@ contains
 
 
          call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
-              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+              int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
               eigenVectors = ConfigurationInteraction_instance%eigenVectors, &
-              flags = SYMMETRIC)
+              flags = int(SYMMETRIC,4))
 
 !         call Matrix_eigen_select (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
 !              1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
@@ -1642,7 +1643,8 @@ contains
     implicit none
 
     integer :: numberOfSpecies
-    integer :: i,ii,j,k,l,m,n,p,q,a,b,c,d,cc,r,s
+    integer :: i,ii,j,k,l,m,n,p,q,a,b,d,r,s
+    integer(8) :: c, cc
     integer :: ma,mb,mc,md,me,pa,pb,pc,pd,pe
     integer :: isLambdaEqual1
     type(ivector) :: order
@@ -3946,7 +3948,7 @@ contains
 
     type(Configuration) :: auxConfigurationA, auxConfigurationB
     !integer(2), allocatable :: auxConfiguration(:,:), auxConfigurationA(:,:)
-    integer :: a,b,c
+    integer(8) :: a,b,c
     integer :: size1, size2
     real(8) :: timeA, timeB
     real(8) :: CIenergyb, CIenergy
@@ -4048,7 +4050,7 @@ contains
     implicit none
 
     type(Configuration) :: auxConfigurationA, auxConfigurationB
-    type (Vector) :: diagonalHamiltonianMatrix
+    type (Vector8) :: diagonalHamiltonianMatrix
 !    type (Vector) :: initialEigenValues
     type (Matrix) :: initialHamiltonianMatrix
     integer :: a,b,c,aa,bb
@@ -4064,10 +4066,10 @@ contains
     call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationA )
     call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationB )
 
-    call Vector_constructorInteger ( ConfigurationInteraction_instance%auxIndexCIMatrix, &
-                              ConfigurationInteraction_instance%numberOfConfigurations, 0 ) 
+    call Vector_constructorInteger8 ( ConfigurationInteraction_instance%auxIndexCIMatrix, &
+                              ConfigurationInteraction_instance%numberOfConfigurations, 0_8 ) 
 
-    call Vector_constructor ( diagonalHamiltonianMatrix, &
+    call Vector_constructor8 ( diagonalHamiltonianMatrix, &
                               ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8 ) 
 
     print *, "  OMP Number of threads: " , omp_get_max_threads()
@@ -4098,12 +4100,12 @@ contains
    if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU" .or. &
       trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "ARPACK"  ) then
 
-     call Vector_copyConstructor (  ConfigurationInteraction_instance%diagonalHamiltonianMatrix, diagonalHamiltonianMatrix)
+     call Vector_copyConstructor8 (  ConfigurationInteraction_instance%diagonalHamiltonianMatrix, diagonalHamiltonianMatrix)
 
    end if
 
    !! To get only the lowest 300 values.
-   call Vector_reverseSortElements(diagonalHamiltonianMatrix, ConfigurationInteraction_instance%auxIndexCIMatrix, initialCIMatrixSize)
+   call Vector_reverseSortElements8(diagonalHamiltonianMatrix, ConfigurationInteraction_instance%auxIndexCIMatrix, int(initialCIMatrixSize,8))
 
    call Matrix_constructor ( initialHamiltonianMatrix, int(initialCIMatrixSize,8) , &
                                int(initialCIMatrixSize,8) , 0.0_8 ) 
@@ -4123,19 +4125,19 @@ contains
     end do
 
     !! diagonalize the initial matrix
-    call Vector_constructor ( ConfigurationInteraction_instance%initialEigenValues, CONTROL_instance%NUMBER_OF_CI_STATES,  0.0_8)
+    call Vector_constructor8 ( ConfigurationInteraction_instance%initialEigenValues, int(CONTROL_instance%NUMBER_OF_CI_STATES,8),  0.0_8)
 
     call Matrix_constructor (ConfigurationInteraction_instance%initialEigenVectors, &
            int(initialCIMatrixSize,8), &
            int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
     call Matrix_eigen_select ( initialHamiltonianMatrix, ConfigurationInteraction_instance%initialEigenValues, &
-           1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+           1, int(CONTROL_instance%NUMBER_OF_CI_STATES,4), &  
            eigenVectors = ConfigurationInteraction_instance%initialEigenVectors, &
-           flags = SYMMETRIC)
+           flags = int(SYMMETRIC,4))
 
     !! cleaning
-    call Vector_destructor ( diagonalHamiltonianMatrix )
+    call Vector_destructor8 ( diagonalHamiltonianMatrix )
 !    call Vector_destructor ( initialEigenValues )
     call Matrix_destructor ( initialHamiltonianMatrix )
 
@@ -5682,7 +5684,8 @@ contains
     implicit none
     character(50) :: nameFile
     integer :: unitFile
-    integer :: i, ia, ib, nonzero
+    integer(8) :: i, ia
+    integer :: ib, nonzero
     integer, allocatable :: auxIndexArray(:)
     real(8), allocatable :: auxArray(:)
     integer :: maxStackSize
@@ -5737,7 +5740,7 @@ contains
 
   subroutine ConfigurationInteraction_loadEigenVector (eigenValues,eigenVectors) 
     implicit none
-    type(Vector) :: eigenValues
+    type(Vector8) :: eigenValues
     type(Matrix) :: eigenVectors
     character(50) :: nameFile
     integer :: unitFile
@@ -5852,10 +5855,10 @@ contains
   !    MAXNEV: Maximum NEV allowed. 
   !    MAXNCV: Maximum NCV allowed. 
 
-    integer :: maxn 
+    integer(8) :: maxn 
     integer :: maxnev 
     integer :: maxncv 
-    integer :: ldv 
+    integer(8) :: ldv 
     integer :: iter
   
 !    intrinsic abs
@@ -5887,7 +5890,7 @@ contains
     real(8), allocatable :: workd(:)
     logical, allocatable :: select(:)
 
-    type(Vector), intent(inout) :: eigenValues
+    type(Vector8), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
     integer :: ii, jj, ia
 
@@ -6067,7 +6070,7 @@ contains
     do
   
       call dsaupd ( ido, bmat, nx, which, nev, tol, resid, &
-        ncv, v, ldv, iparam, ipntr, workd, workl, &
+        maxncv, v, int(ldv,4), iparam, ipntr, workd, workl, &
         lworkl, info )
       iter = iter + 1
       if ( ido /= -1 .and. ido /= 1 ) then
@@ -6113,8 +6116,8 @@ contains
   !
       rvec = .true.
   
-      call dseupd ( rvec, 'A', select, d, z, ldv, sigma, &
-        bmat, nx, which, nev, tol, resid, ncv, v, ldv, &
+      call dseupd ( rvec, 'A', select, d, z,int( ldv,4), sigma, &
+        bmat, nx, which, nev, tol, resid, ncv, v, int(ldv,4), &
         iparam, ipntr, workd, workl, lworkl, ierr )
   !
   !  Eigenvalues are returned in the first column of the two dimensional 
@@ -6297,27 +6300,29 @@ contains
 
   subroutine ConfigurationInteraction_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors)
     implicit none
-    integer :: maxnev
-    integer :: a
+    integer(8) :: maxnev
+    integer(8) :: a
     real(8) :: CIenergy
-    integer :: nproc
-    type(Vector), intent(inout) :: eigenValues
+    integer(8) :: nproc
+    type(Vector8), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
-    type (Vector) :: diagonalHamiltonianMatrix
+    type (Vector8) :: diagonalHamiltonianMatrix
 
 !   N: size of the problem
 !   MAXEIG: max. number of wanteg eig (NEIG<=MAXEIG)
 !   MAXSP: max. value of MADSPACE
-    integer :: n, maxeig, MAXSP
-    integer :: LX
+    integer(8) :: n, maxeig, MAXSP
+    integer(8) :: LX
     real(8), allocatable :: EIGS(:), RES(:), X(:)!, D(:)
 !   arguments to pass to the routines
-    integer :: NEIG, MADSPACE, ISEARCH, NINIT, ICNTL(5)
-    integer :: ITER, IPRINT, INFO
+    integer(8) :: NEIG, MADSPACE, ISEARCH, NINIT
+    integer(8) :: ICNTL(5)
+    integer(8) :: ITER, IPRINT, INFO
     real(8) :: SIGMA, TOL, GAP, MEM, DROPTOL, SHIFT
-    integer :: IJOB, NDX1, NDX2, NDX3
-!   some local variables
-    integer :: I,J,K,iiter
+    integer(8) :: NDX1, NDX2, NDX3
+    integer(8) :: IJOB!   some local variables
+    integer(8) :: I,J,K
+    integer(4) :: iiter
 
     maxsp = 20
     LX = N*(3*MAXSP+MAXEIG+1)+4*MAXSP*MAXSP
@@ -6335,7 +6340,7 @@ contains
 !    set input variables
 !    the matrix is already in the required format
 
-     IPRINT = 6 !     standard report on standard output
+     IPRINT = -6 !     standard report on standard output
      ISEARCH = 1 !    we want the smallest eigenvalues
      NEIG = maxeig !    number of wanted eigenvalues
      !NINIT = 0 !    no initial approximate eigenvectors
@@ -6353,13 +6358,13 @@ contains
      ICNTL(2)=0
      ICNTL(3)=0
      ICNTL(4)=0
-     ICNTL(5)=0
+     ICNTL(5)=1
 
     DROPTOL = 1E-4
 
      IJOB=0
 
-     !! set initial eigenpairs
+     ! set initial eigenpairs
      if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
        do i = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
          X(ConfigurationInteraction_instance%auxIndexCIMatrix%values(i)) = eigenVectors%values(i,1)
@@ -6367,6 +6372,8 @@ contains
 
        do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
          EIGS(i) = eigenValues%values(i)
+        print *,  eigenValues%values(i), EIGS(I)
+
        end do
      else
        do i = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
@@ -6379,15 +6386,16 @@ contains
      end if
 
      SIGMA = EIGS(1)
+     gap= 0
      SHIFT = EIGS(1)
       print *, "Eigenvalue(1)", eigs(1), "Eigenvector(1)", x(1)
       iiter = 0
-
-10   CALL PJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1,-1,EIGS, RES, X, LX, NEIG, &
+10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1_8,-1_8,EIGS, RES, X, LX, NEIG, &
                       SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                       SHIFT, DROPTOL, MEM, ICNTL, &
                       IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
 !    your private matrix-vector multiplication
+
       iiter = iiter +1
       IF (IJOB.EQ.1) THEN
 !       X(NDX1) input,  X(NDX2) output
@@ -6425,20 +6433,20 @@ contains
   !
     implicit none
   
-    integer nx
+    integer(8) nx
     real(8) y(nx)
     real(8) v(nx)
     real(8) w(nx)
     real(8) :: CIEnergy
-    integer :: nonzero
-    integer :: i, j, ia, ib, ii, jj
-    integer :: nproc
+    integer(8) :: nonzero
+    integer(8) :: i, j, ia, ib, ii, jj
+    integer(4) :: nproc
     real(8) :: wi
     real(8) :: timeA, timeB
     type(Configuration) :: auxConfigurationI, auxConfigurationJ
     real(8) :: tol
-    integer :: iter, size1, size2
-    integer, allocatable :: indexArray(:)
+    integer(4) :: iter, size1, size2
+    integer(8), allocatable :: indexArray(:)
     tol = 1E-8
 
     call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationI )
