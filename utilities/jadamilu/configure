@@ -11,8 +11,9 @@ include \$(TOPDIR)/CONFIG
 
 TARGET=libjadamilu
 EOF
+
 echo -e "all:" >> makefile
-echo -e "\tcp \$(TARGET).lib \$(TOPDIR)lib/\$(TARGET).a\n" >> makefile
+echo -e "\tcp \$(TARGET).\$(FC).lib \$(TOPDIR)lib/\$(TARGET).a\n" >> makefile
 cat >> makefile << EOF
 clean:: 
 	rm -f *.o
