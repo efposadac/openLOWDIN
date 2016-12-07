@@ -42,6 +42,7 @@ module CoupledCluster_
       integer(8) :: num_species, counterID
       integer(8) :: num_intersp
       integer :: spintm_m
+      integer :: times_intersp
       integer :: n_intersp(10), i_counterID(10), info_ispecies(20)
       real(8) :: CCSD_ones_Energy
       real(8) :: HF_energy
@@ -326,6 +327,7 @@ contains
       CoupledCluster_instance%n_intersp = maxm
       ! information for CCSD_run()
       CoupledCluster_instance%info_ispecies = i_species
+      CoupledCluster_instance%times_intersp = times_i
       !**
 
     else
@@ -341,6 +343,8 @@ contains
       CoupledCluster_instance%n_intersp = 0
       ! information for CCSD_run()
       CoupledCluster_instance%info_ispecies = 0
+      CoupledCluster_instance%times_intersp = times_i
+      !**
 
     end if
 
@@ -358,8 +362,7 @@ contains
 
     ! Depends on input control information of Coupled Cluster
     ! Load matrices from transformed integrals
-    call CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i)!, &
-      ! CoupledCluster_instance%i_counterID, CoupledCluster_instance%n_intersp)
+    call CoupledCluster_load_PFunction(counterID, num_species)
 
   end subroutine CoupledCluster_init
 
@@ -498,13 +501,13 @@ contains
                 
   end subroutine CoupledCluster_MP2
 
-  subroutine CoupledCluster_load_PFunction(counterID, num_species, counter_i, times_i)
+  subroutine CoupledCluster_load_PFunction(counterID, num_species)
       implicit none
 
       integer, intent(in) :: counterID
       integer, intent(in) :: num_species
-      integer, intent(in) :: counter_i
-      integer, intent(in) :: times_i
+      
+      integer :: times_i
       integer :: i_counterID(10)
       integer :: n_intersp(10)
 
@@ -514,8 +517,13 @@ contains
 
       !num_species = CoupledCluster_instance%num_species
       CoupledCluster_instance%counterID = counterID
+      times_i = CoupledCluster_instance%times_intersp
+      i_counterID = CoupledCluster_instance%i_counterID
+      n_intersp = CoupledCluster_instance%n_intersp
 
+      ! print*, "times_i", times_i
       if (times_i>0) then
+        ! print*, "times>0"
         do i=1, times_i
           do j=i+1, times_i
             if (i_counterID(i) == i_counterID(j)) then
@@ -527,7 +535,9 @@ contains
             end if
           end do
           cont = cont + (n_intersp(i) - i_counterID(i))
+          ! print*, "n_intersp(i) - i_counterID(i)", n_intersp(i), i_counterID(i)
         end do
+        ! print*, "cont:", cont
       else
         cont = 0
       end if
