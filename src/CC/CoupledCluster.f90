@@ -407,7 +407,7 @@ contains
       ! allocate array for many results by full number of interactions of interspecies
       ! if num_species=1 Allinterspecies can not be used
       if (allocated(Allinterspecies)) deallocate(Allinterspecies)
-      allocate(Allinterspecies(num_intersp))
+      allocate(Allinterspecies(num_species))
 
       ! All species
       do speciesId = 1, num_species ! number of species is the size of CoupledCluster_instance
