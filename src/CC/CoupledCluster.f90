@@ -39,7 +39,7 @@ module CoupledCluster_
   type, public :: CoupledCluster
       
       integer :: noc, nocs, nop, nops
-      integer(8) :: num_species, counterID
+      integer(8) :: num_species, counterID, finalID
       integer(8) :: num_intersp
       integer :: spintm_m
       integer :: times_intersp
@@ -515,7 +515,7 @@ contains
       integer :: cont=0
       integer :: m=0
 
-      !num_species = CoupledCluster_instance%num_species
+      CoupledCluster_instance%finalID = num_species
       CoupledCluster_instance%counterID = counterID
       times_i = CoupledCluster_instance%times_intersp
       i_counterID = CoupledCluster_instance%i_counterID
