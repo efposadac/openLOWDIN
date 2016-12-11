@@ -214,7 +214,7 @@ contains
           end do
         end do
       end do
-      print*, "CCSD_init():"
+      print*, "CCSD_init(", speciesId, ")"
       ! Denominator D^{a}_{i}
       do a=nop+1, noc
          do i=1, nop
@@ -606,12 +606,12 @@ contains
       print*, "nops 14"
       !Initial guess: Information of another species T2: alpha-beta
       if (allocated(CCSDinter(speciesId)%Wakic)) deallocate (CCSDinter(speciesId)%Wakic)
-      allocate(CCSDinter(speciesId)%Wakic(noc-nop,nop,nop,noc-nop))
+      allocate(CCSDinter(speciesId)%Wakic(noc-nop,nops,nop,nocs-nops))
       CCSDinter(speciesId)%Wakic=0.0_8
 
       !Initial guess: Information of another species T2: alpha-beta
       if (allocated(CCSDinter(OtherspeciesId)%Wbkjc)) deallocate (CCSDinter(OtherspeciesId)%Wbkjc)
-      allocate(CCSDinter(OtherspeciesId)%Wbkjc(nocs-nops,nops,nops,nocs-nops))
+      allocate(CCSDinter(OtherspeciesId)%Wbkjc(nop,nocs-nops,noc-nop,nops))
       CCSDinter(OtherspeciesId)%Wbkjc=0.0_8
 
   end subroutine CCSD_loop_constructor_inter
@@ -632,7 +632,7 @@ contains
 
       print*,"noc: ", noc, "nop: ", nop
       print*, "speciesId: ", speciesId
-      if (speciesId>2) stop "inside loop"
+      ! if (speciesId>2) stop "inside loop"
 
       ! CCSDloop%Fac
       do a=nop+1, noc
@@ -1255,10 +1255,10 @@ contains
                 end do
               end if
 
-              do m=nop+1, noc
+              do m=1, nop
                 CCSDinter(speciesId)%Wcia(a-nop,bb-nops,e-nop,jj) = CCSDinter(speciesId)%Wcia(a-nop,bb-nops,e-nop,jj) &
                   + (0.5*Allspecies(speciesId)%Tssame(a-nop,m)* &
-                      spintm(n_sp)%valuesp(m,bb,e,jj))
+                       spintm(n_sp)%valuesp(m,bb,e,jj))
               end do
               ! write(*,*) a-nop,bb-nops,e-nop,jj,CCSDinter(speciesId)%Wcia(a-nop,bb-nops,e-nop,jj)
             end do
@@ -1637,7 +1637,7 @@ contains
                 call F_twospecies_intermediates(min, jj, num_inter)
                 call W_twospecies_intermediates(min, jj, num_inter)
                 call F_T2_AB(min, jj, num_inter)
-                !call W_T2_AB(min, jj, num_inter)
+                call W_T2_AB(min, jj, num_inter)
         
             num_inter = num_inter + 1
             CCSD_instance%cont = CCSD_instance%cont + 1                
@@ -1710,7 +1710,14 @@ contains
         write (*,*) convergence, "Convergence " 
         ! if ((convergence > 10) .and. speciesId>1) stop "test"
         ! Resolve T1 and T2 amplitude equations
-        call CCSD_T1T2(speciesId)
+        if (times_i>0) then
+          do jj=min, max
+            call CCSD_T1(speciesId)
+          end do
+        else
+          call CCSD_T1(speciesId)
+        end if
+        call CCSD_T2(speciesId)
 
         ! T1 and T2 equation energies for interspecies
         if (times_i>0) then
@@ -1737,9 +1744,9 @@ contains
   end subroutine CCSD_loop
 
   !>
-  ! @brief Calculate T1 and T2 energy equations for intra-species
+  ! @brief Calculate T1 energy equations for intra-species
   ! @author CAOM
-  subroutine CCSD_T1T2(speciesId)
+  subroutine CCSD_T1(speciesId)
       implicit none
 
       integer, intent(in) :: speciesId
@@ -1755,7 +1762,7 @@ contains
       ! nops = CoupledCluster_instance%nops
       num_species = CoupledCluster_instance%num_species
       times_i = CoupledCluster_instance%times_intersp
-      print*, "CCSD_T1T2"
+      print*, "CCSD_T1"
       
       !Basic parallelization
       !!$OMP PARALLEL
@@ -1801,10 +1808,33 @@ contains
         end do
       end do
       !!$OMP END DO
+      !!$OMP END PARALLEL
 
-      !! $OMP PARALLEL default(shared) private(a, b, i, j, e, m, n, f)
-      ! print*, "interview"
+  end subroutine CCSD_T1
 
+  !>
+  ! @brief Calculate T2 energy equations for intra-species
+  ! @author CAOM
+  subroutine CCSD_T2(speciesId)
+      implicit none
+
+      integer, intent(in) :: speciesId
+
+      integer noc, nocs, nop, nops
+      integer :: num_species
+      integer :: times_i
+      integer :: a, b, e, f, i, j, m, n
+
+      noc = Allspecies(speciesId)%noc
+      ! nocs = CoupledCluster_instance%nocs
+      nop = Allspecies(speciesId)%nop
+      ! nops = CoupledCluster_instance%nops
+      num_species = CoupledCluster_instance%num_species
+      times_i = CoupledCluster_instance%times_intersp
+      print*, "CCSD_T2"
+      
+      !Basic parallelization
+      !!$OMP PARALLEL
       !!$OMP DO 
       ! T^{ab}_{ij}D^{ab}_{ij} = ...
       ! if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
@@ -1891,7 +1921,7 @@ contains
       !!$OMP END DO
       !!$OMP END PARALLEL
 
-  end subroutine CCSD_T1T2
+  end subroutine CCSD_T2
 
   !>
   ! @brief Calculate T1 and T2 energy equations for intra-species
@@ -2286,12 +2316,14 @@ contains
         print*, "num_species: CCSD_constructor(): ", num_species, i
         call CCSD_constructor(i)
       end do
-        
-      do i=counterID, finalID!num_species
-        
+
+      do i=counterID, finalID
         print*, "num_species: CCSD_run(): ", num_species, i, finalID
         call CCSD_init(i)
         print*, "CCSD_init(i): ", i
+      end do
+        
+      do i=counterID, finalID!num_species
         
         !If there are interspecies?
         if (times_i>0) then
