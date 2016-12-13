@@ -1313,7 +1313,7 @@ contains
                 end do
               end do
 
-              do mm=nops+1, nocs
+              do mm=1, nops
                 CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops) = CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops) &
                   + (0.5*Allspecies(OtherspeciesId)%Tssame(bb-nops,mm)* &
                       spintm(n_sp)%valuesp(a,mm,i,ee))
