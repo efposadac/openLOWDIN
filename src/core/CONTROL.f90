@@ -22,6 +22,23 @@ module CONTROL_
   implicit none
 
   type, public :: CONTROL
+
+     !!***************************************************************************
+     !! Dummy variables, just for debugging. 
+     !!
+     real(8) :: DUMMY_REAL_A
+     real(8) :: DUMMY_REAL_B
+     real(8) :: DUMMY_REAL_C
+     integer :: DUMMY_INTEGER_A
+     integer :: DUMMY_INTEGER_B
+     integer :: DUMMY_INTEGER_C
+     logical :: DUMMY_LOGICAL_A
+     logical :: DUMMY_LOGICAL_B
+     logical :: DUMMY_LOGICAL_C
+     character(50) :: DUMMY_CHARACTER_A
+     character(50) :: DUMMY_CHARACTER_B
+     character(50) :: DUMMY_CHARACTER_C
+
      !!***************************************************************************
      !! Parameter to control Integrals library
      !!
@@ -277,6 +294,22 @@ module CONTROL_
   !< Namelist definition
 
   !!***************************************************************************
+  !! Dummy variables, just for debugging. 
+  !!
+  real(8) :: LowdinParameters_dummyRealA
+  real(8) :: LowdinParameters_dummyRealB
+  real(8) :: LowdinParameters_dummyRealC
+  integer :: LowdinParameters_dummyIntegerA
+  integer :: LowdinParameters_dummyIntegerB
+  integer :: LowdinParameters_dummyIntegerC
+  logical :: LowdinParameters_dummyLogicalA
+  logical :: LowdinParameters_dummyLogicalB
+  logical :: LowdinParameters_dummyLogicalC
+  character(50) :: LowdinParameters_dummyCharacterA
+  character(50) :: LowdinParameters_dummyCharacterB
+  character(50) :: LowdinParameters_dummyCharacterC
+
+  !!***************************************************************************
   !! Parameter to control Integrals library
   !!  
   real(8) :: LowdinParameters_tv
@@ -527,6 +560,24 @@ module CONTROL_
 
 
   NAMELIST /LowdinParameters/ &
+
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    LowdinParameters_dummyRealA,&
+    LowdinParameters_dummyRealB,&
+    LowdinParameters_dummyRealC,&
+    LowdinParameters_dummyIntegerA,&
+    LowdinParameters_dummyIntegerB,&
+    LowdinParameters_dummyIntegerC,&
+    LowdinParameters_dummyLogicalA,&
+    LowdinParameters_dummyLogicalB,&
+    LowdinParameters_dummyLogicalC,&
+    LowdinParameters_dummyCharacterA,&
+    LowdinParameters_dummyCharacterB,&
+    LowdinParameters_dummyCharacterC,&
+
+
                                 !!***************************************************************************
                                 !! Parameter to control Integrals library
                                 !!  
@@ -805,6 +856,22 @@ contains
     !! Set defaults for namelist
 
     !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    LowdinParameters_dummyRealA = 0.0_8
+    LowdinParameters_dummyRealB = 0.0_8
+    LowdinParameters_dummyRealC = 0.0_8
+    LowdinParameters_dummyIntegerA = 0
+    LowdinParameters_dummyIntegerB = 0
+    LowdinParameters_dummyIntegerC = 0
+    LowdinParameters_dummyLogicalA = .false.
+    LowdinParameters_dummyLogicalB = .false.
+    LowdinParameters_dummyLogicalC = .false.
+    LowdinParameters_dummyCharacterA = ""
+    LowdinParameters_dummyCharacterB = ""
+    LowdinParameters_dummyCharacterC = ""
+
+    !!***************************************************************************
     !! Parameter to control Integrals library
     !!  
     LowdinParameters_tv = 1.0E-6
@@ -1059,6 +1126,22 @@ contains
     !!***************************************************************************
     !!***************************************************************************
     !!***************************************************************************
+
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    CONTROL_instance%DUMMY_REAL_A = 0 
+    CONTROL_instance%DUMMY_REAL_B = 0
+    CONTROL_instance%DUMMY_REAL_C = 0
+    CONTROL_instance%DUMMY_INTEGER_A = 0
+    CONTROL_instance%DUMMY_INTEGER_B = 0
+    CONTROL_instance%DUMMY_INTEGER_C = 0
+    CONTROL_instance%DUMMY_LOGICAL_A = .false.
+    CONTROL_instance%DUMMY_LOGICAL_B = .false. 
+    CONTROL_instance%DUMMY_LOGICAL_C = .false.
+    CONTROL_instance%DUMMY_CHARACTER_A = ""
+    CONTROL_instance%DUMMY_CHARACTER_B = ""
+    CONTROL_instance%DUMMY_CHARACTER_C = ""
 
     !!***************************************************************************    
     !! Parameter to control Integrals library                       
@@ -1355,6 +1438,23 @@ contains
 
     end if
 
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    CONTROL_instance%DUMMY_REAL_A = LowdinParameters_dummyRealA
+    CONTROL_instance%DUMMY_REAL_B = LowdinParameters_dummyRealB
+    CONTROL_instance%DUMMY_REAL_C = LowdinParameters_dummyRealC
+    CONTROL_instance%DUMMY_INTEGER_A = LowdinParameters_dummyIntegerA
+    CONTROL_instance%DUMMY_INTEGER_B = LowdinParameters_dummyIntegerB
+    CONTROL_instance%DUMMY_INTEGER_C = LowdinParameters_dummyIntegerC
+    CONTROL_instance%DUMMY_LOGICAL_A = LowdinParameters_dummyLogicalA
+    CONTROL_instance%DUMMY_LOGICAL_B = LowdinParameters_dummyLogicalB
+    CONTROL_instance%DUMMY_LOGICAL_C = LowdinParameters_dummyLogicalC
+    CONTROL_instance%DUMMY_CHARACTER_A = LowdinParameters_dummyCharacterA
+    CONTROL_instance%DUMMY_CHARACTER_B = LowdinParameters_dummyCharacterB
+    CONTROL_instance%DUMMY_CHARACTER_C = LowdinParameters_dummyCharacterC
+
+
     !!***************************************************************************      
     !! Parameter to control Integrals library                                          
     !!                                                                                 
@@ -1614,6 +1714,22 @@ contains
     logical, optional :: firstStep
 
     !! Saving de control parameters on the name list.
+
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    LowdinParameters_dummyRealA = CONTROL_instance%DUMMY_REAL_A  
+    LowdinParameters_dummyRealB = CONTROL_instance%DUMMY_REAL_B  
+    LowdinParameters_dummyRealC = CONTROL_instance%DUMMY_REAL_C  
+    LowdinParameters_dummyIntegerA = CONTROL_instance%DUMMY_INTEGER_A  
+    LowdinParameters_dummyIntegerB = CONTROL_instance%DUMMY_INTEGER_B  
+    LowdinParameters_dummyIntegerC = CONTROL_instance%DUMMY_INTEGER_C  
+    LowdinParameters_dummyLogicalA = CONTROL_instance%DUMMY_LOGICAL_A  
+    LowdinParameters_dummyLogicalB = CONTROL_instance%DUMMY_LOGICAL_B  
+    LowdinParameters_dummyLogicalC = CONTROL_instance%DUMMY_LOGICAL_C  
+    LowdinParameters_dummyCharacterA = CONTROL_instance%DUMMY_CHARACTER_A  
+    LowdinParameters_dummyCharacterB = CONTROL_instance%DUMMY_CHARACTER_B  
+    LowdinParameters_dummyCharacterC = CONTROL_instance%DUMMY_CHARACTER_C  
 
     !!***************************************************************************      
     !! Parameter to control Integrals library                                          
@@ -1885,6 +2001,22 @@ contains
     type(CONTROL) :: this
     type(CONTROL) :: otherThis
     integer :: i
+
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    otherThis%DUMMY_REAL_A = this%DUMMY_REAL_A
+    otherThis%DUMMY_REAL_B = this%DUMMY_REAL_B
+    otherThis%DUMMY_REAL_C = this%DUMMY_REAL_C
+    otherThis%DUMMY_INTEGER_A = this%DUMMY_INTEGER_A
+    otherThis%DUMMY_INTEGER_B = this%DUMMY_INTEGER_B
+    otherThis%DUMMY_INTEGER_C = this%DUMMY_INTEGER_C
+    otherThis%DUMMY_LOGICAL_A = this%DUMMY_LOGICAL_A
+    otherThis%DUMMY_LOGICAL_B = this%DUMMY_LOGICAL_B
+    otherThis%DUMMY_LOGICAL_C = this%DUMMY_LOGICAL_C
+    otherThis%DUMMY_CHARACTER_A = this%DUMMY_CHARACTER_A
+    otherThis%DUMMY_CHARACTER_B = this%DUMMY_CHARACTER_B
+    otherThis%DUMMY_CHARACTER_C = this%DUMMY_CHARACTER_C
 
     !!*****************************************************
     !! Variables para control de integrales
