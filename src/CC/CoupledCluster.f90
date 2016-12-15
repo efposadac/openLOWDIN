@@ -544,7 +544,7 @@ contains
 
       !for the intra-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_intra)) deallocate(CoupledCluster_instance%CCSD_E_intra)
-      allocate(CoupledCluster_instance%CCSD_E_intra(num_species-(counterID-1)))
+      allocate(CoupledCluster_instance%CCSD_E_intra(num_species))
 
       !for the inter-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_inter)) deallocate(CoupledCluster_instance%CCSD_E_inter)
