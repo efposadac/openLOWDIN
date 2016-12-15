@@ -32,7 +32,7 @@ NOTE: For isotopes the columns are: massicnumber, atomicWeight, abundance and sp
 &ELEMENT
 	NAME = "HELIUM"
 	SYMBOL = "HE"
-	ATOMICNUMBER = 2
+	ATOMICNUMBER = 1
 	MASS = 4.002602
 	MELTINGPOINT = 0.95
 	BOILINGPOINT = 4.216
