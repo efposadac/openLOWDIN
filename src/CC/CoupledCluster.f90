@@ -44,7 +44,9 @@ module CoupledCluster_
       integer :: spintm_m
       integer :: times_intersp
       integer :: n_intersp(10), i_counterID(10), info_ispecies(20)
-      real(8) :: CCSD_ones_Energy
+      real(8) :: CCSD_once_Energy
+      real(8) :: CCSD_twice_Energy
+      real(8) :: CCSD_total_Energy
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy
       real(8) :: MP2_EnergyCorr
