@@ -246,7 +246,7 @@ private:
   std::vector<double> norma;
   Matrix compute_shellblock_norm(const Matrix &A);
 
- public:
+public:
   LibintInterface(const int stack_size, const int id, const bool el);
 
   ~LibintInterface() { libint2::finalize(); };
@@ -277,6 +277,11 @@ private:
       LibintInterface &other, const Matrix &D, const bool permuted,
       double precision = std::numeric_limits<double>::epsilon());
 
+  void compute_g12_disk(const char *filename,
+                                         const double *coefficients,
+                                         const double *exponents,
+                                         const int pot_size);
+
   std::vector<size_t> map_shell_to_basis_function();
 
   std::vector<libint2::Shell> get_shells() { return shells; };
@@ -295,7 +300,8 @@ extern "C" {
 /*
 Fortran interface routines.
 */
-LibintInterface *LibintInterface_new(const int stack_size, const int id, const bool el);
+LibintInterface *LibintInterface_new(const int stack_size, const int id,
+                                     const bool el);
 
 void LibintInterface_del(LibintInterface *lint);
 
@@ -326,8 +332,14 @@ void LibintInterface_compute_coupling_disk(LibintInterface *lint,
                                            LibintInterface *olint,
                                            const char *filename);
 
+void libintinterface_compute_g12_disk(LibintInterface *lint,
+                                      const char *filename,
+                                      const double *coefficients,
+                                      const double *exponents,
+                                      const int pot_size);
+
 void libintinterface_buildg12_(int *, int *, int *, int *, int *, int *,
-                                       lowdin_t *, double *);
+                               lowdin_t *, double *);
 
 void LibintInterface_setLibint(Libint_t *, lowdin_t *);
 
