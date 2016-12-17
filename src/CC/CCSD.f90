@@ -223,13 +223,20 @@ contains
       print*, "CCSD_init(", speciesId, ")"
       ! Denominator D^{a}_{i}
       do a=nop+1, noc
-         do i=1, nop
-            CCSDinit(speciesId)%Dai(a,i) = Allspecies(speciesId)%HF_fs%values(i,i) - Allspecies(speciesId)%HF_fs%values(a,a)
-            write(*,*) a,i,CCSDinit(speciesId)%Dai(a,i)
-         end do
+        do i=1, nop
+          CCSDinit(speciesId)%Dai(a,i) = Allspecies(speciesId)%HF_fs%values(i,i) - Allspecies(speciesId)%HF_fs%values(a,a)
+          if (CCSDinit(speciesId)%Dai(a-1,i)==0) then 
+            CCSDinit(speciesId)%Dai(a-1,i)=CCSDinit(speciesId)%Dai(a,i)
+          end if
+          ! write(*,*) a,i,CCSDinit(speciesId)%Dai(a,i)
+        end do
       end do
-
-
+      do a=nop+1, noc
+        do i=1, nop
+          write(*,*) a,i,CCSDinit(speciesId)%Dai(a,i)
+        end do
+      end do
+      
       ! call Vector_destructor (Allspecies(speciesId)%HF_ff)
       ! call Matrix_destructor (Allspecies(speciesId)%HF_fs)
       ! Loop to obtain T1 and T2 intermediates values
@@ -771,10 +778,10 @@ contains
                 r=ee
                 s=e
               end if
-
               CCSDloop(speciesId)%Fac(a-nop,e-nop) = CCSDloop(speciesId)%Fac(a-nop,e-nop) &
                 + ( 0.25*Allspecies(OtherspeciesId)%HF_fs%values(mm,ee)* &
                     spintm(n_sp)%valuesp(p,q,r,s)) ! check this
+              ! print*, "test OtherspeciesId: p=",p,", q=",q,", r=",r,", s=", s, " n_sp=", n_sp
 
               do m=1, nop
 
@@ -2305,8 +2312,8 @@ contains
       print*, "F_onespecies_intermediates(): "
       call F_onespecies_intermediates(speciesId)
       !doubles excitations
-      print*, "W_onespecies_intermediates(): "
       if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
+        print*, "W_onespecies_intermediates(): "
         call W_onespecies_intermediates(speciesId)
       end if
 
@@ -2335,7 +2342,7 @@ contains
 
       !change in values for the intra-species loop
       convergence = abs( ccsdE - prev_ccsdE )
-
+      print*, "Otherspecies Tssame: ", Allspecies(speciesId)%Tssame
       write (*,*) ccsdE, "CCSD Energy same species", prev_ccsdE, "previous Energy" 
       write (*,*) convergence, "Convergence " 
 
@@ -2394,13 +2401,13 @@ contains
 
       prev_ccsdE_int = e_ccsd
 
-      print*, "speciesId CCSD_loop: ", speciesId
+      print*, "speciesId: ", speciesId
 
       num_inter = CCSD_instance%num_i
       e_cont = CCSD_instance%e_cont
 
       ! call CCSD_constructor_inter(min, jj)
-      print*, "jj: ", OtherspeciesId
+      print*, "OtherspeciesId: ", OtherspeciesId
       call CCSD_T2AB_constructor(speciesId, OtherspeciesId, num_inter)
       call CCSD_loop_constructor_inter(speciesId, OtherspeciesId, num_inter)
 
@@ -2460,20 +2467,22 @@ contains
       call CCSD_T2_inter(speciesId, OtherspeciesId, num_inter)
       print*, "CCSD_T2_AB()"
       call CCSD_T2_AB(speciesId, OtherspeciesId, num_inter)
+      print*, "num_inter: ", num_inter
   
-      CCSD_instance%e_cont = e_cont
-      CCSD_instance%num_i = num_inter
-
       if (convergence > 100) then 
         stop "Error: There are not convergence. The differences between energies is more than 100 eV"
       end if
+
 
       CoupledCluster_instance%CCSD_E_inter(num_inter) = ccsdE_int
       CCSD_instance%convergence_diff(num_inter) = convergence
       
       num_inter = num_inter + 1!final
+      CCSD_instance%num_i = num_inter
       CCSD_instance%cont = CCSD_instance%cont + 1!final
+
       e_cont = e_cont + 1!final
+      CCSD_instance%e_cont = e_cont
 
   end subroutine CCSD_diff_species
 
@@ -2538,11 +2547,15 @@ contains
           if (times_i==0) then
             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit(speciesId)%Dai(a,i)
             Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
+            print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i)
+            print*, "Dai: ", CCSDinit(speciesId)%Dai(a,i)
           end if
           ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
         end do
       end do
       print*, "CCSD_T1"
+      ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai
+      ! print*, "Dai: ", CCSDinit(speciesId)%Dai
       !!$OMP END DO
       !!$OMP END PARALLEL
 
@@ -2681,7 +2694,7 @@ contains
       nops = Allspecies(OtherspeciesId)%nop
       n_sp = CCSD_instance%cont
 
-      write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_T1T2_inte: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
+      write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_T1T2_inter: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
       ! T^{a}_{i}D^{a}_{i} = ...
       do a=nop+1, noc
         do i=1, nop
@@ -2740,10 +2753,14 @@ contains
 
           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit(speciesId)%Dai(a,i)
           Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
+          print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i)
+          print*, "Dai: ", CCSDinit(speciesId)%Dai(a,i)
           ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
         end do
       end do
       print*, "nops 12"
+      ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai
+      ! print*, "Dai: ", CCSDinit(speciesId)%Dai
       
   end subroutine CCSD_T1_inter
 
@@ -2768,7 +2785,7 @@ contains
       nops = Allspecies(OtherspeciesId)%nop
       n_sp = CCSD_instance%cont
 
-      write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_T1T2_inte: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
+      write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_T1T2_inter: noc=", noc, "nocs=", nocs, "nop=", nop, "nops=", nops
 
       ! T^{ab}_{ij}D^{ab}_{ij} = ...
       do a=nop+1, noc
@@ -2855,7 +2872,6 @@ contains
                 CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
                   + 0.5*(Allspecies(speciesId)%Tssame(e-nop,i)* &
                       CCSDinter(speciesId)%Wcia(a-nop,bb-nops,e-nop,jj))
-
                 do mm=1, nops
 
                   if (speciesId<OtherspeciesId) then
@@ -3139,6 +3155,7 @@ contains
               ! \ddot{\tau} 
               Allinterspecies(speciesId)%tau(a-nop,bb-nops,i,jj) = Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
                 - Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)
+              
               ! \tilde{\tau} 
               Allinterspecies(speciesId)%intau(a-nop,bb-nops,i,jj) = Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
                 - 0.5*Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)
@@ -3166,7 +3183,7 @@ contains
                     do ii=1, nops
                       do k=1, nop
                         !  \check{\tau} triple excitation holy shit!!
-                        Allinterspecies(speciesId)%chtau_b(aa-nops,bb-nops,c-nop,ii,jj,k) = Allspecies(OtherspeciesId)%Tssame(aa-nops,ii)* &
+                        Allinterspecies(OtherspeciesId)%chtau_b(aa-nops,bb-nops,c-nop,ii,jj,k) = Allspecies(OtherspeciesId)%Tssame(aa-nops,ii)* &
                           Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)*Allspecies(speciesId)%Tssame(c-nop,k) &
                           + 0.5*( Allspecies(OtherspeciesId)%Tssame(aa-nops,ii)*Allinterspecies(speciesId)%Tdsame(c-nop,bb-nops,k,jj) &
                             + Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)*Allinterspecies(speciesId)%Tdsame(c-nop,aa-nops,k,ii) &
@@ -3175,6 +3192,7 @@ contains
                     end do
                   end do
                 end do
+                ! print*, "test CCSD_T2_AB"
               end if
 
               ! write(*,*) a,b,i,j,Allspecies(speciesId)%Tdsame(a,b,i,j),CCSDT1T2(speciesId)%Tabij_AB(a,b,i,j)
@@ -3246,10 +3264,12 @@ contains
       ! allocate array for many results by species in CCSD
       if (allocated(e_same_ccd)) deallocate(e_same_ccd)
       allocate(e_same_ccd(num_species))
+      e_same_ccd=0.0_8
 
       ! allocate array for many results by species in CCSD
       if (allocated(e_diff_ccd)) deallocate(e_diff_ccd)
       allocate(e_diff_ccd(num_inter))
+      e_diff_ccd=0.0_8
 
 
 
@@ -3263,7 +3283,7 @@ contains
         call CCSD_init(i)
         print*, "CCSD_init(i): ", i
       end do
-        
+
       do i=counterID, finalID!num_species
         
         !If there are interspecies?
@@ -3316,8 +3336,8 @@ contains
       do while (convergence >= 1.0D-8)
 
         do i=counterID, num_species
-          e_same_ccd(i) = CoupledCluster_instance%CCSD_E_intra(i)
           call CCSD_same_species(i,e_same_ccd(i))
+          e_same_ccd(i) = CoupledCluster_instance%CCSD_E_intra(i)
         end do
 
         if (times_i>0) then
@@ -3327,21 +3347,31 @@ contains
             CCSD_instance%e_cont = CCSD_instance%aux_cont
             max = CCSD_instance%max
             min = CCSD_instance%min
-            num_i = CCSD_instance%num_i
             do jj=min+1, max
-              e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
+              num_i = CCSD_instance%num_i
+              print*, "num_i: ", num_i 
+              print*, "e_cont: ", CCSD_instance%e_cont
               call CCSD_diff_species(i,jj,e_diff_ccd(num_i))
+              e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
               ! convergence_int = CCSD_instance%convergence_diff(num_i)
             end do
+            CCSD_instance%cont = CCSD_instance%aux_cont
+            CCSD_instance%e_cont = CCSD_instance%aux_cont
             do jj=min+1, max
-              e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
+              num_i = CCSD_instance%num_i
+              print*, "num_i: ", num_i
+              print*, "e_cont: ", CCSD_instance%e_cont
               call CCSD_diff_species(jj,i,e_diff_ccd(num_i))
+              e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
               ! convergence_int = CCSD_instance%convergence_diff(num_i)
             end do
           end do
         end if
         convergence = sum(CCSD_instance%convergence_same,dim=1) + & 
           sum(CCSD_instance%convergence_diff,dim=1)
+        print*, "Temporary convergence: ", convergence
+        print*, "Temporary total ccsd-apmo energy: ", sum(e_same_ccd, dim=1) + &
+          sum(e_diff_ccd, dim=1)
 
       end do
 
