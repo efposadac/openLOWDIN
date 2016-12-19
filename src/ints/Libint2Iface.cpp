@@ -13,8 +13,10 @@ efposadac@unal.edu.co
 LibintInterface class implementation
 */
 
-LibintInterface::LibintInterface(const int stack_size, const int id)
-    : max_nprim(0), nbasis(0), s_size(stack_size), max_l(0), speciesID(id) {
+LibintInterface::LibintInterface(const int stack_size, const int id,
+                                 const bool el)
+    : max_nprim(0), nbasis(0), s_size(stack_size), max_l(0), speciesID(id),
+      is_electron(el) {
   // set up thread pool
   {
     using libint2::nthreads;
@@ -204,7 +206,11 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
 
   using libint2::nthreads;
 
-  const auto do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  bool do_schwartz_screen = is_electron;
+  if (is_electron) {
+    do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  }
+
   Matrix D_shblk_norm; // matrix of infty-norms of shell blocks
   if (do_schwartz_screen) {
     D_shblk_norm = compute_shellblock_norm(D);
@@ -215,10 +221,17 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
   // engine precision controls primitive truncation, assume worst-casescenario
   // (all primitive combinations add up constructively)
   auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
-  auto engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
-                                   std::numeric_limits<double>::epsilon()) /
-                          max_nprim4;
 
+  auto engine_precision = 0.0;
+  if (do_schwartz_screen) {
+    engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
+                                std::numeric_limits<double>::epsilon()) /
+                       max_nprim4;
+  } else {
+    engine_precision =
+        std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+        max_nprim4;
+  }
   // construct the 2-electron repulsion integrals engine pool
   using libint2::Engine;
   std::vector<Engine> engines(nthreads);
@@ -394,7 +407,11 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
 
   std::vector<Matrix> G(nthreads, Matrix::Zero(n, n));
 
-  const auto do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  bool do_schwartz_screen = is_electron;
+  if (is_electron) {
+    do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  }
+
   Matrix D_shblk_norm; // matrix of infty-norms of shell blocks
   if (do_schwartz_screen) {
     D_shblk_norm = compute_shellblock_norm(D);
@@ -405,9 +422,17 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
   // engine precision controls primitive truncation, assume worst-casescenario
   // (all primitive combinations add up constructively)
   auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
-  auto engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
-                                   std::numeric_limits<double>::epsilon()) /
-                          max_nprim4;
+
+  auto engine_precision = 0.0;
+  if (do_schwartz_screen) {
+    engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
+                                std::numeric_limits<double>::epsilon()) /
+                       max_nprim4;
+  } else {
+    engine_precision =
+        std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+        max_nprim4;
+  }
 
   // construct the 2-electron repulsion integrals engine pool
   using libint2::Engine;
@@ -940,6 +965,176 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
   return B[0];
 }
 
+void LibintInterface::compute_g12_disk(const char *filename,
+                                       const double *coefficients,
+                                       const double *exponents,
+                                       const int pot_size) {
+
+  const auto nshells = shells.size();
+
+  using libint2::nthreads;
+
+  auto fock_precision = std::numeric_limits<double>::epsilon();
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // Setting CGTG params
+  std::vector<std::pair<double, double>> cgtg_params;
+  cgtg_params.reserve(pot_size);
+
+  for (int i = 0; i < pot_size; ++i) {
+    cgtg_params.push_back({exponents[i], coefficients[i]});
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::cgtg, max_nprim, max_l, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+  engines[0].set_params(cgtg_params);
+
+  // std::cout << "compute_2body_disk:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+  // setting buffers
+  using libint2::QuartetBuffer;
+  std::vector<QuartetBuffer> buffers(nthreads);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    std::string file = std::to_string(thread_id);
+    file += filename;
+
+    std::ofstream outfile;
+    outfile.open(file, std::ios::binary);
+
+    const auto &buf = engines[thread_id].results();
+    auto &engine = engines[thread_id];
+    auto &buffer = buffers[thread_id];
+
+    buffer.p.reserve(s_size);
+    buffer.q.reserve(s_size);
+    buffer.r.reserve(s_size);
+    buffer.s.reserve(s_size);
+    buffer.val.reserve(s_size);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    int counter = 0;
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (const auto &s2 : obs_shellpair_list[s1]) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto s3 = 0; s3 <= s1; ++s3) {
+          auto bf3_first = shell2bf[s3];
+          auto n3 = shells[s3].size();
+
+          const auto s4_max = (s1 == s3) ? s2 : s3;
+          for (const auto &s4 : obs_shellpair_list[s3]) {
+            if (s4 > s4_max)
+              break; // for each s3, s4 are stored in monotonically increasing
+                     // order
+
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto bf4_first = shell2bf[s4];
+            auto n4 = shells[s4].size();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute(shells[s1], shells[s2], shells[s3], shells[s4]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
+                                       bf3_first, bf4_first);
+
+            for (intIter.first(); intIter.is_done() == false; intIter.next()) {
+              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+                buffer.p[counter] = intIter.i() + 1;
+                buffer.q[counter] = intIter.j() + 1;
+                buffer.r[counter] = intIter.k() + 1;
+                buffer.s[counter] = intIter.l() + 1;
+                buffer.val[counter] = buf[0][intIter.index()] *
+                                      norma[intIter.i()] * norma[intIter.j()] *
+                                      norma[intIter.k()] * norma[intIter.l()];
+
+                // printf("\t(%2d %2d | %2d %2d) = %20.15f\n", buffer.p[counter],
+                //        buffer.q[counter], buffer.r[counter], buffer.s[counter], buffer.val[counter]);
+
+                ++num_ints_computed;
+                ++counter;
+              }
+
+              if (counter == s_size) {
+                write_buffer(buffer, s_size, outfile);
+                counter = 0;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    buffer.p[counter] = -1;
+    write_buffer(buffer, s_size, outfile);
+    outfile.close();
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for intra-species G12 integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  std::cout << " Number of unique integrals for species: " << speciesID << " = "
+            << num_ints_computed << std::endl;
+}
+
 /*
 Auxiliary functions
 */
@@ -1124,8 +1319,9 @@ __inline__ void write_buffer(const libint2::QuartetBuffer &buffer,
 Fortran interface
 */
 
-LibintInterface *LibintInterface_new(const int stack_size, const int id) {
-  return new LibintInterface(stack_size, id);
+LibintInterface *LibintInterface_new(const int stack_size, const int id,
+                                     const bool el) {
+  return new LibintInterface(stack_size, id, el);
   // printf("%s\n", "LibintInterface_new");
 }
 
@@ -1242,12 +1438,21 @@ void LibintInterface_compute_coupling_disk(LibintInterface *lint,
   lint->compute_coupling_disk(*olint, filename);
 }
 
-void libintinterface_buildg12_(int *nd, int *nc, int *nb, int *na,
-            int *max_am, int *size, lowdin_t *data,
-            double *output) {
+void libintinterface_compute_g12_disk(LibintInterface *lint,
+                                      const char *filename,
+                                      const double *coefficients,
+                                      const double *exponents,
+                                      const int pot_size) {
+
+  lint->compute_g12_disk(filename, coefficients, exponents, pot_size);
+}
+
+void libintinterface_buildg12_(int *nd, int *nc, int *nb, int *na, int *max_am,
+                               int *size, lowdin_t *data, double *output) {
+  printf("TEST CALCULATING:\n");
   Libint_t inteval;
 
-  LIBINT2_PREFIXED_NAME( libint2_init_r12kg12)(&inteval, *max_am, 0);
+  LIBINT2_PREFIXED_NAME(libint2_init_r12kg12)(&inteval, *max_am, 0);
 
   LibintInterface_setLibint(&inteval, data);
 
@@ -1256,10 +1461,10 @@ void libintinterface_buildg12_(int *nd, int *nc, int *nb, int *na,
   // Calculate integrals
   LIBINT2_PREFIXED_NAME(libint2_build_r12kg12)[*na][*nb][*nc][*nd](&inteval);
 
-  for (int i = 0; i <= *size - 1; ++i) {
+  for (int i = 0; i < *size; ++i) {
     output[i] = inteval.targets[0][i];
-    //     printf("output %d %d %d %d %f \n", *na, *nb, *nc, *nd,
-    //     inteval.targets[0][i]);
+    // printf("output %d %d %d %d %f \n", *na, *nb, *nc, *nd,
+    //        inteval.targets[0][i]);
   }
 
   //   this releases all memory that was allocated for this object
@@ -1448,7 +1653,7 @@ void LibintInterface_setLibint(Libint_t *erieval, lowdin_t *data) {
   erieval->R12kG12_pfac3_1[0] = data->R12kG12_pfac3_1;
 #endif
 
-// * WD2004, Eq. 30, prefactor in front of (a0|k-2|c0) 
+// * WD2004, Eq. 30, prefactor in front of (a0|k-2|c0)
 #if LIBINT2_DEFINED(eri, R12kG12_pfac4_0_x)
   erieval->R12kG12_pfac4_0_x[0] = data->R12kG12_pfac4_0_x;
 #endif
@@ -1590,5 +1795,5 @@ void LibintInterface_setLibint(Libint_t *erieval, lowdin_t *data) {
 #if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(16))
   erieval->LIBINT_T_SS_Km1G12_SS(16)[0] = data->LIBINT_T_SS_Km1G12_SS16;
 #endif
-  
+
 }

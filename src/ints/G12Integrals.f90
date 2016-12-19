@@ -251,9 +251,9 @@ contains
     sizeTotal = (totalNumberOfContractions *(totalNumberOfContractions + 1 ))/2
     sizeTotal = (sizeTotal *(sizeTotal + 1))/2
 
+    !Get potential ID
     do i=1, InterPotential_instance%ssize
-       if( String_getUppercase(trim(InterPotential_instance%Potentials(i)%specie))==trim(nameOfSpecie) .and. &
-            String_getUppercase(trim(InterPotential_instance%Potentials(i)%otherSpecie))==trim(nameOfSpecie)) then
+       if ( trim( MolecularSystem_instance%species(specieID)%symbol) == trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. trim( MolecularSystem_instance%species(specieID)%symbol) == trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie))) ) then
           potID=i
           exit
        end if
@@ -659,12 +659,16 @@ contains
 
                                   end if !!done by primitives
 
+                                  
                                   auxIntegrals = auxIntegrals + auxIntegralsB &
                                        * InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)%contractionCoefficients(potLength)
+
 
                                end do !! G12 length
                             end do!! done for potential
 
+
+                            
                             !!Normalize by primitive
                             m = 0
                             do ii = 1, contractions(aa)%numCartesianOrbital
@@ -682,6 +686,7 @@ contains
                                end do
                             end do !! done by cartesian of contractions 
 
+                            
                             auxIntegrals(1:arraySize) = auxIntegrals(1:arraySize) &
                                  * contractions(aa)%contractionCoefficients(pi) &
                                  * contractions(bb)%contractionCoefficients(pj) &
@@ -694,7 +699,6 @@ contains
                       end do !k
                    end do !j
                 end do !i   !! done by contractions
-
 
                 !!normalize by shell
                 m = 0
@@ -876,7 +880,7 @@ contains
     real(8), dimension(:), pointer :: temporalPtr
 
     real(8), allocatable :: auxIntegrals(:) !!array with permuted integrals aux!
-    real(8), allocatable :: auxIntegralsValue (:) !!array with permuted integrals
+    real(8), allocatable :: auxIntegralsB(:) !!array with permuted integrals
     real(8), allocatable :: integralsValue (:) !!array with permuted integrals
     real(8), allocatable :: incompletGamma(:) !!array with incomplete gamma integrals
 
@@ -892,11 +896,21 @@ contains
     type(ContractedGaussian), pointer :: contractionG12
     type(auxBasis) :: contractions(2)
     type(libint2), target :: primitiveQuartet !!Prim-quartet object needed by LIBINT
+    type(erisStack) :: eris
+
+    !! OpenMP related variables
+    character(50) :: fileid
+    integer :: nthreads
+    integer :: threadid
+    integer :: unitid
+    integer :: i1234
 
     procedure(LibintInterface_buildLibInt), pointer :: pBuild !!procedure to calculate eris on LIBINT
 
-    call cpu_time(startTime)
+    G12_ptr => G12Integrals_instance%libintG12
 
+    call cpu_time(startTime)
+    
     interSpecies = .true.
     couplingA = .false.
     couplingB = .false.
@@ -905,9 +919,36 @@ contains
     if(present(isCouplingA)) couplingA = isCouplingA
     if(present(isCouplingB)) couplingB = isCouplingB
 
+    !Get potential ID
+    do i=1, InterPotential_instance%ssize
+       if ( (trim(MolecularSystem_instance%species(specieID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(MolecularSystem_instance%species(otherSpecieID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            ) .or. &
+            (trim( MolecularSystem_instance%species(otherSpecieID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim( MolecularSystem_instance%species(specieID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            ) &
+            ) then
+          potID=i
+          exit
+       end if
+    end do
+
+    !$OMP PARALLEL default(private), shared(contractions, maxAngularMoment, numberOfPrimitives, numberOfContractions, otherNumberOfContractions, totalNumberOfContractions, otherTotalNumberOfContractions, labelsOfContractions, otherLabelsOfContractions, arraySize, sizeTotal, InterPotential_instance, nameOfSpecie, otherNameOfSpecie, potID, G12Integrals_instance, CONTROL_instance, MolecularSystem_instance, specieID, otherSpecieID, auxCounter)
+    
+    nthreads = OMP_GET_NUM_THREADS()
+    threadid =  OMP_GET_THREAD_NUM()
+    unitid = 400 + threadid
+
+    write(fileid,*) threadid
+    fileid = trim(adjustl(fileid))
+    
     !! open file for integrals
-    open(UNIT=34,FILE=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//"."//trim(otherNameOfSpecie)//".ints", &
-         STATUS='REPLACE', ACCESS='SEQUENTIAL', FORM='Unformatted')
+    open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//"."//trim(otherNameOfSpecie)//".ints", &
+         status='unknown', access='stream', form='unformatted')
 
     !! Get basisSet
     call MolecularSystem_getBasisSet(specieID, contractions(1)%contractions)
@@ -924,6 +965,10 @@ contains
     !! Libint constructor (just one time)
     maxAngularMoment = max(MolecularSystem_getMaxAngularMoment(specieID), MolecularSystem_getMaxAngularMoment(otherSpecieID))
     numberOfPrimitives = MolecularSystem_getTotalNumberOfContractions(specieID) + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+
+    i1234 = -1
+    G12_ptr => G12Integrals_instance%libIntG12
+
     if( .not. G12Integrals_isInstanced() ) then
        call G12Integrals_Constructor( maxAngularMoment, numberOfPrimitives)
     end if
@@ -932,10 +977,6 @@ contains
     arraySize = ((maxAngularMoment + 1)*(maxAngularMoment + 2))/2
 
     sizeTotal = ((totalNumberOfContractions *(totalNumberOfContractions + 1 ))/2) * ((otherTotalNumberOfContractions *(otherTotalNumberOfContractions + 1 ))/2)
-
-    !! Get contractions labels for integrals index
-    if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
-    allocate(labelsOfContractions(numberOfContractions))
 
     !! Get contractions labels for integrals index
     if (allocated(labelsOfContractions)) deallocate(labelsOfContractions)
@@ -963,22 +1004,22 @@ contains
     if(allocated(incompletGamma)) deallocate(incompletGamma)
     if(allocated(auxIntegrals)) deallocate(auxIntegrals)
     if(allocated(integralsValue)) deallocate(integralsValue)
-    if(allocated(auxIntegralsValue)) deallocate(integralsValue)
+    if(allocated(auxIntegralsB)) deallocate(auxIntegralsB)
     !if(allocated(buffer)) deallocate(buffer)
 
     allocate(integralsValue(arraySize* arraySize* arraySize* arraySize), &
-         auxIntegralsValue(arraySize* arraySize* arraySize* arraySize), &
+         auxIntegrals(arraySize* arraySize* arraySize * arraySize), &
+         auxIntegralsB(arraySize* arraySize* arraySize* arraySize), &
          incompletGamma(0:MaxAngularMoment*4))    
 
     counter = 0
     auxCounter = 0
 
-
-    eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE)=1
-    eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE)=1
-    eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE)=1
-    eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE)=1
-    eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)=1.0_8
+    allocate (eris%a(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            eris%b(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            eris%c(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            eris%d(CONTROL_instance%INTEGRAL_STACK_SIZE), &
+            eris%integrals(CONTROL_instance%INTEGRAL_STACK_SIZE))
 
     !!Start Calculating integrals for each shell
     do a = 1, numberOfContractions
@@ -986,7 +1027,12 @@ contains
           do r = 1 , otherNumberOfContractions
              do s = r,  otherNumberOfContractions
 
-                !! Total angular moment for this shell
+              i1234 = i1234 + 1
+              if ( mod(i1234, nthreads) /= threadid) cycle
+
+              !$OMP CRITICAL
+
+              !! Total angular moment for this shell
                 sumAngularMoment =  contractions(1)%contractions(a)%angularMoment + &
                      contractions(1)%contractions(b)%angularMoment + &
                      contractions(2)%contractions(r)%angularMoment + &
@@ -1139,23 +1185,26 @@ contains
                 integralsValue(1:arraySize) = 0.0_8
 
                 !! not-permuted loop
-                do potSize=1, size(InterPotential_instance%Potentials(potID)%gaussianComponents)
+                
+                do l = 1, contractions(otherSpecieID)%contractions(s)%length
+                   do k = 1, contractions(otherSpecieID)%contractions(r)%length
+                      do j = 1, contractions(specieID)%contractions(b)%length
+                         do i = 1, contractions(specieID)%contractions(a)%length
 
-                   auxIntegralsValue(1:arraySize) = 0.0_8
-                   contractionG12 => InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)
+                            auxIntegrals=0
 
-                   do potLength = 1, InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)%length
+                            do potSize=1, size(InterPotential_instance%Potentials(potID)%gaussianComponents)
 
-                      !! not-permuted loop
-                      do l = 1, contractions(otherSpecieID)%contractions(s)%length
-                         do k = 1, contractions(otherSpecieID)%contractions(r)%length
-                            do j = 1, contractions(specieID)%contractions(b)%length
-                               do i = 1, contractions(specieID)%contractions(a)%length
+                               !auxIntegralsB(1:arraySize) = 0.0_8
+                               contractionG12 => InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)
 
+                               do potLength = 1, InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)%length
+
+                                  !! not-permuted loop
 
                                   !!LIBINT2 PRIMQUARTET
 
-                                  zeta = contractions(pSpecieID)%contractions(aa)%orbitalExponents(pi) + contractions(pSpecieID)%contractions(bb)%orbitalExponents(pj)
+                                  zeta = contractions(pSpecieID)%contractions(aa)%orbitalExponents(pi) + contractions(pSpecieID)%contractions(bb)%orbitalExponents(pj) 
                                   eta = contractions(pOtherSpecieID)%contractions(rr)%orbitalExponents(pk) + contractions(pOtherSpecieID)%contractions(ss)%orbitalExponents(pl)
                                   rho  = (zeta * eta) / (zeta + eta) !Reduced exponent ABCD
 
@@ -1311,16 +1360,11 @@ contains
                                   G12_ptr%R12kG12_pfac3_0 = eta
                                   G12_ptr%R12kG12_pfac3_1 = zeta
 
-
-
-
-
-
                                   primitiveQuartet = G12Integrals_instance%libintG12
 
                                   if(arraySize == 1) then
 
-                                     auxIntegrals(1) = primitiveQuartet%LIBINT_T_SS_K0G12_SS_0
+                                     auxIntegralsB(1) = primitiveQuartet%LIBINT_T_SS_K0G12_SS_0
 
                                   else
 
@@ -1339,64 +1383,64 @@ contains
 
                                      integralsPtr => temporalPtr
 
-                                     auxIntegrals(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy
+                                     auxIntegralsB(1:arraySize) = integralsPtr(1:arraySize) !!it is to slow with pointer...! so.. copy
 
                                   end if !!done by primitives
 
-                                  !!Normalize by primitive
-                                  m = 0
-                                  do ii = 1, contr(pSpecieID,aa)%numCartesianOrbital
-                                     do jj = 1, contr(pSpecieID,bb)%numCartesianOrbital
-                                        do kk = 1, contr(pOtherSpecieID,rr)%numCartesianOrbital
-                                           do ll = 1, contr(pOtherSpecieID,ss)%numCartesianOrbital
-                                              m = m + 1
-                                              auxIntegrals(m) = auxIntegrals(m) &
-                                                   * contr(pSpecieID,aa)%primNormalization(pi,ii) &
-                                                   * contr(pSpecieID,bb)%primNormalization(pj,jj) &
-                                                   * contr(pOtherSpecieID,rr)%primNormalization(pk,kk) &
-                                                   * contr(pOtherSpecieID,ss)%primNormalization(pl,ll)
-                                           end do
-                                        end do
+                                  auxIntegrals = auxIntegrals + auxIntegralsB &
+                                       * InterPotential_instance%Potentials(potID)%gaussianComponents(potSize)%contractionCoefficients(potLength)  
+                                  
+                               end do !! G12 length
+                            end do!! done for potential
+
+                            !!Normalize by primitive
+                            m = 0
+                            do ii = 1, contr(pSpecieID,aa)%numCartesianOrbital
+                               do jj = 1, contr(pSpecieID,bb)%numCartesianOrbital
+                                  do kk = 1, contr(pOtherSpecieID,rr)%numCartesianOrbital
+                                     do ll = 1, contr(pOtherSpecieID,ss)%numCartesianOrbital
+                                        m = m + 1
+                                        auxIntegrals(m) = auxIntegrals(m) &
+                                             * contr(pSpecieID,aa)%primNormalization(pi,ii) &
+                                             * contr(pSpecieID,bb)%primNormalization(pj,jj) &
+                                             * contr(pOtherSpecieID,rr)%primNormalization(pk,kk) &
+                                             * contr(pOtherSpecieID,ss)%primNormalization(pl,ll)
                                      end do
-                                  end do !! done by primitives
-
-                                  auxIntegrals(1:arraySize) = auxIntegrals(1:arraySize) &
-                                       * contr(pSpecieID,aa)%contractionCoefficients(pi) &
-                                       * contr(pSpecieID,bb)%contractionCoefficients(pj) &
-                                       * contr(pOtherSpecieID,rr)%contractionCoefficients(pk) &
-                                       * contr(pOtherSpecieID,ss)%contractionCoefficients(pl)
-
-                                  integralsValue(1:arraySize) = integralsValue(1:arraySize) + auxIntegrals(1:arraySize)
-
+                                  end do
                                end do
-                            end do
-                         end do
-                      end do !!done by contractions
+                            end do !! done by primitives
 
-                   end do !! done by contraction plus potential length
+                            auxIntegrals(1:arraySize) = auxIntegrals(1:arraySize) &
+                                 * contr(pSpecieID,aa)%contractionCoefficients(pi) &
+                                 * contr(pSpecieID,bb)%contractionCoefficients(pj) &
+                                 * contr(pOtherSpecieID,rr)%contractionCoefficients(pk) &
+                                 * contr(pOtherSpecieID,ss)%contractionCoefficients(pl)
 
+                            integralsValue(1:arraySize) = integralsValue(1:arraySize) + auxIntegrals(1:arraySize)
 
-                   !!normalize by contraction
-                   m = 0
-                   do ii = 1,  contr(pSpecieID,aa)%numCartesianOrbital
-                      do jj = 1,  contr(pSpecieID,bb)%numCartesianOrbital
-                         do kk = 1,  contr(pOtherSpecieID,rr)%numCartesianOrbital
-                            do ll = 1, contr(pOtherSpecieID,ss)%numCartesianOrbital
-                               m = m + 1
-
-                               integralsValue(m) = integralsValue(m) &
-                                    * contr(pSpecieID,aa)%contNormalization(ii) &
-                                    * contr(pSpecieID,bb)%contNormalization(jj) &
-                                    * contr(pOtherSpecieID,rr)%contNormalization(kk) &
-                                    * contr(pOtherSpecieID,ss)%contNormalization(ll)
-                            end do
                          end do
                       end do
-                   end do !! done by cartesian of contractions
+                   end do
+                end do !!done by contractions
 
+                !!normalize by contraction
+                m = 0
+                do ii = 1,  contr(pSpecieID,aa)%numCartesianOrbital
+                   do jj = 1,  contr(pSpecieID,bb)%numCartesianOrbital
+                      do kk = 1,  contr(pOtherSpecieID,rr)%numCartesianOrbital
+                         do ll = 1, contr(pOtherSpecieID,ss)%numCartesianOrbital
+                            m = m + 1
 
-                end do!! done for potential
-
+                            integralsValue(m) = integralsValue(m) &
+                                 * contr(pSpecieID,aa)%contNormalization(ii) &
+                                 * contr(pSpecieID,bb)%contNormalization(jj) &
+                                 * contr(pOtherSpecieID,rr)%contNormalization(kk) &
+                                 * contr(pOtherSpecieID,ss)%contNormalization(ll)
+                         end do
+                      end do
+                   end do
+                end do !! done by cartesian of contractions
+                
 
                 !!write to disk
                 m = 0
@@ -1418,6 +1462,9 @@ contains
                                if(abs(integralsValue(m)) > 1.0D-10) then
 
                                   counter = counter + 1
+
+                                  !$OMP ATOMIC
+
                                   auxCounter = auxCounter + 1
 
                                   eris%a(counter) = pa
@@ -1431,7 +1478,8 @@ contains
 
                                if( counter == CONTROL_instance%INTEGRAL_STACK_SIZE ) then
 
-                                  write(34) eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                                  write(unitid) &
+                                       eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                        eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
                                        eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
@@ -1445,6 +1493,8 @@ contains
                    end do
                 end do !! Done write to disk
 
+                !$OMP END CRITICAL
+
              end do
              u=r+1
           end do
@@ -1457,12 +1507,18 @@ contains
     eris%d(counter+1) = -1
     eris%integrals(counter+1) = 0.0_8   
 
-    write(34) eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-         eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+    write(unitid) eris%a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%b(1:CONTROL_instance%INTEGRAL_STACK_SIZE),&
+         eris%c(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%d(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+         eris%integrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-    close(34)
+    close(unitid)
 
+    deallocate(eris%a, eris%b, eris%c, eris%d, eris%integrals)
     !deallocate(buffer)
+
+    !$OMP END PARALLEL
 
     call cpu_time(endTime)
 

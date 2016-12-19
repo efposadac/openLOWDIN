@@ -277,11 +277,12 @@ contains
     integer :: k
     integer :: l
     integer :: m
-    integer :: specieID
+    integer :: numberOfSpecies
+    integer :: state,numberOfStates
     real :: occupation
     integer :: occupationTotal
     logical :: wasPress
-    character(10) :: auxString
+    character(50) :: auxString
     character(10) :: symbol
     real(8) :: origin(3)
     real(8), allocatable :: charges(:)
@@ -289,9 +290,10 @@ contains
     type(Matrix) :: auxMatrix
     type(Vector) :: energyOfMolecularOrbital
     type(Matrix) :: coefficientsOfcombination
+    type(Matrix),allocatable :: fractionalOccupations(:)
     character(10),allocatable :: labels(:)
-    integer :: wfnUnit
-    character(50) :: wfnFile
+    integer :: wfnUnit, occupationsUnit
+    character(50) :: wfnFile, occupationsFile, fileName
     integer :: numberOfContractions
     character(50) :: arguments(20)
     character(19) , allocatable :: labelsOfContractions(:)
@@ -301,222 +303,259 @@ contains
     character(2) :: space
     integer :: totalNumberOfParticles, n
 
-    auxString="speciesName"
+    this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim("species-states")//".molden"
 
+    !     if ( CONTROL_instance%ARE_THERE_DUMMY_ATOMS ) then
+    !        auxString=MolecularSystem_getNameOfSpecie( 1 )
+    !        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"mol"
+    !        open(10,file=this%fileName,status='replace',action='write')
+    !        write (10,"(A)") "Hola soy un archivo de molden"
+    !        close(10)
+
+    !     else
+
+    localizationOfCenters=ParticleManager_getCartesianMatrixOfCentersOfOptimization()
+    auxMatrix=localizationOfCenters
+    allocate( labels( size(auxMatrix%values,dim=1) ) )
+    allocate( charges( size(auxMatrix%values,dim=1) ) )
+    labels=ParticleManager_getLabelsOfCentersOfOptimization()
+    charges=ParticleManager_getChargesOfCentersOfOptimization()
+    numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
+
+
+    
+    !! Check if there are CI fractional occupations or build the occupations vector
+    allocate(fractionalOccupations(numberOfSpecies))
+    
+    if (CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+       numberOfStates=CONTROL_instance%CI_STATES_TO_PRINT
+       occupationsUnit = 29
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+
+       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+       do l=1,numberOfSpecies
+          arguments(1) = "OCCUPATIONS"
+          arguments(2) = MolecularSystem_getNameOfSpecie( l )
+          fractionalOccupations(l)= Matrix_getFromFile(unit=occupationsUnit,&
+               rows=int(MolecularSystem_getTotalNumberOfContractions(l),4),&
+               columns=int(numberOfStates,4),&
+               arguments=arguments(1:2))
+       end do
+       close(occupationsUnit)     
+    else
+       numberOfStates=1
+       do l=1,numberOfSpecies
+          call Matrix_constructor( fractionalOccupations(l), int(MolecularSystem_getTotalNumberOfContractions(l),8), int(numberOfStates,8), 0.0_8)
+          do i=1, MolecularSystem_getOcupationNumber(l)
+             fractionalOccupations(l)%values(i,1)=1.0_8 * MolecularSystem_getLambda(l)
+          end do
+       end do
+    end if
+    
+
+    !! Open file for wavefunction                                                                                     
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
-!     if ( CONTROL_instance%ARE_THERE_DUMMY_ATOMS ) then
-!        auxString=MolecularSystem_getNameOfSpecie( 1 )
-!        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"mol"
-!        open(10,file=this%fileName,status='replace',action='write')
-!        write (10,"(A)") "Hola soy un archivo de molden"
-!        close(10)
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-!     else
+    do state=1,numberOfStates
+       do l=1,numberOfSpecies
 
-        localizationOfCenters=ParticleManager_getCartesianMatrixOfCentersOfOptimization()
-        auxMatrix=localizationOfCenters
-        allocate( labels( size(auxMatrix%values,dim=1) ) )
-        allocate( charges( size(auxMatrix%values,dim=1) ) )
-        labels=ParticleManager_getLabelsOfCentersOfOptimization()
-        charges=ParticleManager_getChargesOfCentersOfOptimization()
+          if (state .eq. 1) then
+             auxString=MolecularSystem_getNameOfSpecie( l )
+          else
+             write(auxString, "(I8)")  state
+             auxString=trim(MolecularSystem_getNameOfSpecie( l ))//"-"//trim( adjustl(auxString))
+          end if
+          
+          fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
 
-!! Open file for wavefunction                                                                                     
-        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+          totalNumberOfParticles = 0
 
+          open(10,file=fileName,status='replace',action='write')
+          write(10,"(A)") "[Molden Format]"
+          write(10,"(A)") "[Atoms] AU"
+          auxMatrix%values=0.0
+          j=0
+          do i=1, size(MolecularSystem_instance%species(l)%particles)
+             !              if ( trim(MolecularSystem_instance%species(l)%particles(i)%symbol) == trim(auxString) ) then
+             j=j+1
+             origin = MolecularSystem_instance%species(l)%particles(j)%origin 
+             auxMatrix%values(j,:)=origin
+             symbol=MolecularSystem_instance%species(l)%particles(j)%nickname
 
-        do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+             if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
+             if(scan(symbol,"[") /=0) symbol=symbol(scan(symbol,"[")+1:scan(symbol,"]")-1)
 
-     totalNumberOfParticles = 0
+             !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
 
-           auxString=MolecularSystem_getNameOfSpecie( l )
-           specieID = MolecularSystem_getSpecieID(auxString)
-           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
-           open(10,file=this%fileName,status='replace',action='write')
-           write(10,"(A)") "[Molden Format]"
-           write(10,"(A)") "[Atoms] AU"
-           auxMatrix%values=0.0
-           j=0
-           do i=1, size(MolecularSystem_instance%species(l)%particles)
-!              if ( trim(MolecularSystem_instance%species(l)%particles(i)%symbol) == trim(auxString) ) then
-                 j=j+1
-                 origin = MolecularSystem_instance%species(l)%particles(j)%origin 
-                 auxMatrix%values(j,:)=origin
-                 symbol=MolecularSystem_instance%species(l)%particles(j)%nickname
-
-                 if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
-                 if(scan(symbol,"[") /=0) symbol=symbol(scan(symbol,"[")+1:scan(symbol,"]")-1)
-
-!                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
-
-    totalNumberOfParticles = totalNumberOfParticles + 1
+             totalNumberOfParticles = totalNumberOfParticles + 1
 #ifdef intel
-                 write (10,"(A,I,I,<3>F15.8)") trim(symbol), j,&
-                      int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), origin(1), origin(2), origin(3)
+             write (10,"(A,I,I,<3>F15.8)") trim(symbol), j,&
+                  int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), origin(1), origin(2), origin(3)
 #else
 
-                 write (10,"(A,I8,I8,3F15.8)") trim(symbol), j,&
-                      int(abs(MolecularSystem_instance%species(l)%particles(j)%charge)), origin(1), origin(2), origin(3)
+             write (10,"(A,I8,I8,3F15.8)") trim(symbol), j,&
+                  int(abs(MolecularSystem_instance%species(l)%particles(j)%charge)), origin(1), origin(2), origin(3)
 #endif
 
-!                end if
-              end do
+             !                end if
+          end do
 
-           m=j
-           do k=1,size(localizationOfCenters%values,dim=1)
+          m=j
+          do k=1,size(localizationOfCenters%values,dim=1)
 
-              wasPress=.false.
-              do i=1,j
-                 if(  abs( auxMatrix%values(i,1) - localizationOfCenters%values(k,1)) < 1.0D-9 .and. &
-                      abs( auxMatrix%values(i,2) - localizationOfCenters%values(k,2)) < 1.0D-9 .and. &
-                      abs( auxMatrix%values(i,3) - localizationOfCenters%values(k,3)) < 1.0D-9  ) then
-                    wasPress=.true.
-                 end if
-              end do
+             wasPress=.false.
+             do i=1,j
+                if(  abs( auxMatrix%values(i,1) - localizationOfCenters%values(k,1)) < 1.0D-9 .and. &
+                     abs( auxMatrix%values(i,2) - localizationOfCenters%values(k,2)) < 1.0D-9 .and. &
+                     abs( auxMatrix%values(i,3) - localizationOfCenters%values(k,3)) < 1.0D-9  ) then
+                   wasPress=.true.
+                end if
+             end do
 
-              if( .not.wasPress) then
-                 m=m+1
+             if( .not.wasPress) then
+                m=m+1
 
-    totalNumberOfParticles = totalNumberOfParticles + 1
-                 origin=localizationOfCenters%values(k,:)
-!                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
-                 symbol=labels(k)
-                 if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
+                totalNumberOfParticles = totalNumberOfParticles + 1
+                origin=localizationOfCenters%values(k,:)
+                !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
+                symbol=labels(k)
+                if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
 #ifdef intel
-                 write (10,"(A,I,I,<3>F15.8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
+                write (10,"(A,I,I,<3>F15.8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
 #else
-                 write (10,"(A,I8,I8,3F15.8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
+                write (10,"(A,I8,I8,3F15.8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
 #endif
-              end if
+             end if
 
-           end do
+          end do
 
-!          print *, "totalNumberOfParticles ", totalNumberOfParticles
-!         print *, "particles for specie", size(MolecularSystem_instance%species(l)%particles)
+          !          print *, "totalNumberOfParticles ", totalNumberOfParticles
+          !         print *, "particles for specie", size(MolecularSystem_instance%species(l)%particles)
 
-           write(10,"(A)") "[GTO]"
-           j=0
-           do i=1,size(MolecularSystem_instance%species(l)%particles)
+          write(10,"(A)") "[GTO]"
+          j=0
+          do i=1,size(MolecularSystem_instance%species(l)%particles)
 
-!              if ( trim(MolecularSystem_instance%species(l)%particles(i)%symbol) == trim(auxString) ) then
-                 j=j+1
+             !              if ( trim(MolecularSystem_instance%species(l)%particles(i)%symbol) == trim(auxString) ) then
+             j=j+1
 
-                 write(10,"(I3,I2)") j,0
-                 call BasisSet_showInSimpleForm( MolecularSystem_instance%species(l)%particles(i)%basis,&
-                      trim(MolecularSystem_instance%species(l)%particles(i)%nickname),10 )
-                 write(10,*) ""
+             write(10,"(I3,I2)") j,0
+             call BasisSet_showInSimpleForm( MolecularSystem_instance%species(l)%particles(i)%basis,&
+                  trim(MolecularSystem_instance%species(l)%particles(i)%nickname),10 )
+             write(10,*) ""
 
-    if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+             if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
 
-      do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-        write(10,"(I3,I2)") j+n,0
-        write(10,"(A,I1,F5.2)") "s  ",1,1.00
-        write(10,"(ES19.10,ES19.10)") 0.00,0.00
-        write(10,*) ""
-      end do 
-    end if
-!              end if
+                do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+                   write(10,"(I3,I2)") j+n,0
+                   write(10,"(A,I1,F5.2)") "s  ",1,1.00
+                   write(10,"(ES19.10,ES19.10)") 0.00,0.00
+                   write(10,*) ""
+                end do
+             end if
+             !              end if
 
-           end do
+          end do
 
-           write(10,"(A)") "[MO]"
+          write(10,"(A)") "[MO]"
 
-           specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
-           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
-           arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
-           occupationTotal=MolecularSystem_getOcupationNumber( specieID )
-           occupation =1.0/MolecularSystem_instance%species(specieID)%particlesFraction
+          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(l)
+          arguments(2) = MolecularSystem_getNameOfSpecie(l)
+          occupationTotal=MolecularSystem_getOcupationNumber(l)
+          occupation =1.0/MolecularSystem_instance%species(l)%particlesFraction
 
 
-           arguments(1) = "COEFFICIENTS"
-           coefficientsOfcombination = &
-                Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          arguments(1) = "COEFFICIENTS"
+          coefficientsOfcombination = &
+               Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-           arguments(1) = "ORBITALS"
-           call Vector_getFromFile( elementsNum = numberOfContractions, &
-                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
-                output = energyOfMolecularOrbital )
+          arguments(1) = "ORBITALS"
+          call Vector_getFromFile( elementsNum = numberOfContractions, &
+               unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+               output = energyOfMolecularOrbital )
 
-           !! Build a vector of labels of contractions
-     if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
-           allocate(labelsOfContractions(numberOfContractions))
+          !! Build a vector of labels of contractions
+          if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+          allocate(labelsOfContractions(numberOfContractions))
 
-           labelsOfContractions =  MolecularSystem_getlabelsofcontractions( specieID )
+          labelsOfContractions =  MolecularSystem_getlabelsofcontractions(l)
 
-           !! Swap some columns according to the molden format
-           do k=1,size(coefficientsOfCombination%values,dim=1)
-    !! Take the shellcode
-                read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+          !! Swap some columns according to the molden format
+          do k=1,size(coefficientsOfCombination%values,dim=1)
+             !! Take the shellcode
+             read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
 
-    !! Reorder the D functions
-                !! counter:  1,  2,  3,  4,  5,  6
-                !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
-                !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
-                !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
-                !!  2-4, 3-5, 5-6
+             !! Reorder the D functions
+             !! counter:  1,  2,  3,  4,  5,  6
+             !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+             !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+             !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+             !!  2-4, 3-5, 5-6
 
-    if ( shellcode == "Dxx" ) then 
-        auxcounter = counter
-        !! Swap XY and YY
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
-        !! Swap XZ and ZZ
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
-        !! Swap YZ and XZ'
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
-                end if
+             if ( shellcode == "Dxx" ) then 
+                auxcounter = counter
+                !! Swap XY and YY
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+                !! Swap XZ and ZZ
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+                !! Swap YZ and XZ'
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+             end if
 
-    !! Reorder the F functions
-                !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
-                !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
-                !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+             !! Reorder the F functions
+             !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+             !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+             !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
 
-              if ( shellcode == "Fxxx" ) then 
-        auxcounter = counter
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+             if ( shellcode == "Fxxx" ) then 
+                auxcounter = counter
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
 
-                end if
+             end if
 
-      end do
+          end do
 
-              !Aqui termina de modificar laura
+          !Aqui termina de modificar laura
 
-     
-           do j=1,size(energyOfMolecularOrbital%values)
-              write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital%values(j)
+          do j=1,size(energyOfMolecularOrbital%values)
+             write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital%values(j)
 
-              write (10,"(A11)") "Spin= Alpha"
+             write (10,"(A11)") "Spin= Alpha"
 
-              if ( j <= occupationTotal) then 
-                 write (10,"(A,F7.4)") "Occup= ",occupation
-              else
-                 write (10,"(A)") "Occup=0.0000"
-              end if
-              do k=1,size(coefficientsOfCombination%values,dim=1)
-                 write(10,"(I4,F15.6)") k,coefficientsOfCombination%values(k,j)
-              end do
+             occupation=fractionalOccupations(l)%values(j,state)
+             
+             write (10,"(A,F7.4)") "Occup= ",occupation
 
-    if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
-      do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-                    write(10,"(I4,F15.6)") k-1+n,0.0_8
-      end do
-    end if
+             do k=1,size(coefficientsOfCombination%values,dim=1)
+                write(10,"(I4,F15.6)") k,coefficientsOfCombination%values(k,j)
+             end do
 
-           end do
+             !FELIX: PROBANDO
+             ! if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+             !    do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+             !       write(10,"(I4,F15.6)") k-1+n,0.0_8
+             !    end do
+             ! end if
 
-           close(10)
-        end do
+          end do
 
-        call Matrix_destructor( localizationOfCenters )
-        call Matrix_destructor( auxMatrix )
-        deallocate(labels)
+          close(10)
+       end do
+    end do
 
-!     end if
+    call Matrix_destructor( localizationOfCenters )
+    call Matrix_destructor( auxMatrix )
+    deallocate(labels)
+
+    !     end if
 
   end subroutine OutputBuilder_writeMoldenFile
 

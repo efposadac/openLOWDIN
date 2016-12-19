@@ -26,6 +26,8 @@
 module Libint2Interface_
   use, intrinsic :: iso_c_binding
   use MolecularSystem_
+  use InterPotential_
+  use ContractedGaussian_
   ! use Matrix_
 
   implicit none
@@ -162,13 +164,14 @@ module Libint2Interface_
   !!Interface to libint_iface.cpp
   interface
 
-     function c_LibintInterface_new (stack_size, id) result(this) bind(C,name="LibintInterface_new")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       integer(c_int), value :: stack_size
-       integer(c_int), value :: id
-       type(c_ptr) :: this
-     end function c_LibintInterface_new
+    function c_LibintInterface_new (stack_size, id, el) result(this) bind(C,name="LibintInterface_new")
+     use, intrinsic :: iso_c_binding
+     implicit none
+     integer(c_int), value :: stack_size
+     integer(c_int), value :: id
+     logical(c_bool), value :: el
+     type(c_ptr) :: this
+    end function c_LibintInterface_new
 
      subroutine c_LibintInterface_del(this) bind(C, name="LibintInterface_del")
        use, intrinsic :: iso_c_binding
@@ -243,6 +246,17 @@ module Libint2Interface_
        character(c_char) :: filename(*)
      end subroutine c_LibintInterface_computeCouplingDisk
 
+     subroutine c_LibintInterface_computeG12Disk(this, filename, coefficients, exponents, pot_size) bind(C, name="libintinterface_compute_g12_disk")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: this        
+       character(c_char) :: filename(*)
+       type(c_ptr), value :: coefficients
+       type(c_ptr), value :: exponents
+       integer(c_int), value :: pot_size
+
+     end subroutine c_LibintInterface_computeG12Disk
+
   end interface
 
   type(Libint2Interface), allocatable, dimension(:) :: Libint2Instance
@@ -267,7 +281,8 @@ contains
     integer :: p, c
 
     ! Create Libint object
-    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID)
+    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID, &
+                  MolecularSystem_instance%species(speciesID)%isElectron)
 
     ! Iterate over particles
     do p = 1, size(MolecularSystem_instance%species(speciesID)%particles)
@@ -541,5 +556,65 @@ contains
          Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, filename)
 
   end subroutine Libint2Interface_compute2BodyInterSpecies_disk
+
+
+ !>
+  !! Compute 2-body integrals and store them on disk
+  subroutine Libint2Interface_computeG12Intraspecies_disk(speciesID)
+    implicit none
+
+    integer :: speciesID
+
+    character(50) :: filename, nameOfSpecies
+    integer :: nspecies
+    integer :: i, potID, pot_size
+
+    real(8), allocatable, target :: coefficients(:)
+    real(8), allocatable, target :: exponents(:)
+
+    type(ContractedGaussian), pointer :: contractionG12
+    type(c_ptr) :: coefficients_ptr
+    type(c_ptr) :: exponents_ptr
+
+    nspecies = size(MolecularSystem_instance%species)
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    !! Get potentials
+    nameOfSpecies = trim(MolecularSystem_getNameOfSpecie(speciesID))
+
+    do i=1, InterPotential_instance%ssize
+       if( String_getUppercase(trim(InterPotential_instance%Potentials(i)%specie))==trim(nameOfSpecies) .and. &
+            String_getUppercase(trim(InterPotential_instance%Potentials(i)%otherSpecie))==trim(nameOfSpecies)) then
+          potID=i
+          exit
+       end if
+    end do
+
+    pot_size = size(InterPotential_instance%Potentials(potID)%gaussianComponents)
+    allocate(coefficients(pot_size), exponents(pot_size))
+
+    do i=1, pot_size
+       contractionG12 => InterPotential_instance%Potentials(potID)%gaussianComponents(i)
+       exponents(i) = contractionG12%orbitalExponents(1)
+       coefficients(i) = contractionG12%contractionCoefficients(1)
+    end do
+
+    coefficients_ptr = c_loc(coefficients(1))
+    exponents_ptr = c_loc(exponents(1))
+
+    !! filename for integrals
+    filename = C_CHAR_""//trim(MolecularSystem_instance%species(speciesID)%name)//".ints"//C_NULL_CHAR
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    end if
+
+    call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
+    call c_LibintInterface_computeG12Disk(Libint2Instance(speciesID)%this, filename, coefficients_ptr, exponents_ptr, pot_size)
+
+  end subroutine Libint2Interface_computeG12Intraspecies_disk
 
 end module Libint2Interface_

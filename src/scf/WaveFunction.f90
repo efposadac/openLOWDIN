@@ -295,7 +295,7 @@ contains
              buildmatrix : do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
                 if( ss(i) == -1 ) exit loadintegrals
-                ! print*, ss(i), rr(i),  bb(i), aa(i), shellIntegrals(i)
+                print*, ss(i), rr(i),  bb(i), aa(i), shellIntegrals(i)
                 coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i)) * shellIntegrals(i)
 
                 !!*****************************************************************************

@@ -1,4 +1,4 @@
-!!******************************************************************************
+!******************************************************************************
 !!	This code is part of LOWDIN Quantum chemistry package                 
 !!	
 !!	this program has been developed under direction of:
@@ -97,6 +97,7 @@ module ConfigurationInteraction_
        ConfigurationInteraction_getTotalEnergy, &
        ConfigurationInteraction_run, &
        ConfigurationInteraction_diagonalize, &
+       ConfigurationInteraction_naturalOrbitals, &
        ConfigurationInteraction_show
 
   private
@@ -1219,9 +1220,11 @@ contains
     implicit none
     type(ConfigurationInteraction) :: this
     integer :: i
-    integer :: m
     real(8) :: davidsonCorrection, HFcoefficient, CIcorrection
- 
+    integer numberOfSpecies
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
     if ( ConfigurationInteraction_instance%isInstanced ) then
 
        print *,""
@@ -1263,15 +1266,102 @@ contains
 
        end if
 
-       ! do i=1, ConfigurationInteraction_instance%numberOfConfigurations
-       !    call Configuration_show (ConfigurationInteraction_instance%configurations(i))
-       ! end do
-
     else 
 
     end if
 
   end subroutine ConfigurationInteraction_show
+
+
+  !FELIX IS HERE
+  subroutine ConfigurationInteraction_naturalOrbitals()
+    implicit none
+    type(ConfigurationInteraction) :: this
+    integer :: i
+    integer :: unit
+    character(50) :: file, speciesName
+    character(50) :: arguments(2)
+    integer :: state, specie, orbital, index
+    real(8) :: davidsonCorrection, HFcoefficient, CIcorrection, sumaprueba
+    type(matrix), allocatable :: ciOccupationNumbers(:)
+    integer numberOfSpecies
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    if ( ConfigurationInteraction_instance%isInstanced .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+
+       print *,""
+       print *," FRACTIONAL ORBITAL OCCUPATIONS"
+       print *,"=============================="
+       print *,"column: state, row: orbital"
+       print *,""
+
+       !! Open file - to print natural orbitals
+       unit = 29
+
+       file = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+       open(unit = unit, file=trim(file), status="new", form="formatted")
+       
+       allocate (ciOccupationNumbers(numberOfSpecies))
+       
+       do specie=1, numberOfSpecies
+
+          speciesName = MolecularSystem_getNameOfSpecie(specie)
+          !Inicializando la matriz
+
+          call Matrix_constructor ( ciOccupationNumbers(specie) , int(ConfigurationInteraction_instance%numberOfOrbitals%values(specie),8) , int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
+          
+          do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
+             do orbital=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie))
+                ciOccupationNumbers(specie)%values(orbital,state)=1.0
+             end do
+          end do
+          
+          do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
+             do i=1, ConfigurationInteraction_instance%numberOfConfigurations
+
+                if ( ConfigurationInteraction_instance%configurations(i)%order%values(specie) > 0 ) then
+
+                   ! Occupied orbitals
+                   do index=1, size( ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,1,:))
+                      orbital=ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,1,index)
+                      ciOccupationNumbers(specie)%values(orbital,state)=ciOccupationNumbers(specie)%values(orbital,state)-ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                   end do
+
+                   ! Unoccupied orbitals
+                   do index=1, size( ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,2,:))
+                      orbital=ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,2,index)
+                      ciOccupationNumbers(specie)%values(orbital,state)= ciOccupationNumbers(specie)%values(orbital,state)+ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                   end do
+                   
+                   ! call Configuration_show(ConfigurationInteraction_instance%configurations(i))
+                end if
+             end do
+                      
+          end do
+
+          write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecie(specie)),"OCCUPATIONS:"
+
+          call Matrix_show ( ciOccupationNumbers(specie) )
+
+          arguments(1) = "OCCUPATIONS"
+          arguments(2) = speciesName
+
+          call Matrix_writeToFile ( ciOccupationNumbers(specie), 29, arguments=arguments )
+          
+          call Matrix_destructor(ciOccupationNumbers(specie))
+
+       end do
+          
+       close(29)
+
+    end if
+
+
+
+  end subroutine ConfigurationInteraction_naturalOrbitals
+
+
 
   !>
   !! @brief Muestra informacion del objeto
@@ -1809,8 +1899,7 @@ contains
        call ConfigurationInteraction_exception( ERROR, "Configuration interactor constructor", "Correction level not implemented")
 
     end select
-
-
+    
   end subroutine ConfigurationInteraction_run
 
 
@@ -1894,7 +1983,7 @@ contains
         end do !! species
 
         !do c = 1,  ConfigurationInteraction_instance%numberOfConfigurations 
-        !   call Configuration_show(  ConfigurationInteraction_instance%configurations(c) )
+        !   call Configuration_sho(w  ConfigurationInteraction_instance%configurations(c) )
         !end do 
 
 !!! Working!! but checktwoConfigurations was commentted

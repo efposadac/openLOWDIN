@@ -214,7 +214,8 @@ Program Ints
      !! intra-species G12 integration
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
         !!Calculate repulsion integrals (intra-species)
-        call G12Integrals_diskIntraSpecie(speciesID)
+
+        call Libint2Interface_computeG12Intraspecies_disk(speciesID)
      end do
 
      !stop time
