@@ -88,7 +88,7 @@ module CoupledCluster_
   ! for same species
   type(CoupledCluster), allocatable :: Allspecies(:)
   ! for different species
-  type(CoupledCluster), allocatable :: Allinterspecies(:)
+  type(CoupledCluster), public, allocatable :: Allinterspecies(:)
   type(TensorCC), public :: TensorCC_instance
   !values in a array of arrays of single species <ab||ij> a,b,i,j are alpha species
   type(TensorCC), allocatable :: spints(:)
