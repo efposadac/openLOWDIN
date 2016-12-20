@@ -327,7 +327,7 @@ contains
     !! Check if there are CI fractional occupations or build the occupations vector
     allocate(fractionalOccupations(numberOfSpecies))
     
-    if (CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
        numberOfStates=CONTROL_instance%CI_STATES_TO_PRINT
        occupationsUnit = 29
        occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
