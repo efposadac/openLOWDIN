@@ -278,6 +278,11 @@ public:
       double precision = std::numeric_limits<double>::epsilon());
 
   void compute_g12_disk(const char *filename,
+			                 const double *coefficients,
+                                         const double *exponents,
+                                         const int pot_size);
+
+  void compute_g12inter_disk(LibintInterface &other, const char *filename,
                                          const double *coefficients,
                                          const double *exponents,
                                          const int pot_size);
@@ -337,7 +342,14 @@ void libintinterface_compute_g12_disk(LibintInterface *lint,
                                       const double *coefficients,
                                       const double *exponents,
                                       const int pot_size);
+void libintinterface_compute_g12inter_disk(LibintInterface *lint,
+				      LibintInterface *olint,
+                                      const char *filename,
+                                      const double *coefficients,
+                                      const double *exponents,
+                                      const int pot_size);
 
+  
 void libintinterface_buildg12_(int *, int *, int *, int *, int *, int *,
                                lowdin_t *, double *);
 

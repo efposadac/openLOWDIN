@@ -256,6 +256,18 @@ module Libint2Interface_
        integer(c_int), value :: pot_size
 
      end subroutine c_LibintInterface_computeG12Disk
+     
+     subroutine c_LibintInterface_computeG12InterDisk(this, othis, filename, coefficients, exponents, pot_size) bind(C, name="libintinterface_compute_g12inter_disk")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: this        
+       type(c_ptr), value :: othis        
+       character(c_char) :: filename(*)
+       type(c_ptr), value :: coefficients
+       type(c_ptr), value :: exponents
+       integer(c_int), value :: pot_size
+
+     end subroutine c_LibintInterface_computeG12InterDisk
 
   end interface
 
@@ -565,7 +577,7 @@ contains
 
     integer :: speciesID
 
-    character(50) :: filename, nameOfSpecies
+    character(50) :: filename
     integer :: nspecies
     integer :: i, potID, pot_size
 
@@ -581,12 +593,12 @@ contains
        allocate(Libint2Instance(nspecies))  
     endif
 
-    !! Get potentials
-    nameOfSpecies = trim(MolecularSystem_getNameOfSpecie(speciesID))
-
+    !Get potential ID
     do i=1, InterPotential_instance%ssize
-       if( String_getUppercase(trim(InterPotential_instance%Potentials(i)%specie))==trim(nameOfSpecies) .and. &
-            String_getUppercase(trim(InterPotential_instance%Potentials(i)%otherSpecie))==trim(nameOfSpecies)) then
+       if ( trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie))) ) then
           potID=i
           exit
        end if
@@ -616,5 +628,79 @@ contains
     call c_LibintInterface_computeG12Disk(Libint2Instance(speciesID)%this, filename, coefficients_ptr, exponents_ptr, pot_size)
 
   end subroutine Libint2Interface_computeG12Intraspecies_disk
+
+  !! Compute 2-body integrals and store them on disk
+  subroutine Libint2Interface_computeG12Interspecies_disk(speciesID,otherSpeciesID)
+    implicit none
+
+    integer :: speciesID, otherSpeciesID
+
+    character(50) :: filename
+    integer :: nspecies
+    integer :: i, potID, pot_size
+
+    real(8), allocatable, target :: coefficients(:)
+    real(8), allocatable, target :: exponents(:)
+
+    type(ContractedGaussian), pointer :: contractionG12
+    type(c_ptr) :: coefficients_ptr
+    type(c_ptr) :: exponents_ptr
+
+    nspecies = size(MolecularSystem_instance%species)
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    !Get potential ID
+    do i=1, InterPotential_instance%ssize
+       if ( (trim(MolecularSystem_instance%species(speciesID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(MolecularSystem_instance%species(otherSpeciesID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            ) .or. &
+            (trim( MolecularSystem_instance%species(otherSpeciesID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            ) &
+            ) then
+          potID=i
+          exit
+       end if
+    end do
+
+    pot_size = size(InterPotential_instance%Potentials(potID)%gaussianComponents)
+    allocate(coefficients(pot_size), exponents(pot_size))
+
+    do i=1, pot_size
+       contractionG12 => InterPotential_instance%Potentials(potID)%gaussianComponents(i)
+       exponents(i) = contractionG12%orbitalExponents(1)
+       coefficients(i) = contractionG12%contractionCoefficients(1)
+    end do
+
+    coefficients_ptr = c_loc(coefficients(1))
+    exponents_ptr = c_loc(exponents(1))
+
+    !! filename for integrals
+    filename = C_CHAR_""//trim(MolecularSystem_instance%species(speciesID)%name)//"."&
+         //trim(MolecularSystem_instance%species(otherSpeciesID)%name)//".ints"//C_NULL_CHAR
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
+    endif
+
+    
+    call c_LibintInterface_computeG12InterDisk(&
+         Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, filename, coefficients_ptr, exponents_ptr, pot_size)
+
+    
+  end subroutine Libint2Interface_computeG12Interspecies_disk
+
+
 
 end module Libint2Interface_

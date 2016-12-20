@@ -231,8 +231,10 @@ Program Ints
         do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
           do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
 
-            call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecie(i)), &
-              trim(MolecularSystem_getNameOfSpecie(j)), i, j)
+             call Libint2Interface_computeG12Interspecies_disk(i, j)
+        
+             ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecie(i)), &
+             !  trim(MolecularSystem_getNameOfSpecie(j)), i, j)
 
           end do
         end do

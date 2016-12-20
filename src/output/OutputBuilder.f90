@@ -324,6 +324,35 @@ contains
 !! Open file for wavefunction                                                                                     
         open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
+    
+    !! Check if there are CI fractional occupations or build the occupations vector
+    allocate(fractionalOccupations(numberOfSpecies))
+    
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+       numberOfStates=CONTROL_instance%CI_STATES_TO_PRINT
+       occupationsUnit = 29
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+
+       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+       do l=1,numberOfSpecies
+          arguments(1) = "OCCUPATIONS"
+          arguments(2) = MolecularSystem_getNameOfSpecie( l )
+          fractionalOccupations(l)= Matrix_getFromFile(unit=occupationsUnit,&
+               rows=int(MolecularSystem_getTotalNumberOfContractions(l),4),&
+               columns=int(numberOfStates,4),&
+               arguments=arguments(1:2))
+       end do
+       close(occupationsUnit)     
+    else
+       numberOfStates=1
+       do l=1,numberOfSpecies
+          call Matrix_constructor( fractionalOccupations(l), int(MolecularSystem_getTotalNumberOfContractions(l),8), int(numberOfStates,8), 0.0_8)
+          do i=1, MolecularSystem_getOcupationNumber(l)
+             fractionalOccupations(l)%values(i,1)=1.0_8 * MolecularSystem_getLambda(l)
+          end do
+       end do
+    end if
+    
 
         do l=1,MolecularSystem_getNumberOfQuantumSpecies()
 

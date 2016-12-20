@@ -955,6 +955,7 @@ contains
     LowdinParameters_numberOfCIStates = 1
     LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
     LowdinParameters_CIactiveSpace = 0 !! Full
+    LowdinParameters_CIstatesToPrint = 1
     LowdinParameters_CImaxNCV = 30
     LowdinParameters_CIsizeOfGuessMatrix = 300
     LowdinParameters_CIstackSize = 5000
@@ -1214,6 +1215,7 @@ contains
     CONTROL_instance%NUMBER_OF_CI_STATES= 1
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
     CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
+    CONTROL_instance%CI_STATES_TO_PRINT = 1
     CONTROL_instance%CI_MAX_NCV = 30 
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = 300
     CONTROL_instance%CI_STACK_SIZE = 5000
