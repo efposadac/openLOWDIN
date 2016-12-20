@@ -379,7 +379,7 @@ contains
       ! integer, intent(in) :: num_species
       
       character(50) :: arguments(2)
-      integer :: speciesId
+      integer :: speciesId, lambda
       integer(8) :: x, i
       integer(8) :: nao
       integer :: num_species
@@ -428,12 +428,13 @@ contains
 
         ! FF vector
 
+        lambda = MolecularSystem_getLambda(speciesId)
         ! call Vector_constructor (CoupledCluster_instance%HF_ff,nao*2,0.0_8)
-        call Vector_constructor (Allspecies(speciesId)%HF_ff,nao*2,0.0_8)
+        call Vector_constructor (Allspecies(speciesId)%HF_ff,nao*lambda,0.0_8)
 
         do x=1, nao
-          do i=1, 2
-            Allspecies(speciesId)%HF_ff%values((x-1)*2+i) = CoupledCluster_instance%HF_orbitals%values(x)
+          do i=1, lambda
+            Allspecies(speciesId)%HF_ff%values((x-1)*lambda+i) = CoupledCluster_instance%HF_orbitals%values(x)
           end do
         end do
 
@@ -441,7 +442,7 @@ contains
         call Matrix_diagonalConstructor (Allspecies(speciesId)%HF_fs, Allspecies(speciesId)%HF_ff)
 
         print*, "HF_fs%values"
-        write(*,*) Allspecies(speciesId)%HF_fs%values
+        call matrix_show( Allspecies(speciesId)%HF_fs)!%values)
 
 
         ! Load initial guess for T2 from MP2 correction
@@ -591,7 +592,7 @@ contains
       integer, intent(in) :: num_species
 
       integer :: p, q, r, s
-      integer :: noc, nop
+      integer :: noc, nop, lambda
       real(8) :: v_a, v_b, xv_a, xv_b
 
       
@@ -601,7 +602,8 @@ contains
       Allspecies(speciesId)%noc = MolecularSystem_getTotalNumberOfContractions(speciesId)
       ! This information is necessary in other modules: 
       ! number of contraction to number of molecular orbitals
-      Allspecies(speciesId)%noc = Allspecies(speciesId)%noc*2
+      lambda = MolecularSystem_getLambda(speciesId)
+      Allspecies(speciesId)%noc = Allspecies(speciesId)%noc*lambda
       ! For simplicity here
       noc = Allspecies(speciesId)%noc
       ! print*, "in one species. noc: ", noc, " nop: ", nop
@@ -624,11 +626,11 @@ contains
           do r=1, noc
             do s=1, noc
 
-              v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2, noc/2)
-              v_b = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/2,(s+1)/2,(q+1)/2,(r+1)/2, noc/2)
+              v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/lambda,(r+1)/lambda,(q+1)/lambda,(s+1)/lambda, noc/lambda)
+              v_b = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/lambda,(s+1)/lambda,(q+1)/lambda,(r+1)/lambda, noc/lambda)
             
-              xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
-              xv_b = v_b * logic2dbl(mod(p,2) == mod(s,2)) * logic2dbl(mod(q,2) == mod(r,2))
+              xv_a = v_a * logic2dbl(mod(p,lambda) == mod(r,lambda)) * logic2dbl(mod(q,lambda) == mod(s,lambda))
+              xv_b = v_b * logic2dbl(mod(p,lambda) == mod(s,lambda)) * logic2dbl(mod(q,lambda) == mod(r,lambda))
               ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
               ! print*, "spints speciesId=2"
@@ -667,6 +669,7 @@ contains
       integer :: i
       integer :: p, q, r, s
       integer :: noc, nocs, nop
+      integer :: lambda1, lambda2
       real(8) :: v_a, xv_a
 
       
@@ -676,7 +679,8 @@ contains
       Allspecies(speciesId)%noc = MolecularSystem_getTotalNumberOfContractions(speciesId)
       ! This information is necessary in other modules: 
       ! number of contraction to number of molecular orbitals
-      Allspecies(speciesId)%noc = Allspecies(speciesId)%noc*2
+      lambda1 = MolecularSystem_getLambda(speciesId)
+      Allspecies(speciesId)%noc = Allspecies(speciesId)%noc*lambda1
       ! For simplicity here
       noc = Allspecies(speciesId)%noc
 
@@ -694,7 +698,8 @@ contains
         Allspecies(i)%noc = MolecularSystem_getTotalNumberOfContractions(i)
         ! This information is necesarry in other modules: 
         ! number of contraction to number of molecular orbitals
-        Allspecies(i)%noc = Allspecies(i)%noc*2
+        lambda2 = MolecularSystem_getLambda(i)
+        Allspecies(i)%noc = Allspecies(i)%noc*lambda2
         ! For simplicity here
         nocs = Allspecies(i)%noc
         ! print*, "i of allspecies: ",i
@@ -715,9 +720,10 @@ contains
           do q=1, nocs
             do r=1, noc
               do s=1, nocs
-                v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/2,(r+1)/2,(q+1)/2,(s+1)/2,noc/2,nocs/2) !! Coulomb integrals
+                v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/lambda1,(r+1)/lambda1,(q+1)/lambda2,(s+1)/lambda2, &
+                    noc/lambda1,nocs/lambda2) !! Coulomb integrals
           
-                xv_a = v_a * logic2dbl(mod(p,2) == mod(r,2)) * logic2dbl(mod(q,2) == mod(s,2))
+                xv_a = v_a * logic2dbl(mod(p,lambda1) == mod(r,lambda1)) * logic2dbl(mod(q,lambda2) == mod(s,lambda2))
                 spintm(m)%valuesp(p,q,r,s) = xv_a
                 ! write (*,*) spintm(m)%valuesp(p,q,r,s)    
               end do
