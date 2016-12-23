@@ -148,7 +148,7 @@ contains
       if (status > 0 ) then
 
         call InterPotential_exception(ERROR, &
-          "ERROR reading ExternalPotential file: "//trim(this%name)//&
+          "ERROR reading InterPotential file: "//trim(this%name)//&
           " Please check that file!","ExternalPotential module at Load function.")
 
       end if
@@ -156,7 +156,7 @@ contains
       if (status == -1 ) then
 
         call InterPotential_exception(ERROR, &
-          "The ExternalPotential: "//trim(this%name)//&
+          "The InterPotential: "//trim(this%name)//&
           " for: "//trim(species)//trim(otherSpecies)//&
           " was not found!","ExternalPotential module at Load function.")
 

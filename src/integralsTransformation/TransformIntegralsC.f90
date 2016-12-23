@@ -497,7 +497,7 @@ contains
     nproc = CONTROL_instance%NUMBER_OF_CORES
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
-    call TransformIntegralsC_getNumberOfNonZeroCouplingIntegrals( specieID, otherSpecieID, nonZeroIntegrals )
+    ! call TransformIntegralsC_getNumberOfNonZeroCouplingIntegrals( specieID, otherSpecieID, nproc, nonZeroIntegrals )
 
     this%prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
     this%fileForCoefficients =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//"mo.values"
@@ -885,23 +885,34 @@ contains
 
   end subroutine TransformIntegralsC_getNumberOfNonZeroRepulsionIntegrals
 
-  subroutine TransformIntegralsC_getNumberOfNonZeroCouplingIntegrals( i, j, nonZeroIntegrals )
+  subroutine TransformIntegralsC_getNumberOfNonZeroCouplingIntegrals( i, j,  nproc, nonZeroIntegrals )
     implicit none
-    integer :: i, j
-    integer :: nonZeroIntegrals
+    integer :: i, j, nproc
+    integer :: nonZeroIntegrals, auxNonZeroIntegrals
+    integer :: ifile, unit
+    character(50) :: sfile
     character(30) :: nameOfSpecie, nameOfOtherSpecie
 
     nonZeroIntegrals = 0
 
-    nameOfSpecie = MolecularSystem_getNameOfSpecie( i )          
-    nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( j )          
-    !! open file for integrals
-    open(UNIT=54,FILE=trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".nints", &
-         STATUS='OLD', ACCESS='SEQUENTIAL', FORM='Unformatted')
+    do ifile = 1, nproc
 
-    read (54) nonZeroIntegrals
-    close (54)
+       write(sfile,*) ifile
+       sfile = trim(adjustl(sfile))
+       unit = ifile+50
 
+       nameOfSpecie = MolecularSystem_getNameOfSpecie( i )          
+       nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( j )          
+
+
+       open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".nints", status='old',access='sequential', form='Unformatted')
+
+       read (unit) auxNonZeroIntegrals
+       nonZeroIntegrals = nonZeroIntegrals + auxNonZeroIntegrals
+       close (unit)
+    end do
+
+    
   end subroutine TransformIntegralsC_getNumberOfNonZeroCouplingIntegrals
 
 

@@ -116,6 +116,7 @@ program HF
   existFile = .false.     
   inquire(file=trim(integralsFile), exist=existFile)
 
+  
   if( existFile ) then
      open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
 

@@ -70,7 +70,6 @@ module CONTROL_
      logical :: FREEZE_NON_ELECTRONIC_ORBITALS
      logical :: HARTREE_PRODUCT_GUESS
      logical :: READ_COEFFICIENTS
-     logical :: READ_COEFFICIENTS_IN_BINARY
      logical :: WRITE_COEFFICIENTS_IN_BINARY
      logical :: NO_SCF
      logical :: FINITE_MASS_CORRECTION
@@ -164,6 +163,7 @@ module CONTROL_
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
+     integer :: CI_STATES_TO_PRINT
      integer :: CI_ACTIVE_SPACE
      integer :: CI_MAX_NCV
      integer :: CI_SIZE_OF_GUESS_MATRIX
@@ -327,7 +327,6 @@ module CONTROL_
   logical :: LowdinParameters_freezeNonElectronicOrbitals
   logical :: LowdinParameters_hartreeProductGuess
   logical :: LowdinParameters_readCoefficients
-  logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_writeCoefficientsInBinary
   logical :: LowdinParameters_noSCF
   logical :: LowdinParameters_finiteMassCorrection
@@ -421,6 +420,7 @@ module CONTROL_
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
   integer :: LowdinParameters_CIactiveSpace
+  integer :: LowdinParameters_CIstatesToPrint
   integer :: LowdinParameters_CImaxNCV
   integer :: LowdinParameters_CIsizeOfGuessMatrix
   integer :: LowdinParameters_CIstackSize
@@ -582,7 +582,6 @@ module CONTROL_
        LowdinParameters_hartreeProductGuess,&
        LowdinParameters_readCoefficients,&
        LowdinParameters_noSCF,&
-       LowdinParameters_readCoefficientsInBinary, &
        LowdinParameters_writeCoefficientsInBinary, &
        LowdinParameters_finiteMassCorrection,&
        LowdinParameters_removeTranslationalContamination,&
@@ -675,6 +674,7 @@ module CONTROL_
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
        LowdinParameters_CIactiveSpace, &
+       LowdinParameters_CIstatesToPrint, &
        LowdinParameters_CImaxNCV, &
        LowdinParameters_CIsizeOfGuessMatrix, &
        LowdinParameters_CIstackSize, &
@@ -861,7 +861,6 @@ contains
     LowdinParameters_freezeNonElectronicOrbitals = .false.
     LowdinParameters_hartreeProductGuess = .false.
     LowdinParameters_readCoefficients = .false.
-    LowdinParameters_readCoefficientsInBinary = .true.
     LowdinParameters_writeCoefficientsInBinary = .true.
     LowdinParameters_noSCF = .false.
     LowdinParameters_finiteMassCorrection = .false.
@@ -1122,7 +1121,6 @@ contains
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = .false.
     CONTROL_instance%HARTREE_PRODUCT_GUESS = .false.
     CONTROL_instance%READ_COEFFICIENTS = .false.
-    CONTROL_instance%READ_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%NO_SCF = .false.
     CONTROL_instance%FINITE_MASS_CORRECTION = .false.
@@ -1420,7 +1418,6 @@ contains
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = LowdinParameters_freezeNonElectronicOrbitals
     CONTROL_instance%HARTREE_PRODUCT_GUESS = LowdinParameters_hartreeProductGuess
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
-    CONTROL_instance%READ_COEFFICIENTS_IN_BINARY =  LowdinParameters_readCoefficientsInBinary
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
     CONTROL_instance%NO_SCF = LowdinParameters_noSCF
     CONTROL_instance%FINITE_MASS_CORRECTION = LowdinParameters_finiteMassCorrection
@@ -1513,6 +1510,7 @@ contains
     CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
     CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
+    CONTROL_instance%CI_STATES_TO_PRINT = LowdinParameters_CIstatesToPrint
     CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
     CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
@@ -1683,7 +1681,6 @@ contains
     LowdinParameters_freezeNonElectronicOrbitals = CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS
     LowdinParameters_hartreeProductGuess = CONTROL_instance%HARTREE_PRODUCT_GUESS
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
-    LowdinParameters_readCoefficientsInBinary = CONTROL_instance%READ_COEFFICIENTS_IN_BINARY
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
     LowdinParameters_noSCF = CONTROL_instance%NO_SCF
     LowdinParameters_finiteMassCorrection = CONTROL_instance%FINITE_MASS_CORRECTION
@@ -1786,6 +1783,7 @@ contains
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
 
     LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE 
+    LowdinParameters_CIstatesToPrint = CONTROL_instance%CI_STATES_TO_PRINT
     LowdinParameters_CImaxNCV = CONTROL_instance%CI_MAX_NCV 
     LowdinParameters_CIsizeOfGuessMatrix = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX  
     LowdinParameters_CIstackSize = CONTROL_instance%CI_STACK_SIZE 
@@ -1954,7 +1952,6 @@ contains
     otherThis%FREEZE_NON_ELECTRONIC_ORBITALS = this%FREEZE_NON_ELECTRONIC_ORBITALS 
     otherThis%HARTREE_PRODUCT_GUESS = this%HARTREE_PRODUCT_GUESS 
     otherThis%READ_COEFFICIENTS = this%READ_COEFFICIENTS 
-    otherThis%READ_COEFFICIENTS_IN_BINARY = this%READ_COEFFICIENTS_IN_BINARY
     otherThis%WRITE_COEFFICIENTS_IN_BINARY = this%WRITE_COEFFICIENTS_IN_BINARY
     otherThis%NO_SCF = this%NO_SCF 
     otherThis%FINITE_MASS_CORRECTION = this%FINITE_MASS_CORRECTION 
@@ -2040,6 +2037,7 @@ contains
     otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
     otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
     otherThis%CI_ACTIVE_SPACE =  this%CI_ACTIVE_SPACE 
+    otherThis%CI_STATES_TO_PRINT =  this%CI_STATES_TO_PRINT
     otherThis%CI_MAX_NCV = this%CI_MAX_NCV
     otherThis%CI_SIZE_OF_GUESS_MATRIX = this%CI_SIZE_OF_GUESS_MATRIX
     otherThis%CI_STACK_SIZE = this%CI_STACK_SIZE 
@@ -2209,8 +2207,8 @@ contains
     if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
       
       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
-      CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = 1E-08
-      CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
+      ! CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = 1E-08
+      ! CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
 
     end if
 

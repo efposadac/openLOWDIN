@@ -189,7 +189,7 @@ contains
     character(50) :: arguments(20)
     integer :: wfnUnit
 
-    wfnFile = "lowdin.vec"
+!    wfnFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
     wfnUnit = 30
 
     nameOfSpecieSelected = "E-"
@@ -402,36 +402,40 @@ contains
        !!**********************************************************************************************
 
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
-       if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS <= 2 ) then
-          if ( CONTROL_instance%READ_COEFFICIENTS ) then
-             inquire(FILE = "lowdin.vec", EXIST = existFile )
+       if ( CONTROL_instance%NO_SCF .and. CONTROL_instance%READ_COEFFICIENTS) then
+
+          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(1) = "COEFFICIENTS"
+
+          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
+          inquire(FILE = wfnFile, EXIST = existFile )
+
+          if ( existFile) then
+             open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+
+             WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
+                  rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
+                  arguments=arguments(1:2))
+
+             close(wfnUnit)
+
+          else 
+             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
+             inquire(FILE = wfnFile, EXIST = existFile )
 
              if ( existFile) then
+                open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-                arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-                arguments(1) = "COEFFICIENTS"
-
-                if ( CONTROL_instance%READ_COEFFICIENTS_IN_BINARY ) then
-
-                   !! Open file for wavefunction
-                   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-
-                   WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-                        rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
-                        arguments=arguments(1:2))
-
-                else 
-                   !! Open file for wavefunction
-                   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-
-                   WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-                        rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
-                        arguments=arguments(1:2))
-                end if
+                WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
+                     rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
+                     arguments=arguments(1:2))
 
                 close(wfnUnit)
 
+             else
+                call  SingleSCF_exception( ERROR, "I did not find any .vec coefficients file", "At SCF program, at SingleSCF_Iterate")
              end if
+
           end if
        end if
 

@@ -888,13 +888,13 @@ contains
 
        do i= 1, ExternalPotential_instance%ssize
          !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
-         if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
-              trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
+         ! if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
+         !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
+         if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
            potID=i
            exit
          end if
        end do
-
 
        ii = 0
        do g = 1, size(MolecularSystem_instance%species(f)%particles)

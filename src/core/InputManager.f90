@@ -634,7 +634,7 @@ contains
     ! Load External Potentials
     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
 
-      call ExternalPotential_constructor(Input_instance%numberOfInterPots)
+      call ExternalPotential_constructor(Input_instance%numberOfExternalPots)
 
       !! Reload input file
       rewind(4)

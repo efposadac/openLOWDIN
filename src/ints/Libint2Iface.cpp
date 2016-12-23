@@ -1661,8 +1661,8 @@ void libintinterface_buildg12_(int *nd, int *nc, int *nb, int *na, int *max_am,
 
   for (int i = 0; i < *size; ++i) {
     output[i] = inteval.targets[0][i];
-    printf("output %d %d %d %d %f \n", *na, *nb, *nc, *nd,
-           inteval.targets[0][i]);
+    // printf("output %d %d %d %d %f \n", *na, *nb, *nc, *nd,
+    //        inteval.targets[0][i]);
   }
 
   //   this releases all memory that was allocated for this object
@@ -1993,4 +1993,5 @@ void LibintInterface_setLibint(Libint_t *erieval, lowdin_t *data) {
 #if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(16))
   erieval->LIBINT_T_SS_Km1G12_SS(16)[0] = data->LIBINT_T_SS_Km1G12_SS16;
 #endif
+
 }

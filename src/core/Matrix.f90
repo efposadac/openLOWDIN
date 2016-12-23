@@ -677,7 +677,7 @@ contains
                 read(unit) values
                 
                 m = 1
-                do i=1,columns
+                do i=1,rows
                    do j=1,columns
                       output%values(j, i) = values(m)
                       m = m + 1
@@ -723,7 +723,7 @@ contains
                 close(4)
                 
                 m = 1
-                do i=1,columns
+                do i=1,rows
                    do j=1,columns
                       output%values(j, i) = values(m)
                       m = m + 1
@@ -821,9 +821,10 @@ contains
                 read(unit,*) values
                 
                 m = 1
-                do i=1,columns
+                
+                do i=1,rows
                    do j=1,columns
-!!                      output%values(j, i) = values(m) !! ???
+!                      output%values(j, i) = values(m) !! ???
                       output%values(i, j) = values(m)
                       m = m + 1
                    end do

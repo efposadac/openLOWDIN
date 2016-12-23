@@ -912,6 +912,8 @@ contains
             read(40,*) auxValue
             call ExternalPotential_constructor(auxValue)
 
+            !! FELIX TODO: create function to get potential ID
+            
             do j = 1, ExternalPotential_instance%ssize 
               read(40,*) i 
               read(40,*) name
