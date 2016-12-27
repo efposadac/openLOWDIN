@@ -286,7 +286,9 @@ contains
     implicit none
     
     character(15), allocatable :: quantumSpeciesName(:)
+    character(15), allocatable :: auxquantumSpeciesName(:)
     integer, allocatable :: numberOfParticlesForSpecies(:)
+    integer, allocatable :: auxnumberOfParticlesForSpecies(:)
     integer, allocatable :: particlesID(:)
 
     character(15) :: atomName
@@ -315,9 +317,15 @@ contains
          InputParticle_multiplicity, &
          InputParticle_addParticles
     
+
     !! Allocate memory for buffer.
-    allocate(quantumSpeciesName(Input_instance%numberOfParticles))
-    allocate(numberOfParticlesForSpecies(Input_instance%numberOfParticles))
+    if( CONTROL_instance%IS_OPEN_SHELL) then
+      allocate(quantumSpeciesName(Input_instance%numberOfParticles+1))
+      allocate(numberOfParticlesForSpecies(Input_instance%numberOfParticles+1))
+    else 
+      allocate(quantumSpeciesName(Input_instance%numberOfParticles))
+      allocate(numberOfParticlesForSpecies(Input_instance%numberOfParticles))
+    end if
 
     !! Initializes some variables.
     quantumSpeciesName = ""
@@ -433,10 +441,28 @@ contains
        end if
     end do
     
-    !! Reshape arrays
-    quantumSpeciesName = reshape(quantumSpeciesName, (/numberOfQuantumSpecies/))
-    numberOfParticlesForSpecies = reshape(numberOfParticlesForSpecies, (/numberOfQuantumSpecies/))
-    
+    !! Reshape arrays, old style
+
+    allocate ( auxquantumSpeciesName( size(quantumSpeciesName)))
+    auxquantumSpeciesName = ""
+    auxquantumSpeciesName = quantumSpeciesName
+    deallocate ( quantumSpeciesName )
+    allocate ( quantumSpeciesName ( numberOfQuantumSpecies))
+    quantumSpeciesName = "" 
+    quantumSpeciesName = auxquantumSpeciesName
+    deallocate ( auxquantumSpeciesName )
+
+    allocate ( auxnumberOfParticlesForSpecies( size( numberOfParticlesForSpecies )))
+    auxnumberOfParticlesForSpecies = 0
+    auxnumberOfParticlesForSpecies = numberOfParticlesForSpecies
+    deallocate ( numberOfParticlesForSpecies )
+    allocate ( numberOfParticlesForSpecies( numberOfQuantumSpecies ))
+    numberOfParticlesForSpecies = 0 
+    numberOfParticlesForSpecies = auxnumberOfParticlesForSpecies
+    deallocate ( auxnumberOfParticlesForSpecies )
+ 
+    !quantumSpeciesName = reshape(quantumSpeciesName, (/numberOfQuantumSpecies/))
+    !numberOfParticlesForSpecies = reshape(numberOfParticlesForSpecies, (/numberOfQuantumSpecies/))
 
     !!*****************************************************************************
     !! LOAD GEOMETRY block 
@@ -449,7 +475,6 @@ contains
     !! Initializes the molecular system object
     call MolecularSystem_initialize(numberOfQuantumSpecies, numberOfPointCharges, numberOfParticlesForSpecies, quantumSpeciesName, &
          trim(input_instance%systemName), trim(input_instance%systemDescription))
-    
     !! Reload input file
     rewind(4)
     

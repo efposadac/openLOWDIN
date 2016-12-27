@@ -113,7 +113,7 @@ contains
     integer :: status, i, j
     character(150) :: fileName
     character(20) :: token
-    character(10) :: symbol
+    character(20) :: symbol
     logical :: existFile, found
     
     this => InterPotential_instance%potentials(potId)
@@ -149,7 +149,7 @@ contains
 
         call InterPotential_exception(ERROR, &
           "ERROR reading InterPotential file: "//trim(this%name)//&
-          " Please check that file!","ExternalPotential module at Load function.")
+          " Please check that file!","InternalPotential module at Load function.")
 
       end if
 
@@ -158,7 +158,7 @@ contains
         call InterPotential_exception(ERROR, &
           "The InterPotential: "//trim(this%name)//&
           " for: "//trim(species)//trim(otherSpecies)//&
-          " was not found!","ExternalPotential module at Load function.")
+          " was not found!","InternalPotential module at Load function.")
 
       end if
 
@@ -189,8 +189,8 @@ contains
     if (status > 0 ) then
 
       call InterPotential_exception(ERROR, &
-        "ERROR reading ExternalPotential file: "//trim(this%name)//&
-        " Please check that file!","ExternalPotential module at Load function.")
+        "ERROR reading InternalPotential file: "//trim(this%name)//&
+        " Please check that file!","InternalPotential module at Load function.")
 
     end if
 
@@ -206,8 +206,8 @@ contains
       if (status > 0 ) then
 
         call InterPotential_exception(ERROR, &
-          "ERROR reading ExternalPotential file: "//trim(this%name)//&
-          " Please check that file!","ExternalPotential module at Load function.")
+          "ERROR reading InternalPotential file: "//trim(this%name)//&
+          " Please check that file!","InternalPotential module at Load function.")
 
       end if
 
@@ -224,8 +224,8 @@ contains
         if (status > 0 ) then
 
           call InterPotential_exception(ERROR, &
-            "ERROR reading ExternalPotential file: "//trim(this%name)//&
-            " Please check that file!","ExternalPotential module at Load function.")
+            "ERROR reading InternalPotential file: "//trim(this%name)//&
+            " Please check that file!","InternalPotential module at Load function.")
 
         end if
 
@@ -242,7 +242,7 @@ contains
           this%gaussianComponents(i)%numCartesianOrbital = 1 
         case default
           call InterPotential_exception( ERROR, &
-            "Class object ExternalPotential in load function",&
+            "Class object InternalPotential in load function",&
             "This Dimensionality is not available") 
       end select
 
@@ -269,8 +269,8 @@ contains
     else
 
       call InterPotential_exception(ERROR, &
-        "The ExternalPotential file: "//trim(name)//&
-        " was not found!","ExternalPotential module at Load function.")
+        "The InternalPotential file: "//trim(name)//&
+        " was not found!","InternalPotential module at Load function.")
 
     end if
 

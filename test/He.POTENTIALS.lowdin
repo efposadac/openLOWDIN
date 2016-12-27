@@ -18,16 +18,19 @@ GEOMETRY
 END GEOMETRY
 
 TASKS
-        method = "RHF"
-	!configurationInteractionLevel ="FCI"
+        method = "UHF"
+	configurationInteractionLevel ="FCI"
 END TASKS
 
 INTERPOTENTIAL
-	e- e- ee
+	E-ALPHA E-ALPHA EE
+	E-ALPHA E-BETA EE
+	E-BETA E-BETA EE
 END INTERPOTENTIAL
 
 EXTERPOTENTIAL
-	e- Hee
+	E-ALPHA Hee
+	E-BETA Hee
 END EXTERPOTENTIAL
 
 CONTROL
