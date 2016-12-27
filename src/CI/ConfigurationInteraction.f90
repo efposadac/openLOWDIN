@@ -1463,13 +1463,14 @@ contains
   subroutine ConfigurationInteraction_naturalOrbitals()
     implicit none
     type(ConfigurationInteraction) :: this
-    integer :: i
+    integer :: i, j
     integer :: unit
     character(50) :: file, speciesName
     character(50) :: arguments(2)
-    integer :: state, specie, orbital, index
+    integer :: state, specie, orbital, orbitalA, orbitalB, index
     real(8) :: davidsonCorrection, HFcoefficient, CIcorrection, sumaprueba
     type(matrix), allocatable :: ciOccupationNumbers(:)
+    type(matrix), allocatable :: refOccupationNumbers(:)
     integer numberOfSpecies
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
@@ -1489,39 +1490,62 @@ contains
        open(unit = unit, file=trim(file), status="new", form="formatted")
        
        allocate (ciOccupationNumbers(numberOfSpecies))
+       allocate (refOccupationNumbers(numberOfSpecies))
        
        do specie=1, numberOfSpecies
-
+          
           speciesName = MolecularSystem_getNameOfSpecie(specie)
           !Inicializando la matriz
 
           call Matrix_constructor ( ciOccupationNumbers(specie) , int(ConfigurationInteraction_instance%numberOfOrbitals%values(specie),8) , int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
-          
+
+          call Matrix_constructor ( refOccupationNumbers(specie) , int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie),8) , int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
+
           do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
-             do orbital=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie))
-                ciOccupationNumbers(specie)%values(orbital,state)=1.0
-             end do
+            do j=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie))
+              orbital = ConfigurationInteraction_instance%configurations(state)%occupations(j,specie) 
+              ciOccupationNumbers(specie)%values(orbital,state) = 1.0
+              refOccupationNumbers(specie)%values(orbital,state) = j
+            end do
           end do
           
           do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
-             do i=1, ConfigurationInteraction_instance%numberOfConfigurations
 
-                if ( ConfigurationInteraction_instance%configurations(i)%order%values(specie) > 0 ) then
+            do i=1, ConfigurationInteraction_instance%numberOfConfigurations
 
-                   ! Occupied orbitals
-                   do index=1, size( ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,1,:))
-                      orbital=ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,1,index)
-                      ciOccupationNumbers(specie)%values(orbital,state)=ciOccupationNumbers(specie)%values(orbital,state)-ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
-                   end do
+              if ( abs (sum ( refOccupationNumbers(specie)%values(:,state) - &
+                  ConfigurationInteraction_instance%configurations(i)%occupations(:,specie) )) > 0 ) then
+                do j=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie))
 
-                   ! Unoccupied orbitals
-                   do index=1, size( ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,2,:))
-                      orbital=ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,2,index)
-                      ciOccupationNumbers(specie)%values(orbital,state)= ciOccupationNumbers(specie)%values(orbital,state)+ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
-                   end do
+                  orbitalA = refOccupationNumbers(specie)%values(j,state) 
+                  orbitalB = ConfigurationInteraction_instance%configurations(i)%occupations(j,specie) 
+
+                  !! Occupied orbitals
+                  ciOccupationNumbers(specie)%values( orbitalA, state)= ciOccupationNumbers(specie)%values( orbitalA, state) -  &
+                      ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                  !! Unoccupied orbitals
+                  ciOccupationNumbers(specie)%values( orbitalB, state)= ciOccupationNumbers(specie)%values( orbitalB, state) + &
+                      ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+
+                end do 
+              end if
+
+!                if ( ConfigurationInteraction_instance%configurations(i)%order%values(specie) > 0 ) then
+
+                   !! Occupied orbitals
+                   !do index=1, size( ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,1,:))
+                   !   orbital=ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,1,index)
+                   !   ciOccupationNumbers(specie)%values(orbital,state)=ciOccupationNumbers(specie)%values(orbital,state)-ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                   !end do
+
+                   !! Unoccupied orbitals
+                   !do index=1, size( ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,2,:))
+                   !   orbital=ConfigurationInteraction_instance%configurations(i)%excitations(specie,1,2,index)
+                   !   ciOccupationNumbers(specie)%values(orbital,state)= ciOccupationNumbers(specie)%values(orbital,state)+ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                   !end do
                    
                    ! call Configuration_show(ConfigurationInteraction_instance%configurations(i))
-                end if
+!                end if
              end do
                       
           end do
@@ -1534,7 +1558,6 @@ contains
           arguments(2) = speciesName
 
           call Matrix_writeToFile ( ciOccupationNumbers(specie), 29, arguments=arguments )
-          
           call Matrix_destructor(ciOccupationNumbers(specie))
 
        end do
@@ -1706,7 +1729,7 @@ contains
 
        print *,""
        print *, "-----------------------------------------------"
-       print *, "|              END CISD CALCULATION           |"
+       print *, "|     END ", trim(ConfigurationInteraction_instance%level)," CALCULATION"
        print *, "==============================================="
        print *, ""
 
@@ -4510,11 +4533,11 @@ contains
         select case (  numberOfDiffOrbitals )
 
         case (0)
+
           
               do i=1, numberOfSpecies
 
                  kappa = MolecularSystem_instance%species(i)%kappa
-
                  do kk=1, int( MolecularSystem_instance%species(i)%ocupationNumber) !! 1 is from a and 2 from b
 
                     k = auxthisA(kk,i)
