@@ -2112,7 +2112,7 @@ contains
         call CCSD_T1T2_constructor(speciesId)
         call CCSD_loop_constructor(speciesId)
 
-        !if there are inter-species
+        ! if there are inter-species
         if ((max/=0) .and. (min/=0)) then
           num_inter = 0
           CCSD_instance%cont = CCSD_instance%aux_cont
@@ -2138,7 +2138,7 @@ contains
           print*, "W_onespecies_intermediates(): "
         end if
 
-        !If there are interspecies?
+        ! If there are interspecies?
         if ((max/=0) .and. (min/=0)) then
           num_inter = 0
           CCSD_instance%cont = CCSD_instance%aux_cont
