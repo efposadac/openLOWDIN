@@ -473,12 +473,12 @@ contains
               ! print*, "Fii: ", Allspecies(speciesId)%HF_fs%values(i,i), "Fjjjj: ", Allspecies(OtherspeciesId)%HF_fs%values(jj,jj), &
               !   "Faa: ", -Allspecies(speciesId)%HF_fs%values(a,a), "Fbbbb: ", -Allspecies(OtherspeciesId)%HF_fs%values(bb,bb)
               
+              ! print*, "2E-.2E+: ", n_sp
               Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) = Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
-                +( (spintm(n_sp)%valuesp(p,q,r,s))/( Allspecies(speciesId)%HF_fs%values(i,i)+ &
+                +( (spintm(n_sp)%valuesp(p,q,r,s)) /( Allspecies(speciesId)%HF_fs%values(i,i)+ &
                   Allspecies(OtherspeciesId)%HF_fs%values(jj,jj) -Allspecies(speciesId)%HF_fs%values(a,a)- &
                     Allspecies(OtherspeciesId)%HF_fs%values(bb,bb) ) )
 
-              print*, "2E-.2E+"
               ! if (speciesId>OtherspeciesId) print*, "CCSD_init_inter Allinterspecies(speciesId)%Tdsame: ", &
               !   Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj)
 
@@ -914,8 +914,9 @@ contains
                 s=e
               end if
 
-              CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
-                - (0.5*spintm(n_sp)%valuesp(p,q,r,s))
+              !REVISAR 01/10/2017
+              ! CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
+              !   - (0.5*spintm(n_sp)%valuesp(p,q,r,s))
 
               do ee=1, nops
 
@@ -2431,7 +2432,7 @@ contains
 
       !intermediates loop for:
       !If there are interspecies?
-      print*, "ciclo: OtherspeciesId: ", OtherspeciesId
+      print*, "ciclo: OtherspeciesId: ", OtherspeciesId, "speciesId: ", speciesId
       ! if (speciesId>OtherspeciesId) print*, "before F_twospecies: ", Allinterspecies(speciesId)%Tdsame
       call F_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
       ! if (speciesId>OtherspeciesId) print*, "before W_twospecies: ", Allinterspecies(speciesId)%Tdsame
@@ -2494,12 +2495,12 @@ contains
       !   Allinterspecies(speciesId)%Tdsame
       print*, "before CCSD_T2_inter()", speciesId, OtherspeciesId
       call CCSD_T2_inter(speciesId, OtherspeciesId, num_inter)
-      if (speciesId>OtherspeciesId) print*, "after CCSD_T2 Allinterspecies(speciesId)%Tdsame: ", &
-        Allinterspecies(speciesId)%Tdsame
+      ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2 Allinterspecies(speciesId)%Tdsame: ", &
+      !   Allinterspecies(speciesId)%Tdsame
       print*, "CCSD_T2_AB()"
       call CCSD_T2_AB(speciesId, OtherspeciesId, num_inter)
-      if (speciesId>OtherspeciesId) print*, "after CCSD_T2AB Allinterspecies(speciesId)%Tdsame: ", &
-        Allinterspecies(speciesId)%Tdsame
+      ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2AB Allinterspecies(speciesId)%Tdsame: ", &
+      !   Allinterspecies(speciesId)%Tdsame
       print*, "num_inter: ", num_inter
   
       if (convergence > 100) then 
@@ -3326,7 +3327,7 @@ contains
         print*, "CCSD_init(i): ", i
       end do
 
-      do i=counterID, finalID!num_species
+      ! do i=counterID, finalID!num_species
         
         !If there are interspecies? REVISAR 01/10/2017
         if (times_i>0) then
@@ -3339,7 +3340,7 @@ contains
             i_counterID(j) = CoupledCluster_instance%i_counterID(j)
             n_intersp(j) = CoupledCluster_instance%n_intersp(j)
             !Find the appropriate species in all the options
-            if (i_counterID(j)==counterID) then
+            ! if (i_counterID(j)==counterID) then
               !public variables used in the loop
               CCSD_instance%max=n_intersp(j)
               CCSD_instance%min=i_counterID(j)
@@ -3347,23 +3348,23 @@ contains
               aux_cont = n_sp + 1
               CCSD_instance%aux_cont = aux_cont
               !make all combinations with speciesId
-              do jj=i_counterID(j)+1, n_intersp(j)
+              ! do jj=i_counterID(j)+1, n_intersp(j)
                 n_sp = n_sp + 1
                 CCSD_instance%cont = n_sp
 
-                call CCSD_constructor_inter(i_counterID(j), jj)!, num_inter)
-                call CCSD_constructor_inter(jj, i_counterID(j))!, num_inter)
-                call CCSD_init_inter(i_counterID(j), jj)!, num_inter)
-                call CCSD_init_inter(jj, i_counterID(j))!, num_inter)
+                call CCSD_constructor_inter(i_counterID(j), n_intersp(j))!, num_inter)
+                call CCSD_constructor_inter(n_intersp(j), i_counterID(j))!, num_inter)
+                call CCSD_init_inter(i_counterID(j), n_intersp(j))!, num_inter)
+                call CCSD_init_inter(n_intersp(j), i_counterID(j))!, num_inter)
 
                 ! print*, "after CCSD_init_inter: ", Allinterspecies(jj)%Tdsame
                 num_inter = num_inter + 1
-              end do
-            else
-              !locating 
-              n_sp = n_sp + (n_intersp(j) - i_counterID(j))
-              CCSD_instance%cont = n_sp
-            end if
+              ! end do
+            ! else
+            !   !locating 
+            !   n_sp = n_sp + (n_intersp(j) - i_counterID(j))
+            !   CCSD_instance%cont = n_sp
+            ! end if
           end do
 
           ! print*, "CCSD_loop(i, i+1): ", i
@@ -3375,7 +3376,7 @@ contains
         !   print*, "CCSD_loop(i): ", i
         
         end if
-      end do
+      ! end do
 
       do while (convergence >= 1.0D-8)
 
@@ -3389,33 +3390,33 @@ contains
         
         
         if (times_i>0) then
-          do i=counterID, finalID
+          do i=1, times_i!counterID, finalID
             CCSD_instance%num_i = 1
             CCSD_instance%cont = CCSD_instance%aux_cont
             CCSD_instance%e_cont = CCSD_instance%aux_cont
             max = CCSD_instance%max
             min = CCSD_instance%min
             ! if ((min+1)>i) print*, "before do: ", Allinterspecies(min+1)%Tdsame
-            do jj=min+1, max
+            ! do jj=min+1, max
               num_i = CCSD_instance%num_i
               print*, "num_i: ", num_i 
               print*, "e_cont: ", CCSD_instance%e_cont
-              call CCSD_diff_species(i,jj,e_diff_ccd(num_i))
+              call CCSD_diff_species(i_counterID(i),n_intersp(i),e_diff_ccd(num_i))
               e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
               ! convergence_int = CCSD_instance%convergence_diff(num_i)
-            end do
+            ! end do
             CCSD_instance%cont = CCSD_instance%aux_cont
             CCSD_instance%e_cont = CCSD_instance%aux_cont
-            do jj=min+1, max
+            ! do jj=min+1, max
               ! if (jj>i) print*, "before CCSD_diff_species: ", Allinterspecies(jj)%Tdsame
-              num_i = CCSD_instance%num_i
+              num_i = num_i+1
               print*, "num_i: ", num_i
               print*, "e_cont: ", CCSD_instance%e_cont
-              call CCSD_diff_species(jj,i,e_diff_ccd(num_i))
+              call CCSD_diff_species(n_intersp(i),i_counterID(i),e_diff_ccd(num_i))
               e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
               ! if (jj>i) print*, "after CCSD_diff_species: ", Allinterspecies(jj)%Tdsame
               ! convergence_int = CCSD_instance%convergence_diff(num_i)
-            end do
+            ! end do
           end do
         end if
         convergence = sum(CCSD_instance%convergence_same,dim=1) + & 
