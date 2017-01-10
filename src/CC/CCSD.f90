@@ -3382,6 +3382,10 @@ contains
 
         ! if ((CCSD_instance%min+1)>counterID) print*, "before times_i>0: ", Allinterspecies(CCSD_instance%min+1)%Tdsame
         stoped = stoped +1
+        if (stoped>1) then
+          print*, "CCSDT1T2(speciesId)%Tai(a-nop,i): ", Allspecies(1)%Tssame
+          print*, "CCSDT1T2(OtherspeciesId)%Tai(a-nop,i): ", Allspecies(2)%Tssame
+        end if
 
         do i=counterID, num_species
           call CCSD_same_species(i,e_same_ccd(i))
@@ -3403,6 +3407,7 @@ contains
               print*, "e_cont: ", CCSD_instance%e_cont
               call CCSD_diff_species(i_counterID(i),n_intersp(i),e_diff_ccd(num_i))
               e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
+              print*, "CCSDT1T2(speciesId)%Tai(a-nop,i): ", CCSDT1T2(i_counterID(i))%Tai
               ! convergence_int = CCSD_instance%convergence_diff(num_i)
             ! end do
             CCSD_instance%cont = CCSD_instance%aux_cont
@@ -3414,6 +3419,7 @@ contains
               print*, "e_cont: ", CCSD_instance%e_cont
               call CCSD_diff_species(n_intersp(i),i_counterID(i),e_diff_ccd(num_i))
               e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
+
               ! if (jj>i) print*, "after CCSD_diff_species: ", Allinterspecies(jj)%Tdsame
               ! convergence_int = CCSD_instance%convergence_diff(num_i)
             ! end do
@@ -3464,11 +3470,13 @@ contains
       print*, "INFORMATION IN CCSD_constructor() TotalMP2_Energy: ", CCSD_instance%suma
       print*, "INFORMATION IN CCSD_constructor() CCSD_Energy of species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_E_intra(speciesId)
+      print*, "INFORMATION IN CCSD_constructor() CCSD_Energy of different species " , speciesId, ": ", &
+        CoupledCluster_instance%CCSD_E_inter(speciesId)
       print*, "INFORMATION IN CCSD_constructor() Td: ", Allspecies(speciesId)%Tdsame(1,1,1,1)
       print*, "INFORMATION IN CCSD_constructor() Dai: ", CCSDinit(speciesId)%Dai(1,3)
       print*, "INFORMATION IN CCSD_constructor() ttau: ",Allspecies(speciesId)%ttau(1,1,1,1)
       print*, "INFORMATION IN CCSD_constructor() tau: ",Allspecies(speciesId)%tau(1,1,1,1)
-      print*, "INFORMATION IN CCSD_constructor() ccsdE: ", CoupledCluster_instance%CCSD_E_intra(1)
+      print*, "INFORMATION IN CCSD_constructor() ccsdE: ", CoupledCluster_instance%CCSD_E_intra(speciesId)
       print*, "INFORMATION IN Tensor Tensor_index2: ", Tix2(2,1,3)
       
 
