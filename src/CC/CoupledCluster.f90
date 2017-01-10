@@ -165,7 +165,7 @@ contains
     character(50), intent(in) :: same_species(10)
     character(50), intent(in) :: inter_species(10)
 
-    integer :: i
+    integer :: i, ii, output
     integer :: i_s=0
     integer :: i_i=1
     integer :: counter_i
@@ -193,7 +193,12 @@ contains
           print*, "same_species: ", same_species(i)
           default_s=.false.
         end if
-        s_species(i) = MolecularSystem_getSpecieID(same_species(i))
+        do ii = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          if( trim(MolecularSystem_instance%species(ii)%symbol) == trim(same_species(i))) then
+             output = ii
+          end if
+        end do
+        s_species(i) = MolecularSystem_getSpecieID(MolecularSystem_instance%species(output)%name)
 
         if (s_species(i)/=0) deft_s=.false.
 
@@ -203,9 +208,11 @@ contains
 
       if (.not.default_s) then
         if (.not.deft_s) then
+          print*, "not default_s: ", MolecularSystem_instance%species(1)%symbol, same_species(1), s_species(1)
           max = maxval(s_species,mask=s_species.lt.10)
           min = minval(s_species,mask=s_species.gt.0)
         else
+          print*, "default_s"
           min = 1
           max = MolecularSystem_getNumberOfQuantumSpecies()
         end if

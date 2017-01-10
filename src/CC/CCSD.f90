@@ -478,6 +478,7 @@ contains
                   Allspecies(OtherspeciesId)%HF_fs%values(jj,jj) -Allspecies(speciesId)%HF_fs%values(a,a)- &
                     Allspecies(OtherspeciesId)%HF_fs%values(bb,bb) ) )
 
+              print*, "2E-.2E+"
               ! if (speciesId>OtherspeciesId) print*, "CCSD_init_inter Allinterspecies(speciesId)%Tdsame: ", &
               !   Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj)
 
@@ -528,8 +529,8 @@ contains
             end do
           end do
         end do
-        print*, "nops 1 - 5: nops+1 y nocs: ", bb, nocs, "nop+1 y noc: ", a, noc
-        print*, "nops 1 - 5: i y nop: ", i, nop, "jj nops: ", jj, nops
+        ! print*, "nops 1 - 5: nops+1 y nocs: ", bb, nocs, "nop+1 y noc: ", a, noc
+        ! print*, "nops 1 - 5: i y nop: ", i, nop, "jj nops: ", jj, nops
         ! print*, Allinterspecies(speciesId)%Tdsame!(a-nop,bb-nops,i,jj)
       end do
 
@@ -3327,12 +3328,13 @@ contains
 
       do i=counterID, finalID!num_species
         
-        !If there are interspecies?
+        !If there are interspecies? REVISAR 01/10/2017
         if (times_i>0) then
           
           !search the principal species (speciesId) in all the options
           do j=1, times_i
             print*, "times_i", times_i
+            print*, "counterID: ", counterID, "finalID: ", finalID
             !public to private            
             i_counterID(j) = CoupledCluster_instance%i_counterID(j)
             n_intersp(j) = CoupledCluster_instance%n_intersp(j)
@@ -3350,8 +3352,8 @@ contains
                 CCSD_instance%cont = n_sp
 
                 call CCSD_constructor_inter(i_counterID(j), jj)!, num_inter)
-                call CCSD_init_inter(i_counterID(j), jj)!, num_inter)
                 call CCSD_constructor_inter(jj, i_counterID(j))!, num_inter)
+                call CCSD_init_inter(i_counterID(j), jj)!, num_inter)
                 call CCSD_init_inter(jj, i_counterID(j))!, num_inter)
 
                 ! print*, "after CCSD_init_inter: ", Allinterspecies(jj)%Tdsame
@@ -3459,6 +3461,8 @@ contains
       print*, "INFORMATION IN CCSD_constructor() MP2_energy: ", CoupledCluster_instance%MP2_EnergyCorr
       CCSD_instance%suma = CoupledCluster_instance%HF_energy + CoupledCluster_instance%MP2_EnergyCorr
       print*, "INFORMATION IN CCSD_constructor() TotalMP2_Energy: ", CCSD_instance%suma
+      print*, "INFORMATION IN CCSD_constructor() CCSD_Energy of species " , speciesId, ": ", &
+        CoupledCluster_instance%CCSD_E_intra(speciesId)
       print*, "INFORMATION IN CCSD_constructor() Td: ", Allspecies(speciesId)%Tdsame(1,1,1,1)
       print*, "INFORMATION IN CCSD_constructor() Dai: ", CCSDinit(speciesId)%Dai(1,3)
       print*, "INFORMATION IN CCSD_constructor() ttau: ",Allspecies(speciesId)%ttau(1,1,1,1)
