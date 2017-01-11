@@ -165,7 +165,8 @@ contains
     character(50), intent(in) :: same_species(10)
     character(50), intent(in) :: inter_species(10)
 
-    integer :: i, ii, output
+    integer :: i, ii
+    integer :: out_1, out_2, output
     integer :: i_s=0
     integer :: i_i=1
     integer :: counter_i
@@ -242,16 +243,30 @@ contains
           i_i=i_i+2
             
           default_i=.false.
-          i_species((i*2)-1) = MolecularSystem_getSpecieID(inter_sp((i*2)-1))
-          i_species(i*2) = MolecularSystem_getSpecieID(inter_sp(i*2))
+          
+          do ii = 1, MolecularSystem_instance%numberOfQuantumSpecies
+            if( trim(MolecularSystem_instance%species(ii)%symbol) == trim(inter_sp((i*2)-1))) then
+              out_1 = ii
+            else if( trim(MolecularSystem_instance%species(ii)%symbol) == trim(inter_sp(i*2))) then
+              out_2 = ii
+            else
+              out_1=0
+              out_2=out_1
+            end if
+          end do
+          i_species((i*2)-1) = MolecularSystem_getSpecieID(MolecularSystem_instance%species(out_1)%name)
+          i_species(i*2) = MolecularSystem_getSpecieID(MolecularSystem_instance%species(out_2)%name)
 
-          print*, "inter_species: ", inter_sp((i*2)-1)
-          print*, "inter_species: ", inter_sp(i*2)
+          !i_species((i*2)-1) = MolecularSystem_getSpecieID(inter_sp((i*2)-1))
+          !i_species(i*2) = MolecularSystem_getSpecieID(inter_sp(i*2))
+
+          print*, "inter_species: ", inter_sp((i*2)-1), MolecularSystem_instance%species((i*2)-1)%symbol
+          print*, "inter_species: ", inter_sp(i*2), MolecularSystem_instance%species(i*2)%symbol
 
         else
 
-          i_species((i*2)-1) = MolecularSystem_getSpecieID(inter_species(i))
-          i_species(i*2) = MolecularSystem_getSpecieID(inter_species(i))
+          i_species((i*2)-1) = 0!MolecularSystem_getSpecieID(inter_species(i))
+          i_species(i*2) = 0!MolecularSystem_getSpecieID(inter_species(i))
 
           ! print*, "inter_species: ", inter_species(i)
 
@@ -260,7 +275,8 @@ contains
         ! print*, "inter_species ID: ", i_species((i*2)-1)
         ! print*, "inter_species ID: ", i_species(i*2)
 
-      
+        print*, "inter_species: ", inter_species(i)
+        print*, "i_species: ", i_species((i*2)-1), i_species(i*2)
         if (i_species((i*2)-1)/=0) deft_i=.false.
 
         if (.not.default_i) then

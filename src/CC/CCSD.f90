@@ -2434,11 +2434,11 @@ contains
       !If there are interspecies?
       print*, "ciclo: OtherspeciesId: ", OtherspeciesId, "speciesId: ", speciesId
       ! if (speciesId>OtherspeciesId) print*, "before F_twospecies: ", Allinterspecies(speciesId)%Tdsame
-      call F_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
+      ! call F_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
       ! if (speciesId>OtherspeciesId) print*, "before W_twospecies: ", Allinterspecies(speciesId)%Tdsame
-      call W_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
+      ! call W_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
       ! if (speciesId>OtherspeciesId) print*, "before F_T2_AB: ", Allinterspecies(speciesId)%Tdsame
-      call F_T2_AB(speciesId, OtherspeciesId, num_inter)
+      ! call F_T2_AB(speciesId, OtherspeciesId, num_inter)
       ! if (speciesId>OtherspeciesId) print*, "between F_T2_AB and W_T2_AB: ", Allinterspecies(speciesId)%Tdsame
       call W_T2_AB(speciesId, OtherspeciesId, num_inter)
         
@@ -3315,6 +3315,7 @@ contains
       allocate(e_diff_ccd(num_inter))
       e_diff_ccd=0.0_8
 
+      print*,"times_i: ppp: ", times_i
 
       do i=counterID, num_species
         print*, "num_species: CCSD_constructor(): ", num_species, i
@@ -3382,18 +3383,18 @@ contains
 
         ! if ((CCSD_instance%min+1)>counterID) print*, "before times_i>0: ", Allinterspecies(CCSD_instance%min+1)%Tdsame
         stoped = stoped +1
-        if (stoped>1) then
-          print*, "CCSDT1T2(speciesId)%Tai(a-nop,i): ", Allspecies(1)%Tssame
-          print*, "CCSDT1T2(OtherspeciesId)%Tai(a-nop,i): ", Allspecies(2)%Tssame
-        end if
+        ! if (stoped>1) then
+        !   print*, "CCSDT1T2(speciesId)%Tai(a-nop,i): ", Allspecies(1)%Tssame
+        !   print*, "CCSDT1T2(OtherspeciesId)%Tai(a-nop,i): ", Allspecies(2)%Tssame
+        ! end if
 
         do i=counterID, num_species
           call CCSD_same_species(i,e_same_ccd(i))
           e_same_ccd(i) = CoupledCluster_instance%CCSD_E_intra(i)
         end do
         
-        
         if (times_i>0) then
+          print*, "test PPPPP"
           do i=1, times_i!counterID, finalID
             CCSD_instance%num_i = 1
             CCSD_instance%cont = CCSD_instance%aux_cont
@@ -3472,10 +3473,10 @@ contains
         CoupledCluster_instance%CCSD_E_intra(speciesId)
       print*, "INFORMATION IN CCSD_constructor() CCSD_Energy of different species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_E_inter(speciesId)
-      print*, "INFORMATION IN CCSD_constructor() Td: ", Allspecies(speciesId)%Tdsame(1,1,1,1)
-      print*, "INFORMATION IN CCSD_constructor() Dai: ", CCSDinit(speciesId)%Dai(1,3)
-      print*, "INFORMATION IN CCSD_constructor() ttau: ",Allspecies(speciesId)%ttau(1,1,1,1)
-      print*, "INFORMATION IN CCSD_constructor() tau: ",Allspecies(speciesId)%tau(1,1,1,1)
+      print*, "INFORMATION IN CCSD_constructor() Td: ", sum(Allspecies(speciesId)%Tdsame,dim=1)
+      print*, "INFORMATION IN CCSD_constructor() Dai: ", sum(CCSDinit(speciesId)%Dai,dim=1)
+      print*, "INFORMATION IN CCSD_constructor() ttau: ", sum(Allspecies(speciesId)%ttau,dim=1)
+      print*, "INFORMATION IN CCSD_constructor() tau: ",sum(Allspecies(speciesId)%tau,dim=1)
       print*, "INFORMATION IN CCSD_constructor() ccsdE: ", CoupledCluster_instance%CCSD_E_intra(speciesId)
       print*, "INFORMATION IN Tensor Tensor_index2: ", Tix2(2,1,3)
       
