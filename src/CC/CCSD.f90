@@ -2434,11 +2434,11 @@ contains
       !If there are interspecies?
       print*, "ciclo: OtherspeciesId: ", OtherspeciesId, "speciesId: ", speciesId
       ! if (speciesId>OtherspeciesId) print*, "before F_twospecies: ", Allinterspecies(speciesId)%Tdsame
-      ! call F_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
+      call F_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
       ! if (speciesId>OtherspeciesId) print*, "before W_twospecies: ", Allinterspecies(speciesId)%Tdsame
-      ! call W_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
+      call W_twospecies_intermediates(speciesId, OtherspeciesId, num_inter)
       ! if (speciesId>OtherspeciesId) print*, "before F_T2_AB: ", Allinterspecies(speciesId)%Tdsame
-      ! call F_T2_AB(speciesId, OtherspeciesId, num_inter)
+      call F_T2_AB(speciesId, OtherspeciesId, num_inter)
       ! if (speciesId>OtherspeciesId) print*, "between F_T2_AB and W_T2_AB: ", Allinterspecies(speciesId)%Tdsame
       call W_T2_AB(speciesId, OtherspeciesId, num_inter)
         
@@ -2446,6 +2446,7 @@ contains
 
       tmp_ccsdE_int=0.0_8
       print*, "energy CCSD-APMO: ", speciesId+1, max
+      print*, "e_cont: ", e_cont
 
       do i=1, nop
         do a=nop+1, noc
@@ -2468,6 +2469,7 @@ contains
                   Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii) ) &
                     + (0.5*spintm(e_cont)%valuesp(p,q,r,s)*Allspecies(speciesId)%Tssame(a-nop,i)* &
                       Allspecies(OtherspeciesId)%Tssame(aa-nops,ii))
+              
               ! print*, "spintm(e_cont): ", spintm(e_cont)%valuesp(p,q,r,s)
               ! if (speciesId>OtherspeciesId) print*, "CCSD diff Allinterspecies(speciesId)%Tdsame: ", &
               !   Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii)

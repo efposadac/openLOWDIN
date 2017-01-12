@@ -753,6 +753,8 @@ contains
             end do
           end do
         end do
+        print*, "spintm: ", m
+        write (*,*) spintm(m)%valuesp
 
         call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
 
