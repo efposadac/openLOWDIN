@@ -649,9 +649,18 @@ contains
           do r=1, noc
             do s=1, noc
 
-              v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/lambda,(r+1)/lambda,(q+1)/lambda,(s+1)/lambda, noc/lambda)
-              v_b = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/lambda,(s+1)/lambda,(q+1)/lambda,(r+1)/lambda, noc/lambda)
-            
+              if (lambda==2) then
+
+                v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/lambda,(r+1)/lambda,(q+1)/lambda,(s+1)/lambda, noc/lambda)
+                v_b = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, (p+1)/lambda,(s+1)/lambda,(q+1)/lambda,(r+1)/lambda, noc/lambda)
+              
+              else
+
+                v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, p,r,q,s, noc)
+                v_b = Tensor_getValue(CoupledCluster_instance%MP2_axVc1sp, p,s,q,r, noc)
+
+              end if
+              
               xv_a = v_a * logic2dbl(mod(p,lambda) == mod(r,lambda)) * logic2dbl(mod(q,lambda) == mod(s,lambda))
               xv_b = v_b * logic2dbl(mod(p,lambda) == mod(s,lambda)) * logic2dbl(mod(q,lambda) == mod(r,lambda))
               ! spints
@@ -743,9 +752,28 @@ contains
           do q=1, nocs
             do r=1, noc
               do s=1, nocs
-                v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/lambda1,(r+1)/lambda1,(q+1)/lambda2,(s+1)/lambda2, &
-                    noc/lambda1,nocs/lambda2) !! Coulomb integrals
-          
+                
+                if ((lambda1==2) .and. (lambda2==2)) then
+                  
+                  v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/lambda1,(r+1)/lambda1,(q+1)/lambda2,(s+1)/lambda2, &
+                      noc/lambda1,nocs/lambda2) !! Coulomb integrals
+
+                else if ((lambda1/=2) .and. (lambda2/=2)) then
+
+                  v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, p,r,q,s, noc,nocs) !! Coulomb integrals
+
+                else if ((lambda1/=2) .and. (lambda2==2)) then
+
+                  v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, p,r,(q+1)/lambda2,(s+1)/lambda2, &
+                      noc,nocs/lambda2) !! Coulomb integrals
+
+                else
+                  
+                  v_a = Tensor_getValue(CoupledCluster_instance%MP2_axVc2sp, (p+1)/lambda1,(r+1)/lambda1,q,s, &
+                      noc/lambda1,nocs) !! Coulomb integrals
+
+                end if
+                
                 xv_a = v_a * logic2dbl(mod(p,lambda1) == mod(r,lambda1)) * logic2dbl(mod(q,lambda2) == mod(s,lambda2))
                 spintm(m)%valuesp(p,q,r,s) = xv_a
                 ! write (*,*) spintm(m)%valuesp(p,q,r,s)    
@@ -769,18 +797,18 @@ contains
 
   end subroutine CoupledCluster_pairing_function_interspecies
 
-  ! ! Factorial function just used to know the combination if there are more than one species
-  ! recursive function f(n) result(output)
-  !     implicit none
-  !     integer :: n
-  !     integer :: output
+  ! conditional lambda function just used to know the combination if there are more than one species
+  function f(index,lambda) result(output)
+      implicit none
+      integer :: index, lambda
+      integer :: output
 
-  !     if (n<2) then 
-  !       output=1
-  !     else
-  !       output = n*f(n-1)
-  !     end if
+      if (index==2) then 
+        output = (index+1)/lambda
+      else
+        output = index
+      end if
 
-  ! end function f
+  end function f
 
 end module CoupledCluster_
