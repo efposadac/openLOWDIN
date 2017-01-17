@@ -89,6 +89,7 @@ void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
   nbasis = 0;
   max_nprim = 0;
   max_l = 0;
+  
   for (const auto &shell : shells) {
     nbasis += shell.size();
     max_nprim = std::max(shell.nprim(), max_nprim);
@@ -99,7 +100,7 @@ void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
   // Renormalize
   const auto &shell = shells.back();
 
-  // std::cout<<shell<<std::endl;
+  // std::cout << shell << std::endl;
 
   libint2::Engine engine(libint2::Operator::overlap, shell.nprim(), max_l, 0);
   const auto &buf = engine.results();
@@ -997,10 +998,10 @@ void LibintInterface::compute_g12_disk(const char *filename,
 
   std::vector<Engine> engines(nthreads);
   engines[0] = Engine(libint2::Operator::cgtg, max_nprim, max_l, 0);
-  engines[0].set_precision(engine_precision); // shellset-dependentprecision
-                                              // control will likely break
-                                              // positive definiteness
-                                              // stick with this simple recipe
+  // engines[0].set_precision(engine_precision); // shellset-dependentprecision
+  // control will likely break
+  // positive definiteness
+  // stick with this simple recipe
   engines[0].set_params(cgtg_params);
 
   // std::cout << "compute_2body_disk:precision = " << precision << std::endl;
@@ -1077,10 +1078,13 @@ void LibintInterface::compute_g12_disk(const char *filename,
 #endif
 
             engine.compute(shells[s1], shells[s2], shells[s3], shells[s4]);
-
 #if defined(REPORT_INTEGRAL_TIMINGS)
             timer.stop(0);
 #endif
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            // printf("(%2d %2d| %2d %2d)\n", s1, s2, s3, s4);
 
             auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
                                        bf3_first, bf4_first);
@@ -1095,8 +1099,12 @@ void LibintInterface::compute_g12_disk(const char *filename,
                                       norma[intIter.i()] * norma[intIter.j()] *
                                       norma[intIter.k()] * norma[intIter.l()];
 
-                // printf("\t(%2d %2d | %2d %2d) = %20.15f\n", buffer.p[counter],
-                //        buffer.q[counter], buffer.r[counter], buffer.s[counter], buffer.val[counter]);
+                //     printf("counter: %d buffer_size: %d Integral: %lf\n",
+                //     counter, s_size, buf[0][intIter.index()]);
+                //     printf("\t(%2d %2d | %2d %2d) = %20.15f\n",
+                //     buffer.p[counter],
+                //            buffer.q[counter], buffer.r[counter],
+                //            buffer.s[counter], buffer.val[counter]);
 
                 ++num_ints_computed;
                 ++counter;
@@ -1136,10 +1144,10 @@ void LibintInterface::compute_g12_disk(const char *filename,
 }
 
 void LibintInterface::compute_g12inter_disk(LibintInterface &other,
-				       const char *filename,
-                                       const double *coefficients,
-                                       const double *exponents,
-                                       const int pot_size) {
+                                            const char *filename,
+                                            const double *coefficients,
+                                            const double *exponents,
+                                            const int pot_size) {
 
   const auto nshells = shells.size();
   const auto oshells = other.get_shells();
@@ -1299,7 +1307,7 @@ void LibintInterface::compute_g12inter_disk(LibintInterface &other,
         }
       }
     } // end shells loop
-    
+
     buffer.p[counter] = -1;
     write_buffer(buffer, s_size, outfile);
     outfile.close();
@@ -1417,7 +1425,6 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> &bs1,
 
   return result;
 }
-
 
 template <libint2::Operator Kernel>
 Matrix compute_schwartz_ints(
@@ -1636,14 +1643,12 @@ void libintinterface_compute_g12_disk(LibintInterface *lint,
   lint->compute_g12_disk(filename, coefficients, exponents, pot_size);
 }
 
-void libintinterface_compute_g12inter_disk(LibintInterface *lint,
-				      LibintInterface *olint,
-                                      const char *filename,
-                                      const double *coefficients,
-                                      const double *exponents,
-                                      const int pot_size) {
+void libintinterface_compute_g12inter_disk(
+    LibintInterface *lint, LibintInterface *olint, const char *filename,
+    const double *coefficients, const double *exponents, const int pot_size) {
 
-  lint->compute_g12inter_disk(*olint, filename, coefficients, exponents, pot_size);
+  lint->compute_g12inter_disk(*olint, filename, coefficients, exponents,
+                              pot_size);
 }
 
 void libintinterface_buildg12_(int *nd, int *nc, int *nb, int *na, int *max_am,
@@ -1993,5 +1998,4 @@ void LibintInterface_setLibint(Libint_t *erieval, lowdin_t *data) {
 #if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(16))
   erieval->LIBINT_T_SS_Km1G12_SS(16)[0] = data->LIBINT_T_SS_Km1G12_SS16;
 #endif
-
 }
