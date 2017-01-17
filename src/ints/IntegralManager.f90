@@ -68,13 +68,16 @@ contains
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:)
     real(8), allocatable :: integralsMatrix(:,:)
-    character(100) :: job
+    real(8) :: maxOverlap
+    character(100) :: job, colNum
 
     job = "OVERLAP"
 
     !!Overlap Integrals for all species    
     do f = 1, size(MolecularSystem_instance%species)
 
+       maxOverlap=0.0
+       
        write(30) job
        write(30) MolecularSystem_instance%species(f)%name
 
@@ -121,6 +124,8 @@ contains
                          integralsMatrix(k, l) = integralValue(m)
                          integralsMatrix(l, k) = integralsMatrix(k, l)
 
+                         if( (integralValue(m) .gt. maxOverlap) .and. (l .ne. k) ) maxOverlap=integralValue(m)
+                         
                       end do
                    end do
 
@@ -136,6 +141,8 @@ contains
           ! write(*,"(A, A ,A,I6)")" Number of Overlap integrals for species ", &
           ! trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
        end if
+
+       write (*, "(A,A,F15.6)"), "Maximum overlap value for ", trim( MolecularSystem_getNameOfSpecie(f)), maxOverlap 
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
 

@@ -254,7 +254,7 @@ module Libint2Interface_
        type(c_ptr), value :: coefficients
        type(c_ptr), value :: exponents
        integer(c_int), value :: pot_size
-
+       
      end subroutine c_LibintInterface_computeG12Disk
      
      subroutine c_LibintInterface_computeG12InterDisk(this, othis, filename, coefficients, exponents, pot_size) bind(C, name="libintinterface_compute_g12inter_disk")
@@ -625,6 +625,7 @@ contains
     end if
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
+
     call c_LibintInterface_computeG12Disk(Libint2Instance(speciesID)%this, filename, coefficients_ptr, exponents_ptr, pot_size)
 
   end subroutine Libint2Interface_computeG12Intraspecies_disk
