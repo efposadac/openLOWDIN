@@ -787,9 +787,10 @@ contains
                 s=e
               end if
               CCSDloop(speciesId)%Fac(a-nop,e-nop) = CCSDloop(speciesId)%Fac(a-nop,e-nop) &
-                + ( 0.25*Allspecies(OtherspeciesId)%HF_fs%values(mm,ee)* &
+                + ( 0.25*Allspecies(OtherspeciesId)%Tssame(ee-nops,mm)* & 
                     spintm(n_sp)%valuesp(p,q,r,s)) ! check this
               ! print*, "test OtherspeciesId: p=",p,", q=",q,", r=",r,", s=", s, " n_sp=", n_sp
+              ! Allspecies(OtherspeciesId)%HF_fs%values(mm,ee)
 
               do m=1, nop
 
@@ -1175,7 +1176,7 @@ contains
         end do
       end do
       print*, "nops 18"
-                      ! print*, "F_two_species Allinterspecies(speciesId)%Tdsame", Allinterspecies(OtherspeciesId)%Tdsame(ff-nops,b-nop,nn,j)
+      ! print*, "F_two_species Allinterspecies(speciesId)%Tdsame", Allinterspecies(OtherspeciesId)%Tdsame(ff-nops,b-nop,nn,j)
 
   end subroutine F_T2_AB
 
@@ -2041,234 +2042,6 @@ contains
       print*, "nops 28"
 
   end subroutine W_T2_AB
-
-  !>
-  ! @brief Make convergence of amplitude and energy equations for Coupled Cluster
-  ! @author CAOM
-  subroutine CCSD_loop(speciesId, OtherspeciesId)
-      implicit none
-
-      integer, intent(in) :: speciesId
-      integer, optional, intent(in) :: OtherspeciesId
-
-      integer :: i_counterID(10)
-      integer :: n_intersp(10)
-      integer :: times_i
-      integer :: noc, nocs, nop, nops
-      integer :: num_species
-      integer :: n_sp=0
-      integer :: OtspId=0
-      
-      integer :: max, min, e_cont
-      integer :: a, b, e, i, j,jj
-      integer :: aa, ii, f, m, n
-      integer :: p, q, r, s
-      integer :: num_inter!=1
-      real(8) :: prev_ccsdE
-      real(8) :: tmp_ccsdE
-      real(8) :: prev_ccsdE_int
-      real(8) :: tmp_ccsdE_int
-      real(8) :: ccsdE=0.0_8
-      real(8) :: convergence = 1.0_8
-      real(8) :: convergence_intra = 1.0_8
-      real(8) :: convergence_inter = 1.0_8
-      real(8) :: ccsdE_int=0.0_8
-
-      if (convergence /= 1.0D-8) convergence = 1.0_8
-      if (ccsdE /= 0.0_8) ccsdE = 0.0_8
-      if (convergence_intra /= 1.0D-8) convergence_intra = 1.0_8
-      if (convergence_inter /= 1.0D-8) convergence_inter = 1.0_8
-      if (ccsdE_int /= 0.0_8) ccsdE_int = 0.0_8
-      if (present(OtherspeciesId)) OtspId = OtherspeciesId
-
-      !Initialization of private variables from public variables
-      noc = Allspecies(speciesId)%noc
-      ! nocs = Allspecies(OtspId)%noc
-      nop = Allspecies(speciesId)%nop
-      ! nops = Allspecies(OtspId)%nop
-      num_species = CoupledCluster_instance%num_species
-      ! write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_loop: noc=", noc, "nop=", nop
-      print*, "T1T2_constructor", convergence, noc, nop, speciesId
-
-      times_i = CoupledCluster_instance%times_intersp
-      max = CCSD_instance%max
-      min = CCSD_instance%min
-
-      ! n_sp = Tix2(speciesId, OtspId, num_species)
-      ! num_inter = num_inter + 1
-      
-      do while (convergence >= 1.0D-8)
-        !**change position of do while
-        !do i=1, num_species
-          !all intra CCSD
-        !end do
-        !do i=min, max
-        ! all inter-species
-        !end do
-        prev_ccsdE = ccsdE
-
-        prev_ccsdE_int = ccsdE_int
-
-        print*, "speciesId CCSD_loop: ", speciesId
-
-        call CCSD_T1T2_constructor(speciesId)
-        call CCSD_loop_constructor(speciesId)
-
-        ! if there are inter-species
-        if ((max/=0) .and. (min/=0)) then
-          num_inter = 0
-          CCSD_instance%cont = CCSD_instance%aux_cont
-          do jj=min+1, max
-          
-            ! call CCSD_constructor_inter(min, jj)
-            print*, "jj: ", jj
-            call CCSD_T2AB_constructor(min, jj, num_inter)
-            call CCSD_loop_constructor_inter(min, jj, num_inter)
-
-            num_inter = num_inter + 1
-            CCSD_instance%cont = CCSD_instance%cont + 1                
-          end do
-        end if
-
-        !intermediates loop for:
-        !singles excitations
-        print*, "F_onespecies_intermediates(): "
-        call F_onespecies_intermediates(speciesId)
-        !doubles excitations
-        if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
-          call W_onespecies_intermediates(speciesId)
-          print*, "W_onespecies_intermediates(): "
-        end if
-
-        ! If there are interspecies?
-        if ((max/=0) .and. (min/=0)) then
-          num_inter = 0
-          CCSD_instance%cont = CCSD_instance%aux_cont
-          do jj=min+1, max
-                print*, "ciclo: jj: ", jj
-                call F_twospecies_intermediates(min, jj, num_inter)
-                call W_twospecies_intermediates(min, jj, num_inter)
-                call F_T2_AB(min, jj, num_inter)
-                call W_T2_AB(min, jj, num_inter)
-        
-            num_inter = num_inter + 1
-            CCSD_instance%cont = CCSD_instance%cont + 1                
-          end do
-        end if
-
-        ! Resolve CCSD equation of energy
-
-        tmp_ccsdE=0.0_8
-
-        ! for same species
-        do i=1, nop
-          do a=nop+1, noc
-            tmp_ccsdE = tmp_ccsdE + Allspecies(speciesId)%HF_fs%values(i,a)*Allspecies(speciesId)%Tssame(a-nop,i)
-            if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
-              do j=1, nop
-                do b=nop+1, noc
-                  tmp_ccsdE = tmp_ccsdE + (0.25*spints(speciesId)%valuesp(i,j,a,b)* &
-                      Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
-                        + 0.5*spints(speciesId)%valuesp(i,j,a,b)*Allspecies(speciesId)%Tssame(a-nop,i)* &
-                          Allspecies(speciesId)%Tssame(b-nop,j))
-                end do
-              end do
-            end if
-          end do
-        end do
-
-        ccsdE = tmp_ccsdE
-
-        if (times_i>0) then
-          tmp_ccsdE_int=0.0_8
-          ! for different species OtspId
-          e_cont = CCSD_instance%aux_cont
-          print*, "energy CCSD-APMO: ", min+1, max
-          do jj=min+1, max
-
-            nops = Allspecies(jj)%nop
-            nocs = Allspecies(jj)%noc
-            do i=1, nop
-              do a=nop+1, noc
-                do ii=1, nops
-                  do aa=nops+1, nocs
-
-                    if (speciesId<OtherspeciesId) then
-                      p=i
-                      q=ii
-                      r=a
-                      s=aa
-                    else
-                      p=ii
-                      q=i
-                      r=aa
-                      s=a
-                    end if
-
-                    tmp_ccsdE_int = tmp_ccsdE_int + (0.25*spintm(e_cont)%valuesp(p,q,r,s)* &
-                        Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii) ) &
-                          + (0.5*spintm(e_cont)%valuesp(p,q,r,s)*Allspecies(speciesId)%Tssame(a-nop,i)* &
-                            Allspecies(jj)%Tssame(aa-nops,ii))
-                  end do
-                end do
-              end do
-            end do
-            e_cont = e_cont + 1
-            print*, "energy CCSD-APMO"
-          end do
-        end if
-
-        ccsdE_int = tmp_ccsdE_int
-
-        !change in values for the intra-species loop
-        convergence_intra = abs( ccsdE - prev_ccsdE )
-        !change in values for the inter-species loop
-        convergence_inter = abs( ccsdE_int - prev_ccsdE_int )
-        ! total convergence
-        if (times_i>0) then
-          convergence = abs( (ccsdE+ccsdE_int) - (prev_ccsdE+prev_ccsdE_int) )
-        else
-          convergence = convergence_intra
-        end if
-
-        write (*,*) ccsdE, "CCSD Energy ", prev_ccsdE, "previous Energy" 
-        write (*,*) convergence, "Convergence " 
-        ! if ((convergence > 10) .and. speciesId>1) stop "test"
-        ! Resolve T1 and T2 amplitude equations
-        if (times_i>0) then
-          do jj=min, max
-            call CCSD_T1(jj)
-          end do
-        else
-          call CCSD_T1(speciesId)
-        end if
-        call CCSD_T2(speciesId)
-
-        ! T1 and T2 equation energies for interspecies
-        if (times_i>0) then
-          num_inter = 0
-          CCSD_instance%cont = CCSD_instance%aux_cont
-          do jj=min+1, max
-              num_inter = num_inter + 1
-              print*, "before CCSD_T1_inter()", min, jj
-              call CCSD_T1_inter(min, jj, num_inter)
-              print*, "before CCSD_T2_inter()", min, jj
-              call CCSD_T2_inter(min, jj, num_inter)
-              print*, "CCSD_T2_AB()"
-              call CCSD_T2_AB(min, jj, num_inter)
-              CCSD_instance%cont = CCSD_instance%cont + 1
-          end do
-        end if
-
-        if (convergence > 100) then 
-          stop "Error: There are not convergence. The differences between energies is more than 100 eV"
-        end if
-
-      end do
-
-      CoupledCluster_instance%CCSD_E_intra(speciesId) = ccsdE
-      
-  end subroutine CCSD_loop
 
   !>
   ! @brief Make convergence of amplitude and energy equations for Coupled Cluster
@@ -3428,8 +3201,21 @@ contains
             ! end do
           end do
         end if
-        convergence = sum(CCSD_instance%convergence_same,dim=1) + & 
-          sum(CCSD_instance%convergence_diff,dim=1)
+        print*, "CoupledCluster_instance%CCSD_E_intra: ", CoupledCluster_instance%CCSD_E_intra
+        print*, "e_same_ccd: ", CCSD_instance%convergence_same
+        print*, "CoupledCluster_instance%CCSD_E_inter: ", CoupledCluster_instance%CCSD_E_inter
+        print*, "e_diff_ccd: ", CCSD_instance%convergence_diff
+
+
+        ! if (CCSD_instance%convergence_same(1) >= 1.0D-8) then
+          ! convergence = CCSD_instance%convergence_same(1)
+        ! else if (CCSD_instance%convergence_same(2) >= 1.0D-8) then
+        !   convergence = CCSD_instance%convergence_same(2)
+        ! else
+        convergence = sum(CCSD_instance%convergence_same,dim=1) !+ & 
+          ! sum(CCSD_instance%convergence_diff,dim=1)
+        ! end if
+
         print*, "Temporary convergence: ", convergence
         print*, "Temporary total ccsd-apmo energy: ", sum(e_same_ccd, dim=1) + &
           sum(e_diff_ccd, dim=1)
@@ -3451,6 +3237,7 @@ contains
 
       print*, "Total correction same species CCSD energy: ", CoupledCluster_instance%CCSD_once_Energy
       print*, "Total correction different species CCSD energy: ", CoupledCluster_instance%CCSD_twice_Energy
+      print*, "Total correction CCSD energy: ", CoupledCluster_instance%CCSD_total_Energy
       print*, "Total CCSD energy: ", CoupledCluster_instance%CCSD_total_Energy &
         + CoupledCluster_instance%HF_energy
       ! call CCSD_show()
@@ -3475,10 +3262,10 @@ contains
         CoupledCluster_instance%CCSD_E_intra(speciesId)
       print*, "INFORMATION IN CCSD_constructor() CCSD_Energy of different species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_E_inter(speciesId)
-      print*, "INFORMATION IN CCSD_constructor() Td: ", sum(Allspecies(speciesId)%Tdsame,dim=1)
-      print*, "INFORMATION IN CCSD_constructor() Dai: ", sum(CCSDinit(speciesId)%Dai,dim=1)
-      print*, "INFORMATION IN CCSD_constructor() ttau: ", sum(Allspecies(speciesId)%ttau,dim=1)
-      print*, "INFORMATION IN CCSD_constructor() tau: ",sum(Allspecies(speciesId)%tau,dim=1)
+      ! print*, "INFORMATION IN CCSD_constructor() Td: ", sum(Allspecies(speciesId)%Tdsame,dim=1)
+      ! print*, "INFORMATION IN CCSD_constructor() Dai: ", sum(CCSDinit(speciesId)%Dai,dim=1)
+      ! print*, "INFORMATION IN CCSD_constructor() ttau: ", sum(Allspecies(speciesId)%ttau,dim=1)
+      ! print*, "INFORMATION IN CCSD_constructor() tau: ",sum(Allspecies(speciesId)%tau,dim=1)
       print*, "INFORMATION IN CCSD_constructor() ccsdE: ", CoupledCluster_instance%CCSD_E_intra(speciesId)
       print*, "INFORMATION IN Tensor Tensor_index2: ", Tix2(2,1,3)
       

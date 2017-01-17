@@ -574,7 +574,7 @@ contains
 
       !for the inter-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_inter)) deallocate(CoupledCluster_instance%CCSD_E_inter)
-      allocate(CoupledCluster_instance%CCSD_E_inter(cont)) 
+      allocate(CoupledCluster_instance%CCSD_E_inter(cont*2)) 
 
       !for the one-species matrices from transformed integrals for CC    
       if (allocated(spints)) deallocate(spints)
@@ -617,6 +617,7 @@ contains
       integer :: p, q, r, s
       integer :: noc, nop, lambda
       real(8) :: v_a, v_b, xv_a, xv_b
+      real(8) :: aux=0
 
       
       Allspecies(speciesId)%nop = MolecularSystem_getNumberOfParticles(speciesID)
@@ -667,10 +668,12 @@ contains
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
               ! print*, "spints speciesId=2"
               ! write (*,*) spints(speciesId)%valuesp(p,q,r,s)
+              aux = aux + v_a
             end do
           end do
         end do
       end do
+      spints(speciesId)%valuesp = spints(speciesId)%valuesp*( MolecularSystem_getCharge( speciesId )**2)
       ! print*, "spints(speciesId) complete"
 
       call Tensor_destructor(CoupledCluster_instance%MP2_axVc1sp)
@@ -703,6 +706,8 @@ contains
       integer :: noc, nocs, nop
       integer :: lambda1, lambda2
       real(8) :: v_a, xv_a
+      real(8) :: aux=0
+      real(8) :: couplingEnergyCorrection=0
 
       
       Allspecies(speciesId)%nop = MolecularSystem_getNumberOfParticles(speciesID)
@@ -775,14 +780,22 @@ contains
                 end if
                 
                 xv_a = v_a * logic2dbl(mod(p,lambda1) == mod(r,lambda1)) * logic2dbl(mod(q,lambda2) == mod(s,lambda2))
+                
                 spintm(m)%valuesp(p,q,r,s) = xv_a
-                ! write (*,*) spintm(m)%valuesp(p,q,r,s)    
+                ! write (*,*) spintm(m)%valuesp(p,q,r,s)
+                couplingEnergyCorrection = couplingEnergyCorrection +  &
+                   ( ( xv_a )**2.0_8 ) &
+                   / (Allspecies(speciesId)%HF_fs%values(p,p) + Allspecies(i)%HF_fs%values(q,q) &
+                   -Allspecies(speciesId)%HF_fs%values(r,r)-Allspecies(i)%HF_fs%values(s,s) )
+                aux = aux + xv_a
               end do
             end do
           end do
         end do
-        print*, "spintm: ", m
-        write (*,*) spintm(m)%valuesp
+        spintm(m)%valuesp = spintm(m)%valuesp*(MolecularSystem_getCharge( speciesId )*MolecularSystem_getCharge( i ))
+        print*, "spintm Auxiliary CCSD: ", aux, MolecularSystem_getCharge( i )
+        ! print*, "spintm: ", m
+        ! write (*,*) spintm(m)%valuesp
 
         call Tensor_destructor(CoupledCluster_instance%MP2_axVc2sp)
 
