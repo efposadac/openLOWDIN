@@ -47,6 +47,7 @@ module CCSD_
       integer :: num_i, e_cont
       real(8) :: suma
       real(8), allocatable :: convergence_same(:)
+      real(8), allocatable :: convergence_same_amp(:)
       real(8), allocatable :: convergence_diff(:)
 
       logical :: isInstanced
@@ -2068,11 +2069,12 @@ contains
   !>
   ! @brief Make convergence of amplitude and energy equations for Coupled Cluster
   ! @author CAOM
-  subroutine CCSD_same_species(speciesId, e_ccsd)
+  subroutine CCSD_same_species(speciesId, e_ccsd, v_ampl)
       implicit none
 
       integer, intent(in) :: speciesId
       real(8), intent(in) :: e_ccsd
+      real(8), intent(in) :: v_ampl
 
       integer :: i_counterID(10)
       integer :: n_intersp(10)
@@ -2085,14 +2087,19 @@ contains
       integer :: aa, ii, f, m, n
       integer :: num_inter!=1
       real(8) :: prev_ccsdE
+      real(8) :: prev_ampl
       real(8) :: tmp_ccsdE
       real(8) :: prev_ccsdE_int
       real(8) :: tmp_ccsdE_int
       real(8) :: ccsdE=0.0_8
+      real(8) :: ampl=0.0_8
       real(8) :: convergence = 1.0_8
+      real(8) :: conver_amplitude = 1.0_8
 
       if (convergence /= 1.0D-8) convergence = 1.0_8
+      if (conver_amplitude /= 1.D-8) conver_amplitude = 1.0_8
       if (ccsdE /= 0.0_8) ccsdE = 0.0_8
+      if (ampl /= 0.0_8) ampl = 0.0_8
 
       !Initialization of private variables from public variables
       noc = Allspecies(speciesId)%noc
@@ -2113,6 +2120,7 @@ contains
         ! all inter-species
         !end do
       prev_ccsdE = e_ccsd
+      prev_ampl = v_ampl
 
       print*, "speciesId CCSD_loop: ", speciesId
 
@@ -2152,6 +2160,10 @@ contains
 
       ccsdE = tmp_ccsdE
 
+      ampl = sum(Allspecies(speciesId)%Tdsame) + sum(Allspecies(speciesId)%Tssame)
+
+      conver_amplitude = abs(ampl-prev_ampl)
+
       !change in values for the intra-species loop
       convergence = abs( ccsdE - prev_ccsdE )
       print*, "Otherspecies Tssame: ", Allspecies(speciesId)%Tssame
@@ -2168,7 +2180,9 @@ contains
       end if
 
       CoupledCluster_instance%CCSD_E_intra(speciesId) = ccsdE
+      CoupledCluster_instance%CCSD_A_intra(speciesId) = ampl
       CCSD_instance%convergence_same(speciesId) = convergence
+      CCSD_instance%convergence_same_amp(speciesId) = conver_amplitude
       
   end subroutine CCSD_same_species
   
@@ -2376,10 +2390,10 @@ contains
               end do
             end do
           end if
-          ! if (times_i==0) then
+          if (times_i==0) then
             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit(speciesId)%Dai(a,i)
             Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
-          ! end if
+          end if
           print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i)
           print*, "Dai: ", CCSDinit(speciesId)%Dai(a,i)
           ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
@@ -2479,7 +2493,7 @@ contains
                      end do
                   end do
                   ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
-                  ! if (times_i==0) then
+                  if (times_i==0) then
                     CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
                       /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
                         -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))
@@ -2492,10 +2506,10 @@ contains
                     Allspecies(speciesId)%tau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
                       + Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
                         - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j)
-                  ! end if
+                  end if
                   ! write(*,*) a,b,i,j,Allspecies(speciesId)%Tdsame(a,b,i,j),CCSDT1T2(speciesId)%Tabij(a,b,i,j)
 
-                  print*, "Tabij: ", CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)
+                  ! print*, "Tabij: ", CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)
                end do
             end do
          end do
@@ -3030,7 +3044,7 @@ contains
               Allinterspecies(speciesId)%intau(a-nop,bb-nops,i,jj) = Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
                 + 0.5*Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)
               
-              print*, "Tabij_AB: ", CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj)
+              ! print*, "Tabij_AB: ", CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj)
 
             end do
           end do
@@ -3096,6 +3110,7 @@ contains
       real(8) :: convergence = 1.0_8
       real(8) :: convergence_int = 1.0_8
       real(8), allocatable :: e_same_ccd(:)
+      real(8), allocatable :: a_same_ccd(:)
       real(8), allocatable :: e_diff_ccd(:)
       
       !Initialization of variables
@@ -3131,6 +3146,10 @@ contains
       allocate(CCSD_instance%convergence_same(num_species))
 
       ! allocate array for results of intra-species in CCSD
+      if (allocated(CCSD_instance%convergence_same_amp)) deallocate(CCSD_instance%convergence_same_amp)
+      allocate(CCSD_instance%convergence_same_amp(num_species))
+
+      ! allocate array for results of intra-species in CCSD
       if (allocated(CCSD_instance%convergence_diff)) deallocate(CCSD_instance%convergence_diff)
       allocate(CCSD_instance%convergence_diff(num_inter))
 
@@ -3138,6 +3157,12 @@ contains
       if (allocated(e_same_ccd)) deallocate(e_same_ccd)
       allocate(e_same_ccd(num_species))
       e_same_ccd=0.0_8
+
+      ! allocate array for many results by species in CCSD
+      if (allocated(a_same_ccd)) deallocate(a_same_ccd)
+      allocate(a_same_ccd(num_species))
+      a_same_ccd=0.0_8
+
 
       ! allocate array for many results by species in CCSD
       if (allocated(e_diff_ccd)) deallocate(e_diff_ccd)
@@ -3232,8 +3257,9 @@ contains
         ! end if
 
         do i=counterID, num_species
-          call CCSD_same_species(i,e_same_ccd(i))
+          call CCSD_same_species(i,e_same_ccd(i),a_same_ccd(i))
           e_same_ccd(i) = CoupledCluster_instance%CCSD_E_intra(i)
+          a_same_ccd(i) = CoupledCluster_instance%CCSD_a_intra(i)
         end do
         if (times_i>0) then
           print*, "test PPPPP"
@@ -3270,6 +3296,7 @@ contains
         end if
         print*, "CoupledCluster_instance%CCSD_E_intra: ", CoupledCluster_instance%CCSD_E_intra
         print*, "e_same_ccd: ", CCSD_instance%convergence_same
+        print*, "CoupledCluster_instance%CCSD_A_intra: ", CoupledCluster_instance%CCSD_A_intra
         print*, "CoupledCluster_instance%CCSD_E_inter: ", CoupledCluster_instance%CCSD_E_inter
         print*, "e_diff_ccd: ", CCSD_instance%convergence_diff
 
@@ -3282,7 +3309,10 @@ contains
         ! convergence = sum(CCSD_instance%convergence_same,dim=1) + & 
         !   sum(CCSD_instance%convergence_diff,dim=1)
         ! end if
-        convergence = CCSD_instance%convergence_same(1)
+        convergence = CCSD_instance%convergence_same(1)!,dim=1)
+        ! if (stoped>2) then
+        !   convergence = CCSD_instance%convergence_same_amp(1)
+        ! end if
 
         print*, "Temporary convergence: ", convergence
         print*, "Temporary total ccsd-apmo energy: ", sum(e_same_ccd, dim=1) + &
