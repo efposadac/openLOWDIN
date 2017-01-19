@@ -1449,9 +1449,9 @@ contains
 
        end if
 
-        !do i=1, ConfigurationInteraction_instance%numberOfConfigurations
+        ! do i=1, ConfigurationInteraction_instance%numberOfConfigurations
         !   call Configuration_show (ConfigurationInteraction_instance%configurations(i))
-        !end do
+        ! end do
     else 
 
     end if
@@ -1491,6 +1491,8 @@ contains
        
        allocate (ciOccupationNumbers(numberOfSpecies))
        allocate (refOccupationNumbers(numberOfSpecies))
+
+       ! call Matrix_show (ConfigurationInteraction_instance%eigenVectors)
        
        do specie=1, numberOfSpecies
           
@@ -1500,13 +1502,14 @@ contains
           call Matrix_constructor ( ciOccupationNumbers(specie) , int(ConfigurationInteraction_instance%numberOfOrbitals%values(specie),8) , int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
 
           call Matrix_constructor ( refOccupationNumbers(specie) , int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie),8) , int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
-
+          
           do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
             do j=1, int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie))
               orbital = ConfigurationInteraction_instance%configurations(state)%occupations(j,specie) 
               ciOccupationNumbers(specie)%values(orbital,state) = 1.0
               refOccupationNumbers(specie)%values(orbital,state) = j
-            end do
+
+           end do
           end do
           
           do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
@@ -1611,7 +1614,7 @@ contains
          call ConfigurationInteraction_buildAndSaveCIMatrix()
 
          !! deallocate transformed integrals
-         deallocate (ConfigurationInteraction_instance%configurations)
+         ! deallocate (ConfigurationInteraction_instance%configurations)
          deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
          deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
 
@@ -1622,8 +1625,7 @@ contains
          print *, ""
          print *, "Diagonalizing hamiltonian..."
          print *, "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-
+         
          call ConfigurationInteraction_diagonalize(ConfigurationInteraction_instance%numberOfConfigurations, &
               ConfigurationInteraction_instance%numberOfConfigurations, &
               CONTROL_instance%NUMBER_OF_CI_STATES, &
@@ -4041,15 +4043,16 @@ contains
 
       end do !! species
 
-!      do c = 1,  ConfigurationInteraction_instance%numberOfConfigurations 
-!         call Configuration_show(  ConfigurationInteraction_instance%configurations(c) )
-!      end do 
-
     case default
 
        call ConfigurationInteraction_exception( ERROR, "Configuration interactor constructor", "Correction level not implemented")
 
     end select
+
+    ! do c = 1,  ConfigurationInteraction_instance%numberOfConfigurations 
+    !    call Configuration_show(  ConfigurationInteraction_instance%configurations(c) )
+    ! end do
+
 
   end subroutine ConfigurationInteraction_buildConfigurations
 
@@ -6555,13 +6558,13 @@ contains
 
       !! saving the eigenvectors
       k = 0
-      do i = 1, N
-        do j = 1, maxeig
+      do j = 1, maxeig
+         do i = 1, N
           k = k + 1
           eigenVectors%values(i,j) = X(k)
         end do
       end do
-
+      
 
   end subroutine ConfigurationInteraction_jadamiluInterface
 
