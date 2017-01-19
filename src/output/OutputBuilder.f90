@@ -57,6 +57,7 @@ module OutputBuilder_
      character(50) :: specie
      character(50) :: fileName
      character(50) :: fileName2
+     integer :: state
      integer :: orbital
      integer :: dimensions
      integer :: outputID
@@ -78,7 +79,11 @@ module OutputBuilder_
        OutputBuilder_generateExtendedWfnFile, &
        OutputBuilder_buildOutput, &
        OutputBuilder_make2DGraph, &
-       OutputBuilder_make3DGraph
+       OutputBuilder_make3DGraph, &
+       OutputBuilder_get2DPlot, &
+       OutputBuilder_get3DPlot, &
+       OutputBuilder_getDensityPlot
+
   private   
 
 interface 
@@ -99,10 +104,11 @@ contains
   !!
   !! @param this
   !<
-  subroutine OutputBuilder_constructor(this, ID, type ,specie, orbital, dimensions, cubeSize, point1, point2, point3  )
+  subroutine OutputBuilder_constructor(this, ID, type ,specie, state, orbital, dimensions, cubeSize, point1, point2, point3  )
     character(*) :: type
     integer :: ID
     character(*) :: specie
+    integer :: state
     integer :: orbital
     integer :: dimensions
     real(8) :: cubeSize
@@ -113,7 +119,8 @@ contains
 
     this%type=type
     this%outputID=ID
-    this%specie=specie
+    this%specie=trim(String_getUppercase(specie))
+    this%state=state
     this%orbital=orbital
     this%dimensions=dimensions
     this%cubeSize=cubeSize
@@ -189,11 +196,12 @@ contains
     print *, this%type
     if (this%specie /= "") write (6,"(A30,A10)") "for specie: ", this%specie
     if (this%orbital /= 0) write (6,"(A30,I10)") "for orbital: ", this%orbital
+    if (this%state /= 1) write (6,"(A30,I10)") "for excited state: ", this%state
     if (this%dimensions /= 0) write (6,"(A30,I2)") "number of dimensions: ", this%dimensions
-    if (this%cubeSize /= 0.0_8) write (6,"(A30,F15.12)") "cube size in a.u.: ", this%cubeSize
-    if (this%dimensions >= 1) write (6,"(A30,F15.12,F15.12,F15.12)") "Point 1: ", this%point1%values(1), this%point1%values(2), this%point1%values(3)
-    if (this%dimensions >= 2) write (6,"(A30,F15.12,F15.12,F15.12)") "Point 2: ", this%point2%values(1), this%point2%values(2), this%point2%values(3)
-    if (this%dimensions >= 3) write (6,"(A30,F15.12,F15.12,F15.12)") "Point 3: ", this%point3%values(1), this%point3%values(2), this%point3%values(3)
+    if (this%cubeSize /= 0.0_8) write (6,"(A30,F15.5)") "cube size in a.u.: ", this%cubeSize
+    if (this%dimensions >= 1) write (6,"(A30,F15.5,F15.5,F15.5)") "Point 1: ", this%point1%values(1), this%point1%values(2), this%point1%values(3)
+    if (this%dimensions >= 2) write (6,"(A30,F15.5,F15.5,F15.5)") "Point 2: ", this%point2%values(1), this%point2%values(2), this%point2%values(3)
+    if (this%dimensions >= 3) write (6,"(A30,F15.5,F15.5,F15.5)") "Point 3: ", this%point3%values(1), this%point3%values(2), this%point3%values(3)
     print *, "--------------------------------------------------------"
     print *, ""
 
@@ -239,8 +247,8 @@ contains
         call OutputBuilder_generateExtendedWfnFile (this)
 
     case ( "densityPlot") 
-        if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
-        if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
+        if (this%dimensions == 2) call OutputBuilder_getDensityPlot(this)
+        if (this%dimensions == 3) call OutputBuilder_getDensityPlot(this)
 
 !    case ( "densityCube") 
 !       call OutputBuilder_getCube(this)
@@ -327,6 +335,9 @@ contains
     allocate(fractionalOccupations(numberOfSpecies))
     
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+
+       print *, "              We are printing the molden files for the CI states!"
+       
        numberOfStates=CONTROL_instance%CI_STATES_TO_PRINT
        occupationsUnit = 29
        occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
@@ -592,8 +603,6 @@ contains
     character(2) :: space
     integer :: totalNumberOfParticles, n
 
-    auxString="speciesName"
-
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
@@ -602,7 +611,7 @@ contains
 
         do l=1,MolecularSystem_getNumberOfQuantumSpecies()
 
-     auxString=MolecularSystem_getNameOfSpecie( l )
+           auxString=MolecularSystem_getNameOfSpecie( l )
 
            this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".vec"
 
@@ -1111,11 +1120,6 @@ contains
      z_title=""
 
      select case( this%type )
-     case ( "densityPlot") 
-        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".3D.dens"
-        open(10,file=this%fileName,status='replace',action='write')
-        write (10,"(A10,A20,A20,A20)") "#","X","Y","Density"
-        title=trim(this%specie)//" density" 
 
      case ( "orbitalPlot") 
         orbitalNum=String_convertIntegerToString(this%orbital)
@@ -1151,8 +1155,6 @@ contains
         do j=0,numberOfSteps
            coordinate(:)=i*step1%values(:)+j*step2%values(:)+this%point1%values(:)
            select case( this%type )
-           case ( "densityPlot") 
-              val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
            case ( "orbitalPlot") 
               val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
            case ( "fukuiPlot") 
@@ -1210,12 +1212,6 @@ contains
 
      x_title="distance/a.u."
      select case( this%type )
-     case ( "densityPlot") 
-        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".2D.dens"
-        open(10,file=this%fileName,status='replace',action='write')
-        write (10,"(A10,A20,A20)") "#","X","Density"
-        title=trim(this%specie)//" density" 
-        y_title="density/a.u.^{-3}"
 
      case ( "orbitalPlot") 
         orbitalNum=String_convertIntegerToString(this%orbital)
@@ -1244,10 +1240,7 @@ contains
 
      do i=0,numberOfSteps
         coordinate(:)=i*step%values(:)+this%point1%values(:)
-        val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
         select case( this%type )
-        case ( "densityPlot") 
-           val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
         case ( "orbitalPlot") 
            val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
         case ( "fukuiPlot") 
@@ -1270,6 +1263,217 @@ contains
      call Vector_Destructor ( step)
 
    end subroutine OutputBuilder_get2DPlot
+
+
+   subroutine OutputBuilder_getDensityPlot(this)
+     type(OutputBuilder) :: this
+     character(50) :: outputID
+     character(50) :: orbitalNum
+
+     integer :: i,j, speciesID, wfnunit, occupationsUnit 
+     integer :: numberOfSteps, numberOfOrbitals
+     type(vector) :: step1, step2
+     type(matrix) :: densityMatrix, auxMatrix
+     real(8) :: val, maxValue, minValue
+     real(8) :: coordinate(3)
+
+     character(50) :: arguments(20), wfnFile, occupationsFile, auxstring, nameOfSpecies
+     character(50) :: title, x_title, y_title, z_title
+     
+     call Vector_Constructor(step1, 3)
+     call Vector_Constructor(step2, 3)
+
+     
+     speciesID = MolecularSystem_getSpecieIDFromSymbol( trim(this%specie) )
+     nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+     numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
+    
+
+     ! Check if there are CI density matrices and read those or the HF matrix
+     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+        print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
+
+       occupationsUnit = 29
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+
+       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+
+
+       write(auxstring,*) this%state
+       arguments(2) = nameOfSpecies
+       arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+
+       densityMatrix= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,4), &
+                  columns= int(numberOfOrbitals,4), binary=.false., arguments=arguments(1:2))
+
+
+       close(occupationsUnit)     
+    else
+       
+       !! Read density matrix
+       !! Open file for wavefunction
+       wfnFile = "lowdin.wfn"
+       wfnUnit = 20
+       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+       
+       arguments(2) = nameOfSpecies
+       arguments(1) = "DENSITY"
+
+       densityMatrix = &
+            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
+            columns=int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
+
+       close (wfnUnit)
+
+     end if
+
+     ! call Matrix_show(densityMatrix)
+     
+     !Define graph parameters
+     numberOfSteps= CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
+     step1%values(:)=(this%point2%values(:)-this%point1%values(:))/numberOfSteps
+     step2%values(:)=(this%point3%values(:)-this%point1%values(:))/numberOfSteps
+    
+     outputID=String_convertIntegerToString(this%outputID)
+
+     write(auxstring,*) this%state
+     title=trim(this%specie)//"state"//auxstring//" density" 
+
+     val=0.0_8     
+     maxValue=0.0_8
+     minValue=0.0_8 
+
+     !Write density grids according to the number of dimensions chosen
+     if(this%dimensions.eq.3)then
+        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".3D.dens"
+        x_title="x/a.u."
+        y_title="y/a.u."
+        z_title=""
+        open(10,file=this%fileName,status='replace',action='write')
+        write (10,"(A10,A20,A20,A20)") "#","X","Y","Density"
+        do i=0,numberOfSteps
+           write (10,*) ""
+           do j=0,numberOfSteps
+              coordinate(:)=this%point1%values(:)+i*step1%values(:)+j*step2%values(:)
+              val=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )  
+
+              write (10,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val 
+              if (val > maxValue) maxValue = val
+              if (val < minValue) minValue = val
+              ! print *, coordinate, val
+           end do
+        end do
+
+        call OutputBuilder_make3DGraph( this%fileName, title, x_title, y_title, z_title, minValue, maxValue)
+        close(10)
+        
+     elseif(this%dimensions.eq.2) then
+        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".2D.dens"
+        x_title="distance/a.u."
+        y_title="density/a.u.^{-3}"
+        open(10,file=this%fileName,status='replace',action='write')
+
+        write (10,"(A10,A20,A20)") "#","X","Density"
+        do i=0,numberOfSteps
+           coordinate(:)=this%point1%values(:)+i*step1%values(:)
+           val=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )  
+
+           write (10,"(T10,F20.8,F20.8)") i*Vector_norm(step1),val 
+              ! print *, coordinate, val
+        end do
+
+        call OutputBuilder_make2DGraph( this%fileName, title, x_title, y_title)
+        close(10)
+        
+     end if
+
+     call Vector_Destructor(step1)
+     call Vector_Destructor(step2)
+
+   end subroutine OutputBuilder_getDensityPlot
+
+!    subroutine OutputBuilder_get2DDensityPlot(this)
+!      implicit none
+!      type(outputBuilder) :: this
+!      character(50) :: outputID
+!      character(50) :: orbitalNum
+
+!      integer :: i
+!      integer :: numberOfSteps
+!      type(vector) :: step
+!      real(8) :: val, val2
+!      real(8) :: coordinate(3)
+
+!      character(50) :: title
+!      character(50) :: x_title
+!      character(50) :: y_title
+
+!      stop "trololo 2D"
+
+! !      call Vector_Constructor(step, 3)
+
+! !      this%fileName2=""
+! !      numberOfSteps= CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
+! !      step%values(:)=(this%point2%values(:)-this%point1%values(:))/numberOfSteps
+! !      outputID=String_convertIntegerToString(this%outputID)
+
+! !      select case( this%type )
+! !      case ( "densityPlot") 
+
+
+! !      case ( "orbitalPlot") 
+! !         orbitalNum=String_convertIntegerToString(this%orbital)
+! !         this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".2D.orb"//trim(orbitalNum)
+! !         open(10,file=this%fileName,status='replace',action='write')
+! !         write (10,"(A10,A20,A20)") "#", "X","OrbitalValue"
+! !         title=trim(this%specie)//" Orbital Number "//trim(orbitalNum) 
+! !         y_title="orbitalValue/a.u.^{-3/2}"
+
+! !      case ( "fukuiPlot") 
+! !         this%fileName=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".2D.fkpos"
+! !         this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%specie)//".2D.fkneg"
+
+! !         open(10,file=this%fileName,status='replace',action='write')
+! !         write (10,"(A10,A20,A20)") "#","X","PositiveFukuiValue"
+! !         title=trim(this%specie)//" positive fukui" 
+! !         y_title="density/a.u.^{-3}"
+
+! !         open(11,file=this%fileName,status='replace',action='write')
+! !         write (11,"(A10,A20,A20)") "#","X","NegativeFukuiValue"
+     
+! !      case default
+! !         call OutputBuilder_exception(ERROR, "The output plot type you requested has not been implemented yet", "OutputBuilder_get3DPlot" )
+
+! !      end select
+
+! !      do i=0,numberOfSteps
+! !         coordinate(:)=i*step%values(:)+this%point1%values(:)
+! !         val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
+! !         select case( this%type )
+! !         case ( "densityPlot") 
+! !            val=CalculateWaveFunction_getDensityAt( this%specie, coordinate )  
+! !         case ( "orbitalPlot") 
+! !            val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+! !         case ( "fukuiPlot") 
+! ! !!           val=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
+! ! !!           val2=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
+! !         case default
+! !         end select
+! !         write (10,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val 
+! !         if (this%type .eq. "fukuiPlot") write (11,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val2 
+! !      end do
+
+! !      close(10)
+
+! !      call OutputBuilder_make2DGraph( this%fileName, title, x_title, y_title)
+! ! !!     if (this%type .eq. "fukuiPlot") then
+! ! !!        close(11)
+! ! !!        title=trim(this%specie)//" negative fukui" 
+! ! !!        call OutputBuilder_make2DGraph( this%fileName2, title, x_title, y_title)
+! ! !!     end if
+! !      call Vector_Destructor ( step)
+
+!    end subroutine OutputBuilder_get2DDensityPlot
 
 
 

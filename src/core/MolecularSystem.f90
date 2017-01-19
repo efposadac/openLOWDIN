@@ -94,6 +94,7 @@ module MolecularSystem_
        MolecularSystem_getFactorOfInterchangeIntegrals, &
        MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getSpecieID, &
+       MolecularSystem_getSpecieIDFromSymbol, &
        MolecularSystem_getPointChargesEnergy, &
        MolecularSystem_getMMPointChargesEnergy, &
        MolecularSystem_getlabelsofcontractions
@@ -1263,20 +1264,36 @@ contains
    function MolecularSystem_getSpecieID( nameOfSpecie ) result(output)
      implicit none
      
-     character(*) nameOfSpecie
+     character(*) :: nameOfSpecie
      integer :: output
      integer i 
      
      output = 0
-     
+
      do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        if( trim(MolecularSystem_instance%species(i)%name) == trim(nameOfSpecie)) then
-           output = i
-        end if
+        if( trim(MolecularSystem_instance%species(i)%name) == trim(nameOfSpecie)) output = i
      end do
-          
+
    end function MolecularSystem_getSpecieID
-   
+
+      !> @brief Returns the name of a species
+   !! @author E. F. Posada, 2013
+   !! @version 1.0
+   function MolecularSystem_getSpecieIDFromSymbol( symbolOfSpecie ) result(output)
+     implicit none
+     
+     character(*) :: symbolOfSpecie
+     integer :: output
+     integer i 
+     
+     output = 0
+
+     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+        if( trim(MolecularSystem_instance%species(i)%symbol) == trim(symbolOfSpecie)) output = i
+     end do
+
+   end function MolecularSystem_getSpecieIDFromSymbol
+
    !>
    !! @brief calcula la energia total para una especie especificada
    function MolecularSystem_getPointChargesEnergy() result( output )

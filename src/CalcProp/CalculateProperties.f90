@@ -48,269 +48,450 @@ module CalculateProperties_
   !!   - <tt> 2011-11-23 </tt>: Felix Moncada ( fsmoncadaa@unal.edu.co )
   !!        -# Adds numerical integration properties, ADPT calculations and brings population analyses 
   !!   - <tt> 2014-01-23 </tt>: Matheus Rodriguez ( matrodriguezalv@unal.edu.co )
-        !!        -# Reescribe y adapta el modulo de Calculate properties en Lowdin2
+  !!        -# Reescribe y adapta el modulo de Calculate properties en Lowdin2
+  !!   - <tt> 2017-01-19 </tt>: Felix Moncada ( fsmoncadaa@unal.edu.co )
+  !!        -# Trae de vuelta el calculo de dipolo, incluye la matriz de densidad CI y reordena el modulo
   !<
 
   type, public :: CalculateProperties
-        character(30) :: name
-       ! type(Matrix) :: contributionsOfdipoleMoment
-        type(Matrix) :: expectedPositions
-        type(Vector) :: expectedR2
-       ! type(Matrix) :: polarizabilityTensor
-       ! type(Matrix) :: hyperPolarizabilityTensor(3)
-       ! type(Matrix) :: interparticleDistances
-       ! type(Matrix) :: interparticleDistancesErrors
-        type(Matrix) :: interparticleOverlap
-       ! type(Vector) :: volume
-       ! type(Vector) :: cumulativeDensity
-       ! type(Cube), allocatable :: densityCube(:)
-       ! type(Cube), allocatable :: orbitalCube(:)
-        type(Matrix) :: negativeFukui
-        type(Matrix) :: positiveFukui
-        type(Matrix) :: overlapMatrix   !!! JORGE
-        type(Matrix) :: densityMatrix
-  end type
+     type(Matrix), allocatable :: overlapMatrix(:)   !!! JORGE
+     type(Matrix), allocatable :: densityMatrix(:)
+     type(Matrix), allocatable :: momentMatrices(:,:)
+     ! character(30) :: name
+     ! type(Matrix) :: contributionsOfdipoleMoment
+     ! type(Matrix) :: expectedPositions
+     ! type(Vector) :: expectedR2
+     ! type(Matrix) :: polarizabilityTensor
+     ! type(Matrix) :: hyperPolarizabilityTensor(3)
+     ! type(Matrix) :: interparticleDistances
+     ! type(Matrix) :: interparticleDistancesErrors
+     ! type(Matrix) :: interparticleOverlap
+     ! type(Vector) :: volume
+     ! type(Vector) :: cumulativeDensity
+     ! type(Cube), allocatable :: densityCube(:)
+     ! type(Cube), allocatable :: orbitalCube(:)
+     ! type(Matrix) :: negativeFukui
+     ! type(Matrix) :: positiveFukui
+  end type CalculateProperties
 
 
-       integer, parameter, public :: MULLIKEN  =  1
-       integer, parameter, public :: LOWDIN    =  2
+  integer, parameter, public :: MULLIKEN  =  1
+  integer, parameter, public :: LOWDIN    =  2
 
 
 
   !private :: &
-    !CalculateProperties_getDipoleOfPuntualCharges
-    ! CalculateProperties_getDipoleOfQuantumSpecie
 
   public :: &
-!    CalculateProperties_constructor, &
-!    CalculateProperties_destructor, &
-!    CalculateProperties_dipole, &
-     CalculateProperties_expectedPosition, &
-!     CalculateProperties_expectedR2, &
-!    CalculateProperties_polarizability, &
-!    CalculateProperties_showContributionsToElectrostaticMoment, &
-     CalculateProperties_showExpectedPositions, &
-!     CalculateProperties_showExpectedR2, &
-!    CalculateProperties_showPolarizabilityTensor, &
-!    CalculateProperties_interparticleDistance,  &
-!    CalculateProperties_interparticleOverlap, &
-!    CalculateProperties_distanceToPoint, &
-!    CalculateProperties_buildDensityCubesLimits, &
-!    CalculateProperties_buildDensityCubes, &
-!    CalculateProperties_volumes, &
-     CalculateProperties_showPopulationAnalyses, &
-     CalculateProperties_getPopulation
-!    CalculateProperties_getPartialCharges, &
-!    CalculateProperties_showIonizationPotentials, &
-!    CalculateProperties_showCharges
-!    CalculateProperties_showVolumes, &
-!    CalculateProperties_getFukuiAt
-    
+       CalculateProperties_constructor, &
+       CalculateProperties_destructor, &
+       CalculateProperties_showExpectedPositions, &
+       CalculateProperties_getExpectedPosition, &
+       CalculateProperties_showPopulationAnalyses, &
+       CalculateProperties_getPopulation, &
+       CalculateProperties_showContributionsToElectrostaticMoment, &
+       CalculateProperties_getDipoleOfPuntualCharges, &
+       CalculateProperties_getDipoleOfQuantumSpecie
+  !     CalculateProperties_expectedR2, &
+  !    CalculateProperties_polarizability, &
+  !     CalculateProperties_showExpectedR2, &
+  !    CalculateProperties_showPolarizabilityTensor, &
+  !    CalculateProperties_interparticleDistance,  &
+  !    CalculateProperties_interparticleOverlap, &
+  !    CalculateProperties_distanceToPoint, &
+  !    CalculateProperties_buildDensityCubesLimits, &
+  !    CalculateProperties_buildDensityCubes, &
+  !    CalculateProperties_volumes, &
+  !    CalculateProperties_getPartialCharges, &
+  !    CalculateProperties_showIonizationPotentials, &
+  !    CalculateProperties_showCharges
+  !    CalculateProperties_showVolumes, &
+  !    CalculateProperties_getFukuiAt
+
 contains
 
-
-
-  subroutine CalculateProperties_showPopulationAnalyses()
+  !<
+  !! @brief Constructor para la clase
+  !>
+  subroutine CalculateProperties_constructor( this )
     implicit none
-               ! type (CalculateProperties) :: this ! por medio de este this accedo a todo lo que este en la estructura o type
-                                                   ! calculate properties 
+    type(CalculateProperties) :: this
+    character(50) :: wfnFile
+    integer :: wfnUnit
+    character(50) :: arguments(20)
+    character(50) ::  integralsFile
+    integer ::  integralsUnit
+    character(50) :: occupationsFile, auxstring
+    integer :: occupationsUnit
+    integer :: numberOfSpecies, speciesID, numberOfContractions
+
+    integralsFile = "lowdin.opints"
+    integralsUnit = 30
+
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+
+    !! Open file for wavefunction
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    allocate(this%overlapMatrix(numberOfSpecies))
+    allocate(this%densityMatrix(numberOfSpecies))
+    allocate(this%momentMatrices(numberOfSpecies,3))
+
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+    open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted") 
+
+    do speciesID=1, numberOfSpecies
+       numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
+
+       ! Check if there are CI density matrices and read those or the HF matrix
+       if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  ) then
+          print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+               " in the CI ground state"
+
+          occupationsUnit = 29
+          occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+
+          open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+
+          auxstring="1" !ground state
+          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+
+          this%densityMatrix(speciesID)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfcontractions,4), &
+               columns= int(numberOfcontractions,4), binary=.false., arguments=arguments(1:2))
+
+          close(occupationsUnit)     
+
+       else
+
+          print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+               " in the HF/KS ground state"
+
+          !! Read density matrix
+          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(1) = "DENSITY"
+
+          this%densityMatrix(speciesID) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+       end if
+
+       ! Overlap matrix
+       arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+       arguments(1) = "OVERLAP"
+
+       this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+       !! Load moment Matrices
+       arguments(1) = "MOMENTX"    
+       this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+       arguments(1) = "MOMENTY"    
+       this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+       arguments(1) = "MOMENTZ"    
+       this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+    end do
+
+  end subroutine CalculateProperties_constructor
+
+  !<
+  !! @brief Destructor para la clase
+  !>
+  subroutine CalculateProperties_destructor( this )
+    implicit none
+    type(CalculateProperties) :: this
+    integer :: numberOfSpecies, speciesID
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    do speciesID=1, numberOfSpecies
+       call Matrix_destructor(this%densityMatrix(speciesID) )
+       call Matrix_destructor(this%overlapMatrix(speciesID) )
+       call Matrix_destructor(this%momentMatrices(speciesID,1) )
+       call Matrix_destructor(this%momentMatrices(speciesID,2) )
+       call Matrix_destructor(this%momentMatrices(speciesID,3) )
+    end do
+
+    deallocate(this%overlapMatrix)
+    deallocate(this%densityMatrix)
+    deallocate(this%momentMatrices)
+
+
+  end subroutine CalculateProperties_destructor
+
+  subroutine CalculateProperties_showPopulationAnalyses(this)
+    implicit none
+    type (CalculateProperties) :: this ! por medio de este this accedo a todo lo que este en la estructura o type
+    ! calculate properties 
 
     real(8) :: total
     character(10) :: specieName
-    integer :: i,specieID
-    logical :: showPopulations 
+    integer :: specieID
 
+    !Felix: Vamos a hacer el analisis de poblaciones para todas las especies
 
-    specieID=1
-    !! Recorre las especies buscando electrones
-                                        
-    search_specie: do i = 1, MolecularSystem_getNumberOfQuantumSpecies()
-      specieName=""
-      specieName = trim(MolecularSystem_getNameOfSpecie(i))
+    do specieID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+       specieName = trim(MolecularSystem_getNameOfSpecie( specieID ))
 
-      if( scan(trim(specieName),"E")==1 ) then
-        if( scan(trim(specieName),"-")>1 ) then
-          showPopulations=.true.
-          specieID=i
-          exit search_specie
-        end if
-      else
-        showPopulations=.false.
-      end if
+       !!Obtiene Poblaciones de Mulliken
+       print *,""
+       print *," POPULATION ANALYSES: "
+       print *,"===================="
+       print *,""
+       print *, " Mulliken Population: for ", specieName
+       print *,"---------------------"
+       print *,""
+       call Vector_show( CalculateProperties_getPopulation(this, "MULLIKEN", specieID, total), &
+            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
 
-    end do search_specie
+       write (6,"(T25,A10)") "__________"
+       write (6,"(T10,A15,F10.6)") "Total = ", total
+       print *,""
+       print *,"...end of Mulliken Population"
+       print *,""
+       print *, " Lowdin Population: for ", specieName
+       print *,"---------------------"
+       print *,""
+       call Vector_show( CalculateProperties_getPopulation( this, "LOWDIN", specieID, total),&
+            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
+       write (6,"(T25,A10)") "__________"
+       write (6,"(T10,A15,F10.6)") "Total = ", total
+       print *,""
+       print *,"...end of Lowdin Population"
+       print *,""
+       print *,"END POPULATION ANALYSES "
+       print *,""
+    end do
 
-    if( showPopulations ) then
-      !!Obtiene Poblaciones de Mulliken
-      print *,""
-      print *," POPULATION ANALYSES: "
-      print *,"===================="
-      print *,""
-      print *, " Mulliken Population: "
-      print *,"---------------------"
-      print *,""
-      call Vector_show( CalculateProperties_getPopulation(MULLIKEN, total,trim(specieName)),&
-        flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
+    ! specieID=1
+    !! Antes: Recorre las especies buscando electrones
 
-      write (6,"(T25,A10)") "__________"
-      write (6,"(T10,A15,F10.6)") "Total = ", total
-      print *,""
-      print *,"...end of Mulliken Population"
-      print *,""
-      print *, " Lowdin Population:"
-      print *,"---------------------"
-      print *,""
-      call Vector_show( CalculateProperties_getPopulation( LOWDIN, total,trim(specieName)),&
-        flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
-      write (6,"(T25,A10)") "__________"
-      write (6,"(T10,A15,F10.6)") "Total = ", total
-      print *,""
-      print *,"...end of Lowdin Population"
-      print *,""
-      print *,"END POPULATION ANALYSES "
-      print *,""
-    end if
+    ! search_specie: do i = 1, MolecularSystem_getNumberOfQuantumSpecies()
+    !   specieName=""
+    !   specieName = trim(MolecularSystem_getNameOfSpecie(i))
+
+    !   if( scan(trim(specieName),"E")==1 ) then
+    !     if( scan(trim(specieName),"-")>1 ) then
+    !       showPopulations=.true.
+    !       specieID=i
+    !       exit search_specie
+    !     end if
+    !   else
+    !     showPopulations=.false.
+    !   end if
+
+    ! end do search_specie
 
   end subroutine CalculateProperties_showPopulationAnalyses
 
 
- !<
- !! @brief Retorna la poblacion de Mulliken o Lowdin del sistema molecular
- !>
- function CalculateProperties_getPopulation( typeOfPopulation, totalSum, nameOfSpecie, fukuiType )  result( output )
-   implicit none
-  ! type (CalculateProperties) :: this 
-   integer :: typeOfPopulation
-   real(8), optional, intent(out) :: totalSum
-   character(*),optional  :: nameOfSpecie
-   character(*), optional :: fukuiType
-   type(Vector) :: output
-   
-   type(Matrix) :: densityMatrix
-   type(Matrix) :: overlapMatrix
-   type(Matrix) :: auxMatrix
-   type(Matrix) :: auxMatrixB
-   character(10) :: auxNameOfSpecie
-   integer :: numberOfcontractions
-   integer :: speciesID
-   integer :: i
-   character(50) :: wfnFile
-   integer :: wfnUnit
-   character(50) :: arguments(20)
-   character(50) ::  integralsFile
-   integer ::  integralsUnit
+  !<
+  !! @brief Retorna la poblacion de Mulliken o Lowdin del sistema molecular
+  !>
+  function CalculateProperties_getPopulation( this, typeOfPopulation, specieID, totalSum, fukuiType )  result( output )
+    implicit none
+    type (CalculateProperties) :: this 
+    character(*) :: typeOfPopulation
+    integer  :: specieID
+    real(8), optional, intent(out) :: totalSum
+    character(*), optional :: fukuiType
+    type(Vector) :: output
 
+    type(Matrix) :: auxMatrix
+    type(Matrix) :: auxMatrixB
+    integer :: numberOfcontractions
+    integer :: i
 
-  integralsFile = "lowdin.opints"
-  integralsUnit = 30
+    numberOfcontractions=MolecularSystem_getTotalNumberOfContractions (specieID )
 
+    call Matrix_constructor( auxMatrix, int( numberOfcontractions, 8), int( numberOfcontractions, 8) )
+    call Vector_constructor( output, numberOfcontractions   )
 
-  wfnFile = "lowdin.wfn"
-  wfnUnit = 20
+    select case( typeOfPopulation )
 
+    case("MULLIKEN")
+       auxMatrix%values = matmul(this%densityMatrix(specieID)%values, this%overlapMatrix(specieID)%values )
 
-  !! Open file for wavefunction                                                                                                                                             
-  open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+    case ("LOWDIN")
 
-  open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted") 
+       auxMatrix%values = matmul(this%densityMatrix(specieID)%values, this%overlapMatrix(specieID)%values )
 
+       auxMatrix = Matrix_pow( this%overlapMatrix(specieID), 0.5_8 )
+       auxMatrixB = auxMatrix
+       auxMatrix%values = matmul( matmul( auxMatrixB%values , this%densityMatrix(specieID)%values), auxMatrixB%values )
 
-  auxNameOfSpecie="E-" 
-  if (present( nameOfSpecie ) )  then
-     auxNameOfSpecie = trim(nameOfSpecie)
-  end if
+    case default
 
-  !    if ( MolecularSystem_isSet() ) then
-  if ( .not. present( fukuiType) .or. (present(fukuiType) .and. trim(auxNameofSpecie) .eq. "E-") ) then
-     speciesID =MolecularSystem_getSpecieID (  nameOfSpecie = trim(auxNameOfSpecie) )
-     numberOfcontractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
-     call Matrix_constructor( auxMatrix, int( numberOfcontractions, 8), int( numberOfcontractions, 8) )
-     call Vector_constructor( output, numberOfcontractions   )
+    end select
 
+    do i=1, numberOfcontractions
+       output%values(i) = auxMatrix%values(i,i)
+    end do
 
-     arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-     arguments(1) = "DENSITY"
-     !  WaveFunction_instance(speciesID)%densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+    !print*,"auxMatrix%values", auxMatrix%values      
+    if ( present( totalSum ) ) totalSum = sum(output%values)
 
-!     print *, "CalculateProperties_getPopulation 0"
-
-     densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-!!! Solo para esta subrutina
-
-     arguments(1) = "OVERLAP"
- 
-
-     !!! Abrir el archivo lowdin.opints
-
-     !  WaveFunction_instance(speciesID)%overlapMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-
-
-!     print *, "CalculateProperties_getPopulation 1"
-
-     overlapMatrix = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-  !!! General
-
-
-!     print *, "CalculateProperties_getPopulation 2"
-
-     select case( typeOfPopulation )
-
-     case( MULLIKEN )
-        ! Reto por que cambia bastante en lowdin 2
-        ! Leer el modulo wave function de HF en lowdin 2
-        ! Leer todo el directorio HF de lowdin 2    
-    !!    overlapMatrix = WaveFunction_instance( speciesID )%overlapMatrix
-        !  if (trim(fukuiType)=="positive" .and. trim(auxNameOfSpecie) == "E-") then
-        !    densityMatrix = this%positiveFukui
-        !  else if  (trim(fukuiType)=="negative" .and. trim(auxNameOfSpecie) == "E-") then
-        !     densityMatrix = this%negativeFukui
-        ! else              
-    !!    densityMatrix =  WaveFunction_instance( speciesID )%densityMatrix      
-        ! end if
-        auxMatrix%values = matmul(densityMatrix%values, overlapMatrix%values )
-        
-     case (LOWDIN)
-        
-     !!   overlapMatrix = WaveFunction_instance( speciesID )%overlapMatrix
-     !!   densityMatrix =  WaveFunction_instance( speciesID )%densityMatrix          
-        auxMatrix%values = matmul(densityMatrix%values, overlapMatrix%values )
-        
-        auxMatrix = Matrix_pow( overlapMatrix, 0.5_8 )
-        auxMatrixB = auxMatrix
-        auxMatrix%values = matmul( matmul( auxMatrixB%values , densityMatrix%values), auxMatrixB%values )
-        
-        call Matrix_destructor(auxMatrixB)
-        
-     case default
-        
-     end select
-
-     
-     
-     do i=1, numberOfcontractions
-        output%values(i) = auxMatrix%values(i,i)
-     end do
-                     
-     !print*,"auxMatrix%values", auxMatrix%values      
-     if ( present( totalSum ) ) totalSum = sum(output%values)
-
-     call Matrix_destructor(overlapMatrix)
-     call Matrix_destructor(auxMatrix)
-     call Matrix_destructor(auxMatrixB)
-     call Matrix_destructor(densityMatrix)
-     
-  end if
-                       
-!else
-
-  ! call CalculateProperties_exception(ERROR, "You should set the molecular system before use this function", &
-  !      "Class object CalculateProperties in the getPopulation function" )
-   
-   close(wfnUnit)
-   close(integralsUnit)
-!end if
+    call Matrix_destructor(auxMatrix)
+    call Matrix_destructor(auxMatrixB)
 
   end function CalculateProperties_getPopulation
+
+  !<
+  !! @brief Muestra las contrinuciones al dipolo de cada especie
+  !>
+  subroutine CalculateProperties_showExpectedPositions(this)
+    implicit none
+    type(CalculateProperties) :: this
+    character(30) :: nameOfSpecieSelected
+    integer :: i,j
+    integer :: numberOfSpecies
+    real(8) :: output(3)
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    print *,""
+    print *," EXPECTED POSITIONS OF QUANTUM SPECIES:"
+    print *,"======================"
+    print *,""
+    print *,"POSITIONS IN ANGSTROMS"
+    print *,"------"
+    print *,""
+    write (6,"(T19,4A9)") "<x>","<y>", "<z>", ""
+    do i=1, numberOfSpecies
+       write (6,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecie( i )), CalculateProperties_getExpectedPosition(this, i)
+    end do
+    print *,""
+    print *,"END EXPECTED POSITIONS"
+    print *,""
+  end subroutine CalculateProperties_showExpectedPositions
+
+  function CalculateProperties_getExpectedPosition( this , specieID) result(output)
+    implicit none
+    type(CalculateProperties) :: this
+    integer :: specieID
+    real(8) :: output(3)
+
+    !! Open file for wavefunction                                                                                                          
+    output=0.0_8
+
+    output(1)=sum( this%densityMatrix(specieID)%values * this%momentMatrices(specieID,1)%values ) * 0.52917720859
+    output(2)=sum( this%densityMatrix(specieID)%values * this%momentMatrices(specieID,2)%values ) * 0.52917720859
+    output(3)=sum( this%densityMatrix(specieID)%values * this%momentMatrices(specieID,3)%values ) * 0.52917720859
+
+  end function CalculateProperties_getExpectedPosition
+
+  !<
+  !! @brief Muestra las contrinuciones al dipolo de cada especie
+  !>
+  subroutine CalculateProperties_showContributionsToElectrostaticMoment(this)
+    implicit none
+    type(CalculateProperties) :: this
+
+    integer :: i, numberOfSpecies
+    real(8), allocatable :: dipole(:,:)
+    real(8) :: totalDipole(3)
+
+    totalDipole=0.0_8
+    numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
+
+    allocate(dipole(numberOfSpecies+1,3))
+
+    print *,""
+    print *," ELECTROSTATIC MOMENTS:"
+    print *,"======================"
+    print *,""
+    print *,"DIPOLE: (DEBYE)"
+    print *,"------"
+    print *,""
+    write (6,"(T19,4A9)") "<Dx>","<Dy>", "<Dz>"," |D|"
+
+    do i=1, numberOfSpecies
+       dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecie(this, i)*2.54174619
+       totalDipole(:)=totalDipole(:)+dipole(i,:)
+       write (6,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
+    end do
+
+    dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()*2.54174619
+    totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
+    write (6,"(T5,A15,3F9.4)") "Point charges: ", dipole(numberOfSpecies+1,:)
+
+    write (6,"(T22,A28)") "___________________________________"
+
+    write (6,"(T5,A15,3F9.4, F9.4)") "Total ", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
+
+    print *,""
+    print *,"END ELECTROSTATIC MOMENTS"
+    print *,""
+
+    deallocate(dipole)
+
+  end subroutine CalculateProperties_showContributionsToElectrostaticMoment
+
+  ! !<
+  ! !! @brief Calcula el aporte al dipolo de las cargas puntuales presentes
+  ! !>
+  function CalculateProperties_getDipoleOfPuntualCharges() result( output )
+    implicit none
+    real(8) :: output(3)
+    integer :: i
+
+    output = 0.0_8
+
+    
+    do i=1, size( MolecularSystem_instance%pointCharges )      
+       output(:) = output(:) + MolecularSystem_instance%pointCharges(i)%origin(:) * MolecularSystem_instance%pointCharges(i)%charge
+    end do
+
+    
+  end function CalculateProperties_getDipoleOfPuntualCharges
+
+
+  !<
+  !! @brief Calcula el aporte al dipolo debido a particulas no fijas
+  !>
+  function CalculateProperties_getDipoleOfQuantumSpecie( this, i ) result( output )
+    implicit none
+    type(CalculateProperties) :: this
+    integer :: i !specieID
+    real(8) :: output(3)
+
+    output(1) =sum( this%densityMatrix(i)%values * this%momentMatrices(i,1)%values )
+    output(2) =sum( this%densityMatrix(i)%values * this%momentMatrices(i,2)%values )
+    output(3) =sum( this%densityMatrix(i)%values * this%momentMatrices(i,3)%values )
+
+    output = output * MolecularSystem_getCharge( i )
+
+  end function CalculateProperties_getDipoleOfQuantumSpecie
+
+
+
+
+
+
+  subroutine CalculateProperties_exception( typeMessage, description, debugDescription)
+    implicit none
+    integer :: typeMessage
+    character(*) :: description
+    character(*) :: debugDescription
+
+    type(Exception) :: ex
+
+    call Exception_constructor( ex , typeMessage )
+    call Exception_setDebugDescription( ex, debugDescription )
+    call Exception_setDescription( ex, description )
+    call Exception_show( ex )
+    call Exception_destructor( ex )
+
+  end subroutine CalculateProperties_exception
+
+end module CalculateProperties_
 
 !  !<
 !  !! @brief  Calculates the expected position for each quantum specie
@@ -416,125 +597,3 @@ contains
 !
 !  end subroutine CalculateProperties_showExpectedR2
 
-  subroutine CalculateProperties_expectedPosition( this )
-    implicit none
-    type(CalculateProperties) :: this
-    type(Matrix) :: densityMatrix
-    type(Matrix) :: momentMatrix
-    character(30) :: nameOfSpecieSelected
-    integer :: i
-    integer :: numberOfSpecies
-    integer :: unit
-    integer :: totalNumberOfContractions
-    character(50) :: wfnFile
-    integer :: wfnUnit
-    character(50) :: arguments(20)
-    character(50) ::  integralsFile
-    integer ::  integralsUnit
- 
-    integralsFile = "lowdin.opints"
-    integralsUnit = 30
-  
-    wfnFile = "lowdin.wfn"
-    wfnUnit = 20
-  
-    !! Open file for wavefunction                                                                                                                                             
-
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-
-    call Matrix_constructor(this%expectedPositions,int(numberOfSpecies,8),3_8)
-
-
-    do i=1, numberOfSpecies
-
-      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-      open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted") 
-
-      !! Get number of shells and number of cartesian contractions
-      totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )          
-
-      arguments(2) = trim(MolecularSystem_getNameOfSpecie(i))
-
-      !! Load density Matrix
-      arguments(1) = "DENSITY"    
-      densityMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
-         unit=wfnUnit, binary=.true., arguments=arguments(1:2))
-
-      !! Load moment Matrix
-      arguments(1) = "MOMENTX"    
-      momentMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
-         unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-      !! Calcula integrales asociadas al momento electrico dipolar en la direccion x
-      this%expectedPositions%values(i,1)=sum( densityMatrix%values * momentMatrix%values ) * 0.52917720859
-
-      arguments(1) = "MOMENTY"    
-      momentMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
-         unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-      !! Calcula integrales asociadas al momento electrico dipolar en la direccion y
-      this%expectedPositions%values(i,2) =sum( densityMatrix%values * momentMatrix%values ) * 0.52917720859
-
-      arguments(1) = "MOMENTZ"    
-      momentMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
-         unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-      !! Calcula integrales asociadas al momento electrico dipolar en la direccion z
-      this%expectedPositions%values(i,3) =sum( densityMatrix%values * momentMatrix%values ) * 0.52917720859
-
-      close(wfnUnit)
-      close(integralsUnit)
-
-      call Matrix_destructor(momentMatrix)
-      call Matrix_destructor(densityMatrix)
-
-   end do
-
-  end subroutine CalculateProperties_expectedPosition
-
-  !<
-  !! @brief Muestra las contrinuciones al dipolo de cada especie
-  !>
-  subroutine CalculateProperties_showExpectedPositions(this)
-    implicit none
-    type(CalculateProperties) :: this
-    character(30) :: nameOfSpecieSelected
-    integer :: i,j
-    integer :: numberOfSpecies
-    real(8) :: output(3)
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-                print *,""
-    print *," EXPECTED POSITIONS OF QUANTUM SPECIES:"
-    print *,"======================"
-    print *,""
-    print *,"POSITIONS IN ANGSTROMS"
-    print *,"------"
-    print *,""
-    write (6,"(T19,4A9)") "<x>","<y>", "<z>", ""
-    do i=1, numberOfSpecies
-       write (6,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecie( i )), (this%expectedPositions%values(i,j),j=1,3)
-     end do
-    print *,""
-    print *,"END EXPECTED POSITIONS"
-    print *,""
-  end subroutine CalculateProperties_showExpectedPositions
-
-
-
-
-
-
-  subroutine CalculateProperties_exception( typeMessage, description, debugDescription)
-    implicit none
-    integer :: typeMessage
-    character(*) :: description
-    character(*) :: debugDescription
-  
-    type(Exception) :: ex
-
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
-  
-  end subroutine CalculateProperties_exception
-
-end module CalculateProperties_
