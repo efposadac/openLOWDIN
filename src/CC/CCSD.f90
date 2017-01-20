@@ -232,6 +232,7 @@ contains
       do a=nop+1, noc
         do i=1, nop
           write(*,*) a,i,CCSDinit(speciesId)%Dai(a,i)
+          print*, "HF_fs: ", Allspecies(speciesId)%HF_fs%values(i,i), Allspecies(speciesId)%HF_fs%values(a,a)
         end do
       end do
 
@@ -2300,9 +2301,27 @@ contains
         end do
       end do
       print *, "speciesId", speciesId
-      print *, "tdsame inter", auxtdsame
-      print *, "tssame inter", auxtssame
+      print *, "tdsame E inter", auxtdsame
+      print *, "tssame E inter", auxtssame
       print *, "Tdsame: ", Allinterspecies(speciesId)%Tdsame(1,1,1,1)
+      print *, "intau: ", Allinterspecies(speciesId)%intau(1,1,1,1)
+      print *, "tau: ", Allinterspecies(speciesId)%tau(1,1,1,1)
+      print *, "Tssame: ", Allspecies(speciesId)%Tssame(1,1)
+      print *, "Fac: ", CCSDloop(speciesId)%Fac(1,1)
+      print *, "Fki: ", CCSDloop(speciesId)%Fki(1,1)
+      print *, "Fkc_aa: ", CCSDloop(speciesId)%Fkc_aa(1,1)
+      print *, "Fkc_aba: ", CCSDinter(speciesId)%Fkc_aba(1,1)
+      print *, "Fkca_ab: ", CCSDinter(OtherspeciesId)%Fkca_ab(1,1)
+      print *, "Faca: ", CCSDinter(speciesId)%Faca(1,1)
+      print *, "Fkia: ", CCSDinter(speciesId)%Fkia(1,1)
+      print *, "Fbcb: ", CCSDinter(OtherspeciesId)%Fbcb(1,1)
+      print *, "Fkjb: ", CCSDinter(OtherspeciesId)%Fkjb(1,1)
+      print *, "Waka: ", CCSDinter(speciesId)%Waka(1,1,1,1)
+      print *, "Wcia: ", CCSDinter(speciesId)%Wcia(1,1,1,1)
+      print *, "Wbkb: ", CCSDinter(speciesId)%Wbkb(1,1,1,1)
+      print *, "Wcjb: ", CCSDinter(speciesId)%Wcjb(1,1,1,1)
+      print *, "Wakic: ", CCSDinter(speciesId)%Wakic(1,1,1,1)
+      print *, "Wbkjc: ", CCSDinter(OtherspeciesId)%Wbkjc(1,1,1,1)
       print *, "spintm: ", spintm(e_cont)%valuesp(1,1,1,1)
 
 
@@ -2316,20 +2335,20 @@ contains
       write (*,*) ccsdE_int, "CCSD Energy inter-species ", prev_ccsdE_int, "previous Energy inter-species" 
       write (*,*) convergence, "Convergence inter-species" 
 
-      ! T1 and T2 equation energies for interspecies
-      print*, "before CCSD_T1_inter()", speciesId, OtherspeciesId
-      call CCSD_T1_inter(speciesId, OtherspeciesId, num_inter)
-      ! if (speciesId>OtherspeciesId) print*, "after CCSD_T1 Allinterspecies(speciesId)%Tdsame: ", &
-      !   Allinterspecies(speciesId)%Tdsame
-      print*, "before CCSD_T2_inter()", speciesId, OtherspeciesId
-      call CCSD_T2_inter(speciesId, OtherspeciesId, num_inter)
-      ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2 Allinterspecies(speciesId)%Tdsame: ", &
-      !   Allinterspecies(speciesId)%Tdsame
-      print*, "CCSD_T2_AB()"
-      call CCSD_T2_AB(speciesId, OtherspeciesId, num_inter)
-      ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2AB Allinterspecies(speciesId)%Tdsame: ", &
-      !   Allinterspecies(speciesId)%Tdsame
-      print*, "num_inter: ", num_inter
+      ! ! T1 and T2 equation energies for interspecies
+      ! print*, "before CCSD_T1_inter()", speciesId, OtherspeciesId
+      ! call CCSD_T1_inter(speciesId, OtherspeciesId, num_inter)
+      ! ! if (speciesId>OtherspeciesId) print*, "after CCSD_T1 Allinterspecies(speciesId)%Tdsame: ", &
+      ! !   Allinterspecies(speciesId)%Tdsame
+      ! print*, "before CCSD_T2_inter()", speciesId, OtherspeciesId
+      ! call CCSD_T2_inter(speciesId, OtherspeciesId, num_inter)
+      ! ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2 Allinterspecies(speciesId)%Tdsame: ", &
+      ! !   Allinterspecies(speciesId)%Tdsame
+      ! print*, "CCSD_T2_AB()"
+      ! call CCSD_T2_AB(speciesId, OtherspeciesId, num_inter)
+      ! ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2AB Allinterspecies(speciesId)%Tdsame: ", &
+      ! !   Allinterspecies(speciesId)%Tdsame
+      ! print*, "num_inter: ", num_inter
   
       if (convergence > 100) then 
         stop "Error: There are not convergence. The differences between energies is more than 100 eV"
@@ -2347,6 +2366,38 @@ contains
       CCSD_instance%e_cont = e_cont
 
   end subroutine CCSD_diff_species
+
+  !>
+  ! @brief Make convergence of amplitude and energy equations for Coupled Cluster
+  ! @author CAOM
+  subroutine CCSD_diff_species_energy(speciesId, OtherspeciesId)
+      implicit none
+
+      integer, intent(in) :: speciesId
+      integer, intent(in) :: OtherspeciesId
+
+      integer :: num_inter
+      integer :: nop, noc
+
+      noc = Allspecies(speciesId)%noc
+      nop = Allspecies(speciesId)%nop
+
+      num_inter = CCSD_instance%num_i
+
+      ! T1 and T2 equation energies for interspecies
+      print*, "before CCSD_T1_inter()", speciesId, OtherspeciesId
+      call CCSD_T1_inter(speciesId, OtherspeciesId, num_inter)
+      ! if (speciesId>OtherspeciesId) print*, "after CCSD_T1 Allinterspecies(speciesId)%Tdsame: ", &
+      !   Allinterspecies(speciesId)%Tdsame
+      print*, "before CCSD_T2_inter()", speciesId, OtherspeciesId
+      if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
+        call CCSD_T2_inter(speciesId, OtherspeciesId, num_inter)
+      end if
+      ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2 Allinterspecies(speciesId)%Tdsame: ", &
+      !   Allinterspecies(speciesId)%Tdsame
+
+  end subroutine CCSD_diff_species_energy
+
 
   !>
   ! @brief Calculate T1 energy equations for intra-species
@@ -3264,7 +3315,7 @@ contains
 
 
       ! if (times_i>0) then
-        do while (convergence >= 1.0D-8)
+      do while (convergence >= 1.0D-8)
 
         ! if ((CCSD_instance%min+1)>counterID) print*, "before times_i>0: ", Allinterspecies(CCSD_instance%min+1)%Tdsame
         stoped = stoped +1
@@ -3310,7 +3361,37 @@ contains
               ! convergence_int = CCSD_instance%convergence_diff(num_i)
             ! end do
           end do
+
+          do i=1, times_i
+            CCSD_instance%num_i = 1
+            CCSD_instance%cont = CCSD_instance%aux_cont
+            CCSD_instance%e_cont = CCSD_instance%aux_cont
+            max = CCSD_instance%max
+            min = CCSD_instance%min
+            num_i = CCSD_instance%num_i
+            call CCSD_diff_species_energy(i_counterID(i),n_intersp(i))
+            CCSD_instance%cont = CCSD_instance%aux_cont
+            CCSD_instance%e_cont = CCSD_instance%aux_cont
+            call CCSD_diff_species_energy(n_intersp(i),i_counterID(i))
+          end do
+
+          do i=1, times_i
+            CCSD_instance%num_i = 1
+            CCSD_instance%cont = CCSD_instance%aux_cont
+            CCSD_instance%e_cont = CCSD_instance%aux_cont
+            max = CCSD_instance%max
+            min = CCSD_instance%min
+            num_i = CCSD_instance%num_i
+            print*, "CCSD_T2_AB()"
+            call CCSD_T2_AB(i_counterID(i),n_intersp(i), num_i)
+            ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2AB Allinterspecies(speciesId)%Tdsame: ", &
+            CCSD_instance%cont = CCSD_instance%aux_cont
+            CCSD_instance%e_cont = CCSD_instance%aux_cont
+            call CCSD_T2_AB(n_intersp(i),i_counterID(i), num_i)            
+          end do
+          
         end if
+
         print*, "CoupledCluster_instance%CCSD_E_intra: ", CoupledCluster_instance%CCSD_E_intra
         print*, "e_same_ccd: ", CCSD_instance%convergence_same
         print*, "CoupledCluster_instance%CCSD_A_intra: ", CoupledCluster_instance%CCSD_A_intra
@@ -3336,7 +3417,7 @@ contains
           sum(e_diff_ccd, dim=1)
         ! if (stoped>=3) stop "nops 1 - 5"
 
-        end do
+      end do
       ! end if
 
       do i=counterID, finalID
