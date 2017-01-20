@@ -858,7 +858,7 @@ contains
                 end if
 
                 CCSDloop(speciesId)%Fki(m,i) = CCSDloop(speciesId)%Fki(m,i) &
-                  + ( 0.25*Allinterspecies(n_sp)%intau(e-nop,ee-nops,i,mm)* &
+                  + ( 0.25*Allinterspecies(speciesId)%intau(e-nop,ee-nops,i,mm)* &
                       spintm(n_sp)%valuesp(p,q,r,s)) !eq 5-6
                 ! write(*,*) a,e,CCSDloop(speciesId)%Fki(m,i)
               end do
@@ -918,12 +918,12 @@ contains
               end if
 
               !REVISAR 01/10/2017
-              CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
-                - (0.5*spintm(n_sp)%valuesp(p,q,r,s)) !eq 7-2
+              ! CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
+              !   - (0.5*spintm(n_sp)%valuesp(p,q,r,s)) !eq 7-2
 
               ! print*, "%Fkc_aba: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
 
-              do ee=1, nops
+              do ee=nops+1, nocs
 
                 if (speciesId<OtherspeciesId) then
                   p=m
@@ -993,8 +993,8 @@ contains
             do i=1, nop
 
               !REVISAR
-              ! CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
-              !   + spints(speciesId)%valuesp(m,a,i,e) !eq 7-1
+              CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
+                + spints(speciesId)%valuesp(m,a,i,e) !eq 7-1
               
               do mm=1, nops
                 do ee=nops+1, nocs
@@ -1450,7 +1450,7 @@ contains
 
       ! CCSDinter(speciesId)%Waka
       do m=1, nop
-        do bb=1+nops, nocs
+        do bb=nops+1, nocs
           do i=1, nop
             do jj=1, nops
 
@@ -1655,7 +1655,7 @@ contains
 
       ! CCSDinter(speciesId)%Wcjb
       do a=nop+1, noc
-        do bb=1+nops, nocs
+        do bb=nops+1, nocs
           do i=1, nop
             do ee=nops+1, nocs
 
@@ -1679,11 +1679,11 @@ contains
 
                   if (speciesId<OtherspeciesId) then
                     p=m
-                    q=mm
+                    q=bb
                     r=e
                     s=ee
                   else
-                    p=mm
+                    p=bb
                     q=m
                     r=ee
                     s=e
@@ -2095,6 +2095,8 @@ contains
       real(8) :: ampl=0.0_8
       real(8) :: convergence = 1.0_8
       real(8) :: conver_amplitude = 1.0_8
+      real(8) :: auxtdsame = 0.0_8
+      real(8) :: auxtssame = 0.0_8
 
       if (convergence /= 1.0D-8) convergence = 1.0_8
       if (conver_amplitude /= 1.D-8) conver_amplitude = 1.0_8
@@ -2152,12 +2154,16 @@ contains
                     Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
                       + 0.5*spints(speciesId)%valuesp(i,j,a,b)*Allspecies(speciesId)%Tssame(a-nop,i)* &
                         Allspecies(speciesId)%Tssame(b-nop,j))
+                 auxtdsame = auxtdsame + 0.25*spints(speciesId)%valuesp(i,j,a,b)*Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) 
+                 auxtssame = auxtssame + 0.5*spints(speciesId)%valuesp(i,j,a,b)*Allspecies(speciesId)%Tssame(a-nop,i)* Allspecies(speciesId)%Tssame(b-nop,j)
+
               end do
             end do
           end if
         end do
       end do
-
+      print *, "tdsame intra", auxtdsame
+      print *, "tssame intra", auxtssame
       ccsdE = tmp_ccsdE
 
       ampl = sum(Allspecies(speciesId)%Tdsame) + sum(Allspecies(speciesId)%Tssame)
@@ -2212,6 +2218,8 @@ contains
       real(8) :: tmp_ccsdE_int
       real(8) :: convergence = 1.0_8
       real(8) :: ccsdE_int=0.0_8
+      real(8) :: auxtdsame = 0.0_8
+      real(8) :: auxtssame = 0.0_8
 
       if (convergence /= 1.0D-8) convergence = 1.0_8
       if (ccsdE_int /= 0.0_8) ccsdE_int = 0.0_8
@@ -2256,7 +2264,8 @@ contains
       tmp_ccsdE_int=0.0_8
       print*, "energy CCSD-APMO: ", speciesId+1, max
       print*, "e_cont: ", e_cont
-
+      auxtdsame = 0 
+      auxtssame = 0 
       do i=1, nop
         do a=nop+1, noc
           do ii=1, nops
@@ -2274,11 +2283,13 @@ contains
                 s=a
               end if
 
-              tmp_ccsdE_int = tmp_ccsdE_int + (0.25*spintm(e_cont)%valuesp(p,q,r,s)* &
+              tmp_ccsdE_int = tmp_ccsdE_int + (0.5*spintm(e_cont)%valuesp(p,q,r,s)* &
                   Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii) ) &
                     + (0.5*spintm(e_cont)%valuesp(p,q,r,s)*Allspecies(speciesId)%Tssame(a-nop,i)* &
                       Allspecies(OtherspeciesId)%Tssame(aa-nops,ii))
-              
+              auxtdsame = auxtdsame + (0.5*spintm(e_cont)%valuesp(p,q,r,s)* Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii) )
+              auxtssame = auxtssame + (0.5*spintm(e_cont)%valuesp(p,q,r,s)*Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(aa-nops,ii))
+
               ! print*, "spintm(e_cont): ", spintm(e_cont)%valuesp(p,q,r,s)
               ! if (speciesId>OtherspeciesId) print*, "CCSD diff Allinterspecies(speciesId)%Tdsame: ", &
               !   Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii)
@@ -2288,6 +2299,12 @@ contains
           end do
         end do
       end do
+      print *, "speciesId", speciesId
+      print *, "tdsame inter", auxtdsame
+      print *, "tssame inter", auxtssame
+      print *, "Tdsame: ", Allinterspecies(speciesId)%Tdsame(1,1,1,1)
+      print *, "spintm: ", spintm(e_cont)%valuesp(1,1,1,1)
+
 
       print*, "energy CCSD-APMO"
 
@@ -2381,7 +2398,7 @@ contains
               end do
             end if
           end do
-          if ((nop>=2)) then ! .and. (times_i==0) kind of interaction just for two or more particles of the principal species 
+          if ((nop>=2)) then !  .and. (times_i==0) kind of interaction just for two or more particles of the principal species 
             !if times_i/=0 then the product below will be calculated in Fkc_aba in subroutine CCSD_T1_inter()
             do m=1,nop !n
               do e=nop+1, noc !f
@@ -3306,10 +3323,10 @@ contains
         ! else if (CCSD_instance%convergence_same(2) >= 1.0D-8) then
         !   convergence = CCSD_instance%convergence_same(2)
         ! else
-        ! convergence = sum(CCSD_instance%convergence_same,dim=1) + & 
-        !   sum(CCSD_instance%convergence_diff,dim=1)
+         convergence = sum(CCSD_instance%convergence_same,dim=1) + & 
+           sum(CCSD_instance%convergence_diff,dim=1)
         ! end if
-        convergence = CCSD_instance%convergence_same(1)!,dim=1)
+        !convergence = CCSD_instance%convergence_same(1)!,dim=1)
         ! if (stoped>2) then
         !   convergence = CCSD_instance%convergence_same_amp(1)
         ! end if

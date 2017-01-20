@@ -51,6 +51,7 @@ module CoupledCluster_
       real(8) :: HF_puntualInteractionEnergy
       real(8) :: MP2_EnergyCorr
       real(8), allocatable :: CCSD_E_intra(:)
+      real(8), allocatable :: CCSD_A_intra(:)
       real(8), allocatable :: CCSD_E_inter(:)
       type(Vector) :: HF_orbitals
       type(matrix) :: HF_orbitals_dmatrix
@@ -572,6 +573,9 @@ contains
       if (allocated(CoupledCluster_instance%CCSD_E_intra)) deallocate(CoupledCluster_instance%CCSD_E_intra)
       allocate(CoupledCluster_instance%CCSD_E_intra(num_species))
 
+      if (allocated(CoupledCluster_instance%CCSD_A_intra)) deallocate(CoupledCluster_instance%CCSD_A_intra)
+      allocate(CoupledCluster_instance%CCSD_A_intra(num_species))
+
       !for the inter-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_inter)) deallocate(CoupledCluster_instance%CCSD_E_inter)
       allocate(CoupledCluster_instance%CCSD_E_inter(cont*2)) 
@@ -666,7 +670,7 @@ contains
               xv_b = v_b * logic2dbl(mod(p,lambda) == mod(s,lambda)) * logic2dbl(mod(q,lambda) == mod(r,lambda))
               ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
-              ! print*, "spints speciesId=2"
+              print*, "spints: ", spints(speciesId)%valuesp(p,q,r,s), " p: ", p, " q: ", q, " r: ", r, " s: " , s
               ! write (*,*) spints(speciesId)%valuesp(p,q,r,s)
               aux = aux + v_a
             end do
@@ -674,7 +678,7 @@ contains
         end do
       end do
       spints(speciesId)%valuesp = spints(speciesId)%valuesp*( MolecularSystem_getCharge( speciesId )**2)
-      ! print*, "spints(speciesId) complete"
+      ! print*, "spints(speciesId) complete", spints(speciesId)%valuesp
 
       call Tensor_destructor(CoupledCluster_instance%MP2_axVc1sp)
       
@@ -788,6 +792,7 @@ contains
                    / (Allspecies(speciesId)%HF_fs%values(p,p) + Allspecies(i)%HF_fs%values(q,q) &
                    -Allspecies(speciesId)%HF_fs%values(r,r)-Allspecies(i)%HF_fs%values(s,s) )
                 aux = aux + xv_a
+                print*, "spintm: ", spintm(m)%valuesp(p,q,r,s), " p: ", p, " q: ", q, " r: ", r, " s: ", s
               end do
             end do
           end do
