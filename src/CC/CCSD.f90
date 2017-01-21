@@ -2286,7 +2286,7 @@ contains
 
               tmp_ccsdE_int = tmp_ccsdE_int + (0.5*spintm(e_cont)%valuesp(p,q,r,s)* &
                   Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii) ) &
-                    + (0.5*spintm(e_cont)%valuesp(p,q,r,s)*Allspecies(speciesId)%Tssame(a-nop,i)* &
+                    + (spintm(e_cont)%valuesp(p,q,r,s)*Allspecies(speciesId)%Tssame(a-nop,i)* &
                       Allspecies(OtherspeciesId)%Tssame(aa-nops,ii))
               auxtdsame = auxtdsame + (0.5*spintm(e_cont)%valuesp(p,q,r,s)* Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii) )
               auxtssame = auxtssame + (0.5*spintm(e_cont)%valuesp(p,q,r,s)*Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(aa-nops,ii))
@@ -2790,6 +2790,21 @@ contains
         do i=1, nop
           do bb=nops+1, nocs
             do jj=1, nops
+
+              if (speciesId<OtherspeciesId) then
+                p=i
+                q=jj
+                r=a
+                s=bb
+              else
+                p=jj
+                q=i
+                r=bb
+                s=a
+              end if
+
+              CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                + spintm(n_sp)%valuesp(p,q,r,s)            
 
               do e=nop+1, noc
                 CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
