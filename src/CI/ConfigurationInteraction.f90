@@ -4098,41 +4098,35 @@ contains
     integer(2) coupingCoefficient 
     integer(2), allocatable :: auxMatrix( :,:)
 
-    timeA = omp_get_wtime()
+    !timeA = omp_get_wtime()
     !a,b configuration iterators
 
     size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
     size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
-     allocate(auxMatrix(size1,size2))
-    auxMatrix = 0
+    ! allocate(auxMatrix(size1,size2))
+    !auxMatrix = 0
 
-    do a=1, ConfigurationInteraction_instance%numberOfConfigurations
-      do b=a, ConfigurationInteraction_instance%numberOfConfigurations
+    !do a=1, ConfigurationInteraction_instance%numberOfConfigurations
+    !  do b=a, ConfigurationInteraction_instance%numberOfConfigurations
 !
-        coupingCoefficient = ConfigurationInteraction_calculateCoupling( & 
-          auxMatrix, &
-          auxMatrix )
+    !    coupingCoefficient = ConfigurationInteraction_calculateCoupling( & 
+    !      auxMatrix, &
+    !      auxMatrix )
+    !  end do
+    !end do
 
-        !coupingCoefficient = ConfigurationInteraction_calculateCoupling( & 
-        !  ConfigurationInteraction_instance%configurations(a)%occupations, &
-        !  ConfigurationInteraction_instance%configurations(b)%occupations )
+    !timeB = omp_get_wtime()
+    !write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for Building Couping coefficients : ", timeB - timeA ," (s)"
 
-
-      end do
-    end do
-
-    timeB = omp_get_wtime()
-    write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for Building Couping coefficients : ", timeB - timeA ," (s)"
-
-    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationA )
-    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationB )
-    auxConfigurationA%occupations = 0
-    auxConfigurationB%occupations = 0
+    !call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationA )
+    !call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationB )
+    !auxConfigurationA%occupations = 0
+    !auxConfigurationB%occupations = 0
 
     !allocate ( auxConfiguration( size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1), &
     !   size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2)  ) )
-    size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
-    size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
+    !size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
+    !size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
 
     !auxConfiguration = 0
     !auxConfigurationA = 0
@@ -4142,31 +4136,26 @@ contains
     !      ConfigurationInteraction_instance%numberOfConfigurations ))
     !auxMatrix=0
 
+    call omp_set_num_threads(omp_get_max_threads())
+
     timeA = omp_get_wtime()
 
     do a=1, ConfigurationInteraction_instance%numberOfConfigurations
-     !auxConfiguration = ConfigurationInteraction_instance%configurations(a)%occupations
+!$omp parallel & 
+!$omp& private(b,CIenergy),&
+!$omp& shared(ConfigurationInteraction_instance, HartreeFock_instance, a, size1, size2)
+!$omp do 
       do b=a, ConfigurationInteraction_instance%numberOfConfigurations
-          !auxConfigurationA = auxConfiguration
-          !auxConfigurationB%occupations = ConfigurationInteraction_instance%configurations(b)%occupations
-
-          !CIenergy = ConfigurationInteraction_calculateCIenergyB( & 
-          !auxConfigurationA, &
-          !ConfigurationInteraction_instance%configurations(b)%occupations )
 
           CIenergyb = ConfigurationInteraction_calculateCIenergyB( & 
           ConfigurationInteraction_instance%configurations(a)%occupations, &
           ConfigurationInteraction_instance%configurations(b)%occupations, size1, size2 )
 
-          !auxConfigurationA%occupations = ConfigurationInteraction_instance%configurations(a)%occupations
-          !auxConfigurationB%occupations = ConfigurationInteraction_instance%configurations(b)%occupations
-          !CIenergy = ConfigurationInteraction_calculateCIenergyC(&
-          !            auxConfigurationA, auxConfigurationB )
-
-          !ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergyB
           ConfigurationInteraction_instance%hamiltonianMatrix%values(a,b) = CIenergyB
-          !auxMatrix(a,b) = CIenergyB
+
       end do
+!$omp end do nowait
+!$omp end parallel
     end do
 
     !! symmetrize
