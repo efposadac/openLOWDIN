@@ -44,7 +44,8 @@ module InputManager_
      integer :: propagatorTheoryCorrection
      logical :: optimizeGeometry
      logical :: TDHF
-     logical :: cosmo		
+     logical :: cosmo
+     logical :: ecp
 
   end type InputManager
 
@@ -55,7 +56,8 @@ module InputManager_
        InputManager_loadSystem, &
        InputManager_loadControl, &
        InputManager_loadTask, &
-       InputManager_loadGeometry
+       InputManager_loadGeometry, &
+       InputManager_loadEcp
 
 contains
 
@@ -176,6 +178,7 @@ contains
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
     logical:: InputTasks_cosmo
+    logical:: InputTasks_ecp
 
     
     NAMELIST /InputTasks/ &
@@ -185,7 +188,8 @@ contains
          InputTasks_propagatorTheoryCorrection, &
          InputTasks_optimizeGeometry, &
          InputTasks_TDHF, &
-         InputTasks_cosmo		
+         InputTasks_cosmo, &
+         InputTasks_ecp
 
     
     !! Setting defaults    
@@ -195,7 +199,8 @@ contains
     InputTasks_propagatorTheoryCorrection = 0
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
-    InputTasks_cosmo= .false.	
+    InputTasks_cosmo= .false.
+    InputTasks_ecp = .false.
     
     !! reload input file
     rewind(4)
@@ -214,7 +219,8 @@ contains
     Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
-    Input_instance%cosmo = InputTasks_cosmo	
+    Input_instance%cosmo = InputTasks_cosmo
+    Input_instance%ecp = InputTasks_ecp
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -253,6 +259,10 @@ contains
     
     if ( input_instance%TDHF ) then 
        CONTROL_instance%TDHF = .true.
+    end if    
+    
+    if ( input_instance%ecp ) then 
+       CONTROL_instance%ecp = .true.
     end if    
     
     if (input_instance%cosmo) then 	
@@ -300,7 +310,8 @@ contains
     real(8) :: InputParticle_charge
     character(3):: InputParticle_fixedCoordinates
     integer:: InputParticle_addParticles
-    real(8):: InputParticle_multiplicity    
+    real(8):: InputParticle_multiplicity
+    character(3):: InputParticle_ecp
     
     NAMELIST /InputParticle/ &
          InputParticle_name, &
@@ -309,7 +320,8 @@ contains
          InputParticle_origin, &
          InputParticle_fixedCoordinates, &
          InputParticle_multiplicity, &
-         InputParticle_addParticles
+         InputParticle_addParticles, &
+         InputParticle_ecp
     
     !! Allocate memory for buffer.
     allocate(quantumSpeciesName(Input_instance%numberOfParticles))
@@ -366,7 +378,8 @@ contains
              isNewSpecies = .false.
              !! Only are species those who have basis-set
              if((trim(InputParticle_basisSetName) /= "MM") .and. &
-                  (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
+                  (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "") &
+                  .and. (trim(InputParticle_basisSetName) /= "ECP")) then
                 
                 !! For open-shell case electrons are alpha and beta
                 if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
@@ -392,7 +405,8 @@ contains
        if(isNewSpecies) then          
           !! Look for Quantum species
           if((trim(InputParticle_basisSetName) /= "MM") .and. &
-               (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then 
+               (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "") &
+                  .and. (trim(InputParticle_basisSetName) /= "ECP")) then 
              
              !! For open-shell case electrons are alpha and beta
              if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
@@ -459,6 +473,7 @@ contains
        InputParticle_fixedCoordinates = "NONE"
        InputParticle_multiplicity = 1.0_8
        InputParticle_addParticles = 0
+       InputParticle_ecp = "NONE"
        
        !! Reads namelist from input file
        read(4,NML = InputParticle, iostat = stat)
@@ -497,7 +512,8 @@ contains
        
        !! Load quantum species
        if((trim(InputParticle_basisSetName) /= "MM") .and. &
-            (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
+            (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "") &
+                  .and. (trim(InputParticle_basisSetName) /= "ECP")) then
 
           !! Locate specie
           do j = 1, numberOfQuantumSpecies          
@@ -520,7 +536,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID)  )
+                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), ecp = inputParticle_ecp )
              
              !!BETA SET
              speciesID = speciesID + 1
@@ -532,7 +548,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID) )
+                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), ecp = inputParticle_ecp )
              
           else 
 
@@ -548,7 +564,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID))
+                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), ecp = inputParticle_ecp)
 
 
              
@@ -564,6 +580,13 @@ contains
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
                   multiplicity=inputParticle_multiplicity, id = counter, charge = inputParticle_charge)
+          !! Loads ECP particle (cores)
+          else if(trim(InputParticle_basisSetName) == "ECP") then
+!                  call Particle_load( MolecularSystem_instance%pointCharges(counter),&
+!                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
+!                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
+!                  multiplicity=inputParticle_multiplicity, id = counter, charge = inputParticle_charge)
+                call InputManager_exception( ERROR, "Aquí va la información de ECP")       
           else
           !! Loads Particle
              call Particle_load( MolecularSystem_instance%pointCharges(counter),&
