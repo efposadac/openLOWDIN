@@ -45,7 +45,7 @@ module InputManager_
      logical :: optimizeGeometry
      logical :: TDHF
      logical :: cosmo
-     logical :: ecp
+     logical :: efectiveCorePotentials
 
   end type InputManager
 
@@ -57,7 +57,7 @@ module InputManager_
        InputManager_loadControl, &
        InputManager_loadTask, &
        InputManager_loadGeometry, &
-       InputManager_loadEcp
+       InputManager_loadEffectiveCorePotentials
 
 contains
 
@@ -189,7 +189,7 @@ contains
          InputTasks_optimizeGeometry, &
          InputTasks_TDHF, &
          InputTasks_cosmo, &
-         InputTasks_ecp
+         InputTasks_effectiveCorePotentials
 
     
     !! Setting defaults    
@@ -200,7 +200,7 @@ contains
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
     InputTasks_cosmo= .false.
-    InputTasks_ecp = .false.
+    InputTasks_effectiveCorePotentials = .false.
     
     !! reload input file
     rewind(4)
@@ -220,7 +220,7 @@ contains
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
     Input_instance%cosmo = InputTasks_cosmo
-    Input_instance%ecp = InputTasks_ecp
+    Input_instance%effectiveCorePotentials = InputTasks_effectiveCorePotentials
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -261,8 +261,8 @@ contains
        CONTROL_instance%TDHF = .true.
     end if    
     
-    if ( input_instance%ecp ) then 
-       CONTROL_instance%ecp = .true.
+    if ( input_instance%effectiveCorePotentials ) then 
+       CONTROL_instance%effectiveCorePotentials = .true.
     end if    
     
     if (input_instance%cosmo) then 	
@@ -311,7 +311,7 @@ contains
     character(3):: InputParticle_fixedCoordinates
     integer:: InputParticle_addParticles
     real(8):: InputParticle_multiplicity
-    character(3):: InputParticle_ecp
+    character(3):: InputParticle_effectiveCorePotentials
     
     NAMELIST /InputParticle/ &
          InputParticle_name, &
@@ -321,7 +321,7 @@ contains
          InputParticle_fixedCoordinates, &
          InputParticle_multiplicity, &
          InputParticle_addParticles, &
-         InputParticle_ecp
+         InputParticle_effectiveCorePotentials
     
     !! Allocate memory for buffer.
     allocate(quantumSpeciesName(Input_instance%numberOfParticles))
@@ -473,7 +473,7 @@ contains
        InputParticle_fixedCoordinates = "NONE"
        InputParticle_multiplicity = 1.0_8
        InputParticle_addParticles = 0
-       InputParticle_ecp = "NONE"
+       InputParticle_effectiveCorePotentials = "NONE"
        
        !! Reads namelist from input file
        read(4,NML = InputParticle, iostat = stat)
@@ -536,7 +536,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), ecp = inputParticle_ecp )
+                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), ecp = inputParticle_effectiveCorePotentials )
              
              !!BETA SET
              speciesID = speciesID + 1
