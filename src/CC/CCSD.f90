@@ -1372,48 +1372,48 @@ contains
                 CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) = CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) &
                   + (0.75*Allspecies(speciesId)%Tssame(e-nop,j)*spintm(n_sp)%valuesp(p,q,r,s)) !eq 9-3
               end do
+                  
+              if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
+          
+                do m=1, nop
+                  do e=nop+1, noc
 
+                    if (speciesId<OtherspeciesId) then
+                      p=m
+                      q=mm
+                      r=e
+                      s=ee
+                    else
+                      p=mm
+                      q=m
+                      r=ee
+                      s=e
+                    end if
+
+                    CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) = CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) &
+                      - ((0.5*Allspecies(speciesId)%Tdsame(e-nop,b-nop,j,m)) & !eq 9-4
+                        + (Allspecies(speciesId)%Tssame(e-nop,j)*Allspecies(speciesId)%Tssame(b-nop,m)))* & !eq 9-5
+                          spintm(n_sp)%valuesp(p,q,r,s)
+                  end do
+                end do
+              end if
+
+
+
+              if (nops>=2) then ! kind of interaction just for two or more particles of the another species
+
+                do ff=nops+1, nocs
+                  do nn=1, nops
+                  
+                    CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) = CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) &
+                      + (0.25*Allinterspecies(OtherspeciesId)%Tdsame(ff-nops,b-nop,nn,j)* &
+                          spints(OtherspeciesId)%valuesp(mm,nn,ee,ff)) !eq 9-6
+                  end do
+                end do
+              end if
+              ! write(*,*) m,n,i,j,CCSDloop(speciesId)%Wklij(m,n,i,j)
             end do
           end do
-                  
-          if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
-          
-            do m=1, nop
-              do e=nop+1, noc
-
-                if (speciesId<OtherspeciesId) then
-                  p=m
-                  q=mm
-                  r=e
-                  s=ee
-                else
-                  p=mm
-                  q=m
-                  r=ee
-                  s=e
-                end if
-
-                CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) = CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) &
-                  - ((0.5*Allspecies(speciesId)%Tdsame(e-nop,b-nop,j,m)) & !eq 9-4
-                    + (Allspecies(speciesId)%Tssame(e-nop,j)*Allspecies(speciesId)%Tssame(b-nop,m)))* & !eq 9-5
-                      spintm(n_sp)%valuesp(p,q,r,s)
-              end do
-            end do
-          end if
-
-          if (nops>=2) then ! kind of interaction just for two or more particles of the another species
-
-            do ff=nops+1, nocs
-              do nn=1, nops
-                  
-                CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) = CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops) &
-                  + (0.25*Allinterspecies(OtherspeciesId)%Tdsame(ff-nops,b-nop,nn,j)* &
-                      spints(OtherspeciesId)%valuesp(mm,nn,ee,ff)) !eq 9-6
-              end do
-            end do
-                ! if (speciesId<OtherspeciesId) print*, "W 2 Allinterspecies(speciesId)%Tdsame: ", Allinterspecies(OtherspeciesId)%Tdsame(ff-nops,b-nop,nn,j)
-          end if
-              ! write(*,*) m,n,i,j,CCSDloop(speciesId)%Wklij(m,n,i,j)
         end do
       end do
       print*, "nops 11"
@@ -1520,7 +1520,7 @@ contains
 
       ! CCSDinter(speciesId)%Wcia
       do a=nop+1, noc
-        do bb=1+nops, nocs
+        do bb=nops+1, nocs
           do e=nop+1, noc
             do jj=1, nops
 
@@ -1608,26 +1608,28 @@ contains
               CCSDinter(speciesId)%Wbkb(a-nop,mm,i,jj) = CCSDinter(speciesId)%Wbkb(a-nop,mm,i,jj) &
                 + spintm(n_sp)%valuesp(p,q,r,s) !eq 3-1
 
-              do e=nop+1, noc
-                do m=1, nop
+              if (nop>=2) then ! kind of interaction just for two or more particles of the another species
+                do e=nop+1, noc
+                  do m=1, nop
 
-                  if (speciesId<OtherspeciesId) then
-                    p=m
-                    q=mm
-                    r=e
-                    s=jj
-                  else
-                    p=mm
-                    q=m
-                    r=jj
-                    s=e
-                  end if
+                    if (speciesId<OtherspeciesId) then
+                      p=m
+                      q=mm
+                      r=e
+                      s=jj
+                    else
+                      p=mm
+                      q=m
+                      r=jj
+                      s=e
+                    end if
 
-                  CCSDinter(speciesId)%Wbkb(a-nop,mm,i,jj) = CCSDinter(speciesId)%Wbkb(a-nop,mm,i,jj) &
-                    + (0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)* &
-                      spintm(n_sp)%valuesp(p,q,r,s)) !eq 3-2
+                    CCSDinter(speciesId)%Wbkb(a-nop,mm,i,jj) = CCSDinter(speciesId)%Wbkb(a-nop,mm,i,jj) &
+                      + (0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)* &
+                        spintm(n_sp)%valuesp(p,q,r,s)) !eq 3-2
+                  end do
                 end do
-              end do
+              end if
 
               do ee=nops+1, nocs
               
@@ -1675,26 +1677,28 @@ contains
               CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops) = CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops) &
                 + spintm(n_sp)%valuesp(p,q,r,s) !eq 4-1
 
-              do e=nop+1, noc
-                do m=1, nop
+              if (nop>=2) then ! kind of interaction just for two or more particles of the another species
+                do e=nop+1, noc
+                  do m=1, nop
 
-                  if (speciesId<OtherspeciesId) then
-                    p=m
-                    q=bb
-                    r=e
-                    s=ee
-                  else
-                    p=bb
-                    q=m
-                    r=ee
-                    s=e
-                  end if
+                    if (speciesId<OtherspeciesId) then
+                      p=m
+                      q=bb
+                      r=e
+                      s=ee
+                    else
+                      p=bb
+                      q=m
+                      r=ee
+                      s=e
+                    end if
 
-                  CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops) = CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops) &
-                    + (0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)* &
-                      spintm(n_sp)%valuesp(p,q,r,s)) !eq 4-2
+                    CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops) = CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops) &
+                      + (0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)* &
+                        spintm(n_sp)%valuesp(p,q,r,s)) !eq 4-2
+                  end do
                 end do
-              end do
+              end if
 
               do mm=1, nops
 
@@ -1729,11 +1733,9 @@ contains
               do e=nop+1, noc
 
                 CCSDinter(speciesId)%Wakic_a(a-nop,m,i,e-nop) = CCSDinter(speciesId)%Wakic_a(a-nop,m,i,e-nop) &
-                    + (Allspecies(speciesId)%HF_fs%values(m,e)* &
-                        Allspecies(speciesId)%Tssame(a-nop,i)) !eq 9-3
-
-                CCSDinter(speciesId)%Wakic_a(a-nop,m,i,e-nop) = CCSDinter(speciesId)%Wakic_a(a-nop,m,i,e-nop) &
-                  + spints(speciesId)%valuesp(a,m,i,e) !eq 9-1
+                  + (Allspecies(speciesId)%HF_fs%values(m,e)* &
+                      Allspecies(speciesId)%Tssame(a-nop,i)) & !eq 9-3
+                      + spints(speciesId)%valuesp(a,m,i,e) !eq 9-1
 
                 do n=1, nop
                   CCSDinter(speciesId)%Wakic_a(a-nop,m,i,e-nop) = CCSDinter(speciesId)%Wakic_a(a-nop,m,i,e-nop) &
@@ -1767,7 +1769,6 @@ contains
                           spintm(n_sp)%valuesp(p,q,r,s)) !eq 9-2
                   end do
                 end do
-                ! if (speciesId>OtherspeciesId) print*, "W T2 Allinterspecies(speciesId)%Tdsame: ", Allinterspecies(speciesId)%Tdsame(a-nop,ee-nops,i,mm)
                 ! write(*,*) a-nop,m,i,e-nop,CCSDinter(speciesId)%Wakic_a(a-nop,m,i,e-nop)
               end do
             end do
@@ -1784,11 +1785,9 @@ contains
               do ee=nops+1, nocs
 
                 CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops) = CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops) &
-                    + (Allspecies(OtherspeciesId)%HF_fs%values(mm,ee)* &
-                        Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)) !eq 10-3
-
-                CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops) = CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops) &
-                  + spints(OtherspeciesId)%valuesp(bb,mm,jj,ee) !eq 10-1
+                  + (Allspecies(OtherspeciesId)%HF_fs%values(mm,ee)* &
+                      Allspecies(OtherspeciesId)%Tssame(bb-nops,jj)) & !eq 10-3
+                      + spints(OtherspeciesId)%valuesp(bb,mm,jj,ee) !eq 10-1
 
                 do nn=1, nops
                   CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops) = CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops) &
@@ -1847,7 +1846,6 @@ contains
                           + (Allspecies(speciesId)%Tssame(e-nop,m)*Allspecies(OtherspeciesId)%Tssame(bb-nops,jj))) !eq 11-2
                   end do
                 end do
-                ! if (speciesId>OtherspeciesId) print*, "W T2 Allinterspecies(speciesId)%Tdsame: ", Allinterspecies(speciesId)%Tdsame(e-nop,bb-nops,m,jj)
                 ! write(*,*) m,n,e-nop,f-nop,CCSDinter(speciesId)%Wklcd_a(m,n,e-nop,f-nop)
               end do
             end do
@@ -1872,7 +1870,6 @@ contains
                           + (Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(ee-nops,mm))) !eq 12-2
                   end do
                 end do
-                ! if (speciesId>OtherspeciesId) print*, "Allinterspecies(speciesId)%Tdsame: ", Allinterspecies(speciesId)%Tdsame(a-nop,ee-nops,i,mm)
                 ! write(*,*) mm,nn,ee-nops,ff-nops,CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops)
               end do
             end do
@@ -1962,7 +1959,7 @@ contains
                       + ( Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(e-nop,m) & !eq 14-5
                         + (0.5*Allspecies(speciesId)%tau(a-nop,e-nop,i,m)) & !eq 14-6
                           - (0.25*Allspecies(speciesId)%Tdsame(a-nop,e-nop,m,i)))* & !eq 14-7
-                           spintm(n_sp)%valuesp(p,q,r,s)
+                            spintm(n_sp)%valuesp(p,q,r,s)
                   end do
                 end do
               end if
@@ -2730,6 +2727,7 @@ contains
 
                 end do
               end do
+
               ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
               CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
                 /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
@@ -2740,6 +2738,7 @@ contains
               Allspecies(speciesId)%ttau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
                 + 0.5*(Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
                   - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j))
+
               Allspecies(speciesId)%tau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
                 + Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
                   - Allspecies(speciesId)%Tssame(b-nop,i)*Allspecies(speciesId)%Tssame(a-nop,j)
@@ -2909,11 +2908,7 @@ contains
                           CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj)) !eq 13
 
                     do f=nop+1, noc
-                      do n=1, nop
-
-                        CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                         + 0.5*(Allspecies(speciesId)%Tdsame(a-nop,f-nop,i,n)* &
-                            CCSDinter(speciesId)%Wklcd_a(m,n,e-nop,f-nop)) !eq 11                
+                      do n=1, nop     
 
                         CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
                          + 0.5*(Allspecies(speciesId)%tau(a-nop,e-nop,i,m)* &
@@ -2995,16 +2990,34 @@ contains
               !print*, "nops 31"
 
               if (nops>=2) then ! kind of interaction just for two or more particles of the another species
-                do ff=nops+1, nocs
-                  do nn=1, nops
+                do mm=1, nops
+                  do ee=nops+1, nocs
+                    do ff=nops+1, nocs
+                      do nn=1, nops
 
-                    CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                     + 0.5*(Allspecies(OtherspeciesId)%Tdsame(bb-nops,ff-nops,jj,nn)* &
-                        CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops)) !eq 12
+                        CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                         + 0.5*(Allspecies(OtherspeciesId)%Tdsame(bb-nops,ff-nops,jj,nn)* &
+                            CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops)) !eq 12
+                      end do
+                    end do
                   end do
                 end do
               end if
 
+              if (nop>=2) then ! kind of interaction just for two or more particles of the principal species
+                do m=1, nop
+                  do e=nop+1, noc
+                    do f=nop+1, noc
+                      do n=1, nop
+
+                        CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
+                         + 0.5*(Allspecies(speciesId)%Tdsame(a-nop,f-nop,i,n)* &
+                            CCSDinter(speciesId)%Wklcd_a(m,n,e-nop,f-nop)) !eq 11
+                      end do
+                    end do
+                  end do
+                end do
+              end if
 
               do mm=1, nops
 
@@ -3030,10 +3043,6 @@ contains
 
                     do ff=nops+1, nocs
                       do nn=1, nops
-
-                        ! CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                        !  + 0.5*(Allspecies(OtherspeciesId)%Tdsame(bb-nops,ff-nops,jj,nn)* &
-                        !     CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops))                      !eq 12
 
                         CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
                          + 0.5*(Allspecies(OtherspeciesId)%tau(bb-nops,ff-nops,jj,nn)* &
