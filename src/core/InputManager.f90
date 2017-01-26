@@ -311,7 +311,7 @@ contains
     character(3):: InputParticle_fixedCoordinates
     integer:: InputParticle_addParticles
     real(8):: InputParticle_multiplicity
-    character(3):: InputParticle_effectiveCorePotentials
+    logical :: InputParticle_effectiveCorePotentials
     
     NAMELIST /InputParticle/ &
          InputParticle_name, &
@@ -473,7 +473,7 @@ contains
        InputParticle_fixedCoordinates = "NONE"
        InputParticle_multiplicity = 1.0_8
        InputParticle_addParticles = 0
-       InputParticle_effectiveCorePotentials = "NONE"
+       InputParticle_effectiveCorePotentials = .false.
        
        !! Reads namelist from input file
        read(4,NML = InputParticle, iostat = stat)
@@ -548,7 +548,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), ecp = inputParticle_ecp )
+                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), ecp = inputParticle_effectiveCorePotentials )
              
           else 
 
@@ -564,7 +564,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), ecp = inputParticle_ecp)
+                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), ecp = inputParticle_effectiveCorePotentials)
 
 
              
