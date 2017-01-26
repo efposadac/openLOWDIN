@@ -153,10 +153,10 @@ if [ $extFile="lowdin" ]; then
 		for (i=1;i<=NF-2;i++) {printf("%s ",$(i+2))} 
 		printf("\n") } END{printf("/\n") } ' > $nameFile.aux
 
-	gawk "/ECP/,/END/" $nameFile | grep -v "ECP" | sed "s/=/ = /g" | gawk \
-	    ' BEGIN{printf("\n&EcpParameters\n")} { printf("\tEcpParameters_%s =",$1)
-		for (i=1;i<=NF-2;i++) {printf("%s ",$(i+2))} 
-		printf("\n") } END{printf("/\n") } ' >> $nameFile.aux
+#	gawk "/ECP/,/END/" $nameFile | grep -v "ECP" | sed "s/=/ = /g" | gawk \
+#	    ' BEGIN{printf("\n&EcpParameters\n")} { printf("\tEcpParameters_%s =",$1)
+#		for (i=1;i<=NF-2;i++) {printf("%s ",$(i+2))} 
+#		printf("\n") } END{printf("/\n") } ' >> $nameFile.aux
 	
 	gawk "/TASKS/,/END/" $nameFile | grep -v "TASKS" | sed "s/=/ = /g" | gawk \
 	    ' BEGIN{printf("\n&InputTasks\n")} {printf("\tInputTasks_%s = %s\n",$1,$3)}  END{printf("/\n")} ' >> $nameFile.aux
