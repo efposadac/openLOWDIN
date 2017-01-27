@@ -53,6 +53,7 @@ module CoupledCluster_
       real(8), allocatable :: CCSD_E_intra(:)
       real(8), allocatable :: CCSD_A_intra(:)
       real(8), allocatable :: CCSD_E_inter(:)
+      real(8), allocatable :: CCSD_A_inter(:)      
       type(Vector) :: HF_orbitals
       type(matrix) :: HF_orbitals_dmatrix
 
@@ -575,6 +576,9 @@ contains
 
       if (allocated(CoupledCluster_instance%CCSD_A_intra)) deallocate(CoupledCluster_instance%CCSD_A_intra)
       allocate(CoupledCluster_instance%CCSD_A_intra(num_species))
+
+      if (allocated(CoupledCluster_instance%CCSD_A_inter)) deallocate(CoupledCluster_instance%CCSD_A_inter)
+      allocate(CoupledCluster_instance%CCSD_A_inter(cont*2))
 
       !for the inter-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_inter)) deallocate(CoupledCluster_instance%CCSD_E_inter)
