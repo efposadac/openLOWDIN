@@ -256,6 +256,7 @@ for DIR in $SRCDIR ; do
 	if [[ -e $SUBDIR ]] ; then	    
 	    cd $SUBDIR  
 	    echo $SUBDIR
+	    chmod +x configure
 	    ./configure
 	    cd ..
 	fi

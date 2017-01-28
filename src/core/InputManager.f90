@@ -45,7 +45,7 @@ module InputManager_
      logical :: optimizeGeometry
      logical :: TDHF
      logical :: cosmo
-     logical :: efectiveCorePotentials
+     logical :: effectiveCorePotentials
 
   end type InputManager
 
@@ -56,8 +56,8 @@ module InputManager_
        InputManager_loadSystem, &
        InputManager_loadControl, &
        InputManager_loadTask, &
-       InputManager_loadGeometry, &
-       InputManager_loadEffectiveCorePotentials
+       InputManager_loadGeometry!, &
+!       InputManager_loadEffectiveCorePotentials
 
 contains
 
@@ -178,7 +178,7 @@ contains
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
     logical:: InputTasks_cosmo
-    logical:: InputTasks_ecp
+    logical:: InputTasks_effectiveCorePotentials
 
     
     NAMELIST /InputTasks/ &
@@ -262,7 +262,7 @@ contains
     end if    
     
     if ( input_instance%effectiveCorePotentials ) then 
-       CONTROL_instance%effectiveCorePotentials = .true.
+       CONTROL_instance%EFFECTIVE_CORE_POTENTIALS = .true.
     end if    
     
     if (input_instance%cosmo) then 	
@@ -536,7 +536,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), ecp = inputParticle_effectiveCorePotentials )
+                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), effectiveCorePotentials = inputParticle_effectiveCorePotentials )
              
              !!BETA SET
              speciesID = speciesID + 1
@@ -548,7 +548,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), ecp = inputParticle_effectiveCorePotentials )
+                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), effectiveCorePotentials = inputParticle_effectiveCorePotentials )
              
           else 
 
@@ -564,7 +564,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), ecp = inputParticle_effectiveCorePotentials)
+                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), effectiveCorePotentials = inputParticle_effectiveCorePotentials)
 
 
              
@@ -586,7 +586,7 @@ contains
 !                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
 !                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
 !                  multiplicity=inputParticle_multiplicity, id = counter, charge = inputParticle_charge)
-                call InputManager_exception( ERROR, "Aquí va la información de ECP")       
+                call InputManager_exception( ERROR, "Aquí va la información de ECP", "ECP")       
           else
           !! Loads Particle
              call Particle_load( MolecularSystem_instance%pointCharges(counter),&

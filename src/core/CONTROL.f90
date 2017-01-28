@@ -146,7 +146,11 @@ module CONTROL_
      real(8) :: COSMO_SCALING
 
      !!***************************************************************************
+     !! Parameter to control ECP 
+     !!
+     logical :: EFFECTIVE_CORE_POTENTIALS
 
+     !!***************************************************************************
      !! Parameter to control the propagator theory module
      !!
      logical :: PT_ONLY_ONE_SPECIE_CORRECTION
@@ -416,6 +420,11 @@ module CONTROL_
   real(8) :: LowdinParameters_cosmo_scaling
 
   !!***************************************************************************
+  !! Parameter to control ECP
+  !!
+  logical :: LowdinParameters_effective_core_potentials
+
+  !!***************************************************************************
   !! Parameter to control the propagator theory module
   !!
   logical :: LowdinParameters_ptOnlyOneSpecieCorrection
@@ -683,6 +692,11 @@ module CONTROL_
        LowdinParameters_cosmo,& 
        LowdinParameters_cosmo_solvent_dielectric,& 
        LowdinParameters_cosmo_scaling,& 
+       
+                                !!*************************************************************                                !!***************************************************************************
+                                !! Parameter to control ECP
+                                !!
+       LowdinParameters_effective_core_potentials,& 
        
                                 !!***************************************************************************
                                 !! Parameter to control the propagator theory module
@@ -978,6 +992,11 @@ contains
     LowdinParameters_cosmo_scaling =0.0d+00
 
     !!***************************************************************************
+    !! Parameter to control ECP
+    !!
+    LowdinParameters_effective_core_potentials = .false.
+
+    !!***************************************************************************
     !! Parameter to control the propagator theory module
     !!
     LowdinParameters_ptOnlyOneSpecieCorrection = .false.
@@ -1249,6 +1268,11 @@ contains
     CONTROL_instance%COSMO = .false.
     CONTROL_instance%COSMO_SOLVENT_DIELECTRIC= 78.3553d+00 
     CONTROL_instance%COSMO_SCALING= 0.0d+00
+
+    !!***************************************************************************                                              
+    !! Parameter to control ECP                                                                                         
+    !!                                                                                                                         
+    CONTROL_instance%EFFECTIVE_CORE_POTENTIALS = .false.
 
     !!***************************************************************************                                              
     !! Parameter to control the propagator theory module                                                                       
@@ -1561,6 +1585,11 @@ contains
     CONTROL_instance%COSMO_SCALING=LowdinParameters_cosmo_SCALING
 
     !!***************************************************************************      
+    !! Parameter to control ECP                                               
+    !!                                                                                 
+    CONTROL_instance%EFFECTIVE_CORE_POTENTIALS = LowdinParameters_effective_core_potentials
+
+    !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
     !!                                                                                 
     CONTROL_instance%PT_ONLY_ONE_SPECIE_CORRECTION = LowdinParameters_ptOnlyOneSpecieCorrection
@@ -1846,6 +1875,11 @@ contains
     LowdinParameters_cosmo_scaling = CONTROL_instance%COSMO_SCALING
 
     !!***************************************************************************      
+    !! Parameter to control ECP                                                 
+    !!                                                                                 
+    LowdinParameters_effective_core_potentials = CONTROL_instance%EFFECTIVE_CORE_POTENTIALS
+
+    !!***************************************************************************      
     !! Parameter to control the propagator theory module                               
     !!                                                                                 
     LowdinParameters_ptOnlyOneSpecieCorrection = CONTROL_instance%PT_ONLY_ONE_SPECIE_CORRECTION
@@ -2112,12 +2146,18 @@ contains
     otherThis%MOLLER_PLESSET_CORRECTION = this%MOLLER_PLESSET_CORRECTION 
     otherThis%MP_FROZEN_CORE_BOUNDARY = this%MP_FROZEN_CORE_BOUNDARY 
     otherThis%MP_ONLY_ELECTRONIC_CORRECTION = this%MP_ONLY_ELECTRONIC_CORRECTION 
+
     !!*****************************************************
     !! Control de parametros de metodo cosmo
     !!
     otherThis%COSMO  = this%COSMO                   
     otherThis%COSMO_SOLVENT_DIELECTRIC = this%COSMO_SOLVENT_DIELECTRIC
     otherThis%COSMO_SCALING = this%COSMO_SCALING
+
+    !!*****************************************************
+    !! Control de parametros ECP
+    !!
+    otherThis%EFFECTIVE_CORE_POTENTIALS  = this%EFFECTIVE_CORE_POTENTIALS                   
 
     !!*****************************************************
     ! Control this for Propagator Theory= !! Control this for Propagator Theory
@@ -2312,6 +2352,12 @@ contains
     if(CONTROL_instance%COSMO) then
 
        write (*,"(T10,A)") "COSMO:  T "
+
+    end if
+
+    if(CONTROL_instance%EFFECTIVE_CORE_POTENTIALS) then
+
+       write (*,"(T10,A)") "EFFECTIVE CORE POTENTIALS:  T "
 
     end if
 

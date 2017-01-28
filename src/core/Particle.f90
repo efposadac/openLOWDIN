@@ -62,6 +62,7 @@ module Particle_
      integer :: owner			!< asocia un indice a la particula que la indentifica como un centro de referencia.
      integer :: basisSetSize		!< Este atributo es adicionado por conveniencia
      integer, allocatable :: childs(:)	!< Cuando la particula es un centro de optimizacion (es padre), almacena los Ids de sus hijas
+     logical :: effectiveCorePotentials !< Indica si los electrones serán descritos por una base y un potencial efectivo de core
   end type Particle
 
   public :: &
@@ -76,7 +77,7 @@ contains
   !!      -Adapted for open shell systems, 2011. E. F. Posada
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
-  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge )
+  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge, effectiveCorePotentials )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
@@ -88,6 +89,7 @@ contains
     integer, intent(in), optional :: addParticles
     integer, intent(in) :: id
     real(8), intent(in), optional :: charge
+    logical, optional :: effectiveCorePotentials
     
     type(AtomicElement) :: element
     type(ElementalParticle) :: eparticle
@@ -100,8 +102,10 @@ contains
     integer :: auxAdditionOfParticles
     real(8) :: auxOrigin(3)
     real(8) :: auxMultiplicity
+    logical :: auxEffectiveCorePotentials
     logical :: isDummy
     logical :: isElectron
+
     
     varsToFix=""
     if ( present(fix) ) varsToFix =trim(fix)
@@ -115,12 +119,16 @@ contains
     auxAdditionOfParticles=0
     if   ( present(addParticles) ) auxAdditionOfParticles= addParticles
 
+    auxEffectiveCorePotentials = .false.
+    if   ( present(effectiveCorePotentials) ) auxEffectiveCorePotentials= effectiveCorePotentials
+
     !! Initialize some variables
     isDummy = .false.
     isElectron = .false.
     massNumber = 0
     elementSymbol = trim(name)
     massNumberString=""
+    effectiveCorePotentials = .false.
     
     !!*******************************************************************************************
     !! Identify what kind of particle is
@@ -157,7 +165,7 @@ contains
     !!*******************************************************************************************
     
     this%multiplicity = auxMultiplicity
-    
+    this%effectiveCorePotentials = auxEffectiveCorePotentials
     !! Obtains information of the atom., if any...
     call AtomicElement_load ( element, trim(elementSymbol), massicNumber=massNumber)
     
