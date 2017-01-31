@@ -84,6 +84,7 @@ module CCSD_
       real(8), allocatable :: Wbkjc(:,:,:,:)
       real(8), allocatable :: Tai(:,:)
       real(8), allocatable :: Tai_AB(:,:)
+      real(8), allocatable :: Taibj_int(:,:,:,:)
       real(8), allocatable :: Tabij(:,:,:,:)
       real(8), allocatable :: Tabij_AB(:,:,:,:)
 
@@ -320,6 +321,11 @@ contains
       if (allocated(CCSDT1T2(speciesId)%Tai_AB)) deallocate (CCSDT1T2(speciesId)%Tai_AB)
       allocate(CCSDT1T2(speciesId)%Tai_AB(noc-nop,nop))
       CCSDT1T2(speciesId)%Tai_AB=0.0_8
+
+      !
+      if (allocated(CCSDT1T2(speciesId)%Taibj_int)) deallocate (CCSDT1T2(speciesId)%Taibj_int)
+      allocate(CCSDT1T2(speciesId)%Taibj_int(noc-nop,noc-nop,nop,nop))
+      CCSDT1T2(speciesId)%Taibj_int=0.0_8
       
       !
       if (allocated(CCSDT1T2(speciesId)%Tabij)) deallocate (CCSDT1T2(speciesId)%Tabij)
@@ -388,6 +394,11 @@ contains
       if (allocated(Allinterspecies(speciesId)%Tssame)) deallocate(Allinterspecies(speciesId)%Tssame)
       allocate(Allinterspecies(speciesId)%Tssame(noc-nop,nop))
       Allinterspecies(speciesId)%Tssame(:,:) = 0.0_8
+
+      !
+      if (allocated(Allinterspecies(speciesId)%Tddiff)) deallocate(Allinterspecies(speciesId)%Tddiff)
+      allocate(Allinterspecies(speciesId)%Tddiff(noc-nop,nocs-nops,nop,nops))
+      Allinterspecies(speciesId)%Tddiff(:,:,:,:) = 0.0_8
 
       ! Effective two-particle excitation operators \check{\tau}, \ddot{\tau} and \tilde{\tau} 
       !   for different species:
@@ -1231,8 +1242,8 @@ contains
       nop = Allspecies(speciesId)%nop
 
       !Baisc parallelization
-      !!$OMP PARALLEL
-      !!$OMP DO
+      !$OMP PARALLEL
+      !$OMP DO
       ! CCSDloop(speciesId)%Wklij
       do m=1, nop
         do n=1, nop
@@ -1255,9 +1266,9 @@ contains
           end do
         end do
       end do
-      !!$OMP END DO
+      !$OMP END DO
 
-      !!$OMP DO
+      !$OMP DO
       !CCSDloop(speciesId)%Wabcd
       do a=nop+1, noc
         do b=nop+1, noc
@@ -1280,9 +1291,9 @@ contains
           end do
         end do
       end do
-      !!$OMP END DO
+      !$OMP END DO
 
-      !!$OMP DO
+      !$OMP DO
       !CCSDloop(speciesId)%Wkbcj
       do m=1, nop
         do b=nop+1, noc
@@ -1309,8 +1320,8 @@ contains
           end do
         end do
       end do
-      !!$OMP END DO
-      !!$OMP END PARALLEL
+      !$OMP END DO
+      !$OMP END PARALLEL
 
   end subroutine W_onespecies_intermediates
 
@@ -1477,6 +1488,10 @@ contains
       print*,"noc: ", noc, "nop: ", nop, "nocs: ", nocs, "nops: ", nops
 
       ! CCSDinter(speciesId)%Waka
+
+      !Basic parallelization
+      !!$OMP PARALLEL
+      !!$OMP DO
       do m=1, nop
         do bb=nops+1, nocs
           do i=1, nop
@@ -1543,9 +1558,12 @@ contains
           end do
         end do
       end do
+      !!$OMP END DO
+
       ! print*, "nops 19"
 
       ! CCSDinter(speciesId)%Wcia
+      !!$OMP DO
       do a=nop+1, noc
         do bb=nops+1, nocs
           do e=nop+1, noc
@@ -1612,9 +1630,11 @@ contains
           end do
         end do
       end do
+      !!$OMP END DO
       ! print*, "nops 20"
 
       ! CCSDinter(speciesId)%Wbkb
+      !!$OMP DO
       do a=nop+1, noc
         do mm=1, nops
           do i=1, nop
@@ -1681,9 +1701,11 @@ contains
           end do
         end do
       end do
+      !!$OMP END DO
       ! print*, "nops 21"
 
       ! CCSDinter(speciesId)%Wcjb
+      !!$OMP DO
       do a=nop+1, noc
         do bb=nops+1, nocs
           do i=1, nop
@@ -1750,10 +1772,12 @@ contains
           end do
         end do
       end do
+      !!$OMP END DO
       ! print*, "nops 22"
 
       ! CCSDinter(speciesId)%Wakic_a
       if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
+        !!$OMP DO
         do a=nop+1, noc
           do m=1, nop
             do i=1, nop
@@ -1801,11 +1825,13 @@ contains
             end do
           end do
         end do
+        !!$OMP END DO
       end if
       ! print*, "nops 23"
 
       ! CCSDinter(speciesId)%Wbkjc_b 
       if (nops>=2) then ! kind of interaction just for two or more particles of the another species
+        !!$OMP DO
         do bb=nops+1, nocs
           do mm=1, nops
             do jj=1, nops
@@ -1854,11 +1880,13 @@ contains
             end do
           end do
         end do
+        !!$OMP END DO
       end if
       ! print*, "nops 24"
 
       ! CCSDinter(speciesId)%Wklcd_a
       if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
+        !!$OMP DO
         do m=1, nop
           do n=1, nop
             do e=nop+1, noc
@@ -1878,11 +1906,13 @@ contains
             end do
           end do
         end do
+        !!$OMP END DO
       end if
       ! print*, "nops 25"
 
       ! CCSDinter(OtherspeciesId)%Wklcd_b
       if (nops>=2) then ! kind of interaction just for two or more particles of the another species
+        !!$OMP DO
         do mm=1, nops
           do nn=1, nops
             do ee=nops+1, nocs
@@ -1902,10 +1932,12 @@ contains
             end do
           end do
         end do
+        !!$OMP END DO
       end if
       ! print*, "nops 26"
 
       ! CCSDinter(speciesId)%Wakic
+      !!$OMP DO
       do a=nop+1, noc
         do mm=1, nops
           do i=1, nop
@@ -1995,9 +2027,12 @@ contains
           end do
         end do
       end do
+      !!$OMP END DO
       ! print*, "nops 27"
 
       ! CCSDinter(speciesId)%Wbkjc
+
+      !!$OMP DO
       do m=1, nop
         do bb=nops+1, nocs
           do e=nop+1, noc
@@ -2087,6 +2122,8 @@ contains
           end do
         end do
       end do
+      !!$OMP END DO
+      !!$OMP END PARALLEL
       print*, "nops 28"
 
   end subroutine W_T2_AB
@@ -2197,7 +2234,7 @@ contains
 
       !change in values for the intra-species loop
       convergence = abs( ccsdE - prev_ccsdE )
-      print*, "Otherspecies Tssame: ", Allspecies(speciesId)%Tssame
+      ! print*, "Otherspecies Tssame: ", Allspecies(speciesId)%Tssame
       write (*,*) ccsdE, "CCSD Energy same species", prev_ccsdE, "previous Energy" 
       write (*,*) convergence, "Convergence " 
 
@@ -2459,8 +2496,8 @@ contains
       times_i = CoupledCluster_instance%times_intersp
       
       !Basic parallelization
-      !!$OMP PARALLEL
-      !!$OMP DO
+      !$OMP PARALLEL
+      !$OMP DO
       ! T^{a}_{i}D^{a}_{i} = ...
       do a=nop+1, noc
         do i=1, nop
@@ -2499,20 +2536,20 @@ contains
           end if
           ! if (times_i==0) then
             CCSDT1T2(speciesId)%Tai_AB(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
-          print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i), "Tai_AB: ", CCSDT1T2(speciesId)%Tai_AB(a-nop,i)
+          ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i), "Tai_AB: ", CCSDT1T2(speciesId)%Tai_AB(a-nop,i)
             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit(speciesId)%Dai(a,i)
             Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
           ! end if
-          print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i)
-          print*, "Dai: ", CCSDinit(speciesId)%Dai(a,i)
+          ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i)
+          ! print*, "Dai: ", CCSDinit(speciesId)%Dai(a,i)
           ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
         end do
       end do
-      print*, "CCSD_T1"
+      ! print*, "CCSD_T1"
       ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai
       ! print*, "Dai: ", CCSDinit(speciesId)%Dai
-      !!$OMP END DO
-      !!$OMP END PARALLEL
+      !$OMP END DO
+      !$OMP END PARALLEL
 
   end subroutine CCSD_T1
 
@@ -2538,8 +2575,8 @@ contains
       print*, "CCSD_T2"
       
       !Basic parallelization
-      !!$OMP PARALLEL
-      !!$OMP DO 
+      !$OMP PARALLEL
+      !$OMP DO 
       ! T^{ab}_{ij}D^{ab}_{ij} = ...
       ! if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
       do a=nop+1, noc
@@ -2601,6 +2638,10 @@ contains
                                           Allspecies(speciesId)%Tssame(b-nop,m)*spints(speciesId)%valuesp(m,a,e,i) !F
                      end do
                   end do
+
+                  !For T2 same and inter auxiliary
+                  CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)
+
                   ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
                   ! if (times_i==0) then
                     CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
@@ -2624,8 +2665,8 @@ contains
          end do
       end do
       ! end if
-      !!$OMP END DO
-      !!$OMP END PARALLEL
+      !$OMP END DO
+      !$OMP END PARALLEL
 
   end subroutine CCSD_T2
 
@@ -2661,7 +2702,7 @@ contains
             do m=1, nop
 
               CCSDT1T2(speciesId)%Tai_AB(a-nop,i) = CCSDT1T2(speciesId)%Tai_AB(a-nop,i) &
-                - Allspecies(speciesId)%Tssame(e-nop,m)*CCSDinter(speciesId)%Fkc_aba(m,e-nop) !eq 7
+                - Allinterspecies(speciesId)%Tssame(e-nop,m)*CCSDinter(speciesId)%Fkc_aba(m,e-nop) !eq 7
             end do
           end do          
 
@@ -2715,11 +2756,11 @@ contains
             end do
           end do
 
-          print*, "CCSD after Tai_AB: ", CCSDT1T2(speciesId)%Tai_AB(a-nop,i)
+          ! print*, "CCSD after Tai_AB: ", CCSDT1T2(speciesId)%Tai_AB(a-nop,i)
           CCSDT1T2(speciesId)%Tai_AB(a-nop,i) = CCSDT1T2(speciesId)%Tai_AB(a-nop,i)/CCSDinit(speciesId)%Dai(a,i)
-          print*, "CCSD before Tai_AB: ", CCSDT1T2(speciesId)%Tai_AB(a-nop,i)
+          ! print*, "CCSD before Tai_AB: ", CCSDT1T2(speciesId)%Tai_AB(a-nop,i)
           Allinterspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
-          print*, "Dai: ", CCSDinit(speciesId)%Dai(a,i)
+          ! print*, "Dai: ", CCSDinit(speciesId)%Dai(a,i)
           ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
         end do
       end do
@@ -2761,7 +2802,7 @@ contains
               do ee=nops+1, nocs
                 do mm=1, nops
 
-                  CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
+                  CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) &
                    + 0.5*((Allinterspecies(speciesId)%Tdsame(a-nop,ee-nops,i,mm)* &
                       CCSDinter(speciesId)%Wkkcc(b-nop,mm,j,ee-nops)) &
                     - (Allinterspecies(speciesId)%Tdsame(b-nop,ee-nops,i,mm)* &
@@ -2776,11 +2817,11 @@ contains
 
               ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
               
-              ! CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
-              !   /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
-              !     -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))
+              CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) &
+                /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
+                  -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))
                   
-              ! Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)
+              Allinterspecies(speciesId)%Tddiff(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j)
 
               ! Allspecies(speciesId)%ttau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
               !   + 0.5*(Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
@@ -2832,6 +2873,10 @@ contains
       ! n_sp = Tix2(speciesId, OtherspeciesId, num_species)
       n_sp = CCSD_instance%cont
       ! T^{aB}_{iJ}D^{aB}_{iJ} = ...
+
+      !Basic parallelization
+      !$OMP PARALLEL
+      !$OMP DO
       do a=nop+1, noc
         do i=1, nop
           do bb=nops+1, nocs
@@ -2858,14 +2903,14 @@ contains
                     CCSDinter(speciesId)%Faca(a-nop,e-nop)) !eq 5
 
                 CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                  + 0.5*(Allspecies(speciesId)%Tssame(e-nop,i)* &
+                  + 0.5*(Allinterspecies(speciesId)%Tssame(e-nop,i)* &
                       CCSDinter(speciesId)%Wcia(a-nop,bb-nops,e-nop,jj)) !eq 2
                 !26 enero 2017
                 
                 !New Fac
 
                 CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                  + Allspecies(speciesId)%Tssame(e-nop,i)* &
+                  + Allinterspecies(speciesId)%Tssame(e-nop,i)* &
                       CCSDT1T2(speciesId)%Fac(a-nop,e-nop)
 
                 do mm=1, nops
@@ -2915,7 +2960,7 @@ contains
                     CCSDinter(OtherspeciesId)%Fbcb(bb-nops,ee-nops)) !eq 6
 
                 CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                  + 0.5*(Allspecies(OtherspeciesId)%Tssame(ee-nops,jj)* &
+                  + 0.5*(Allinterspecies(OtherspeciesId)%Tssame(ee-nops,jj)* &
                       CCSDinter(speciesId)%Wcjb(a-nop,bb-nops,i,ee-nops)) !eq 4
 
                 do m=1, nop
@@ -2946,7 +2991,7 @@ contains
                     CCSDinter(speciesId)%Fkia(m,i)) !eq 7
 
                 CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                  - 0.5*(Allspecies(speciesId)%Tssame(a-nop,m)* &
+                  - 0.5*(Allinterspecies(speciesId)%Tssame(a-nop,m)* &
                       CCSDinter(speciesId)%Waka(m,bb-nops,i,jj)) !eq 1
 
                 !26 enero 2017
@@ -2954,7 +2999,7 @@ contains
                 !New Fki
 
                 CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                  - Allspecies(speciesId)%Tssame(a-nop,m)* &
+                  - Allinterspecies(speciesId)%Tssame(a-nop,m)* &
                       CCSDT1T2(speciesId)%Fki(m,i)
 
                 do e=nop+1, noc
@@ -2968,13 +3013,13 @@ contains
                   !New
 
                   CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                      + Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)* &
+                      + Allinterspecies(speciesId)%Tddiff(a-nop,e-nop,i,m)* & 
                           CCSDT1T2(speciesId)%Fkc_aa(m,e-nop)
 
                   if (nop>=2) then ! kind of interaction just for two or more particles of the principal species
                   
                     CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                      + 0.5*(Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)* &
+                      + 0.5*(Allinterspecies(speciesId)%Tddiff(a-nop,e-nop,i,m)* &
                           CCSDinter(OtherspeciesId)%Wbkjc(m,bb-nops,e-nop,jj)) !eq 13
 
                     do f=nop+1, noc
@@ -3066,7 +3111,7 @@ contains
                       do nn=1, nops
 
                         CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                         + 0.5*(Allspecies(OtherspeciesId)%Tdsame(bb-nops,ff-nops,jj,nn)* &
+                         + 0.5*(Allinterspecies(OtherspeciesId)%Tddiff(bb-nops,ff-nops,jj,nn)* &
                             CCSDinter(OtherspeciesId)%Wklcd_b(mm,nn,ee-nops,ff-nops)) !eq 12
                       end do
                     end do
@@ -3081,7 +3126,7 @@ contains
                       do n=1, nop
 
                         CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                         + 0.5*(Allspecies(speciesId)%Tdsame(a-nop,f-nop,i,n)* &
+                         + 0.5*(Allinterspecies(speciesId)%Tddiff(a-nop,f-nop,i,n)* &
                             CCSDinter(speciesId)%Wklcd_a(m,n,e-nop,f-nop)) !eq 11
                       end do
                     end do
@@ -3096,7 +3141,7 @@ contains
                     CCSDinter(OtherspeciesId)%Fkjb(mm,jj)) !eq 8
 
                 CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                  - 0.5*(Allspecies(OtherspeciesId)%Tssame(bb-nops,mm)* &
+                  - 0.5*(Allinterspecies(OtherspeciesId)%Tssame(bb-nops,mm)* &
                       CCSDinter(speciesId)%Wbkb(a-nop,mm,i,jj)) !eq 3
 
                 do ee=nops+1, nocs
@@ -3108,7 +3153,7 @@ contains
                   if (nops>=2) then ! kind of interaction just for two or more particles of the another species
 
                     CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                     + 0.5*(Allspecies(OtherspeciesId)%Tdsame(bb-nops,ee-nops,jj,mm)* &
+                     + 0.5*(Allinterspecies(OtherspeciesId)%Tddiff(bb-nops,ee-nops,jj,mm)* &
                         CCSDinter(speciesId)%Wakic(a-nop,mm,i,ee-nops)) !eq 14
 
                     do ff=nops+1, nocs
@@ -3187,7 +3232,7 @@ contains
                 end do
               end do
               !print*,"nops 32"
-              
+
               ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
               CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
                 /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(OtherspeciesId)%HF_fs%values(jj,jj) &
@@ -3221,7 +3266,7 @@ contains
                       Allinterspecies(speciesId)%Tssame(b-nop,j)*Allinterspecies(OtherspeciesId)%Tssame(cc-nops,kk) &
                       + 0.5*( Allinterspecies(speciesId)%Tssame(a-nop,i)*Allinterspecies(speciesId)%Tdsame(b-nop,cc-nops,j,kk) &
                         + Allinterspecies(speciesId)%Tssame(b-nop,j)*Allinterspecies(speciesId)%Tdsame(a-nop,cc-nops,i,kk) &
-                          + Allinterspecies(OtherspeciesId)%Tssame(cc-nops,kk)*Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) )
+                          + Allinterspecies(OtherspeciesId)%Tssame(cc-nops,kk)*Allinterspecies(speciesId)%Tddiff(a-nop,b-nop,i,j) )
                   end do
                 end do
               end do
@@ -3238,7 +3283,7 @@ contains
                       Allinterspecies(OtherspeciesId)%Tssame(bb-nops,jj)*Allinterspecies(speciesId)%Tssame(a-nop,i) &
                       + 0.5*( Allinterspecies(OtherspeciesId)%Tssame(aa-nops,ii)*Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
                         + Allinterspecies(OtherspeciesId)%Tssame(bb-nops,jj)*Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii) &
-                          + Allinterspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tdsame(aa-nops,bb-nops,ii,jj) )
+                          + Allinterspecies(speciesId)%Tssame(a-nop,i)*Allinterspecies(OtherspeciesId)%Tddiff(aa-nops,bb-nops,ii,jj) )
                   end do
                 end do
               end do
@@ -3248,6 +3293,8 @@ contains
               ! write(*,*) a,b,i,j,Allspecies(speciesId)%Tdsame(a,b,i,j),CCSDT1T2(speciesId)%Tabij_AB(a,b,i,j)
         end do
       end do
+      !$OMP END DO
+      !$OMP END PARALLEL
       print*, "nops 33"
       
   end subroutine CCSD_T2_AB
@@ -3446,7 +3493,7 @@ contains
               print*, "e_cont: ", CCSD_instance%e_cont
               call CCSD_diff_species(i_counterID(i),n_intersp(i),e_diff_ccd(num_i),a_diff_ccd(num_i))
               e_diff_ccd(num_i) = CoupledCluster_instance%CCSD_E_inter(num_i)
-              print*, "CCSDT1T2(speciesId)%Tai(a-nop,i): ", CCSDT1T2(i_counterID(i))%Tai
+              ! print*, "CCSDT1T2(speciesId)%Tai(a-nop,i): ", CCSDT1T2(i_counterID(i))%Tai
               a_diff_ccd(num_i) = CoupledCluster_instance%CCSD_a_inter(num_i)
               ! convergence_int = CCSD_instance%convergence_diff(num_i)
             ! end do
@@ -3506,11 +3553,16 @@ contains
 
         ! convergence = CCSD_instance%convergence_same(1) !test
 
-        if (convergence >= 1.0D-8) then
-          convergence = CCSD_instance%convergence_same(1) !test
-        else 
-          convergence = &!sum(CCSD_instance%convergence_same,dim=1) + & 
-             sum(CCSD_instance%convergence_diff,dim=1) !original
+        ! For amplitudes: CCSD_instance%convergence_same_amp and CCSD_instance%convergence_same_amp
+
+        ! For energy: CCSD_instance%convergence_same_amp and CCSD_instance%convergence_diff_amp
+        if (stoped>=3) then
+          if (convergence >= 1.0D-8) then
+            convergence = CCSD_instance%convergence_same_amp(1) !test
+          else 
+            convergence = &!sum(CCSD_instance%convergence_same,dim=1) + & 
+               sum(CCSD_instance%convergence_diff_amp,dim=1) !original
+          end if
         end if
 
         print*, "Temporary convergence: ", convergence

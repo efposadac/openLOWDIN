@@ -59,6 +59,7 @@ module CoupledCluster_
 
       real(8), allocatable :: Tssame(:,:)
       real(8), allocatable :: Tdsame(:,:,:,:)
+      real(8), allocatable :: Tddiff(:,:,:,:)
       real(8), allocatable :: tau(:,:,:,:)
       real(8), allocatable :: ttau(:,:,:,:)
       real(8), allocatable :: intau(:,:,:,:)
@@ -674,7 +675,7 @@ contains
               xv_b = v_b * logic2dbl(mod(p,lambda) == mod(s,lambda)) * logic2dbl(mod(q,lambda) == mod(r,lambda))
               ! spints
               spints(speciesId)%valuesp(p,q,r,s) = xv_a - xv_b
-              print*, "spints: ", spints(speciesId)%valuesp(p,q,r,s), " p: ", p, " q: ", q, " r: ", r, " s: " , s
+              ! print*, "spints: ", spints(speciesId)%valuesp(p,q,r,s), " p: ", p, " q: ", q, " r: ", r, " s: " , s
               ! write (*,*) spints(speciesId)%valuesp(p,q,r,s)
               aux = aux + v_a
             end do
@@ -796,7 +797,7 @@ contains
                    / (Allspecies(speciesId)%HF_fs%values(p,p) + Allspecies(i)%HF_fs%values(q,q) &
                    -Allspecies(speciesId)%HF_fs%values(r,r)-Allspecies(i)%HF_fs%values(s,s) )
                 aux = aux + xv_a
-                print*, "spintm: ", spintm(m)%valuesp(p,q,r,s), " p: ", p, " q: ", q, " r: ", r, " s: ", s
+                ! print*, "spintm: ", spintm(m)%valuesp(p,q,r,s), " p: ", p, " q: ", q, " r: ", r, " s: ", s
               end do
             end do
           end do
