@@ -137,7 +137,7 @@ contains
   subroutine CoupledCluster_destructor()
     implicit none
 
-    integer(8) :: i, num_species
+    integer(8) :: num_species
 
     num_species = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -169,7 +169,9 @@ contains
     character(50), intent(in) :: inter_species(10)
 
     integer :: i, ii
-    integer :: out_1, out_2, output
+    integer :: out_1=0
+    integer :: out_2=0
+    integer :: output=1
     integer :: i_s=0
     integer :: i_i=1
     integer :: counter_i
@@ -619,7 +621,7 @@ contains
   ! @author CAOM
   subroutine CoupledCluster_pairing_function(speciesId, num_species)
       implicit none
-      type(Tensor), pointer :: axVc1sp
+      ! type(Tensor), pointer :: axVc1sp
       integer, intent(in) :: speciesId
       integer, intent(in) :: num_species
 

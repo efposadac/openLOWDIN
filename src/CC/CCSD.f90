@@ -176,7 +176,7 @@ contains
 
       integer, intent(in) :: speciesId
 
-      integer noc, nocs, nop, nops
+      integer noc, nop
 
       integer :: a, b, i, j
 
@@ -254,7 +254,7 @@ contains
       implicit none
 
       integer, intent(in) :: speciesId
-      integer noc, nocs, nop, nops, status
+      integer noc, nop
       
       noc = Allspecies(speciesId)%noc
       ! nocs = CoupledCluster_instance%nocs
@@ -303,7 +303,7 @@ contains
       implicit none
 
       integer, intent(in) :: speciesId
-      integer noc, nocs, nop, nops
+      integer noc, nop
 
       noc = Allspecies(speciesId)%noc
       ! nocs = CoupledCluster_instance%nocs
@@ -460,7 +460,7 @@ contains
 
       integer noc, nocs, nop, nops, n_sp, num_species
 
-      integer :: a, b, c, i, ii, j, k
+      integer :: a, b, i, ii, j
       integer :: aa, bb, jj, cc, kk
       integer :: p, q, r, s
 
@@ -594,7 +594,7 @@ contains
       integer, intent(in) :: OtherspeciesId
       integer, intent(in) :: num_inter
 
-      integer noc, nocs, nop, nops, ierr
+      integer noc, nocs, nop, nops
       
       noc = Allspecies(speciesId)%noc
       nocs = Allspecies(OtherspeciesId)%noc
@@ -700,7 +700,7 @@ contains
       integer, intent(in) :: speciesId
 
       integer :: noc, nop
-      integer :: a, b, e, i, j, f, m, n
+      integer :: a, e, i, f, m, n
 
       noc = Allspecies(speciesId)%noc
       nop = Allspecies(speciesId)%nop
@@ -793,8 +793,8 @@ contains
       ! integer :: cont
       integer :: noc, nop, nocs, nops
       integer :: n_sp, num_species
-      integer :: a, aa, b, e, ee, i, j, f
-      integer :: ff, m, mm, n, nn, ii
+      integer :: a, aa, e, ee, i
+      integer :: ff, m, mm, nn, ii
       integer :: p, q, r, s
 
       noc = Allspecies(speciesId)%noc
@@ -1120,9 +1120,9 @@ contains
       integer, intent(in) :: num_inter
 
       integer :: noc, nop, nocs, nops
-      integer :: num_intersp, num_species
-      integer :: a, aa, b, bb, e, ee, i, j
-      integer :: f, ff, m, mm, n, nn, ii, jj
+      integer :: num_species
+      integer :: a, bb, e, ee, i
+      integer :: f, ff, m, mm, n, nn, jj
 
       noc = Allspecies(speciesId)%noc
       nocs = Allspecies(OtherspeciesId)%noc
@@ -1242,8 +1242,8 @@ contains
       nop = Allspecies(speciesId)%nop
 
       !Baisc parallelization
-      !$OMP PARALLEL
-      !$OMP DO
+      !!$OMP PARALLEL
+      !!$OMP DO
       ! CCSDloop(speciesId)%Wklij
       do m=1, nop
         do n=1, nop
@@ -1266,9 +1266,9 @@ contains
           end do
         end do
       end do
-      !$OMP END DO
+      !!$OMP END DO
 
-      !$OMP DO
+      !!$OMP DO
       !CCSDloop(speciesId)%Wabcd
       do a=nop+1, noc
         do b=nop+1, noc
@@ -1291,9 +1291,9 @@ contains
           end do
         end do
       end do
-      !$OMP END DO
+      !!$OMP END DO
 
-      !$OMP DO
+      !!$OMP DO
       !CCSDloop(speciesId)%Wkbcj
       do m=1, nop
         do b=nop+1, noc
@@ -1320,8 +1320,8 @@ contains
           end do
         end do
       end do
-      !$OMP END DO
-      !$OMP END PARALLEL
+      !!$OMP END DO
+      !!$OMP END PARALLEL
 
   end subroutine W_onespecies_intermediates
 
@@ -1337,9 +1337,9 @@ contains
 
       integer :: noc, nop, nocs, nops
       integer :: n_sp, num_species
-      integer :: a, aa, b, e, ee, i, j, f
-      integer :: ff, m, mm, n, nn, ii, bb, jj
-      integer :: p, q, r, s, pp, qq, rr, ss
+      integer :: b, e, ee, j
+      integer :: ff, m, mm, nn
+      integer :: p, q, r, s
 
       noc = Allspecies(speciesId)%noc
       nocs = Allspecies(OtherspeciesId)%noc
@@ -1470,8 +1470,8 @@ contains
 
       integer :: noc, nop, nocs, nops
       integer :: n_sp, num_species
-      integer :: a, aa, b, bb, e, ee, i, j
-      integer :: f, ff, m, mm, n, nn, ii, jj
+      integer :: a, bb, e, ee, i
+      integer :: f, ff, m, mm, n, nn, jj
       integer :: p, q, r, s
 
       noc = Allspecies(speciesId)%noc
@@ -2138,21 +2138,13 @@ contains
       real(8), intent(in) :: e_ccsd
       real(8), intent(in) :: v_ampl
 
-      integer :: i_counterID(10)
-      integer :: n_intersp(10)
-      integer :: times_i
-      integer :: noc, nocs, nop, nops
+      integer :: noc, nop
       integer :: num_species
-      integer :: n_sp=0
       
-      integer :: a, b, e, i, j,jj
-      integer :: aa, ii, f, m, n
-      integer :: num_inter!=1
+      integer :: a, b, i, j
       real(8) :: prev_ccsdE
       real(8) :: prev_ampl
       real(8) :: tmp_ccsdE
-      real(8) :: prev_ccsdE_int
-      real(8) :: tmp_ccsdE_int
       real(8) :: ccsdE=0.0_8
       real(8) :: ampl=0.0_8
       real(8) :: convergence = 1.0_8
@@ -2265,16 +2257,12 @@ contains
       real(8), intent(in) :: e_ccsd
       real(8), intent(in) :: v_ampl_int
 
-      integer :: i_counterID(10)
-      integer :: n_intersp(10)
-      integer :: times_i
       integer :: noc, nocs, nop, nops
       integer :: num_species
-      integer :: n_sp=0
       
-      integer :: max, min, e_cont
-      integer :: a, b, e, i, j,jj
-      integer :: aa, ii, f, m, n
+      integer :: max, e_cont
+      integer :: a, i
+      integer :: aa, ii
       integer :: p, q, r, s
       integer :: num_inter
       real(8) :: prev_ccsdE_int
@@ -2483,10 +2471,10 @@ contains
 
       integer, intent(in) :: speciesId
 
-      integer noc, nocs, nop, nops
+      integer noc, nop
       integer :: num_species
       integer :: times_i
-      integer :: a, b, e, f, i, j, m, n
+      integer :: a, e, f, i, m, n
 
       noc = Allspecies(speciesId)%noc
       ! nocs = CoupledCluster_instance%nocs
@@ -2496,8 +2484,8 @@ contains
       times_i = CoupledCluster_instance%times_intersp
       
       !Basic parallelization
-      !$OMP PARALLEL
-      !$OMP DO
+      !!$OMP PARALLEL
+      !!$OMP DO
       ! T^{a}_{i}D^{a}_{i} = ...
       do a=nop+1, noc
         do i=1, nop
@@ -2548,8 +2536,8 @@ contains
       ! print*, "CCSD_T1"
       ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai
       ! print*, "Dai: ", CCSDinit(speciesId)%Dai
-      !$OMP END DO
-      !$OMP END PARALLEL
+      !!$OMP END DO
+      !!$OMP END PARALLEL
 
   end subroutine CCSD_T1
 
@@ -2561,7 +2549,7 @@ contains
 
       integer, intent(in) :: speciesId
 
-      integer noc, nocs, nop, nops
+      integer noc, nop
       integer :: num_species
       integer :: times_i
       integer :: a, b, e, f, i, j, m, n
@@ -2575,8 +2563,8 @@ contains
       print*, "CCSD_T2"
       
       !Basic parallelization
-      !$OMP PARALLEL
-      !$OMP DO 
+      !!$OMP PARALLEL
+      !!$OMP DO 
       ! T^{ab}_{ij}D^{ab}_{ij} = ...
       ! if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
       do a=nop+1, noc
@@ -2665,8 +2653,8 @@ contains
          end do
       end do
       ! end if
-      !$OMP END DO
-      !$OMP END PARALLEL
+      !!$OMP END DO
+      !!$OMP END PARALLEL
 
   end subroutine CCSD_T2
 
@@ -2681,8 +2669,8 @@ contains
       integer, intent(in) :: num_inter
 
       integer noc, nocs, nop, nops
-      integer :: a, b, e, ee, f, i
-      integer :: j, m, mm, n, aa, ii
+      integer :: a, e, ee, i
+      integer :: m, mm
       integer :: p, q, r, s
       integer :: n_sp
 
@@ -2781,8 +2769,8 @@ contains
       integer, intent(in) :: num_inter
 
       integer noc, nocs, nop, nops
-      integer :: a, b, e, ee, f, i
-      integer :: j, m, mm, n, aa, ii
+      integer :: a, b, ee, i
+      integer :: j, mm
       integer :: n_sp
 
       noc = Allspecies(speciesId)%noc
@@ -2857,7 +2845,7 @@ contains
       integer num_species, n_sp
       integer :: a, b, bb, e, ee, f, ff
       integer :: i, j, jj, m, mm, n, nn
-      integer :: aa, ii, c, cc, k, kk
+      integer :: aa, ii, cc, kk
       integer :: p, q, r, s
 
       noc = Allspecies(speciesId)%noc
@@ -2875,8 +2863,8 @@ contains
       ! T^{aB}_{iJ}D^{aB}_{iJ} = ...
 
       !Basic parallelization
-      !$OMP PARALLEL
-      !$OMP DO
+      !!$OMP PARALLEL
+      !!$OMP DO
       do a=nop+1, noc
         do i=1, nop
           do bb=nops+1, nocs
@@ -3293,8 +3281,8 @@ contains
               ! write(*,*) a,b,i,j,Allspecies(speciesId)%Tdsame(a,b,i,j),CCSDT1T2(speciesId)%Tabij_AB(a,b,i,j)
         end do
       end do
-      !$OMP END DO
-      !$OMP END PARALLEL
+      !!$OMP END DO
+      !!$OMP END PARALLEL
       print*, "nops 33"
       
   end subroutine CCSD_T2_AB
@@ -3308,11 +3296,10 @@ contains
       integer :: n_intersp(10), i_counterID(10)
       integer :: num_species, counterID, finalID
       integer :: num_inter, num_i
-      integer :: i, j, jj
+      integer :: i, j
       integer :: times_i
       integer :: stoped=0
       integer :: aux_cont=0
-      integer :: e_cont=0
       integer :: n_sp=0
       integer :: max, min
       real(8) :: intra=0
