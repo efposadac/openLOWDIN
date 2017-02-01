@@ -2478,7 +2478,9 @@ contains
       integer :: a, e, f, i, m, n
       real(8), allocatable :: tai_tmp_1(:)
       real(8), allocatable :: tai_tmp_2(:)
-      real(8), allocatable :: tai_tmp_3(:)      
+      real(8), allocatable :: tai_tmp_3(:)
+      real(8), allocatable :: tai_tmp_4(:)
+      real(8), allocatable :: tai_tmp_5(:)
 
       noc = Allspecies(speciesId)%noc
       ! nocs = CoupledCluster_instance%nocs
@@ -2499,30 +2501,43 @@ contains
       if (allocated(tai_tmp_3)) deallocate(tai_tmp_3)
       allocate(tai_tmp_3(nop))
       tai_tmp_3(:) = 0.0_8
+
+      if (allocated(tai_tmp_4)) deallocate(tai_tmp_4)
+      allocate(tai_tmp_4(noc-nop))
+      tai_tmp_4(:) = 0.0_8
       
+      if (allocated(tai_tmp_5)) deallocate(tai_tmp_5)
+      allocate(tai_tmp_5(nop))
+      tai_tmp_5(:) = 0.0_8
+
       !Basic parallelization
-      !!$OMP PARALLEL
+      !!$OMP PARALLEL SHARED(tai_tmp_1,tai_tmp_2,tai_tmp_3,tai_tmp_4,tai_tmp_5)
       !!$OMP DO
       ! T^{a}_{i}D^{a}_{i} = ...
       do a=nop+1, noc
         do i=1, nop
           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
             + Allspecies(speciesId)%HF_fs%values(i,a) ! eq1 1
+          ! tai_tmp_4(:) = 0.0_8
           do e=nop+1, noc
             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+            ! tai_tmp_4(e-nop) = tai_tmp_4(e-nop) &
               + Allspecies(speciesId)%Tssame(e-nop,i)*CCSDloop(speciesId)%Fac(a-nop,e-nop) !eq 4 1
           end do
+          ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_4,dim=1)
+          ! tai_tmp_5(:) = 0.0_8
           do m=1, nop
             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+            ! tai_tmp_5(m) = tai_tmp_5(m) &
               + (-Allspecies(speciesId)%Tssame(a-nop,m)*CCSDloop(speciesId)%Fki(m,i)) !eq 5 2
             if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
-              tai_tmp_1(:) = 0.0_8
+              ! tai_tmp_1(:) = 0.0_8
               do e=nop+1, noc
                 CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
                 ! tai_tmp_1(e-nop) = tai_tmp_1(e-nop) &
                   + Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)*CCSDloop(speciesId)%Fkc_aa(m,e-nop) !eq 6 3
-                tai_tmp_2(:) = 0.0_8
-                tai_tmp_3(:) = 0.0_8
+                ! tai_tmp_2(:) = 0.0_8
+                ! tai_tmp_3(:) = 0.0_8
                 do f=nop+1, noc
                   CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
                   ! tai_tmp_2(f-nop) = tai_tmp_2(f-nop) &
@@ -2535,14 +2550,15 @@ contains
                 end do
                 ! tai_tmp_1(e-nop) = tai_tmp_1(e-nop) + sum(tai_tmp_2,dim=1) + sum(tai_tmp_3,dim=1)
               end do
-              ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_1,dim=1)
+              ! tai_tmp_5(e-nop) = tai_tmp_5(e-nop) + sum(tai_tmp_1,dim=1)
             end if
           end do
+          ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_5,dim=1)
           if ((nop>=2)) then !  .and. (times_i==0) kind of interaction just for two or more particles of the principal species 
             !if times_i/=0 then the product below will be calculated in Fkc_aba in subroutine CCSD_T1_inter()
-            tai_tmp_3(:) = 0.0_8
+            ! tai_tmp_3(:) = 0.0_8
             do m=1,nop !n
-              tai_tmp_1(:) = 0.0_8
+              ! tai_tmp_1(:) = 0.0_8
               do e=nop+1, noc !f
                 CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
                 ! tai_tmp_1(e-nop) = tai_tmp_1(e-nop) &
@@ -2550,7 +2566,7 @@ contains
               end do
               ! tai_tmp_3(m) = tai_tmp_3(m) + sum(tai_tmp_1,dim=1)
             end do
-            CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_3,dim=1)
+            ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_3,dim=1)
           end if
           ! if (times_i==0) then
             CCSDT1T2(speciesId)%Tai_AB(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)

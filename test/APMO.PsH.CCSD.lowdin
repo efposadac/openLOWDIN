@@ -1,0 +1,19 @@
+GEOMETRY
+        E-(H)   SHARON-E-6S2P   0.00    0.00    0.00 addParticles=1
+        H       dirac   0.00    0.00    0.00
+        E+      SHARON-E+6S2P   0.00    0.00    0.00
+END GEOMETRY
+
+TASKS
+        method = "RHF"
+        coupledClusterLevel= "CCSD"
+END TASKS
+
+CONTROL
+        ccFull=F
+        ccSameSpecies="E-" "E+"
+        ccInterSpecies="E-.E+"
+        integralsTransformationMethod= "C"
+        buildTwoParticlesMatrixForOneParticle=T
+END CONTROL
+
