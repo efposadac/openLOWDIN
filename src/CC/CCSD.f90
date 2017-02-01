@@ -31,6 +31,7 @@ module CCSD_
   use MolecularSystem_
   use CoupledCluster_
   use Tensor_
+  use omp_lib
   implicit none
 
   type, public :: CCSD
@@ -2475,6 +2476,9 @@ contains
       integer :: num_species
       integer :: times_i
       integer :: a, e, f, i, m, n
+      real(8), allocatable :: tai_tmp_1(:)
+      real(8), allocatable :: tai_tmp_2(:)
+      real(8), allocatable :: tai_tmp_3(:)      
 
       noc = Allspecies(speciesId)%noc
       ! nocs = CoupledCluster_instance%nocs
@@ -2482,6 +2486,19 @@ contains
       ! nops = CoupledCluster_instance%nops
       num_species = CoupledCluster_instance%num_species
       times_i = CoupledCluster_instance%times_intersp
+
+      !
+      if (allocated(tai_tmp_1)) deallocate(tai_tmp_1)
+      allocate(tai_tmp_1(noc-nop))
+      tai_tmp_1(:) = 0.0_8
+
+      if (allocated(tai_tmp_2)) deallocate(tai_tmp_2)
+      allocate(tai_tmp_2(noc-nop))
+      tai_tmp_2(:) = 0.0_8
+
+      if (allocated(tai_tmp_3)) deallocate(tai_tmp_3)
+      allocate(tai_tmp_3(nop))
+      tai_tmp_3(:) = 0.0_8
       
       !Basic parallelization
       !!$OMP PARALLEL
@@ -2499,28 +2516,41 @@ contains
             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
               + (-Allspecies(speciesId)%Tssame(a-nop,m)*CCSDloop(speciesId)%Fki(m,i)) !eq 5 2
             if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
+              tai_tmp_1(:) = 0.0_8
               do e=nop+1, noc
                 CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                ! tai_tmp_1(e-nop) = tai_tmp_1(e-nop) &
                   + Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)*CCSDloop(speciesId)%Fkc_aa(m,e-nop) !eq 6 3
+                tai_tmp_2(:) = 0.0_8
+                tai_tmp_3(:) = 0.0_8
                 do f=nop+1, noc
                   CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                  ! tai_tmp_2(f-nop) = tai_tmp_2(f-nop) &
                     + (-0.5*Allspecies(speciesId)%Tdsame(e-nop,f-nop,i,m)*spints(speciesId)%valuesp(m,a,e,f)) !eq 3 7
                 end do
                 do n=1, nop
                   CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                  ! tai_tmp_3(n) = tai_tmp_3(n) &
                     + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,m,n)*spints(speciesId)%valuesp(n,m,e,i)) !eq 2 6
                 end do
+                ! tai_tmp_1(e-nop) = tai_tmp_1(e-nop) + sum(tai_tmp_2,dim=1) + sum(tai_tmp_3,dim=1)
               end do
+              ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_1,dim=1)
             end if
           end do
           if ((nop>=2)) then !  .and. (times_i==0) kind of interaction just for two or more particles of the principal species 
             !if times_i/=0 then the product below will be calculated in Fkc_aba in subroutine CCSD_T1_inter()
+            tai_tmp_3(:) = 0.0_8
             do m=1,nop !n
+              tai_tmp_1(:) = 0.0_8
               do e=nop+1, noc !f
                 CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                ! tai_tmp_1(e-nop) = tai_tmp_1(e-nop) &
                   + (-Allspecies(speciesId)%Tssame(e-nop,m)*spints(speciesId)%valuesp(m,a,i,e)) !eq 7 5 !n,a,i,f
               end do
+              ! tai_tmp_3(m) = tai_tmp_3(m) + sum(tai_tmp_1,dim=1)
             end do
+            CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_3,dim=1)
           end if
           ! if (times_i==0) then
             CCSDT1T2(speciesId)%Tai_AB(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
