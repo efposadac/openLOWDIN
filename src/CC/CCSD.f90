@@ -209,6 +209,12 @@ contains
                   +( (spints(speciesId)%valuesp(i,j,a,b))/( Allspecies(speciesId)%HF_fs%values(i,i)+ &
                     Allspecies(speciesId)%HF_fs%values(j,j) -Allspecies(speciesId)%HF_fs%values(a,a)- &
                       Allspecies(speciesId)%HF_fs%values(b,b) ) ) 
+
+                if (( Allspecies(speciesId)%HF_fs%values(i,i)+ &
+                    Allspecies(speciesId)%HF_fs%values(j,j) -Allspecies(speciesId)%HF_fs%values(a,a)- &
+                      Allspecies(speciesId)%HF_fs%values(b,b) )==0) then
+                  Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j)=0.0_8
+                end if
               
                 Allspecies(speciesId)%ttau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
                   + 0.5*( Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
@@ -2211,7 +2217,7 @@ contains
                         Allspecies(speciesId)%Tssame(b-nop,j))
                  auxtdsame = auxtdsame + 0.25*spints(speciesId)%valuesp(i,j,a,b)*Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) 
                  auxtssame = auxtssame + 0.5*spints(speciesId)%valuesp(i,j,a,b)*Allspecies(speciesId)%Tssame(a-nop,i)* Allspecies(speciesId)%Tssame(b-nop,j)
-
+                  
               end do
             end do
           end if
@@ -2364,6 +2370,7 @@ contains
       print *, "intau: ", Allinterspecies(speciesId)%intau(1,1,1,1)
       print *, "tau: ", Allinterspecies(speciesId)%tau(1,1,1,1)
       print *, "Tssame: ", Allspecies(speciesId)%Tssame(1,1)
+      print *, "Tssame inter: ", Allinterspecies(speciesId)%Tssame(1,1)
       print *, "Fac: ", CCSDloop(speciesId)%Fac(1,1)
       print *, "Fac T1T2: ", CCSDT1T2(speciesId)%Fac(1,1)
       print *, "Fki: ", CCSDloop(speciesId)%Fki(1,1)
@@ -2492,32 +2499,29 @@ contains
 
       !
       if (allocated(tai_tmp_1)) deallocate(tai_tmp_1)
-      tai_tmp_1(:) = 0.0_8
-
       if (allocated(tai_tmp_2)) deallocate(tai_tmp_2)
-      tai_tmp_2(:) = 0.0_8
-
       if (allocated(tai_tmp_3)) deallocate(tai_tmp_3)
-      tai_tmp_3(:) = 0.0_8
-
       if (allocated(tai_tmp_4)) deallocate(tai_tmp_4)
-      tai_tmp_4(:) = 0.0_8
-      
       if (allocated(tai_tmp_5)) deallocate(tai_tmp_5)
-      tai_tmp_5(:) = 0.0_8
 
-      !Basic parallelization
-      !$OMP PARALLEL shared(tai_tmp_1,tai_tmp_2,tai_tmp_3,tai_tmp_4,tai_tmp_5,speciesId,nop,noc)
-      !$OMP& private(a,i,e,m,f,n,nthreads,threadid)
-      ! T^{a}_{i}D^{a}_{i} = ...
-      nthreads = OMP_GET_NUM_THREADS()
-      threadid =  OMP_GET_THREAD_NUM()
+      !$OMP PARALLEL 
+        nthreads = OMP_GET_NUM_THREADS()
+      !$OMP END PARALLEL
       allocate(tai_tmp_1(0:nthreads))
       allocate(tai_tmp_2(0:nthreads))
       allocate(tai_tmp_3(0:nthreads))
       allocate(tai_tmp_4(0:nthreads))
       allocate(tai_tmp_5(0:nthreads))
-      tai_tmp_1(:) = 0.0_8
+
+
+      !Basic parallelization
+      !$OMP PARALLEL shared(tai_tmp_1,tai_tmp_2,tai_tmp_3,tai_tmp_4,tai_tmp_5,speciesId,nop,noc)
+      !$OMP& private(a,i,e,m,f,n,nthreads,threadid) collapse(2)
+      ! T^{a}_{i}D^{a}_{i} = ...
+      nthreads = OMP_GET_NUM_THREADS()
+      threadid =  OMP_GET_THREAD_NUM()
+
+      tai_tmp_1(threadid) = 0.0_8
       
       do a=nop+1, noc
         do i=1, nop
@@ -2548,77 +2552,71 @@ contains
               + (-Allspecies(speciesId)%Tssame(a-nop,m)*CCSDloop(speciesId)%Fki(m,i)) !eq 5 2
           
             if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
-
-              !$OMP BARRIER
               
+              !$OMP CRITICAL
               do e=nop+1, noc
                 ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
                 tai_tmp_2(threadid) = tai_tmp_2(threadid) &
                   + Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)*CCSDloop(speciesId)%Fkc_aa(m,e-nop) !eq 6 3
 
-                !$OMP BARRIER
-
                 do f=nop+1, noc
-                  ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-                  tai_tmp_3(threadid) = tai_tmp_3(threadid) &
+                  CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                  ! tai_tmp_3(threadid) = tai_tmp_3(threadid) &
                     + (-0.5*Allspecies(speciesId)%Tdsame(e-nop,f-nop,i,m)*spints(speciesId)%valuesp(m,a,e,f)) !eq 3 7
                 end do
 
-                !$OMP BARRIER
-                
                 do n=1, nop
-                  ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-                  tai_tmp_4(threadid) = tai_tmp_4(threadid) &
+                  CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                  ! tai_tmp_4(threadid) = tai_tmp_4(threadid) &
                     + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,m,n)*spints(speciesId)%valuesp(n,m,e,i)) !eq 2 6
                 end do
-
-                !$OMP BARRIER
+                
 
                 ! if (threadid == 0) then
-                !   tai_tmp_2(threadid,noc-nop) = tai_tmp_2(threadid,noc-nop) & + sum(tai_tmp_1,dim=1)
+                !   tai_tmp_2(threadid) = tai_tmp_2(threadid) & + sum(tai_tmp_1,dim=1)
                 ! end if
 
                 ! tai_tmp_1(e-nop) = tai_tmp_1(e-nop) + sum(tai_tmp_2,dim=1) + sum(tai_tmp_3,dim=1)
               end do
+              !$OMP END CRITICAL
+
 
             end if
 
-            !$OMP BARRIER
           end do
 
           if (threadid == 0) then
-            CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_1,dim=1) &
-              + sum(tai_tmp_2,dim=1) + sum(tai_tmp_3,dim=1) + sum(tai_tmp_4,dim=1)
+            CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_1,dim=1)
+              !+ sum(tai_tmp_2,dim=1) + sum(tai_tmp_3,dim=1) + sum(tai_tmp_4,dim=1)
           end if
 
-          !$OMP BARRIER
-          tai_tmp_1(threadid) = 0.0_8
-
-
+          !$OMP CRITICAL
           ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_5,dim=1)
           if ((nop>=2)) then !  .and. (times_i==0) kind of interaction just for two or more particles of the principal species 
             !if times_i/=0 then the product below will be calculated in Fkc_aba in subroutine CCSD_T1_inter()
             do m=1,nop !n
-              tai_tmp_2(threadid) = 0.0_8
+              ! tai_tmp_2(threadid) = 0.0_8
               do e=nop+1, noc !f
-                ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-                tai_tmp_2(threadid) = tai_tmp_2(threadid) &
+                CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
+                ! tai_tmp_2(threadid) = tai_tmp_2(threadid) &
                   + (-Allspecies(speciesId)%Tssame(e-nop,m)*spints(speciesId)%valuesp(m,a,i,e)) !eq 7 5 !n,a,i,f
               end do
-              !$OMP BARRIER
               ! tai_tmp_3(m) = tai_tmp_3(m) + sum(tai_tmp_1,dim=1)
             end do
-            !$OMP BARRIER
             ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_3,dim=1)
           end if
+          !$OMP END CRITICAL
 
-          if (threadid == 0) then
-            CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_2,dim=1)
-          end if
-          ! if (times_i==0) then
+          ! if (threadid == 0) then
+          !   CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_2,dim=1)
+          ! end if
+
             CCSDT1T2(speciesId)%Tai_AB(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
           ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i), "Tai_AB: ", CCSDT1T2(speciesId)%Tai_AB(a-nop,i)
             CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit(speciesId)%Dai(a,i)
+            
+            if(CCSDinit(speciesId)%Dai(a,i)==0) CCSDT1T2(speciesId)%Tai(a-nop,i) = 0.0_8
+            
             Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
           ! end if
           ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i)
@@ -2663,6 +2661,7 @@ contains
          do b=nop+1, noc
             do i=1, nop
                do j=1, nop
+
                   CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
                     + spints(speciesId)%valuesp(i,j,a,b) !A
                   ! 1er ciclo
@@ -2727,6 +2726,11 @@ contains
                     CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j) &
                       /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
                         -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))
+
+                    if((Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
+                        -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))==0) then
+                        CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)=0.0_8
+                    end if
                   
                     Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)
 
@@ -3543,7 +3547,7 @@ contains
 
 
       ! if (times_i>0) then
-      do while (convergence >= 1.0D-8)
+      do while (convergence >= 1.0D-6)
 
         ! if ((CCSD_instance%min+1)>counterID) print*, "before times_i>0: ", Allinterspecies(CCSD_instance%min+1)%Tdsame
         stoped = stoped +1
@@ -3636,7 +3640,7 @@ contains
 
         ! For energy: CCSD_instance%convergence_same_amp and CCSD_instance%convergence_diff_amp
         if (stoped>=3) then
-          if (convergence >= 1.0D-8) then
+          if (convergence >= 1.0D-6) then
             convergence = CCSD_instance%convergence_same_amp(1) !test
           else 
             convergence = &!sum(CCSD_instance%convergence_same,dim=1) + & 
