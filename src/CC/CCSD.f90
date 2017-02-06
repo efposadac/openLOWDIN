@@ -404,7 +404,7 @@ contains
 
       !
       if (allocated(Allinterspecies(speciesId)%Tddiff)) deallocate(Allinterspecies(speciesId)%Tddiff)
-      allocate(Allinterspecies(speciesId)%Tddiff(noc-nop,nocs-nops,nop,nops))
+      allocate(Allinterspecies(speciesId)%Tddiff(noc-nop,noc-nop,nop,nop))
       Allinterspecies(speciesId)%Tddiff(:,:,:,:) = 0.0_8
 
       ! Effective two-particle excitation operators \check{\tau}, \ddot{\tau} and \tilde{\tau} 
@@ -520,12 +520,21 @@ contains
               ! print*, "Fii: ", Allspecies(speciesId)%HF_fs%values(i,i), "Fjjjj: ", Allspecies(OtherspeciesId)%HF_fs%values(jj,jj), &
               !   "Faa: ", -Allspecies(speciesId)%HF_fs%values(a,a), "Fbbbb: ", -Allspecies(OtherspeciesId)%HF_fs%values(bb,bb)
               
-              ! print*, "2E-.2E+: ", n_sp
-              Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) = Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
-                +( (spintm(n_sp)%valuesp(p,q,r,s)) /( Allspecies(speciesId)%HF_fs%values(i,i)+ &
-                  Allspecies(OtherspeciesId)%HF_fs%values(jj,jj) -Allspecies(speciesId)%HF_fs%values(a,a)- &
-                    Allspecies(OtherspeciesId)%HF_fs%values(bb,bb) ) )
+              if (( Allspecies(speciesId)%HF_fs%values(i,i) + Allspecies(OtherspeciesId)%HF_fs%values(jj,jj) &
+                   -Allspecies(speciesId)%HF_fs%values(a,a) - Allspecies(OtherspeciesId)%HF_fs%values(bb,bb) )==0) then
+                print*, "Division 0/0 motherfuckers"
 
+                Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) = Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
+                  + 0.0_8
+              
+              else
+
+                Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) = Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
+                  +( (spintm(n_sp)%valuesp(p,q,r,s)) /( Allspecies(speciesId)%HF_fs%values(i,i)+ &
+                    Allspecies(OtherspeciesId)%HF_fs%values(jj,jj) -Allspecies(speciesId)%HF_fs%values(a,a)- &
+                      Allspecies(OtherspeciesId)%HF_fs%values(bb,bb) ) )
+
+              end if
               ! if (speciesId>OtherspeciesId) print*, "CCSD_init_inter Allinterspecies(speciesId)%Tdsame: ", &
               !   Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj)
 
@@ -536,6 +545,8 @@ contains
               ! \tilde{\tau} 
               Allinterspecies(speciesId)%intau(a-nop,bb-nops,i,jj) = Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj) &
                 + 0.5*Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(bb-nops,jj) !REVISAR
+
+              ! print*, "%Tdsame: ", Allinterspecies(speciesId)%Tdsame(a-nop,bb-nops,i,jj), a-nop, bb-nop, i, jj
 
             end do
           end do
@@ -963,12 +974,12 @@ contains
                 s=e
               end if
 
-              print*, "%Fkc_aba before: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
+              ! print*, "%Fkc_aba before: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
               !REVISAR 01/10/2017
               CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
                 - (0.5*spintm(n_sp)%valuesp(p,q,r,s)) !eq 7-2
 
-              print*, "%Fkc_aba in the middle: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
+              ! print*, "%Fkc_aba in the middle: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
 
               do ee=nops+1, nocs
 
@@ -987,7 +998,7 @@ contains
                 CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
                   -(0.25* Allinterspecies(OtherspeciesId)%Tssame(ee-nops,ii)*spintm(n_sp)%valuesp(p,q,r,s)) !eq 7-3
 
-                print*, "%Fkc_aba in the middle 2: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
+                ! print*, "%Fkc_aba in the middle 2: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
 
                 if (nops>=2) then ! kind of interaction just for two or more particles of the another species
                   
@@ -1006,17 +1017,19 @@ contains
                     end if
 
                     CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
-                      -(0.25* Allinterspecies(OtherspeciesId)%Tdsame(aa-nops,ee-nops,ii,mm)* &
+                      -(0.25* Allspecies(OtherspeciesId)%Tdsame(aa-nops,ee-nops,ii,mm)* &
                           spintm(n_sp)%valuesp(p,q,r,s)) !eq 7-5
 
-                    print*, "%Fkc_aba in the middle 3: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
+                    ! print*, "%Fkc_aba in the middle 3: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop), &
+                      ! Allspecies(OtherspeciesId)%Tdsame(aa-nops,ee-nops,ii,mm), &
+                      !   spintm(n_sp)%valuesp(p,q,r,s), aa-nops, ee-nops, ii, mm
 
                     CCSDinter(speciesId)%Fkc_aba(m,e-nop) = CCSDinter(speciesId)%Fkc_aba(m,e-nop) &
                       +(0.25* Allinterspecies(OtherspeciesId)%Tssame(aa-nops,mm)* &
                           Allinterspecies(OtherspeciesId)%Tssame(ee-nops,ii) &
                           *spintm(n_sp)%valuesp(p,q,r,s)) !eq 7-7
 
-                    print*, "%Fkc_aba in the middle 4: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
+                    ! print*, "%Fkc_aba in the middle 4: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
                   end do
                 end if
               end do
@@ -1039,7 +1052,7 @@ contains
                   +(0.25* Allinterspecies(OtherspeciesId)%Tssame(aa-nops,mm)*spintm(n_sp)%valuesp(p,q,r,s)) !eq 7-4
               end do
 
-              print*, "%Fkc_aba after: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
+              ! print*, "%Fkc_aba after: ", CCSDinter(speciesId)%Fkc_aba(m,e-nop)
 
             end do
           end do
@@ -2912,11 +2925,17 @@ contains
               end do
 
               ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
-              
+
               CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) &
                 /(Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
                   -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))
-                  
+
+              if ((Allspecies(speciesId)%HF_fs%values(i,i)+Allspecies(speciesId)%HF_fs%values(j,j) &
+                  -Allspecies(speciesId)%HF_fs%values(a,a) -Allspecies(speciesId)%HF_fs%values(b,b))==0) then
+                print*,"Division n/0 motherfuckers"
+                CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) = 0.0_8
+              end if
+
               Allinterspecies(speciesId)%Tddiff(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j)
 
               ! Allspecies(speciesId)%ttau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
@@ -2989,6 +3008,8 @@ contains
                 r=bb
                 s=a
               end if
+
+              ! print*, "%Tabij_AB: ", CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj), a-nop,bb-nops,i,jj
 
               CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
                 + spintm(n_sp)%valuesp(p,q,r,s)            
@@ -3243,7 +3264,7 @@ contains
                 do ee=nops+1, nocs
 
                   CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
-                   + 0.5*(Allinterspecies(OtherspeciesId)%Tdsame(a-nop,ee-nops,i,mm)* &
+                   + 0.5*(Allinterspecies(OtherspeciesId)%Tdsame(ee-nops,a-nop,mm,i)* &
                       CCSDinter(OtherspeciesId)%Wbkjc_b(bb-nops,mm,jj,ee-nops)) !eq 10
 
                   if (nops>=2) then ! kind of interaction just for two or more particles of the another species
@@ -3257,7 +3278,7 @@ contains
 
                         CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) = CCSDT1T2(speciesId)%Tabij_AB(a-nop,bb-nops,i,jj) &
                          + 0.5*(Allspecies(OtherspeciesId)%tau(bb-nops,ff-nops,jj,nn)* &
-                            Allinterspecies(OtherspeciesId)%Tdsame(a-nop,ee-nops,i,mm)* &
+                            Allinterspecies(OtherspeciesId)%Tdsame(ee-nops,a-nop,mm,i)* &
                               spints(OtherspeciesId)%valuesp(mm,nn,ee,ff)) !eq 17
 
                       end do
