@@ -2374,7 +2374,7 @@ contains
                     + (spintm(e_cont)%valuesp(p,q,r,s)*Allinterspecies(speciesId)%Tssame(a-nop,i)* &
                       Allinterspecies(OtherspeciesId)%Tssame(aa-nops,ii))
               auxtdsame = auxtdsame + (0.5*spintm(e_cont)%valuesp(p,q,r,s)* Allinterspecies(speciesId)%Tdsame(a-nop,aa-nops,i,ii) )
-              auxtssame = auxtssame + (0.5*spintm(e_cont)%valuesp(p,q,r,s)*Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(OtherspeciesId)%Tssame(aa-nops,ii))
+              auxtssame = auxtssame + (0.5*spintm(e_cont)%valuesp(p,q,r,s)*Allinterspecies(speciesId)%Tssame(a-nop,i)*Allinterspecies(OtherspeciesId)%Tssame(aa-nops,ii))
 
               ! print*, "spintm(e_cont): ", spintm(e_cont)%valuesp(p,q,r,s)
               ! if (speciesId>OtherspeciesId) print*, "CCSD diff Allinterspecies(speciesId)%Tdsame: ", &
@@ -2388,11 +2388,16 @@ contains
       print *, "speciesId", speciesId
       print *, "tdsame E inter", auxtdsame
       print *, "tssame E inter", auxtssame
-      print *, "Tdsame: ", Allinterspecies(speciesId)%Tdsame(1,1,1,1)
+      print *, "Tdsame: ", sum(Allspecies(speciesId)%Tdsame(:,:,:,:),dim=1)! + sum(Allspecies(speciesId)%Tdsame,dim=2) +&
+        ! sum(Allspecies(speciesId)%Tdsame,dim=3) + sum(Allspecies(speciesId)%Tdsame,dim=4) 
+      print *, "Tdsame inter: ", sum(Allinterspecies(speciesId)%Tdsame,dim=1) + sum(Allinterspecies(speciesId)%Tdsame,dim=2) +&
+        sum(Allinterspecies(speciesId)%Tdsame,dim=3) + sum(Allinterspecies(speciesId)%Tdsame,dim=4)
+      print *, "Tdsame diff: ", sum(Allinterspecies(speciesId)%Tddiff,dim=1) + sum(Allinterspecies(speciesId)%Tddiff,dim=2) +&
+        sum(Allinterspecies(speciesId)%Tddiff,dim=3) + sum(Allinterspecies(speciesId)%Tddiff,dim=4)
       print *, "intau: ", Allinterspecies(speciesId)%intau(1,1,1,1)
       print *, "tau: ", Allinterspecies(speciesId)%tau(1,1,1,1)
-      print *, "Tssame: ", Allspecies(speciesId)%Tssame(1,1)
-      print *, "Tssame inter: ", Allinterspecies(speciesId)%Tssame(1,1)
+      print *, "Tssame: ", sum(Allspecies(speciesId)%Tssame,dim=1)+ sum(Allspecies(speciesId)%Tssame,dim=2)
+      print *, "Tssame inter: ", sum(Allinterspecies(speciesId)%Tssame,dim=1) + sum(Allinterspecies(speciesId)%Tssame,dim=2)
       print *, "Fac: ", CCSDloop(speciesId)%Fac(1,1)
       print *, "Fac T1T2: ", CCSDT1T2(speciesId)%Fac(1,1)
       print *, "Fki: ", CCSDloop(speciesId)%Fki(1,1)
@@ -2485,7 +2490,7 @@ contains
       !   Allinterspecies(speciesId)%Tdsame
       print*, "before CCSD_T2_inter()", speciesId, OtherspeciesId
       if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
-        ! call CCSD_T2_inter(speciesId, OtherspeciesId, num_inter)
+        call CCSD_T2_inter(speciesId, OtherspeciesId, num_inter)
       end if
       ! if (speciesId>OtherspeciesId) print*, "after CCSD_T2 Allinterspecies(speciesId)%Tdsame: ", &
       !   Allinterspecies(speciesId)%Tdsame
@@ -2742,6 +2747,7 @@ contains
 
                   !For T2 same and inter auxiliary
                   CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j)
+                  ! print*, "***** TDsame to TDdiff", CCSDT1T2(speciesId)%Tabij(a-nop,b-nop,i,j), CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j)
 
                   ! Make denominator array D^{ab}_{ij} = F_{ii}+F_{jj}-F_{a,a}-F_{b,b}
                   ! if (times_i==0) then
@@ -2937,6 +2943,7 @@ contains
               end if
 
               Allinterspecies(speciesId)%Tddiff(a-nop,b-nop,i,j) = CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j)
+              ! print*, "**** Taibj_int, Tddiff: ", CCSDT1T2(speciesId)%Taibj_int(a-nop,b-nop,i,j), Allinterspecies(speciesId)%Tddiff(a-nop,b-nop,i,j)
 
               ! Allspecies(speciesId)%ttau(a-nop,b-nop,i,j) = Allspecies(speciesId)%Tdsame(a-nop,b-nop,i,j) &
               !   + 0.5*(Allspecies(speciesId)%Tssame(a-nop,i)*Allspecies(speciesId)%Tssame(b-nop,j) &
