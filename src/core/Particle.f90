@@ -62,7 +62,7 @@ module Particle_
      integer :: owner			!< asocia un indice a la particula que la indentifica como un centro de referencia.
      integer :: basisSetSize		!< Este atributo es adicionado por conveniencia
      integer, allocatable :: childs(:)	!< Cuando la particula es un centro de optimizacion (es padre), almacena los Ids de sus hijas
-     logical :: effectiveCorePotentials !< Indica si los electrones serán descritos por una base y un potencial efectivo de core
+     logical :: onlyvalence !< Indica si los electrones serán descritos por una base y un potencial efectivo de core
   end type Particle
 
   public :: &
@@ -89,7 +89,7 @@ contains
     integer, intent(in), optional :: addParticles
     integer, intent(in) :: id
     real(8), intent(in), optional :: charge
-    logical, optional :: effectiveCorePotentials
+    logical, optional :: onlyValence
     
     type(AtomicElement) :: element
     type(ElementalParticle) :: eparticle
@@ -102,7 +102,7 @@ contains
     integer :: auxAdditionOfParticles
     real(8) :: auxOrigin(3)
     real(8) :: auxMultiplicity
-    logical :: auxEffectiveCorePotentials
+    logical :: auxOnlyValence
     logical :: isDummy
     logical :: isElectron
 
@@ -119,8 +119,8 @@ contains
     auxAdditionOfParticles=0
     if   ( present(addParticles) ) auxAdditionOfParticles= addParticles
 
-    auxEffectiveCorePotentials = .false.
-    if   ( present(effectiveCorePotentials) ) auxEffectiveCorePotentials= effectiveCorePotentials
+    auxOnlyValence = .false.
+    if   ( present(onlyValence) ) auxOnlyValence= onlyValence
 
     !! Initialize some variables
     isDummy = .false.
@@ -128,7 +128,7 @@ contains
     massNumber = 0
     elementSymbol = trim(name)
     massNumberString=""
-    effectiveCorePotentials = .false.
+    onlyValence = .false.
     
     !!*******************************************************************************************
     !! Identify what kind of particle is
@@ -165,7 +165,7 @@ contains
     !!*******************************************************************************************
     
     this%multiplicity = auxMultiplicity
-    this%effectiveCorePotentials = auxEffectiveCorePotentials
+    this%onlyValence = auxOnlyValence
     !! Obtains information of the atom., if any...
     call AtomicElement_load ( element, trim(elementSymbol), massicNumber=massNumber)
     
@@ -239,7 +239,7 @@ contains
           call Particle_setComponentFixed( this, varsToFix )
           
        !! Load quantum nuclei (of an atomic element)
-       else if( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM") then
+       else if( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM" .and. trim(baseName) /= "ECP") then
 
           call Particle_build( this = this, &
                isQuantum = .true., &
@@ -263,7 +263,8 @@ contains
           this%internalSize = 1  + auxAdditionOfParticles
           this%klamt = element%klamt
           this%vanderWaalsRadio = element%vanderWaalsRadio
-          this%id = id    
+          this%id = id
+          this%onlyValence = auxOnlyValence
           
           !! Identify statistics for this particle
           if ( Math_isEven( INT( element%massicNumber ) ) ) then
@@ -433,7 +434,7 @@ contains
           this%spin = eParticle%spin
           this%id = id
           
-       else
+       else if(present(baseName) .and. trim(baseName) == "dirac" ) then
           
           call ElementalParticle_load( eparticle, trim( name ) )
 
@@ -447,6 +448,29 @@ contains
           call Particle_setComponentFixed(this, varsToFix )
 
           this%basisSetName="DIRAC"
+          this%name = eParticle%name
+          this%symbol = eParticle%symbol
+          this%charge = eParticle%charge
+          this%mass = eParticle%mass
+          this%totalCharge = eParticle%charge
+          this%internalSize = 1 + auxAdditionOfParticles
+          this%spin = eParticle%spin
+          this%id = id
+          
+       else  !!! Es necesario incluir más variables respecto a ECPs?
+          
+          call ElementalParticle_load( eparticle, trim( name ) )
+
+          call Particle_build( this, &
+               isQuantum=.false., &
+               name=trim(name), &
+               origin=auxOrigin, &
+               owner=id, &
+               nickname=trim(eparticle%symbol))
+
+          call Particle_setComponentFixed(this, varsToFix )
+
+          this%basisSetName="ECP"
           this%name = eParticle%name
           this%symbol = eParticle%symbol
           this%charge = eParticle%charge

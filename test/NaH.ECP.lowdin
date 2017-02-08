@@ -7,7 +7,6 @@ GEOMETRY
 END GEOMETRY
 TASKS
 	method = "RHF"
-	cosmo=T
 	effectiveCorePotentials=T
 END TASKS
 

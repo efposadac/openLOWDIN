@@ -178,7 +178,7 @@ if [ $extFile="lowdin" ]; then
 				printf("\tInputParticle_fragmentNumber = %s\n",$(i+2) )
                         }
                         else if($i=="ECP"){
-				printf("\tInputParticle_effectiveCorePotentials = .true.\n",$(i+2) )
+				printf("\tInputParticle_onlyValence = .true.\n",$(i+2) )
 			};
 		};
 		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)

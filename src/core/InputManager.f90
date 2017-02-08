@@ -46,6 +46,7 @@ module InputManager_
      logical :: TDHF
      logical :: cosmo
      logical :: effectiveCorePotentials
+     logical :: onlyValence
 
   end type InputManager
 
@@ -56,8 +57,7 @@ module InputManager_
        InputManager_loadSystem, &
        InputManager_loadControl, &
        InputManager_loadTask, &
-       InputManager_loadGeometry!, &
-!       InputManager_loadEffectiveCorePotentials
+       InputManager_loadGeometry
 
 contains
 
@@ -311,7 +311,7 @@ contains
     character(3):: InputParticle_fixedCoordinates
     integer:: InputParticle_addParticles
     real(8):: InputParticle_multiplicity
-    logical :: InputParticle_effectiveCorePotentials
+    logical :: InputParticle_onlyValence
     
     NAMELIST /InputParticle/ &
          InputParticle_name, &
@@ -321,7 +321,7 @@ contains
          InputParticle_fixedCoordinates, &
          InputParticle_multiplicity, &
          InputParticle_addParticles, &
-         InputParticle_effectiveCorePotentials
+         InputParticle_onlyValence
     
     !! Allocate memory for buffer.
     allocate(quantumSpeciesName(Input_instance%numberOfParticles))
@@ -473,7 +473,7 @@ contains
        InputParticle_fixedCoordinates = "NONE"
        InputParticle_multiplicity = 1.0_8
        InputParticle_addParticles = 0
-       InputParticle_effectiveCorePotentials = .false.
+       InputParticle_onlyValence = .false.
        
        !! Reads namelist from input file
        read(4,NML = InputParticle, iostat = stat)
@@ -536,7 +536,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), effectiveCorePotentials = inputParticle_effectiveCorePotentials )
+                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), onlyValence = inputParticle_onlyValence )
              
              !!BETA SET
              speciesID = speciesID + 1
@@ -548,7 +548,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), effectiveCorePotentials = inputParticle_effectiveCorePotentials )
+                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), onlyValence = inputParticle_onlyValence )
              
           else 
 
@@ -564,7 +564,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), effectiveCorePotentials = inputParticle_effectiveCorePotentials)
+                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), onlyValence = inputParticle_onlyValence)
 
 
              
