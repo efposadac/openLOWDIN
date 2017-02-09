@@ -94,7 +94,9 @@ module MolecularSystem_
        MolecularSystem_getSpecieID, &
        MolecularSystem_getPointChargesEnergy, &
        MolecularSystem_getMMPointChargesEnergy, &
-       MolecularSystem_getlabelsofcontractions
+       MolecularSystem_getlabelsofcontractions!, &
+!       MolecularSystem_getNumberOfCoreElectrons, &
+!       MolecularSystem_getNumberOfValenceElectrons
   
   !>Singleton
   type(MolecularSystem), public, target :: MolecularSystem_instance

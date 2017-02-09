@@ -62,7 +62,10 @@ module Particle_
      integer :: owner			!< asocia un indice a la particula que la indentifica como un centro de referencia.
      integer :: basisSetSize		!< Este atributo es adicionado por conveniencia
      integer, allocatable :: childs(:)	!< Cuando la particula es un centro de optimizacion (es padre), almacena los Ids de sus hijas
-     logical :: onlyvalence !< Indica si los electrones serán descritos por una base y un potencial efectivo de core
+     logical :: onlyValence !< Indica si los electrones serán descritos por una base y un potencial efectivo de core
+     integer :: numberOfCoreElectrons	!< Número de electrones de core del seudopotencial.
+     integer :: numberOfValenceElectrons!< Número de electrones de valencia (fuera del core).
+     
   end type Particle
 
   public :: &
@@ -129,6 +132,8 @@ contains
     elementSymbol = trim(name)
     massNumberString=""
     onlyValence = .false.
+    numberOfCoreElectrons = 0
+    numberOfValenceElectrons = 0
     
     !!*******************************************************************************************
     !! Identify what kind of particle is
@@ -377,7 +382,7 @@ contains
        end if
        
     !! Load quantum elemental particles (is not an atomic element)
-    else if ( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM") then
+    else if ( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM" .and. trim(baseName) /= "ECP") then
        
        call ElementalParticle_load( eparticle, trim(name) )
        
