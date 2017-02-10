@@ -528,7 +528,7 @@ contains
               do i=1, nop
                 do j=1, nop
                   do k=1, nop
-                    tmp_ccsd_t4E = tmp_ccsd_t4E + ((1/36)*Allspecies(speciesId)%Tt4same(a-nop,b-nop,c-nop,i,j,k)* &
+                    tmp_ccsd_t4E = tmp_ccsd_t4E + ((0.0277777777)*Allspecies(speciesId)%Tt4same(a-nop,b-nop,c-nop,i,j,k)* &
                       (Allspecies(speciesId)%HF_fs%values(i,i) + Allspecies(speciesId)%HF_fs%values(j,j) &
                         + Allspecies(speciesId)%HF_fs%values(k,k) - Allspecies(speciesId)%HF_fs%values(a,a) &
                           - Allspecies(speciesId)%HF_fs%values(b,b) - Allspecies(speciesId)%HF_fs%values(c,c))* &
@@ -1170,13 +1170,18 @@ contains
       integer, intent(in) :: speciesId
 
       print*, "INFORMATION OF CCSD(T) METHOD"
-      print*, "CCSD + E_T[4] Energy of species " , speciesId, ": ", &
+      print*, "speciesId: **", speciesId, "**"
+      print*, "E_T[4] Energy of species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_T4_E_intra(speciesId)
-      print*, "CCSD + E_TS[5] Energy of different species " , speciesId, ": ", &
+      print*, "E_TS[5] Energy of different species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_TS5_E_intra(speciesId)
-      print*, "CCSD[T] Energy of species: ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
+      print*, "CCSD + E_T[4] = CCSD[T] correction energy: ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
         CoupledCluster_instance%CCSD_T4_E_intra(speciesId)
-      print*, "CCSD(T) Energy of species: ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
+      print*, "CCSD + E_TS[5] = CCSD(T) correction energy: ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
+        CoupledCluster_instance%CCSD_T4_E_intra(speciesId) + CoupledCluster_instance%CCSD_TS5_E_intra(speciesId)
+      print*, "Total CCSD[T] energy: ", CoupledCluster_instance%HF_energy + CoupledCluster_instance%CCSD_E_intra(speciesId) + &
+        CoupledCluster_instance%CCSD_T4_E_intra(speciesId)
+      print*, "Total CCSD(T) energy: ", CoupledCluster_instance%HF_energy + CoupledCluster_instance%CCSD_E_intra(speciesId) + &
         CoupledCluster_instance%CCSD_T4_E_intra(speciesId) + CoupledCluster_instance%CCSD_TS5_E_intra(speciesId)
 
   end subroutine CCSDPT_show
