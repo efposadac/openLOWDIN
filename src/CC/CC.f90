@@ -35,6 +35,7 @@ program CC
   use Exception_
   use CoupledCluster_
   use CCSD_
+  use CCSDPT_
   use String_
   implicit none
 
@@ -62,23 +63,17 @@ program CC
   call CoupledCluster_constructor()
   call CoupledCluster_init(cc_full,same_species,inter_species)
   
-  select case(CONTROL_instance%COUPLED_CLUSTER_LEVEL)
+  select case(trim(CONTROL_instance%COUPLED_CLUSTER_LEVEL))
 
     case("CCSD")
 
-    call CCSD_run()
-      !call CCSD_destructor()
+      call CCSD_run()
   
-    ! case("CCSDOLD")
+    case("CCSD[T]")
 
-    !   print*, "CoupledCluster_"
-    !   call CoupledClusterold_constructor(CONTROL_instance%COUPLED_CLUSTER_LEVEL )
-    !   call CoupledClusterold_run()
-    !   ! call Cou:pledClusterold_iterateIntermediates_SameSpecies()
-    !   call CoupledClusterold_show()
-    !   call CoupledClusterold_destructor()
+      call CCSDPT_run()
 
-  !   case default
+    ! case default
 
   !     ! call Exception_.....
 

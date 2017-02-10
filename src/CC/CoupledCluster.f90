@@ -51,6 +51,8 @@ module CoupledCluster_
       real(8) :: HF_puntualInteractionEnergy
       real(8) :: MP2_EnergyCorr
       real(8), allocatable :: CCSD_E_intra(:)
+      real(8), allocatable :: CCSD_T4_E_intra(:)
+      real(8), allocatable :: CCSD_TS5_E_intra(:)
       real(8), allocatable :: CCSD_A_intra(:)
       real(8), allocatable :: CCSD_E_inter(:)
       real(8), allocatable :: CCSD_A_inter(:)      
@@ -59,6 +61,8 @@ module CoupledCluster_
 
       real(8), allocatable :: Tssame(:,:)
       real(8), allocatable :: Tdsame(:,:,:,:)
+      real(8), allocatable :: Tt4same(:,:,:,:,:,:)
+      real(8), allocatable :: Tt5same(:,:,:,:,:,:)
       real(8), allocatable :: Tddiff(:,:,:,:)
       real(8), allocatable :: tau(:,:,:,:)
       real(8), allocatable :: ttau(:,:,:,:)
@@ -576,6 +580,14 @@ contains
       !for the intra-species energies in CC
       if (allocated(CoupledCluster_instance%CCSD_E_intra)) deallocate(CoupledCluster_instance%CCSD_E_intra)
       allocate(CoupledCluster_instance%CCSD_E_intra(num_species))
+
+      if (allocated(CoupledCluster_instance%CCSD_T4_E_intra)) deallocate(CoupledCluster_instance%CCSD_T4_E_intra)
+      allocate(CoupledCluster_instance%CCSD_T4_E_intra(num_species))
+      CoupledCluster_instance%CCSD_T4_E_intra(:)=0.0_8
+
+      if (allocated(CoupledCluster_instance%CCSD_TS5_E_intra)) deallocate(CoupledCluster_instance%CCSD_TS5_E_intra)
+      allocate(CoupledCluster_instance%CCSD_TS5_E_intra(num_species))
+      CoupledCluster_instance%CCSD_TS5_E_intra(:)=0.0_8
 
       if (allocated(CoupledCluster_instance%CCSD_A_intra)) deallocate(CoupledCluster_instance%CCSD_A_intra)
       allocate(CoupledCluster_instance%CCSD_A_intra(num_species))
