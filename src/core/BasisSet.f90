@@ -32,9 +32,22 @@ module BasisSet_
      integer :: contractionLength !< Dispuesta por razones de conveniencia
      integer :: numberOfPrimitives
   end type BasisSet
+
+  type :: EffectiveCorePotentials
+     character(30) :: name !!!!!! cómo se va a reconocer?
+     real(8) :: origin(3)
+     integer :: ttype   !!!!!!!!!!!?????????????
+     integer :: numberOfCoreElectrons
+     integer :: nkParameter    !< equation (16) from J. Chem. Phys. 82, 1, 1985
+     real(8) :: zetakParameter !< equation (16) from J. Chem. Phys. 82, 1, 1985
+     real(8) :: dkParameter    !< equation (16) from J. Chem. Phys. 82, 1, 1985
+     character(1) :: maxAngularMoment
+     character(1) :: angularMoment
+  end type EffectiveCorePotentials
   
   public :: &
        BasisSet_load, &
+       BasisSet_loadECP, &
        BasisSet_showInSimpleForm  
 
   private :: &
@@ -313,6 +326,7 @@ contains
     character(10) :: symbol
     character(30) :: particleSelected
     integer :: status
+    integer :: numberOfCoreElectrons
     
     !! Setting name
     if(present(basisName)) this%name = trim(basisName)
@@ -336,16 +350,48 @@ contains
           do while(foundECP .eqv. .false.)
                           
              read(30,*, iostat=status) token
-             
+
 !!!!!!!  To do: include debug information
+
+             if (status > 0 ) then
+                
+                call BasisSet_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(this%name)//" Please check that this file contains pseudopotentials!","BasisSet module at LoadECP function.")
+                
+             end if
+             
+!             if (status == -1 ) then
+!                
+!                call BasisSet_exception(ERROR, "The basisSet: "//trim(this%name)//" for: "//trim(particleSelected)//" was not found!","BasisSet module at Load function.")
+!                
+!             end if
              
              if(trim(token(1:3)) == "ECP") then
 
                 foundECP = .true.
+                
+!!!!!!!!!!!!!!!!!!!! ¿Cómo hago para que solo lea desde aquí la unidad 30?
+                do while(foundECP .eqv. .true.)
 
+                   backspace(30)
+                   
+                   read(30,*, iostat=status) symbol, token, numberOfcoreElectrons
+                   
+                   !! Some debug information in case of error!
+                   if (status > 0 ) then
+
+                      call BasisSet_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(this%name)//" Please check that this file contains pseudopotentials!","BasisSet module at LoadECP function.")
+                
+                   end if
+
+                   if (status == -1 ) then
+
+                      call BasisSet_exception(ERROR, "The ECP: "//trim(this%name)//" for: "//trim(particleSelected)//" was not found!","BasisSet module at LoadECP function.")
+
+                   end if
+                
                 found = .false.
 
-                if(trim(token) == trim(particleSelected)) then
+                if((trim(symbol) == trim(particleSelected)) .and. (trim(token) == "nelec")) then
                    
                    found = .true.
                    
@@ -385,7 +431,8 @@ contains
              end if
              
           end do
-          
+
+         
           !! Neglect any coment
           token = "#"
           do while(trim(token(1:1)) == "#")
@@ -393,8 +440,16 @@ contains
              read(30,*) token
              
           end do
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! from here again
           
-          !! Start reading basis set
+          !! Start reading ECP from basis set file
+          
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! From Hay1985:
+!          \sum_k d_k r^{nk} e^{-\zeta_k r^2}
+!          momento angular l se refiere a $r^2 (U_l - U_L)$
+!          ul (potenciales $U_L$) se refiere a $r^2 (U_L - N_c/r)$5
+          
           backspace(30)
           
           read(30,*, iostat=status) this%length
@@ -477,7 +532,7 @@ contains
           
        else
           
-          call BasisSet_exception(ERROR, "The basisSet file: "//trim(basisName)//" was not found!","BasisSet module at Load function.")
+          call BasisSet_exception(ERROR, "The basisSet file: "//trim(basisName)//" was not found!","BasisSet module at LoadECP function.")
              
        end if
        
