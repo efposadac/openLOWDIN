@@ -2328,7 +2328,6 @@ contains
       num_inter = CCSD_instance%num_i
       e_cont = CCSD_instance%e_cont
 
-      ! call CCSD_constructor_inter(min, jj)
       print*, "OtherspeciesId: ", OtherspeciesId
       ! if (speciesId>OtherspeciesId) print*, "before CCSD_T2AB_constructor: ", Allinterspecies(speciesId)%Tdsame
       call CCSD_T2AB_constructor(speciesId, OtherspeciesId, num_inter)

@@ -172,7 +172,7 @@ contains
     !! Namelist definition
     character(50):: InputTasks_method
     character(20):: InputTasks_configurationInteractionLevel
-    character(20):: InputTasks_coupledClusterLevel
+    character(50):: InputTasks_coupledClusterLevel
     integer:: InputTasks_mollerPlessetCorrection
     integer:: InputTasks_propagatorTheoryCorrection
     logical:: InputTasks_optimizeGeometry

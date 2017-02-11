@@ -47,12 +47,20 @@ module CoupledCluster_
       real(8) :: CCSD_once_Energy
       real(8) :: CCSD_twice_Energy
       real(8) :: CCSD_total_Energy
+      real(8) :: CCSDPT_once_Energy
+      real(8) :: CCSDPT_twice_Energy
+      real(8) :: CCSD_T_total_Energy
+      real(8) :: CCSD_TS_total_Energy
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy
       real(8) :: MP2_EnergyCorr
       real(8), allocatable :: CCSD_E_intra(:)
       real(8), allocatable :: CCSD_T4_E_intra(:)
+      real(8), allocatable :: CCSD_T4_E_inter_aab(:)
+      real(8), allocatable :: CCSD_T4_E_inter_abb(:)
       real(8), allocatable :: CCSD_TS5_E_intra(:)
+      real(8), allocatable :: CCSD_TS5_E_inter_aab(:)
+      real(8), allocatable :: CCSD_TS5_E_inter_abb(:)      
       real(8), allocatable :: CCSD_A_intra(:)
       real(8), allocatable :: CCSD_E_inter(:)
       real(8), allocatable :: CCSD_A_inter(:)      
@@ -62,7 +70,11 @@ module CoupledCluster_
       real(8), allocatable :: Tssame(:,:)
       real(8), allocatable :: Tdsame(:,:,:,:)
       real(8), allocatable :: Tt4same(:,:,:,:,:,:)
+      real(8), allocatable :: Tt4same_abb(:,:,:,:,:,:)
+      real(8), allocatable :: Tt4same_aab(:,:,:,:,:,:)
       real(8), allocatable :: Tt5same(:,:,:,:,:,:)
+      real(8), allocatable :: Tt5same_abb(:,:,:,:,:,:)
+      real(8), allocatable :: Tt5same_aab(:,:,:,:,:,:)
       real(8), allocatable :: Tddiff(:,:,:,:)
       real(8), allocatable :: tau(:,:,:,:)
       real(8), allocatable :: ttau(:,:,:,:)
@@ -585,9 +597,25 @@ contains
       allocate(CoupledCluster_instance%CCSD_T4_E_intra(num_species))
       CoupledCluster_instance%CCSD_T4_E_intra(:)=0.0_8
 
+      if (allocated(CoupledCluster_instance%CCSD_T4_E_inter_aab)) deallocate(CoupledCluster_instance%CCSD_T4_E_inter_aab)
+      allocate(CoupledCluster_instance%CCSD_T4_E_inter_aab(num_species))
+      CoupledCluster_instance%CCSD_T4_E_inter_aab(:)=0.0_8
+
+      if (allocated(CoupledCluster_instance%CCSD_T4_E_inter_abb)) deallocate(CoupledCluster_instance%CCSD_T4_E_inter_abb)
+      allocate(CoupledCluster_instance%CCSD_T4_E_inter_abb(num_species))
+      CoupledCluster_instance%CCSD_T4_E_inter_abb(:)=0.0_8
+
       if (allocated(CoupledCluster_instance%CCSD_TS5_E_intra)) deallocate(CoupledCluster_instance%CCSD_TS5_E_intra)
       allocate(CoupledCluster_instance%CCSD_TS5_E_intra(num_species))
       CoupledCluster_instance%CCSD_TS5_E_intra(:)=0.0_8
+
+      if (allocated(CoupledCluster_instance%CCSD_TS5_E_inter_aab)) deallocate(CoupledCluster_instance%CCSD_TS5_E_inter_aab)
+      allocate(CoupledCluster_instance%CCSD_TS5_E_inter_aab(num_species))
+      CoupledCluster_instance%CCSD_TS5_E_inter_aab(:)=0.0_8
+
+      if (allocated(CoupledCluster_instance%CCSD_TS5_E_inter_abb)) deallocate(CoupledCluster_instance%CCSD_TS5_E_inter_abb)
+      allocate(CoupledCluster_instance%CCSD_TS5_E_inter_abb(num_species))
+      CoupledCluster_instance%CCSD_TS5_E_inter_abb(:)=0.0_8
 
       if (allocated(CoupledCluster_instance%CCSD_A_intra)) deallocate(CoupledCluster_instance%CCSD_A_intra)
       allocate(CoupledCluster_instance%CCSD_A_intra(num_species))
