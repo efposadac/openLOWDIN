@@ -881,7 +881,7 @@ contains
                   !     + Allspecies(speciesId)%HF_fs%values(k,k) - Allspecies(speciesId)%HF_fs%values(a,a) &
                   !       - Allspecies(speciesId)%HF_fs%values(b,b) - Allspecies(speciesId)%HF_fs%values(c,c))
 
-                  tmp_ccsd_ts5E = tmp_ccsd_ts5E + (0.25*Allspecies(speciesId)%Tt4same(a-nop,b-nop,c-nop,i,j,k)* &
+                  tmp_ccsd_ts5E = tmp_ccsd_ts5E + ((0.0277777777)*Allspecies(speciesId)%Tt4same(a-nop,b-nop,c-nop,i,j,k)* &
                     (Allspecies(speciesId)%HF_fs%values(i,i) + Allspecies(speciesId)%HF_fs%values(j,j) &
                       + Allspecies(speciesId)%HF_fs%values(k,k) - Allspecies(speciesId)%HF_fs%values(a,a) &
                         - Allspecies(speciesId)%HF_fs%values(b,b) - Allspecies(speciesId)%HF_fs%values(c,c))* &
@@ -963,7 +963,7 @@ contains
             do i=1, nop
               do jj=1, nops
                 do kk=1, nops
-                  tmp_ccsd_t4E_inter_abb = tmp_ccsd_t4E_inter_abb + ((0.04166666666)*Allinterspecies(speciesId)%Tt4same_abb(a-nop,bb-nops,cc-nops,i,jj,kk)* &
+                  tmp_ccsd_t4E_inter_abb = tmp_ccsd_t4E_inter_abb + ((0.08333333333)*Allinterspecies(speciesId)%Tt4same_abb(a-nop,bb-nops,cc-nops,i,jj,kk)* &
                     (Allspecies(speciesId)%HF_fs%values(i,i) + Allspecies(OtherspeciesId)%HF_fs%values(jj,jj) &
                       + Allspecies(OtherspeciesId)%HF_fs%values(kk,kk) - Allspecies(speciesId)%HF_fs%values(a,a) &
                         - Allspecies(OtherspeciesId)%HF_fs%values(bb,bb) - Allspecies(OtherspeciesId)%HF_fs%values(cc,cc))* &
@@ -973,7 +973,7 @@ contains
                   !     + Allspecies(speciesId)%HF_fs%values(k,k) - Allspecies(speciesId)%HF_fs%values(a,a) &
                   !       - Allspecies(speciesId)%HF_fs%values(b,b) - Allspecies(speciesId)%HF_fs%values(c,c))
 
-                  tmp_ccsd_ts5E_inter_abb = tmp_ccsd_ts5E_inter_abb + ((0.04166666666)*Allinterspecies(speciesId)%Tt4same_abb(a-nop,bb-nops,cc-nops,i,jj,kk)* &
+                  tmp_ccsd_ts5E_inter_abb = tmp_ccsd_ts5E_inter_abb + ((0.08333333333)*Allinterspecies(speciesId)%Tt4same_abb(a-nop,bb-nops,cc-nops,i,jj,kk)* &
                     (Allspecies(speciesId)%HF_fs%values(i,i) + Allspecies(OtherspeciesId)%HF_fs%values(jj,jj) &
                       + Allspecies(OtherspeciesId)%HF_fs%values(kk,kk) - Allspecies(speciesId)%HF_fs%values(a,a) &
                         - Allspecies(OtherspeciesId)%HF_fs%values(bb,bb) - Allspecies(OtherspeciesId)%HF_fs%values(cc,cc))* &
@@ -997,7 +997,7 @@ contains
             do i=1, nop
               do j=1, nop
                 do kk=1, nops
-                  tmp_ccsd_t4E_inter_aab = tmp_ccsd_t4E_inter_aab + ((0.04166666666)*Allinterspecies(speciesId)%Tt4same_aab(a-nop,b-nop,cc-nops,i,j,kk)* &
+                  tmp_ccsd_t4E_inter_aab = tmp_ccsd_t4E_inter_aab + ((0.08333333333)*Allinterspecies(speciesId)%Tt4same_aab(a-nop,b-nop,cc-nops,i,j,kk)* &
                     (Allspecies(speciesId)%HF_fs%values(i,i) + Allspecies(speciesId)%HF_fs%values(j,j) &
                       + Allspecies(OtherspeciesId)%HF_fs%values(kk,kk) - Allspecies(speciesId)%HF_fs%values(a,a) &
                         - Allspecies(speciesId)%HF_fs%values(b,b) - Allspecies(OtherspeciesId)%HF_fs%values(cc,cc))* &
@@ -1007,7 +1007,7 @@ contains
                   !     + Allspecies(speciesId)%HF_fs%values(k,k) - Allspecies(speciesId)%HF_fs%values(a,a) &
                   !       - Allspecies(speciesId)%HF_fs%values(b,b) - Allspecies(speciesId)%HF_fs%values(c,c))
 
-                  tmp_ccsd_ts5E_inter_aab = tmp_ccsd_ts5E_inter_aab + ((0.04166666666)*Allinterspecies(speciesId)%Tt4same_aab(a-nop,b-nop,cc-nops,i,j,kk)* &
+                  tmp_ccsd_ts5E_inter_aab = tmp_ccsd_ts5E_inter_aab + ((0.08333333333)*Allinterspecies(speciesId)%Tt4same_aab(a-nop,b-nop,cc-nops,i,j,kk)* &
                     (Allspecies(speciesId)%HF_fs%values(i,i) + Allspecies(speciesId)%HF_fs%values(j,j) &
                       + Allspecies(OtherspeciesId)%HF_fs%values(kk,kk) - Allspecies(speciesId)%HF_fs%values(a,a) &
                         - Allspecies(speciesId)%HF_fs%values(b,b) - Allspecies(OtherspeciesId)%HF_fs%values(cc,cc))* &
@@ -1023,172 +1023,13 @@ contains
       print *, "ccsd_t4E inter", tmp_ccsd_t4E_inter_aab
       print *, "ccsd_ts5E inter", tmp_ccsd_ts5E_inter_aab
 
-      CoupledCluster_instance%CCSD_T4_E_inter_aab(speciesId) = tmp_ccsd_t4E_inter_aab
-      CoupledCluster_instance%CCSD_TS5_E_inter_aab(speciesId) = tmp_ccsd_ts5E_inter_aab
+      CoupledCluster_instance%CCSD_T4_E_inter_aab(speciesId) = (0.5)*tmp_ccsd_t4E_inter_aab
+      CoupledCluster_instance%CCSD_TS5_E_inter_aab(speciesId) = (0.5)*tmp_ccsd_ts5E_inter_aab
 
-      CoupledCluster_instance%CCSD_T4_E_inter_abb(speciesId) = tmp_ccsd_t4E_inter_abb
-      CoupledCluster_instance%CCSD_TS5_E_inter_abb(speciesId) = tmp_ccsd_ts5E_inter_abb
+      CoupledCluster_instance%CCSD_T4_E_inter_abb(speciesId) = (0.5)*tmp_ccsd_t4E_inter_abb
+      CoupledCluster_instance%CCSD_TS5_E_inter_abb(speciesId) = (0.5)*tmp_ccsd_ts5E_inter_abb
+      !0.5 is due to interaction alpha-beta and beta-alpha
   end subroutine CCSDPT_diff_species
-
-
-  !>
-  ! @brief Calculate T1 energy equations for intra-species
-  ! @author CAOM
-  ! subroutine CCSD_T1(speciesId)
-  !     implicit none
-
-  !     integer, intent(in) :: speciesId
-
-  !     integer noc, nop
-  !     integer :: num_species
-  !     integer :: times_i
-  !     integer :: nthreads, threadid
-  !     integer :: a, e, f, i, m, n
-  !     real(8), allocatable :: tai_tmp_1(:)
-  !     real(8), allocatable :: tai_tmp_2(:)
-  !     real(8), allocatable :: tai_tmp_3(:)
-  !     real(8), allocatable :: tai_tmp_4(:)
-  !     real(8), allocatable :: tai_tmp_5(:)
-
-  !     noc = Allspecies(speciesId)%noc
-  !     ! nocs = CoupledCluster_instance%nocs
-  !     nop = Allspecies(speciesId)%nop
-  !     ! nops = CoupledCluster_instance%nops
-  !     num_species = CoupledCluster_instance%num_species
-  !     times_i = CoupledCluster_instance%times_intersp
-
-  !     !
-  !     if (allocated(tai_tmp_1)) deallocate(tai_tmp_1)
-  !     if (allocated(tai_tmp_2)) deallocate(tai_tmp_2)
-  !     if (allocated(tai_tmp_3)) deallocate(tai_tmp_3)
-  !     if (allocated(tai_tmp_4)) deallocate(tai_tmp_4)
-  !     if (allocated(tai_tmp_5)) deallocate(tai_tmp_5)
-
-  !     !$OMP PARALLEL 
-  !       nthreads = OMP_GET_NUM_THREADS()
-  !     !$OMP END PARALLEL
-  !     allocate(tai_tmp_1(0:nthreads))
-  !     allocate(tai_tmp_2(0:nthreads))
-  !     allocate(tai_tmp_3(0:nthreads))
-  !     allocate(tai_tmp_4(0:nthreads))
-  !     allocate(tai_tmp_5(0:nthreads))
-
-
-  !     !Basic parallelization
-  !     !$OMP PARALLEL shared(tai_tmp_1,tai_tmp_2,tai_tmp_3,tai_tmp_4,tai_tmp_5,speciesId,nop,noc)
-  !     !$OMP& private(a,i,e,m,f,n,nthreads,threadid) collapse(2)
-  !     ! T^{a}_{i}D^{a}_{i} = ...
-  !     nthreads = OMP_GET_NUM_THREADS()
-  !     threadid =  OMP_GET_THREAD_NUM()
-
-  !     tai_tmp_1(threadid) = 0.0_8
-      
-  !     do a=nop+1, noc
-  !       do i=1, nop
-  !         CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-  !           + Allspecies(speciesId)%HF_fs%values(i,a) ! eq1 1
-
-  !         do e=nop+1, noc
-  !           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-  !           ! tai_tmp_1(threadid) = tai_tmp_1(threadid) &
-  !             + Allspecies(speciesId)%Tssame(e-nop,i)*CCSDloop(speciesId)%Fac(a-nop,e-nop) !eq 4 1
-
-  !           ! tai_tmp_4_buff(threadid)
-  !         end do
-  !         if (threadid == 0) then
-  !           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_1,dim=1)
-  !         end if
-  !         !$OMP BARRIER
-          
-  !         tai_tmp_1(threadid) = 0.0_8
-  !         tai_tmp_2(threadid) = 0.0_8
-  !         tai_tmp_3(threadid) = 0.0_8
-  !         tai_tmp_4(threadid) = 0.0_8
-  !         tai_tmp_5(threadid) = 0.0_8                
-
-  !         do m=1, nop
-  !           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-  !           ! tai_tmp_1(threadid) = tai_tmp_1(threadid) &
-  !             + (-Allspecies(speciesId)%Tssame(a-nop,m)*CCSDloop(speciesId)%Fki(m,i)) !eq 5 2
-          
-  !           if (nop>=2) then ! kind of interaction just for two or more particles of the principal species 
-              
-  !             !$OMP CRITICAL
-  !             do e=nop+1, noc
-  !               CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-  !               ! tai_tmp_2(threadid) = tai_tmp_2(threadid) &
-  !                 + Allspecies(speciesId)%Tdsame(a-nop,e-nop,i,m)*CCSDloop(speciesId)%Fkc_aa(m,e-nop) !eq 6 3
-
-  !               do f=nop+1, noc
-  !                 CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-  !                 ! tai_tmp_3(threadid) = tai_tmp_3(threadid) &
-  !                   + (-0.5*Allspecies(speciesId)%Tdsame(e-nop,f-nop,i,m)*spints(speciesId)%valuesp(m,a,e,f)) !eq 3 7
-  !               end do
-
-  !               do n=1, nop
-  !                 CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-  !                 ! tai_tmp_4(threadid) = tai_tmp_4(threadid) &
-  !                   + (-0.5*Allspecies(speciesId)%Tdsame(a-nop,e-nop,m,n)*spints(speciesId)%valuesp(n,m,e,i)) !eq 2 6
-  !               end do
-                
-
-  !               ! if (threadid == 0) then
-  !               !   tai_tmp_2(threadid) = tai_tmp_2(threadid) & + sum(tai_tmp_1,dim=1)
-  !               ! end if
-
-  !               ! tai_tmp_1(e-nop) = tai_tmp_1(e-nop) + sum(tai_tmp_2,dim=1) + sum(tai_tmp_3,dim=1)
-  !             end do
-  !             !$OMP END CRITICAL
-
-
-  !           end if
-
-  !         end do
-
-  !         if (threadid == 0) then
-  !           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_1,dim=1)
-  !             !+ sum(tai_tmp_2,dim=1) + sum(tai_tmp_3,dim=1) + sum(tai_tmp_4,dim=1)
-  !         end if
-
-  !         !$OMP CRITICAL
-  !         ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_5,dim=1)
-  !         if ((nop>=2)) then !  .and. (times_i==0) kind of interaction just for two or more particles of the principal species 
-  !           !if times_i/=0 then the product below will be calculated in Fkc_aba in subroutine CCSD_T1_inter()
-  !           do m=1,nop !n
-  !             ! tai_tmp_2(threadid) = 0.0_8
-  !             do e=nop+1, noc !f
-  !               CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) &
-  !               ! tai_tmp_2(threadid) = tai_tmp_2(threadid) &
-  !                 + (-Allspecies(speciesId)%Tssame(e-nop,m)*spints(speciesId)%valuesp(m,a,i,e)) !eq 7 5 !n,a,i,f
-  !             end do
-  !             ! tai_tmp_3(m) = tai_tmp_3(m) + sum(tai_tmp_1,dim=1)
-  !           end do
-  !           ! CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_3,dim=1)
-  !         end if
-  !         !$OMP END CRITICAL
-
-  !         ! if (threadid == 0) then
-  !         !   CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i) + sum(tai_tmp_2,dim=1)
-  !         ! end if
-
-  !           CCSDT1T2(speciesId)%Tai_AB(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
-  !         ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i), "Tai_AB: ", CCSDT1T2(speciesId)%Tai_AB(a-nop,i)
-  !           CCSDT1T2(speciesId)%Tai(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)/CCSDinit(speciesId)%Dai(a,i)
-            
-  !           if(CCSDinit(speciesId)%Dai(a,i)==0) CCSDT1T2(speciesId)%Tai(a-nop,i) = 0.0_8
-            
-  !           Allspecies(speciesId)%Tssame(a-nop,i) = CCSDT1T2(speciesId)%Tai(a-nop,i)
-  !         ! end if
-  !         ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai(a-nop,i)
-  !         ! print*, "Dai: ", CCSDinit(speciesId)%Dai(a,i)
-  !         ! write(*,*) a,i,Allspecies(speciesId)%Tssame(a,i),CCSDT1T2(speciesId)%Tai(a,i)
-  !       end do
-  !     end do
-  !     ! print*, "CCSD_T1"
-  !     ! print*, "Tai: ", CCSDT1T2(speciesId)%Tai
-  !     ! print*, "Dai: ", CCSDinit(speciesId)%Dai
-  !     !$OMP END PARALLEL
-  ! end subroutine CCSD_T1
 
   !>
   ! @brief Manager of Coupled Cluster maths
@@ -1223,61 +1064,6 @@ contains
       times_i = CoupledCluster_instance%times_intersp
       ! CCSD_instance%max=0
       ! CCSD_instance%min=0
-
-      ! if (convergence /= 1.0D-8) convergence = 1.0_8
-      ! if (convergence_int /= 1.0D-8) convergence_int = 1.0_8
-
-      ! ! allocate array for many results by species in CCSD
-      ! if (allocated(CCSDT1T2)) deallocate(CCSDT1T2)
-      ! allocate(CCSDT1T2(num_species))
-
-      ! ! allocate array for many results by species in CCSD
-      ! if (allocated(CCSDinit)) deallocate(CCSDinit)
-      ! allocate(CCSDinit(num_species))
-
-      ! ! allocate array for many results by species in CCSD
-      ! if (allocated(CCSDloop)) deallocate(CCSDloop)
-      ! allocate(CCSDloop(num_species))
-
-      ! ! allocate array for results of inter-species in CCSD
-      ! if (allocated(CCSDinter)) deallocate(CCSDinter)
-      ! allocate(CCSDinter(num_inter*2))
-
-      ! ! allocate array for results of intra-species in CCSD
-      ! if (allocated(CCSD_instance%convergence_same)) deallocate(CCSD_instance%convergence_same)
-      ! allocate(CCSD_instance%convergence_same(num_species))
-
-      ! ! allocate array for results of intra-species in CCSD
-      ! if (allocated(CCSD_instance%convergence_same_amp)) deallocate(CCSD_instance%convergence_same_amp)
-      ! allocate(CCSD_instance%convergence_same_amp(num_species))
-
-      ! ! allocate array for results of intra-species in CCSD
-      ! if (allocated(CCSD_instance%convergence_diff_amp)) deallocate(CCSD_instance%convergence_diff_amp)
-      ! allocate(CCSD_instance%convergence_diff_amp(num_inter*2))
-
-      ! ! allocate array for results of intra-species in CCSD
-      ! if (allocated(CCSD_instance%convergence_diff)) deallocate(CCSD_instance%convergence_diff)
-      ! allocate(CCSD_instance%convergence_diff(num_inter))
-
-      ! ! allocate array for many results by species in CCSD
-      ! if (allocated(e_same_ccd)) deallocate(e_same_ccd)
-      ! allocate(e_same_ccd(num_species))
-      ! e_same_ccd=0.0_8
-
-      ! ! allocate array for many results by species in CCSD
-      ! if (allocated(a_same_ccd)) deallocate(a_same_ccd)
-      ! allocate(a_same_ccd(num_species))
-      ! a_same_ccd=0.0_8
-
-      ! if (allocated(a_diff_ccd)) deallocate(a_diff_ccd)
-      ! allocate(a_diff_ccd(num_inter))
-      ! a_same_ccd=0.0_8
-
-      ! ! allocate array for many results by species in CCSD
-      ! if (allocated(e_diff_ccd)) deallocate(e_diff_ccd)
-      ! allocate(e_diff_ccd(num_inter))
-      ! e_diff_ccd=0.0_8
-
 
       do i=counterID, num_species
         print*, "num_species: CCSD(T)_constructor(): ", num_species, i
@@ -1353,62 +1139,8 @@ contains
             ! a_diff_ccd(num_i) = CoupledCluster_instance%CCSD_a_inter(num_i)
 
           end do
-
-          ! do i=1, times_i
-          !   CCSD_instance%num_i = 1
-          !   CCSD_instance%cont = CCSD_instance%aux_cont
-          !   CCSD_instance%e_cont = CCSD_instance%aux_cont
-          !   max = CCSD_instance%max
-          !   min = CCSD_instance%min
-          !   num_i = CCSD_instance%num_i
-          !   call CCSD_diff_species_energy(i_counterID(i),n_intersp(i))
-          !   CCSD_instance%cont = CCSD_instance%aux_cont
-          !   CCSD_instance%e_cont = CCSD_instance%aux_cont
-          !   call CCSD_diff_species_energy(n_intersp(i),i_counterID(i))
-          ! end do
-
-        !   do i=1, times_i
-        !     CCSD_instance%num_i = 1
-        !     CCSD_instance%cont = CCSD_instance%aux_cont
-        !     CCSD_instance%e_cont = CCSD_instance%aux_cont
-        !     max = CCSD_instance%max
-        !     min = CCSD_instance%min
-        !     num_i = CCSD_instance%num_i
-        !     print*, "CCSD_T2_AB()"
-        !     call CCSD_T2_AB(i_counterID(i),n_intersp(i), num_i)
-
-        !     CCSD_instance%cont = CCSD_instance%aux_cont
-        !     CCSD_instance%e_cont = CCSD_instance%aux_cont
-        !     call CCSD_T2_AB(n_intersp(i),i_counterID(i), num_i)            
-        !   end do
           
         end if
-
-        ! print*, "CoupledCluster_instance%CCSD_E_intra: ", CoupledCluster_instance%CCSD_E_intra
-        ! print*, "e_same_ccd: ", CCSD_instance%convergence_same
-        ! print*, "CoupledCluster_instance%CCSD_A_intra: ", CoupledCluster_instance%CCSD_A_intra
-        ! print*, "CoupledCluster_instance%CCSD_E_inter: ", CoupledCluster_instance%CCSD_E_inter
-        ! print*, "e_diff_ccd: ", CCSD_instance%convergence_diff
-        ! print*, "CoupledCluster_instance%CCSD_A_inter: ", CoupledCluster_instance%CCSD_A_inter
-
-
-        ! convergence = CCSD_instance%convergence_same(1) !test
-
-        ! For amplitudes: CCSD_instance%convergence_same_amp and CCSD_instance%convergence_same_amp
-
-        ! For energy: CCSD_instance%convergence_same_amp and CCSD_instance%convergence_diff_amp
-        ! if (stoped>=3) then
-        !   if (convergence >= 1.0D-6) then
-        !     convergence = CCSD_instance%convergence_same_amp(1) !test
-        !   else 
-        !     convergence = &!sum(CCSD_instance%convergence_same,dim=1) + & 
-        !        sum(CCSD_instance%convergence_diff_amp,dim=1) !original
-        !   end if
-        ! end if
-
-        ! print*, "Temporary convergence: ", convergence
-        ! print*, "Temporary total ccsd-apmo energy: ", sum(e_same_ccd, dim=1) + &
-        !   sum(e_diff_ccd, dim=1)
 
 
       do i=counterID, num_species
