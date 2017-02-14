@@ -49,7 +49,8 @@ module CoupledCluster_
       real(8) :: CCSD_total_Energy
       real(8) :: CCSDPT_once_Energy
       real(8) :: CCSDPT_twice_Energy
-      real(8) :: CCSD_T_total_Energy
+      real(8) :: CCSD_T1_total_Energy
+      real(8) :: CCSD_T2_total_Energy      
       real(8) :: CCSD_TS_total_Energy
       real(8) :: HF_energy
       real(8) :: HF_puntualInteractionEnergy

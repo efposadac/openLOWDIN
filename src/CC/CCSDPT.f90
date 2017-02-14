@@ -219,7 +219,6 @@ contains
                 do j=1, nop
                   do k=1, nop
 
-
                     do d=nop+1, noc
 
                       Allspecies(speciesId)%Tt4same(a-nop,b-nop,c-nop,i,j,k) = Allspecies(speciesId)%Tt4same(a-nop,b-nop,c-nop,i,j,k) &
@@ -828,7 +827,7 @@ contains
       nop = Allspecies(speciesId)%nop
       num_species = CoupledCluster_instance%num_species
       ! write(*, "(A,I4,A,I4,A,I4,A,I4)") "CCSD_loop: noc=", noc, "nop=", nop
-      print*, "T1T2_constructor", convergence, noc, nop, speciesId
+      print*, "CCSDPT_same_species", convergence, noc, nop, speciesId
 
       ! times_i = CoupledCluster_instance%times_intersp
       ! max = CCSD_instance%max
@@ -1150,10 +1149,15 @@ contains
 
       CoupledCluster_instance%CCSDPT_once_Energy = sum(CoupledCluster_instance%CCSD_T4_E_intra,dim=1) + &
         sum(CoupledCluster_instance%CCSD_TS5_E_intra,dim=1)
+
       CoupledCluster_instance%CCSDPT_twice_Energy = CoupledCluster_instance%CCSDPT_once_Energy +&
         sum(CoupledCluster_instance%CCSD_T4_E_inter_aab,dim=1) + sum(CoupledCluster_instance%CCSD_TS5_E_inter_aab,dim=1) + &
           sum(CoupledCluster_instance%CCSD_T4_E_inter_abb,dim=1) + sum(CoupledCluster_instance%CCSD_TS5_E_inter_abb,dim=1)
-      CoupledCluster_instance%CCSD_T_total_Energy = CoupledCluster_instance%CCSD_total_Energy + CoupledCluster_instance%CCSDPT_once_Energy + &
+
+      CoupledCluster_instance%CCSD_T1_total_Energy = CoupledCluster_instance%CCSD_total_Energy + 2*(sum(CoupledCluster_instance%CCSD_T4_E_intra,dim=1)) + &
+        sum(CoupledCluster_instance%CCSD_T4_E_inter_aab,dim=1) + sum(CoupledCluster_instance%CCSD_T4_E_inter_abb,dim=1)
+
+      CoupledCluster_instance%CCSD_T2_total_Energy = CoupledCluster_instance%CCSD_total_Energy + CoupledCluster_instance%CCSDPT_once_Energy + &
         CoupledCluster_instance%CCSDPT_twice_Energy
       ! CoupledCluster_instance%CCSD_once_Energy = sum(CoupledCluster_instance%CCSD_E_intra,dim=1)
       ! CoupledCluster_instance%CCSD_twice_Energy = sum(CoupledCluster_instance%CCSD_E_inter,dim=1)
@@ -1161,15 +1165,27 @@ contains
       !   CoupledCluster_instance%CCSD_twice_Energy
 
       ! ! CoupledCluster_instance%CCSD_ones_Energy = intra
-
-      print*, "Total [T] correction same species energy: ", sum(CoupledCluster_instance%CCSD_T4_E_intra,dim=1) 
-      print*, "Total (T) correction same species energy: ", CoupledCluster_instance%CCSDPT_once_Energy 
-  	  print*, "Total [T] correction different species energy: ", sum(CoupledCluster_instance%CCSD_T4_E_inter_aab,dim=1) +&
+      print*, "                                                    "      
+      print*, "FINAL INFORMATION OF CCSD[T] and CCSD(T) APMO METHOD"
+      print*, "----------------------------------------------------"
+      print*, "CCSD[T]-APMO = (HF_APMO) + (CCSD-APMO) + (2*E_T[4])"
+      print*, "                + E_T[4]-APMO"
+      print*, "----------------------------------------------------"
+      print*, "CCSD(T)-APMO = CCSD[T]-APMO + (2*E_TS[5])"
+      print*, "                + E_TS[5]-APMO"
+      print*, "----------------------------------------------------"
+      print*, "                                                    "
+      print*, "[T] correction of same species energy: ", sum(CoupledCluster_instance%CCSD_T4_E_intra,dim=1) 
+      print*, "(T) correction of same species energy: ", CoupledCluster_instance%CCSDPT_once_Energy 
+  	  print*, "[T] correction of different species energy: ", sum(CoupledCluster_instance%CCSD_T4_E_inter_aab,dim=1) +&
   	  	sum(CoupledCluster_instance%CCSD_T4_E_inter_abb,dim=1) + sum(CoupledCluster_instance%CCSD_T4_E_intra,dim=1)
-      print*, "Total (T) correction different species energy: ", CoupledCluster_instance%CCSDPT_twice_Energy
-      print*, "Total CCSD(T) correction energy: ", CoupledCluster_instance%CCSD_T_total_Energy
-      print*, "Total CCSD(T) energy: ", CoupledCluster_instance%CCSD_T_total_Energy &
-        + CoupledCluster_instance%HF_energy
+      print*, "(T) correction of different species energy: ", CoupledCluster_instance%CCSDPT_twice_Energy
+      print*, "Total CCSD[T] correction over APMO method: ", CoupledCluster_instance%CCSD_T1_total_Energy
+      print*, "Total CCSD(T) correction over APMO method: ", CoupledCluster_instance%CCSD_T2_total_Energy
+      print*, "----------------------------------------------------"
+      print*, "                                                    "
+      print*, "Total CCSD[T]-APMO energy: ", CoupledCluster_instance%CCSD_T1_total_Energy + CoupledCluster_instance%HF_energy
+      print*, "Total CCSD(T)-APMO energy: ", CoupledCluster_instance%CCSD_T2_total_Energy + CoupledCluster_instance%HF_energy
       ! print*, "CCSDPT_show()"  
   end subroutine CCSDPT_run
 
@@ -1188,44 +1204,35 @@ contains
         CoupledCluster_instance%CCSD_T4_E_intra(speciesId)
       print*, "E_TS[5] Energy of species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_TS5_E_intra(speciesId)
-      print*, "CCSD + E_T[4] = CCSD[T] correction energy: ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
+      print*, "CCSD + E_T[4] = CCSD[T] correction energy of species " , speciesId, ": ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
         CoupledCluster_instance%CCSD_T4_E_intra(speciesId)
-      print*, "CCSD + E_TS[5] = CCSD(T) correction energy: ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
+      print*, "CCSD + E_TS[5] = CCSD(T) correction energy of species " , speciesId, ": ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
         CoupledCluster_instance%CCSD_T4_E_intra(speciesId) + CoupledCluster_instance%CCSD_TS5_E_intra(speciesId)
-      print*, "CCSD + E_T[4] = CCSD[T] correction energy: ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
+      print*, "------------------------------------------"
+      print*, "                                          "
+      print*, "Total CCSD[T] energy of species " , speciesId, ": ", CoupledCluster_instance%HF_energy + CoupledCluster_instance%CCSD_E_intra(speciesId) + &
         CoupledCluster_instance%CCSD_T4_E_intra(speciesId)
-      print*, "CCSD + E_TS[5] = CCSD(T) correction energy: ", CoupledCluster_instance%CCSD_E_intra(speciesId) + &
+      print*, "Total CCSD(T) energy of species " , speciesId, ": ", CoupledCluster_instance%HF_energy + CoupledCluster_instance%CCSD_E_intra(speciesId) + &
         CoupledCluster_instance%CCSD_T4_E_intra(speciesId) + CoupledCluster_instance%CCSD_TS5_E_intra(speciesId)
-      print*, "Total CCSD[T] energy: ", CoupledCluster_instance%HF_energy + CoupledCluster_instance%CCSD_E_intra(speciesId) + &
-        CoupledCluster_instance%CCSD_T4_E_intra(speciesId)
-      print*, "Total CCSD(T) energy: ", CoupledCluster_instance%HF_energy + CoupledCluster_instance%CCSD_E_intra(speciesId) + &
-        CoupledCluster_instance%CCSD_T4_E_intra(speciesId) + CoupledCluster_instance%CCSD_TS5_E_intra(speciesId)
+      print*, "------------------------------------------"
+      print*, "                                          "
       print*, "INFORMATION OF CCSD(T)-APMO METHOD"
-      print*, "E_T[4]-APMO alpha-beta-beta Energy " , speciesId, ": ", &
+      print*, "E_T[4]-APMO alpha-beta-beta energy of species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_T4_E_inter_abb(speciesId)
-      print*, "E_TS[5]-APMO alpha-beta-beta Energy " , speciesId, ": ", &
+      print*, "E_TS[5]-APMO alpha-beta-beta energy of species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_TS5_E_inter_abb(speciesId)
-      print*, "E_T[4]-APMO alpha-alpha-beta Energy" , speciesId, ": ", &
+      print*, "E_T[4]-APMO alpha-alpha-beta energy of species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_T4_E_inter_aab(speciesId)
-      print*, "E_TS[5]-APMO alpha-alpha-beta Energy " , speciesId, ": ", &
+      print*, "E_TS[5]-APMO alpha-alpha-beta energy of species " , speciesId, ": ", &
         CoupledCluster_instance%CCSD_TS5_E_inter_aab(speciesId)
-      print*, "E_T[4] APMO correction Energy" , speciesId, ": ", CoupledCluster_instance%CCSD_T4_E_inter_aab(speciesId) + &
+      print*, "------------------------------------------"
+      print*, "                                          "
+      print*, "Total E_T[4] APMO correction energy of species " , speciesId, ": ", CoupledCluster_instance%CCSD_T4_E_inter_aab(speciesId) + &
         CoupledCluster_instance%CCSD_T4_E_inter_abb(speciesId)
-      print*, "E_TS[5] APMO correction Energy " , speciesId, ": ", CoupledCluster_instance%CCSD_TS5_E_inter_aab(speciesId) + &
+      print*, "Total E_TS[5] APMO correction energy of species " , speciesId, ": ", CoupledCluster_instance%CCSD_TS5_E_inter_aab(speciesId) + &
         CoupledCluster_instance%CCSD_TS5_E_inter_abb(speciesId)
-
-      print*, "CCSD-APMO + E_T[4] + E_T[4]-APMO = CCSD[T]-APMO correction energy inter-species: " , speciesId, ": ", &
-        CoupledCluster_instance%CCSD_E_inter(speciesId) + (2*CoupledCluster_instance%CCSD_T4_E_intra(speciesId)) + &
-          CoupledCluster_instance%CCSD_T4_E_inter_aab(speciesId) + CoupledCluster_instance%CCSD_T4_E_inter_abb(speciesId)
-      print*, "CCSD[T]-APMO + E_TS[5] + E_TS[5]-APMO = CCSD(T)-APMO correction energy inter-species: " , speciesId, ": ", &
-        CoupledCluster_instance%CCSD_E_inter(speciesId) + (2*CoupledCluster_instance%CCSD_T4_E_intra(speciesId)) + &
-          (2*CoupledCluster_instance%CCSD_TS5_E_intra(speciesId)) + CoupledCluster_instance%CCSD_T4_E_inter_aab(speciesId) + &
-            CoupledCluster_instance%CCSD_T4_E_inter_abb(speciesId) + CoupledCluster_instance%CCSD_TS5_E_inter_aab(speciesId) + &
-              CoupledCluster_instance%CCSD_TS5_E_inter_abb(speciesId)
-
-
-
-
+      print*, "------------------------------------------"
+      print*, "                                          "
   end subroutine CCSDPT_show
 
 end module CCSDPT_
