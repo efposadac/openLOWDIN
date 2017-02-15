@@ -222,7 +222,7 @@ O-NEON Ne (LANL2DZ-ECP)
       1.2030000              0.6214500        
     3    1    1
       0.3444000              1.0000000        
-O-SODIUM Na (LANL2DZ-ECP)
+O-SODIUM NA (LANL2DZ-ECP)
 #
 # Primary Functions: (3s,3p) -> [2s,2p]
 # Augmenting Functions: (3s,3p) -> [2s,2p]
@@ -1741,7 +1741,7 @@ O-PLUTONIUM Pu (LANL2DZ-ECP)
 
 
 ECP
-Na nelec 10
+NA nelec 10
 Na ul
 1    175.5502590            -10.0000000        
 2     35.0516791            -47.4902024        

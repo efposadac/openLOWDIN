@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -38,7 +38,7 @@ module Particle_
   use AtomicElement_
   use ElementalParticle_
   use BasisSet_
-  use EffectiveCorePotentials_
+  ! use EffectiveCorePotentials_
   implicit none
   
   type, public :: Particle
@@ -48,27 +48,26 @@ module Particle_
      character(50) :: nickname          !< Name in input file: e-(H), U-, He_4, etc.
      character(10) :: statistics        !< Boson / fermion
      character(20) :: basisSetName      !< basis set name
-     real(8) :: origin(3)		!< Posicion espacial
-     real(8) :: charge 			!< Carga asociada a la particula.
-     real(8) :: mass			!< Masa asociada a la particula.
-     real(8) :: spin			!< Especifica el espin de la particula
-     real(8) :: totalCharge		!< Carga total asociada a la particula.
-     real(8) :: klamt			!< Radio de Klamt asociado a la particula
-     real(8) :: vanderWaalsRadio			!< Radio de vanderWaalsRadio asociado a la particula
-     logical :: isQuantum		!< Indica comportamiento cuantico/puntual
-     logical :: isDummy			!< Permite verificar si se trata de una particula virtual
-     logical :: fixComponent(3)		!< Indica cual coordenada sera un parametro. (is fixed)
-     logical :: isCenterOfOptimization	!< Especifica si la particula sera centro de optimizacion -Atributo requerido por conveniencia-
-     integer :: multiplicity
-     integer :: id			!< Indice de particula dentro del sistema
-     integer :: internalSize		!< Numero de particulas si se trata de una particula estructurada
-     integer :: owner			!< asocia un indice a la particula que la indentifica como un centro de referencia.
-     integer :: basisSetSize		!< Este atributo es adicionado por conveniencia
-     integer, allocatable :: childs(:)	!< Cuando la particula es un centro de optimizacion (es padre), almacena los Ids de sus hijas
+     real(8) :: origin(3)   !< Posicion espacial
+     real(8) :: charge      !< Carga asociada a la particula.
+     real(8) :: mass      !< Masa asociada a la particula.
+     real(8) :: spin      !< Especifica el espin de la particula
+     real(8) :: totalCharge   !< Carga total asociada a la particula.
+     real(8) :: klamt     !< Radio de Klamt asociado a la particula
+     real(8) :: vanderWaalsRadio      !< Radio de vanderWaalsRadio asociado a la particula
+     logical :: isQuantum   !< Indica comportamiento cuantico/puntual
+     logical :: isDummy     !< Permite verificar si se trata de una particula virtual
+     logical :: fixComponent(3)   !< Indica cual coordenada sera un parametro. (is fixed)
+     logical :: isCenterOfOptimization  !< Especifica si la particula sera centro de optimizacion -Atributo requerido por conveniencia-
      logical :: onlyValence !< Indica si los electrones serán descritos por una base y un potencial efectivo de core
-     integer :: numberOfCoreElectrons	!< Número de electrones de core del seudopotencial.
+     integer :: multiplicity
+     integer :: id      !< Indice de particula dentro del sistema
+     integer :: internalSize    !< Numero de particulas si se trata de una particula estructurada
+     integer :: owner     !< asocia un indice a la particula que la indentifica como un centro de referencia.
+     integer :: basisSetSize    !< Este atributo es adicionado por conveniencia
+     integer :: numberOfCoreElectrons !< Número de electrones de core del seudopotencial.
      integer :: numberOfValenceElectrons!< Número de electrones de valencia (fuera del core).
-     
+     integer, allocatable :: childs(:)  !< Cuando la particula es un centro de optimizacion (es padre), almacena los Ids de sus hijas
   end type Particle
 
   public :: &
@@ -83,7 +82,7 @@ contains
   !!      -Adapted for open shell systems, 2011. E. F. Posada
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
-  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge, onlyValence )
+  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge, onlyValence, coreElectrons )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
@@ -96,6 +95,7 @@ contains
     integer, intent(in) :: id
     real(8), intent(in), optional :: charge
     logical, optional :: onlyValence
+    integer, optional :: coreElectrons
     
     type(AtomicElement) :: element
     type(ElementalParticle) :: eparticle
@@ -106,6 +106,7 @@ contains
     integer :: j
     integer :: massNumber
     integer :: auxAdditionOfParticles
+    integer :: auxCoreElectrons
     real(8) :: auxOrigin(3)
     real(8) :: auxMultiplicity
     logical :: auxOnlyValence
@@ -130,13 +131,17 @@ contains
     auxOnlyValence = .false.
     if   ( present(onlyValence) ) auxOnlyValence= onlyValence
 
+    auxCoreElectrons = 0
+    if   ( present(coreElectrons) ) auxCoreElectrons= coreElectrons
+
+
+
     !! Initialize some variables
     isDummy = .false.
     isElectron = .false.
     massNumber = 0
     elementSymbol = trim(name)
     massNumberString=""
-    onlyValence = .false.
     numberOfCoreElectrons = 0
     numberOfValenceElectrons = 0
     
@@ -157,9 +162,6 @@ contains
        if(  scan( name, "[" ) /= 0 ) then          
           elementSymbol = name(scan( name, "[" ) + 1: scan( name, "]" ) - 1)
           isElectron = .true.
-          if (onlyValence==.true.) then
-!!!!!!!!!!!!!   y?                      
-          end if
        else !! Maybe it is another kind of particle, you never know.          
           elementSymbol=trim(name)          
        end if
@@ -179,6 +181,8 @@ contains
     
     this%multiplicity = auxMultiplicity
     this%onlyValence = auxOnlyValence
+    this%numberOfCoreElectrons = auxCoreElectrons
+
     !! Obtains information of the atom., if any...
     call AtomicElement_load ( element, trim(elementSymbol), massicNumber=massNumber)
     
@@ -196,8 +200,7 @@ contains
                elementSymbol=trim(elementSymbol), &
                isDummy= isDummy, &
                owner=id, &
-               nickname=trim(element%symbol), &
-               onlyValence=auxOnlyValence)
+               nickname=trim(element%symbol))
           
           !! Setting remaining variables...
           if (present(spin)) then
@@ -236,24 +239,25 @@ contains
              
           else 
              
-             !! Restricted case
+             !! Restricted case with ECP 
              this%name = "E-"
              this%symbol = "E-"
              this%charge = PhysicalConstants_ELECTRON_CHARGE
              this%mass = PhysicalConstants_ELECTRON_MASS
-             this%totalCharge = -element%atomicNumber
-             this%internalSize = element%atomicNumber  + auxAdditionOfParticles
+             this%totalCharge = -element%atomicNumber + auxCoreElectrons
+             this%numberOfValenceElectrons = element%atomicNumber - auxCoreElectrons
+             this%internalSize = element%atomicNumber  + auxAdditionOfParticles - auxCoreElectrons
              this%klamt = element%klamt
              this%vanderWaalsRadio = element%vanderWaalsRadio
              this%statistics="FERMION"
              this%spin = PhysicalConstants_SPIN_ELECTRON
-             this%id = id    
+             this%id = id  
           end if
           
           call Particle_setComponentFixed( this, varsToFix )
           
        !! Load quantum nuclei (of an atomic element)
-       else if( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM" .and. trim(baseName) /= "ECP") then
+       else if( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM") then
 
           call Particle_build( this = this, &
                isQuantum = .true., &
@@ -278,8 +282,6 @@ contains
           this%klamt = element%klamt
           this%vanderWaalsRadio = element%vanderWaalsRadio
           this%id = id
-          this%onlyValence = auxOnlyValence
-!!!!!!!!!!!!!!!!! Falta contar los electrones de valencia en el caso de usar ECP          
           
           !! Identify statistics for this particle
           if ( Math_isEven( INT( element%massicNumber ) ) ) then
@@ -350,10 +352,6 @@ contains
 
              end if
 
-          !! Load core properties when effective core potentials are used
-          else if (present(baseName) .and. trim(baseName) == "ECP" ) then
-             coreCharge = element%atomicNumber - numberOfCoreElectrons
-             this%charge = coreCharge
           else   
           
              call Particle_build( this, &
@@ -395,7 +393,7 @@ contains
        end if
        
     !! Load quantum elemental particles (is not an atomic element)
-    else if ( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM" .and. trim(baseName) /= "ECP") then
+    else if ( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM") then
        
        call ElementalParticle_load( eparticle, trim(name) )
        
@@ -452,7 +450,7 @@ contains
           this%spin = eParticle%spin
           this%id = id
           
-       else if(present(baseName) .and. trim(baseName) == "dirac" ) then
+       else 
           
           call ElementalParticle_load( eparticle, trim( name ) )
 
@@ -466,29 +464,6 @@ contains
           call Particle_setComponentFixed(this, varsToFix )
 
           this%basisSetName="DIRAC"
-          this%name = eParticle%name
-          this%symbol = eParticle%symbol
-          this%charge = eParticle%charge
-          this%mass = eParticle%mass
-          this%totalCharge = eParticle%charge
-          this%internalSize = 1 + auxAdditionOfParticles
-          this%spin = eParticle%spin
-          this%id = id
-          
-       else  !!! Es necesario incluir más variables respecto a ECPs?
-          
-          call ElementalParticle_load( eparticle, trim( name ) )
-
-          call Particle_build( this, &
-               isQuantum=.false., &
-               name=trim(name), &
-               origin=auxOrigin, &
-               owner=id, &
-               nickname=trim(eparticle%symbol))
-
-          call Particle_setComponentFixed(this, varsToFix )
-
-          this%basisSetName="ECP"
           this%name = eParticle%name
           this%symbol = eParticle%symbol
           this%charge = eParticle%charge
@@ -624,13 +599,13 @@ contains
     this%statistics = "NONE"  
     this%basisSetName = "NONE"
     this%origin = 0.0_8
-    this%charge = 0	
-    this%mass = 0.0_8	
-    this%spin = 0.0_8	
-    this%totalCharge = 0	
+    this%charge = 0 
+    this%mass = 0.0_8 
+    this%spin = 0.0_8 
+    this%totalCharge = 0  
     this%isQuantum = .false.
-    this%isDummy = .false.	
-    this%fixComponent = .false.	
+    this%isDummy = .false.  
+    this%fixComponent = .false. 
     this%isCenterOfOptimization = .false.
     this%id = 0
     this%internalSize = 0
@@ -701,7 +676,7 @@ contains
     
     call Particle_show( this )
     
-    if ( this%isQuantum	) then
+    if ( this%isQuantum ) then
        
        print *,""
        print *,"INFORMATION OF BASIS SET: "
@@ -746,6 +721,10 @@ contains
     write(unit,*) this%internalSize
     write(unit,*) this%owner
     write(unit,*) this%basisSetSize
+    write(unit,*) this%onlyValence
+    write(unit,*) this%numberOfCoreElectrons
+    write(unit,*) this%numberOfValenceElectrons
+
     
     if ( allocated(this%childs) ) then
        childs = .true.
@@ -801,6 +780,8 @@ contains
     read(unit,*) this%owner
     read(unit,*) this%basisSetSize
     read(unit,*) this%onlyValence
+    read(unit,*) this%numberOfCoreElectrons
+    read(unit,*) this%numberOfValenceElectrons
     read(unit,*) childs
     
     if (childs ) then

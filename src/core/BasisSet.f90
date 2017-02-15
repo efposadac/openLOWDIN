@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -33,8 +33,9 @@ module BasisSet_
   end type BasisSet
   
   public :: &
-       BasisSet_load
-  
+       BasisSet_load, &
+       BasisSet_showInSimpleForm  
+
   private :: &
        BasisSet_exception
   
@@ -53,10 +54,7 @@ contains
     real(8), optional :: origin(3)
     integer, optional :: unit
     
-    integer :: numberOfSpecies
-    integer :: numberOfParticles
-    integer :: numberOfShells
-    integer :: i, j, k, l !< Iterators
+    integer :: i, j !< Iterators
     logical :: existFile, found
     character(20) :: token
     character(10) :: symbol
@@ -264,7 +262,7 @@ contains
     
     type(BasisSet) , intent(in) :: this
     character(*) ::nameOfOwner
-    integer ::  i, from, to
+    integer ::  i
     
     print *,""
     write(6,"(T5,A10,A11,A15)") trim(nameOfOwner)," BASIS SET: ", trim(this%name)
@@ -274,6 +272,25 @@ contains
     end do
 
   end subroutine BasisSet_showInCompactForm
+
+  !<
+  !! Define el destructor para clase
+  !!
+  !! @param thisPtr Funcion base
+  !>
+  subroutine BasisSet_showInSimpleForm( this, nameOfOwner, unidOfOutput )
+    implicit none
+    type(BasisSet) , intent(in) :: this
+    character(*) ::nameOfOwner
+    integer :: unidOfOutput
+  
+    integer ::  i
+    
+    do i =1, this%length
+      call ContractedGaussian_showInSimpleForm( this%contraction(i),unidOfOutput )
+    end do
+  
+  end subroutine BasisSet_showInSimpleForm
 
   !>
   !! @brief Saves the basisSet structure to file.

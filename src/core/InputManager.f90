@@ -23,6 +23,7 @@ module InputManager_
   use Exception_
   use Particle_
   use MolecularSystem_
+  use EffectiveCorePotentials_
   implicit none
 
   
@@ -261,9 +262,9 @@ contains
        CONTROL_instance%TDHF = .true.
     end if    
     
-    if ( input_instance%effectiveCorePotentials ) then 
-       CONTROL_instance%EFFECTIVE_CORE_POTENTIALS = .true.
-    end if    
+    ! if ( input_instance%effectiveCorePotentials ) then 
+    !    CONTROL_instance%EFFECTIVE_CORE_POTENTIALS = .true.
+    ! end if    
     
     if (input_instance%cosmo) then 	
        CONTROL_instance%cosmo = .true.	
@@ -301,8 +302,11 @@ contains
     integer :: numberOfPointCharges
     integer :: speciesID
     integer :: i, j, counter
+    integer :: numberOfCoreElectrons
     logical :: isNewSpecies
     logical :: isElectron
+    
+
     !! Namelist definition
     character(15):: InputParticle_name
     character(30):: InputParticle_basisSetName
@@ -490,7 +494,6 @@ contains
        InputParticle_name = trim(String_getUppercase(trim(InputParticle_name)))
        InputParticle_basisSetName = trim(String_getUppercase(trim(InputParticle_basisSetName)))
        InputParticle_fixedCoordinates = trim(String_getUppercase(trim(InputParticle_fixedCoordinates)))
-       InputParticle_onlyValence = trim(String_getUppercase(trim(InputParticle_onlyValence)))
        
        !!***************************************************************
        !! Start loading particles 
@@ -513,8 +516,7 @@ contains
        
        !! Load quantum species
        if((trim(InputParticle_basisSetName) /= "MM") .and. &
-            (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "") &
-                  .and. (trim(InputParticle_basisSetName) /= "ECP")) then
+            (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
 
           !! Locate specie
           do j = 1, numberOfQuantumSpecies          
@@ -526,6 +528,13 @@ contains
              
           end do
           
+          !! Load information of the core in ECP
+          numberOfCoreElectrons = 0
+          if (InputParticle_onlyValence .eqv. .True.) then
+            numberOfCoreElectrons = EffectiveCorePotentials_getNumberOfCoreElectrons(atomName(2:len(trim(atomName))-1), InputParticle_basisSetName)
+          end if
+
+
           !! Load open-shell case electrons
           if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
 
@@ -565,29 +574,23 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), onlyValence = inputParticle_onlyValence)
+                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), onlyValence = inputParticle_onlyValence, &
+                  coreElectrons=numberOfCoreElectrons)
 
-
-             
           end if
 
        else
           
           !! Loads Point charges   
           counter = counter + 1
+
           !! Loads Molecular Mechanics Particle 
           if(trim(InputParticle_basisSetName) == "MM") then
              call Particle_load( MolecularSystem_instance%pointCharges(counter),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
                   multiplicity=inputParticle_multiplicity, id = counter, charge = inputParticle_charge)
-          !! Loads ECP particle (cores)
-          else if(trim(InputParticle_basisSetName) == "ECP") then
-!                  call Particle_load( MolecularSystem_instance%pointCharges(counter),&
-!                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
-!                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-!                  multiplicity=inputParticle_multiplicity, id = counter, charge = inputParticle_charge)
-                call InputManager_exception( ERROR, "Aquí va la información de ECP", "ECP")       
+        
           else
           !! Loads Particle
              call Particle_load( MolecularSystem_instance%pointCharges(counter),&
