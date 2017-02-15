@@ -29,13 +29,16 @@
 !!        -# Rewrittes the code to be included on LOWDIN package.
 !!   - <tt> 2013-04-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
 !!        -# Rewrittes the code to eliminate the XML dependence
+!!   - <tt> 2017-02-14 </tt>: Ismael Ortiz-Verano ( ieortizv@unal.edu.co )
+!!        -# ECP
 module Particle_
   use Exception_
   use CONTROL_
   use PhysicalConstants_
   use AtomicElement_
   use ElementalParticle_
-  use BasisSet_  
+  use BasisSet_
+  use EffectiveCorePotentials_
   implicit none
   
   type, public :: Particle
@@ -80,7 +83,7 @@ contains
   !!      -Adapted for open shell systems, 2011. E. F. Posada
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
-  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge, effectiveCorePotentials )
+  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge, onlyValence )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
@@ -108,6 +111,8 @@ contains
     logical :: auxOnlyValence
     logical :: isDummy
     logical :: isElectron
+    integer :: numberOfCoreElectrons
+    integer :: numberOfValenceElectrons
 
     
     varsToFix=""
@@ -151,10 +156,13 @@ contains
        !! Just to be sure that it is an electron.
        if(  scan( name, "[" ) /= 0 ) then          
           elementSymbol = name(scan( name, "[" ) + 1: scan( name, "]" ) - 1)
-          isElectron = .true.          
+          isElectron = .true.
+          if (onlyValence==.true.) then
+!!!!!!!!!!!!!   y?                      
+          end if
        else !! Maybe it is another kind of particle, you never know.          
           elementSymbol=trim(name)          
-       end if       
+       end if
     end if
     
     !! Scan if nucleous with mass especification. ie, isotope specification. He_4 for instance.
@@ -188,7 +196,8 @@ contains
                elementSymbol=trim(elementSymbol), &
                isDummy= isDummy, &
                owner=id, &
-               nickname=trim(element%symbol) )
+               nickname=trim(element%symbol), &
+               onlyValence=auxOnlyValence)
           
           !! Setting remaining variables...
           if (present(spin)) then
@@ -255,7 +264,7 @@ contains
                owner = id, &
                massNumber = int(element%massicNumber),&
                nickname = trim(name))
-
+       
           call Particle_setComponentFixed( this, varsToFix )
           
           !! Setting remaining variables...
@@ -270,6 +279,7 @@ contains
           this%vanderWaalsRadio = element%vanderWaalsRadio
           this%id = id
           this%onlyValence = auxOnlyValence
+!!!!!!!!!!!!!!!!! Falta contar los electrones de valencia en el caso de usar ECP          
           
           !! Identify statistics for this particle
           if ( Math_isEven( INT( element%massicNumber ) ) ) then
@@ -340,8 +350,11 @@ contains
 
              end if
 
-
-          else
+          !! Load core properties when effective core potentials are used
+          else if (present(baseName) .and. trim(baseName) == "ECP" ) then
+             coreCharge = element%atomicNumber - numberOfCoreElectrons
+             this%charge = coreCharge
+          else   
           
              call Particle_build( this, &
                   isQuantum=.false., &
@@ -662,6 +675,11 @@ contains
        write (6,"(T10,A16,A8)") "Basis set name: ",trim( this%basisSetName )
        write (6,"(T10,A16,I8)") "Basis set size: ", this%basisSetSize
     end if
+
+!    if ( this%hasEffectiveCorePotential ) then
+!       write (6,"(T10,A16,A8)") "Basis set name: ",trim( this%basisSetName )
+!       write (6,"(T10,A16,I8)") "Basis set size: ", this%basisSetSize
+!    end if
     
     write (6,"(T10,A16,F8.2,F8.2,F8.2)") "Origin        : ",this%origin(1),this%origin(2),this%origin(3)
     
@@ -782,6 +800,7 @@ contains
     read(unit,*) this%internalSize
     read(unit,*) this%owner
     read(unit,*) this%basisSetSize
+    read(unit,*) this%onlyValence
     read(unit,*) childs
     
     if (childs ) then

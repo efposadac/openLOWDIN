@@ -490,6 +490,7 @@ contains
        InputParticle_name = trim(String_getUppercase(trim(InputParticle_name)))
        InputParticle_basisSetName = trim(String_getUppercase(trim(InputParticle_basisSetName)))
        InputParticle_fixedCoordinates = trim(String_getUppercase(trim(InputParticle_fixedCoordinates)))
+       InputParticle_onlyValence = trim(String_getUppercase(trim(InputParticle_onlyValence)))
        
        !!***************************************************************
        !! Start loading particles 

@@ -9,6 +9,5 @@ TASKS
 	method = "RHF"
 	effectiveCorePotentials=T
 END TASKS
-
 CONTROL
 END CONTROL
