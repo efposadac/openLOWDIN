@@ -77,7 +77,7 @@ contains
 
           if (status > 0 ) then   
 
-             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(basisName)//" Please check that this file contains pseudopotentials!","EffectiveCorePotentials module at Load function.")
+             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(basisName)//" Please check that this file contains pseudopotentials!","EffectiveCorePotentials module at GetNumberOfCoreElectrons function.")
 
           end if
 
@@ -98,6 +98,10 @@ contains
        foundAtom = .false.
        backspace(30)
 
+       !! If atom has not a pseudopotential:
+!       nelec = 0
+
+       
        do while(foundAtom .eqv. .false.)
 
           read(30,*, iostat=status) ssymbol
@@ -141,6 +145,59 @@ contains
   !> @brief Load ECP form basis set file in deMon2K format
   !! @author I. Ortiz-Verano, 2017
   !! @version 1.0
+  subroutine EffectiveCorePotentials_load(this,  unit, basisName, symbol)
+    implicit none
+
+    type(effectiveCorePotentials) :: this
+    integer, optional :: unit
+    character(*),optional :: basisName
+    character(*), optional :: symbol
+    
+    logical :: existFile, foundECP
+    character(30) :: token
+    integer :: status
+
+    !! Looking for the basis set file
+    inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), exist = existFile)
+
+    if(existFile) then
+
+       !! Open basis set file that could contain ecp information
+       open(unit=30, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), status="old", form="formatted")
+!       open(unit=30, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), status="old",form="formatted")
+       rewind(30)
+
+       foundECP = .false.
+       do while (foundECP .eqv. .false.)
+
+          read(30,*, iostat=status) token
+
+          if (status > 0 ) then   
+
+             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(basisName)//" Please check that this file contains pseudopotentials!","EffectiveCorePotentials module at Load function.")
+
+          end if
+
+          if (status == -1 ) then
+
+             call EffectiveCorePotentials_exception(ERROR, "The basisSet: "//trim(basisName)//" for: "//trim(symbol)//" was not found!","BasisSet module at Load function.")
+
+          end if
+
+          if(trim(token(1:3)) == "ECP") then
+
+             foundECP = .true.
+
+          end if
+       end do
+       
+    end if   
+
+    
+
+  end subroutine EffectiveCorePotentials_load
+
+
   !   subroutine EffectiveCorePotentials_load(this, basisName, ParticleName, origin, unit)
   !     implicit none
 
