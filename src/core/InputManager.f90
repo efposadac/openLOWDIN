@@ -530,8 +530,9 @@ contains
           
           !! Load information of the core in ECP
           numberOfCoreElectrons = 0
-          if (InputParticle_onlyValence .eqv. .True.) then
-            numberOfCoreElectrons = EffectiveCorePotentials_getNumberOfCoreElectrons(atomName(2:len(trim(atomName))-1), InputParticle_basisSetName)
+          if (InputParticle_onlyValence .eqv. .true.) then
+             numberOfCoreElectrons = EffectiveCorePotentials_getNumberOfCoreElectrons(atomName(2:len(trim(atomName))-1), InputParticle_basisSetName)
+             call EffectiveCorePotentials_load(InputParticle_basisSetName, atomName(2:len(trim(atomName))-1))
           end if
 
 

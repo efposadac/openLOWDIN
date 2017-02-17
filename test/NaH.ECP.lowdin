@@ -1,7 +1,7 @@
 SYSTEM_DESCRIPTION='NaH con seudopotenciales'
 GEOMETRY
-	e-[Na]  LANL2DZ_ECP 0.000000      0.000000     -0.066575 ECP addParticles=1
-	e-[H]   LANL2DZ_ECP 0.000000      0.754175      0.528381 
+	e-[Na]  LANL2DZ-ECP 0.000000      0.000000     -0.066575 ECP addParticles=1
+	e-[H]   LANL2DZ-ECP 0.000000      0.754175      0.528381 
 	Na      dirac       0.000000      0.000000     -0.066575
 	H       dirac       0.000000      0.754175      0.528381	
 END GEOMETRY

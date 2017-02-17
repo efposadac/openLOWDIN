@@ -23,7 +23,7 @@ module EffectiveCorePotentials_
   implicit none
 
   type :: EffectiveCorePotentials
-     character(30) :: name !!!!!! cómo se va a reconocer?
+     character(30) :: name 
      real(8) :: origin(3)
      integer :: ttype   !!!!!!!!!!!?????????????
      integer :: numberOfCoreElectrons
@@ -34,18 +34,19 @@ module EffectiveCorePotentials_
      character(1) :: angularMoment
   end type EffectiveCorePotentials
 
-  ! public :: &
-  !      EffectiveCorePotentials_load, &
+   public :: &
+        EffectiveCorePotentials_load, &
+        EffectiveCorePotentials_getNumberOfCoreElectrons
   !      EffectiveCorePotentials_loadECP, &
   !      EffectiveCorePotentials_showInSimpleForm  
 
-  ! private :: &
-  !      EffectiveCorePotentials_exception
+   private :: &
+        EffectiveCorePotentials_exception
 
 contains
 
 
-  !> @brief Load ECP form basis set file in deMon2K format
+  !> @brief Load number of core electrons from ECP contined in basis set file in deMon2K format. If an atom hasn't ECP (like lighter elements), no information about this element will appear
   !! @author I. Ortiz-Verano, 2017
   !! @version 1.0
   function EffectiveCorePotentials_getNumberOfCoreElectrons(symbol, basisName) result(output)
@@ -56,8 +57,9 @@ contains
 
     character(10) :: token, ssymbol, nelec
     logical :: existFile
-    logical :: foundECP, foundAtom
+    logical :: foundECP, foundElement
     integer :: status
+    integer :: numberOfCoreElectrons
 
     ! Open effective core potentials from basis set file at library
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), exist = existFile)
@@ -77,13 +79,13 @@ contains
 
           if (status > 0 ) then   
 
-             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(basisName)//" Please check that this file contains pseudopotentials!","EffectiveCorePotentials module at GetNumberOfCoreElectrons function.")
+             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(basisName)//" Please check that this file contains pseudopotentials!","EffectiveCorePotentials module at getNumberOfCoreElectrons function.")
 
           end if
 
           if (status == -1 ) then
 
-             call EffectiveCorePotentials_exception(ERROR, "The basisSet: "//trim(basisName)//" for: "//trim(symbol)//" was not found!","BasisSet module at Load function.")
+             call EffectiveCorePotentials_exception(ERROR, "The basisSet: "//trim(basisName)//" for: "//trim(symbol)//" was not found!","BasisSet module at getNumberOfCoreElectrons function.")
 
           end if
 
@@ -95,27 +97,24 @@ contains
 
        end do
 
-       foundAtom = .false.
-       backspace(30)
-
-       !! If atom has not a pseudopotential:
-!       nelec = 0
-
+       foundElement = .false.
        
-       do while(foundAtom .eqv. .false.)
+       backspace(30)
+       
+       do while(foundElement .eqv. .false.)
 
           read(30,*, iostat=status) ssymbol
 
           !! Some debug information in case of error!
           if (status > 0 ) then
 
-             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basis set file: "//trim(basisName)//" Please check this file.!","BasisSet module at Load function.")
+             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basis set file: "//trim(basisName)//" Please check this file.!","BasisSet module at getNumberOfCoreElectrons function.")
 
           end if
 
           if (status == -1 ) then
 
-             call EffectiveCorePotentials_exception(ERROR, "The ECP: "//trim(basisName)//" for: "//trim(symbol)//" was not found!","BasisSet module at Load function.")
+             call EffectiveCorePotentials_exception(ERROR, "The ECP: "//trim(basisName)//" for: "//trim(symbol)//" was not found!","BasisSet module at getNumberOfCoreElectrons function.")
 
           end if
 
@@ -124,7 +123,7 @@ contains
 
              backspace(30)
              read(30,*, iostat=status) ssymbol, token, nelec
-             foundAtom = .true.
+             foundElement = .true.
              read(nelec, *) output
 
           end if
@@ -135,27 +134,35 @@ contains
 
     else
 
-       call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(basisName)//" This file don't contains ECP for " //trim(symbol)//" !","EffectiveCorePotentials module at Load function.")
+       call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(basisName)//" This file don't exists!","EffectiveCorePotentials module at getNumberOfCoreElectrons function.")
 
     end if
 
   end function EffectiveCorePotentials_getNumberOfCoreElectrons
 
 
-  !> @brief Load ECP form basis set file in deMon2K format
+  !> @brief Load ECP parameters form ECP section in basis set file in deMon2K format
   !! @author I. Ortiz-Verano, 2017
   !! @version 1.0
-  subroutine EffectiveCorePotentials_load(this,  unit, basisName, symbol)
+  subroutine EffectiveCorePotentials_load(basisName, symbol, unit)
     implicit none
 
-    type(effectiveCorePotentials) :: this
-    integer, optional :: unit
+    type(EffectiveCorePotentials) :: this
     character(*),optional :: basisName
     character(*), optional :: symbol
+    integer, optional :: unit
+!    character(*),optional :: particleName
     
-    logical :: existFile, foundECP
-    character(30) :: token
+    logical :: existFile, foundECP, foundElement
+    character(30) :: token, name, ssymbol, nelec
     integer :: status
+    integer :: maxAngularMoment
+    integer :: numberOfCoreElectrons
+
+    !! Setting name
+    if(present(basisName)) this%name = trim(basisName)
+!    if(present(particleName)) this%particleSelected = trim(particleName)
+!    if(present(origin)) this%origin = origin
 
     !! Looking for the basis set file
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), exist = existFile)
@@ -164,10 +171,11 @@ contains
 
        !! Open basis set file that could contain ecp information
        open(unit=30, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), status="old", form="formatted")
-!       open(unit=30, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), status="old",form="formatted")
+
        rewind(30)
 
        foundECP = .false.
+
        do while (foundECP .eqv. .false.)
 
           read(30,*, iostat=status) token
@@ -188,11 +196,74 @@ contains
 
              foundECP = .true.
 
+             print*, "Now I'll looking for ECP for: ", symbol
+
           end if
+
        end do
        
-    end if   
+       foundElement = .false.
 
+       backspace(30)
+
+       do while(foundElement .eqv. .false.)
+
+          read(30,*, iostat=status) ssymbol
+
+          !! Some debug information in case of error!
+          if (status > 0 ) then
+
+             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basis set file: "//trim(basisName)//" Please check this file.!","BasisSet module at Load subroutine.")
+
+          end if
+
+          if (status == -1 ) then
+
+             call EffectiveCorePotentials_exception(ERROR, "The ECP: "//trim(basisName)//" for: "//trim(symbol)//" was not found!","BasisSet module at Load subroutine.")
+
+          end if
+
+
+          if((trim(ssymbol) == trim(symbol))) then
+
+             backspace(30)
+             read(30,*, iostat=status) ssymbol, token, nelec
+             foundElement = .true.
+             read(nelec, *) numberOfCoreElectrons
+
+             select case(numberOfCoreElectrons)
+             case(11)
+                maxAngularMoment = 2
+             case(18)
+                maxAngularMoment = 2
+             case(28)
+                maxAngularMoment = 3
+             case(36)
+                maxAngularMoment = 3
+             case(46)
+                maxAngularMoment = 3
+             case(60)
+                maxAngularMoment = 4
+             case(68)
+                maxAngularMoment = 4
+             case(78)
+                maxAngularMoment = 5
+             case default
+                call EffectiveCorePotentials_exception(ERROR, "Max angular moment can't be stablished for: "//trim(symbol)//" at "//trim(basisName)//" file!"," BasisSet module at Load subroutine.")
+                !!error
+                
+                print*, "error leyendo máximo momento angular"
+             end select
+
+             print*, "Max angular moment of the core for ", ssymbol, " : ", maxAngularMoment
+
+          end if
+
+       end do
+
+
+    end if   
+    
     
 
   end subroutine EffectiveCorePotentials_load
