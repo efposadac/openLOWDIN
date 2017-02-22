@@ -86,6 +86,7 @@ module Vector_
        Vector_sortElements, &
        Vector_reverseSortElements, &
        Vector_reverseSortElements8, &
+       Vector_reverseSortElements8Int, &
        Vector_swapElements, &
        Vector_getSize, &
        Vector_getElement, &
@@ -947,6 +948,59 @@ contains
     end if
 
   end subroutine Vector_reverseSortElements8
+
+  subroutine Vector_reverseSortElements8Int(this,indexVector,m)
+    type(IVector8) :: this
+    type(IVector8), optional :: indexVector
+    integer(8), optional :: m
+    integer(8) i,j,n
+    
+    n = size( this%values , DIM=1 )
+
+    if ( .not. present (indexVector) ) then
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).lt.this%values(i)) then
+               call Vector_swapIntegerElements8( this, i, j )
+            end if
+         end do
+      end do
+    else
+    
+      if ( .not. present (m) ) then
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,n
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapIntegerElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      else
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,m
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapIntegerElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      end if
+    end if
+
+  end subroutine Vector_reverseSortElements8Int
+  
+
   
   !>
   !! @brief Intercambia los elementos i y j el vector
