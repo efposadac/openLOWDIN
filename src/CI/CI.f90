@@ -41,7 +41,7 @@ program CI
   job = ""  
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
-  read(job,"(I10)"), numberOfSpeciesInCI
+  read(job,"(I10)") numberOfSpeciesInCI
 
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)

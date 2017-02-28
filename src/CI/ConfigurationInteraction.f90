@@ -7007,7 +7007,7 @@ contains
     integer(8) :: nproc
     type(Vector8), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
-    type (Vector8) :: diagonalHamiltonianMatrix
+    !type (Vector8) :: diagonalHamiltonianMatrix
 
 !   N: size of the problem
 !   MAXEIG: max. number of wanteg eig (NEIG<=MAXEIG)
@@ -7015,7 +7015,6 @@ contains
     integer(8) :: n, maxeig, MAXSP
     integer(8) :: LX
     real(8), allocatable :: EIGS(:), RES(:), X(:)!, D(:)
-    real(8), allocatable :: XV(:,:)
 !   arguments to pass to the routines
     integer(8) :: NEIG, MADSPACE, ISEARCH, NINIT
     integer(8) :: ICNTL(5)
@@ -7023,15 +7022,16 @@ contains
     real(8) :: SIGMA, TOL, GAP, MEM, DROPTOL, SHIFT
     integer(8) :: NDX1, NDX2, NDX3
     integer(8) :: IJOB!   some local variables
-    integer(8) :: auxSize,size1,size2
+    integer(8) :: auxSize
+    integer(4) :: size1,size2
     integer(8) :: I,J,K,ii,jj,jjj
     integer(4) :: iiter
-    real(8), allocatable :: A(:)
-    integer(8), allocatable :: IA(:)
-    integer(8), allocatable :: JA(:)
-    logical :: offElement
-    type(ivector8) :: auxIndexCIMatrix2
-    integer(8) :: nonzero
+    !real(8), allocatable :: A(:)
+    !integer(8), allocatable :: IA(:)
+    !integer(8), allocatable :: JA(:)
+    !logical :: offElement
+    !type(ivector8) :: auxIndexCIMatrix2
+    !integer(8) :: nonzero
     integer(8) :: macroIterations, im, finalmacroIterations
     real(8), allocatable :: macroIterationsEnergies(:)
     real(8), allocatable :: macroIterationsEnergiesDiff(:)
@@ -7040,6 +7040,17 @@ contains
     
     maxsp = 15
     macroIterations = 10
+
+    size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
+    size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
+
+    allocate (ConfigurationInteraction_instance%auxconfs (size1,size2, ConfigurationInteraction_instance%numberOfConfigurations ))
+
+    do i=1, ConfigurationInteraction_instance%numberOfConfigurations
+        ConfigurationInteraction_instance%auxconfs(:,:,i) = ConfigurationInteraction_instance%configurations(i)%occupations
+    end do
+    !deallocate (ConfigurationInteraction_instance%configurations)
+
 
     allocate (macroIterationsEnergies(macroIterations))
     allocate (macroIterationsEnergiesDiff(macroIterations))
@@ -7071,10 +7082,6 @@ contains
      ITER = 100 !    maximum number of iteration steps
      TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
 
-     if ( allocated ( xv ) ) deallocate ( xv )
-     allocate ( xv ( n, iter) )
-     xv = 0.0_8
-
      NDX1 = 0
      NDX2 = 0
      MEM = 0
@@ -7091,15 +7098,6 @@ contains
 
 
     IJOB=0
-    size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
-    size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
-
-    allocate (ConfigurationInteraction_instance%auxconfs (size1,size2, ConfigurationInteraction_instance%numberOfConfigurations ))
-
-    do i=1, ConfigurationInteraction_instance%numberOfConfigurations
-        ConfigurationInteraction_instance%auxconfs(:,:,i) = ConfigurationInteraction_instance%configurations(i)%occupations
-    end do
-
 
      ! set initial eigenpairs
      if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
@@ -7121,71 +7119,71 @@ contains
        end do
      end if
 
-    DROPTOL = 1 - X(1)**2
-    DROPTOL = 5E-2
+    !DROPTOL = 1 - X(1)**2
+    !DROPTOL = 5E-2
+    DROPTOL = 0
     print *, "Droptopl : ", Droptol
-    !! preconditioner
-    auxSize = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
-    nonzero = 0
-    do i = 1 , auxSize
-      do j = i + 1 , auxSize
-        if ( abs(ConfigurationInteraction_instance%initialHamiltonianMatrix2%values(i,j)) > 1E-10) nonzero = nonzero + 1
-      end do
-    end do
-    print *, "Nonzero initial Hamiltonian matrix elements", nonzero
+    !! preconditioner. 
+    !! auxSize = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
+    !!nonzero = 0
+    !!do i = 1 , auxSize
+    !!  do j = i + 1 , auxSize
+    !!    if ( abs(ConfigurationInteraction_instance%initialHamiltonianMatrix2%values(i,j)) > 1E-10) nonzero = nonzero + 1
+    !!  end do
+    !!end do
+    !!print *, "Nonzero initial Hamiltonian matrix elements", nonzero
 
-    allocate (A ( nonzero + n ) ) 
-    A = 0
-    allocate (JA ( nonzero + n ) ) 
-    JA = 0
-    allocate (IA ( n + 1 ) ) 
-    IA = 0
+    !!allocate (A ( nonzero + n ) ) 
+    !!A = 0
+    !!allocate (JA ( nonzero + n ) ) 
+    !!JA = 0
+    !!allocate (IA ( n + 1 ) ) 
+    !!IA = 0
 
-    do i = auxSize+1, n
-      ConfigurationInteraction_instance%auxIndexCIMatrix%values(i) = n + 1
-    end do
+    !!do i = auxSize+1, n
+    !!  ConfigurationInteraction_instance%auxIndexCIMatrix%values(i) = n + 1
+    !!end do
 
-    call Vector_constructorInteger8 ( auxIndexCIMatrix2, ConfigurationInteraction_instance%numberOfConfigurations, 0_8 ) 
-    call Vector_reverseSortElements8Int(ConfigurationInteraction_instance%auxIndexCIMatrix, auxIndexCIMatrix2, int(auxSize,8))
+    !!call Vector_constructorInteger8 ( auxIndexCIMatrix2, ConfigurationInteraction_instance%numberOfConfigurations, 0_8 ) 
+    !!call Vector_reverseSortElements8Int(ConfigurationInteraction_instance%auxIndexCIMatrix, auxIndexCIMatrix2, int(auxSize,8))
 
-    k = 1 
-    do i = 1, n
-       if ( i <= n ) then
-         offElement = .false. 
-         do j = 1, auxSize
-            jj = ConfigurationInteraction_instance%auxIndexCIMatrix%values(j)
-            if ( jj == i ) then
-              offElement = .true.
-              ii = j
-            end if
-         end do
-         if ( .not. offElement  ) then
-            ja(k) = i 
-            a(k) = ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)
-            ia(i) = k !! diagonal
-            k = k + 1
-         else 
-            ia(i) = k! + auxSize
-            do j = 1, auxSize
-              jj = ConfigurationInteraction_instance%auxIndexCIMatrix%values(j)
-              if ( jj >= i ) then
-                ja(k) = jj
-                if ( abs(ConfigurationInteraction_instance%initialHamiltonianMatrix2%values(ii,j)) > 1E-10) then
-                  a(k) = ConfigurationInteraction_instance%initialHamiltonianMatrix2%values(ii,j)
-                  k = k + 1
-                end if
-              end if
-            end do
-         end if
+    !!k = 1 
+    !!do i = 1, n
+    !!   if ( i <= n ) then
+    !!     offElement = .false. 
+    !!     do j = 1, auxSize
+    !!        jj = ConfigurationInteraction_instance%auxIndexCIMatrix%values(j)
+    !!        if ( jj == i ) then
+    !!          offElement = .true.
+    !!          ii = j
+    !!        end if
+    !!     end do
+    !!     if ( .not. offElement  ) then
+    !!        ja(k) = i 
+    !!        a(k) = ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)
+    !!        ia(i) = k !! diagonal
+    !!        k = k + 1
+    !!     else 
+    !!        ia(i) = k! + auxSize
+    !!        do j = 1, auxSize
+    !!          jj = ConfigurationInteraction_instance%auxIndexCIMatrix%values(j)
+    !!          if ( jj >= i ) then
+    !!            ja(k) = jj
+    !!            if ( abs(ConfigurationInteraction_instance%initialHamiltonianMatrix2%values(ii,j)) > 1E-10) then
+    !!              a(k) = ConfigurationInteraction_instance%initialHamiltonianMatrix2%values(ii,j)
+    !!              k = k + 1
+    !!            end if
+    !!          end if
+    !!        end do
+    !!     end if
 
-       end if
-    end do
+    !!   end if
+    !!end do
 
-     ia(n+1) = k!! last 
+    !! ia(n+1) = k!! last 
 
      SIGMA = EIGS(1)
      gap = 0 
-     !gap=  ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(1)- ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(2)
      SHIFT = EIGS(1)
 
      !! macroiterations
@@ -7215,13 +7213,16 @@ contains
         iiter = iiter +1
         IF (IJOB.EQ.1) THEN
   !!       X(NDX1) input,  X(NDX2) output
-           xv(:,iiter) = x(1:n)
-           call matvec(N,X(1),X(NDX1),X(NDX2),iiter, im, fullMatrix)
+           call matvec(N,X(1),X(NDX1),X(NDX2),iiter, im, fullMatrix, size1,size2)
            GOTO 10
         END IF
   
         !! saving the eigenvalues
-        eigenValues%values = EIGS
+
+         do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+           eigenValues%values(i) = EIGS(i)
+         end do
+
         macroIterationsEnergies(im) = EIGS(1)
         macroIterationsEnergiesDiff(im) = macroIterationsEnergies(im)- macroIterationsEnergies(im-1)
 
@@ -7266,7 +7267,6 @@ contains
          MADSPACE = maxsp !    desired size of the search space
          ITER = 100 !    maximum number of iteration steps
          TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
-         xv = 0
 
          ICNTL(1)=0
          ICNTL(2)=0
@@ -7300,7 +7300,7 @@ contains
 
   end subroutine ConfigurationInteraction_jadamiluInterface
 
-  subroutine matvec ( nx, y, v, w, iter, im, fullMatrix)
+  subroutine matvec ( nx, y, v, w, iter, im, fullMatrix,size1,size2)
   
   !*******************************************************************************
   !! AV computes w <- A * V where A is a discretized Laplacian.
@@ -7317,7 +7317,6 @@ contains
     real(8) w(nx)
     real(8) :: CIEnergy
     integer(8) :: nonzero
-    integer(8) :: nonzerob
     integer(8) :: i, j, ia, ib, ii, jj, im
     integer(4) :: nproc
     real(8) :: wi
@@ -7325,7 +7324,6 @@ contains
     real(8) :: tol
     integer(4) :: iter, size1, size2
     integer(8), allocatable :: indexArray(:)
-    integer(8), allocatable :: indexArrayB(:)
     logical :: fullMatrix
 
     nproc = omp_get_max_threads()
@@ -7335,11 +7333,9 @@ contains
 
     CIenergy = 0.0_8
     nonzero = 0
-    nonzerob = 0
     w = 0 
 
     tol = 1E-8
-    if ( iter == 1 ) tol = 1E-8
 
     do i = 1 , nx
       if ( abs(v(i)+y( i) ) >= tol) nonzero = nonzero + 1
@@ -7357,8 +7353,8 @@ contains
     end do
     ib = 0
 
-    size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
-    size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
+    !size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
+    !size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
 
 
     timeA = omp_get_wtime()
