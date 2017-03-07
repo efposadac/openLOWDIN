@@ -17,19 +17,21 @@
 !! @version 1.0
 
 module EffectiveCorePotentials_
-  ! use ContractedGaussian_
+  use ContractedGaussian_
   use CONTROL_
   ! use InputManager_ 
   implicit none
 
   type :: EffectiveCorePotentials
+     type(contractedGaussian),allocatable :: contraction(:)
      character(30) :: name 
      real(8) :: origin(3)
      integer :: ttype   !!!!!!!!!!!?????????????
      integer :: numberOfCoreElectrons
-     integer :: nkParameter    !< equation (16) from J. Chem. Phys. 82, 1, 1985
-     real(8) :: zetakParameter !< equation (16) from J. Chem. Phys. 82, 1, 1985
-     real(8) :: dkParameter    !< equation (16) from J. Chem. Phys. 82, 1, 1985
+     integer :: length
+     integer :: nkParameter    !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+     real(8) :: zetakParameter !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+     real(8) :: dkParameter    !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
      character(1) :: maxAngularMoment
      character(1) :: angularMoment
   end type EffectiveCorePotentials
@@ -152,7 +154,8 @@ contains
     character(*), optional :: symbol
     integer, optional :: unit
 !    character(*),optional :: particleName
-    
+
+    integer :: i
     logical :: existFile, foundECP, foundElement
     character(30) :: token, name, ssymbol, nelec
     integer :: status
@@ -161,6 +164,7 @@ contains
 
     !! Setting name
     if(present(basisName)) this%name = trim(basisName)
+    if(present(symbol)) symbol = trim(symbol)
 !    if(present(particleName)) this%particleSelected = trim(particleName)
 !    if(present(origin)) this%origin = origin
 
@@ -232,28 +236,106 @@ contains
              read(nelec, *) numberOfCoreElectrons
 
              select case(numberOfCoreElectrons)
-             case(11)
+             case(10)
                 maxAngularMoment = 2
+                this%length = 3
              case(18)
                 maxAngularMoment = 2
+                this%length = 4
              case(28)
                 maxAngularMoment = 3
+                this%length = 4
              case(36)
                 maxAngularMoment = 3
+                this%length = 4
              case(46)
                 maxAngularMoment = 3
+                this%length = 4
              case(60)
                 maxAngularMoment = 4
+                this%length = 5
              case(68)
                 maxAngularMoment = 4
+                this%length = 5
              case(78)
                 maxAngularMoment = 5
+                this%length = 5
              case default
                 call EffectiveCorePotentials_exception(ERROR, "Max angular moment can't be stablished for: "//trim(symbol)//" at "//trim(basisName)//" file!"," BasisSet module at Load subroutine.")
                 !!error
                 
                 print*, "error leyendo máximo momento angular"
              end select
+             
+             allocate(this%contraction(this%length))
+             
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  ciclo do copiado de basisSet
+             do i = 1, this%length
+
+                print*, i
+
+                ! read(30,*,iostat=status) this%contraction(i)%id, &
+                !      this%contraction(i)%angularMoment, &
+                !      this%contraction(i)%length
+
+                ! !! Some debug information in case of error!
+                ! if (status > 0 ) then
+
+                !    call BasisSet_exception(ERROR, "ERROR reading basisSet file: "//trim(this%name)//" Please check that file!","BasisSet module at Load function.")
+
+                ! end if
+
+                ! allocate(this%contraction(i)%orbitalExponents(this%contraction(i)%length))
+                ! allocate(this%contraction(i)%contractionCoefficients(this%contraction(i)%length))
+
+                ! do j = 1, this%contraction(i)%length
+
+                !    read(30,*,iostat=status) this%contraction(i)%orbitalExponents(j), &
+                !         this%contraction(i)%contractionCoefficients(j)
+
+                !    !! Some debug information in case of error!
+                !    if (status > 0 ) then
+
+                !       call BasisSet_exception(ERROR, "ERROR reading basisSet file: "//trim(this%name)//" Please check that file!","BasisSet module at Load function.")
+
+                !    end if
+
+                ! end do
+
+                ! !! Ajust and normalize contractions
+                ! this%contraction(i)%origin = this%origin
+
+                ! !! Calculates the number of cartesian orbitals, by dimensionality
+                ! select case(CONTROL_instance%DIMENSIONALITY)
+
+                ! case(3)
+                !    this%contraction(i)%numCartesianOrbital = ( ( this%contraction(i)%angularMoment + 1_8 )*( this%contraction(i)%angularMoment + 2_8 ) ) / 2_8
+                ! case(2)
+                !    this%contraction(i)%numCartesianOrbital = ( ( this%contraction(i)%angularMoment + 1_8 ) )
+                ! case(1)
+                !    this%contraction(i)%numCartesianOrbital = 1 
+                ! case default
+                !    call BasisSet_exception( ERROR, "Class object Basis set in load function",&
+                !         "This Dimensionality is not avaliable") 
+                ! end select
+
+                ! !! Normalize
+                ! allocate(this%contraction(i)%contNormalization(this%contraction(i)%numCartesianOrbital))
+                ! allocate(this%contraction(i)%primNormalization(this%contraction(i)%length, &
+                !      this%contraction(i)%length*this%contraction(i)%numCartesianOrbital))
+
+                ! this%contraction(i)%contNormalization = 1.0_8
+                ! this%contraction(i)%primNormalization = 1.0_8
+
+                ! call ContractedGaussian_normalizePrimitive(this%contraction(i))
+                ! call ContractedGaussian_normalizeContraction(this%contraction(i))
+
+                ! !! DEBUG
+                ! !! call ContractedGaussian_showInCompactForm(this%contraction(i))
+
+             end do
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!  End do             
 
              print*, "Max angular moment of the core for ", ssymbol, " : ", maxAngularMoment
 
