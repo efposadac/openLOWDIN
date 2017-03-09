@@ -171,6 +171,7 @@ module CONTROL_
      real(8) :: CI_CONVERGENCE
      logical :: CI_SAVE_EIGENVECTOR
      logical :: CI_LOAD_EIGENVECTOR
+     logical :: CI_BUILD_FULL_MATRIX
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -427,7 +428,7 @@ module CONTROL_
   real(8) :: LowdinParameters_CIConvergence
   logical :: LowdinParameters_CISaveEigenVector
   logical :: LowdinParameters_CILoadEigenVector
-
+  logical :: LowdinParameters_CIBuildFullMatrix
 
   !!***************************************************************************
   !! CCSD
@@ -681,6 +682,8 @@ module CONTROL_
        LowdinParameters_CIConvergence, &
        LowdinParameters_CISaveEigenVector, &
        LowdinParameters_CILoadEigenVector, &
+       LowdinParameters_CIBuildFullMatrix, &
+
 
        !!***************************************************************************
        !! CCSD 
@@ -961,6 +964,8 @@ contains
     LowdinParameters_CIConvergence = 1E-4
     LowdinParameters_CISaveEigenVector = .false.
     LowdinParameters_CILoadEigenVector = .false.
+    LowdinParameters_CIBuildFullMatrix = .false. 
+
 
     !!***************************************************************************
     !! CCSD
@@ -1220,7 +1225,8 @@ contains
     CONTROL_instance%CI_CONVERGENCE = 1E-4
     CONTROL_instance%CI_SAVE_EIGENVECTOR = .FALSE.
     CONTROL_instance%CI_LOAD_EIGENVECTOR = .FALSE.
-
+    CONTROL_instance%CI_BUILD_FULL_MATRIX = .FALSE. 
+    
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
     !!                                                                                                                         
@@ -1517,6 +1523,7 @@ contains
     CONTROL_instance%CI_CONVERGENCE = LowdinParameters_CIConvergence
     CONTROL_instance%CI_SAVE_EIGENVECTOR = LowdinParameters_CISaveEigenVector
     CONTROL_instance%CI_LOAD_EIGENVECTOR = LowdinParameters_CILoadEigenVector
+    CONTROL_instance%CI_BUILD_FULL_MATRIX = LowdinParameters_CIBuildFullMatrix 
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1787,6 +1794,7 @@ contains
     LowdinParameters_CImaxNCV = CONTROL_instance%CI_MAX_NCV 
     LowdinParameters_CIsizeOfGuessMatrix = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX  
     LowdinParameters_CIstackSize = CONTROL_instance%CI_STACK_SIZE 
+    LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
 
 
     !!***************************************************************************      
@@ -2044,6 +2052,7 @@ contains
     otherThis%CI_CONVERGENCE = this%CI_CONVERGENCE
     otherThis%CI_SAVE_EIGENVECTOR = this%CI_SAVE_EIGENVECTOR
     otherThis%CI_LOAD_EIGENVECTOR = this%CI_LOAD_EIGENVECTOR
+    otherThis%CI_BUILD_FULL_MATRIX = this%CI_BUILD_FULL_MATRIX
 
     !!***************************************************************************
     !! CCSD
