@@ -107,6 +107,7 @@ module ConfigurationInteraction_
        ConfigurationInteraction_getTotalEnergy, &
        ConfigurationInteraction_run, &
        ConfigurationInteraction_diagonalize, &
+       ConfigurationInteraction_naturalOrbitals, &
        ConfigurationInteraction_show
 
   private
@@ -1470,6 +1471,148 @@ contains
     end if
 
   end subroutine ConfigurationInteraction_show
+
+  !FELIX IS HERE
+  subroutine ConfigurationInteraction_naturalOrbitals()
+    implicit none
+    type(ConfigurationInteraction) :: this
+    integer :: i, j, k, mu, nu
+    integer :: unit, wfnunit
+    integer :: numberOfOrbitals, numberOfOccupiedOrbitals
+    integer :: state, specie, orbital, orbitalA, orbitalB
+    character(50) :: file, wfnfile, speciesName, auxstring
+    character(50) :: arguments(2)
+    real(8) :: sumaPrueba
+    type(matrix) :: coefficients, densityMatrix
+    type(matrix) :: ciOccupationNumbers
+    integer numberOfSpecies
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    if ( ConfigurationInteraction_instance%isInstanced .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+
+       print *,""
+       print *," FRACTIONAL ORBITAL OCCUPATIONS"
+       print *,"=============================="
+       print *,"column: state, row: orbital"
+       print *,""
+
+       !! Open file - to print natural orbitals
+       unit = 29
+
+       file = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+       open(unit = unit, file=trim(file), status="new", form="formatted")
+       
+       ! call Matrix_show (ConfigurationInteraction_instance%eigenVectors)
+       
+       do specie=1, numberOfSpecies
+          
+          speciesName = MolecularSystem_getNameOfSpecie(specie)
+          numberOfOrbitals = ConfigurationInteraction_instance%numberOfOrbitals%values(specie)
+          numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie)
+          !Inicializando la matriz
+
+          call Matrix_constructor ( ciOccupationNumbers , int(numberOfOrbitals,8) , &
+               int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
+
+          do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+             sumaPrueba=0
+             do j=1, numberOfOccupiedOrbitals
+                ciOccupationNumbers%values(j,state) = 1.0
+             end do
+          
+          ! !Get occupation numbers from each configuration contribution
+             
+             do i=1, ConfigurationInteraction_instance%numberOfConfigurations
+                do j=1, numberOfOccupiedOrbitals
+
+                   !! Occupied orbitals
+                   ciOccupationNumbers%values( j, state)= ciOccupationNumbers%values( j, state) -  &
+                        ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                   !! Unoccupied orbitals
+                   orbital = ConfigurationInteraction_instance%configurations(i)%occupations(j,specie) 
+
+                   ciOccupationNumbers%values( orbital, state)= ciOccupationNumbers%values( orbital, state) + &
+                        ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+
+                   ! print *, j, orbital, ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                   ! sumaPrueba=sumaPrueba+ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                end do
+                ! end if
+
+             end do
+
+             ! print *, "suma", sumaPrueba
+             !Build a new density matrix (P) in atomic orbitals
+
+             call Matrix_constructor ( densityMatrix , &
+                  int(numberOfOrbitals,8), &
+                  int(numberOfOrbitals,8),  0.0_8 )
+             
+             wfnFile = "lowdin.wfn"
+             wfnUnit = 20
+
+             open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+             arguments(2) = speciesName
+             arguments(1) = "COEFFICIENTS"
+
+             coefficients = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
+                  columns= int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
+             
+             close(wfnUnit)
+             
+             do mu = 1 , numberOfOrbitals
+                do nu = 1 , numberOfOrbitals
+                   do k = 1 , numberOfOrbitals
+
+                      densityMatrix%values(mu,nu) =  &
+                           densityMatrix%values(mu,nu) + &
+                           ciOccupationNumbers%values(k, state)* &
+                           coefficients%values(mu,k)*coefficients%values(nu,k)
+                    end do
+                 end do
+              end do
+
+              write(auxstring,*) state
+              arguments(2) = speciesName
+              arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+              
+              call Matrix_writeToFile ( densityMatrix, unit , arguments=arguments(1:2) )
+
+              ! print *, arguments(1:3)
+              ! call Matrix_show ( densityMatrix )
+
+              call Matrix_destructor(coefficients)          
+              call Matrix_destructor(densityMatrix)          
+
+
+           end do
+
+          !Write occupation numbers to file
+          write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecie(specie)),"OCCUPATIONS:"
+
+          call Matrix_show ( ciOccupationNumbers )
+
+          arguments(2) = speciesName
+          arguments(1) = "OCCUPATIONS"
+
+          call Matrix_writeToFile ( ciOccupationNumbers, unit , arguments=arguments(1:2) )
+
+          call Matrix_destructor(ciOccupationNumbers)          
+
+       end do
+          
+       close(unit)
+
+    end if
+
+
+
+  end subroutine ConfigurationInteraction_naturalOrbitals
+
+
+
 
   !>
   !! @brief Muestra informacion del objeto
@@ -7219,8 +7362,8 @@ contains
 
         !! saving the eigenvectors
         k = 0
-        do i = 1, N
-          do j = 1, maxeig
+        do j = 1, maxeig
+          do i = 1, N
             k = k + 1
             eigenVectors%values(i,j) = X(k)
           end do
@@ -7282,8 +7425,8 @@ contains
 
       !! saving the eigenvectors
       k = 0
-      do i = 1, N
-        do j = 1, maxeig
+      do j = 1, maxeig
+        do i = 1, N
           k = k + 1
           eigenVectors%values(i,j) = X(k)
         end do

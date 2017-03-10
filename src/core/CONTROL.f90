@@ -164,6 +164,7 @@ module CONTROL_
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
+     integer :: CI_STATES_TO_PRINT
      integer :: CI_ACTIVE_SPACE
      integer :: CI_MAX_NCV
      integer :: CI_SIZE_OF_GUESS_MATRIX
@@ -422,6 +423,7 @@ module CONTROL_
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
   integer :: LowdinParameters_CIactiveSpace
+  integer :: LowdinParameters_CIstatesToPrint
   integer :: LowdinParameters_CImaxNCV
   integer :: LowdinParameters_CIsizeOfGuessMatrix
   integer :: LowdinParameters_CIstackSize
@@ -676,6 +678,7 @@ module CONTROL_
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
        LowdinParameters_CIactiveSpace, &
+       LowdinParameters_CIstatesToPrint, &
        LowdinParameters_CImaxNCV, &
        LowdinParameters_CIsizeOfGuessMatrix, &
        LowdinParameters_CIstackSize, &
@@ -958,6 +961,7 @@ contains
     LowdinParameters_numberOfCIStates = 1
     LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
     LowdinParameters_CIactiveSpace = 0 !! Full
+    LowdinParameters_CIstatesToPrint = 1
     LowdinParameters_CImaxNCV = 30
     LowdinParameters_CIsizeOfGuessMatrix = 300
     LowdinParameters_CIstackSize = 5000
@@ -1219,6 +1223,7 @@ contains
     CONTROL_instance%NUMBER_OF_CI_STATES= 1
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
     CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
+    CONTROL_instance%CI_STATES_TO_PRINT = 1
     CONTROL_instance%CI_MAX_NCV = 30 
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = 300
     CONTROL_instance%CI_STACK_SIZE = 5000
@@ -1517,6 +1522,7 @@ contains
     CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
     CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
+    CONTROL_instance%CI_STATES_TO_PRINT = LowdinParameters_CIstatesToPrint
     CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
     CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
@@ -1791,6 +1797,7 @@ contains
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
 
     LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE 
+    LowdinParameters_CIstatesToPrint = CONTROL_instance%CI_STATES_TO_PRINT
     LowdinParameters_CImaxNCV = CONTROL_instance%CI_MAX_NCV 
     LowdinParameters_CIsizeOfGuessMatrix = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX  
     LowdinParameters_CIstackSize = CONTROL_instance%CI_STACK_SIZE 
@@ -2046,6 +2053,7 @@ contains
     otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
     otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
     otherThis%CI_ACTIVE_SPACE =  this%CI_ACTIVE_SPACE 
+    otherThis%CI_STATES_TO_PRINT =  this%CI_STATES_TO_PRINT
     otherThis%CI_MAX_NCV = this%CI_MAX_NCV
     otherThis%CI_SIZE_OF_GUESS_MATRIX = this%CI_SIZE_OF_GUESS_MATRIX
     otherThis%CI_STACK_SIZE = this%CI_STACK_SIZE 
