@@ -443,6 +443,30 @@ contains
        write (6,"(T5,A28)") "... END DESCRIPTION OF BASIS"
        write (6,*) ""
     end do
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+       
+       !! Avoid print twice basis in open-shell case
+       if(trim(MolecularSystem_instance%species(i)%name) == "E-BETA" ) cycle
+       
+       write (6,*) ""
+       write( 6, "(T5,A32,A5)") "BEGIN DESCRIPTION OF ECPs FOR: ", trim(MolecularSystem_instance%species(i)%symbol)
+       write (6,"(T5,A30)") "================================"
+       write (6,*) ""
+       
+       do j = 1, size( MolecularSystem_instance%species(i)%particles )
+          
+          call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%effectiveCorePotentials,&
+               trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
+          
+       end do
+       
+       write (6,"(T5,A28)") "... END DESCRIPTION OF ECPs"
+       write (6,*) ""
+    end do
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     
     print *,""
     print *," END INFORMATION OF PARTICLES"

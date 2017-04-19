@@ -17,33 +17,35 @@
 !! @version 1.0
 
 module EffectiveCorePotentials_
+  use ContractedEcpGaussian_
   use ContractedGaussian_
   use CONTROL_
   ! use InputManager_ 
   implicit none
 
   type :: EffectiveCorePotentials
-     type(contractedGaussian),allocatable :: contraction(:)
+     !     type(contractedEcpGaussian),allocatable :: contraction(:)
+     type(contractedEcpGaussian),allocatable :: contraction(:)
+     !     type(contractedEcpGaussian),allocatable :: nkParameters(:)   !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+     !     type(contractedEcpGaussian),allocatable :: zetaParameters(:) !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+     !     type(contractedEcpGaussian),allocatable :: dkParameters(:)   !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
      character(30) :: name 
      real(8) :: origin(3)
      integer :: ttype   !!!!!!!!!!!?????????????
      integer :: numberOfCoreElectrons
      integer :: length
-     integer :: nkParameter    !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
-     real(8) :: zetakParameter !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
-     real(8) :: dkParameter    !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
-     character(1) :: maxAngularMoment
-     character(1) :: angularMoment
+     integer :: contractionLength
+     integer :: numberOfPrimitives
   end type EffectiveCorePotentials
 
-   public :: &
-        EffectiveCorePotentials_load, &
-        EffectiveCorePotentials_getNumberOfCoreElectrons
-  !      EffectiveCorePotentials_loadECP, &
+  public :: &
+       EffectiveCorePotentials_load, &
+       EffectiveCorePotentials_getNumberOfCoreElectrons
+!       EffectiveCorePotentials_loadECP, &
   !      EffectiveCorePotentials_showInSimpleForm  
 
-   private :: &
-        EffectiveCorePotentials_exception
+  private :: &
+       EffectiveCorePotentials_exception
 
 contains
 
@@ -100,9 +102,9 @@ contains
        end do
 
        foundElement = .false.
-       
+
        backspace(30)
-       
+
        do while(foundElement .eqv. .false.)
 
           read(30,*, iostat=status) ssymbol
@@ -146,27 +148,33 @@ contains
   !> @brief Load ECP parameters form ECP section in basis set file in deMon2K format
   !! @author I. Ortiz-Verano, 2017
   !! @version 1.0
-  subroutine EffectiveCorePotentials_load(basisName, symbol, unit)
+  subroutine EffectiveCorePotentials_load(basisName, symbol, origin, unit)
     implicit none
 
     type(EffectiveCorePotentials) :: this
     character(*),optional :: basisName
     character(*), optional :: symbol
     integer, optional :: unit
-!    character(*),optional :: particleName
+    real(8), optional :: origin(3)
+    !    character(*),optional :: particleName
 
-    integer :: i
-    logical :: existFile, foundECP, foundElement
+    integer :: i, j, k, l
+    logical :: existFile, foundECP, foundElement, isNewECP
     character(30) :: token, name, ssymbol, nelec
     integer :: status
     integer :: maxAngularMoment
     integer :: numberOfCoreElectrons
 
+    !    Followin variables are not of the ECP kind.
+    !    integer :: nkParameters    !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+    !    real(8) :: zetakParameters !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+    !    real(8) :: dkParameters    !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+
     !! Setting name
     if(present(basisName)) this%name = trim(basisName)
     if(present(symbol)) symbol = trim(symbol)
-!    if(present(particleName)) this%particleSelected = trim(particleName)
-!    if(present(origin)) this%origin = origin
+    !    if(present(particleName)) this%particleSelected = trim(particleName)
+    if(present(origin)) this%origin = origin
 
     !! Looking for the basis set file
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), exist = existFile)
@@ -196,6 +204,8 @@ contains
 
           end if
 
+
+
           if(trim(token(1:3)) == "ECP") then
 
              foundECP = .true.
@@ -205,7 +215,7 @@ contains
           end if
 
        end do
-       
+
        foundElement = .false.
 
        backspace(30)
@@ -230,10 +240,19 @@ contains
 
           if((trim(ssymbol) == trim(symbol))) then
 
+             !             print*, "Symbol= ",ssymbol
+
              backspace(30)
              read(30,*, iostat=status) ssymbol, token, nelec
              foundElement = .true.
+
              read(nelec, *) numberOfCoreElectrons
+
+             !   print*, "Number of Core electrons: ", numberOfCoreElectrons
+
+             read(30,*,iostat=status) ssymbol, token
+
+             !             print*, ssymbol, token
 
              select case(numberOfCoreElectrons)
              case(10)
@@ -263,351 +282,210 @@ contains
              case default
                 call EffectiveCorePotentials_exception(ERROR, "Max angular moment can't be stablished for: "//trim(symbol)//" at "//trim(basisName)//" file!"," BasisSet module at Load subroutine.")
                 !!error
-                
+
                 print*, "error leyendo máximo momento angular"
              end select
-             
+
              allocate(this%contraction(this%length))
-             
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  ciclo do copiado de basisSet
+
+
              do i = 1, this%length
 
-                print*, i
 
-                ! read(30,*,iostat=status) this%contraction(i)%id, &
-                !      this%contraction(i)%angularMoment, &
-                !      this%contraction(i)%length
+                !! Determine length of each contracted gaussian
+                if (i == 1) then
+                   !! When i = 1, this "if" find the length of this contraction
+                   if((trim(token(1:2)) == "ul")) then
+                      isNewECP = .false.
+                      k=0
+                      do while(isNewECP .eqv. .false.)
+                         read(30,*, iostat=status) ssymbol, token
+                         k=k+1
+                         if((trim(ssymbol) == trim(symbol))) then
+                            isNewECP = .true.
+                            this%contraction(i)%length=k-1
+                            !                            print*, "Contraction: ",i," length of the contraction: ", this%contraction(i)%length
+                            exit
+                         end if
+                      end do
 
-                ! !! Some debug information in case of error!
-                ! if (status > 0 ) then
+                      allocate(this%contraction(i)%nkParameters(this%contraction(i)%length))
+                      allocate(this%contraction(i)%zetakParameters(this%contraction(i)%length))
+                      allocate(this%contraction(i)%dkParameters(this%contraction(i)%length))
 
-                !    call BasisSet_exception(ERROR, "ERROR reading basisSet file: "//trim(this%name)//" Please check that file!","BasisSet module at Load function.")
+                      do l=1, this%contraction(i)%length+1
+                         backspace(30)
+                      end do
 
-                ! end if
+                      print*, "Contraction: ", i
+                      do j = 1, this%contraction(i)%length
 
-                ! allocate(this%contraction(i)%orbitalExponents(this%contraction(i)%length))
-                ! allocate(this%contraction(i)%contractionCoefficients(this%contraction(i)%length))
+                         read(30,*,iostat=status) this%contraction(i)%nkParameters(j), &
+                              this%contraction(i)%zetakParameters(j), &
+                              this%contraction(i)%dkParameters(j)
 
-                ! do j = 1, this%contraction(i)%length
+                         print*, "nk, zetak y dk: ",&
+                              this%contraction(i)%nkParameters(j), &
+                              this%contraction(i)%zetakParameters(j), &
+                              this%contraction(i)%dkParameters(j)
 
-                !    read(30,*,iostat=status) this%contraction(i)%orbitalExponents(j), &
-                !         this%contraction(i)%contractionCoefficients(j)
+                         !! Some debug information in case of error!
+                         if (status > 0 ) then
 
-                !    !! Some debug information in case of error!
-                !    if (status > 0 ) then
+                            call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP at basisSet file: "//trim(this%name)//" Please check that file!","EffectiveCorePotentials module at Load function.")
 
-                !       call BasisSet_exception(ERROR, "ERROR reading basisSet file: "//trim(this%name)//" Please check that file!","BasisSet module at Load function.")
+                         end if
 
-                !    end if
+                      end do
 
-                ! end do
+                   end if
 
-                ! !! Ajust and normalize contractions
-                ! this%contraction(i)%origin = this%origin
+                   !! When i > 1:
+                else if(i .ge. 2) then
+                   read(30,*, iostat=status) token
+                   if((trim(ssymbol) == trim(symbol))) then
+                      isNewECP = .false.
+                      k=1
+                      do while(isNewECP .eqv. .false.)
+                         read(30,*, iostat=status) ssymbol, token
+                         k=k+1
+                         if(((trim(token) == "S") .OR. &
+                              (trim(token) == "P") .OR. &
+                              (trim(token) == "D") .OR. &
+                              (trim(token) == "F") .OR. &
+                              (trim(token) == "G") .OR. &                              
+                              (trim(token) == "nelec"))) then
+                            isNewECP = .true.
+                            this%contraction(i)%length=k-2
+                            !                            print*, "Contraction: ",i," length of the contraction: ", this%contraction(i)%length
+                            exit
+                         end if
+                      end do
+                      allocate(this%contraction(i)%nkParameters(this%contraction(i)%length))
+                      allocate(this%contraction(i)%zetakParameters(this%contraction(i)%length))
+                      allocate(this%contraction(i)%dkParameters(this%contraction(i)%length))
 
-                ! !! Calculates the number of cartesian orbitals, by dimensionality
-                ! select case(CONTROL_instance%DIMENSIONALITY)
+                      do l=1, this%contraction(i)%length+1
+                         backspace(30)
+                      end do
 
-                ! case(3)
-                !    this%contraction(i)%numCartesianOrbital = ( ( this%contraction(i)%angularMoment + 1_8 )*( this%contraction(i)%angularMoment + 2_8 ) ) / 2_8
-                ! case(2)
-                !    this%contraction(i)%numCartesianOrbital = ( ( this%contraction(i)%angularMoment + 1_8 ) )
-                ! case(1)
-                !    this%contraction(i)%numCartesianOrbital = 1 
-                ! case default
-                !    call BasisSet_exception( ERROR, "Class object Basis set in load function",&
-                !         "This Dimensionality is not avaliable") 
-                ! end select
+                      print*, "Contraction: ", i
+                      do j = 1, this%contraction(i)%length
 
-                ! !! Normalize
-                ! allocate(this%contraction(i)%contNormalization(this%contraction(i)%numCartesianOrbital))
-                ! allocate(this%contraction(i)%primNormalization(this%contraction(i)%length, &
-                !      this%contraction(i)%length*this%contraction(i)%numCartesianOrbital))
+                         read(30,*,iostat=status) this%contraction(i)%nkParameters(j), &
+                              this%contraction(i)%zetakParameters(j), &
+                              this%contraction(i)%dkParameters(j)
 
-                ! this%contraction(i)%contNormalization = 1.0_8
-                ! this%contraction(i)%primNormalization = 1.0_8
 
-                ! call ContractedGaussian_normalizePrimitive(this%contraction(i))
-                ! call ContractedGaussian_normalizeContraction(this%contraction(i))
+                         print*, "nk, zetak y dk: ",&
+                              this%contraction(i)%nkParameters(j), &
+                              this%contraction(i)%zetakParameters(j), &
+                              this%contraction(i)%dkParameters(j)
 
-                ! !! DEBUG
-                ! !! call ContractedGaussian_showInCompactForm(this%contraction(i))
+                         !! Some debug information in case of error!
+                         if (status > 0 ) then
+
+                            call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP at basisSet file: "//trim(this%name)//" Please check that file!","EffectiveCorePotentials module at Load function.")
+
+                         end if
+
+                      end do
+                   end if
+
+                end if
+
 
              end do
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!  End do             
 
-             print*, "Max angular moment of the core for ", ssymbol, " : ", maxAngularMoment
+             print*, "Max angular moment of the core for ", symbol, " : ", maxAngularMoment
 
           end if
 
        end do
 
+    end if
 
-    end if   
-    
-    
+
 
   end subroutine EffectiveCorePotentials_load
 
 
-  !   subroutine EffectiveCorePotentials_load(this, basisName, ParticleName, origin, unit)
-  !     implicit none
 
-  !     type(BasisSet) :: this
-  ! !    character(*) :: formatType
-  !     character(*), optional :: basisName
-  !     character(*), optional :: particleName
-  !     real(8), optional :: origin(3)
-  !     integer, optional :: unit
 
-  !     integer :: i, j !< Iterators
-  !     logical :: existFile, found
-  !     logical :: foundECP
-  !     character(20) :: token
-  !     character(10) :: symbol
-  !     character(30) :: particleSelected
-  !     integer :: status
-  !     integer :: nelec, numberOfCoreElectrons
-
-  !     !! Setting name
-  !     if(present(basisName)) this%name = trim(basisName)
-  !     if(present(particleName)) particleSelected = trim(particleName)
-  !     if(present(origin)) this%origin = origin
-
-
-  !        !! Open effective core potentials from basis set file at library
-  !        inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), exist = existFile)
-
-  !        if(existFile) then
-
-  !           !! Open File
-  !           open(unit=30, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%BASIS_SET_DATABASE)//trim(basisName), status="old",form="formatted")
-  !           rewind(30)
-
-  !           foundECP = .false.
-
-  !           !! Find ECP group in basis set file
-  !           do while(foundECP .eqv. .false.)
-
-  !              read(30,*, iostat=status) token
-
-  ! !!!!!!!  To do: include debug information
-
-  ! !             if (status > 0 ) then
-  ! !                
-  ! !                call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(this%name)//" Please check that this file contains pseudopotentials!","EffectiveCorePotentials module at Load function.")
-  ! !                
-  ! !             end if
-  ! !             
-  ! !             if (status == -1 ) then
-  ! !                
-  ! !                call EffectiveCorePotentials_exception(ERROR, "The basisSet: "//trim(this%name)//" for: "//trim(particleSelected)//" was not found!","BasisSet module at Load function.")
-  ! !                
-  ! !             end if
-
-  !              if(trim(token(1:3)) == "ECP") then
-
-  !                 foundECP = .true.
-
-  ! !!!!!!!!!!!!!!!!!!!! ¿Cómo hago para que solo lea desde aquí la unidad 30?
-  !                 do while(foundECP .eqv. .true.)
-
-  !                    backspace(30)
-
-  !                    read(30,*, iostat=status) symbol, token, nelec
-
-  !                    !! Some debug information in case of error!
-  !                    if (status > 0 ) then
-
-  !                       call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basis set file: "//trim(this%name)//" Please check this file.!","BasisSet module at Load function.")
-
-  !                    end if
-
-  !                    if (status == -1 ) then
-
-  !                       call BasisSet_exception(ERROR, "The ECP: "//trim(this%name)//" for: "//trim(particleSelected)//" was not found!","BasisSet module at Load function.")
-
-  !                    end if
-
-  !                 found = .false.
-
-  !                 if((trim(symbol) == trim(particleSelected)) .and. (trim(token) == "nelec")) then
-
-  !                    found = .true.
-
-  !                    numberOfCoreElectrons = nelec
-
-  !                 end if
-
-  !              else
-
-  !                 call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP from basisSet file: "//trim(this%name)//" This file don't contains ECP for " //trim(particleSelected)//" !","EffectiveCorePotentials module at Load function.")
-
-  !              end if
-  !           end do
-
-
-  !           !! Neglect any coment
-  !           token = "#"
-  !           do while(trim(token(1:1)) == "#")
-
-  !              read(30,*) token
-
-  !           end do
-
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! from here again
-
-  !           !! Start reading ECP from basis set file
-
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! From Hay1985:
-  ! !          \sum_k d_k r^{nk} e^{-\zeta_k r^2}
-  ! !          momento angular l se refiere a $r^2 (U_l - U_L)$
-  ! !          ul (potenciales $U_L$) se refiere a $r^2 (U_L - N_c/r)$5
-
-  !           backspace(30)
-
-  !           read(30,*, iostat=status) this%length
-
-  !           !! Some debug information in case of error!
-  !           if (status > 0 ) then
-
-  !              call BasisSet_exception(ERROR, "ERROR reading basisSet file: "//trim(this%name)//" Please check that file!","BasisSet module at Load function.")
-
-  !           end if
-
-  !           allocate(this%contraction(this%length))
-
-  !           do i = 1, this%length
-
-  !              read(30,*,iostat=status) this%contraction(i)%id, &
-  !                   this%contraction(i)%angularMoment, &
-  !                   this%contraction(i)%length
-
-  !              !! Some debug information in case of error!
-  !              if (status > 0 ) then
-
-  !                 call BasisSet_exception(ERROR, "ERROR reading basisSet file: "//trim(this%name)//" Please check that file!","BasisSet module at Load function.")
-
-  !              end if
-
-  !              allocate(this%contraction(i)%orbitalExponents(this%contraction(i)%length))
-  !              allocate(this%contraction(i)%contractionCoefficients(this%contraction(i)%length))
-
-  !              do j = 1, this%contraction(i)%length
-
-  !                 read(30,*,iostat=status) this%contraction(i)%orbitalExponents(j), &
-  !                      this%contraction(i)%contractionCoefficients(j)
-
-  !                 !! Some debug information in case of error!
-  !                 if (status > 0 ) then
-
-  !                    call BasisSet_exception(ERROR, "ERROR reading basisSet file: "//trim(this%name)//" Please check that file!","BasisSet module at Load function.")
-
-  !                 end if
-
-  !              end do
-
-  !              !! Ajust and normalize contractions
-  !              this%contraction(i)%origin = this%origin
-
-  !              !! Calculates the number of cartesian orbitals, by dimensionality
-  !              select case(CONTROL_instance%DIMENSIONALITY)
-
-  !              case(3)
-  !                 this%contraction(i)%numCartesianOrbital = ( ( this%contraction(i)%angularMoment + 1_8 )*( this%contraction(i)%angularMoment + 2_8 ) ) / 2_8
-  !              case(2)
-  !                 this%contraction(i)%numCartesianOrbital = ( ( this%contraction(i)%angularMoment + 1_8 ) )
-  !              case(1)
-  !                 this%contraction(i)%numCartesianOrbital = 1 
-  !              case default
-  !                 call BasisSet_exception( ERROR, "Class object Basis set in load function",&
-  !                      "This Dimensionality is not avaliable") 
-  !              end select
-
-  !              !! Normalize
-  !              allocate(this%contraction(i)%contNormalization(this%contraction(i)%numCartesianOrbital))
-  !              allocate(this%contraction(i)%primNormalization(this%contraction(i)%length, &
-  !                   this%contraction(i)%length*this%contraction(i)%numCartesianOrbital))
-
-  !              this%contraction(i)%contNormalization = 1.0_8
-  !              this%contraction(i)%primNormalization = 1.0_8
-
-  !              call ContractedGaussian_normalizePrimitive(this%contraction(i))
-  !              call ContractedGaussian_normalizeContraction(this%contraction(i))
-
-  !              !! DEBUG
-  !              !! call ContractedGaussian_showInCompactForm(this%contraction(i))
-
-  !           end do
-
-  !           close(30)
-
-  !           !!DONE
-
-  !        else
-
-  !           call EffectiveCorePotentials_exception(ERROR, "The basisSet file: "//trim(basisName)//" was not found!","EffectiveCorePotentials module at Load function.")
-
-  !        end if
-
-  ! !    end select
-
-  !   end subroutine EffectiveCorePotentials_load
-
-  ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-  !   !>
-  !   !! @brief Saves the EffectiveCorePotentials structure to file.
-  !   !! @param this EffectiveCorePotentials object
-  !   !! @author I. Ortiz-Verano, 2017
-  !   subroutine EffectiveCorePotentials_saveToFile(this, unit)
-  !     implicit none
-
-  !     type(EffectiveCorePotentials), intent(in) :: this
-  !     integer :: unit
-
-  !     integer :: i
-
-  !     write(unit,*) this%name
-  !     write(unit,*) this%origin
-  !     write(unit,*) this%length
-  !     write(unit,*) this%ttype
-  !     write(unit,*) this%contractionLength
-  !     write(unit,*) this%numberOfPrimitives
-
-  ! !    do i = 1, size(this%contraction)
-  ! !       call ContractedGaussian_saveToFile(this%contraction(i), unit)
-  ! !    end do
-
-  !   end subroutine EffectiveCorePotentials_saveToFile
-
-  !   !>
-  !   !! @brief Loads the effective core potentials structure from file.
-  !   !! @param this EffectiveCorePotentials object
-  !   !! @author I. Ortiz-Verano, 2017
-  !   subroutine EffectiveCorePotentials_loadFromFile(this, unit)
-  !     implicit none
-
-  !     type(EffectiveCorePotentials) :: this
-  !     integer :: unit
-
-  !     integer :: i
-
-  !     read(unit,*) this%name
-  !     read(unit,*) this%origin
-  !     read(unit,*) this%length
-  !     read(unit,*) this%ttype
-  !     read(unit,*) this%contractionLength
-  !     read(unit,*) this%numberOfPrimitives
-
-  !     allocate(this%contraction(this%length))
-
-  ! !    do i = 1, size(this%contraction)
-  ! !       call ContractedGaussian_loadFromFile(this%contraction(i), unit)
-  ! !    end do
-
-  !   end subroutine EffectiveCorePotentials_loadFromFile
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    !>
+    !! @brief Saves the EffectiveCorePotentials structure to file.
+    !! @param this EffectiveCorePotentials object
+    !! @author I. Ortiz-Verano, 2017
+    subroutine EffectiveCorePotentials_saveToFile(this, unit)
+      implicit none
+
+      type(EffectiveCorePotentials), intent(in) :: this
+      integer :: unit
+
+      integer :: i
+
+      write(unit,*) this%name
+      write(unit,*) this%origin
+      write(unit,*) this%length
+      write(unit,*) this%ttype
+      write(unit,*) this%contractionLength
+      write(unit,*) this%numberOfPrimitives
+
+     do i = 1, size(this%contraction)
+        call ContractedEcpGaussian_saveToFile(this%contraction(i), unit)
+     end do
+
+   end subroutine EffectiveCorePotentials_saveToFile
+
+
+     !>
+  !! @brief Shows information of the object
+  !! @param this: basis set
+  subroutine EffectiveCorePotentials_showInCompactForm( this, nameOfOwner )
+    implicit none
+    
+    type(EffectiveCorePotentials) , intent(in) :: this
+    character(*) ::nameOfOwner
+    integer ::  i
+    
+    print *,"*********", this%name
+    write(6,"(T5,A10,A11,A15)") trim(nameOfOwner),"    ECP: ", trim(this%name)
+    
+    do i =1, this%length
+       call ContractedEcpGaussian_showInCompactForm(this%contraction(i) )
+    end do
+
+  end subroutine EffectiveCorePotentials_showInCompactForm
+
+  !     !>
+  !     !! @brief Loads the effective core potentials structure from file.
+  !     !! @param this EffectiveCorePotentials object
+  !     !! @author I. Ortiz-Verano, 2017
+  !     subroutine EffectiveCorePotentials_loadFromFile(this, unit)
+  !       implicit none
+
+  !       type(EffectiveCorePotentials) :: this
+  !       integer :: unit
+
+  !       integer :: i
+
+  !       read(unit,*) this%name
+  !       read(unit,*) this%origin
+  !       read(unit,*) this%length
+  !       read(unit,*) this%ttype
+  ! !      read(unit,*) this%contractionLength
+  !       read(unit,*) this%numberOfPrimitives
+
+  !       allocate(this%contraction(this%length))
+
+  !      do i = 1, size(this%contraction)
+  !         call ContractedGaussian_loadFromFile(this%contraction(i), unit)
+  !      end do
+
+  !     end subroutine EffectiveCorePotentials_loadFromFile
 
   !>
   !! @brief handle exceptions
@@ -616,7 +494,7 @@ contains
     integer:: typeMessage
     character(*):: description
     character(*):: debugDescription
-    
+
     type(Exception):: ex
 
     call Exception_constructor( ex , typeMessage )

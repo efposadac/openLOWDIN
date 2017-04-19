@@ -38,11 +38,12 @@ module Particle_
   use AtomicElement_
   use ElementalParticle_
   use BasisSet_
-  ! use EffectiveCorePotentials_
+  use EffectiveCorePotentials_
   implicit none
   
   type, public :: Particle
      type(BasisSet) :: basis            !< Basis set for particle (if any)
+     type(EffectiveCorePotentials) :: effectiveCorePotentials
      character(10) :: name              !< Name of particle: electron, muons, etc.
      character(10) :: symbol            !< Symbol of particle: e-, u-, etc.
      character(50) :: nickname          !< Name in input file: e-(H), U-, He_4, etc.
