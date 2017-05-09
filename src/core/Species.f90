@@ -57,6 +57,7 @@ module Species_
      integer :: basisSetSize       
      integer :: speciesID
      logical(1) :: isElectron
+     logical :: onlyValence
      
      type(Particle), allocatable :: particles(:)
      
@@ -128,7 +129,7 @@ contains
           !! Set ocupation number
           this%ocupationNumber = this%ocupationNumber + this%particles(i)%internalSize
        end if
-       
+
     end do
     
     !! Set speciesID
@@ -139,6 +140,8 @@ contains
     this%symbol = trim(this%particles(1)%symbol)    
     !! Adjust statistics
     this%statistics = trim(this%particles(1)%statistics)
+!    this%onlyValence = this%particles(1)%onlyValence
+!    print*,this%name,this%onlyValence,"***************************"
     !! Adjust charge
     this%charge = this%particles(1)%charge
     !! Adjust mass

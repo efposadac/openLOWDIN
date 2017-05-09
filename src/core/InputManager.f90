@@ -266,8 +266,8 @@ contains
     !    CONTROL_instance%EFFECTIVE_CORE_POTENTIALS = .true.
     ! end if    
     
-    if (input_instance%cosmo) then 	
-       CONTROL_instance%cosmo = .true.	
+    if (input_instance%cosmo) then 
+       CONTROL_instance%cosmo = .true.
        CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
     end if
     
@@ -336,6 +336,7 @@ contains
     numberOfParticlesForSpecies = 0
     numberOfQuantumSpecies = 0
     numberOfPointCharges = 0
+    numberOfCoreElectrons = 0
     counter = 0
 
     !! Reload input file
@@ -382,8 +383,7 @@ contains
              isNewSpecies = .false.
              !! Only are species those who have basis-set
              if((trim(InputParticle_basisSetName) /= "MM") .and. &
-                  (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "") &
-                  .and. (trim(InputParticle_basisSetName) /= "ECP")) then
+                  (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
                 
                 !! For open-shell case electrons are alpha and beta
                 if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
@@ -394,6 +394,14 @@ contains
                 else
                    numberOfParticlesForSpecies(j) = numberOfParticlesForSpecies(j) + 1
                 end if
+
+                if (InputParticle_onlyValence) then
+print*, "Only valence"
+numberOfParticlesForSpecies(j) = numberOfParticlesForSpecies(j) + numberOfCoreElectrons
+print*,"number of core electrons = ",numberOfParticlesForSpecies(j),numberOfCoreElectrons,Input_instance%numberOfParticles
+else
+  print*, "No only valence"
+                end if  
 
              else
                 
@@ -409,8 +417,7 @@ contains
        if(isNewSpecies) then          
           !! Look for Quantum species
           if((trim(InputParticle_basisSetName) /= "MM") .and. &
-               (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "") &
-                  .and. (trim(InputParticle_basisSetName) /= "ECP")) then 
+               (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then 
              
              !! For open-shell case electrons are alpha and beta
              if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
@@ -437,6 +444,12 @@ contains
                 numberOfParticlesForSpecies(counter) = numberOfParticlesForSpecies(counter) + 1
                 numberOfQuantumSpecies = numberOfQuantumSpecies + 1
              end if
+
+             if (InputParticle_onlyValence) then
+print*, "Only valenc 2"
+numberOfParticlesForSpecies(j) = numberOfParticlesForSpecies(j) + numberOfCoreElectrons
+print*,"number of core electrons 2 = ",numberOfParticlesForSpecies(j),numberOfCoreElectrons,Input_instance%numberOfParticles
+             end if
                 
           else !! Point Charges
              
@@ -461,7 +474,8 @@ contains
     counter = 0
     
     !! Initializes the molecular system object
-    call MolecularSystem_initialize(numberOfQuantumSpecies, numberOfPointCharges, numberOfParticlesForSpecies, quantumSpeciesName, &
+    call MolecularSystem_initialize(numberOfQuantumSpecies, numberOfPointCharges, numberOfCoreElectrons, &
+      numberOfParticlesForSpecies, quantumSpeciesName, &
          trim(input_instance%systemName), trim(input_instance%systemDescription))
     
     !! Reload input file
@@ -530,10 +544,14 @@ contains
           
           !! Load information of the core in ECP
           numberOfCoreElectrons = 0
+          !do j = 1, speciesWithEcp
+
           if (InputParticle_onlyValence .eqv. .true.) then
              numberOfCoreElectrons = EffectiveCorePotentials_getNumberOfCoreElectrons(atomName(2:len(trim(atomName))-1), InputParticle_basisSetName)
              call EffectiveCorePotentials_load(InputParticle_basisSetName, atomName(2:len(trim(atomName))-1))
+             print*,numberOfCoreElectrons,"555555555555555555555555555555"
           end if
+        !end do
 
 
           !! Load open-shell case electrons

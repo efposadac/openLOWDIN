@@ -48,10 +48,12 @@ module MolecularSystem_
      integer :: numberOfPointCharges
      integer :: numberOfQuantumParticles
      integer :: numberOfQuantumSpecies
+     integer :: numberOfCoreElectrons
      integer :: charge
           
      type(Species), allocatable :: species(:)
      type(particle), allocatable :: pointCharges(:)
+!     type(particle), allocatable :: atomicCore(:)
      type(particleManager), allocatable :: allParticles(:)
      type(InternalCoordinates) :: intCoordinates
 
@@ -106,11 +108,13 @@ contains
   !>
   !! @brief initializes the molecular system.
   !! @author E. F. Posada, 2013
-  subroutine MolecularSystem_initialize(numberOfQuantumSpecies, numberOfPointCharges, numberOfParticlesForSpecies, quantumSpeciesName, systemName, systemDescription)
+  subroutine MolecularSystem_initialize(numberOfQuantumSpecies, numberOfPointCharges, numberOfCoreElectrons, &
+    numberOfParticlesForSpecies, quantumSpeciesName, systemName, systemDescription)
     implicit none
     
     integer :: numberOfQuantumSpecies
     integer :: numberOfPointCharges
+    integer :: numberOfCoreElectrons
     integer, allocatable :: numberOfParticlesForSpecies(:)
     character(15), allocatable :: quantumSpeciesName(:)
     character(*) :: systemName
@@ -125,6 +129,8 @@ contains
     MolecularSystem_instance%numberOfPointCharges = numberOfPointCharges
     MolecularSystem_instance%numberOfQuantumSpecies = numberOfQuantumSpecies
     MolecularSystem_instance%numberOfParticles = sum(numberOfParticlesForSpecies) + numberOfPointCharges
+    MolecularSystem_instance%numberOfCoreElectrons = numberOfCoreElectrons
+!    MolecularSystem_instance%atomicCore = atomicCore
 
     !! Allocate memory for particles
     allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
@@ -148,11 +154,14 @@ contains
 
        end do
     end do
-
+print*,"Number of point charges****************", numberOfPointCharges
     do i = 1, MolecularSystem_instance%numberOfPointCharges
-       
+!      if (InputParticle_onlyValence .eqv. .true.) then
+!counter = counter + numberOfCoreElectrons
+!      end if 
        molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%pointCharges(i)
        counter = counter + 1
+ !      print*, counter, "******************************"
 
     end do
 
@@ -171,6 +180,7 @@ contains
     !! Setting quantum species
     MolecularSystem_instance%numberOfQuantumParticles = 0
     MolecularSystem_instance%charge = 0
+        MolecularSystem_instance%numberOfCoreElectrons = 0
    
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        
@@ -215,6 +225,7 @@ contains
     MolecularSystem_instance%numberOfPointCharges = 0
     MolecularSystem_instance%numberOfQuantumParticles = 0
     MolecularSystem_instance%numberOfQuantumSpecies = 0
+        MolecularSystem_instance%numberOfCoreElectrons = 0
     MolecularSystem_instance%charge = 0
     
     if(allocated(MolecularSystem_instance%species)) deallocate(MolecularSystem_instance%species)
@@ -348,6 +359,7 @@ contains
     write (6,"(T10,A29,I8.0)") "Number of quantum particles =", MolecularSystem_instance%numberOfQuantumParticles
     write (6,"(T10,A29,I8.0)") "Number of puntual charges   =", MolecularSystem_instance%numberOfPointCharges
     write (6,"(T10,A29,I8.0)") "Number of quantum species   =", MolecularSystem_instance%numberOfQuantumSpecies
+        write (6,"(T10,A29,I8.0)") "Number of core electrons   =", MolecularSystem_instance%numberOfCoreElectrons
 
     !!***********************************************************************
     !! Imprime iformacion sobre masa, carga y numero de particulas encontradas
