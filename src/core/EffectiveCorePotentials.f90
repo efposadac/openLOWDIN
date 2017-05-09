@@ -30,21 +30,21 @@ module EffectiveCorePotentials_
      !     type(contractedEcpGaussian),allocatable :: zetaParameters(:) !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
      !     type(contractedEcpGaussian),allocatable :: dkParameters(:)   !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
      character(30) :: name
-          character(30) :: baseName 
+     character(30) :: baseName 
      real(8) :: origin(3)
      integer :: ttype   !!!!!!!!!!!?????????????
      integer :: numberOfCoreElectrons
      integer :: length
-     integer :: contractionLength
+     integer :: contractionLenght
      integer :: numberOfPrimitives
   end type EffectiveCorePotentials
 
   public :: &
        EffectiveCorePotentials_load, &
        EffectiveCorePotentials_getNumberOfCoreElectrons
-!       EffectiveCorePotentials_loadECP, &
+  !      EffectiveCorePotentials_loadECP, &
   !      EffectiveCorePotentials_showInSimpleForm  
-
+  
   private :: &
        EffectiveCorePotentials_exception
 
@@ -283,16 +283,16 @@ contains
              case default
                 call EffectiveCorePotentials_exception(ERROR, "Max angular moment can't be stablished for: "//trim(symbol)//" at "//trim(basisName)//" file!"," BasisSet module at Load subroutine.")
                 !!error
-
+                
                 print*, "error leyendo máximo momento angular"
              end select
-
+             
              allocate(this%contraction(this%length))
-
-
+             
+             
              do i = 1, this%length
-
-
+                
+                
                 !! Determine length of each contracted gaussian
                 if (i == 1) then
                    !! When i = 1, this "if" find the length of this contraction
@@ -309,7 +309,7 @@ contains
                             exit
                          end if
                       end do
-
+                      
                       allocate(this%contraction(i)%nkParameters(this%contraction(i)%length))
                       allocate(this%contraction(i)%zetakParameters(this%contraction(i)%length))
                       allocate(this%contraction(i)%dkParameters(this%contraction(i)%length))
@@ -317,30 +317,30 @@ contains
                       do l=1, this%contraction(i)%length+1
                          backspace(30)
                       end do
-
+                      
                       print*, "Contraction: ", i
                       do j = 1, this%contraction(i)%length
-
+                         
                          read(30,*,iostat=status) this%contraction(i)%nkParameters(j), &
                               this%contraction(i)%zetakParameters(j), &
                               this%contraction(i)%dkParameters(j)
-
+                         
                          print*, "nk, zetak y dk: ",&
                               this%contraction(i)%nkParameters(j), &
                               this%contraction(i)%zetakParameters(j), &
                               this%contraction(i)%dkParameters(j)
-
+                         
                          !! Some debug information in case of error!
                          if (status > 0 ) then
-
+                            
                             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP at basisSet file: "//trim(this%name)//" Please check that file!","EffectiveCorePotentials module at Load function.")
-
+                            
                          end if
-
+                         
                       end do
-
+                      
                    end if
-
+                   
                    !! When i > 1:
                 else if(i .ge. 2) then
                    read(30,*, iostat=status) token
@@ -365,63 +365,58 @@ contains
                       allocate(this%contraction(i)%nkParameters(this%contraction(i)%length))
                       allocate(this%contraction(i)%zetakParameters(this%contraction(i)%length))
                       allocate(this%contraction(i)%dkParameters(this%contraction(i)%length))
-
+                      
                       do l=1, this%contraction(i)%length+1
                          backspace(30)
                       end do
 
                       print*, "Contraction: ", i
                       do j = 1, this%contraction(i)%length
-
+                         
                          read(30,*,iostat=status) this%contraction(i)%nkParameters(j), &
                               this%contraction(i)%zetakParameters(j), &
                               this%contraction(i)%dkParameters(j)
-
-
+                         
+                         
                          print*, "nk, zetak y dk: ",&
                               this%contraction(i)%nkParameters(j), &
                               this%contraction(i)%zetakParameters(j), &
                               this%contraction(i)%dkParameters(j)
-
+                         
                          !! Some debug information in case of error!
                          if (status > 0 ) then
-
+                            
                             call EffectiveCorePotentials_exception(ERROR, "ERROR reading ECP at basisSet file: "//trim(this%name)//" Please check that file!","EffectiveCorePotentials module at Load function.")
 
                          end if
-
+                         
                       end do
                    end if
-
+                   
                 end if
-
-
+                
+                
              end do
-
-
+             
              print*, "Max angular moment of the core for ", symbol, " : ", maxAngularMoment
-
+             
           end if
-
+          
        end do
-
+       
     end if
-
-
-
+    
   end subroutine EffectiveCorePotentials_load
+  
 
-
-
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    !>
-    !! @brief Saves the EffectiveCorePotentials structure to file.
-    !! @param this EffectiveCorePotentials object
-    !! @author I. Ortiz-Verano, 2017
-    subroutine EffectiveCorePotentials_saveToFile(this, unit)
-      implicit none
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  
+  !>
+  !! @brief Saves the EffectiveCorePotentials structure to file.
+  !! @param this EffectiveCorePotentials object
+  !! @author I. Ortiz-Verano, 2017
+  subroutine EffectiveCorePotentials_saveToFile(this, unit)
+    implicit none
 
       type(EffectiveCorePotentials), intent(in) :: this
       integer :: unit
