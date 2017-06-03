@@ -15,7 +15,8 @@ CONTROL
 	!CIdiagonalizationMethod = "DSYEVX"
 	!CIdiagonalizationMethod = "ARPACK"
 	CIdiagonalizationMethod = "JADAMILU"
-	CISizeOfGuessMatrix=1500
+	!CISizeOfGuessMatrix=2900
+	CIConvergence=1E-4
 END CONTROL
 INPUT_CI
 	species="E-ALPHA" core=0 active=0 excitation=2

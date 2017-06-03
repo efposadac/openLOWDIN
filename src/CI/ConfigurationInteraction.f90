@@ -2471,6 +2471,8 @@ contains
             end do
           end do
         end if
+
+        write (6, "(T4,A20,A21,A3,I6)") "Triples for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
       end do !! species
 
        !!Triples (21)  problem here!!
@@ -7035,11 +7037,15 @@ contains
     integer(8) :: macroIterations, im, finalmacroIterations
     real(8), allocatable :: macroIterationsEnergies(:)
     real(8), allocatable :: macroIterationsEnergiesDiff(:)
+    integer, allocatable :: macroIterationsNumberOfIter(:)
     logical :: fullMatrix
-    real(8) :: auxX
     
-    maxsp = 15
-    macroIterations = 10
+    maxsp = 25
+    if ( CONTROL_instance%CI_JACOBI ) then
+      macroIterations = 10
+    else 
+      macroIterations = 1
+    end if
 
     size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
     size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
@@ -7054,8 +7060,10 @@ contains
 
     allocate (macroIterationsEnergies(macroIterations))
     allocate (macroIterationsEnergiesDiff(macroIterations))
+    allocate (macroIterationsNumberOfIter(macroIterations))
     macroIterationsEnergies = 0
     macroIterationsEnergiesDiff = 0
+    macroIterationsNumberOfIter = 0
 
     LX = N*(3*MAXSP+MAXEIG+1)+4*MAXSP*MAXSP
 
@@ -7191,23 +7199,19 @@ contains
         print *, "Eigenvalue(1)", eigs(1), "Eigenvector(1)", x(1)
         iiter = 0
   
-        auxX = x(1)
-        fullMatrix = .true.
 !10     CALL DPJDREVCOM( N, A, JA, IA,EIGS, RES, X, LX, NEIG, &
 !                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
 !                        SHIFT, DROPTOL, MEM, ICNTL, &
 !                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-  
   10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1_8,-1_8,EIGS, RES, X, LX, NEIG, &
                         SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                         SHIFT, DROPTOL, MEM, ICNTL, &
                         IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-        if (x(1) .ne. auxX ) then
-          fullMatrix = .true.
-        else 
+        if (CONTROL_instance%CI_JACOBI ) then
           fullMatrix = .false.
+        else 
+          fullMatrix = .true.
         end if
-      
   !!    your private matrix-vector multiplication
   
         iiter = iiter +1
@@ -7217,6 +7221,7 @@ contains
            GOTO 10
         END IF
   
+        macroIterationsNumberOfIter(im) = iter
         !! saving the eigenvalues
 
          do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
@@ -7284,7 +7289,7 @@ contains
       print *, " Macro iterations"
       print *, " i, Energy(i), Energy Diff (E(i) - E(i-1) "
       do im = 1,  finalmacroIterations
-        print *, im,  macroIterationsEnergies(im), macroIterationsEnergiesDiff(im)
+        print *, im,  macroIterationsNumberOfIter(im), macroIterationsEnergies(im), macroIterationsEnergiesDiff(im)
       end do
       !! saving the eigenvalues
       eigenValues%values = EIGS
@@ -7317,7 +7322,7 @@ contains
     real(8) w(nx)
     real(8) :: CIEnergy
     integer(8) :: nonzero
-    integer(8) :: i, j, ia, ib, ii, jj, im
+    integer(8) :: i, j, ia, ib, ii, jj, im, iii, jjj
     integer(4) :: nproc
     real(8) :: wi
     real(8) :: timeA, timeB
@@ -7325,6 +7330,9 @@ contains
     integer(4) :: iter, size1, size2
     integer(8), allocatable :: indexArray(:)
     logical :: fullMatrix
+    integer :: auxSize
+
+    auxSize = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
 
     nproc = omp_get_max_threads()
 
@@ -7337,28 +7345,47 @@ contains
 
     tol = 1E-8
 
-    do i = 1 , nx
-      if ( abs(v(i)+y( i) ) >= tol) nonzero = nonzero + 1
-    end do
+    if (  fullMatrix ) then
 
-    allocate(indexArray(nonzero))
-    indexArray = 0
+      do i = 1 , nx
+        if ( abs(v(i) ) >= tol) nonzero = nonzero + 1
+      end do
   
-    ia = 0
-    do i = 1 , nx
-      if ( abs(v(i)+y(i) ) >= tol) then
-        ia = ia + 1
-        indexArray(ia) = i
-      end if
-    end do
-    ib = 0
+      allocate(indexArray(nonzero))
+      indexArray = 0
+    
+      ia = 0
+      do i = 1 , nx
+        if ( abs(v(i) ) >= tol) then
+          ia = ia + 1
+          indexArray(ia) = i
+        end if
+      end do
+
+    else
+      do i = 1 , nx
+        if ( abs(v(i)+y( i) ) >= tol) nonzero = nonzero + 1
+      end do
+  
+      allocate(indexArray(nonzero))
+      indexArray = 0
+    
+      ia = 0
+      do i = 1 , nx
+        if ( abs(v(i)+y(i) ) >= tol) then
+          ia = ia + 1
+          indexArray(ia) = i
+        end if
+      end do
+    end if
 
     !size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
     !size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
 
 
     timeA = omp_get_wtime()
-    if (  iter == 1 ) then
+    if (  fullMatrix  ) then
+     ! print *, "full"
      !do i = 1, nx
      !   w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direc
      ! end do
@@ -7381,8 +7408,9 @@ contains
       !  !$omp end parallel
       !end do 
 
-      do ii = 1, nonzero
-        i = indexArray(ii)
+      do i = 1, nx
+      !do ii = 1, nonzero
+        !i = indexArray(ii)
         !do i = 1, nx
         w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
         wi = 0
@@ -7421,26 +7449,29 @@ contains
       !  w(i) = w(i) + wi
       !end do 
     else
+      if (  iter == 1  ) then
 
-      tol = 1E-8
+      do ii = 1, nonzero
+        i = indexArray(ii)
+        !do i = 1, nx
+        w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
+        wi = 0
+        !$omp parallel &
+        !$omp& private(j,CIEnergy),&
+        !$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,size1,size2) reduction (+:wi)
+        !$omp do schedule (guided)
+        do j = i+1 , nx
+            CIenergy = ConfigurationInteraction_calculateCouplingB( i, j, size1, size2  )
 
-      !do i = 1, nonzero
-      !  ii = indexArray(i)
+            w(j) = w(j) + CIEnergy*v(i)  !! direct
+            wi = wi + CIEnergy*v(j)  !! direct
+        end do 
+        !$omp end do nowait
+        !$omp end parallel
+        w(i) = w(i) + wi
+      end do 
 
-      !  !$omp parallel &
-      !  !$omp& private(j,jj,CIEnergy),&
-      !  !$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,size1,size2) 
-      !  !$omp do 
-      !  do j = 1 , nonzero
-      !    jj = indexArray(j)
-
-      !    CIenergy = ConfigurationInteraction_calculateCoupling( ii, jj, size1, size2  )
-      !    w(jj) = w(jj) + CIEnergy*v(ii)  !! direct
-      !    ib = ib + 1 
-      !  end do 
-      !  !$omp end do nowait
-      !  !$omp end parallel
-      !end do 
+      else 
 
       do ii = 1, nonzero
         i = indexArray(ii)
@@ -7463,9 +7494,38 @@ contains
         w(i) = w(i) + wi
       end do 
 
+      !!do ii = 1, nonzero
+      !!  i = indexArray(ii)
+      !!  !do i = 1, nx
+      !!  w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
+      !!  wi = 0
 
+      !!  iii = ConfigurationInteraction_instance%auxIndexCIMatrix%values(i)
+      !!  if ( iii <=  auxSize ) then
+      !!  !$omp parallel &
+      !!  !$omp& private(j,jj,jjj,CIEnergy),&
+      !!  !$omp& shared(i,iii,v,nonzero,w,size1,size2) reduction (+:wi) 
+      !!  !$omp do schedule (guided)
+      !!  do jj = ii+1 , nonzero
+      !!      j = indexArray(jj)
+      !!      jjj = ConfigurationInteraction_instance%auxIndexCIMatrix%values(j)
+
+      !!       if ( jjj <=  auxSize ) then
+      !!      CIenergy = ConfigurationInteraction_instance%initialHamiltonianMatrix2%values(iii,jjj)
+      !!      !CIenergy = ConfigurationInteraction_calculateCouplingB( i, j, size1, size2  )
+
+      !!      w(j) = w(j) + CIEnergy*v(i)  !! direct
+      !!      wi = wi + CIEnergy*v(j)  !! direct
+      !!      end if
+      !!  end do 
+      !!  !$omp end do nowait
+      !!  !$omp end parallel
+      !!  end if
+      !!  w(i) = w(i) + wi
+      !!end do 
+
+      end if
     end if
-
     deallocate(indexArray)
 
     timeB = omp_get_wtime()
