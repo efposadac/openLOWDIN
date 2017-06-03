@@ -107,6 +107,7 @@ module ConfigurationInteraction_
        ConfigurationInteraction_getTotalEnergy, &
        ConfigurationInteraction_run, &
        ConfigurationInteraction_diagonalize, &
+       ConfigurationInteraction_naturalOrbitals, &
        ConfigurationInteraction_show
 
   private
@@ -1471,6 +1472,148 @@ contains
 
   end subroutine ConfigurationInteraction_show
 
+  !FELIX IS HERE
+  subroutine ConfigurationInteraction_naturalOrbitals()
+    implicit none
+    type(ConfigurationInteraction) :: this
+    integer :: i, j, k, mu, nu
+    integer :: unit, wfnunit
+    integer :: numberOfOrbitals, numberOfOccupiedOrbitals
+    integer :: state, specie, orbital, orbitalA, orbitalB
+    character(50) :: file, wfnfile, speciesName, auxstring
+    character(50) :: arguments(2)
+    real(8) :: sumaPrueba
+    type(matrix) :: coefficients, densityMatrix
+    type(matrix) :: ciOccupationNumbers
+    integer numberOfSpecies
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    if ( ConfigurationInteraction_instance%isInstanced .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+
+       print *,""
+       print *," FRACTIONAL ORBITAL OCCUPATIONS"
+       print *,"=============================="
+       print *,"column: state, row: orbital"
+       print *,""
+
+       !! Open file - to print natural orbitals
+       unit = 29
+
+       file = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+       open(unit = unit, file=trim(file), status="new", form="formatted")
+       
+       ! call Matrix_show (ConfigurationInteraction_instance%eigenVectors)
+       
+       do specie=1, numberOfSpecies
+          
+          speciesName = MolecularSystem_getNameOfSpecie(specie)
+          numberOfOrbitals = ConfigurationInteraction_instance%numberOfOrbitals%values(specie)
+          numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie)
+          !Inicializando la matriz
+
+          call Matrix_constructor ( ciOccupationNumbers , int(numberOfOrbitals,8) , &
+               int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
+
+          do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+             sumaPrueba=0
+             do j=1, numberOfOccupiedOrbitals
+                ciOccupationNumbers%values(j,state) = 1.0
+             end do
+          
+          ! !Get occupation numbers from each configuration contribution
+             
+             do i=1, ConfigurationInteraction_instance%numberOfConfigurations
+                do j=1, numberOfOccupiedOrbitals
+
+                   !! Occupied orbitals
+                   ciOccupationNumbers%values( j, state)= ciOccupationNumbers%values( j, state) -  &
+                        ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                   !! Unoccupied orbitals
+                   orbital = ConfigurationInteraction_instance%configurations(i)%occupations(j,specie) 
+
+                   ciOccupationNumbers%values( orbital, state)= ciOccupationNumbers%values( orbital, state) + &
+                        ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+
+                   ! print *, j, orbital, ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                   ! sumaPrueba=sumaPrueba+ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                end do
+                ! end if
+
+             end do
+
+             ! print *, "suma", sumaPrueba
+             !Build a new density matrix (P) in atomic orbitals
+
+             call Matrix_constructor ( densityMatrix , &
+                  int(numberOfOrbitals,8), &
+                  int(numberOfOrbitals,8),  0.0_8 )
+             
+             wfnFile = "lowdin.wfn"
+             wfnUnit = 20
+
+             open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+             arguments(2) = speciesName
+             arguments(1) = "COEFFICIENTS"
+
+             coefficients = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
+                  columns= int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
+             
+             close(wfnUnit)
+             
+             do mu = 1 , numberOfOrbitals
+                do nu = 1 , numberOfOrbitals
+                   do k = 1 , numberOfOrbitals
+
+                      densityMatrix%values(mu,nu) =  &
+                           densityMatrix%values(mu,nu) + &
+                           ciOccupationNumbers%values(k, state)* &
+                           coefficients%values(mu,k)*coefficients%values(nu,k)
+                    end do
+                 end do
+              end do
+
+              write(auxstring,*) state
+              arguments(2) = speciesName
+              arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+              
+              call Matrix_writeToFile ( densityMatrix, unit , arguments=arguments(1:2) )
+
+              ! print *, arguments(1:3)
+              ! call Matrix_show ( densityMatrix )
+
+              call Matrix_destructor(coefficients)          
+              call Matrix_destructor(densityMatrix)          
+
+
+           end do
+
+          !Write occupation numbers to file
+          write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecie(specie)),"OCCUPATIONS:"
+
+          call Matrix_show ( ciOccupationNumbers )
+
+          arguments(2) = speciesName
+          arguments(1) = "OCCUPATIONS"
+
+          call Matrix_writeToFile ( ciOccupationNumbers, unit , arguments=arguments(1:2) )
+
+          call Matrix_destructor(ciOccupationNumbers)          
+
+       end do
+          
+       close(unit)
+
+    end if
+
+
+
+  end subroutine ConfigurationInteraction_naturalOrbitals
+
+
+
+
   !>
   !! @brief Muestra informacion del objeto
   !!
@@ -1543,6 +1686,11 @@ contains
            call ConfigurationInteraction_loadEigenVector (ConfigurationInteraction_instance%eigenvalues, &
                   ConfigurationInteraction_instance%eigenVectors) 
          end if 
+
+         if ( CONTROL_instance%CI_BUILD_FULL_MATRIX ) then
+           print *, "Building and saving hamiltonian..."
+           call ConfigurationInteraction_buildAndSaveCIMatrix()
+         end if
 
          print *, ""
          print *, "Diagonalizing hamiltonian..."
@@ -4139,17 +4287,14 @@ contains
     real(8), allocatable :: energyArray(:),auxEnergyArray(:)
     integer :: starting, ending, step, maxConfigurations
     character(50) :: fileNumberA, fileNumberB
-    integer, allocatable :: cmax(:)
+    integer :: cmax
     integer :: maxStackSize, i, ia, ib, ssize, ci,cj, size1, size2
+    integer :: nblocks
 
     size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
     size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
 
     maxStackSize = CONTROL_instance%CI_STACK_SIZE 
-
-
-    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationA )
-    call Configuration_copyConstructor ( ConfigurationInteraction_instance%configurations(1), auxConfigurationB )
 
     allocate (ConfigurationInteraction_instance%auxconfs (size1,size2, ConfigurationInteraction_instance%numberOfConfigurations ))
 
@@ -4172,68 +4317,46 @@ contains
     print *, "  OMP Number of threads: " , omp_get_max_threads()
     nproc = omp_get_max_threads()
 
-    call omp_set_num_threads(omp_get_max_threads())
-    call omp_set_num_threads(nproc)
+    !call omp_set_num_threads(omp_get_max_threads())
+    !call omp_set_num_threads(nproc)
 
-    if (allocated(cmax)) deallocate(cmax)
-    allocate(cmax(nproc))
+    !if (allocated(cmax)) deallocate(cmax)
+    !allocate(cmax(nproc))
     cmax = 0
+
+    maxConfigurations = ConfigurationInteraction_instance%numberOfConfigurations
+    if (allocated(indexArray )) deallocate(indexArray)
+    allocate (indexArray(maxConfigurations))
+    indexArray = 0
+    if (allocated(energyArray )) deallocate(energyArray)
+    allocate (energyArray(maxConfigurations))
+    energyArray = 0
 
     do a=1, ConfigurationInteraction_instance%numberOfConfigurations
 
-      maxConfigurations = ConfigurationInteraction_instance%numberOfConfigurations - a + 1 
-      step = ceiling ( real( maxConfigurations )/real(nproc))
-      if (allocated(indexArray )) deallocate(indexArray)
-      allocate (indexArray(maxConfigurations))
-      indexArray = 0
-      if (allocated(energyArray )) deallocate(energyArray)
-      allocate (energyArray(maxConfigurations))
+      !indexArray = 0
       energyArray = 0
-      cmax = 0
+      c = 0
+
 !$omp parallel & 
-!$omp& private(n,ending,starting,b,CIenergy),&
-!$omp& private(auxConfigurationA ),&
-!$omp& private(auxConfigurationB ),&
-!$omp& firstprivate(nproc,maxConfigurations),&
-!$omp& shared(cmax,indexArray,energyArray, HartreeFock_instance),&
-!$omp& shared(ConfigurationInteraction_instance)
-!$omp do 
-      do n = 1, nproc
-
-        ending = n * step  + a - 1
-        starting = ending - step + 1
-
-        if( ending > ConfigurationInteraction_instance%numberOfConfigurations ) then
-         ending =ConfigurationInteraction_instance%numberOfConfigurations 
-        end if  
-
-        do b= starting, ending
-
-          !auxConfigurationA%occupations = ConfigurationInteraction_instance%configurations(a)%occupations
-          !auxConfigurationB%occupations = ConfigurationInteraction_instance%configurations(b)%occupations
-
-          !CIenergy = ConfigurationInteraction_calculateCIenergyC( & 
-          !            auxConfigurationA, auxConfigurationB )
-
-          CIenergy = ConfigurationInteraction_calculateCIenergyB( & 
-          ConfigurationInteraction_instance%configurations(a)%occupations, &
-          ConfigurationInteraction_instance%configurations(b)%occupations, size1, size2 )
-
-
-          !CIenergy = ConfigurationInteraction_calculateCoupling( a, b, size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1), &
-          !            size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) )
+!$omp& private(b,CIenergy),&
+!$omp& shared(indexArray,energyArray, HartreeFock_instance),&
+!$omp& shared(ConfigurationInteraction_instance) reduction (+:c)
+!$omp do schedule(guided)
+        do b= a, ConfigurationInteraction_instance%numberOfConfigurations
+          CIenergy = ConfigurationInteraction_calculateCoupling( a, b, size1, size2 )
 
           if ( abs(CIenergy) > 1E-9 ) then
-            cmax(n) = cmax(n) +1   
-            indexArray(b-a+1) = b
-            energyArray(b-a+1) = CIenergy
+            c = c +1   
+            !indexArray(b) = b
+            energyArray(b) = CIenergy
           end if
-        end do
       end do
 !$omp end do nowait
 !$omp end parallel
+
        
-      c = sum(cmax)
+      cmax = cmax + c
 
       write(CIUnit) c
       write(CIUnit) a
@@ -4242,32 +4365,37 @@ contains
       allocate (auxIndexArray(c))
 
       cj = 0
-      do ci = 1, maxConfigurations
-        if ( indexArray(ci) > 0 ) then
+      do ci = a, ConfigurationInteraction_instance%numberOfConfigurations
+        !if ( indexArray(ci) > 0 ) then
+        if ( abs(energyArray(ci)) > 1E-9 ) then
           cj = cj + 1
-          auxIndexArray(cj) = indexArray(ci)
+          auxIndexArray(cj) =(ci)
           auxEnergyArray(cj) = energyArray(ci)
         end if
       end do
+      nblocks = ceiling(real(c) / real(maxStackSize) )
 
-      do i = 1, ceiling(real(c) / real(maxStackSize) )
+      do i = 1, nblocks - 1
         ib = maxStackSize * i  
         ia = ib - maxStackSize + 1
-        if ( ib > c ) ib = c
         write(CIUnit) auxIndexArray(ia:ib)
       end do
+
+      ia = maxStackSize * (nblocks - 1) + 1
+      write(CIUnit) auxIndexArray(ia:c)
+
       deallocate(auxIndexArray)
 
-      do i = 1, ceiling(real(c) / real(maxStackSize) )
+      do i = 1, nblocks - 1
         ib = maxStackSize * i  
         ia = ib - maxStackSize + 1
-        if ( ib >  c ) ib = c
         write(CIUnit) auxEnergyArray(ia:ib)
       end do
-      deallocate (auxEnergyArray)
 
-!      write(CIUnit) pack( indexArray, indexArray /= 0 )
-!      write(CIUnit) pack( energyArray, energyArray /= 0.0_8)
+      ia = maxStackSize * (nblocks - 1) + 1
+      write(CIUnit) auxEnergyArray(ia:c)
+
+      deallocate (auxEnergyArray)
 
     end do
 
@@ -4277,10 +4405,10 @@ contains
 
     deallocate(indexArray)
     deallocate(energyArray)
-
+    
     timeB = omp_get_wtime()
-  
     write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Building CI matrix : ", timeB - timeA ," (s)"
+    print *, "Nonzero elements", cmax
 
   end subroutine ConfigurationInteraction_buildAndSaveCIMatrix
 
@@ -6788,7 +6916,7 @@ contains
   !  The user supplies a matrix-vector multiplication routine that takes
   !  workd(ipntr(1)) as the input, and return the result to workd(ipntr(2)).
   !
-      call av ( nx, workd(ipntr(1)), workd(ipntr(2)) )
+      call av ( int(nx,8), workd(ipntr(1)), workd(ipntr(2)) )
       !call matvec ( nx, residi,workd(ipntr(1)), workd(ipntr(2)), iter )
   
      end do
@@ -6925,7 +7053,7 @@ contains
   !
     implicit none
   
-    integer nx
+    integer(8) nx
     real(8) v(nx)
     real(8) w(nx)
     character(50) :: CIFile
@@ -7050,6 +7178,7 @@ contains
     size1 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=1)
     size2 = size(ConfigurationInteraction_instance%configurations(1)%occupations, dim=2) 
 
+    if (allocated (ConfigurationInteraction_instance%auxconfs ) ) deallocate (ConfigurationInteraction_instance%auxconfs ) 
     allocate (ConfigurationInteraction_instance%auxconfs (size1,size2, ConfigurationInteraction_instance%numberOfConfigurations ))
 
     do i=1, ConfigurationInteraction_instance%numberOfConfigurations
@@ -7217,8 +7346,13 @@ contains
         iiter = iiter +1
         IF (IJOB.EQ.1) THEN
   !!       X(NDX1) input,  X(NDX2) output
-           call matvec(N,X(1),X(NDX1),X(NDX2),iiter, im, fullMatrix, size1,size2)
-           GOTO 10
+          if ( CONTROL_instance%CI_BUILD_FULL_MATRIX ) then
+            call av ( n, x(ndx1), x(ndx2))
+          else 
+            call matvec(N,X(1),X(NDX1),X(NDX2),iiter, im, fullMatrix, size1,size2)
+          end if
+
+          GOTO 10
         END IF
   
         macroIterationsNumberOfIter(im) = iter
@@ -7233,8 +7367,8 @@ contains
 
         !! saving the eigenvectors
         k = 0
-        do i = 1, N
-          do j = 1, maxeig
+        do j = 1, maxeig
+          do i = 1, N
             k = k + 1
             eigenVectors%values(i,j) = X(k)
           end do
@@ -7296,8 +7430,8 @@ contains
 
       !! saving the eigenvectors
       k = 0
-      do i = 1, N
-        do j = 1, maxeig
+      do j = 1, maxeig
+        do i = 1, N
           k = k + 1
           eigenVectors%values(i,j) = X(k)
         end do
@@ -7429,25 +7563,6 @@ contains
         w(i) = w(i) + wi
       end do 
 
-      !  w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
-      !  wi = 0
-      !  !$omp parallel &
-      !  !$omp& private(j,CIEnergy),&
-      !  !$omp& shared(i,ConfigurationInteraction_instance, HartreeFock_instance,v,nx,w,y,size1,size2) reduction (+:wi) reduction(+:ib)
-      !  !$omp do 
-      !  do j = i+1 , nx
-      !    if ( abs(v(i)+y(i) ) > tol .or. abs(v(i)+y(j)) > tol ) then
-      !      CIenergy = ConfigurationInteraction_calculateCoupling( i, j, size1, size2  )
-
-      !      w(j) = w(j) + CIEnergy*v(i)  !! direct
-      !      wi = wi + CIEnergy*v(j)  !! direct
-      !      ib = ib + 1
-      !    end if
-      !  end do 
-      !  !$omp end do nowait
-      !  !$omp end parallel
-      !  w(i) = w(i) + wi
-      !end do 
     else
       if (  iter == 1  ) then
 
@@ -7475,7 +7590,6 @@ contains
 
       do ii = 1, nonzero
         i = indexArray(ii)
-        !do i = 1, nx
         w(i) = w(i) + ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(i)*v(i)  !! direct
         wi = 0
         !$omp parallel &
