@@ -72,6 +72,10 @@ module Matrix_
      integer, allocatable :: values(:,:)
      logical :: isInstanced
   end type IMatrix
+
+  type, public :: IMatrix1
+     integer(1), allocatable :: values(:,:)
+  end type IMatrix1
   
   interface assignment(=)
      module procedure Matrix_copyConstructor
@@ -173,7 +177,8 @@ module Matrix_
        Matrix_Fortran_orthogonalizeLastVector, &
        Matrix_eigenProperties, &
        diagonalize_matrix, & ! Copiada de Parakata
-       Matrix_constructorInteger
+       Matrix_constructorInteger, &
+       Matrix_constructorInteger1
 
   private
 
@@ -224,6 +229,28 @@ contains
     this%isInstanced = .true.
 
   end subroutine Matrix_constructorInteger
+
+  !>
+  !! @brief Constructor
+  !! Constructor por omision
+  subroutine Matrix_constructorInteger1( this, dim1, dim2, value)
+    implicit none
+    type(IMatrix1), intent(inout) :: this
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
+    integer(1), optional, intent(in) :: value
+    integer(1) :: valueTmp
+
+    valueTmp = 0
+    if( present(value) ) valueTmp = value
+
+    if (allocated(this%values)) deallocate(this%values)
+    allocate( this%values( dim1, dim2 ) )
+
+    this%values = valueTmp
+
+  end subroutine Matrix_constructorInteger1
+
 
   !>
   !! @brief Constructor de copia

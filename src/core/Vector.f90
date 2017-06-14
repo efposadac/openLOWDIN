@@ -64,6 +64,10 @@ module Vector_
      real(8) , allocatable :: values(:)
   end type Vector8
 
+  type, public :: IVector1
+     integer(1) , allocatable :: values(:)
+  end type IVector1
+
   type, public :: IVector
      integer , allocatable :: values(:)
   end type IVector
@@ -102,6 +106,7 @@ module Vector_
        Vector_cross, &
        Vector_norm, &
        Vector_removeElement, &
+       Vector_constructorInteger1, &
        Vector_constructorInteger, &
        Vector_constructorInteger8, &
        Vector_destructorInteger, &
@@ -199,7 +204,41 @@ contains
     
   end subroutine Vector_constructor8
 
- 
+   !>
+  !! @brief Constructor por omision
+  subroutine Vector_constructorInteger1( this, ssize, value, values )
+    implicit none
+    type(IVector1), intent(inout) :: this
+    integer(8), intent(in) :: ssize
+    integer(1), optional, intent(in) :: value
+    integer(1), optional, intent(in) :: values(:)
+    
+    integer :: valueTmp
+    
+    valueTmp = 0
+    
+    if ( allocated( this%values ) ) then
+       deallocate( this%values )
+       
+    end if
+    
+    allocate( this%values( ssize ) )
+    
+    if( present(value) ) then
+       
+       valueTmp = value
+       this%values = valueTmp
+       
+    end if
+    
+    if( present(values) ) then
+       
+       this%values = values
+       
+    end if
+    
+  end subroutine Vector_constructorInteger1
+
 
   !>
   !! @brief Constructor por omision

@@ -81,6 +81,7 @@ module Configuration_
   public :: &
         Configuration_globalConstructor, &
         Configuration_constructor, &
+        Configuration_constructorB, &
         Configuration_copyConstructor, &
 !        Configuration_checkMaximumCoincidence, &
         Configuration_destructor, &
@@ -254,6 +255,51 @@ contains
     !this%isInstanced = .true.
 
   end subroutine Configuration_constructor
+
+  !>
+  !! @brief Constructor por omision
+  !!
+  !! @param this
+  !<
+  subroutine Configuration_constructorB(this,occupiedCode,unoccupiedCode,i,k,order)
+    implicit none
+    type(imatrix) :: this
+    type(IVector) :: order
+    type(Vector), allocatable :: occupiedCode(:)
+    type(Vector), allocatable :: unoccupiedCode(:)
+
+    integer :: numberOfOccupiedOrbitals 
+    integer :: i,j
+    integer :: numberOfSpecies
+    integer :: div1
+    integer :: div2
+    integer :: lambda !Ocupation per orbital
+    integer(8) :: k
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    !spin orbitals not spatial orbitals
+    lambda=MolecularSystem_getLambda(i)
+    numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(i)*lambda
+
+    do j=1, numberOfOccupiedOrbitals
+      !this%values(j,k) = 1_1
+      this%values(j,k)=j
+    end do
+
+    do j= int(order%values(i)), 1, -1 
+
+       div1= int(occupiedCode(i)%values(j))
+       div2= int(unoccupiedCode(i)%values(j))
+
+       this%values(div1,k) = div2
+       !this%values(div1,k) = 0_1
+       !this%values(div2,k) = 1_1
+
+    end do
+
+  end subroutine Configuration_constructorB
+
 
   !>
   !! @brief Constructor por omision
