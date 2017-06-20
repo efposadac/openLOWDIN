@@ -970,7 +970,7 @@ contains
     LowdinParameters_CIConvergence = 1E-4
     LowdinParameters_CISaveEigenVector = .false.
     LowdinParameters_CILoadEigenVector = .false.
-    LowdinParameters_CIJacobi = .true.
+    LowdinParameters_CIJacobi = .false.
     LowdinParameters_CIBuildFullMatrix = .false. 
 
     !!***************************************************************************
@@ -1232,7 +1232,7 @@ contains
     CONTROL_instance%CI_CONVERGENCE = 1E-4
     CONTROL_instance%CI_SAVE_EIGENVECTOR = .FALSE.
     CONTROL_instance%CI_LOAD_EIGENVECTOR = .FALSE.
-    CONTROL_instance%CI_JACOBI = .TRUE.
+    CONTROL_instance%CI_JACOBI = .False.
     CONTROL_instance%CI_BUILD_FULL_MATRIX = .FALSE. 
 
     !!***************************************************************************                                              
