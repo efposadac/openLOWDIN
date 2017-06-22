@@ -35,7 +35,7 @@ module EffectiveCorePotentials_
      integer :: ttype   !!!!!!!!!!!?????????????
      integer :: numberOfCoreElectrons
      integer :: length
-     integer :: contractionLenght
+     integer :: contractionLength
      integer :: numberOfPrimitives
   end type EffectiveCorePotentials
 
@@ -427,7 +427,7 @@ contains
       write(unit,*) this%origin
       write(unit,*) this%length
       write(unit,*) this%ttype
-      write(unit,*) this%contractionLength
+!      write(unit,*) this%contractionLength
       write(unit,*) this%numberOfPrimitives
 
      do i = 1, size(this%contraction)
@@ -444,13 +444,16 @@ contains
     implicit none
     
     type(EffectiveCorePotentials) , intent(in) :: this
+!    character(*) :: basisName
     character(*) ::nameOfOwner
     integer ::  i
-    
-    print *,"*********", this%baseName
-    write(6,"(T5,A10,A11,A15)") trim(nameOfOwner),"    ECP: ", trim(this%baseName)
+
+ !   basisName=trim(this%name)
+    print *, trim(this%name)
+    write(6,"(T5,A10,A11,A15)") trim(nameOfOwner),"    ECP: ", trim(this%name)
     
     do i =1, this%length
+       print *, trim(this%name)
        call ContractedEcpGaussian_showInCompactForm(this%contraction(i) )
     end do
 

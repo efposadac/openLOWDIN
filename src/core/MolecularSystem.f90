@@ -466,8 +466,9 @@ print*,"Number of point charges****************", numberOfPointCharges
        write( 6, "(T5,A32,A5)") "BEGIN DESCRIPTION OF ECPs FOR: ", trim(MolecularSystem_instance%species(i)%symbol)
        write (6,"(T5,A30)") "================================"
        write (6,*) ""
-       
+
        do j = 1, size( MolecularSystem_instance%species(i)%particles )
+                 print*, i,j
           
           call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%effectiveCorePotentials,&
                trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))

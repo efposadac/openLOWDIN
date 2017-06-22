@@ -171,9 +171,10 @@ contains
     character(9) :: shellCode(this%numCartesianOrbital)
 
     shellCode=ContractedEcpGaussian_getShellCode(this)
-    print*,shellCode(1),"********************************"
+
 
     do i=1,this%length
+           print*,shellCode(1),"ShellCode ********************************"
 
        write (6,"(T10,I5,A9,A1,A6,F20.8,F20.8)") i,"        ", trim(shellCode(1)),"      ",&
             this%dkparameters(i) ,this%zetakParameters(i)
@@ -532,7 +533,6 @@ contains
     character(1) :: coordCode(3) !< Codigo de las coordenadas cartesianas
     integer :: nx, ny, nz !< Indices de momento angular
     integer :: i, j, m, u, v !< Iteradores
-    print*,this%angularMoment,"angularMoment"
 
     if ( this%angularMoment <= 8 ) then
 
@@ -540,7 +540,8 @@ contains
        coordCode(1:3) = ["x", "y", "z"]
 
        indexCode(0) = trim(shellCode(this%angularMoment))
-print*,indexCode(0)
+       print*,indexCode(0)
+!           print*,this%angularMoment,"angularMoment"
        m = 0
 
        select case(CONTROL_instance%DIMENSIONALITY)
@@ -626,7 +627,7 @@ print*,indexCode(0)
 
        case default
 
-          call ContractedEcpGaussian_exception( ERROR, "Class object ContratedGaussian in the getShellCode function",&
+          call ContractedEcpGaussian_exception( ERROR, "Class object ContratedEcpGaussian in the getShellCode function",&
                "This Dimensionality is not avaliable") 
 
        end select
@@ -634,7 +635,7 @@ print*,indexCode(0)
     else
 
        call Exception_constructor( ex , ERROR )
-       call Exception_setDebugDescription( ex, "Class object ContractedGaussian in the getShellCode function" )
+       call Exception_setDebugDescription( ex, "Class object ContractedEcpGaussian in the getShellCode function" )
        call Exception_setDescription( ex, "This angular moment  isn't implemented" )
        call Exception_show( ex )
 
