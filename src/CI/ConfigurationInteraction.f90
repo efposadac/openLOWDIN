@@ -4655,6 +4655,9 @@ recursive  function ConfigurationInteraction_getIndexesRecursion(s, numberOfSpec
 
 
    !! save the unsorted diagonal Matrix
+    call Vector_constructor8 ( ConfigurationInteraction_instance%diagonalHamiltonianMatrix, &
+                              ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8 ) 
+
 
     ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values = ConfigurationInteraction_instance%diagonalHamiltonianMatrix2%values
 !   if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU" .or. &
@@ -8731,6 +8734,7 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo(s, numbe
 !                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
 !                        SHIFT, DROPTOL, MEM, ICNTL, &
 !                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
+    print *, "hola"
   10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1_8,-1_8,EIGS, RES, X, LX, NEIG, &
                         SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                         SHIFT, DROPTOL, MEM, ICNTL, &
