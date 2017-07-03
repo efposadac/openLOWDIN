@@ -11,13 +11,14 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCIstates=1
+	numberOfCIstates=10
 	!CIdiagonalizationMethod = "DSYEVX"
 	!CIdiagonalizationMethod = "ARPACK"
 	CIdiagonalizationMethod = "JADAMILU"
 	CISizeOfGuessMatrix=300
 	CIConvergence=1E-4
 	CIJacobi = F
+	CIMadSpace = 30
 	!CISaveEigenvector=T
 	!CILoadEigenvector=T
 END CONTROL

@@ -4653,7 +4653,7 @@ recursive  function ConfigurationInteraction_getIndexesRecursion(s, numberOfSpec
     type (Vector8) :: diagonalHamiltonianMatrix
 !    type (Vector) :: initialEigenValues
 !    type (Matrix) :: initialHamiltonianMatrix
-    integer :: a,b,c,aa,bb
+    integer :: a,b,c,aa,bb,i
     real(8) :: timeA, timeB
     real(8) :: CIenergy
     integer :: initialCIMatrixSize 
@@ -4714,11 +4714,15 @@ recursive  function ConfigurationInteraction_getIndexesRecursion(s, numberOfSpec
            eigenVectors = ConfigurationInteraction_instance%initialEigenVectors, &
            flags = int(SYMMETRIC,4))
     
-    print *, "First initial eigenValue : ", ConfigurationInteraction_instance%initialEigenValues%values(1)
+    print *, "Initial eigenValues"
+    do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      print *,  i, ConfigurationInteraction_instance%initialEigenValues%values(i)
+    end do
+
     call Vector_destructor8 ( ConfigurationInteraction_instance%diagonalHamiltonianMatrix2 )
 
 !$    timeB = omp_get_wtime()
-!$    write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Solving Initial CI matrix : ", timeB - timeA ," (s)"
+!$    write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Solving Initial CI : ", timeB - timeA ," (s)"
 
   end subroutine ConfigurationInteraction_buildInitialCIMatrix2
 
@@ -8657,7 +8661,7 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( nn, s, 
     integer, allocatable :: macroIterationsNumberOfIter(:)
     logical :: fullMatrix
     
-    maxsp = 15
+    maxsp = CONTROL_instance%CI_MADSPACE
     if ( CONTROL_instance%CI_JACOBI ) then
       macroIterations = 10
     else 
@@ -8703,9 +8707,9 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( nn, s, 
      ISEARCH = 1 !    we want the smallest eigenvalues
      NEIG = maxeig !    number of wanted eigenvalues
      !NINIT = 0 !    no initial approximate eigenvectors
-     NINIT = 1 !    initial approximate eigenvectors
+     NINIT = NEIG !    initial approximate eigenvectors
      MADSPACE = maxsp !    desired size of the search space
-     ITER = 100 !    maximum number of iteration steps
+     ITER = 100*NEIG !    maximum number of iteration steps
      TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
 
      NDX1 = 0
@@ -8719,25 +8723,25 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( nn, s, 
      ICNTL(4)=0
      ICNTL(5)=1
 
-
-    MEM = 50
-
-
     IJOB=0
 
      ! set initial eigenpairs
      if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
        print *, "Loading the eigenvector to the initial guess"
-       do i = 1, n 
-         X(i) = eigenVectors%values(i,1)
+       do j = 1, n 
+         X(j) = eigenVectors%values(j,1)
        end do
 
        do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
          EIGS(i) = eigenValues%values(i)
        end do
      else
-       do i = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
-         X(ConfigurationInteraction_instance%auxIndexCIMatrix%values(i)) = ConfigurationInteraction_instance%initialEigenVectors%values(i,1)
+       jj = 0 
+       do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+         jj = (i - 1) * n 
+         do j = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
+          X(jj + ConfigurationInteraction_instance%auxIndexCIMatrix%values(j)) = ConfigurationInteraction_instance%initialEigenVectors%values(j,i)
+         end do
        end do
 
        do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
@@ -8814,14 +8818,15 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( nn, s, 
 
      !! macroiterations
      do im = 1, macroIterations 
-        print *, "Eigenvalue(1)", eigs(1), "Eigenvector(1)", x(1)
+        do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+          print *, i, "Eigenvalue", eigs( i ), "Eigenvector", x((i-1)*n + i)
+        end do
         iiter = 0
   
 !10     CALL DPJDREVCOM( N, A, JA, IA,EIGS, RES, X, LX, NEIG, &
 !                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
 !                        SHIFT, DROPTOL, MEM, ICNTL, &
 !                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-    print *, "hola"
   10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1_8,-1_8,EIGS, RES, X, LX, NEIG, &
                         SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                         SHIFT, DROPTOL, MEM, ICNTL, &
@@ -8856,12 +8861,12 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( nn, s, 
         macroIterationsEnergies(im) = EIGS(1)
         macroIterationsEnergiesDiff(im) = macroIterationsEnergies(im)- macroIterationsEnergies(im-1)
 
-        !! saving the eigenvectors
+        !! saving the eigenvectors, check this
         k = 0
         do j = 1, maxeig
           do i = 1, N
             k = k + 1
-            eigenVectors%values(i,j) = X(k)
+            eigenVectors%values(i,j) = X( k)
           end do
         end do
         

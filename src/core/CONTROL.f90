@@ -174,6 +174,7 @@ module CONTROL_
      logical :: CI_LOAD_EIGENVECTOR
      logical :: CI_JACOBI
      logical :: CI_BUILD_FULL_MATRIX
+     integer :: CI_MADSPACE
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -433,6 +434,7 @@ module CONTROL_
   logical :: LowdinParameters_CILoadEigenVector
   logical :: LowdinParameters_CIJacobi
   logical :: LowdinParameters_CIBuildFullMatrix
+  integer :: LowdinParameters_CIMadSpace
 
   !!***************************************************************************
   !! CCSD
@@ -689,6 +691,7 @@ module CONTROL_
        LowdinParameters_CILoadEigenVector, &
        LowdinParameters_CIJacobi, &
        LowdinParameters_CIBuildFullMatrix, &
+       LowdinParameters_CIMadSpace, &
 
        !!***************************************************************************
        !! CCSD 
@@ -972,6 +975,7 @@ contains
     LowdinParameters_CILoadEigenVector = .false.
     LowdinParameters_CIJacobi = .false.
     LowdinParameters_CIBuildFullMatrix = .false. 
+    LowdinParameters_CIMadSpace = 5
 
     !!***************************************************************************
     !! CCSD
@@ -1234,6 +1238,7 @@ contains
     CONTROL_instance%CI_LOAD_EIGENVECTOR = .FALSE.
     CONTROL_instance%CI_JACOBI = .False.
     CONTROL_instance%CI_BUILD_FULL_MATRIX = .FALSE. 
+    CONTROL_instance%CI_MADSPACE = 5
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1534,6 +1539,7 @@ contains
     CONTROL_instance%CI_LOAD_EIGENVECTOR = LowdinParameters_CILoadEigenVector
     CONTROL_instance%CI_JACOBI = LowdinParameters_CIJacobi
     CONTROL_instance%CI_BUILD_FULL_MATRIX = LowdinParameters_CIBuildFullMatrix 
+    CONTROL_instance%CI_MADSPACE = LowdinParameters_CIMadSpace
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1807,6 +1813,7 @@ contains
     LowdinParameters_CIstackSize = CONTROL_instance%CI_STACK_SIZE 
     LowdinParameters_CIJacobi = CONTROL_instance%CI_JACOBI
     LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
+    LowdinParameters_CIMadSpace = CONTROL_instance%CI_MADSPACE
 
 
     !!***************************************************************************      
@@ -2067,6 +2074,7 @@ contains
     otherThis%CI_LOAD_EIGENVECTOR = this%CI_LOAD_EIGENVECTOR
     otherThis%CI_JACOBI = this%CI_JACOBI
     otherThis%CI_BUILD_FULL_MATRIX = this%CI_BUILD_FULL_MATRIX
+    otherThis%CI_MADSPACE = this%CI_MADSPACE
 
     !!***************************************************************************
     !! CCSD
