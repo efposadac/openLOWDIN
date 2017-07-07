@@ -86,6 +86,9 @@ module ConfigurationInteraction_
      type(ivector8), allocatable :: numberOfStrings(:) !! species, excitation level, number of strings
      type(imatrix1), allocatable :: couplingMatrix(:)
      type(ivector1), allocatable :: couplingVector(:)
+     type(ivector1), allocatable :: couplingOrderList(:,:)
+     integer :: ncouplingOrderOne
+     integer :: ncouplingOrderTwo
      type(ivector), allocatable :: couplingZero(:)
      type(imatrix) :: auxConfigurations !! species, configurations for initial hamiltonian
      integer, allocatable :: excitationLevel(:) !! species
@@ -1501,6 +1504,103 @@ contains
   end subroutine ConfigurationInteraction_constructor
 
 
+  subroutine ConfigurationInteraction_buildCouplingOrderList()
+    implicit none
+
+    integer(8) :: a,b,c,c1,c2,aa,d
+    integer :: uu,vv, p, nn
+    integer :: i
+    integer :: numberOfSpecies, auxnumberOfSpecies,s
+    integer(1), allocatable :: couplingOrder(:)
+    integer(1) :: coupling
+    real(8) :: timeA, timeB
+    type(ivector1), allocatable :: couplingOrderList(:,:)
+    integer :: ncouplingOrderOne
+    integer :: ncouplingOrderTwo
+    integer :: ssize
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    ssize = 1
+    do i = 1, numberOfSpecies
+      ssize = ssize * 3 !! ( 0,1,2)
+    end do
+
+    allocate ( ConfigurationInteraction_instance%couplingOrderList( 2, ssize ) ) 
+
+    do a = 1, 2
+      do b = 1, ssize
+        call Vector_constructorInteger1( ConfigurationInteraction_instance%couplingOrderList(a,b), &
+          int( numberOfSpecies,8), int(0,1) )
+
+      end do
+    end do
+
+    allocate ( couplingOrder ( numberOfSpecies )) !! 0, 1, 2
+    couplingOrder = 0
+
+    !! call recursion
+    s = 0
+    ConfigurationInteraction_instance%ncouplingOrderOne = 0
+    ConfigurationInteraction_instance%ncouplingOrderTwo = 0
+    auxnumberOfSpecies = ConfigurationInteraction_buildCouplingOrderRecursion( s, numberOfSpecies, couplingOrder )
+
+    deallocate ( couplingOrder ) 
+
+  end subroutine ConfigurationInteraction_buildCouplingOrderList
+
+recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, numberOfSpecies, couplingOrder ) result (os)
+    implicit none
+
+    integer(8) :: a,b,c,d
+    integer :: u,v
+    integer :: i, j, ii, jj, nn
+    integer :: s, numberOfSpecies
+    integer :: os,is,auxis, auxos
+    integer(1) :: couplingOrder(:)
+
+
+    is = s + 1
+    if ( is < numberOfSpecies ) then
+      if ( sum ( couplingOrder) <= 2 ) then
+        do i = 1, 3 - sum ( couplingOrder ) !! 0,1,2
+          couplingOrder(is) = i-1
+          couplingOrder(is+1:) = 0
+          os = ConfigurationInteraction_buildCouplingOrderRecursion( is, numberOfSpecies, couplingOrder )
+        end do
+      end if
+    else 
+      if ( sum ( couplingOrder) <= 2 ) then
+        do i = 1, 3 - sum ( couplingOrder ) !! 0,1,2
+          couplingOrder(is) = i-1
+          couplingOrder(is+1:) = 0
+          os = is
+          if ( sum ( couplingOrder ) == 1 ) then
+
+            auxis = 0
+            ConfigurationInteraction_instance%ncouplingOrderOne = ConfigurationInteraction_instance%ncouplingOrderOne + 1
+            b = ConfigurationInteraction_instance%ncouplingOrderOne
+            ConfigurationInteraction_instance%couplingOrderList(1,b)%values = couplingOrder
+            !auxos = ConfigurationInteraction_buildRowRecursionSecondOne( nn, auxis, numberOfSpecies, couplingOrder, &
+            !                indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, w, vc, nx  )
+
+          else if ( sum ( couplingOrder ) == 2 ) then
+
+            auxis = 0
+            ConfigurationInteraction_instance%ncouplingOrderTwo = ConfigurationInteraction_instance%ncouplingOrderTwo + 1
+            b = ConfigurationInteraction_instance%ncouplingOrderTwo
+            ConfigurationInteraction_instance%couplingOrderList(2,b)%values = couplingOrder
+            !auxos = ConfigurationInteraction_buildRowRecursionSecondTwo( nn, auxis, numberOfSpecies, couplingOrder, &
+            !                indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, w, vc, nx )
+
+          end if
+        end do
+      end if
+    end if
+
+  end function ConfigurationInteraction_buildCouplingOrderRecursion
+
+
   !>
   !! @brief Destructor por omision
   !!
@@ -1806,6 +1906,7 @@ contains
 
          print *, "Building initial hamiltonian..."
 
+         call ConfigurationInteraction_buildCouplingOrderList()
          call ConfigurationInteraction_buildInitialCIMatrix2()
          !!call ConfigurationInteraction_buildHamiltonianMatrix2() This should be  modified to build the CI matrix in memory
 
@@ -4823,6 +4924,7 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
       do i = 1, size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
         do a = 1, ConfigurationInteraction_instance%numberOfStrings(is)%values(i)
           c = c + 1
+
           !!n = 1 
           !!if ( abs(v(c)) > 1E-8 ) then 
           !!  indexConf(n,is) = sum(ConfigurationInteraction_instance%numberOfStrings(is)%values(1:i-1)) + a
@@ -4834,16 +4936,11 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
           if ( abs(v(c)) > 1E-8 ) then 
             cc(n) = c 
 
-
             indexConf(is,n) = sum(ConfigurationInteraction_instance%numberOfStrings(is)%values(1:i-1)) + a
             auxindexConf = indexConf
-            !print *, "n0", n, indexConf(:,n)
 
             if ( n == nproc ) then
 
-              !do nn = 1, nproc
-              !   print *, "n1", nn, indexConf(:,nn)
-              !end do
               !$omp parallel &
               !$omp& private(nn),&
               !$omp& shared(v,nx,w, indexConf, cc, nproc) 
@@ -4861,18 +4958,11 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
             end if 
 
             n = n + 1
-               ! print *, "n4",nn, indexConf
+
           end if
      
         end do
       end do
-    !if ( n > 0 ) then
-    !  do nn = 1, n
-    !    call ConfigurationInteraction_buildRow( nn, indexConf(:,nn), cc(nn), w, v(cc(nn)), nx)
-    !  end do
-    !  n = 0
-    !end if
-
 
     end if
 
@@ -4884,8 +4974,8 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
     implicit none
 
     integer(8) :: a,b,c,c1,c2,aa,d
-    integer :: uu,vv, p, nn
-    integer :: i
+    integer :: u,uu,vv, p, nn
+    integer :: i, auxis,auxos
     integer :: numberOfSpecies, auxnumberOfSpecies,s
     integer(1), allocatable :: orbitalsA(:), orbitalsB(:)
     integer(1), allocatable :: couplingOrder(:)
@@ -4894,7 +4984,6 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
     integer(8), allocatable :: indexConfB(:)
     integer(4), allocatable :: nCouplingOneTwo (:,:)
     type(imatrix), allocatable :: couplingOneTwo(:)
-    !type(ivector), allocatable :: couplingVector(:)
     real(8) :: vc
     integer(8) :: nx 
     real(8) :: w(nx)
@@ -4902,27 +4991,17 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     allocate ( couplingOneTwo ( numberOfSpecies ) )
-    !allocate ( couplingVector ( numberOfSpecies ) )
-
 
     do i = 1, numberOfSpecies 
       call Matrix_constructorInteger (couplingOneTwo(i), &
         3_8, int( ConfigurationInteraction_instance%sumstrings(i),8), 0_4)
     end do
 
-    !! coupling vector
-    !do i = 1, numberOfSpecies
-    !  call Vector_constructorInteger1( couplingVector(i), &
-    !    int(ConfigurationInteraction_instance%sumtrings(i)), int(0,1))
-    !end do  
-
-
     allocate ( couplingOrder ( numberOfSpecies )) !! 0, 1, 2
     couplingOrder = 0
 
     allocate ( nCouplingOneTwo (3, numberOfSpecies )) !! 0, 1, 2
     nCouplingOneTwo = 0
-
 
     do i = 1, numberOfSpecies 
 
@@ -4937,8 +5016,6 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
       do uu = 1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
         orbitalsA( ConfigurationInteraction_instance%strings(i)%values(uu,aa) ) = 1
       end do
-
-      !Configurationinteraction_instance%couplingVector(i)%values = 0
 
       !dir$ simd
       do b = 1, ConfigurationInteraction_instance%sumstrings(i)
@@ -4956,24 +5033,12 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
         do p  = 1, ConfigurationInteraction_instance%numberOfOrbitals%values(i)
            coupling = coupling + (orbitalsA (p)) * (orbitalsB(p))
         end do
-       ! Configurationinteraction_instance%couplingVector(i)%values(b) = &
-       !     configurationinteraction_instance%numberOfOccupiedOrbitals%values(i) - coupling
 
-       ! coupling = Configurationinteraction_instance%couplingVector(i)%values(b) 
         coupling = configurationinteraction_instance%numberOfOccupiedOrbitals%values(i) - coupling
 
         if ( coupling  <= 2 ) then
           nCouplingOneTwo( coupling + 1,i) = nCouplingOneTwo( coupling + 1,i) + 1
           couplingOneTwo(i)%values( coupling + 1,nCouplingOneTwo( coupling + 1,i)) = b 
-
-          !if ( Configurationinteraction_instance%couplingVector(i)%values(b) == 1 ) then
-          !  nCouplingOneTwo(2,i) = nCouplingOneTwo(2,i) + 1
-          !  couplingOneTwo(i)%values(2,nCouplingOneTwo(2,i)) = b 
-          !  !! save it in the same vector...
-          !else if ( Configurationinteraction_instance%couplingVector(i)%values(b) == 2 ) then
-          !  nCouplingOneTwo(3,i) = nCouplingOneTwo(3,i) + 1
-          !  couplingOneTwo(i)%values(3,nCouplingOneTwo(3,i)) = b 
-          !end if
        end if
 
       end do
@@ -4988,13 +5053,25 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
 
     allocate ( indexConfB ( numberOfSpecies ) )
     indexConfB = 0
-    !! call recursion
-    s = 0
-    auxnumberOfSpecies = ConfigurationInteraction_buildRowRecursionFirst( nn, s, numberOfSpecies, couplingOrder, &
-                            indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, c, w, vc, nx )
-    
 
-    !deallocate ( couplingVector )
+    !$omp atomic
+      w(c) = w(c) + vc*ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(c) 
+    !$omp end atomic
+
+    do u = 1, ConfigurationInteraction_instance%ncouplingOrderOne
+      auxis = 0
+      auxos = ConfigurationInteraction_buildRowRecursionSecondOne( nn, auxis, numberOfSpecies,  &
+                        ConfigurationInteraction_instance%couplingOrderList(1,u)%values, &
+                        indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, w, vc, nx  )
+    end do
+
+    do u = 1, ConfigurationInteraction_instance%ncouplingOrderTwo
+      auxis = 0
+      auxos = ConfigurationInteraction_buildRowRecursionSecondTwo( nn, auxis, numberOfSpecies,  &
+                        ConfigurationInteraction_instance%couplingOrderList(2,u)%values, &
+                        indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, w, vc, nx  )
+    end do
+
     deallocate ( indexConfB )
     deallocate ( nCouplingOneTwo )
     deallocate ( couplingOrder ) 
@@ -5002,67 +5079,6 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
 
   end subroutine ConfigurationInteraction_buildRow
  
-recursive  function ConfigurationInteraction_buildRowRecursionFirst(nn, s, numberOfSpecies, couplingOrder, &
-                                          indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, c, w, vc, nx) result (os)
-    implicit none
-
-    integer(8) :: a,b,c,d
-    integer :: u,v
-    integer :: i, j, ii, jj, nn
-    integer :: s, numberOfSpecies
-    integer :: os,is,auxis, auxos
-    integer(1) :: couplingOrder(:)
-    integer(8) :: indexConfA(:)
-    integer(8) :: indexConfB(:)
-    integer(8) :: numberOfConfigurations
-    integer(4) :: nCouplingOneTwo (:,:)
-    real(8) :: vc
-    integer(8) :: nx 
-    real(8) :: w(nx)
-    type(imatrix) :: couplingOneTwo(:)
-
-    is = s + 1
-    if ( is < numberOfSpecies ) then
-      if ( sum ( couplingOrder) <= 2 ) then
-        do i = 1, 3 - sum ( couplingOrder ) !! 0,1,2
-          couplingOrder(is) = i-1
-          couplingOrder(is+1:) = 0
-          os = ConfigurationInteraction_buildRowRecursionFirst( nn, is, numberOfSpecies, couplingOrder, &
-                            indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, c, w, vc, nx )
-        end do
-      end if
-    else 
-      if ( sum ( couplingOrder) <= 2 ) then
-        do i = 1, 3 - sum ( couplingOrder ) !! 0,1,2
-          couplingOrder(is) = i-1
-          couplingOrder(is+1:) = 0
-          os = is
-          if ( sum ( couplingOrder ) == 0 ) then
-            !ConfigurationInteraction_instance%hamiltonianMatrix2%values(c,c) = &
-            !  ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(c) 
-        !$omp atomic
-            w(c) = w(c) + vc*ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values(c) 
-        !$omp end atomic
-
-          else if ( sum ( couplingOrder ) == 1 ) then
-
-            auxis = 0
-            auxos = ConfigurationInteraction_buildRowRecursionSecondOne( nn, auxis, numberOfSpecies, couplingOrder, &
-                            indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, w, vc, nx  )
-
-          else if ( sum ( couplingOrder ) == 2 ) then
-
-            auxis = 0
-            auxos = ConfigurationInteraction_buildRowRecursionSecondTwo( nn, auxis, numberOfSpecies, couplingOrder, &
-                            indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, w, vc, nx )
-
-          end if
-        end do
-      end if
-    end if
-
-  end function ConfigurationInteraction_buildRowRecursionFirst
-
 recursive  function ConfigurationInteraction_buildRowRecursionSecondOne(nn, s, numberOfSpecies, couplingOrder, &
                                           indexConfA, indexConfB, nCouplingOneTwo, couplingOneTwo, w, vc, nx) result (os)
     implicit none
@@ -5084,7 +5100,6 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondOne(nn, s, n
     is = s + 1
     i = couplingOrder(is)+1
 
-    !if ( c == 1 ) print *, 1, couplingOrder
     if ( is < numberOfSpecies ) then
       do a = 1, nCouplingOneTwo(i,is) 
         indexConfB(is) = couplingOneTwo(is)%values(i,a) 
@@ -5127,7 +5142,6 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( nn, s, 
     is = s + 1
     i = couplingOrder(is)+1
 
-    !if ( c == 1 ) print *, 2, couplingOrder
     if ( is < numberOfSpecies ) then
       do a = 1, nCouplingOneTwo(i,is) 
         indexConfB(is) = couplingOneTwo(is)%values(i,a) 
