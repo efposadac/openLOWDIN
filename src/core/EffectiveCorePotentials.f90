@@ -20,7 +20,7 @@ module EffectiveCorePotentials_
   use ContractedEcpGaussian_
   use ContractedGaussian_
   use CONTROL_
-  ! use InputManager_ 
+!  use InputManager_ 
   implicit none
 
   type :: EffectiveCorePotentials
@@ -153,10 +153,11 @@ contains
     implicit none
 
     type(EffectiveCorePotentials) :: this
+!    character(*),optional :: name
     character(*),optional :: basisName
     character(*), optional :: symbol
-    integer, optional :: unit
     real(8), optional :: origin(3)
+    integer, optional :: unit    
     !    character(*),optional :: particleName
 
     integer :: i, j, k, l
@@ -440,20 +441,16 @@ contains
      !>
   !! @brief Shows information of the object
   !! @param this: basis set
-  subroutine EffectiveCorePotentials_showInCompactForm( this, nameOfOwner )
+  subroutine EffectiveCorePotentials_showInCompactForm( this, nameOfOwner)
     implicit none
     
     type(EffectiveCorePotentials) , intent(in) :: this
-!    character(*) :: basisName
     character(*) ::nameOfOwner
     integer ::  i
 
- !   basisName=trim(this%name)
-    print *, trim(this%name)
-    write(6,"(T5,A10,A11,A15)") trim(nameOfOwner),"    ECP: ", trim(this%name)
+    write(6,"(T5,A10,A11,A15)") trim(nameOfOwner),"    ECP: ", trim(this%name) !!!!!!!!!!!!!!!
     
     do i =1, this%length
-       print *, trim(this%name)
        call ContractedEcpGaussian_showInCompactForm(this%contraction(i) )
     end do
 

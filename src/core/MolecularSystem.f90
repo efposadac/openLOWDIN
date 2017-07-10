@@ -387,7 +387,7 @@ print*,"Number of point charges****************", numberOfPointCharges
     write (6,"(T7,A60)") "------------------------------------------------------------"
     
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-       write (6,'(T10,A10,A5,F7.1,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)'), &
+       write (6,'(T10,A10,A5,F7.1,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)') &
        trim(MolecularSystem_instance%species(i)%symbol)," ",&
             MolecularSystem_instance%species(i)%kappa, " ", &
             MolecularSystem_instance%species(i)%eta, " ",&
@@ -469,7 +469,10 @@ print*,"Number of point charges****************", numberOfPointCharges
 
        do j = 1, size( MolecularSystem_instance%species(i)%particles )
                  print*, i,j
-          
+
+               !             call BasisSet_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basis,&
+               ! trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
+
           call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%effectiveCorePotentials,&
                trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
           

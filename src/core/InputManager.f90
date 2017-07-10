@@ -549,6 +549,7 @@ print*,"number of core electrons 2 = ",numberOfParticlesForSpecies(j),numberOfCo
           if (InputParticle_onlyValence .eqv. .true.) then
              numberOfCoreElectrons = EffectiveCorePotentials_getNumberOfCoreElectrons(atomName(2:len(trim(atomName))-1), InputParticle_basisSetName)
              call EffectiveCorePotentials_load(InputParticle_basisSetName, atomName(2:len(trim(atomName))-1))
+             print*,InputParticle_basisSetName
              print*,numberOfCoreElectrons,"555555555555555555555555555555"
           end if
         !end do
