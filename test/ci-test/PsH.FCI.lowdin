@@ -11,7 +11,7 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCIstates=10
+	numberOfCIstates=1
 	!CIdiagonalizationMethod = "DSYEVX"
 	!CIdiagonalizationMethod = "ARPACK"
 	CIdiagonalizationMethod = "JADAMILU"
