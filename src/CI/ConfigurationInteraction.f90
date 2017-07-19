@@ -85,14 +85,16 @@ module ConfigurationInteraction_
      type(imatrix), allocatable :: twoIndexArray(:)
      type(imatrix), allocatable :: fourIndexArray(:)
      type(imatrix), allocatable :: strings(:) !! species, conf, occupations
+     type(imatrix), allocatable :: strings2(:) !! species, conf, occupations
      integer, allocatable :: sumstrings(:) !! species
      type(ivector1), allocatable :: auxstring(:,:) !! species, occupations
      type(ivector8), allocatable :: numberOfStrings(:) !! species, excitation level, number of strings
+     type(ivector8), allocatable :: numberOfStrings2(:) !! species, excitation level, number of strings
      type(array3), allocatable :: couplingMatrix(:)
      type(matrix), allocatable :: couplingMatrixEnergyOne(:)
      type(matrix), allocatable :: couplingMatrixEnergyTwo(:)
      type(imatrix), allocatable :: couplingMatrixFactorOne(:)
-     type(array3), allocatable :: couplingMatrixOrbOne(:)
+     type(imatrix), allocatable :: couplingMatrixOrbOne(:)
      type(imatrix), allocatable :: nCouplingOneTwo(:)
      type(ivector1), allocatable :: couplingOrderList(:,:)
      type(ivector1), allocatable :: couplingOrderIndex(:,:)
@@ -108,10 +110,14 @@ module ConfigurationInteraction_
      real(8) :: totalEnergy
      integer, allocatable :: totalNumberOfContractions(:)
      integer, allocatable :: occupationNumber(:)
+     integer, allocatable :: recursionVector1(:)
+     integer, allocatable :: recursionVector2(:)
+     integer, allocatable :: maxCILevel(:)
      type (Matrix) :: initialHamiltonianMatrix
      type (Matrix) :: initialHamiltonianMatrix2
      character(20) :: level
-     integer :: maxCILevel
+     real(8) :: time11,time21,time31,time41,time51
+     real(8) :: time12,time22,time32,time42,time52
 
   end type ConfigurationInteraction
 
@@ -210,6 +216,10 @@ contains
     deallocate ( ConfigurationInteraction_instance%strings )
     allocate ( ConfigurationInteraction_instance%strings ( numberOfSpecies ) )
 
+    if  ( allocated (ConfigurationInteraction_instance%strings2 ) ) &
+    deallocate ( ConfigurationInteraction_instance%strings2 )
+    allocate ( ConfigurationInteraction_instance%strings2 ( numberOfSpecies ) )
+
     if  ( allocated (ConfigurationInteraction_instance%auxstring ) ) &
     deallocate ( ConfigurationInteraction_instance%auxstring )
     allocate ( ConfigurationInteraction_instance%auxstring ( ConfigurationInteraction_instance%nproc, numberOfSpecies ) )
@@ -242,6 +252,10 @@ contains
     deallocate ( ConfigurationInteraction_instance%numberOfStrings )
     allocate ( ConfigurationInteraction_instance%numberOfStrings ( numberOfSpecies ) )
 
+    if  ( allocated (ConfigurationInteraction_instance%numberOfStrings2 ) ) &
+    deallocate ( ConfigurationInteraction_instance%numberOfStrings2 )
+    allocate ( ConfigurationInteraction_instance%numberOfStrings2 ( numberOfSpecies ) )
+
     if  ( allocated (ConfigurationInteraction_instance%sumstrings ) ) &
     deallocate ( ConfigurationInteraction_instance%sumstrings )
     allocate ( ConfigurationInteraction_instance%sumstrings ( numberOfSpecies ) )
@@ -259,10 +273,28 @@ contains
     deallocate ( ConfigurationInteraction_instance%occupationNumber ) 
     allocate ( ConfigurationInteraction_instance%occupationNumber (numberOfSpecies ) )
 
+    if ( allocated ( ConfigurationInteraction_instance%recursionVector1 ) ) &
+    deallocate ( ConfigurationInteraction_instance%recursionVector1 ) 
+    allocate ( ConfigurationInteraction_instance%recursionVector1 (numberOfSpecies ) )
+
+    if ( allocated ( ConfigurationInteraction_instance%recursionVector2 ) ) &
+    deallocate ( ConfigurationInteraction_instance%recursionVector2 ) 
+    allocate ( ConfigurationInteraction_instance%recursionVector2 (numberOfSpecies ) )
+
+    if ( allocated ( ConfigurationInteraction_instance%maxCILevel) ) &
+    deallocate ( ConfigurationInteraction_instance%maxCILevel ) 
+    allocate ( ConfigurationInteraction_instance%maxCILevel (numberOfSpecies ) )
+
     if ( allocated ( Conf_occupationNumber ) ) &
     deallocate ( Conf_occupationNumber ) 
     allocate ( Conf_occupationNumber (numberOfSpecies ) )
 
+
+    ConfigurationInteraction_instance%recursionVector1 = 1
+    ConfigurationInteraction_instance%recursionVector2 = 0
+
+    ConfigurationInteraction_instance%recursionVector1(numberOfSpecies) = 0
+    ConfigurationInteraction_instance%recursionVector2(numberOfSpecies) = 1
 
     do i=1, numberOfSpecies
        !! We are working in spin orbitals not in spatial orbitals!
@@ -296,7 +328,6 @@ contains
     case ( "CIS" )
 
       !!Ground State
-      ConfigurationInteraction_instance%maxCILevel = 1
       c=1
 
       do i=1, numberOfSpecies
@@ -331,7 +362,6 @@ contains
 
     case ( "CISD" )
 
-       ConfigurationInteraction_instance%maxCILevel = 2
        !!Ground State
        c=1
 
@@ -494,10 +524,10 @@ contains
        !!Ground State
        c=1
 
-       do i=1, numberOfSpecies
-          call Vector_constructorInteger8 (ConfigurationInteraction_instance%numberOfStrings(i), (2_8 + 1_8), 0_8) !! ground + singles + doubles
-          ConfigurationInteraction_instance%numberOfStrings(i)%values(0+1) = ConfigurationInteraction_instance%numberOfStrings(i)%values(0+1) + 1
-       end do
+       !do i=1, numberOfSpecies
+       !   call Vector_constructorInteger8 (ConfigurationInteraction_instance%numberOfStrings(i), (2_8 + 1_8), 0_8) !! ground + singles + doubles
+       !   ConfigurationInteraction_instance%numberOfStrings(i)%values(0+1) = ConfigurationInteraction_instance%numberOfStrings(i)%values(0+1) + 1
+       !end do
 
        do i=1, numberOfSpecies
           cc = 0
@@ -515,7 +545,7 @@ contains
              end do
           end if
 
-          ConfigurationInteraction_instance%numberOfStrings(i)%values(1+1) = ConfigurationInteraction_instance%numberOfStrings(i)%values(1+1) + cc
+          !ConfigurationInteraction_instance%numberOfStrings(i)%values(1+1) = ConfigurationInteraction_instance%numberOfStrings(i)%values(1+1) + cc
        end do
 
 
@@ -540,7 +570,7 @@ contains
              end do
           end if
 
-          ConfigurationInteraction_instance%numberOfStrings(i)%values(2+1) = ConfigurationInteraction_instance%numberOfStrings(i)%values(2+1) + cc
+          !ConfigurationInteraction_instance%numberOfStrings(i)%values(2+1) = ConfigurationInteraction_instance%numberOfStrings(i)%values(2+1) + cc
           !!Doubles of different species
           do j=i+1, numberOfSpecies
              if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 .and. ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(j) .ge. 1 ) then
@@ -1524,6 +1554,250 @@ contains
 
   end subroutine ConfigurationInteraction_constructor
 
+  subroutine ConfigurationInteraction_buildStrings()
+    implicit none
+
+    integer(8) :: a,b,c,c1,c2,aa,d
+    integer :: ci, oci, cilevel,maxcilevel
+    integer :: u,uu,vv, p, nn,z
+    integer :: i,j
+    integer :: numberOfSpecies, auxnumberOfSpecies,s
+    integer(1), allocatable :: couplingOrder(:)
+    type(ivector) :: order
+    real(8) :: timeA, timeB
+    type(vector), allocatable :: occupiedCode(:)
+    type(vector), allocatable :: unoccupiedCode(:)
+
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    if ( allocated( occupiedCode ) ) deallocate( occupiedCode )
+    allocate (occupiedCode ( numberOfSpecies ) )
+    if ( allocated( unoccupiedCode ) ) deallocate( unoccupiedCode )
+    allocate (unoccupiedCode ( numberOfSpecies ) )
+
+    call Vector_constructorInteger (order, numberOfSpecies, 0 )
+    order%values = 0
+
+    !! call recursion
+    s = 0
+
+!      do i=1, numberOfSpecies
+!
+!        call Vector_constructorInteger8 (ConfigurationInteraction_instance%numberOfStrings(i), 1_8 + 1_8, 0_8)
+
+!      call Matrix_constructorInteger( ConfigurationInteraction_instance%strings(i), &
+!        int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i),8), &
+!        !!int(ConfigurationInteraction_instance%numberOfOrbitals%values(i),8), &
+!        sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), int(0,4))
+ 
+!
+!          call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+
+
+    do i = 1, numberOfSpecies
+
+      call Vector_constructorInteger8 (ConfigurationInteraction_instance%numberOfStrings(i), &
+        int(ConfigurationInteraction_instance%maxCILevel(i) + 1,8), 0_8)
+
+      ConfigurationInteraction_instance%numberOfStrings(i)%values(1) = 1 !! ground
+
+      do cilevel = 1,ConfigurationInteraction_instance%maxCILevel(i) 
+
+        call Vector_constructor (occupiedCode(i), cilevel, 0.0_8)
+        call Vector_constructor (unoccupiedCode(i), cilevel, 0.0_8)
+
+        unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)  ! it's also a lower bound in a for loop
+
+        if ( cilevel <= ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) ) then
+
+          !! just get the number of strings...
+          ci = 0 
+          oci = ConfigurationInteraction_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel)
+
+          print *, i, cilevel, ConfigurationInteraction_instance%numberOfStrings(i)%values(cilevel+1)
+
+        end if
+      end do
+      print *, i, sum(ConfigurationInteraction_instance%numberOfStrings(i)%values)
+
+      !! allocate the strings arrays
+      if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) > 0 ) then
+        call Matrix_constructorInteger( ConfigurationInteraction_instance%strings(i), &
+          int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i),8), &
+          sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), int(0,4))
+      else
+        call Matrix_constructorInteger( ConfigurationInteraction_instance%strings(i), &
+         1_8, 1_8, int(0,4))
+      end if
+
+      !! zero
+      call Vector_constructorInteger (order, numberOfSpecies, 0 )
+
+      call Vector_constructor (occupiedCode(i), 1, 0.0_8)
+      call Vector_constructor (unoccupiedCode(i), 1, 0.0_8)
+
+      c = 0 
+      c = c + 1
+      call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+      
+      do cilevel = 1,ConfigurationInteraction_instance%maxCILevel(i) 
+
+        call Vector_constructorInteger (order, numberOfSpecies, 0 )
+        order%values(i) = cilevel
+
+        call Vector_constructor (occupiedCode(i), cilevel, 0.0_8)
+        call Vector_constructor (unoccupiedCode(i), cilevel, 0.0_8)
+
+        unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)  ! it's also a lower bound in a for loop
+
+        if ( cilevel <= ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) ) then
+
+          !! just get the number of strings...
+          ci = 0 
+          oci = ConfigurationInteraction_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c)
+
+        end if
+      end do
+
+    end do
+
+   ! do i = 1, numberOfSpecies
+   !   do j = 1, sum(ConfigurationInteraction_instance%numberOfStrings(i)%values)
+!  !      print *, ConfigurationInteraction_instance%strings(i)%values(:,j), ConfigurationInteraction_instance%strings2(i)%values(:,j), &
+!Co!nfigurationInteraction_instance%strings(i)%values(:,j) - ConfigurationInteraction_instance%strings2(i)%values(:,j)
+   !       ConfigurationInteraction_instance%strings(i)%values(:,j) = ConfigurationInteraction_instance%strings2(i)%values(:,j)
+   !   end do
+   ! end do
+
+    do i = 1, numberOfSpecies
+      ConfigurationInteraction_instance%sumstrings(i) = sum(ConfigurationInteraction_instance%numberOfStrings(i)%values)
+    end do
+
+
+  end subroutine ConfigurationInteraction_buildStrings
+
+recursive  function ConfigurationInteraction_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ici, cilevel ) result (oci)
+    implicit none
+
+    integer :: i, numberOfSpecies
+    integer :: ci, ici, oci, cilevel
+    integer :: m, a
+    type(vector), allocatable :: occupiedCode(:)
+    type(vector), allocatable :: unoccupiedCode(:)
+
+    ci = ici + 1
+
+    if ( ci == 1 .and. ci < cilevel ) then ! first
+      do m = int(occupiedCode(i)%values(ci)) + 1,  int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+          occupiedCode(i)%values(ci) = m
+          unoccupiedCode(i)%values(ci) = a
+          oci = ConfigurationInteraction_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel )
+        end do
+        unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+    else if ( ci > 1 .and. ci < cilevel ) then ! mid
+      do m = int(occupiedCode(i)%values(ci-1)) + 1,  int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci-1)) + 1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+          occupiedCode(i)%values(ci) = m
+          unoccupiedCode(i)%values(ci) = a
+          oci = ConfigurationInteraction_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel )
+        end do
+      end do
+
+    else if ( ci == 1 .and. ci == cilevel ) then ! mid
+      do m = int(occupiedCode(i)%values(ci)) + 1,  int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+          occupiedCode(i)%values(ci) = m
+          unoccupiedCode(i)%values(ci) = a
+          ConfigurationInteraction_instance%numberOfStrings(i)%values(ci+1) = &
+            ConfigurationInteraction_instance%numberOfStrings(i)%values(ci+1) + 1
+        end do
+        if ( ci == 1 ) unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+
+    else !final
+
+      do m = int(occupiedCode(i)%values(ci-1)) + 1,  int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci-1)) + 1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+          occupiedCode(i)%values(ci) = m
+          unoccupiedCode(i)%values(ci) = a
+!          call Configuration_constructorB(ConfigurationInteraction_instance%strings2(i), occupiedCode, unoccupiedCode, i, c, order)
+          ConfigurationInteraction_instance%numberOfStrings(i)%values(ci+1) = &
+            ConfigurationInteraction_instance%numberOfStrings(i)%values(ci+1) + 1
+        end do
+        if ( ci == 1 ) unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+    end if
+
+  end function ConfigurationInteraction_buildStringsRecursion
+
+
+recursive  function ConfigurationInteraction_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, &
+                     ici, cilevel, order, c ) result (oci)
+    implicit none
+
+    integer :: i, numberOfSpecies
+    integer :: ci, ici, oci, cilevel
+    integer(8) :: c
+    integer :: m, a
+    type(ivector) :: order
+    type(vector), allocatable :: occupiedCode(:)
+    type(vector), allocatable :: unoccupiedCode(:)
+
+    ci = ici + 1
+
+    if ( ci == 1 .and. ci < cilevel ) then ! first
+      do m = int(occupiedCode(i)%values(ci)) + 1,  int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+          occupiedCode(i)%values(ci) = m
+          unoccupiedCode(i)%values(ci) = a
+          oci = ConfigurationInteraction_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c )
+        end do
+        unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+    else if ( ci > 1 .and. ci < cilevel ) then ! mid
+      do m = int(occupiedCode(i)%values(ci-1)) + 1,  int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci-1)) + 1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+          occupiedCode(i)%values(ci) = m
+          unoccupiedCode(i)%values(ci) = a
+          oci = ConfigurationInteraction_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c )
+        end do
+      end do
+
+    else if ( ci == 1 .and. ci == cilevel ) then ! mid
+      do m = int(occupiedCode(i)%values(ci)) + 1,  int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+          occupiedCode(i)%values(ci) = m
+          unoccupiedCode(i)%values(ci) = a
+
+          c = c + 1
+          call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+        end do
+        if ( ci == 1 ) unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+
+    else !final
+
+      do m = int(occupiedCode(i)%values(ci-1)) + 1,  int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci-1)) + 1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+          occupiedCode(i)%values(ci) = m
+          unoccupiedCode(i)%values(ci) = a
+          c = c + 1
+          call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+        end do
+        if ( ci == 1 ) unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+    end if
+
+
+  end function ConfigurationInteraction_buildStringsRecursion2
+
+
+
+
+
 
   subroutine ConfigurationInteraction_buildCouplingOrderList()
     implicit none
@@ -1926,7 +2200,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
   !<
   subroutine ConfigurationInteraction_run()
     implicit none 
-    integer :: m
+    integer :: i,j,m
     real(8), allocatable :: eigenValues(:) 
 
 !    select case ( trim(ConfigurationInteraction_instance%level) )
@@ -1983,6 +2257,8 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
          case ("JADAMILU")
 
          print *, "Building initial hamiltonian..."
+
+         call ConfigurationInteraction_buildStrings()
 
          call ConfigurationInteraction_buildCouplingMatrix()
          call ConfigurationInteraction_buildCouplingOrderList()
@@ -2146,24 +2422,24 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     if ( allocated( unoccupiedCode ) ) deallocate( unoccupiedCode )
     allocate (unoccupiedCode ( numberOfSpecies ) )
 
-    do i = 1, numberOfSpecies
-      ConfigurationInteraction_instance%sumstrings(i) = sum(ConfigurationInteraction_instance%numberOfStrings(i)%values)
-    end do
+!    do i = 1, numberOfSpecies
+!      ConfigurationInteraction_instance%sumstrings(i) = sum(ConfigurationInteraction_instance%numberOfStrings(i)%values)
+!    end do
 
-    do i = 1, numberOfSpecies
-      print *, "i , basis, nstrings ",i, ConfigurationInteraction_instance%numberOfOrbitals%values(i), &
-      ConfigurationInteraction_instance%sumstrings(i) 
-
-      if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) > 0 ) then
-      call Matrix_constructorInteger( ConfigurationInteraction_instance%strings(i), &
-        int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i),8), &
-        !!int(ConfigurationInteraction_instance%numberOfOrbitals%values(i),8), &
-        sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), int(0,4))
-      else
-       call Matrix_constructorInteger( ConfigurationInteraction_instance%strings(i), &
-        1_8, 1_8, int(0,4))
-      end if
-    end do  
+!    do i = 1, numberOfSpecies
+!      print *, "i , basis, nstrings ",i, ConfigurationInteraction_instance%numberOfOrbitals%values(i), &
+!      ConfigurationInteraction_instance%sumstrings(i) 
+!
+!      if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) > 0 ) then
+!      call Matrix_constructorInteger( ConfigurationInteraction_instance%strings(i), &
+!        int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i),8), &
+!        !!int(ConfigurationInteraction_instance%numberOfOrbitals%values(i),8), &
+!        sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), int(0,4))
+!      else
+!       call Matrix_constructorInteger( ConfigurationInteraction_instance%strings(i), &
+!        1_8, 1_8, int(0,4))
+!      end if
+!    end do  
 
     do n = 1, ConfigurationInteraction_instance%nproc
       do i = 1, numberOfSpecies
@@ -2420,70 +2696,70 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
 
 !!!!!!!!!!!!!!!!!! string
-       print *, "building strings"
-
-       call Vector_constructorInteger (order, numberOfSpecies, 0 )
-
-       do i=1, numberOfSpecies
-
-          c = 0
-          cc = 0
-          c = c + 1
-
-          call Vector_constructor (occupiedCode(i), 1, 0.0_8)
-          call Vector_constructor (unoccupiedCode(i), 1, 0.0_8)
-
-          call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
-
-          !!Singles
-          call Vector_constructorInteger (order, numberOfSpecies, 0 )
-          order%values(i)=1
-          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
-
-          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
-             do m=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
-                call Vector_constructor (occupiedCode(i), int( order%values(i),4), 0.0_8)
-                occupiedCode(i)%values(1)=m
-                do p=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1,int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
-                     call Vector_constructor (unoccupiedCode(i), int(order%values(i),4), 0.0_8 )
-                     unoccupiedCode(i)%values(1)=p
-                     c=c+1
-                     cc=cc+1
-                     call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
-
-                end do !! p
-             end do !! m
-          end if
-
-          write (6, "(T4,A20,A21,A3,I8)") "Singles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
-
-          !!Doubles of the same specie
-          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
-          call Vector_constructorInteger (order, numberOfSpecies, 0 )
-          order%values(i)=2
-          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
-             do m=1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
-                do n=m+1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
-                   call Vector_constructor (occupiedCode(i), int(order%values(i),4), 0.0_8 )
-                   occupiedCode(i)%values(1)=m
-                   occupiedCode(i)%values(2)=n
-                   do p = int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
-                     do q=p+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
-
-                            call Vector_constructor (unoccupiedCode(i), int(order%values(i),4), 0.0_8 )
-                            unoccupiedCode(i)%values(1)=p
-                            unoccupiedCode(i)%values(2)=q
-                            c=c+1
-                            cc=cc+1
-                            call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
-                       end do
-                   end do
-                end do
-             end do
-          end if
-          write (6, "(T4,A20,A21,A3,I8)") "Doubles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
-
-       end do
+!       print *, "building strings"
+!
+!       call Vector_constructorInteger (order, numberOfSpecies, 0 )
+!
+!       do i=1, numberOfSpecies
+!
+!          c = 0
+!          cc = 0
+!          c = c + 1
+!
+!          call Vector_constructor (occupiedCode(i), 1, 0.0_8)
+!          call Vector_constructor (unoccupiedCode(i), 1, 0.0_8)
+!
+!          call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+!
+!          !!Singles
+!          call Vector_constructorInteger (order, numberOfSpecies, 0 )
+!          order%values(i)=1
+!          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
+!
+!          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
+!             do m=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+!                call Vector_constructor (occupiedCode(i), int( order%values(i),4), 0.0_8)
+!                occupiedCode(i)%values(1)=m
+!                do p=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1,int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+!                     call Vector_constructor (unoccupiedCode(i), int(order%values(i),4), 0.0_8 )
+!                     unoccupiedCode(i)%values(1)=p
+!                     c=c+1
+!                     cc=cc+1
+!                     call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+!
+!                end do !! p
+!             end do !! m
+!          end if
+!
+!          write (6, "(T4,A20,A21,A3,I8)") "Singles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
+!
+!          !!Doubles of the same specie
+!          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
+!          call Vector_constructorInteger (order, numberOfSpecies, 0 )
+!          order%values(i)=2
+!          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
+!             do m=1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+!                do n=m+1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+!                   call Vector_constructor (occupiedCode(i), int(order%values(i),4), 0.0_8 )
+!                   occupiedCode(i)%values(1)=m
+!                   occupiedCode(i)%values(2)=n
+!                   do p = int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+!                     do q=p+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+!
+!                            call Vector_constructor (unoccupiedCode(i), int(order%values(i),4), 0.0_8 )
+!                            unoccupiedCode(i)%values(1)=p
+!                            unoccupiedCode(i)%values(2)=q
+!                            c=c+1
+!                            cc=cc+1
+!                            call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+!                       end do
+!                   end do
+!                end do
+!             end do
+!          end if
+!          write (6, "(T4,A20,A21,A3,I8)") "Doubles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
+!
+!       end do
 
 
 
@@ -2681,71 +2957,73 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       !! build strings 
       print *, "Building strings"
 
-       call Vector_constructorInteger (order, numberOfSpecies, 0 )
+      do i=1, numberOfSpecies
+        ConfigurationInteraction_instance%maxCILevel(i) = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+      end do
 
-       do i=1, numberOfSpecies
-
-          c = 0
-          cc = 0
-          c = c + 1
-
-          call Vector_constructor (occupiedCode(i), 1, 0.0_8)
-          call Vector_constructor (unoccupiedCode(i), 1, 0.0_8)
-
-          call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
-
-          !!Singles
-          call Vector_constructorInteger (order, numberOfSpecies, 0 )
-          order%values(i)=1
-          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
-
-          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
-             do m=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
-                call Vector_constructor (occupiedCode(i), int( order%values(i),4), 0.0_8)
-                occupiedCode(i)%values(1)=m
-                do p=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1,int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
-                     call Vector_constructor (unoccupiedCode(i), int(order%values(i),4), 0.0_8 )
-                     unoccupiedCode(i)%values(1)=p
-                     c=c+1
-                     cc=cc+1
-                     call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
-
-                end do !! p
-             end do !! m
-          end if
-
-          write (6, "(T4,A20,A21,A3,I8)") "Singles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
-          cc = 0
-
-          !!Doubles of the same specie
-          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
-          call Vector_constructorInteger (order, numberOfSpecies, 0 )
-          order%values(i)=2
-          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
-             do m=1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
-                do n=m+1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
-                   call Vector_constructor (occupiedCode(i), int(order%values(i),4), 0.0_8 )
-                   occupiedCode(i)%values(1)=m
-                   occupiedCode(i)%values(2)=n
-                   do p = int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
-                     do q=p+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
-
-                            call Vector_constructor (unoccupiedCode(i), int(order%values(i),4), 0.0_8 )
-                            unoccupiedCode(i)%values(1)=p
-                            unoccupiedCode(i)%values(2)=q
-                            c=c+1
-                            cc=cc+1
-                            call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
-                       end do
-                   end do
-                end do
-             end do
-          end if
-          write (6, "(T4,A20,A21,A3,I8)") "Doubles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
-
-       end do
-
-
+!       call Vector_constructorInteger (order, numberOfSpecies, 0 )
+!
+!       do i=1, numberOfSpecies
+!
+!          c = 0
+!          cc = 0
+!          c = c + 1
+!
+!          call Vector_constructor (occupiedCode(i), 1, 0.0_8)
+!          call Vector_constructor (unoccupiedCode(i), 1, 0.0_8)
+!
+!          call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+!
+!          !!Singles
+!          call Vector_constructorInteger (order, numberOfSpecies, 0 )
+!          order%values(i)=1
+!          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
+!
+!          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 1 ) then
+!             do m=1, int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+!                call Vector_constructor (occupiedCode(i), int( order%values(i),4), 0.0_8)
+!                occupiedCode(i)%values(1)=m
+!                do p=int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1,int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+!                     call Vector_constructor (unoccupiedCode(i), int(order%values(i),4), 0.0_8 )
+!                     unoccupiedCode(i)%values(1)=p
+!                     c=c+1
+!                     cc=cc+1
+!                     call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+!
+!                end do !! p
+!             end do !! m
+!          end if
+!
+!          write (6, "(T4,A20,A21,A3,I8)") "Singles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
+!          cc = 0
+!
+!          !!Doubles of the same specie
+!          lambda=ConfigurationInteraction_instance%lambda%values(i) !Particles per orbital
+!          call Vector_constructorInteger (order, numberOfSpecies, 0 )
+!          order%values(i)=2
+!          if (ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) .ge. 2 ) then
+!             do m=1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+!                do n=m+1,int( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))
+!                   call Vector_constructor (occupiedCode(i), int(order%values(i),4), 0.0_8 )
+!                   occupiedCode(i)%values(1)=m
+!                   occupiedCode(i)%values(2)=n
+!                   do p = int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i))+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+!                     do q=p+1, int(ConfigurationInteraction_instance%numberOfOrbitals%values(i) )
+!
+!                            call Vector_constructor (unoccupiedCode(i), int(order%values(i),4), 0.0_8 )
+!                            unoccupiedCode(i)%values(1)=p
+!                            unoccupiedCode(i)%values(2)=q
+!                            c=c+1
+!                            cc=cc+1
+!                            call Configuration_constructorB(ConfigurationInteraction_instance%strings(i), occupiedCode, unoccupiedCode, i, c, order)
+!                       end do
+!                   end do
+!                end do
+!             end do
+!          end if
+!          write (6, "(T4,A20,A21,A3,I8)") "Doubles for species ", trim(MolecularSystem_getNameOfSpecie(i)), " : ", cc
+!
+!       end do
 
     case ("CISDT")
     !!Build configurations
@@ -4450,11 +4728,15 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
         sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), & 
         sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), 1 )
 
-      allocate ( ConfigurationInteraction_instance%couplingMatrixOrbOne(i)%values ( &
+      call Matrix_constructorInteger( ConfigurationInteraction_instance%couplingMatrixOrbOne(i), &
         sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), &
-        sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), 2 ))
+        sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), 0 )
 
-      ConfigurationInteraction_instance%couplingMatrixOrbOne(i)%values = 0
+!!      allocate ( ConfigurationInteraction_instance%couplingMatrixOrbOne(i)%values ( &
+!!        sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), &
+!!        sum(ConfigurationInteraction_instance%numberOfStrings(i)%values), 2 ))
+
+!!      ConfigurationInteraction_instance%couplingMatrixOrbOne(i)%values = 0
      
     end do  
 
@@ -4720,8 +5002,9 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
 
     end do
     if (  diffOrb(2) > 0 ) then 
-      ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,1) = diffOrb(1)
-      ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,2) = diffOrb(2)
+      !ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,1) = diffOrb(1)
+      !ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,2) = diffOrb(2)
+
       !One particle terms
 
       auxCIenergy= auxCIenergy +  ConfigurationInteraction_instance%twoCenterIntegrals(ii)%values( &
@@ -4729,6 +5012,8 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
 
           auxIndex1= ConfigurationInteraction_instance%twoIndexArray(ii)%values( & 
                       diffOrb(1), diffOrb(2))
+
+      ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b) = auxIndex1
 
           do ll=1, ConfigurationInteraction_instance%occupationNumber( ii ) !! 1 is from a and 2 from b
 
@@ -4760,53 +5045,56 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
 
   end function ConfigurationInteraction_calculateEnergyOneSame
 
-  function ConfigurationInteraction_calculateEnergyOneDiff( n, ii, thisA, thisB ) result (auxCIenergy)
+  function ConfigurationInteraction_calculateEnergyOneDiff( ii, thisA, thisB ) result (auxCIenergy)
     implicit none
     integer(8) :: thisA(:), thisB(:)
     integer(8) :: a, b
-    integer :: i,j,s,n, nn,ii
-    integer :: l,k,z,kk,ll
+    integer :: i,j,ii
+    integer :: l,ll
     integer :: factor
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
-    integer :: auxIndex1, auxIndex2, auxIndex
-    integer :: diffOrb(2), otherdiffOrb(2) !! to avoid confusions
+    integer :: auxIndex1, auxIndex11, auxIndex2, auxIndex
     real(8) :: auxCIenergy
-    integer :: auxOcc
 
     auxCIenergy = 0.0_8
-    factor = 1
-
     !! copy a
 
-    do i=1, MolecularSystem_instance%numberOfQuantumSpecies
-      a = thisA(i)
-      ConfigurationInteraction_instance%auxstring(n,i)%values(:) = ConfigurationInteraction_instance%strings(i)%values(:,a)
-    end do
+    !do i=1, MolecularSystem_instance%numberOfQuantumSpecies
+    !  a = thisA(i)
+    !  ConfigurationInteraction_instance%auxstring(n,i)%values(:) = ConfigurationInteraction_instance%strings(i)%values(:,a)
+    !end do
 
     a = thisA(ii)
     b = thisB(ii)
 
-    diffOrb(1) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,1) 
-    diffOrb(2) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,2) 
+    !diffOrb(1) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,1) 
+    !diffOrb(2) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,2) 
 
-    !      print *, diffOrb(1), diffOrb(2)
-    auxIndex1= ConfigurationInteraction_instance%twoIndexArray(ii)%values( diffOrb(1), diffOrb(2))
+    !!      print *, diffOrb(1), diffOrb(2)
+    !auxIndex1= ConfigurationInteraction_instance%twoIndexArray(ii)%values( diffOrb(1), diffOrb(2))
+
+    auxIndex1 = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b) 
 
     factor = ConfigurationInteraction_instance%couplingMatrixFactorOne(ii)%values(a,b) 
 
     do j=1, ii - 1
     !do j=1, MolecularSystem_instance%numberOfQuantumSpecies
 
+      a = thisA(j)
        !if (ii .ne. j) then
 
           auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
+          auxIndex11 = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) 
 
           do ll=1,  ConfigurationInteraction_instance%occupationNumber( j ) !! 1 is from a and 2 from b
-                l = ConfigurationInteraction_instance%auxstring(n,j)%values(ll) !! or b?
+                !l = ConfigurationInteraction_instance%auxstring(n,j)%values(ll) !! or b?
+                l = ConfigurationInteraction_instance%strings(j)%values(ll,a)
+
                 !l = auxthisA(ll,j)
 
                 auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(j)%values( l,l) 
-                auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
+                auxIndex = auxIndex11  + auxIndex2
+                !auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
 
              auxCIenergy = auxCIenergy + &
              ConfigurationInteraction_instance%fourCenterIntegrals(ii,j)%values(auxIndex, 1) 
@@ -4819,16 +5107,21 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
 
     do j= ii + 1, MolecularSystem_instance%numberOfQuantumSpecies
 
+      a = thisA(j)
        !if (ii .ne. j) then
 
           auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
 
+          auxIndex11 = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) 
+
           do ll=1,  ConfigurationInteraction_instance%occupationNumber( j ) !! 1 is from a and 2 from b
-                l = ConfigurationInteraction_instance%auxstring(n,j)%values(ll) !! or b?
+                !l = ConfigurationInteraction_instance%auxstring(n,j)%values(ll) !! or b?
+                l = ConfigurationInteraction_instance%strings(j)%values(ll,a)
                 !l = auxthisA(ll,j)
 
                 auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(j)%values( l,l) 
-                auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
+                auxIndex = auxIndex11  + auxIndex2
+                !auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
 
              auxCIenergy = auxCIenergy + &
              ConfigurationInteraction_instance%fourCenterIntegrals(ii,j)%values(auxIndex, 1) 
@@ -4839,14 +5132,9 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
        !end if
     end do
 
-
-
     auxCIenergy= auxCIenergy * factor
 
   end function ConfigurationInteraction_calculateEnergyOneDiff
-
-
-
 
 
   function ConfigurationInteraction_calculateEnergyTwoSame( n, ii, thisA, thisB ) result (auxCIenergy)
@@ -4932,54 +5220,48 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
   end function ConfigurationInteraction_calculateEnergyTwoSame
 
 
-  function ConfigurationInteraction_calculateEnergyTwoDiff( n, ii, jj, thisA, thisB ) result (auxCIenergy)
+  function ConfigurationInteraction_calculateEnergyTwoDiff( ii, jj, thisA, thisB ) result (auxCIenergy)
     implicit none
     integer(8) :: thisA(:), thisB(:)
     integer(8) :: a, b
-    integer :: i,ii,j,s,n,jj
-    integer :: l,k,z,kk,ll
+    integer :: i,j
+    integer(1) :: ii, jj
     integer :: factor
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
     integer :: auxIndex1, auxIndex2, auxIndex
-    integer :: diffOrb(4), otherdiffOrb(4) !! to avoid confusions
     real(8) :: auxCIenergy
-    integer :: auxOcc
-
-    auxCIenergy = 0.0_8
-    factor = 1
 
     !!calculate
 
     a = thisA(ii)
     b = thisB(ii)
-    factor = factor * ConfigurationInteraction_instance%couplingMatrixFactorOne(ii)%values(a,b) 
+    factor = ConfigurationInteraction_instance%couplingMatrixFactorOne(ii)%values(a,b) 
 
-    diffOrb = 0
+    !diffOrb(1) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,1) 
+    !diffOrb(2) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,2) 
+    auxIndex1 = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b) 
 
-    diffOrb(1) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,1) 
-    diffOrb(3) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,2) 
     a = thisA(jj)
     b = thisB(jj)
 
     factor = factor * ConfigurationInteraction_instance%couplingMatrixFactorOne(jj)%values(a,b) 
 
-    otherdiffOrb = 0
-    otherdiffOrb(1) = ConfigurationInteraction_instance%couplingMatrixOrbOne(jj)%values(a,b,1) 
-    otherdiffOrb(3) = ConfigurationInteraction_instance%couplingMatrixOrbOne(jj)%values(a,b,2) 
+    !otherdiffOrb(1) = ConfigurationInteraction_instance%couplingMatrixOrbOne(jj)%values(a,b,1) 
+    !otherdiffOrb(2) = ConfigurationInteraction_instance%couplingMatrixOrbOne(jj)%values(a,b,2) 
 
     auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(jj) 
 
            !if ( spin(1) .eq. spin(3) .and. spin(2) .eq. spin(4) ) then
-      auxIndex1 = ConfigurationInteraction_instance%twoIndexArray(ii)%values(&
-                              diffOrb(1),diffOrb(3) )
-      auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(jj)%values(&
-                              otherdiffOrb(1),otherdiffOrb(3) )
+    !  auxIndex1 = ConfigurationInteraction_instance%twoIndexArray(ii)%values(&
+    !                          diffOrb(1),diffOrb(2) )
+    auxIndex2 = ConfigurationInteraction_instance%couplingMatrixOrbOne(jj)%values(a,b) 
+
+    !  auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(jj)%values(&
+    !                          otherdiffOrb(1),otherdiffOrb(2) )
       auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
 
               !auxCIenergy = auxCIenergy + 1
-      auxCIenergy = auxCIenergy + &
-                   ConfigurationInteraction_instance%fourCenterIntegrals(ii,jj)%values(auxIndex, 1)
-
+    auxCIenergy = ConfigurationInteraction_instance%fourCenterIntegrals(ii,jj)%values(auxIndex, 1)
     auxCIenergy= auxCIenergy * factor
 
     !deallocate ( auxstring )
@@ -5480,32 +5762,34 @@ recursive  function ConfigurationInteraction_getIndexesRecursion(s, numberOfSpec
 
   end subroutine ConfigurationInteraction_buildHamiltonianMatrix2
 
-recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numberOfSpecies, indexConf, auxindexConf, cc, c, n, v, w, nx) result (os)
+recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, indexConf, auxindexConf, cc, c, n, v, w) result (os)
     implicit none
 
     integer(8) :: a,b,c
     integer :: i, j, ii, jj, n, nn, nproc 
     integer :: s, numberOfSpecies
-    integer :: os,is
+    integer :: os,is,ss
     integer(8) :: cc(:)
     integer(8) :: indexConf(:,:)
     integer(8) :: auxindexConf(:,:)
     real(8) :: timeA, timeB
-    integer(8) :: nx 
-    real(8) :: v(nx)
-    real(8) :: w(nx)
+    real(8) :: v(:)
+    real(8) :: w(:)
 
     is = s + 1
-    if ( is < numberOfSpecies ) then
+    !if ( is < numberOfSpecies ) then
+    do ss = 1, ConfigurationInteraction_instance%recursionVector1(is) 
       do i = 1, size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
         do a = 1, ConfigurationInteraction_instance%numberOfStrings(is)%values(i)
           indexConf(is,n:) = sum(ConfigurationInteraction_instance%numberOfStrings(is)%values(1:i-1)) + a
 
-          os = ConfigurationInteraction_buildMatrixRecursion( nproc, is, numberOfSpecies, indexConf, auxindexConf, cc, c, n, v, w, nx )
+          os = ConfigurationInteraction_buildMatrixRecursion( nproc, is, indexConf, auxindexConf, cc, c, n, v, w )
         end do
       end do
 
-    else 
+    end do
+    !else 
+    do ss = 1, ConfigurationInteraction_instance%recursionVector2(is) 
       os = is
       do i = 1, size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
         do a = 1, ConfigurationInteraction_instance%numberOfStrings(is)%values(i)
@@ -5529,10 +5813,10 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
 
               !$omp parallel &
               !$omp& private(nn),&
-              !$omp& shared(v,nx,w, indexConf, cc, nproc) 
+              !$omp& shared(v,w, indexConf, cc, nproc) 
               !$omp do schedule (static) 
               do nn = 1, nproc
-                call ConfigurationInteraction_buildRow( nn, indexConf(:,nn), cc(nn), w, v(cc(nn)), nx)
+                call ConfigurationInteraction_buildRow( nn, indexConf(:,nn), cc(nn), w, v(cc(nn)))
               end do
               !$omp end do nowait
               !$omp end parallel
@@ -5549,20 +5833,20 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
      
         end do
       end do
-
-    end if
+    end do
+    !end if
 
 
   end function ConfigurationInteraction_buildMatrixRecursion
 
 
-  subroutine ConfigurationInteraction_buildRow( nn, indexConfA, c, w, vc, nx)
+  subroutine ConfigurationInteraction_buildRow( nn, indexConfA, c, w, vc)
     implicit none
 
     integer(8) :: c
     integer :: u,uu,vv, p, nn
     integer :: i, auxis,auxos
-    integer :: numberOfSpecies, auxnumberOfSpecies,s
+    integer :: numberOfSpecies, s
     !integer(1), allocatable :: orbitalsA(:), orbitalsB(:)
     !integer(1), allocatable :: couplingOrder(:)
     !integer(1) :: coupling
@@ -5571,8 +5855,9 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
     !integer(4), allocatable :: nCouplingOneTwo (:,:)
     !type(imatrix), allocatable :: couplingOneTwo(:)
     real(8) :: vc
-    integer(8) :: nx 
-    real(8) :: w(nx)
+    real(8) :: w(:)
+
+    !$ ConfigurationInteraction_instance%time11 = omp_get_wtime()
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -5647,30 +5932,30 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
     !! one diff
     do u = 1, ConfigurationInteraction_instance%ncouplingOrderOne
       auxis = 0
-      auxos = ConfigurationInteraction_buildRowRecursionSecondOne( nn, auxis, numberOfSpecies,  &
+      auxos = ConfigurationInteraction_buildRowRecursionSecondOne( auxis, &
                         ConfigurationInteraction_instance%couplingOrderList(1,u)%values, &
                         ConfigurationInteraction_instance%couplingOrderIndex(1,u)%values, &
-                        indexConfA, indexConfB, w, vc, nx  )
+                        indexConfA, indexConfB, w, vc )
     end do
 
     !! two diff same species
     do u = 1, ConfigurationInteraction_instance%ncouplingOrderTwo
 
       auxis = 0
-      auxos = ConfigurationInteraction_buildRowRecursionSecondTwo( nn, auxis, numberOfSpecies,  &
+      auxos = ConfigurationInteraction_buildRowRecursionSecondTwo( auxis,  &
                         ConfigurationInteraction_instance%couplingOrderList(2,u)%values, &
                         ConfigurationInteraction_instance%couplingOrderIndex(2,u)%values, &
-                        indexConfA, indexConfB, w, vc, nx  )
+                        indexConfA, indexConfB, w, vc )
     end do
 
     !! two diff diff species
     do u = 1, ConfigurationInteraction_instance%ncouplingOrderTwoDiff
 
       auxis = 0
-      auxos = ConfigurationInteraction_buildRowRecursionSecondTwoDiff( nn, auxis, numberOfSpecies,  &
+      auxos = ConfigurationInteraction_buildRowRecursionSecondTwoDiff( auxis,  &
                         ConfigurationInteraction_instance%couplingOrderList(3,u)%values, &
                         ConfigurationInteraction_instance%couplingOrderIndex(3,u)%values, &
-                        indexConfA, indexConfB, w, vc, nx  )
+                        indexConfA, indexConfB, w, vc )
     end do
 
     deallocate ( indexConfB )
@@ -5680,37 +5965,40 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, numb
 
   end subroutine ConfigurationInteraction_buildRow
  
-recursive  function ConfigurationInteraction_buildRowRecursionSecondOne(nn, s, numberOfSpecies, couplingOrder, iindex,&
-                                          indexConfA, indexConfB, w, vc, nx) result (os)
+recursive  function ConfigurationInteraction_buildRowRecursionSecondOne( s, couplingOrder, iindex,&
+                                          indexConfA, indexConfB, w, vc) result (os)
     implicit none
 
     integer(8) :: a,b,c,d,aa,bb,aaa
-    integer :: u,v
-    integer :: i, j, ii, jj, nn 
-    integer :: s, numberOfSpecies
-    integer :: os,is
+    integer :: i, j, ii, jj 
+    integer :: s
+    integer :: os,is,ss
     integer(1) :: couplingOrder(:)
     integer(1) :: iindex(:)
     integer(8) :: indexConfA(:)
     integer(8) :: indexConfB(:)
     real(8) :: vc
-    integer(8) :: nx 
-    real(8) :: w(nx), CIenergy
+    real(8) :: w(:), CIenergy
 
     is = s + 1
     aa = indexConfA(is)
     i = couplingOrder(is)+1
 
+    ii = iindex(1)
+    aaa = indexConfA(ii) 
 
-    if ( is < numberOfSpecies ) then
+    do ss = 1, ConfigurationInteraction_instance%recursionVector1(is) 
+    !if ( is < numberOfSpecies ) then
       !do a = 1, nCouplingOneTwo(i,is) 
       do a = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is)%values( i, aa) 
         !indexConfB(is) = couplingOneTwo(is)%values(i,a) 
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is)%values(a, i, aa)
-        os = ConfigurationInteraction_buildRowRecursionSecondOne( nn, is, numberOfSpecies, couplingOrder, iindex, &
-                        indexConfA, indexConfB, w, vc, nx )
+        os = ConfigurationInteraction_buildRowRecursionSecondOne( is, couplingOrder, iindex, &
+                        indexConfA, indexConfB, w, vc )
       end do
-    else 
+    end do
+    !else 
+    do ss = 1, ConfigurationInteraction_instance%recursionVector2(is) 
       os = is
       !d = d + 1
       !do a = 1, nCouplingOneTwo(i,is) 
@@ -5718,15 +6006,11 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondOne(nn, s, n
         !indexConfB(is) = couplingOneTwo(is)%values(i,a) 
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is)%values(a, i, aa)
         d = ConfigurationInteraction_getIndex ( indexConfB ) 
-
-        CIenergy = 0
-
-        ii = iindex(1)
-        aaa = indexConfA(ii) 
         bb = indexConfB(ii) 
-        CIenergy = CIenergy + ConfigurationInteraction_instance%couplingMatrixEnergyOne(ii)%values(aaa,bb) 
+
+        CIenergy = ConfigurationInteraction_instance%couplingMatrixEnergyOne(ii)%values(aaa,bb) 
         !print *, ii, couplingOrder(ii), aaa,bb, CIenergy
-        CIenergy = CIenergy + ConfigurationInteraction_calculateEnergyOneDiff ( nn, ii, indexConfA, indexConfB )
+        CIenergy = CIenergy + ConfigurationInteraction_calculateEnergyOneDiff ( ii, indexConfA, indexConfB )
 
         !print *, "CI1", CIenergy
         CIenergy = vc*CIenergy 
@@ -5742,41 +6026,47 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondOne(nn, s, n
         w(d) = w(d) + CIenergy
         !$omp end atomic
       end do
-    end if
+    end do
+    !end if
 
   end function ConfigurationInteraction_buildRowRecursionSecondOne
 
-recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( nn, s, numberOfSpecies, couplingOrder, iindex,&
-                                          indexConfA, indexConfB, w, vc, nx) result (os)
+recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( s, couplingOrder, iindex,&
+                                          indexConfA, indexConfB, w, vc) result (os)
     implicit none
 
     integer(8) :: a,d, aa,bb,aaa
-    integer :: i, ii, nn
-    integer :: s, numberOfSpecies
-    integer :: os,is
+    integer :: i, ii
+    integer :: s
+    integer :: os,is,ss
     integer(1) :: couplingOrder(:)
     integer(1) :: iindex(:)
     integer(8) :: indexConfA(:)
     integer(8) :: indexConfB(:)
     real(8) :: vc
-    integer(8) :: nx 
-    real(8),intent(inout) :: w(nx)
+    real(8) :: w(:)
     real(8) :: CIenergy
 
     is = s + 1
     aa = indexConfA(is)
     i = couplingOrder(is)+1
 
-    if ( is < numberOfSpecies ) then
+    ii = iindex(1)
+    aaa = indexConfA(ii) 
+
+    !if ( is < numberOfSpecies ) then
+    do ss = 1, ConfigurationInteraction_instance%recursionVector1(is) 
       !do a = 1, nCouplingOneTwo(i,is) 
       !  indexConfB(is) = couplingOneTwo(is)%values(i,a) 
       do a = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is)%values( i,aa) 
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is)%values(a, i, aa)
 
-        os = ConfigurationInteraction_buildRowRecursionSecondTwo( nn, is, numberOfSpecies, couplingOrder, iindex, &
-                        indexConfA, indexConfB, w, vc, nx )
+        os = ConfigurationInteraction_buildRowRecursionSecondTwo( is, couplingOrder, iindex, &
+                        indexConfA, indexConfB, w, vc )
       end do
-    else 
+    end do
+    !else 
+    do ss = 1, ConfigurationInteraction_instance%recursionVector2(is) 
       os = is
 
       !do a = 1, nCouplingOneTwo(i,is) 
@@ -5784,64 +6074,57 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( nn, s, 
       do a = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is)%values( i,aa) 
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is)%values(a, i, aa)
 
+        bb = indexConfB(ii) 
         d = ConfigurationInteraction_getIndex ( indexConfB ) 
 
-        CIenergy = 0
+        CIenergy = ConfigurationInteraction_instance%couplingMatrixEnergyTwo(ii)%values(aaa,bb) 
 
-        ii = iindex(1)
-        aaa = indexConfA(ii) 
-        bb = indexConfB(ii) 
-        CIenergy = CIenergy + ConfigurationInteraction_instance%couplingMatrixEnergyTwo(ii)%values(aaa,bb) 
-        !print *, ii, couplingOrder(ii), aaa,bb, CIenergy
-        !CIenergy = CIenergy + ConfigurationInteraction_calculateEnergyOneDiff ( nn, ii, indexConfA, indexConfB )
-
-        !print *, "CI1", CIenergy
         CIenergy = vc*CIenergy 
- 
-
-        !! call
 !        CIenergy = vc*ConfigurationInteraction_calculateEnergyTwo ( nn, indexConfA, indexConfB )
+
         !$omp atomic
         w(d) = w(d) + CIenergy 
         !$omp end atomic
       end do
-    end if
+    end do
+    !end if
 
   end function ConfigurationInteraction_buildRowRecursionSecondTwo
 
-recursive  function ConfigurationInteraction_buildRowRecursionSecondTwoDiff( nn, s, numberOfSpecies, couplingOrder, iindex, &
-                                          indexConfA, indexConfB, w, vc, nx) result (os)
+recursive  function ConfigurationInteraction_buildRowRecursionSecondTwoDiff( s, couplingOrder, iindex, &
+                                          indexConfA, indexConfB, w, vc) result (os)
     implicit none
 
     integer(8) :: a,d, aa, bb, aaa
-    integer :: i, ii, jj, nn
-    integer :: s, numberOfSpecies
-    integer :: os,is
+    integer :: i
+    integer :: s
+    integer :: os,is,ss
     integer(1) :: couplingOrder(:)
     integer(1) :: iindex(:)
     integer(8) :: indexConfA(:)
     integer(8) :: indexConfB(:)
     real(8) :: vc
-    integer(8) :: nx 
-    real(8),intent(inout) :: w(nx)
+    real(8) :: w(:)
     real(8) :: CIenergy
 
     is = s + 1
     aa = indexConfA(is)
     i = couplingOrder(is)+1
 
-    if ( is < numberOfSpecies ) then
+!    if ( is < numberOfSpecies ) then
+    do ss = 1, ConfigurationInteraction_instance%recursionVector1(is) 
       !do a = 1, nCouplingOneTwo(i,is) 
       !  indexConfB(is) = couplingOneTwo(is)%values(i,a) 
       do a = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is)%values( i,aa) 
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is)%values(a, i, aa)
 
-        os = ConfigurationInteraction_buildRowRecursionSecondTwoDiff( nn, is, numberOfSpecies, couplingOrder, iindex, &
-                        indexConfA, indexConfB, w, vc, nx )
+        os = ConfigurationInteraction_buildRowRecursionSecondTwoDiff( is, couplingOrder, iindex, &
+                        indexConfA, indexConfB, w, vc )
       end do
-    else 
+    end do
+!    else 
+    do ss = 1, ConfigurationInteraction_instance%recursionVector2(is) 
       os = is
-
       !do a = 1, nCouplingOneTwo(i,is) 
       !  indexConfB(is) = couplingOneTwo(is)%values(i,a) 
       do a = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is)%values( i,aa) 
@@ -5849,12 +6132,7 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwoDiff( nn,
 
         d = ConfigurationInteraction_getIndex ( indexConfB ) 
 
-        CIenergy = 0
-
-        ii = iindex(1)
-        jj = iindex(2)
-        CIenergy = CIenergy + ConfigurationInteraction_calculateEnergyTwoDiff ( nn, ii, jj, indexConfA, indexConfB )
-
+        CIenergy = ConfigurationInteraction_calculateEnergyTwoDiff ( iindex(1), iindex(2), indexConfA, indexConfB )
         CIenergy = vc*CIenergy 
 
         !! call
@@ -5866,7 +6144,8 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwoDiff( nn,
         w(d) = w(d) + CIenergy 
         !$omp end atomic
       end do
-    end if
+    end do
+    !end if
 
   end function ConfigurationInteraction_buildRowRecursionSecondTwoDiff
 
@@ -9880,7 +10159,6 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwoDiff( nn,
     implicit none
   
     integer(8) nx
-    real(8) y(nx)
     real(8) v(nx)
     real(8) w(nx)
     real(8) :: CIEnergy
@@ -9932,10 +10210,10 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwoDiff( nn,
     c = 0
     n = 1
 !$  timeA = omp_get_wtime()
-    auxnumberOfSpecies = ConfigurationInteraction_buildMatrixRecursion(nproc, s, numberOfSpecies, indexConf, auxindexConf,cc, c, n, v, w, nx )
+    auxnumberOfSpecies = ConfigurationInteraction_buildMatrixRecursion(nproc, s, indexConf, auxindexConf,cc, c, n, v, w )
     if  ( n > 1 ) then
        do nn = 1, n-1
-       call ConfigurationInteraction_buildRow( nn, auxindexConf(:,nn), cc(nn), w, v(cc(nn)), nx)
+       call ConfigurationInteraction_buildRow( nn, auxindexConf(:,nn), cc(nn), w, v(cc(nn)))
       end do
     end if
     
@@ -9945,8 +10223,9 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondTwoDiff( nn,
     deallocate ( indexConf )
     deallocate ( excitationLevel )
     deallocate ( cc )
-    !stop
 !$    write(*,"(A,I2,A,E10.3,A2,I12)") "  ", iter, "  ", timeB - timeA ,"  ", nonzero
+!    stop
+    
 
     return
 

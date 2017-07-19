@@ -4,8 +4,8 @@ import numpy as np
 
 global occ
 global basis
-occ = 5
-basis = 10
+occ = 3
+basis = 12
     
 
 for i in range (1,occ+1) :
@@ -32,6 +32,7 @@ def configuration ( occupied, virtual, ci, level ):
             virtual[:] = occ
 
     if ( ci > 1 and ci < level ) : #mid
+        print "m",ci
         for i in range (occupied[ci-2]+1,occ+1) :
             for a in range (virtual[ci-2]+1,basis+1) :
                 occupied[ci-1] = i 
@@ -40,6 +41,7 @@ def configuration ( occupied, virtual, ci, level ):
             #virtual[:] = occ
 
     else :  #final
+        print "l",ci
         for i in range (occupied[ci-2]+1,occ+1) :
             for a in range (virtual[ci-2]+1,basis+1) :
                 occupied[ci-1] = i 
@@ -55,14 +57,12 @@ print "-"*20
 
 global occupiedindex 
 global virtualindex 
-level = 5
+level = 2
 
 for i in range(1,level+1):
-    print i
     occupiedindex = np.zeros((i),dtype=np.int)
     virtualindex = np.zeros((i),dtype=np.int)
     virtualindex[:] = occ 
-    print virtualindex
     if ( i <= occ ):
         configuration ( occupiedindex, virtualindex, 0, i )
 
