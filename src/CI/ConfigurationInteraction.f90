@@ -4932,7 +4932,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
         bb = indexConfB(ii) 
 
         !! call
-        nn = 1 ! serial
+        !nn = 1 ! serial
         CIenergy = ConfigurationInteraction_calculateEnergyTwoSame ( nn, ii, indexConfA, indexConfB )
         !ConfigurationInteraction_instance%couplingMatrixEnergyTwo(ii,nn)%values(bb) = CIenergy
         ConfigurationInteraction_instance%couplingMatrixEnergyOne(ii,nn)%values(bb) = CIenergy
