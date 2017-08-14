@@ -58,6 +58,7 @@ program HF
   real(8) :: totalRepulsionEnergy
   real(8) :: totalQuantumPuntualInteractionEnergy
   real(8) :: totalExternalPotentialEnergy
+  real(8) :: totalExchangeCorrelationEnergy
   real(8) :: electronicRepulsionEnergy
   real(8) :: puntualInteractionEnergy
   real(8) :: puntualMMInteractionEnergy
@@ -498,12 +499,18 @@ program HF
 
   case("UHF")
 
+  case("RKS")
+
+  case("UKS")
+
   case default
 
      write(*,*) "USAGE: lowdin-HF.x job "
      write(*,*) "Where job can be: "
      write(*,*) "  RHF"
      write(*,*) "  UHF"
+     write(*,*) "  RKS"
+     write(*,*) "  UKS"
      stop "ERROR"
 
   end select

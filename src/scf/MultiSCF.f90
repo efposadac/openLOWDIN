@@ -302,7 +302,13 @@ contains
                            (SingleSCF_getNumberOfIterations(iteratorOfElectronicSpecie) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie))
+                         
+                         print *, CONTROL_instance%METHOD
+                         if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+                            call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+                         end if
 
+                         
                          if (CONTROL_instance%COSMO) then
                             call  WaveFunction_buildCosmo2Matrix( trim(nameOfElectronicSpecie))
                             if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
@@ -458,6 +464,11 @@ contains
                             call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
                          end if
 
+                         print *, CONTROL_instance%METHOD
+                         if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+                            call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+                         end if
+                         
                          ! call Matrix_show(wavefunction_instance(iteratorOfSpecie)%couplingMatrix)
 
 
@@ -761,6 +772,12 @@ contains
     !! Build an initial two particles matrix, which it will be recalculated in SingleSCF_iterate
     call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
 
+    print *, CONTROL_instance%METHOD
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+    end if
+
+    
     ! write(*,*)"entre al unique specie"
     do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
          ( SingleSCF_getNumberOfIterations(speciesID) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )

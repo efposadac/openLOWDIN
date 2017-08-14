@@ -279,7 +279,12 @@ contains
   subroutine Solver_RKSRun( )
     implicit none
 !     type(Solver) :: this
+
+    print *, "hola Felix, bienvenido de vuelta"
     
+    !! Run HF program in RHF mode
+    call system("lowdin-HF.x RKS")
+
 !     call RKS_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_dipole( CalculateProperties_instance )
@@ -301,6 +306,9 @@ contains
     implicit none
 !     type(Solver) :: this
     
+    !! Run HF program in RHF mode
+    call system("lowdin-HF.x UKS")
+
 !     call UKS_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_expectedPosition( CalculateProperties_instance )

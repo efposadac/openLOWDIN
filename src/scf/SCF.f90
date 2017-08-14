@@ -90,6 +90,12 @@ program SCF
      do i = 1, numberOfSpecies
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
+
+        print *, CONTROL_instance%METHOD
+        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+           call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+        end if
+        
         call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
 
         if (CONTROL_instance%COSMO) then
@@ -220,7 +226,7 @@ program SCF
      end if
 
   else
-
+     
      call MultiSCF_iterate( CONTROL_instance%ITERATION_SCHEME )
 
 

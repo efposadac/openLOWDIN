@@ -14,7 +14,7 @@
 
 !>
 !! @brief This module handles all matrices for SCF program. - Felix modificara este archivo en el futuro cercano
-!! @author E. F. Posada, 20130
+!! @author E. F. Posada, 2013
 !! @warning This module is differs from the Wavefunction.f90 located in HF program.
 module WaveFunction_
   use Matrix_
@@ -27,6 +27,9 @@ module WaveFunction_
   use MolecularSystem_
   use CosmoCore_
   use DirectIntegralManager_
+  use Grid_
+  use DensityManager_
+  use Functional_
 
   implicit none
 
@@ -54,7 +57,8 @@ module WaveFunction_
      type(Matrix) :: hcoreMatrix
      type(Matrix) :: twoParticlesMatrix
      type(Matrix) :: couplingMatrix
-     type(Matrix) :: interParticleCorrMatrix
+     type(Matrix) :: exchangeCorrelationMatrix
+     ! type(Matrix) :: interParticleCorrMatrix
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: beforeDensityMatrix
      type(Matrix) :: transformationMatrix
@@ -88,7 +92,7 @@ module WaveFunction_
      !! Variable por conveniencia
      real(8) :: totalEnergyForSpecie
      real(8) :: independentSpecieEnergy
-     real(8) :: nuclearElectronicCorrelationEnergy
+     real(8) :: exchangeCorrelationEnergy
 
   end type WaveFunction
 
@@ -130,7 +134,7 @@ contains
        !! Set defaults
        WaveFunction_instance( speciesID )%totalEnergyForSpecie = 0.0_8
        WaveFunction_instance( speciesID )%independentSpecieEnergy =0.0_8
-       WaveFunction_instance( speciesID )%nuclearElectronicCorrelationEnergy = 0.0_8
+       WaveFunction_instance( speciesID )%exchangeCorrelationEnergy = 0.0_8
        WaveFunction_instance( speciesID )%numberOfIterations = 0 
 
        !! Cosmo things
@@ -198,7 +202,8 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%fockMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( WaveFunction_instance(speciesID)%twoParticlesMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( WaveFunction_instance(speciesID)%couplingMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
-       call Matrix_constructor( WaveFunction_instance(speciesID)%interParticleCorrMatrix, numberOfContractions, numberOfContractions, 0.0_8 )       
+       call Matrix_constructor( WaveFunction_instance(speciesID)%exchangeCorrelationMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
+       ! call Matrix_constructor( WaveFunction_instance(speciesID)%interParticleCorrMatrix, numberOfContractions, numberOfContractions, 0.0_8 )       
        call Matrix_constructor( WaveFunction_instance(speciesID)%waveFunctionCoefficients,numberOfContractions, numberOfContractions, 0.0_8 )
        call Vector_constructor( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, int(numberOfContractions) )
 
@@ -210,6 +215,12 @@ contains
        WaveFunction_instance(speciesID)%builtTwoParticlesMatrix = .true.
 
     end do
+
+    !!Initialize DFT: Calculate Grids and fill them with stuff
+    call Grid_constructor( )
+    call DensityManager_createFunctionals( )
+    call DensityManager_atomicOrbitalProducts( )
+    
   end subroutine WaveFunction_constructor
 
   !>
@@ -338,71 +349,75 @@ contains
 
                 !!*****************************************************************************
                 !! Adds exchange operator contributions
+                !! 
+                !! FELIX: THIS HAS TO CHANGE TO INCLUDE HYBRID FUNCTIONALS
+                if ( CONTROL_instance%METHOD .ne. "RKS" .and. CONTROL_instance%METHOD .ne. "UKS" ) then
 
-                if( rr(i) /= ss(i) ) then
+                   if( rr(i) /= ss(i) ) then
 
-                   exchange =wavefunction_instance(speciesID)%densityMatrix%values(bb(i),ss(i)) * shellIntegrals(i) * factor
-
-                   tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
-
-                   if( aa(i) == rr(i) .and. bb(i) /= ss(i) ) then
+                      exchange =wavefunction_instance(speciesID)%densityMatrix%values(bb(i),ss(i)) * shellIntegrals(i) * factor
 
                       tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
 
-                   end if
+                      if( aa(i) == rr(i) .and. bb(i) /= ss(i) ) then
 
-                end if
-
-                if ( aa(i) /= bb(i) ) then
-
-                   exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),rr(i)) * shellIntegrals(i) * factor
-
-                   if( bb(i) > ss(i) ) then
-
-                      tmpArray( ss(i), bb(i) ) = tmpArray( ss(i), bb(i)) + exchange
-
-                   else
-
-                      tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
-
-                      if( bb(i)==ss(i) .and. aa(i) /= rr(i) ) then
-
-                         tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
+                         tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
 
                       end if
 
                    end if
 
-                   if ( rr(i) /= ss(i) ) then
+                   if ( aa(i) /= bb(i) ) then
 
-                      exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),ss(i)) * shellIntegrals(i) * factor
+                      exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),rr(i)) * shellIntegrals(i) * factor
 
-                      if( bb(i) <= rr(i) ) then
+                      if( bb(i) > ss(i) ) then
 
-                         tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
-
-                         if( bb(i) == rr(i) ) then
-
-                            tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
-
-                         end if
+                         tmpArray( ss(i), bb(i) ) = tmpArray( ss(i), bb(i)) + exchange
 
                       else
 
-                         tmpArray( rr(i), bb(i) ) = tmpArray( rr(i), bb(i)) + exchange
+                         tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
 
-                         if( aa(i) == rr(i) .and. ss(i) == bb(i) ) cycle buildmatrix
+                         if( bb(i)==ss(i) .and. aa(i) /= rr(i) ) then
+
+                            tmpArray( bb(i), ss(i) ) = tmpArray( bb(i), ss(i) ) + exchange
+
+                         end if
+
+                      end if
+
+                      if ( rr(i) /= ss(i) ) then
+
+                         exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),ss(i)) * shellIntegrals(i) * factor
+
+                         if( bb(i) <= rr(i) ) then
+
+                            tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
+
+                            if( bb(i) == rr(i) ) then
+
+                               tmpArray( bb(i), rr(i) ) = tmpArray( bb(i), rr(i) ) + exchange
+
+                            end if
+
+                         else
+
+                            tmpArray( rr(i), bb(i) ) = tmpArray( rr(i), bb(i)) + exchange
+
+                            if( aa(i) == rr(i) .and. ss(i) == bb(i) ) cycle buildmatrix
+
+                         end if
 
                       end if
 
                    end if
 
+                   exchange = wavefunction_instance(speciesID)%densityMatrix%values(bb(i),rr(i))*shellIntegrals(i) * factor
+
+                   tmpArray( aa(i), ss(i) ) = tmpArray( aa(i), ss(i) ) + exchange
+
                 end if
-
-                exchange = wavefunction_instance(speciesID)%densityMatrix%values(bb(i),rr(i))*shellIntegrals(i) * factor
-
-                tmpArray( aa(i), ss(i) ) = tmpArray( aa(i), ss(i) ) + exchange
-
                 !!
                 !!*****************************************************************************
 
@@ -411,7 +426,7 @@ contains
           end do loadintegrals
 
           close(unitid)
-
+          
           do u = 1, totalNumberOfContractions
              do v = 1, totalNumberOfContractions
                 !$OMP ATOMIC
@@ -436,6 +451,10 @@ contains
 
        else !! Direct
 
+          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+             call WaveFunction_exception(ERROR, "Direct integrals are not implemented in DFT yet", "trololo")
+          end if
+          
           call DirectIntegralManager_getDirectIntraRepulsionIntegrals(&
                speciesID, &
                trim(CONTROL_instance%INTEGRAL_SCHEME), &
@@ -465,7 +484,7 @@ contains
   !! @brief Builds the coupling matrix.
   subroutine WaveFunction_buildCouplingMatrix( nameOfSpecie, initialSpeciesIterator )
     implicit none
-
+    
     character(*), optional :: nameOfSpecie
     integer, optional :: initialSpeciesIterator
     integer :: initialSpeciesIteratorSelected
@@ -639,6 +658,7 @@ contains
           !$OMP END PARALLEL
 
        else !! Direct
+
           do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
 
              otherSpecieID = speciesIterator
@@ -675,7 +695,89 @@ contains
        call Matrix_show( wavefunction_instance(currentSpecieID)%couplingMatrix )
     end if
 
-  end subroutine WaveFunction_buildCouplingMatrix
+ end subroutine WaveFunction_buildCouplingMatrix
+
+  !>
+  !! @brief Builds exchange correlation contributions Matrix for DFT calculations (FELIX)
+  subroutine WaveFunction_buildExchangeCorrelationMatrix( nameOfSpecies )       
+    implicit none
+    character(*) :: nameOfSpecies
+
+    integer :: u,v
+    integer :: numberOfContractions
+    integer :: speciesID, gridSize
+    integer :: i, index, point
+    type(Matrix) :: grid
+    type(Vector) :: densityInGrid, potentialInGrid
+    
+    character(50) :: labels(2), dftFile
+    integer :: dftUnit
+
+
+    !! Open file for dft
+    dftUnit = 77
+    dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
+    
+    speciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+
+    Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values=0.0_8
+    
+    gridSize = Grid_instance(speciesID)%totalSize
+    grid = Grid_instance(speciesID)%points
+
+    ! labels(2) = trim(nameOfSpecies)
+    ! labels(1) = "ORBITALPRODUCT-GRID"
+
+    ! open( UNIT=dftUnit,FILE=dftFile, status='old', access='sequential', form='formatted')
+    ! orbitalsProductInGrid=Matrix_getFromFile(unit=dftUnit, file=dftFile, rows=gridSize, columns=numberOfContractions*(numberOfContractions+1)/2, binary=.false., arguments=labels)
+    ! close( dftUnit)
+    
+    call Vector_Constructor(densityInGrid, gridSize, 0.0_8)
+    
+    call DensityManager_getDensityAtGrid( speciesID, gridSize, wavefunction_instance(speciesID)%densityMatrix, densityInGrid)
+
+    call Vector_Constructor(potentialInGrid, gridSize, 0.0_8)
+    
+    call DensityManager_getPotentialAtGrid( speciesID, gridSize, densityInGrid, potentialInGrid)
+    
+    index=1
+    do u = 1 , numberOfContractions
+       do v = u , numberOfContractions
+          do i=1,gridSize
+             Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)=Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)+&
+                  Grid_instance(speciesID)%orbitalsProduct%values(i,index)*potentialInGrid%values(i)*grid%values(i,4)
+          end do
+          Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(v,u)=Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)
+          index=index+1
+       end do
+    end do
+
+    call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
+
+    call DensityManager_getEnergyFromGrid( speciesID, gridSize, densityInGrid, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy)
+    
+    ! index=1
+    ! particles=0.0
+    !    do u = 1 , numberOfContractions
+    !       do v = u , numberOfContractions
+    !          if ( u .eq. v) then
+    !             do i=1,gridSize
+    !                particles=particles + WaveFunction_instance(speciesID)%densityMatrix%values(u,v)*orbitalsProductInGrid%values(i,index)*grid%values(i,4)
+    !             end do
+    !          else
+    !             do i=1,gridSize
+    !                particles=particles + 2*WaveFunction_instance(speciesID)%densityMatrix%values(u,v)*orbitalsProductInGrid%values(i,index)*grid%values(i,4)
+    !             end do
+    !          end if
+    !          index=index+1
+    !    end do
+    ! end do
+    ! print *, "particles", particles
+    
+
+    
+  end subroutine WaveFunction_buildExchangeCorrelationMatrix
 
   !>
   !! @brief Builds fock Matrix
@@ -737,6 +839,14 @@ contains
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
     end if
 
+    !!!FELIX, agrega la matriz para hacer calculo DFT
+    wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values
+
+    if (  CONTROL_instance%DEBUG_SCFS) then
+       print *,"MATRIZ DE FOCK 3.1 (+ exchangeCorrelation): "//trim(nameOfSpecieSelected)
+       call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
+    end if
+    
 
     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
       wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
@@ -838,6 +948,14 @@ contains
 
     call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecieSelected) )
 
+    print *, CONTROL_instance%METHOD
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+    end if
+
+
+    !! FELIX Añadir llamado a DFT, tal vez
+    
     if( .not. allocated(wavefunction_instance(speciesID)%externalPotentialMatrix%values) ) then
 
        wavefunction_instance(speciesID)%totalEnergyForSpecie = &
@@ -845,7 +963,7 @@ contains
             *  (( wavefunction_instance(speciesID)%hcoreMatrix%values ) &
             + 0.5_8 *wavefunction_instance(speciesID)%twoParticlesMatrix%values &
             + wavefunction_instance(speciesID)%couplingMatrix%values)) &
-            + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
+            + wavefunction_instance(speciesID)%exchangeCorrelationEnergy
 
 
     else if(CONTROL_instance%COSMO)then
@@ -855,7 +973,7 @@ contains
             *  (( wavefunction_instance(speciesID)%hcoreMatrix%values ) &
             + 0.5_8 *wavefunction_instance(speciesID)%twoParticlesMatrix%values &
             + wavefunction_instance(speciesID)%couplingMatrix%values)) &
-            + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
+            + wavefunction_instance(speciesID)%exchangeCorrelationEnergy
 
 
        wavefunction_instance( speciesID )%totalEnergyForSpecie =wavefunction_instance( speciesID )%totalEnergyForSpecie + 0.5_8 * &
@@ -884,7 +1002,7 @@ contains
             + 0.5_8 *wavefunction_instance(speciesID)%twoParticlesMatrix%values &
             + wavefunction_instance(speciesID)%couplingMatrix%values &
             + wavefunction_instance(speciesID)%externalPotentialMatrix%values ))&
-            + wavefunction_instance(speciesID)%nuclearElectronicCorrelationEnergy
+            + wavefunction_instance(speciesID)%exchangeCorrelationEnergy
 
     end if
 
@@ -913,6 +1031,9 @@ contains
 
     totalEnergy = 0.0_8
     cosmo3Energy = 0.0_8
+
+
+    !! FELIX Añadir llamado a DFT
 
     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
@@ -964,7 +1085,7 @@ contains
 
        WaveFunction_instance( speciesID )%independentSpecieEnergy = &
             WaveFunction_instance( speciesID )%independentSpecieEnergy + &
-            WaveFunction_instance( speciesID )%nuclearElectronicCorrelationEnergy
+            WaveFunction_instance( speciesID )%exchangeCorrelationEnergy
 
        totalEnergy = totalEnergy + WaveFunction_instance( speciesID )%independentSpecieEnergy
 
