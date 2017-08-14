@@ -1,0 +1,23 @@
+GEOMETRY
+        e-(He) 6-31G 0 0 0
+END GEOMETRY
+
+TASKS
+        method = "UHF"
+!	configurationInteractionLevel ="FCI"
+END TASKS
+
+CONTROL
+	transformToCenterOfMass=F
+        !CIdiagonalizationMethod="ARPACK"
+        !CIdiagonalizationMethod="JADAMILU"
+	CISizeOfGuessMatrix=1
+	convergenceMethod=1
+	iterationScheme=3
+END CONTROL
+
+LJPOTENTIAL
+	! ATOM POS
+	C 0.0 0.0 0.0
+	! ...
+END LJPOTENTIAL
