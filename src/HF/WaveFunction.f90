@@ -57,6 +57,7 @@ module WaveFunction_
      type(Matrix) :: densityMatrix
      type(Matrix) :: twoParticlesMatrix
      type(Matrix) :: couplingMatrix
+     type(Matrix) :: exchangeCorrelationMatrix
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: coefficientsofcombination
      type(vector) :: energyofmolecularorbital
@@ -80,6 +81,7 @@ module WaveFunction_
      real(8) :: repulsionEnergy
      real(8) :: couplingEnergy
      real(8) :: externalPotentialEnergy
+     real(8) :: exchangeCorrelationEnergy
      !! Cosmo Things
      real(8) :: cosmoEnergy
      !!**************************************************************
@@ -115,6 +117,7 @@ contains
        WaveFunction_instance( speciesID )%repulsionEnergy = 0.0_8
        WaveFunction_instance( speciesID )%externalPotentialEnergy = 0.0_8
        WaveFunction_instance( speciesID )%couplingEnergy = 0.0_8
+       WaveFunction_instance( speciesID )%exchangeCorrelationEnergy = 0.0_8
 
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions )
 
@@ -480,13 +483,13 @@ contains
     !! Calcula energia de acoplamiento en caso de mas de una especie presente
     WaveFunction_instance( specieID )%couplingEnergy = &
          sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-         WaveFunction_instance( specieID )%couplingMatrix%values )
-
+         WaveFunction_instance( specieID )%couplingMatrix%values )    
 
     !! Total energy for species
     WaveFunction_instance( specieID )%totalEnergyForSpecie = &
          WaveFunction_instance( specieID )%independentSpecieEnergy +  &
-         WaveFunction_instance( specieID )%couplingEnergy
+         WaveFunction_instance( specieID )%couplingEnergy + &
+         WaveFunction_instance( specieID )%exchangeCorrelationEnergy
 
 
     !! Calcula la energia COSMO	

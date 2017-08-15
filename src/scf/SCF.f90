@@ -252,6 +252,12 @@ program SCF
      labels(1) = "COUPLING"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%couplingMatrix, unit=wfnUnit, binary=.true., arguments = labels )  
 
+     labels(1) = "EXCHANGE-CORRELATION"
+     call Matrix_writeToFile(WaveFunction_instance(speciesID)%exchangeCorrelationMatrix, unit=wfnUnit, binary=.true., arguments = labels )  
+
+     labels(1) = "EXCHANGE-CORRELATION-ENERGY"
+     call Vector_writeToFile(unit=wfnUnit, binary=.true., value=WaveFunction_instance(speciesID)%exchangeCorrelationEnergy, arguments= labels )
+     
      labels(1) = "COEFFICIENTS"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, unit=wfnUnit, binary=.true., arguments = labels )
 
@@ -330,7 +336,6 @@ program SCF
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MultiSCF_instance%electronicRepulsionEnergy, arguments=["COUPLING-E-"])
 
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MolecularSystem_getPointChargesEnergy(), arguments=["PUNTUALINTERACTIONENERGY"])
-
 
   !stop time
   call Stopwatch_stop(lowdin_stopwatch)

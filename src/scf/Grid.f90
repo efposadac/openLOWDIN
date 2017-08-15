@@ -32,7 +32,7 @@ module Grid_
      integer :: angularSize
      integer :: totalSize
      type(Matrix) :: points !! x,y,z,weight
-     type(Matrix) :: orbitalsProduct !! x,y,z,weight
+     type(Matrix) :: orbitals
 
   end type Grid
 
@@ -51,14 +51,16 @@ contains
   !! @brief Builds a grid for each species - Different sizes are possible, all points in memory
   ! Felix Moncada, 2017
   ! Roberto Flores-Moreno, 2009
-  subroutine Grid_constructor( )
+  subroutine Grid_constructor( this, speciesID )
     implicit none
+    type(Grid) :: this
+    integer :: speciesID
     type(Matrix) :: atomicGrid
     integer :: numberOfSpecies, numberOfCenters, atomGridSize
-    integer :: speciesID, particleID, particleID2, particleID3, point, i
+    integer :: particleID, particleID2, particleID3, point, i
     character(50) :: labels(2), dftFile
     integer :: dftUnit
-      
+
     real(8) :: cutoff, sum, r, w, mu
     real(8), allocatable :: origins(:,:), distance(:),factor(:)
 
@@ -67,112 +69,103 @@ contains
     ! dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
     ! open(unit = dftUnit, file=trim(dftFile), status="new", form="formatted")
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-
-    !! Allocate memory.
-    allocate(Grid_instance(numberOfSpecies))
-    
     !! Allocate memory for specie in system and load some matrices.
-    do speciesID = 1, numberOfSpecies
+    this%nameOfSpecies=trim(MolecularSystem_getNameOfSpecie(speciesID))
+    this%radialSize=CONTROL_instance%GRID_RADIAL_POINTS
+    this%angularSize=CONTROL_instance%GRID_ANGULAR_POINTS
+    atomGridSize=this%radialSize*this%angularSize
+    numberOfCenters=size(MolecularSystem_instance%species(speciesID)%particles)
+    this%totalSize=numberOfCenters*atomGridSize
 
-       Grid_instance(speciesID)%nameOfSpecies=trim(MolecularSystem_getNameOfSpecie(speciesID))
-       Grid_instance(speciesID)%radialSize=CONTROL_instance%GRID_RADIAL_POINTS
-       Grid_instance(speciesID)%angularSize=CONTROL_instance%GRID_ANGULAR_POINTS
-       atomGridSize=Grid_instance(speciesID)%radialSize*Grid_instance(speciesID)%angularSize
-       numberOfCenters=size(MolecularSystem_instance%species(speciesID)%particles)
-       Grid_instance(speciesID)%totalSize=numberOfCenters*atomGridSize
+    !Get Atomic Grid
+    call Matrix_constructor( atomicGrid, int(atomGridSize,8), int(4,8), 0.0_8 )
 
-       !Get Atomic Grid
-       call Matrix_constructor( atomicGrid, int(atomGridSize,8), int(4,8), 0.0_8 )
+    ! FELIX: Grid Screening can go here
+    ! cutoff=10 !this is a test, this has to become a function
+    ! print *, "after screening we are keeping", this%radialSize ,"radial points" 
+    call Grid_buildAtomic(atomicGrid, this%radialSize , this%angularSize )
 
-       ! FELIX: Grid Screening can go here
-       ! cutoff=10 !this is a test, this has to become a function
-       ! print *, "after screening we are keeping", Grid_instance(speciesID)%radialSize ,"radial points" 
-       call Grid_buildAtomic(atomicGrid, Grid_instance(speciesID)%radialSize , Grid_instance(speciesID)%angularSize )
+    ! call Matrix_show(atomicGrid)
 
-       ! call Matrix_show(atomicGrid)
+    !Get origins and Build the complete Grid for the species
+    call Matrix_constructor( this%points, int(this%totalSize,8), int(4,8), 0.0_8 )            
 
-       !Get origins and Build the complete Grid for the species
-       call Matrix_constructor( Grid_instance(speciesID)%points, int(Grid_instance(speciesID)%totalSize,8), int(4,8), 0.0_8 )            
+    allocate(origins(numberOfCenters,3))
 
-       allocate(origins(numberOfCenters,3))
-       
-       i=1
-       do particleID = 1, numberOfCenters
-          origins(particleID,1:3) = MolecularSystem_instance%species(speciesID)%particles(particleID)%origin(1:3)
-          
-          do point = 1, atomGridSize
-             Grid_instance(speciesID)%points%values(i,1)=atomicGrid%values(point,1)+origins(particleID,1)
-             Grid_instance(speciesID)%points%values(i,2)=atomicGrid%values(point,2)+origins(particleID,2)
-             Grid_instance(speciesID)%points%values(i,3)=atomicGrid%values(point,3)+origins(particleID,3)
-             Grid_instance(speciesID)%points%values(i,4)=atomicGrid%values(point,4)
-             i=i+1
-          end do          
+    i=1
+    do particleID = 1, numberOfCenters
+       origins(particleID,1:3) = MolecularSystem_instance%species(speciesID)%particles(particleID)%origin(1:3)
+
+       do point = 1, atomGridSize
+          this%points%values(i,1)=atomicGrid%values(point,1)+origins(particleID,1)
+          this%points%values(i,2)=atomicGrid%values(point,2)+origins(particleID,2)
+          this%points%values(i,3)=atomicGrid%values(point,3)+origins(particleID,3)
+          this%points%values(i,4)=atomicGrid%values(point,4)
+          i=i+1
        end do
-
-       ! call Matrix_show(Grid_instance(speciesID)%points)
-
-       !Calculate adecuate weights with Becke's
-       allocate(distance(numberOfCenters),factor(numberOfCenters))
-       
-       i=1
-       do particleID3 = 1, numberOfCenters
-          do point = 1, atomGridSize
-             ! call Grid_Becke(numberOfCenters)
-
-             do particleID=1, numberOfCenters
-                distance(particleID)= sqrt( (origins(particleID,1)-Grid_instance(speciesID)%points%values(i,1))**2 +&
-                     (origins(particleID,2)-Grid_instance(speciesID)%points%values(i,2))**2 +&
-                     (origins(particleID,3)-Grid_instance(speciesID)%points%values(i,3))**2)
-                factor(particleID)=1.0
-             end do
-
-             do particleID=2, numberOfCenters
-                do particleID2=1, numberOfCenters-1
-
-                   r=sqrt( (origins(particleID,1)-origins(particleID2,1) )**2 +&
-                        (origins(particleID,2)-origins(particleID2,2) )**2 +&
-                        (origins(particleID,3)-origins(particleID2,3) )**2 )
-                   w=(distance(particleID)-distance(particleID2))/r
-                   mu=Grid_Beckefun(Grid_Beckefun(Grid_Beckefun(w)))
-
-                   factor(particleID)=(1.0-mu)*factor(particleID)
-                   factor(particleID2)=(1.0+mu)*factor(particleID2)
-
-                end do
-             end do
-             
-             sum = 0.0
-             do particleID=1, numberOfCenters
-                sum=sum+factor(particleID)
-             end do
-
-             Grid_instance(speciesID)%points%values(i,4)=Grid_instance(speciesID)%points%values(i,4)*factor(particleID3)/sum
-             i=i+1
-
-          end do
-       end do
-          
-       ! print *, "Grid for species", speciesID 
-       ! call Matrix_show(Grid_instance(speciesID)%points)
-
-       
-       !Write to disk
-       ! labels(2) = Grid_instance(speciesID)%nameOfSpecies
-       ! labels(1) = "INTEGRATION-GRID"
-
-       ! print *, labels
-       
-       ! call Matrix_writeToFile(Grid_instance(speciesID)%points, unit=dftUnit, binary=.false., arguments = labels(1:2) )
-      
-       call Matrix_destructor( atomicGrid)
-       deallocate(origins, distance,factor)
-
     end do
+
+    ! call Matrix_show(this%points)
+
+    !Calculate adecuate weights with Becke's
+    allocate(distance(numberOfCenters),factor(numberOfCenters))
+
+    i=1
+    do particleID3 = 1, numberOfCenters
+       do point = 1, atomGridSize
+          ! call Grid_Becke(numberOfCenters)
+
+          do particleID=1, numberOfCenters
+             distance(particleID)= sqrt( (origins(particleID,1)-this%points%values(i,1))**2 +&
+                  (origins(particleID,2)-this%points%values(i,2))**2 +&
+                  (origins(particleID,3)-this%points%values(i,3))**2)
+             factor(particleID)=1.0
+          end do
+
+          do particleID=2, numberOfCenters
+             do particleID2=1, particleID-1
+
+                r=sqrt( (origins(particleID,1)-origins(particleID2,1) )**2 +&
+                     (origins(particleID,2)-origins(particleID2,2) )**2 +&
+                     (origins(particleID,3)-origins(particleID2,3) )**2 )
+                w=(distance(particleID)-distance(particleID2))/r
+                mu=Grid_Beckefun(Grid_Beckefun(Grid_Beckefun(w)))
+
+                factor(particleID)=(1.0-mu)*factor(particleID)
+                factor(particleID2)=(1.0+mu)*factor(particleID2)
+
+             end do
+          end do
+
+          sum = 0.0
+          do particleID=1, numberOfCenters
+             sum=sum+factor(particleID)
+          end do
+
+          this%points%values(i,4)=this%points%values(i,4)*factor(particleID3)/sum
+          i=i+1
+
+       end do
+    end do
+
+    ! print *, "Grid for species", speciesID 
+    ! call Matrix_show(this%points)
+
+
+    !Write to disk
+    ! labels(2) = this%nameOfSpecies
+    ! labels(1) = "INTEGRATION-GRID"
+
+    ! print *, labels
+
+    ! call Matrix_writeToFile(this%points, unit=dftUnit, binary=.false., arguments = labels(1:2) )
+
+    call Matrix_destructor( atomicGrid)
+    deallocate(origins, distance,factor)
 
     ! close(unit=dftUnit)
 
-    
+
   end subroutine Grid_constructor
 
   !>

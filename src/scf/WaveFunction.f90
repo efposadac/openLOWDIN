@@ -28,7 +28,7 @@ module WaveFunction_
   use CosmoCore_
   use DirectIntegralManager_
   use Grid_
-  use DensityManager_
+  use GridManager_
   use Functional_
 
   implicit none
@@ -134,8 +134,8 @@ contains
        !! Set defaults
        WaveFunction_instance( speciesID )%totalEnergyForSpecie = 0.0_8
        WaveFunction_instance( speciesID )%independentSpecieEnergy =0.0_8
-       WaveFunction_instance( speciesID )%exchangeCorrelationEnergy = 0.0_8
        WaveFunction_instance( speciesID )%numberOfIterations = 0 
+       WaveFunction_instance( speciesID )%exchangeCorrelationEnergy = 0.0_8
 
        !! Cosmo things
        call Matrix_constructor( WaveFunction_instance(speciesID)%cosmo1, numberOfContractions, numberOfContractions, 0.0_8 )     
@@ -203,6 +203,7 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%twoParticlesMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( WaveFunction_instance(speciesID)%couplingMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( WaveFunction_instance(speciesID)%exchangeCorrelationMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
+
        ! call Matrix_constructor( WaveFunction_instance(speciesID)%interParticleCorrMatrix, numberOfContractions, numberOfContractions, 0.0_8 )       
        call Matrix_constructor( WaveFunction_instance(speciesID)%waveFunctionCoefficients,numberOfContractions, numberOfContractions, 0.0_8 )
        call Vector_constructor( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, int(numberOfContractions) )
@@ -217,9 +218,9 @@ contains
     end do
 
     !!Initialize DFT: Calculate Grids and fill them with stuff
-    call Grid_constructor( )
-    call DensityManager_createFunctionals( )
-    call DensityManager_atomicOrbitalProducts( )
+    call GridManager_buildGrids( )
+    call GridManager_createFunctionals( )
+    call GridManager_atomicOrbitals( )
     
   end subroutine WaveFunction_constructor
 
@@ -715,8 +716,8 @@ contains
 
 
     !! Open file for dft
-    dftUnit = 77
-    dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
+    ! dftUnit = 77
+    ! dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
     
     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
@@ -735,27 +736,28 @@ contains
     
     call Vector_Constructor(densityInGrid, gridSize, 0.0_8)
     
-    call DensityManager_getDensityAtGrid( speciesID, gridSize, wavefunction_instance(speciesID)%densityMatrix, densityInGrid)
+    call GridManager_getDensityAtGrid( speciesID, gridSize, wavefunction_instance(speciesID)%densityMatrix, densityInGrid)
 
-    call Vector_Constructor(potentialInGrid, gridSize, 0.0_8)
+    call Vector_Constructor(potentialInGrid, gridSize, 0.0_8) 
+   
+    call GridManager_getPotentialAtGrid( speciesID, gridSize, densityInGrid, potentialInGrid)
     
-    call DensityManager_getPotentialAtGrid( speciesID, gridSize, densityInGrid, potentialInGrid)
-    
-    index=1
     do u = 1 , numberOfContractions
        do v = u , numberOfContractions
           do i=1,gridSize
-             Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)=Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)+&
-                  Grid_instance(speciesID)%orbitalsProduct%values(i,index)*potentialInGrid%values(i)*grid%values(i,4)
+             Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)=&
+                  Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)&
+                  +Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v)&
+                  *potentialInGrid%values(i)*grid%values(i,4)
           end do
-          Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(v,u)=Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)
-          index=index+1
+          Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(v,u)=&
+               Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)
        end do
     end do
 
-    call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
+    ! call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
 
-    call DensityManager_getEnergyFromGrid( speciesID, gridSize, densityInGrid, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy)
+    call GridManager_getEnergyFromGrid( speciesID, gridSize, densityInGrid, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy)
     
     ! index=1
     ! particles=0.0

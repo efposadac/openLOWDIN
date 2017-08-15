@@ -54,11 +54,11 @@ program HF
   integer :: speciesID
   real(8) :: totalEnergy
   real(8) :: totalCouplingEnergy
+  real(8) :: totalExchangeCorrelationEnergy
   real(8) :: totalKineticEnergy
   real(8) :: totalRepulsionEnergy
   real(8) :: totalQuantumPuntualInteractionEnergy
   real(8) :: totalExternalPotentialEnergy
-  real(8) :: totalExchangeCorrelationEnergy
   real(8) :: electronicRepulsionEnergy
   real(8) :: puntualInteractionEnergy
   real(8) :: puntualMMInteractionEnergy
@@ -292,6 +292,15 @@ program HF
           Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
           columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
+     arguments(1) = "EXCHANGE-CORRELATION"
+     WaveFunction_instance(speciesID)%exchangeCorrelationMatrix = &
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+     arguments(1) = "EXCHANGE-CORRELATION-ENERGY"
+     call Vector_getFromFile( value=WaveFunction_instance(speciesID)%exchangeCorrelationEnergy, unit=wfnUnit, &
+          binary=.true., arguments=arguments(1:2))
+          
      arguments(1) = "TWOPARTICLES"
      WaveFunction_instance(speciesID)%twoParticlesMatrix = &
           Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -326,6 +335,7 @@ program HF
   totalKineticEnergy = sum( WaveFunction_instance(:)%kineticEnergy)             
   totalRepulsionEnergy = sum( WaveFunction_instance(:)%repulsionEnergy ) + electronicRepulsionEnergy                          
   totalQuantumPuntualInteractionEnergy = sum ( WaveFunction_instance(:)%puntualInteractionEnergy )
+  totalExchangeCorrelationEnergy = sum ( WaveFunction_instance(:)%exchangeCorrelationEnergy )             
   totalExternalPotentialEnergy = sum ( WaveFunction_instance(:)%externalPotentialEnergy )             
   puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy()
   puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy()
@@ -333,6 +343,7 @@ program HF
        + puntualInteractionEnergy &
        + totalQuantumPuntualInteractionEnergy &
        + totalCouplingEnergy &
+       + totalExchangeCorrelationEnergy &
        + totalExternalPotentialEnergy
   totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
 
@@ -403,16 +414,19 @@ program HF
      write(*,*) " COMPONENTS OF POTENTIAL ENERGY: "
      write(*,*) "-------------------------------"
      write(*,*) ""
-     write (6,"(T10,A30,F20.10)") "Fixed potential energy    = ", puntualInteractionEnergy
+     write (6,"(T10,A30,F20.10)") "Fixed potential energy     = ", puntualInteractionEnergy
      if(CONTROL_instance%CHARGES_MM) then
-        write (6,"(T10,A30,F20.10)") "Self MM potential energy    = ", puntualMMInteractionEnergy
+     write (6,"(T10,A30,F20.10)") "Self MM potential energy   = ", puntualMMInteractionEnergy
      end if
-     write (6,"(T10,A30,F20.10)") "Q/Fixed potential energy  = ", totalQuantumPuntualInteractionEnergy
-     write (6,"(T10,A30,F20.10)") "Coupling energy           = ", totalCouplingEnergy
-     write (6,"(T10,A30,F20.10)") "Repulsion energy          = ", totalRepulsionEnergy
-     write (6,"(T10,A30,F20.10)") "ExternalPotential energy  = ", totalExternalPotentialEnergy             
+     write (6,"(T10,A30,F20.10)") "Q/Fixed potential energy   = ", totalQuantumPuntualInteractionEnergy
+     write (6,"(T10,A30,F20.10)") "Coupling energy            = ", totalCouplingEnergy
+     write (6,"(T10,A30,F20.10)") "Repulsion energy           = ", totalRepulsionEnergy
+     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+     write (6,"(T10,A30,F20.10)") "Exchange Correlation energy= ", totalExchangeCorrelationEnergy
+     end if
+     write (6,"(T10,A30,F20.10)") "External Potential energy  = ", totalExternalPotentialEnergy             
      write (6,"(T10,A50)") "________________"
-     write (6,"(T10,A30,F20.10)") "Total potential energy = ", potentialEnergy
+     write (6,"(T10,A30,F20.10)") "Total potential energy     = ", potentialEnergy
 
      write(*,*) ""
      write(*,*) " Repulsion energy: "

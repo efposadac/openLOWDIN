@@ -15,7 +15,7 @@
 !>
 !! @brief This module manages the orbital and density represented in the DFT grids. Partially based on R. Flores-Moreno Parakata's modules
 !! @author F. Moncada, 2017
-module DensityManager_
+module GridManager_
   use Matrix_
   use Exception_
   use String_
@@ -25,20 +25,53 @@ module DensityManager_
   implicit none
 
   public :: &
-       DensityManager_atomicOrbitalProducts, &
-       DensityManager_getOrbitalMatrix, &
-       DensityManager_getOrbitalAtGrid, &
-       DensityManager_getDensityAtGrid, &
-       DensityManager_createFunctionals, &
-       DensityManager_getPotentialAtGrid, &
-       DensityManager_getEnergyFromGrid
-  ! CalculateWaveFunction_getDensityAt, &
-  !   	CalculateWaveFunction_getOrbitalValueAt
-  !		CalculateWaveFunction_getFukuiFunctionAt
+       GridManager_buildGrids, &
+       GridManager_atomicOrbitals, &
+       GridManager_getOrbitalMatrix, &
+       GridManager_getOrbitalAtGrid, &
+       GridManager_getDensityAtGrid, &
+       GridManager_createFunctionals, &
+       GridManager_getPotentialAtGrid, &
+       GridManager_getEnergyFromGrid
 
 contains
 
-  subroutine DensityManager_atomicOrbitalProducts( )
+  !>
+  !! @brief Builds a grid for each species - Different sizes are possible, all points in memory
+  ! Felix Moncada, 2017
+  ! Roberto Flores-Moreno, 2009
+  subroutine GridManager_buildGrids( )
+    implicit none
+    type(Matrix) :: atomicGrid
+    integer :: numberOfSpecies, numberOfCenters, atomGridSize
+    integer :: speciesID, particleID, particleID2, particleID3, point, i
+    character(50) :: labels(2), dftFile
+    integer :: dftUnit
+      
+    real(8) :: cutoff, sum, r, w, mu
+    real(8), allocatable :: origins(:,:), distance(:),factor(:)
+
+    !! Open file for dft
+    ! dftUnit = 77
+    ! dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
+    ! open(unit = dftUnit, file=trim(dftFile), status="new", form="formatted")
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    !! Allocate memory.
+    allocate(Grid_instance(numberOfSpecies))
+    
+    !! Allocate memory for specie in system and load some matrices.
+    do speciesID = 1, numberOfSpecies
+
+       call Grid_constructor(Grid_instance(speciesID), speciesID )
+
+    end do
+    
+  end subroutine GridManager_buildGrids
+
+
+  subroutine GridManager_atomicOrbitals( )
     implicit none
     
     integer :: numberOfSpecies
@@ -52,11 +85,10 @@ contains
     character(50) :: labels(2), dftFile
     integer :: dftUnit
 
-
     !! Open file for dft
-    dftUnit = 77
-    dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
-    open(unit = dftUnit, file=trim(dftFile), status="new", access='sequential', form="formatted")
+    ! dftUnit = 77
+    ! dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
+    ! open(unit = dftUnit, file=trim(dftFile), status="new", access='sequential', form="formatted")
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -66,22 +98,22 @@ contains
        grid=Grid_instance(speciesID)%points
        gridSize = Grid_instance(speciesID)%totalSize
 
-       call Matrix_Constructor( orbitalsInGrid, int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8)
+       call Matrix_Constructor( Grid_instance(speciesID)%orbitals, int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8)
 
-       call DensityManager_getOrbitalMatrix( speciesID, grid, gridSize, orbitalsInGrid)
+       call GridManager_getOrbitalMatrix( speciesID, grid, gridSize, Grid_instance(speciesID)%orbitals)
 
       !!!!Esto es un abuso de memoria!!! escala como por N^5
-       call Matrix_Constructor( Grid_instance(speciesID)%orbitalsProduct, int(gridSize,8), int(totalNumberOfContractions*(totalNumberOfContractions+1)/2,8), 0.0_8)
+       ! call Matrix_Constructor( Grid_instance(speciesID)%orbitalsProduct, int(gridSize,8), int(totalNumberOfContractions*(totalNumberOfContractions+1)/2,8), 0.0_8)
 
-       index=1
-       do mu=1, totalNumberOfContractions
-          do nu=mu, totalNumberOfContractions
-             do point=1, gridSize
-                Grid_instance(speciesID)%orbitalsProduct%values(point,index)=orbitalsInGrid%values(point,mu)*orbitalsInGrid%values(point,nu)
-             end do
-             index=index+1
-          end do
-       end do
+       ! index=1
+       ! do mu=1, totalNumberOfContractions
+       !    do nu=mu, totalNumberOfContractions
+       !       do point=1, gridSize
+       !          Grid_instance(speciesID)%orbitalsProduct%values(point,index)=orbitalsInGrid%values(point,mu)*orbitalsInGrid%values(point,nu)
+       !       end do
+       !       index=index+1
+       !    end do
+       ! end do
 
        !Write to disk
        ! labels(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
@@ -96,11 +128,11 @@ contains
 
     end do
 
-    close(unit=dftUnit)
+    ! close(unit=dftUnit)
     
-  end subroutine DensityManager_atomicOrbitalProducts
-
-    subroutine DensityManager_createFunctionals()
+  end subroutine GridManager_atomicOrbitals
+  
+    subroutine GridManager_createFunctionals()
     implicit none
 
     integer :: numberOfSpecies
@@ -139,14 +171,14 @@ contains
 
     print *, "-------------------------------------------------"
     
-  end subroutine DensityManager_createFunctionals
+  end subroutine GridManager_createFunctionals
   
 
   !>
   !! @brief Returns the values of all the atomic orbitals in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine DensityManager_getOrbitalMatrix( speciesID, grid, gridSize, orbitalsInGrid)
+  subroutine GridManager_getOrbitalMatrix( speciesID, grid, gridSize, orbitalsInGrid)
     implicit none
     integer :: speciesID
     type(Matrix) :: grid, orbitalsInGrid
@@ -167,7 +199,7 @@ contains
 
           call Matrix_constructor( auxMatrix, int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8)
 
-          call DensityManager_getOrbitalAtGrid( MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i), grid, gridSize, auxMatrix)
+          call GridManager_getOrbitalAtGrid( MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i), grid, gridSize, auxMatrix)
           
           do j = 1, numberOfCartesiansOrbitals
              do point = 1 , gridSize
@@ -177,13 +209,13 @@ contains
           end do
        end do
     end do
-  end subroutine DensityManager_getOrbitalMatrix
+  end subroutine GridManager_getOrbitalMatrix
 
   !>
   !! @brief Returns the values of a contracted atomic shell in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine DensityManager_getOrbitalAtGrid( this, grid, gridSize, output)
+  subroutine GridManager_getOrbitalAtGrid( this, grid, gridSize, output)
     implicit none
     type(ContractedGaussian) , intent(in) :: this
     type(Matrix) :: grid
@@ -228,14 +260,14 @@ contains
           end do
        end do
     end do
-  end subroutine DensityManager_getOrbitalAtGrid
+  end subroutine GridManager_getOrbitalAtGrid
 
   
       !>
   !! @brief Returns the values of the density in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine DensityManager_getDensityAtGrid( speciesID, gridSize, densityMatrix, densityInGrid)
+  subroutine GridManager_getDensityAtGrid( speciesID, gridSize, densityMatrix, densityInGrid)
     implicit none
     integer :: speciesID
     integer :: gridSize
@@ -256,31 +288,31 @@ contains
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
     !Read grid and orbital products from disk
-    dftUnit = 77
-    dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
+    ! dftUnit = 77
+    ! dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
 
-    labels(2) = trim(nameOfSpecies)
-    labels(1) = "ORBITALPRODUCT-GRID"
+    ! labels(2) = trim(nameOfSpecies)
+    ! labels(1) = "ORBITALPRODUCT-GRID"
     ! open( UNIT=dftUnit,FILE=dftFile, status='old', access='sequential', form='formatted')
     ! orbitalsProductInGrid=Matrix_getFromFile(unit=dftUnit, rows=gridSize, columns=numberOfContractions*(numberOfContractions+1)/2, binary=.false., arguments=labels)
     ! close( dftUnit)
 
     ! call Matrix_show(orbitalsProductInGrid)
     ! call Matrix_show(densityMatrix)
-
-    index=1
+    
     do u = 1 , numberOfContractions
        do v = u , numberOfContractions
           if ( u .eq. v) then
              do i=1,gridSize
-                densityInGrid%values(i)=densityInGrid%values(i)+densityMatrix%values(u,v)*Grid_instance(speciesID)%orbitalsProduct%values(i,index)
+                densityInGrid%values(i)=densityInGrid%values(i)+densityMatrix%values(u,v)*&
+                     Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v)
              end do
           else
              do i=1,gridSize
-                densityInGrid%values(i)=densityInGrid%values(i)+2*densityMatrix%values(u,v)*Grid_instance(speciesID)%orbitalsProduct%values(i,index)
+                densityInGrid%values(i)=densityInGrid%values(i)+2*densityMatrix%values(u,v)*&
+                     Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v)
              end do
           end if
-          index=index+1
        end do
     end do
 
@@ -293,14 +325,14 @@ contains
     
     ! print *, "particles", sum
     
-  end subroutine DensityManager_getDensityAtGrid
+  end subroutine GridManager_getDensityAtGrid
 
 
   !>
   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine DensityManager_getPotentialAtGrid( speciesID, gridSize, densityInGrid, potentialInGrid)
+  subroutine GridManager_getPotentialAtGrid( speciesID, gridSize, densityInGrid, potentialInGrid)
     implicit none
     integer :: speciesID
     type(Vector) :: densityInGrid
@@ -343,14 +375,14 @@ contains
     !    print *, densityInGrid%values(i), exchange%values(i), correlationA%values(i)
     ! end do
     
-  end subroutine DensityManager_getPotentialAtGrid
+  end subroutine GridManager_getPotentialAtGrid
 
   
   !>
   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine DensityManager_getEnergyFromGrid( speciesID, gridSize, densityInGrid, exchangeCorrelationEnergy)
+  subroutine GridManager_getEnergyFromGrid( speciesID, gridSize, densityInGrid, exchangeCorrelationEnergy)
     implicit none
     integer :: speciesID
     type(Vector) :: densityInGrid
@@ -404,10 +436,10 @@ contains
     print *, "correlation", correlationEnergy
     print *, "total", exchangeCorrelationEnergy
     
-  end subroutine DensityManager_getEnergyFromGrid
+  end subroutine GridManager_getEnergyFromGrid
 
   
-end module DensityManager_
+end module GridManager_
 
 
   
