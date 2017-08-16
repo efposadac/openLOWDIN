@@ -218,10 +218,18 @@ contains
     end do
 
     !!Initialize DFT: Calculate Grids and fill them with stuff
-    call GridManager_buildGrids( )
-    call GridManager_createFunctionals( )
-    call GridManager_atomicOrbitals( )
-    
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       call GridManager_buildGrids( )
+       call GridManager_createFunctionals( )
+       call GridManager_atomicOrbitals( )
+
+       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          call Vector_Constructor( Grid_instance(speciesID)%density, Grid_instance(speciesID)%totalSize, 0.0_8)
+          call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
+          call Vector_Constructor( Grid_instance(speciesID)%potential, Grid_instance(speciesID)%totalSize, 0.0_8)
+       end do
+    end if
+
   end subroutine WaveFunction_constructor
 
   !>
@@ -706,7 +714,7 @@ contains
 
     integer :: u,v
     integer :: numberOfContractions
-    integer :: speciesID, gridSize
+    integer :: speciesID, otherSpeciesID, gridSize
     integer :: i, index, point
     type(Matrix) :: grid
     type(Vector) :: densityInGrid, potentialInGrid
@@ -724,9 +732,6 @@ contains
 
     Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values=0.0_8
     
-    gridSize = Grid_instance(speciesID)%totalSize
-    grid = Grid_instance(speciesID)%points
-
     ! labels(2) = trim(nameOfSpecies)
     ! labels(1) = "ORBITALPRODUCT-GRID"
 
@@ -734,31 +739,44 @@ contains
     ! orbitalsProductInGrid=Matrix_getFromFile(unit=dftUnit, file=dftFile, rows=gridSize, columns=numberOfContractions*(numberOfContractions+1)/2, binary=.false., arguments=labels)
     ! close( dftUnit)
     
-    call Vector_Constructor(densityInGrid, gridSize, 0.0_8)
-    
-    call GridManager_getDensityAtGrid( speciesID, gridSize, wavefunction_instance(speciesID)%densityMatrix, densityInGrid)
 
-    call Vector_Constructor(potentialInGrid, gridSize, 0.0_8) 
+    print *, "nameOfSpecies", nameOfSpecies
+    print *, "speciesID", speciesID
+    Grid_instance(speciesID)%density%values=0.0_8
+
+    call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
+  
+    if( trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-ALPHA"  ) then !El potencial de BETA se calcula simultaneamente con ALPHA
+       otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="E-BETA" )
+       Grid_instance(otherSpeciesID)%potential%values=0.0_8
+       Grid_instance(speciesID)%potential%values=0.0_8
+
+       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, Grid_instance(speciesID)%potential, &
+            otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy, Grid_instance(otherSpeciesID)%potential )
+
+    elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-BETA") then
+
+    else
+       
+       Grid_instance(speciesID)%potential%values=0.0_8
+       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, Grid_instance(speciesID)%potential )
    
-    call GridManager_getPotentialAtGrid( speciesID, gridSize, densityInGrid, potentialInGrid)
+    end if
     
     do u = 1 , numberOfContractions
        do v = u , numberOfContractions
-          do i=1,gridSize
+          do i=1 , Grid_instance(speciesID)%totalSize
              Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)=&
                   Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)&
                   +Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v)&
-                  *potentialInGrid%values(i)*grid%values(i,4)
+                  *Grid_instance(speciesID)%potential%values(i)*Grid_instance(speciesID)%points%values(i,4)
           end do
           Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(v,u)=&
                Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)
        end do
     end do
-
-    ! call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
-
-    call GridManager_getEnergyFromGrid( speciesID, gridSize, densityInGrid, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy)
     
+    ! call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
     ! index=1
     ! particles=0.0
     !    do u = 1 , numberOfContractions

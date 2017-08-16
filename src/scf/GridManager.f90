@@ -31,8 +31,7 @@ module GridManager_
        GridManager_getOrbitalAtGrid, &
        GridManager_getDensityAtGrid, &
        GridManager_createFunctionals, &
-       GridManager_getPotentialAtGrid, &
-       GridManager_getEnergyFromGrid
+       GridManager_getEnergyAndPotentialAtGrid !, &       GridManager_getEnergyFromGrid
 
 contains
 
@@ -267,13 +266,13 @@ contains
   !! @brief Returns the values of the density in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine GridManager_getDensityAtGrid( speciesID, gridSize, densityMatrix, densityInGrid)
+  subroutine GridManager_getDensityAtGrid( speciesID, densityMatrix, densityInGrid)
     implicit none
     integer :: speciesID
-    integer :: gridSize
     type(Matrix) :: densityMatrix
     type(Vector) :: densityInGrid
 
+    integer :: gridSize
     character(50) :: nameOfSpecies
     character(50) :: labels(2), dftFile
     ! type(Matrix) :: orbitalsProductInGrid
@@ -286,6 +285,9 @@ contains
 
     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+    gridSize = Grid_instance(speciesID)%totalSize
+    
+    call Vector_Constructor(densityInGrid, gridSize, 0.0_8)
 
     !Read grid and orbital products from disk
     ! dftUnit = 77
@@ -332,111 +334,188 @@ contains
   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine GridManager_getPotentialAtGrid( speciesID, gridSize, densityInGrid, potentialInGrid)
+  subroutine GridManager_getEnergyAndPotentialAtGrid( speciesID, exchangeCorrelationEnergy, potentialInGrid, otherSpeciesID, otherExchangeCorrelationEnergy, otherPotentialInGrid)
     implicit none
     integer :: speciesID
-    type(Vector) :: densityInGrid
+    real(8) :: exchangeCorrelationEnergy
     type(Vector) :: potentialInGrid
-    integer :: gridSize
-    character(50) :: nameOfSpecies
+    integer, optional :: otherSpeciesID
+    real(8), optional :: otherExchangeCorrelationEnergy
+    type(Vector), optional :: otherPotentialInGrid
 
-    type(Matrix) :: grid
+    real(8) :: exchangeEnergy,correlationEnergy,particlesA,particlesB
+    character(50) :: nameOfSpecies
+    integer :: gridSize
     type(Vector) :: exchange,correlationA,correlationB
-    integer :: dftUnit
-    integer :: numberOfContractions
     integer :: i
-    integer :: u, v
 
     !! Open file for dft
 
     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
-
+    gridSize = Grid_instance(speciesID)%totalSize
+    
     call Vector_Constructor(exchange, gridSize, 0.0_8)
     call Vector_Constructor(correlationA, gridSize, 0.0_8)
     call Vector_Constructor(correlationB, gridSize, 0.0_8)
     
     if (nameOfSpecies=="E-") then
-
-       call vxdirac(densityInGrid%values/2, exchange%values, gridSize)
-
-       ! call Vector_show(exchange)
-
-       call vcvwn(densityInGrid%values/2, densityInGrid%values/2 , correlationA%values, correlationB%values, gridSize)
-
+       !!!Energy
+       call exdirac(Grid_instance(speciesID)%density%values/2, exchange%values, gridSize)         
+       ! call Vector_show(exchange)    
+       call ecvwn( Grid_instance(speciesID)%density%values/2, Grid_instance(speciesID)%density%values/2, correlationA%values, gridSize)
        ! call Vector_show(correlationA)
 
+       particlesA=0.0
+       exchangeEnergy=0.0
+       correlationEnergy=0.0
+
+       do i=1, gridSize
+          ! particlesA=particlesA+Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4)
+          exchangeEnergy=exchangeEnergy+exchange%values(i)*Grid_instance(speciesID)%points%values(i,4) 
+          correlationEnergy=correlationEnergy+correlationA%values(i)*Grid_instance(speciesID)%points%values(i,4)
+       end do
+
+       exchangeCorrelationEnergy=exchangeEnergy+correlationEnergy
+
+       ! print *, "particles", particlesA 
+       ! print *, "exchange", exchangeEnergy
+       ! print *, "correlation", correlationEnergy
+       ! print *, "total", exchangeCorrelationEnergy
+         
+       !!!Potential
+       exchange%values=0.0
+       correlationA%values=0.0
+       correlationB%values=0.0
+       
+       call vxdirac( Grid_instance(speciesID)%density%values/2, exchange%values, gridSize)    
+       ! call Vector_show(exchange)
+       call vcvwn( Grid_instance(speciesID)%density%values/2, Grid_instance(speciesID)%density%values/2 , correlationA%values, correlationB%values, gridSize)
+       ! call Vector_show(correlationA)
        potentialInGrid%values=correlationA%values+exchange%values
 
        ! call Vector_show(potentialInGrid)
+         
+          
+     
+    else if (nameOfSpecies=="E-ALPHA") then
+       !!!Energy
+       call exdirac((Grid_instance(speciesID)%density%values+Grid_instance(otherSpeciesID)%density%values)/2, exchange%values, gridSize)         
+       ! call Vector_show(exchange)    
+       call ecvwn( Grid_instance(speciesID)%density%values, Grid_instance(otherSpeciesID)%density%values, correlationA%values, gridSize)
+       ! call Vector_show(correlationA)
+
+       particlesA=0.0
+       particlesB=0.0
+       exchangeEnergy=0.0
+       correlationEnergy=0.0
+
+       do i=1, gridSize
+          !  particlesA=particlesA+Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4)
+          ! particlesB=particlesB+Grid_instance(otherSpeciesID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(i,4)
+          exchangeEnergy=exchangeEnergy+exchange%values(i)*Grid_instance(speciesID)%points%values(i,4)
+          correlationEnergy=correlationEnergy+correlationA%values(i)*Grid_instance(speciesID)%points%values(i,4)
+       end do
+
+       !!!!Particion arbitraria de la energia de intercambio y correlacion
+       exchangeCorrelationEnergy=(exchangeEnergy+correlationEnergy)/2
+       otherExchangeCorrelationEnergy=(exchangeEnergy+correlationEnergy)/2
+       ! exchangeCorrelationEnergy=(exchangeEnergy+correlationEnergy)*particlesA/(particlesA+particlesB)
+       ! otherExchangeCorrelationEnergy=(exchangeEnergy+correlationEnergy)*particlesB/(particlesA+particlesB) !!!!Particion arbitraria de la energia de correlacion electronica
+
+       ! print *, "particlesA", particlesA 
+       ! print *, "particlesB", particlesB
+       ! print *, "exchange", exchangeEnergy
+       ! print *, "correlation", correlationEnergy
+       ! print *, "totalA", exchangeCorrelationEnergy
+       ! print *, "totalB", otherExchangeCorrelationEnergy
+         
+       !!!Potential
+       exchange%values=0.0
+       correlationA%values=0.0
+       correlationB%values=0.0
        
+       call vxdirac((Grid_instance(speciesID)%density%values+Grid_instance(otherSpeciesID)%density%values)/2, exchange%values, gridSize)
+       ! call Vector_show(exchange)
+       
+       call vcvwn( Grid_instance(speciesID)%density%values,Grid_instance(otherSpeciesID)%density%values, correlationA%values, correlationB%values, gridSize)
+       ! call Vector_show(correlationA)
+       ! call Vector_show(correlationB)
+      
+       potentialInGrid%values=correlationA%values+exchange%values
+       otherPotentialInGrid%values=correlationB%values+exchange%values
+
     end if
 
     ! do i=1, gridSize
     !    print *, densityInGrid%values(i), exchange%values(i), correlationA%values(i)
     ! end do
     
-  end subroutine GridManager_getPotentialAtGrid
+    call Vector_Destructor(exchange)
+    call Vector_Destructor(correlationA)
+    call Vector_Destructor(correlationB)
+
+
+  end subroutine GridManager_getEnergyAndPotentialAtGrid
 
   
-  !>
-  !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
-!!! Felix Moncada, 2017
-  !<
-  subroutine GridManager_getEnergyFromGrid( speciesID, gridSize, densityInGrid, exchangeCorrelationEnergy)
-    implicit none
-    integer :: speciesID
-    type(Vector) :: densityInGrid
-    real(8) :: exchangeCorrelationEnergy
-    integer :: gridSize
-    character(50) :: nameOfSpecies
+!   !>
+!   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
+! !!! Felix Moncada, 2017
+!   !<
+!   subroutine GridManager_getEnergyFromGrid( speciesID, gridSize, densityInGrid, exchangeCorrelationEnergy)
+!     implicit none
+!     integer :: speciesID
+!     type(Vector) :: densityInGrid
+!     integer :: gridSize
+!     character(50) :: nameOfSpecies
 
-    real(8) :: exchangeEnergy,correlationEnergy,particles
-    type(Matrix) :: grid
-    type(Vector) :: exchange,correlation
-    integer :: dftUnit
-    integer :: numberOfContractions
-    integer :: i
-    integer :: u, v
+!     real(8) :: exchangeEnergy,correlationEnergy,particles
+!     type(Matrix) :: grid
+!     type(Vector) :: exchange,correlation
+!     integer :: dftUnit
+!     integer :: numberOfContractions
+!     integer :: i
+!     integer :: u, v
 
-    !! Open file for dft
+!     !! Open file for dft
  
-    grid=Grid_instance(speciesID)%points
+!     grid=Grid_instance(speciesID)%points
     
-    nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
+!     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
 
-    call Vector_Constructor(exchange, gridSize, 0.0_8)
-    call Vector_Constructor(correlation, gridSize, 0.0_8)
+!     call Vector_Constructor(exchange, gridSize, 0.0_8)
+!     call Vector_Constructor(correlation, gridSize, 0.0_8)
 
-    if (nameOfSpecies=="E-") then
+!     if (nameOfSpecies=="E-") then
 
-       call exdirac(densityInGrid%values/2, exchange%values, gridSize)
+!        call exdirac(densityInGrid%values/2, exchange%values, gridSize)
 
-       ! call Vector_show(exchange)
+!        ! call Vector_show(exchange)
 
-       call ecvwn(densityInGrid%values/2, densityInGrid%values/2 , correlation%values, gridSize)
+!        call ecvwn(densityInGrid%values/2, densityInGrid%values/2 , correlation%values, gridSize)
 
-       ! call Vector_show(correlationA)
+!        ! call Vector_show(correlationA)
        
-    end if
+!     end if
 
-    particles=0.0
-    exchangeEnergy=0.0
-    correlationEnergy=0.0
+!     particles=0.0
+!     exchangeEnergy=0.0
+!     correlationEnergy=0.0
 
-    do i=1, gridSize
-       particles=particles+densityInGrid%values(i)*grid%values(i,4)
-       exchangeEnergy=exchangeEnergy+exchange%values(i)*grid%values(i,4)
-       correlationEnergy=correlationEnergy+correlation%values(i)*grid%values(i,4)
-    end do
+!     do i=1, gridSize
+!        particles=particles+densityInGrid%values(i)*grid%values(i,4)
+!        exchangeEnergy=exchangeEnergy+exchange%values(i)*grid%values(i,4)
+!        correlationEnergy=correlationEnergy+correlation%values(i)*grid%values(i,4)
+!     end do
     
-    exchangeCorrelationEnergy=exchangeEnergy+correlationEnergy
+!     exchangeCorrelationEnergy=exchangeEnergy+correlationEnergy
 
-    print *, "particles", particles 
-    print *, "exchange", exchangeEnergy
-    print *, "correlation", correlationEnergy
-    print *, "total", exchangeCorrelationEnergy
+!     print *, "particles", particles 
+!     print *, "exchange", exchangeEnergy
+!     print *, "correlation", correlationEnergy
+!     print *, "total", exchangeCorrelationEnergy
     
-  end subroutine GridManager_getEnergyFromGrid
+!   end subroutine GridManager_getEnergyFromGrid
 
   
 end module GridManager_
