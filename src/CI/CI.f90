@@ -59,8 +59,7 @@ program CI
   call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
   call ConfigurationInteraction_run()
   call ConfigurationInteraction_show()
-  if ( trim(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL) .ne. "FCI" ) & !! currently unavailable for FCI
-    call ConfigurationInteraction_naturalOrbitals()
+  !!call ConfigurationInteraction_naturalOrbitals()!! currently unavailable 
   call ConfigurationInteraction_destructor()
 
   !!stop time
