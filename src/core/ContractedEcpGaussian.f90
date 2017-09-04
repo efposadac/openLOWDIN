@@ -440,79 +440,79 @@ contains
 
   ! end subroutine ContractedGaussian_overlapIntegral
 
-  ! !>
-  ! !!@brief Implementation of recursion proposed by Obara-Saika for overlap integrals.
-  ! !!@author Edwin Posada, 2010
-  ! !!@return x, y, z : recursion matrix
-  ! !!@param PA, PB : reduced origin for gaussian A and B
-  ! !!@param gamma : reduced exponent
-  ! !!@see Gaussian product: if you want to know what reduced exponent and origin is.
-  subroutine ContractedGaussian_obaraSaikaRecursion(x, y, z, PA, PB, gamma, angularMoment1, angularMoment2)
-    implicit none
+  ! ! !>
+  ! ! !!@brief Implementation of recursion proposed by Obara-Saika for overlap integrals.
+  ! ! !!@author Edwin Posada, 2010
+  ! ! !!@return x, y, z : recursion matrix
+  ! ! !!@param PA, PB : reduced origin for gaussian A and B
+  ! ! !!@param gamma : reduced exponent
+  ! ! !!@see Gaussian product: if you want to know what reduced exponent and origin is.
+  ! subroutine ContractedGaussian_obaraSaikaRecursion(x, y, z, PA, PB, gamma, angularMoment1, angularMoment2)
+  !   implicit none
 
-    real(8), intent(inout), allocatable :: x(:,:), y(:,:), z(:,:)
-    real(8), intent(in) :: PA(0:3), PB(0:3)
-    real(8), intent(in) :: gamma
-    integer, intent(in) :: angularMoment1, angularMoment2
+  !   real(8), intent(inout), allocatable :: x(:,:), y(:,:), z(:,:)
+  !   real(8), intent(in) :: PA(0:3), PB(0:3)
+  !   real(8), intent(in) :: gamma
+  !   integer, intent(in) :: angularMoment1, angularMoment2
 
-    real(8) :: pp
-    integer :: i, j
+  !   real(8) :: pp
+  !   integer :: i, j
 
-    pp = 1/(2*gamma)
+  !   pp = 1/(2*gamma)
 
-    x(0,0) = 1.0_8
-    y(0,0) = 1.0_8
-    z(0,0) = 1.0_8
+  !   x(0,0) = 1.0_8
+  !   y(0,0) = 1.0_8
+  !   z(0,0) = 1.0_8
 
-    !! Upward recursion in j for i=0
-    x(0,1) = PB(0)
-    y(0,1) = PB(1)
-    z(0,1) = PB(2)
+  !   !! Upward recursion in j for i=0
+  !   x(0,1) = PB(0)
+  !   y(0,1) = PB(1)
+  !   z(0,1) = PB(2)
 
-    ! do j=1, angularMoment2 -1
-    !    x(0,j+1) = PB(0)*x(0,j)
-    !    y(0,j+1) = PB(1)*y(0,j)
-    !    z(0,j+1) = PB(2)*z(0,j)
-    !    x(0,j+1) = x(0,j+1) + j*pp*x(0,j-1)
-    !    y(0,j+1) = y(0,j+1) + j*pp*y(0,j-1)
-    !    z(0,j+1) = z(0,j+1) + j*pp*z(0,j-1)
-    ! end do
+  !   ! do j=1, angularMoment2 -1
+  !   !    x(0,j+1) = PB(0)*x(0,j)
+  !   !    y(0,j+1) = PB(1)*y(0,j)
+  !   !    z(0,j+1) = PB(2)*z(0,j)
+  !   !    x(0,j+1) = x(0,j+1) + j*pp*x(0,j-1)
+  !   !    y(0,j+1) = y(0,j+1) + j*pp*y(0,j-1)
+  !   !    z(0,j+1) = z(0,j+1) + j*pp*z(0,j-1)
+  !   ! end do
 
-    ! !! Upward recursion in i for all j
-    ! x(1,0) = PA(0)
-    ! y(1,0) = PA(1)
-    ! z(1,0) = PA(2)
+  !   ! !! Upward recursion in i for all j
+  !   ! x(1,0) = PA(0)
+  !   ! y(1,0) = PA(1)
+  !   ! z(1,0) = PA(2)
 
-    ! do j=1, angularMoment2
-    !    x(1,j) = PA(0)*x(0,j)
-    !    y(1,j) = PA(1)*y(0,j)
-    !    z(1,j) = PA(2)*z(0,j)
-    !    x(1,j) = x(1,j) + j*pp*x(0,j-1)
-    !    y(1,j) = y(1,j) + j*pp*y(0,j-1)
-    !    z(1,j) = z(1,j) + j*pp*z(0,j-1)
-    ! end do
+  !   ! do j=1, angularMoment2
+  !   !    x(1,j) = PA(0)*x(0,j)
+  !   !    y(1,j) = PA(1)*y(0,j)
+  !   !    z(1,j) = PA(2)*z(0,j)
+  !   !    x(1,j) = x(1,j) + j*pp*x(0,j-1)
+  !   !    y(1,j) = y(1,j) + j*pp*y(0,j-1)
+  !   !    z(1,j) = z(1,j) + j*pp*z(0,j-1)
+  !   ! end do
 
-    ! do i=1, angularMoment1 - 1
-    !    x(i+1,0) = PA(0)*x(i,0)
-    !    y(i+1,0) = PA(1)*y(i,0)
-    !    z(i+1,0) = PA(2)*z(i,0)
-    !    x(i+1,0) = x(i+1,0) + i*pp*x(i-1,0)
-    !    y(i+1,0) = y(i+1,0) + i*pp*y(i-1,0)
-    !    z(i+1,0) = z(i+1,0) + i*pp*z(i-1,0)
-    !    do j=1, angularMoment2
-    !       x(i+1,j) = PA(0)*x(i,j)
-    !       y(i+1,j) = PA(1)*y(i,j)
-    !       z(i+1,j) = PA(2)*z(i,j)
-    !       x(i+1,j) = x(i+1,j) + i*pp*x(i-1,j)
-    !       y(i+1,j) = y(i+1,j) + i*pp*y(i-1,j)
-    !       z(i+1,j) = z(i+1,j) + i*pp*z(i-1,j)
-    !       x(i+1,j) = x(i+1,j) + j*pp*x(i,j-1)
-    !       y(i+1,j) = y(i+1,j) + j*pp*y(i,j-1)
-    !       z(i+1,j) = z(i+1,j) + j*pp*z(i,j-1)
-    !    end do
-    ! end do
+  !   ! do i=1, angularMoment1 - 1
+  !   !    x(i+1,0) = PA(0)*x(i,0)
+  !   !    y(i+1,0) = PA(1)*y(i,0)
+  !   !    z(i+1,0) = PA(2)*z(i,0)
+  !   !    x(i+1,0) = x(i+1,0) + i*pp*x(i-1,0)
+  !   !    y(i+1,0) = y(i+1,0) + i*pp*y(i-1,0)
+  !   !    z(i+1,0) = z(i+1,0) + i*pp*z(i-1,0)
+  !   !    do j=1, angularMoment2
+  !   !       x(i+1,j) = PA(0)*x(i,j)
+  !   !       y(i+1,j) = PA(1)*y(i,j)
+  !   !       z(i+1,j) = PA(2)*z(i,j)
+  !   !       x(i+1,j) = x(i+1,j) + i*pp*x(i-1,j)
+  !   !       y(i+1,j) = y(i+1,j) + i*pp*y(i-1,j)
+  !   !       z(i+1,j) = z(i+1,j) + i*pp*z(i-1,j)
+  !   !       x(i+1,j) = x(i+1,j) + j*pp*x(i,j-1)
+  !   !       y(i+1,j) = y(i+1,j) + j*pp*y(i,j-1)
+  !   !       z(i+1,j) = z(i+1,j) + j*pp*z(i,j-1)
+  !   !    end do
+  !   ! end do
 
-  end subroutine ContractedGaussian_obaraSaikaRecursion
+  ! end subroutine ContractedGaussian_obaraSaikaRecursion
 
   !>
   !! @brief 	Retorna el codigo de capa y la direccion espacial

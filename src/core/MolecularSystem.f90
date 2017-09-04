@@ -38,6 +38,7 @@ module MolecularSystem_
   use Matrix_
   use Vector_
   use InternalCoordinates_
+
   implicit none
   
   type , public :: MolecularSystem
@@ -180,7 +181,7 @@ print*,"Number of point charges****************", numberOfPointCharges
     !! Setting quantum species
     MolecularSystem_instance%numberOfQuantumParticles = 0
     MolecularSystem_instance%charge = 0
-        MolecularSystem_instance%numberOfCoreElectrons = 0
+    MolecularSystem_instance%numberOfCoreElectrons = 0
    
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        
@@ -205,6 +206,7 @@ print*,"Number of point charges****************", numberOfPointCharges
        MolecularSystem_instance%charge = MolecularSystem_instance%charge + MolecularSystem_instance%pointCharges(i)%totalCharge
 
     end do
+
     
     call ParticleManager_setOwner()
     
@@ -225,7 +227,7 @@ print*,"Number of point charges****************", numberOfPointCharges
     MolecularSystem_instance%numberOfPointCharges = 0
     MolecularSystem_instance%numberOfQuantumParticles = 0
     MolecularSystem_instance%numberOfQuantumSpecies = 0
-        MolecularSystem_instance%numberOfCoreElectrons = 0
+    MolecularSystem_instance%numberOfCoreElectrons = 0
     MolecularSystem_instance%charge = 0
     
     if(allocated(MolecularSystem_instance%species)) deallocate(MolecularSystem_instance%species)
@@ -359,7 +361,7 @@ print*,"Number of point charges****************", numberOfPointCharges
     write (6,"(T10,A29,I8.0)") "Number of quantum particles =", MolecularSystem_instance%numberOfQuantumParticles
     write (6,"(T10,A29,I8.0)") "Number of puntual charges   =", MolecularSystem_instance%numberOfPointCharges
     write (6,"(T10,A29,I8.0)") "Number of quantum species   =", MolecularSystem_instance%numberOfQuantumSpecies
-        write (6,"(T10,A29,I8.0)") "Number of core electrons   =", MolecularSystem_instance%numberOfCoreElectrons
+    write (6,"(T10,A29,I8.0)") "Number of core electrons    =", MolecularSystem_instance%numberOfCoreElectrons
 
     !!***********************************************************************
     !! Imprime iformacion sobre masa, carga y numero de particulas encontradas
@@ -467,16 +469,26 @@ print*,"Number of point charges****************", numberOfPointCharges
        write (6,"(T5,A30)") "================================"
        write (6,*) ""
 
-       do j = 1, size( MolecularSystem_instance%species(i)%particles )
-                 print*, i,j
+       print *,"Aquí se construye algo"
 
-               !             call BasisSet_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basis,&
-               ! trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
 
-          call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%effectiveCorePotentials,&
-               trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
+          ! call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basis,&
+          !      trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
+
+       
+!       call EffectiveCorePotentials_showInCompactForm()
+       ! call EffectiveCorePotentials_load(InputParticle_basisSetName, atomName(2:len(trim(atomName))-1))
+
+       ! do j = 1, size( MolecularSystem_instance%species(i)%particles )
+       !           print*, i,j
+
+       !         !             call BasisSet_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basis,&
+       !         ! trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
+
+       !    call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%effectiveCorePotentials,&
+       !         trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
           
-       end do
+       ! end do
        
        write (6,"(T5,A28)") "... END DESCRIPTION OF ECPs"
        write (6,*) ""
@@ -672,6 +684,15 @@ print*,"Number of point charges****************", numberOfPointCharges
        write(40,*) MolecularSystem_instance%pointCharges(i)%origin
     end do
     
+    close(40)
+
+    !!****************************************************************************
+    !! Saving info on the lowdin.ecp format (as lowdin.bas formaat)
+    !!
+    
+    open(unit=40, file="lowdin.ecp", status="replace", form="formatted")
+    write(40,*) MolecularSystem_instance%numberOfCoreElectrons
+
     close(40)
     
     !!****************************************************************************

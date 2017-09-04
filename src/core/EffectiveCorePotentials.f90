@@ -30,7 +30,7 @@ module EffectiveCorePotentials_
      !     type(contractedEcpGaussian),allocatable :: zetaParameters(:) !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
      !     type(contractedEcpGaussian),allocatable :: dkParameters(:)   !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
      character(30) :: name
-     character(30) :: baseName 
+!     character(30) :: baseName 
      real(8) :: origin(3)
      integer :: ttype   !!!!!!!!!!!?????????????
      integer :: numberOfCoreElectrons
@@ -447,6 +447,9 @@ contains
     type(EffectiveCorePotentials) , intent(in) :: this
     character(*) ::nameOfOwner
     integer ::  i
+
+    print *, nameOfOwner
+    print *, this%name
 
     write(6,"(T5,A10,A11,A15)") trim(nameOfOwner),"    ECP: ", trim(this%name) !!!!!!!!!!!!!!!
     
