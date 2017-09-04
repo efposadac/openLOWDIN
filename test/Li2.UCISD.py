@@ -47,6 +47,6 @@ else:
     print("Difference HF: " + str(diffTotalEnergy))
     print("Difference CISD: " + str(diffCISDEnergy))
     print("Difference HF Coefficient: " + str(diffHFCoefficient))
-    sys.exit(1)
+#    sys.exit(1)
 
 output.close()

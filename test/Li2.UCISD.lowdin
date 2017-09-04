@@ -20,9 +20,9 @@ END TASKS
 CONTROL
 	!numberOfCores=1
 	scfelectronicenergytolerance=1E-8
-        CIdiagonalizationMethod="DSYEVR"
+        !CIdiagonalizationMethod="DSYEVR"
         !CIdiagonalizationMethod="ARPACK"
-        !CIdiagonalizationMethod="JADAMILU"
+        CIdiagonalizationMethod="JADAMILU"
 	!CISaveEigenvector = true
 	!CILoadEigenvector = true
 END CONTROL
