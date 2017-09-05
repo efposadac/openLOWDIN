@@ -135,7 +135,8 @@ contains
 
        end do
 
-       print*, "NELEC: ", symbol, output
+       !       print*, "NELEC: ", symbol, output
+!       print*, output
 
     else
 

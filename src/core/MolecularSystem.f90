@@ -692,7 +692,15 @@ print*,"Number of point charges****************", numberOfPointCharges
     
     open(unit=40, file="lowdin.ecp", status="replace", form="formatted")
     write(40,*) MolecularSystem_instance%numberOfCoreElectrons
-
+    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+       write(40,*) MolecularSystem_instance%species(i)%name
+       write(40,*) size(MolecularSystem_instance%species(i)%particles)
+       do j = 1, size(MolecularSystem_instance%species(i)%particles)
+          write(40,*) MolecularSystem_instance%species(i)%particles(j)%nickname
+          write(40,*) MolecularSystem_instance%species(i)%particles(j)%numberOfCoreElectrons
+          write(40,*) MolecularSystem_instance%species(i)%particles(j)%numberOfValenceElectrons
+          end do
+       end do
     close(40)
     
     !!****************************************************************************
