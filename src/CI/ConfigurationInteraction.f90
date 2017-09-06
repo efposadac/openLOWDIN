@@ -1624,7 +1624,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
                              ConfigurationInteraction_instance%twoIndexArray(ii)%values(l,diffOrb(2)) ) 
 
                 auxCIenergy = auxCIenergy + &
-                                MolecularSystem_instance%species(i)%kappa*ConfigurationInteraction_instance%fourCenterIntegrals(ii,ii)%values(auxIndex, 1)
+                                MolecularSystem_instance%species(ii)%kappa*ConfigurationInteraction_instance%fourCenterIntegrals(ii,ii)%values(auxIndex, 1)
 
              end if
           end do
@@ -1799,7 +1799,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
                        ConfigurationInteraction_instance%twoIndexArray(ii)%values(&
                           diffOrb(2),diffOrb(3)) )
           auxCIenergy = auxCIenergy + &
-                          MolecularSystem_instance%species(i)%kappa*ConfigurationInteraction_instance%fourCenterIntegrals(ii,ii)%values(auxIndex, 1)
+                          MolecularSystem_instance%species(ii)%kappa*ConfigurationInteraction_instance%fourCenterIntegrals(ii,ii)%values(auxIndex, 1)
 
     end if
 
@@ -1928,7 +1928,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
     c = 0
     ciLevel = 0
     auxnumberOfSpecies = ConfigurationInteraction_buildDiagonalRecursion( s, numberOfSpecies, indexConf,  c, cilevel, auxcilevel )
-    !stop
+!    stop
     deallocate ( indexConf )
     deallocate ( excitationLevel )
     deallocate ( ciLevel )
@@ -3099,19 +3099,23 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
         auxcilevel = cilevel
         auxcilevel(i) = s
         !print *, auxcilevel 
-
+        auxsize = 0
         auxnumberOfSpecies = ConfigurationInteraction_getIndexSize(i, auxsize, auxcilevel) 
         ssize =  auxsize
 
-       ! print *, "size -1", auxsize, ssize
+        !print *, "size i", auxsize, ssize
+        !print *, "string", ConfigurationInteraction_instance%numberOfStrings(i)%values(:cilevel(i))
+        !print *, "nstring", sum(ConfigurationInteraction_instance%numberOfStrings(i)%values(:cilevel(i)))
+
+        output = output +  ConfigurationInteraction_instance%numberOfStrings(i)%values(s+1) *ssize
+        !print *, "out i",output
 
       end do
 
-      !print *, "string", ConfigurationInteraction_instance%numberOfStrings(i)%values(:cilevel(i))
-      !print *, "nstring", sum(ConfigurationInteraction_instance%numberOfStrings(i)%values(:cilevel(i)))
-      output = output +  sum(ConfigurationInteraction_instance%numberOfStrings(i)%values(:cilevel(i)) )*ssize
-
-      !print *, "out i",output
+!      if ( cilevel(i) > 0 ) then
+!      output = output +  sum(ConfigurationInteraction_instance%numberOfStrings(i)%values(:cilevel(i)) )*ssize
+!      print *, "out i",output
+!      end if
 
       auxsize = 0
       auxcilevel = cilevel
