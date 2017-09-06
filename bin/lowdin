@@ -383,11 +383,11 @@ if [ $extFile="lowdin" ]; then
 	fi
 
 	mv $LOWDIN_SCRATCH/$nameFile/lowdin-plain.vec $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
+	 mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.ecp* $currentPath &> 2
-	#mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.wfn $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.47 $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2

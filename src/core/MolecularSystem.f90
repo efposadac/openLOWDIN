@@ -471,10 +471,13 @@ print*,"Number of point charges****************", numberOfPointCharges
 
        print *,"Aquí se construye algo"
 
+    ! do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-          ! call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basis,&
-          !      trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
-
+    !    do j = 1, size(MolecularSystem_instance%species(i)%particles)
+    !       call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basis,&
+    !            trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
+    !    end do
+    !    end do
        
 !       call EffectiveCorePotentials_showInCompactForm()
        ! call EffectiveCorePotentials_load(InputParticle_basisSetName, atomName(2:len(trim(atomName))-1))
