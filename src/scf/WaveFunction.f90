@@ -107,7 +107,7 @@ contains
 
     integer, intent(in) :: wfnUnit
 
-    integer :: speciesID    
+    integer :: speciesID, i    
     integer(8) :: numberOfContractions
     character(50) :: labels(2)
 
@@ -226,7 +226,16 @@ contains
        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
           call Vector_Constructor( Grid_instance(speciesID)%density, Grid_instance(speciesID)%totalSize, 0.0_8)
           call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
+          call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
           call Vector_Constructor( Grid_instance(speciesID)%potential, Grid_instance(speciesID)%totalSize, 0.0_8)
+
+          do i=1, Grid_instance(speciesID)%totalSize
+             if (Grid_instance(speciesID)%points%values(i,1) .eq. 0.0 .and. Grid_instance(speciesID)%points%values(i,2) .eq. 0.0)  then
+                print*, Grid_instance(speciesID)%points%values(i,3), Grid_instance(speciesID)%density%values(i), Grid_instance(speciesID)%densityGradient%values(i)
+             end if
+          end do
+          
+
        end do
     end if
 
@@ -745,6 +754,7 @@ contains
     Grid_instance(speciesID)%density%values=0.0_8
 
     call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
+    call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
   
     if( trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-ALPHA"  ) then !El potencial de BETA se calcula simultaneamente con ALPHA
        otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="E-BETA" )

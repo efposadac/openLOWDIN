@@ -28,8 +28,11 @@ module GridManager_
        GridManager_buildGrids, &
        GridManager_atomicOrbitals, &
        GridManager_getOrbitalMatrix, &
+       GridManager_getOrbitalGradientMatrix, &
        GridManager_getOrbitalAtGrid, &
+       GridManager_getOrbitalGradientAtGrid, &
        GridManager_getDensityAtGrid, &
+       GridManager_getDensityGradientAtGrid, &
        GridManager_createFunctionals, &
        GridManager_getEnergyAndPotentialAtGrid !, &       GridManager_getEnergyFromGrid
 
@@ -101,18 +104,11 @@ contains
 
        call GridManager_getOrbitalMatrix( speciesID, grid, gridSize, Grid_instance(speciesID)%orbitals)
 
-      !!!!Esto es un abuso de memoria!!! escala como por N^5
-       ! call Matrix_Constructor( Grid_instance(speciesID)%orbitalsProduct, int(gridSize,8), int(totalNumberOfContractions*(totalNumberOfContractions+1)/2,8), 0.0_8)
+       call Matrix_Constructor( Grid_instance(speciesID)%orbitalsGradient, int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8)
 
-       ! index=1
-       ! do mu=1, totalNumberOfContractions
-       !    do nu=mu, totalNumberOfContractions
-       !       do point=1, gridSize
-       !          Grid_instance(speciesID)%orbitalsProduct%values(point,index)=orbitalsInGrid%values(point,mu)*orbitalsInGrid%values(point,nu)
-       !       end do
-       !       index=index+1
-       !    end do
-       ! end do
+       call GridManager_getOrbitalGradientMatrix( speciesID, grid, gridSize, Grid_instance(speciesID)%orbitalsGradient)
+       
+       call Matrix_show(Grid_instance(speciesID)%orbitalsGradient)
 
        !Write to disk
        ! labels(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
@@ -120,10 +116,6 @@ contains
        ! call Matrix_show(orbitalsInGrid)
        ! call Matrix_writeToFile( orbitalsInGrid, unit=dftUnit, binary=.false., arguments = labels(1:2) )
        ! call Matrix_destructor( orbitalsInGrid)
-       ! labels(1) = "ORBITALPRODUCT-GRID"
-       ! call Matrix_show(orbitalsProductInGrid)
-       ! call Matrix_writeToFile(orbitalsProductInGrid, unit=dftUnit, binary=.false., arguments = labels(1:2) )
-       ! call Matrix_destructor(orbitalsProductInGrid)
 
     end do
 
@@ -208,10 +200,49 @@ contains
           end do
        end do
     end do
+    
   end subroutine GridManager_getOrbitalMatrix
 
   !>
-  !! @brief Returns the values of a contracted atomic shell in a set of coordinates
+  !! @brief Returns the values of all the atomic orbitals in a set of coordinates
+!!! Felix Moncada, 2017
+  !<
+  subroutine GridManager_getOrbitalGradientMatrix( speciesID, grid, gridSize, orbitalsInGrid)
+    implicit none
+    integer :: speciesID
+    type(Matrix) :: grid, orbitalsInGrid
+    integer :: gridSize
+
+    type(Matrix) :: auxMatrix
+    integer :: numberOfCartesiansOrbitals
+    integer :: totalNumberOfContractions
+    integer :: point
+    integer :: i, j, k, g
+
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
+
+    k=1
+    do g = 1, size(MolecularSystem_instance%species(speciesID)%particles)
+       do i = 1, size(MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction)
+          numberOfCartesiansOrbitals = MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i)%numCartesianOrbital
+
+          call Matrix_constructor( auxMatrix, int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8)
+
+          call GridManager_getOrbitalGradientAtGrid( MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i), grid, gridSize, auxMatrix)
+          
+          do j = 1, numberOfCartesiansOrbitals
+             do point = 1 , gridSize
+                orbitalsInGrid%values(point,k) = auxMatrix%values(point,j)
+             end do
+             k=k+1
+          end do
+       end do
+    end do
+
+  end subroutine GridManager_getOrbitalGradientMatrix
+
+  !>
+  !! @brief Returns the values of the gradient of a contracted atomic shell in a set of coordinates
 !!! Felix Moncada, 2017
   !<
   subroutine GridManager_getOrbitalAtGrid( this, grid, gridSize, output)
@@ -261,8 +292,95 @@ contains
     end do
   end subroutine GridManager_getOrbitalAtGrid
 
+  !>
+  !! @brief Returns the values of a contracted atomic shell in a set of coordinates
+!!! Felix Moncada, 2017
+  !<
+  subroutine GridManager_getOrbitalGradientAtGrid( this, grid, gridSize, output)
+    implicit none
+    type(ContractedGaussian) , intent(in) :: this
+    type(Matrix) :: grid
+    type(Matrix) :: output
+    integer :: gridSize
+    
+    integer :: h
+    integer :: nx, ny, nz !< indices de momento angular
+    integer :: i, j, m, xx
+    integer :: point
+    real(8) :: coordinate(3)
+    real(8) :: exponential, dx, dy, dz
+    real(8) :: auxOutput(this%numCartesianOrbital)
+
+    do point=1, gridSize
+       coordinate(1)=grid%values(point,1)
+       coordinate(2)=grid%values(point,2)
+       coordinate(3)=grid%values(point,3)
+       do h=1, this%length
+          exponential=dexp(-this%orbitalExponents(h) &
+               *((this%origin(1)-coordinate(1))**2 &
+                +(this%origin(2)-coordinate(2))**2 &
+                +(this%origin(3)-coordinate(3))**2))
+          m = 0
+          do i = 0 , this%angularMoment
+             nx = this%angularMoment - i
+             do j = 0 , i
+                ny = i - j
+                nz = j
+                m = m + 1
+
+                dx=-2*this%orbitalExponents(h) &
+                     * (coordinate(1)-this%origin(1))** (nx+1) &
+                     * (coordinate(2)-this%origin(2))** ny &
+                     * (coordinate(3)-this%origin(3))** nz 
+               
+                if( nx .ge. 1 ) then
+                   dx= dx + &
+                        nx*(coordinate(1)-this%origin(1))** (nx-1) &
+                        * (coordinate(2)-this%origin(2))** ny &
+                        * (coordinate(3)-this%origin(3))** nz 
+                end if
+                
+                dy=-2*this%orbitalExponents(h) &
+                     * (coordinate(1)-this%origin(1))** nx &
+                     * (coordinate(2)-this%origin(2))** (ny+1) &
+                     * (coordinate(3)-this%origin(3))** nz 
+                
+                if( ny .ge. 1 ) then
+                   dy= dy + &
+                        (coordinate(1)-this%origin(1))** nx &
+                        *ny* (coordinate(2)-this%origin(2))** (ny-1) &
+                        * (coordinate(3)-this%origin(3))** nz 
+                end if
+                
+                dz=-2*this%orbitalExponents(h) &
+                     * (coordinate(1)-this%origin(1))** nx &
+                     * (coordinate(2)-this%origin(2))** ny &
+                     * (coordinate(3)-this%origin(3))** (nz+1) 
+
+                if( nz .ge. 1 ) then
+                   dz= dz+ &
+                        (coordinate(1)-this%origin(1))** nx &
+                        * (coordinate(2)-this%origin(2))** ny &
+                        *nz*(coordinate(3)-this%origin(3))** (nz-1) 
+                end if
+                   
+                auxOutput(m) = this%contNormalization(m) &
+                     *this%primNormalization(h,m) &
+                     *exponential&
+                     *sqrt(dx**2+dy**2+dz**2)
+                
+             end do
+          end do
+
+          do xx=1, m
+             output%values(point,xx) = output%values(point,xx) + auxOutput(xx) * this%contractionCoefficients(h)
+          end do
+       end do
+    end do
+  end subroutine GridManager_getOrbitalGradientAtGrid
+
   
-      !>
+  !>
   !! @brief Returns the values of the density in a set of coordinates
 !!! Felix Moncada, 2017
   !<
@@ -329,6 +447,54 @@ contains
     
   end subroutine GridManager_getDensityAtGrid
 
+  !>
+  !! @brief Returns the values of the density in a set of coordinates
+!!! Felix Moncada, 2017
+  !<
+  subroutine GridManager_getDensityGradientAtGrid( speciesID, densityMatrix, gradientInGrid)
+    implicit none
+    integer :: speciesID
+    type(Matrix) :: densityMatrix
+    type(Vector) :: gradientInGrid
+
+    integer :: gridSize
+    character(50) :: nameOfSpecies
+    character(50) :: labels(2), dftFile
+    ! type(Matrix) :: orbitalsProductInGrid
+    integer :: numberOfContractions
+    integer :: u, v, i, index
+    integer :: dftUnit, wfnUnit
+    real(8) :: sum
+    
+    !! Open file for dft
+
+    nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+    gridSize = Grid_instance(speciesID)%totalSize
+    
+    call Vector_Constructor(gradientInGrid, gridSize, 0.0_8)
+
+    do u = 1 , numberOfContractions
+       do v = u , numberOfContractions
+          if ( u .eq. v) then
+             do i=1,gridSize
+                gradientInGrid%values(i)=gradientInGrid%values(i)+densityMatrix%values(u,v)*&
+                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient%values(i,v)&
+                     +Grid_instance(speciesID)%orbitalsGradient%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+             end do
+          else
+             do i=1,gridSize
+                gradientInGrid%values(i)=gradientInGrid%values(i)+2*densityMatrix%values(u,v)*&
+                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient%values(i,v)&
+                     +Grid_instance(speciesID)%orbitalsGradient%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+             end do
+          end if
+       end do
+    end do
+
+    ! call Vector_show(gradientInGrid)
+    
+  end subroutine GridManager_getDensityGradientAtGrid
 
   !>
   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates

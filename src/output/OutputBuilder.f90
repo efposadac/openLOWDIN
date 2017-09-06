@@ -103,12 +103,12 @@ contains
   !! @brief Constructor por omision
   !!
   !! @param this
-  !<
-  subroutine OutputBuilder_constructor(this, ID, type ,specie, state, orbital, dimensions, cubeSize, point1, point2, point3  )
+  !< OutputBuilder_constructor(this, ID, type ,specie, state, orbital, dimensions, cubeSize, point1, point2, point3  )
+  subroutine OutputBuilder_constructor(this, ID, type ,specie, orbital, dimensions, cubeSize, point1, point2, point3  )
     character(*) :: type
     integer :: ID
     character(*) :: specie
-    integer :: state
+    ! integer :: state
     integer :: orbital
     integer :: dimensions
     real(8) :: cubeSize
@@ -120,7 +120,7 @@ contains
     this%type=type
     this%outputID=ID
     this%specie=trim(String_getUppercase(specie))
-    this%state=state
+    ! this%state=state
     this%orbital=orbital
     this%dimensions=dimensions
     this%cubeSize=cubeSize
