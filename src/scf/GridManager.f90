@@ -104,11 +104,16 @@ contains
 
        call GridManager_getOrbitalMatrix( speciesID, grid, gridSize, Grid_instance(speciesID)%orbitals)
 
-       call Matrix_Constructor( Grid_instance(speciesID)%orbitalsGradient, int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8)
+       call Matrix_Constructor( Grid_instance(speciesID)%orbitalsGradient(1), int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8)!x
+       call Matrix_Constructor( Grid_instance(speciesID)%orbitalsGradient(2), int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8)!y
+       call Matrix_Constructor( Grid_instance(speciesID)%orbitalsGradient(3), int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8)!z
 
-       call GridManager_getOrbitalGradientMatrix( speciesID, grid, gridSize, Grid_instance(speciesID)%orbitalsGradient)
+       call GridManager_getOrbitalGradientMatrix( speciesID, grid, gridSize, &
+            Grid_instance(speciesID)%orbitalsGradient(1),&
+            Grid_instance(speciesID)%orbitalsGradient(2),&
+            Grid_instance(speciesID)%orbitalsGradient(3))
        
-       call Matrix_show(Grid_instance(speciesID)%orbitalsGradient)
+       ! call Matrix_show(Grid_instance(speciesID)%orbitalsGradient)
 
        !Write to disk
        ! labels(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
@@ -207,13 +212,13 @@ contains
   !! @brief Returns the values of all the atomic orbitals in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine GridManager_getOrbitalGradientMatrix( speciesID, grid, gridSize, orbitalsInGrid)
+  subroutine GridManager_getOrbitalGradientMatrix( speciesID, grid, gridSize, orbitaldX, orbitaldY, orbitaldZ)
     implicit none
     integer :: speciesID
-    type(Matrix) :: grid, orbitalsInGrid
+    type(Matrix) :: grid, orbitaldX, orbitaldY, orbitaldZ
     integer :: gridSize
 
-    type(Matrix) :: auxMatrix
+    type(Matrix) :: auxMatrix(3)
     integer :: numberOfCartesiansOrbitals
     integer :: totalNumberOfContractions
     integer :: point
@@ -226,13 +231,18 @@ contains
        do i = 1, size(MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction)
           numberOfCartesiansOrbitals = MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i)%numCartesianOrbital
 
-          call Matrix_constructor( auxMatrix, int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8)
+          call Matrix_constructor( auxMatrix(1), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8)
+          call Matrix_constructor( auxMatrix(2), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8)
+          call Matrix_constructor( auxMatrix(3), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8)
 
-          call GridManager_getOrbitalGradientAtGrid( MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i), grid, gridSize, auxMatrix)
+          call GridManager_getOrbitalGradientAtGrid( MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i), grid, gridSize, &
+               auxMatrix(1), auxMatrix(2), auxMatrix(3))
           
           do j = 1, numberOfCartesiansOrbitals
              do point = 1 , gridSize
-                orbitalsInGrid%values(point,k) = auxMatrix%values(point,j)
+                orbitaldX%values(point,k) = auxMatrix(1)%values(point,j)
+                orbitaldY%values(point,k) = auxMatrix(2)%values(point,j)
+                orbitaldZ%values(point,k) = auxMatrix(3)%values(point,j)
              end do
              k=k+1
           end do
@@ -296,20 +306,20 @@ contains
   !! @brief Returns the values of a contracted atomic shell in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine GridManager_getOrbitalGradientAtGrid( this, grid, gridSize, output)
+  subroutine GridManager_getOrbitalGradientAtGrid( this, grid, gridSize, orbitaldX, orbitaldY, orbitaldZ)
     implicit none
     type(ContractedGaussian) , intent(in) :: this
     type(Matrix) :: grid
-    type(Matrix) :: output
+    type(Matrix) :: orbitaldX, orbitaldY, orbitaldZ
     integer :: gridSize
     
     integer :: h
     integer :: nx, ny, nz !< indices de momento angular
-    integer :: i, j, m, xx
+    integer :: i, j, m, w
     integer :: point
     real(8) :: coordinate(3)
     real(8) :: exponential, dx, dy, dz
-    real(8) :: auxOutput(this%numCartesianOrbital)
+    real(8) :: auxOutput(this%numCartesianOrbital,3)
 
     do point=1, gridSize
        coordinate(1)=grid%values(point,1)
@@ -364,16 +374,25 @@ contains
                         *nz*(coordinate(3)-this%origin(3))** (nz-1) 
                 end if
                    
-                auxOutput(m) = this%contNormalization(m) &
+                auxOutput(m,1) = this%contNormalization(m) &
                      *this%primNormalization(h,m) &
-                     *exponential&
-                     *sqrt(dx**2+dy**2+dz**2)
-                
+                     *exponential*dx
+
+                auxOutput(m,2) = this%contNormalization(m) &
+                     *this%primNormalization(h,m) &
+                     *exponential*dy
+
+                auxOutput(m,3) = this%contNormalization(m) &
+                     *this%primNormalization(h,m) &
+                     *exponential*dz
+
              end do
           end do
 
-          do xx=1, m
-             output%values(point,xx) = output%values(point,xx) + auxOutput(xx) * this%contractionCoefficients(h)
+          do w=1, m
+             orbitaldX%values(point,w) = orbitaldX%values(point,w) + auxOutput(w,1) * this%contractionCoefficients(h)
+             orbitaldY%values(point,w) = orbitaldY%values(point,w) + auxOutput(w,2) * this%contractionCoefficients(h)
+             orbitaldZ%values(point,w) = orbitaldZ%values(point,w) + auxOutput(w,3) * this%contractionCoefficients(h)
           end do
        end do
     end do
@@ -404,22 +423,7 @@ contains
     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
     gridSize = Grid_instance(speciesID)%totalSize
-    
-    call Vector_Constructor(densityInGrid, gridSize, 0.0_8)
-
-    !Read grid and orbital products from disk
-    ! dftUnit = 77
-    ! dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
-
-    ! labels(2) = trim(nameOfSpecies)
-    ! labels(1) = "ORBITALPRODUCT-GRID"
-    ! open( UNIT=dftUnit,FILE=dftFile, status='old', access='sequential', form='formatted')
-    ! orbitalsProductInGrid=Matrix_getFromFile(unit=dftUnit, rows=gridSize, columns=numberOfContractions*(numberOfContractions+1)/2, binary=.false., arguments=labels)
-    ! close( dftUnit)
-
-    ! call Matrix_show(orbitalsProductInGrid)
-    ! call Matrix_show(densityMatrix)
-    
+        
     do u = 1 , numberOfContractions
        do v = u , numberOfContractions
           if ( u .eq. v) then
@@ -457,6 +461,7 @@ contains
     type(Matrix) :: densityMatrix
     type(Vector) :: gradientInGrid
 
+    type(Vector) :: rhodx, rhody, rhodz
     integer :: gridSize
     character(50) :: nameOfSpecies
     character(50) :: labels(2), dftFile
@@ -471,27 +476,54 @@ contains
     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
     gridSize = Grid_instance(speciesID)%totalSize
-    
-    call Vector_Constructor(gradientInGrid, gridSize, 0.0_8)
 
+    call Vector_constructor(rhodx, gridSize, 0.0_8 )
+    call Vector_constructor(rhody, gridSize, 0.0_8 )
+    call Vector_constructor(rhodz, gridSize, 0.0_8 )
+    
     do u = 1 , numberOfContractions
        do v = u , numberOfContractions
           if ( u .eq. v) then
              do i=1,gridSize
-                gradientInGrid%values(i)=gradientInGrid%values(i)+densityMatrix%values(u,v)*&
-                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient%values(i,v)&
-                     +Grid_instance(speciesID)%orbitalsGradient%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+                
+                rhodx%values(i)=rhodx%values(i)+densityMatrix%values(u,v)*&
+                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(1)%values(i,v)&
+                     +Grid_instance(speciesID)%orbitalsGradient(1)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+
+                rhody%values(i)=rhody%values(i)+densityMatrix%values(u,v)*&
+                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(2)%values(i,v)&
+                     +Grid_instance(speciesID)%orbitalsGradient(2)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+
+                rhodz%values(i)=rhodz%values(i)+densityMatrix%values(u,v)*&
+                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(3)%values(i,v)&
+                     +Grid_instance(speciesID)%orbitalsGradient(3)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+
              end do
           else
              do i=1,gridSize
-                gradientInGrid%values(i)=gradientInGrid%values(i)+2*densityMatrix%values(u,v)*&
-                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient%values(i,v)&
-                     +Grid_instance(speciesID)%orbitalsGradient%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+
+                rhodx%values(i)=rhodx%values(i)+2*densityMatrix%values(u,v)*&
+                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(1)%values(i,v)&
+                     +Grid_instance(speciesID)%orbitalsGradient(1)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+
+                rhody%values(i)=rhody%values(i)+2*densityMatrix%values(u,v)*&
+                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(2)%values(i,v)&
+                     +Grid_instance(speciesID)%orbitalsGradient(2)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+
+                rhodz%values(i)=rhodz%values(i)+2*densityMatrix%values(u,v)*&
+                     (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(3)%values(i,v)&
+                     +Grid_instance(speciesID)%orbitalsGradient(3)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
+
              end do
           end if
        end do
     end do
 
+    do i=1,gridSize
+       gradientInGrid%values(i)=gradientInGrid%values(i)+ sqrt(rhodx%values(i)**2 + rhody%values(i)**2 + rhodz%values(i)**2)
+    end do
+
+    
     ! call Vector_show(gradientInGrid)
     
   end subroutine GridManager_getDensityGradientAtGrid

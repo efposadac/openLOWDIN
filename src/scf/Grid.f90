@@ -33,7 +33,7 @@ module Grid_
      integer :: totalSize
      type(Matrix) :: points !! x,y,z,weight
      type(Matrix) :: orbitals
-     type(Matrix) :: orbitalsGradient
+     type(Matrix) :: orbitalsGradient(3) !!x,y,z per orbital
      type(Vector) :: potential
      type(Vector) :: density
      type(Vector) :: densityGradient
