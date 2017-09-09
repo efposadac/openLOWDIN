@@ -49,7 +49,8 @@ GSL_LIBS="-lgsl -lgslcblas"
 LAPACK_LIBS="-lblas -llapack -larpack"
 STDCPP_LIBS="-lstdc++"
 LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS"
+LIBXC_LIBS="-lxcf03 -lxc"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
 DEFAULTS='F'
 
 ############################################
@@ -71,7 +72,7 @@ do
             ;;
         l)  
             LAPACK_LIBS=$OPTARG
-            ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS"
+            ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
             DEFAULTS='T'
             ;;
         h)
@@ -104,6 +105,7 @@ else
         STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        LIBXC_LIBS=`awk '{if($1 == "LIBXC_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
     fi
@@ -208,7 +210,7 @@ else
     fi
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
-    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
+    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
 
     ###############################################################################
     #                       SPECIFIC INSTALLATION DIRECTORIES
@@ -243,6 +245,7 @@ echo "LAPACK_LIBS = $LAPACK_LIBS"  >> CONFIG
 echo "STDCPP_LIBS = $STDCPP_LIBS"  >> CONFIG
 echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG
 echo "LIBINT_LIBS = $LIBINT_LIBS"  >> CONFIG
+echo "LIBXC_LIBS = $LIBXC_LIBS"  >> CONFIG
 echo "CUDA_LIBS = $CUDA_LIBS" >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 

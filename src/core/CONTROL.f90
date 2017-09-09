@@ -194,6 +194,7 @@ module CONTROL_
      !!
      character(50) :: ELECTRON_CORRELATION_FUNCTIONAL
      character(50) :: ELECTRON_EXCHANGE_FUNCTIONAL
+     character(50) :: ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
      character(50) :: ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL
      integer :: GRID_RADIAL_POINTS
      integer :: GRID_ANGULAR_POINTS
@@ -202,7 +203,7 @@ module CONTROL_
      logical :: FUKUI_FUNCTIONS
      logical :: AUXILIARY_DENSITY
      logical :: STORE_THREE_CENTER_ELECTRON_INTEGRALS
-     logical :: CALL_DFT
+     logical :: CALL_LIBXC
 
      !!*****************************************************
      !! External Potential Options
@@ -453,6 +454,7 @@ module CONTROL_
   !!
   character(50) :: LowdinParameters_electronCorrelationFunctional
   character(50) :: LowdinParameters_electronExchangeFunctional
+  character(50) :: LowdinParameters_electronExchangeCorrelationFunctional
   character(50) :: LowdinParameters_electronNuclearCorrelationFunctional
   integer :: LowdinParameters_gridRadialPoints
   integer :: LowdinParameters_gridAngularPoints
@@ -461,7 +463,7 @@ module CONTROL_
   logical :: LowdinParameters_fukuiFunctions
   logical :: LowdinParameters_auxiliaryDensity
   logical :: LowdinParameters_storeThreeCenterElectronIntegrals
-  logical :: LowdinParameters_callDft
+  logical :: LowdinParameters_callLibxc
 
   !!*****************************************************
   !! External Potential Options
@@ -708,6 +710,7 @@ module CONTROL_
                                 !!
        LowdinParameters_electronCorrelationFunctional,&
        LowdinParameters_electronExchangeFunctional,&
+       LowdinParameters_electronExchangeCorrelationFunctional,&
        LowdinParameters_electronNuclearCorrelationFunctional,&
        LowdinParameters_gridRadialPoints,&
        LowdinParameters_gridAngularPoints,&
@@ -716,7 +719,7 @@ module CONTROL_
        LowdinParameters_fukuiFunctions,&
        LowdinParameters_auxiliaryDensity,&
        LowdinParameters_storeThreeCenterElectronIntegrals,&
-       LowdinParameters_callDft,&
+       LowdinParameters_callLibxc,&
        
                                 !!*****************************************************
                                 !! External Potential Options
@@ -990,6 +993,7 @@ contains
     !!
     LowdinParameters_electronCorrelationFunctional = "NONE"
     LowdinParameters_electronExchangeFunctional = "NONE"
+    LowdinParameters_electronExchangeCorrelationFunctional = "NONE"
     LowdinParameters_electronNuclearCorrelationFunctional = "NONE"
     LowdinParameters_gridRadialPoints=75
     LowdinParameters_gridAngularPoints=302
@@ -998,7 +1002,7 @@ contains
     LowdinParameters_fukuiFunctions = .false.
     LowdinParameters_auxiliaryDensity = .false.
     LowdinParameters_storeThreeCenterElectronIntegrals = .true.
-    LowdinParameters_callDft = .false.
+    LowdinParameters_callLibxc = .true.
 
     !!*****************************************************
     !! External Potential Options
@@ -1251,6 +1255,7 @@ contains
     !!                                                                                                                         
     CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = "NONE"
+    CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%GRID_RADIAL_POINTS= 75
     CONTROL_instance%GRID_ANGULAR_POINTS= 302
@@ -1259,7 +1264,7 @@ contains
     CONTROL_instance%FUKUI_FUNCTIONS = .false.
     CONTROL_instance%AUXILIARY_DENSITY = .false.
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = .true.
-    CONTROL_instance%CALL_DFT = .false.
+    CONTROL_instance%CALL_LIBXC = .true.
 
     !!*****************************************************                                                                    
     !! External Potential Options                                                                                              
@@ -1550,6 +1555,7 @@ contains
     !!                                                                                 
     CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_electronCorrelationFunctional
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = LowdinParameters_electronExchangeFunctional
+    CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = LowdinParameters_electronExchangeCorrelationFunctional
     CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = LowdinParameters_electronNuclearCorrelationFunctional
     CONTROL_instance%GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
     CONTROL_instance%GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
@@ -1558,7 +1564,7 @@ contains
     CONTROL_instance%FUKUI_FUNCTIONS = LowdinParameters_fukuiFunctions
     CONTROL_instance%AUXILIARY_DENSITY = LowdinParameters_auxiliaryDensity
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = LowdinParameters_storeThreeCenterElectronIntegrals
-    CONTROL_instance%CALL_DFT = LowdinParameters_callDft
+    CONTROL_instance%CALL_LIBXC = LowdinParameters_callLibxc
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -1823,6 +1829,7 @@ contains
     !!                                                                                 
     LowdinParameters_electronCorrelationFunctional = CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
     LowdinParameters_electronExchangeFunctional = CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
+    LowdinParameters_electronExchangeCorrelationFunctional = CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
     LowdinParameters_electronNuclearCorrelationFunctional = CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL
     LowdinParameters_gridRadialPoints = CONTROL_instance%GRID_RADIAL_POINTS
     LowdinParameters_gridAngularPoints = CONTROL_instance%GRID_ANGULAR_POINTS
@@ -1831,7 +1838,7 @@ contains
     LowdinParameters_fukuiFunctions = CONTROL_instance%FUKUI_FUNCTIONS
     LowdinParameters_auxiliaryDensity = CONTROL_instance%AUXILIARY_DENSITY
     LowdinParameters_storeThreeCenterElectronIntegrals = CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS
-    LowdinParameters_callDft = CONTROL_instance%CALL_DFT
+    LowdinParameters_callLibxc = CONTROL_instance%CALL_LIBXC
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -2077,9 +2084,10 @@ contains
     !! Density Functional Theory Options
     !!
     otherThis%AUXILIARY_DENSITY = this%AUXILIARY_DENSITY 
-    otherThis%CALL_DFT = this%CALL_DFT 
+    otherThis%CALL_LIBXC = this%CALL_LIBXC
     otherThis%ELECTRON_CORRELATION_FUNCTIONAL = this%ELECTRON_CORRELATION_FUNCTIONAL 
     otherThis%ELECTRON_EXCHANGE_FUNCTIONAL = this%ELECTRON_EXCHANGE_FUNCTIONAL 
+    otherThis%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = this%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL 
     otherThis%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = this%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL 
     otherThis%GRID_RADIAL_POINTS=this%GRID_RADIAL_POINTS
     otherThis%GRID_ANGULAR_POINTS=this%GRID_ANGULAR_POINTS
@@ -2182,8 +2190,13 @@ contains
 
        if(CONTROL_instance%AUXILIARY_DENSITY) write (*,"(T10,A)") "USING AUXILIARY DENSITY"
 
-       write (*,"(T10,A)") "ELECTRON CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
-       write (*,"(T10,A)") "ELECTRON EXCHANGE FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)
+       if(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .ne. "NONE") then
+          write (*,"(T10,A)") "ELECTRON EXCHANGE CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
+       else
+          write (*,"(T10,A)") "ELECTRON CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
+          write (*,"(T10,A)") "ELECTRON EXCHANGE FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)
+       end if
+       
        write (*,"(T10,A)") "ELECTRON-NUCLEAR CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL)
        write (*,"(T10,A,I5,A,I5)") "ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%GRID_RADIAL_POINTS,"x",CONTROL_instance%GRID_ANGULAR_POINTS
 

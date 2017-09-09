@@ -231,6 +231,7 @@ contains
           call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
 
           call Vector_Constructor( Grid_instance(speciesID)%potential, Grid_instance(speciesID)%totalSize, 0.0_8)
+          call Vector_Constructor( Grid_instance(speciesID)%gradientPotential, Grid_instance(speciesID)%totalSize, 0.0_8)
 
           ! do i=1, Grid_instance(speciesID)%totalSize
           !    if (Grid_instance(speciesID)%points%values(i,1) .eq. 0.0 .and. Grid_instance(speciesID)%points%values(i,2) .eq. 0.0)  then
@@ -755,6 +756,7 @@ contains
     print *, "nameOfSpecies", nameOfSpecies
     print *, "speciesID", speciesID
     Grid_instance(speciesID)%density%values=0.0_8
+    Grid_instance(speciesID)%densityGradient%values=0.0_8
 
     call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
     call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
@@ -763,16 +765,22 @@ contains
        otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="E-BETA" )
        Grid_instance(otherSpeciesID)%potential%values=0.0_8
        Grid_instance(speciesID)%potential%values=0.0_8
+       Grid_instance(otherSpeciesID)%gradientPotential%values=0.0_8
+       Grid_instance(speciesID)%gradientPotential%values=0.0_8
 
-       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, Grid_instance(speciesID)%potential, &
-            otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy, Grid_instance(otherSpeciesID)%potential )
+       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
+            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%gradientPotential,&
+            otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy,&
+            Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%gradientPotential )
 
     elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-BETA") then
 
     else
        
        Grid_instance(speciesID)%potential%values=0.0_8
-       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, Grid_instance(speciesID)%potential )
+       Grid_instance(speciesID)%gradientPotential%values=0.0_8
+       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
+            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%gradientPotential )
    
     end if
     
@@ -782,7 +790,15 @@ contains
              Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)=&
                   Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)&
                   +Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v)&
-                  *Grid_instance(speciesID)%potential%values(i)*Grid_instance(speciesID)%points%values(i,4)
+                  *Grid_instance(speciesID)%potential%values(i)*Grid_instance(speciesID)%points%values(i,4)&
+                  + ( (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(1)%values(i,v)&
+                          +Grid_instance(speciesID)%orbitalsGradient(1)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))**2 &
+                        +(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(2)%values(i,v)&
+                          +Grid_instance(speciesID)%orbitalsGradient(2)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))**2 &
+                        +(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(3)%values(i,v)&
+                          +Grid_instance(speciesID)%orbitalsGradient(3)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))**2 )& !test without sqrt
+                  *Grid_instance(speciesID)%gradientPotential%values(i)*Grid_instance(speciesID)%points%values(i,4)
+             
           end do
           Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(v,u)=&
                Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)

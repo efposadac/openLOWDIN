@@ -13,21 +13,25 @@
 !!******************************************************************************
 
 !>
-!! @brief This module manages the orbital and density represented in the DFT grids. Partially based on R. Flores-Moreno Parakata's modules
+!! @brief This module manages the orbital and density represented in the DFT grids. Includes calls to libxc library. Partially based on R. Flores-Moreno Parakata's modules
 !! @author F. Moncada, 2017
 module Functional_
   use Matrix_
   use Exception_
   use String_
   use MolecularSystem_
-  use Grid_
+  use Grid_ 
+  use LibxcInterface_
   implicit none
 
   type, public :: Functional
-     character(50) :: type
      character(30) :: species1
      character(30) :: species2
-
+     character(50) :: name
+     TYPE(xc_f03_func_t) :: xc1
+     TYPE(xc_f03_func_info_t) :: info1
+     TYPE(xc_f03_func_t) :: xc2
+     TYPE(xc_f03_func_info_t) :: info2
   end type Functional
 
   type(Functional), public, allocatable :: Functionals(:)
@@ -35,6 +39,9 @@ module Functional_
   public :: &
        Functional_constructor, &
        Functional_show, &
+       Functional_getIndex, &
+       Functional_libxcEvaluate, &
+       Functional_LDAEvaluate, &
        padevwn, &
        dpadevwn, &
        ecvwn, &
@@ -43,9 +50,6 @@ module Functional_
        vxdirac, &
        srs, &
        pi
-  ! CalculateWaveFunction_getDensityAt, &
-  !   	CalculateWaveFunction_getOrbitalValueAt
-  !		CalculateWaveFunction_getFukuiFunctionAt
 
   private
   real(8) vwna1,vwnb1,vwnc1,vwnx01
@@ -59,37 +63,232 @@ module Functional_
    
 contains
 
-  subroutine Functional_constructor(this, type, speciesID, otherSpeciesID)
+  subroutine Functional_constructor(this, speciesID, otherSpeciesID)
     implicit none
     type(Functional) :: this 
-    character(*) :: type
     integer :: speciesID
     integer :: otherSpeciesID
 
-    this%type=type
+    this%name="NONE"
     this%species1=MolecularSystem_getNameOfSpecie(speciesID)
     this%species2=MolecularSystem_getNameOfSpecie(otherSpeciesID)
 
-    if( (this%species1 == "E-" .or. this%species1 == "E-ALPHA" .or. this%species1 == "E-BETA") .and. this%type=="exchange" ) then
-       this%type=this%type//CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
-    else if( (this%species1 == "E-" .or. this%species1 == "E-ALPHA" .or. this%species1 == "E-BETA") .and. this%type=="correlation" ) then
-       this%type=this%type//CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
-    else if( (this%species1 == "E-" .or. this%species1 == "E-ALPHA" .or. this%species1 == "E-BETA") .and. this%species1 .ne. this%species2)  then
-       this%type=this%type//CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL
-    else
-       this%type="NONE"
-    end if
+    if( CONTROL_instance%CALL_LIBXC)  then
 
+       if(this%species1 == "E-" .and. this%species2 == "E-")  then
+          if( CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .ne. "NONE" ) then
+
+             call xc_f03_func_init(this%xc1,&
+                  xc_f03_functional_get_number( "XC_"//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)), XC_UNPOLARIZED)
+             this%info1 = xc_f03_func_get_info(this%xc1)
+
+          else
+
+             call xc_f03_func_init(this%xc1, &
+                  xc_f03_functional_get_number( "XC_"//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)), XC_UNPOLARIZED)
+             this%info1 = xc_f03_func_get_info(this%xc1)
+
+             call xc_f03_func_init(this%xc2, &
+                  xc_f03_functional_get_number( "XC_"//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)), XC_UNPOLARIZED)
+
+             this%info2 = xc_f03_func_get_info(this%xc2)
+
+          end if
+
+       elseif ( (this%species1 == "E-ALPHA" .and. this%species2 == "E-ALPHA") .or. &
+            (this%species1 == "E-ALPHA" .and. this%species2 == "E-BETA") .or. &
+            (this%species1 == "E-BETA" .and. this%species2 == "E-BETA") .or. &
+            (this%species1 == "E-BETA" .and. this%species2 == "E-ALPHA") ) then
+
+          if( CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .ne. "NONE" ) then
+
+             call xc_f03_func_init(this%xc1,&
+                  xc_f03_functional_get_number( "XC_"//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)), XC_POLARIZED)
+             this%info1 = xc_f03_func_get_info(this%xc1)
+
+          else
+
+             call xc_f03_func_init(this%xc1, &
+                  xc_f03_functional_get_number( "XC_"//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)), XC_POLARIZED)
+             this%info1 = xc_f03_func_get_info(this%xc1)
+
+             call xc_f03_func_init(this%xc2, &
+                  xc_f03_functional_get_number( "XC_"//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)), XC_POLARIZED)
+
+             this%info2 = xc_f03_func_get_info(this%xc2)
+
+          end if
+
+       end if
+
+
+    else
+
+       if((this%species1 == "E-" .and. this%species2 == "E-") .or. &
+         (this%species1 == "E-ALPHA" .and. this%species2 == "E-ALPHA") .or. &
+         (this%species1 == "E-ALPHA" .and. this%species2 == "E-BETA") .or. &
+         (this%species1 == "E-BETA" .and. this%species2 == "E-BETA") .or. &
+         (this%species1 == "E-BETA" .and. this%species2 == "E-ALPHA") ) then
+
+          this%name="x:"//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)//"-c:"//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
+       end if
+       
+    end if
+       
+    !Provisional
+    if( (this%species1 == "E-" .or. this%species1 == "E-ALPHA" .or. this%species1 == "E-BETA") .and. &
+         (this%species2 .ne.  "E-" .and. this%species2 .ne. "E-ALPHA" .and. this%species2 .ne. "E-BETA") )   then
+       
+       this%name="c:"//trim(CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL)
+       
+    end if
+    
   end subroutine Functional_constructor
 
   subroutine Functional_show(this)
     implicit none
     type(Functional) :: this 
 
-    print *, this%species1, this%species2, this%type
 
+    if ((this%species1 == "E-" .and. this%species2 == "E-") .or. &
+         (this%species1 == "E-ALPHA" .and. this%species2 == "E-ALPHA") .or. &
+         (this%species1 == "E-ALPHA" .and. this%species2 == "E-BETA") .or. &
+         (this%species1 == "E-BETA" .and. this%species2 == "E-BETA") .or. &
+         (this%species1 == "E-BETA" .and. this%species2 == "E-ALPHA") ) then
+
+       if( CONTROL_instance%CALL_LIBXC)  then
+
+          if( CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .ne. "NONE" ) then
+
+             print *, trim(this%species1), trim(this%species2), "xc: ", xc_f03_func_info_get_name(this%info1)
+
+          else
+             print *, trim(this%species1), trim(this%species2), "x: ", xc_f03_func_info_get_name(this%info1)
+             print *, trim(this%species1), trim(this%species2), "c: ", xc_f03_func_info_get_name(this%info2)
+          end if
+
+       else
+             print *, trim(this%species1), trim(this%species2), this%name
+
+       end if
+    else 
+       print *, trim(this%species1), trim(this%species2), this%name
+       
+    end if
+    
   end subroutine Functional_show
 
+    function Functional_getIndex(speciesID, otherSpeciesID) result( output)
+    implicit none
+    integer :: speciesID
+    integer, optional :: otherSpeciesID
+    integer :: output
+    character(50) :: nameOfSpecies, otherNameOfSpecies
+    integer i
+
+    nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
+    if( present(otherSpeciesID) )  then
+       otherNameOfSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )
+    else
+       otherNameOfSpecies = nameOfSpecies
+    end if
+    
+    do i=1, size(Functionals(:))
+       if (Functionals(i)%species1 == nameOfSpecies .and. Functionals(i)%species1 == otherNameOfSpecies) then
+          output=i
+          return
+       end if
+    end do
+    
+  end function Functional_getIndex
+
+
+  subroutine Functional_libxcEvaluate(this, n,rho,sigma, exc, vxc, vsigma)
+    ! Call LIBXC to evaluate electronic exchange correlation functionals
+    ! Roberto Flores-Moreno, May 2009
+    implicit none
+    Type(Functional) :: this
+    integer :: n !!gridSize
+    real(8) :: rho(*), sigma(*) !!Density and gradient - input
+    real(8) :: exc(*), vxc(*) !! Energy density and potential - output   
+    real(8) :: vsigma(*)  !! Energy derivative with respect to the gradient - output   
+    real(8) :: e_exchange(n),e_correlation(n)
+    real(8) :: v_exchange(n),v_correlation(n)
+    real(8) :: vs_exchange(n),vs_correlation(n)
+    integer :: i, vmajor, vminor, vmicro, func_id = 1
+    TYPE(xc_f03_func_t) :: xc_func
+    TYPE(xc_f03_func_info_t) :: xc_info
+
+    e_exchange=0.0_8
+    e_correlation=0.0_8
+    v_exchange=0.0_8
+    v_correlation=0.0_8
+    vs_exchange=0.0_8
+    vs_correlation=0.0_8
+
+    select case ( xc_f03_func_info_get_family(this%info1))
+    case(XC_FAMILY_LDA)
+       call xc_f03_lda_exc_vxc(this%xc1, n, rho, e_exchange, v_exchange)
+    case(XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
+       call xc_f03_gga_exc_vxc(this%xc1, n, rho, sigma, e_exchange, v_exchange, vs_exchange)
+    end select
+    
+
+    if ( CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .eq. "NONE") then
+
+       select case ( xc_f03_func_info_get_family(this%info2))
+       case(XC_FAMILY_LDA)
+          call xc_f03_lda_exc_vxc(this%xc2, n, rho, e_correlation, v_correlation)
+       case(XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
+          call xc_f03_gga_exc_vxc(this%xc2, n, rho, sigma, e_correlation, v_correlation, vs_correlation )
+       end select
+    
+    end if
+    
+    exc(1:n)=e_exchange(1:n)+e_correlation(1:n)
+    vxc(1:n)=v_exchange(1:n)+v_correlation(1:n)
+    vsigma(1:n)=vs_exchange(1:n)+vs_correlation(1:n)
+    
+    ! print *, "rho, energy density, energy density*rho, potential"
+    ! do i = 1, n
+    !    write(*,"(F10.6,1X,3F9.6)") rho(i), exc(i), exc(i)*rho(i), vxc(i)
+    ! end do
+   
+  end subroutine Functional_libxcEvaluate
+
+  subroutine Functional_LDAEvaluate(n,rhoA, rhoB, exc, vxcA, vxcB )
+    ! Evaluates Dirac exchange and VWN correlation functionals
+    ! Roberto Flores-Moreno, May 2009
+    implicit none
+    integer :: n !!gridSize
+    real(8) :: rhoA(*), rhoB(*) !!Alpha and beta Densities - input
+    real(8) :: exc(*), vxcA(*) !! Energy density and potential - output   
+    real(8) , optional :: vxcB(*) !! Energy density and potential - output   
+
+    real(8) :: e_exchange(n),e_correlation(n)
+    real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
+    
+    e_exchange=0.0_8
+    e_correlation=0.0_8
+    v_exchange=0.0_8
+    va_correlation=0.0_8
+    vb_correlation=0.0_8
+    
+!!!Energy
+    call exdirac( (rhoA(1:n) + rhoB(1:n) )/2 , e_exchange, n)         
+    call ecvwn( rhoA, rhoB, e_correlation, n)
+    exc(1:n)=e_exchange(1:n)+e_correlation(1:n)
+
+!!!Potential  
+    call vxdirac( (rhoA(1:n) + rhoB(1:n) )/2 , v_exchange, n)         
+    call vcvwn( rhoA, rhoB , va_correlation, vb_correlation, n)
+    vxcA(1:n)= v_exchange(1:n) + va_correlation(1:n)
+    if (present(vxcB)) vxcB(1:n) = v_exchange(1:n) + vb_correlation(1:n)
+       
+  end subroutine Functional_LDAEvaluate
+
+  
+  
   subroutine exdirac(rho,ex,n)
     ! Evaluates Dirac exchange functional
     ! Roberto Flores-Moreno, May 2009
