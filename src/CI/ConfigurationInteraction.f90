@@ -1091,7 +1091,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
        print *, "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
        print *, ""
        call Vector_constructor8 ( ConfigurationInteraction_instance%eigenvalues, &
-                                 ConfigurationInteraction_instance%numberOfConfigurations, 0.0_8)
+                                 int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8 )
 
        select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
