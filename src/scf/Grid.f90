@@ -35,9 +35,9 @@ module Grid_
      type(Matrix) :: orbitals
      type(Matrix) :: orbitalsGradient(3) !!x,y,z per orbital
      type(Vector) :: potential
-     type(Vector) :: gradientPotential
+     type(Vector) :: sigmaPotential
      type(Vector) :: density
-     type(Vector) :: densityGradient
+     type(Vector) :: densityGradient(3)
 
   end type Grid
 

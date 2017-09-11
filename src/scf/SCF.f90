@@ -91,7 +91,6 @@ program SCF
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
 
-        print *, CONTROL_instance%METHOD
         if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
            call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
         end if

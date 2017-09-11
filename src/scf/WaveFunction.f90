@@ -90,6 +90,7 @@ module WaveFunction_
 
      !!**************************************************************
      !! Variable por conveniencia
+     real(8) :: exactExchangeFraction
      real(8) :: totalEnergyForSpecie
      real(8) :: independentSpecieEnergy
      real(8) :: exchangeCorrelationEnergy
@@ -215,8 +216,9 @@ contains
        WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .false.
        WaveFunction_instance(speciesID)%builtTwoParticlesMatrix = .true.
 
+       WaveFunction_instance(speciesID)%exactExchangeFraction = 1.0_8
+       
     end do
-
     !!Initialize DFT: Calculate Grids and fill them with stuff
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
        call GridManager_buildGrids( )
@@ -224,14 +226,18 @@ contains
        call GridManager_atomicOrbitals( )
 
        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          WaveFunction_instance(speciesID)%exactExchangeFraction=Functional_getExchangeFraction(speciesID)
+          print *, "exchange factor", WaveFunction_instance(speciesID)%exactExchangeFraction
           call Vector_Constructor( Grid_instance(speciesID)%density, Grid_instance(speciesID)%totalSize, 0.0_8)
           call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
 
-          call Vector_Constructor( Grid_instance(speciesID)%densityGradient, Grid_instance(speciesID)%totalSize, 0.0_8)
+          call Vector_Constructor( Grid_instance(speciesID)%densityGradient(1), Grid_instance(speciesID)%totalSize, 0.0_8)
+          call Vector_Constructor( Grid_instance(speciesID)%densityGradient(2), Grid_instance(speciesID)%totalSize, 0.0_8)
+          call Vector_Constructor( Grid_instance(speciesID)%densityGradient(3), Grid_instance(speciesID)%totalSize, 0.0_8)
           call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
 
           call Vector_Constructor( Grid_instance(speciesID)%potential, Grid_instance(speciesID)%totalSize, 0.0_8)
-          call Vector_Constructor( Grid_instance(speciesID)%gradientPotential, Grid_instance(speciesID)%totalSize, 0.0_8)
+          call Vector_Constructor( Grid_instance(speciesID)%sigmaPotential, Grid_instance(speciesID)%totalSize, 0.0_8)
 
           ! do i=1, Grid_instance(speciesID)%totalSize
           !    if (Grid_instance(speciesID)%points%values(i,1) .eq. 0.0 .and. Grid_instance(speciesID)%points%values(i,2) .eq. 0.0)  then
@@ -287,6 +293,11 @@ contains
        totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
        factor = MolecularSystem_getFactorOfInterchangeIntegrals( speciesID )
 
+       if ( WaveFunction_instance(speciesID)%exactExchangeFraction .ge. 0.0_8 ) &
+            factor = MolecularSystem_getFactorOfInterchangeIntegrals( speciesID)*WaveFunction_instance(speciesID)%exactExchangeFraction
+
+       print *, "factor", factor
+       
        if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
 
 
@@ -373,7 +384,7 @@ contains
                 !! Adds exchange operator contributions
                 !! 
                 !! FELIX: THIS HAS TO CHANGE TO INCLUDE HYBRID FUNCTIONALS
-                if ( CONTROL_instance%METHOD .ne. "RKS" .and. CONTROL_instance%METHOD .ne. "UKS" ) then
+                if ( WaveFunction_instance(speciesID)%exactExchangeFraction .ge. 0.0_8 ) then
 
                    if( rr(i) /= ss(i) ) then
 
@@ -753,34 +764,37 @@ contains
     ! close( dftUnit)
     
 
-    print *, "nameOfSpecies", nameOfSpecies
-    print *, "speciesID", speciesID
     Grid_instance(speciesID)%density%values=0.0_8
-    Grid_instance(speciesID)%densityGradient%values=0.0_8
-
-    call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
-    call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
-  
+    Grid_instance(speciesID)%densityGradient(1)%values=0.0_8
+    Grid_instance(speciesID)%densityGradient(2)%values=0.0_8
+    Grid_instance(speciesID)%densityGradient(3)%values=0.0_8
+    Grid_instance(speciesID)%potential%values=0.0_8
+    Grid_instance(speciesID)%sigmaPotential%values=0.0_8
+         
     if( trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-ALPHA"  ) then !El potencial de BETA se calcula simultaneamente con ALPHA
        otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="E-BETA" )
        Grid_instance(otherSpeciesID)%potential%values=0.0_8
-       Grid_instance(speciesID)%potential%values=0.0_8
-       Grid_instance(otherSpeciesID)%gradientPotential%values=0.0_8
-       Grid_instance(speciesID)%gradientPotential%values=0.0_8
+       Grid_instance(otherSpeciesID)%sigmaPotential%values=0.0_8
+
+       call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
+       call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, &
+            Grid_instance(speciesID)%densityGradient)
+       call GridManager_getDensityAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%density)
+       call GridManager_getDensityGradientAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%densityGradient)
 
        call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
-            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%gradientPotential,&
+            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential,&
             otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy,&
-            Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%gradientPotential )
+            Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%sigmaPotential )
 
     elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-BETA") then
 
     else
        
-       Grid_instance(speciesID)%potential%values=0.0_8
-       Grid_instance(speciesID)%gradientPotential%values=0.0_8
+       call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
+       call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
        call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
-            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%gradientPotential )
+            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential )
    
     end if
     
@@ -789,15 +803,19 @@ contains
           do i=1 , Grid_instance(speciesID)%totalSize
              Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)=&
                   Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)&
-                  +Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v)&
-                  *Grid_instance(speciesID)%potential%values(i)*Grid_instance(speciesID)%points%values(i,4)&
-                  + ( (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(1)%values(i,v)&
-                          +Grid_instance(speciesID)%orbitalsGradient(1)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))**2 &
-                        +(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(2)%values(i,v)&
-                          +Grid_instance(speciesID)%orbitalsGradient(2)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))**2 &
-                        +(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(3)%values(i,v)&
-                          +Grid_instance(speciesID)%orbitalsGradient(3)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))**2 )& !test without sqrt
-                  *Grid_instance(speciesID)%gradientPotential%values(i)*Grid_instance(speciesID)%points%values(i,4)
+                  +Grid_instance(speciesID)%potential%values(i)*Grid_instance(speciesID)%orbitals%values(i,u)&
+                  *Grid_instance(speciesID)%orbitals%values(i,v)*Grid_instance(speciesID)%points%values(i,4)&
+                  +2*Grid_instance(speciesID)%sigmaPotential%values(i)&
+                  *(Grid_instance(speciesID)%densityGradient(1)%values(i)&
+                  *(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(1)%values(i,v)&
+                  +Grid_instance(speciesID)%orbitalsGradient(1)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))&
+                  +Grid_instance(speciesID)%densityGradient(2)%values(i)&
+                  *(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(2)%values(i,v)&
+                  +Grid_instance(speciesID)%orbitalsGradient(2)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))&
+                  +Grid_instance(speciesID)%densityGradient(3)%values(i)&
+                  *(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(3)%values(i,v)&
+                  +Grid_instance(speciesID)%orbitalsGradient(3)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))&
+                  )*Grid_instance(speciesID)%points%values(i,4)
              
           end do
           Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(v,u)=&
@@ -997,7 +1015,6 @@ contains
 
     call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecieSelected) )
 
-    print *, CONTROL_instance%METHOD
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
        call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
     end if

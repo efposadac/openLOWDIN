@@ -303,7 +303,6 @@ contains
 
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie))
                          
-                         print *, CONTROL_instance%METHOD
                          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
                             call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
                          end if
@@ -464,7 +463,6 @@ contains
                             call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
                          end if
 
-                         print *, CONTROL_instance%METHOD
                          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
                             call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
                          end if
@@ -772,7 +770,6 @@ contains
     !! Build an initial two particles matrix, which it will be recalculated in SingleSCF_iterate
     call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
 
-    print *, CONTROL_instance%METHOD
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
        call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
     end if

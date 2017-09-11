@@ -40,6 +40,7 @@ module Functional_
        Functional_constructor, &
        Functional_show, &
        Functional_getIndex, &
+       Functional_getExchangeFraction, &
        Functional_libxcEvaluate, &
        Functional_LDAEvaluate, &
        padevwn, &
@@ -202,6 +203,17 @@ contains
     
   end function Functional_getIndex
 
+  function Functional_getExchangeFraction(speciesID) result( output)
+    implicit none
+    integer :: speciesID
+    real(8) :: output
+    integer :: index
+
+    index=Functional_getIndex(speciesID)
+
+    output=xc_f03_hyb_exx_coef(Functionals(index)%xc1)
+
+  end function Functional_getExchangeFraction
 
   subroutine Functional_libxcEvaluate(this, n,rho,sigma, exc, vxc, vsigma)
     ! Call LIBXC to evaluate electronic exchange correlation functionals

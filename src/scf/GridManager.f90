@@ -462,17 +462,16 @@ contains
     implicit none
     integer :: speciesID
     type(Matrix) :: densityMatrix
-    type(Vector) :: gradientInGrid
+    type(Vector) :: gradientInGrid(*)
 
-    type(Vector) :: rhodx, rhody, rhodz
     integer :: gridSize
     character(50) :: nameOfSpecies
-    character(50) :: labels(2), dftFile
+    ! character(50) :: labels(2), dftFile
     ! type(Matrix) :: orbitalsProductInGrid
     integer :: numberOfContractions
-    integer :: u, v, i, index
-    integer :: dftUnit, wfnUnit
-    real(8) :: sum
+    integer :: u, v, i
+    ! integer :: dftUnit, wfnUnit
+    ! real(8) :: sum
     
     !! Open file for dft
 
@@ -480,24 +479,20 @@ contains
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
     gridSize = Grid_instance(speciesID)%totalSize
 
-    call Vector_constructor(rhodx, gridSize, 0.0_8 )
-    call Vector_constructor(rhody, gridSize, 0.0_8 )
-    call Vector_constructor(rhodz, gridSize, 0.0_8 )
-    
     do u = 1 , numberOfContractions
        do v = u , numberOfContractions
           if ( u .eq. v) then
              do i=1,gridSize
                 
-                rhodx%values(i)=rhodx%values(i)+densityMatrix%values(u,v)*&
+                gradientInGrid(1)%values(i)=gradientInGrid(1)%values(i)+densityMatrix%values(u,v)*&
                      (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(1)%values(i,v)&
                      +Grid_instance(speciesID)%orbitalsGradient(1)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
 
-                rhody%values(i)=rhody%values(i)+densityMatrix%values(u,v)*&
+                gradientInGrid(2)%values(i)=gradientInGrid(2)%values(i)+densityMatrix%values(u,v)*&
                      (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(2)%values(i,v)&
                      +Grid_instance(speciesID)%orbitalsGradient(2)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
 
-                rhodz%values(i)=rhodz%values(i)+densityMatrix%values(u,v)*&
+                gradientInGrid(3)%values(i)=gradientInGrid(3)%values(i)+densityMatrix%values(u,v)*&
                      (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(3)%values(i,v)&
                      +Grid_instance(speciesID)%orbitalsGradient(3)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
 
@@ -505,28 +500,22 @@ contains
           else
              do i=1,gridSize
 
-                rhodx%values(i)=rhodx%values(i)+2*densityMatrix%values(u,v)*&
+                gradientInGrid(1)%values(i)=gradientInGrid(1)%values(i)+2*densityMatrix%values(u,v)*&
                      (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(1)%values(i,v)&
                      +Grid_instance(speciesID)%orbitalsGradient(1)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
 
-                rhody%values(i)=rhody%values(i)+2*densityMatrix%values(u,v)*&
+                gradientInGrid(2)%values(i)=gradientInGrid(2)%values(i)+2*densityMatrix%values(u,v)*&
                      (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(2)%values(i,v)&
                      +Grid_instance(speciesID)%orbitalsGradient(2)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
 
-                rhodz%values(i)=rhodz%values(i)+2*densityMatrix%values(u,v)*&
+                gradientInGrid(3)%values(i)=gradientInGrid(3)%values(i)+2*densityMatrix%values(u,v)*&
                      (Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(3)%values(i,v)&
                      +Grid_instance(speciesID)%orbitalsGradient(3)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))
-
              end do
           end if
        end do
     end do
 
-    do i=1,gridSize
-       gradientInGrid%values(i)=gradientInGrid%values(i)+ (rhodx%values(i)**2 + rhody%values(i)**2 + rhodz%values(i)**2) !test without sqrt
-    end do
-
-    
     ! call Vector_show(gradientInGrid)
     
   end subroutine GridManager_getDensityGradientAtGrid
@@ -535,13 +524,13 @@ contains
   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine GridManager_getEnergyAndPotentialAtGrid( speciesID, exchangeCorrelationEnergy, potentialInGrid, gradientPotentialInGrid,&
+  subroutine GridManager_getEnergyAndPotentialAtGrid( speciesID, exchangeCorrelationEnergy, potentialInGrid, sigmaPotentialInGrid,&
        otherSpeciesID, otherExchangeCorrelationEnergy, otherPotentialInGrid, otherGradientPotentialInGrid)
     implicit none
     integer :: speciesID
     real(8) :: exchangeCorrelationEnergy
     type(Vector) :: potentialInGrid
-    type(Vector) :: gradientPotentialInGrid
+    type(Vector) :: sigmaPotentialInGrid
     integer, optional :: otherSpeciesID
     real(8), optional :: otherExchangeCorrelationEnergy
     type(Vector), optional :: otherPotentialInGrid
@@ -550,9 +539,8 @@ contains
     character(50) :: nameOfSpecies, otherNameOfSpecies
     integer :: gridSize
     type(Vector) :: energyDensity
+    type(Vector) :: sigma
     integer :: i, index
-
-    !! Open file for dft
 
     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
     if( present(otherSpeciesID) )     otherNameOfSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )
@@ -560,6 +548,7 @@ contains
     gridSize = Grid_instance(speciesID)%totalSize
 
     call Vector_Constructor(energyDensity, gridSize, 0.0_8)
+    call Vector_Constructor(sigma, gridSize, 0.0_8)
 
     exchangeCorrelationEnergy=0.0_8
     if( present(otherExchangeCorrelationEnergy) ) otherExchangeCorrelationEnergy=0.0_8
@@ -570,8 +559,11 @@ contains
 
           index=Functional_getIndex(speciesID)
 
+          do i=1, gridSize
+             sigma%values(i)=(Grid_instance(speciesID)%densityGradient(1)%values(i)**2 + Grid_instance(speciesID)%densityGradient(2)%values(i)**2 + Grid_instance(speciesID)%densityGradient(3)%values(i)**2)
+       end do
           
-          call Functional_libxcEvaluate(Functionals(index), gridSize, Grid_instance(speciesID)%density%values, Grid_instance(speciesID)%densityGradient%values, energyDensity%values , potentialInGrid%values, gradientPotentialInGrid%values )
+          call Functional_libxcEvaluate(Functionals(index), gridSize, Grid_instance(speciesID)%density%values, sigma%values, energyDensity%values , potentialInGrid%values, sigmaPotentialInGrid%values )
 
           do i=1, gridSize
              exchangeCorrelationEnergy=exchangeCorrelationEnergy+energyDensity%values(i)*Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4) 
