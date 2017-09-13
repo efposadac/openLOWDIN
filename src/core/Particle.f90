@@ -69,6 +69,7 @@ module Particle_
      integer :: numberOfCoreElectrons !< Número de electrones de core del seudopotencial.
      integer :: numberOfValenceElectrons!< Número de electrones de valencia (fuera del core).
      integer, allocatable :: childs(:)  !< Cuando la particula es un centro de optimizacion (es padre), almacena los Ids de sus hijas
+!     integer, allocatable :: nkParameters(:)
   end type Particle
 
   public :: &

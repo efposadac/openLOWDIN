@@ -26,9 +26,9 @@ module EffectiveCorePotentials_
   type :: EffectiveCorePotentials
      !     type(contractedEcpGaussian),allocatable :: contraction(:)
      type(contractedEcpGaussian),allocatable :: contraction(:)
-     !     type(contractedEcpGaussian),allocatable :: nkParameters(:)   !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
-     !     type(contractedEcpGaussian),allocatable :: zetaParameters(:) !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
-     !     type(contractedEcpGaussian),allocatable :: dkParameters(:)   !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+         ! type(contractedEcpGaussian),allocatable :: nkParameters(:)   !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+         ! type(contractedEcpGaussian),allocatable :: zetaParameters(:) !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
+         ! type(contractedEcpGaussian),allocatable :: dkParameters(:)   !< equation (16) from J. Chem. Phys. 82, 1, 1985, 270-283
      character(30) :: name
 !     character(30) :: baseName 
      real(8) :: origin(3)

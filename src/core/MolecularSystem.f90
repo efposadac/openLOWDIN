@@ -469,8 +469,19 @@ print*,"Number of point charges****************", numberOfPointCharges
        write (6,"(T5,A30)") "================================"
        write (6,*) ""
 
+
+
        print *,"Aquí se construye algo"
 
+       do j = 1, size(MolecularSystem_instance%species(i)%particles)
+      
+          print*, MolecularSystem_instance%species(i)%particles(j)%basisSetName
+!          call        EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basisSetName, trim(MolecularSystem_instance%species(i)%symbol))
+                 ! call ffectiveCorePotentials_load(MolecularSystem_instance%species(i)%particles(j)%basisSetName, trim(MolecularSystem_instance%species(i)%symbol), MolecularSystem_instance%species(i)%particles(j)%origin, 40)
+          print*, " ... "
+!                    call EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basisSetName,&
+!               trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
+          end do
     ! do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
     !    do j = 1, size(MolecularSystem_instance%species(i)%particles)
@@ -690,18 +701,21 @@ print*,"Number of point charges****************", numberOfPointCharges
     close(40)
 
     !!****************************************************************************
-    !! Saving info on the lowdin.ecp format (as lowdin.bas formaat)
+    !! Saving info on the lowdin.ecp format (like lowdin.bas formaat)
     !!
     
     open(unit=40, file="lowdin.ecp", status="replace", form="formatted")
-    write(40,*) MolecularSystem_instance%numberOfCoreElectrons
+!    write(40,*) MolecularSystem_instance%numberOfCoreElectrons
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        write(40,*) MolecularSystem_instance%species(i)%name
        write(40,*) size(MolecularSystem_instance%species(i)%particles)
        do j = 1, size(MolecularSystem_instance%species(i)%particles)
           write(40,*) MolecularSystem_instance%species(i)%particles(j)%nickname
+          write(40,*) MolecularSystem_instance%species(i)%particles(j)%basisSetName
           write(40,*) MolecularSystem_instance%species(i)%particles(j)%numberOfCoreElectrons
           write(40,*) MolecularSystem_instance%species(i)%particles(j)%numberOfValenceElectrons
+!          call        EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basisSetName, trim(MolecularSystem_instance%species(i)%symbol))
+!          write(40,*) MolecularSystem_instance%species(i)%particles(j)%nkParameters(j)
           end do
        end do
     close(40)
