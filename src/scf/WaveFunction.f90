@@ -227,7 +227,7 @@ contains
 
        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
           WaveFunction_instance(speciesID)%exactExchangeFraction=Functional_getExchangeFraction(speciesID)
-          print *, "exchange factor", WaveFunction_instance(speciesID)%exactExchangeFraction
+
           call Vector_Constructor( Grid_instance(speciesID)%density, Grid_instance(speciesID)%totalSize, 0.0_8)
           call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
 
@@ -244,7 +244,6 @@ contains
           !       print*, Grid_instance(speciesID)%points%values(i,3), Grid_instance(speciesID)%density%values(i), Grid_instance(speciesID)%densityGradient%values(i)
           !    end if
           ! end do
-          
 
        end do
     end if
@@ -293,11 +292,9 @@ contains
        totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
        factor = MolecularSystem_getFactorOfInterchangeIntegrals( speciesID )
 
-       if ( WaveFunction_instance(speciesID)%exactExchangeFraction .ge. 0.0_8 ) &
+       if ( WaveFunction_instance(speciesID)%exactExchangeFraction .gt. 0.0_8 ) &
             factor = MolecularSystem_getFactorOfInterchangeIntegrals( speciesID)*WaveFunction_instance(speciesID)%exactExchangeFraction
 
-       print *, "factor", factor
-       
        if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
 
 
@@ -384,7 +381,7 @@ contains
                 !! Adds exchange operator contributions
                 !! 
                 !! FELIX: THIS HAS TO CHANGE TO INCLUDE HYBRID FUNCTIONALS
-                if ( WaveFunction_instance(speciesID)%exactExchangeFraction .ge. 0.0_8 ) then
+                if ( WaveFunction_instance(speciesID)%exactExchangeFraction .gt. 0.0_8 ) then
 
                    if( rr(i) /= ss(i) ) then
 
@@ -771,14 +768,15 @@ contains
     Grid_instance(speciesID)%potential%values=0.0_8
     Grid_instance(speciesID)%sigmaPotential%values=0.0_8
          
+    call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
+    call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, &
+         Grid_instance(speciesID)%densityGradient)
+    
     if( trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-ALPHA"  ) then !El potencial de BETA se calcula simultaneamente con ALPHA
        otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="E-BETA" )
        Grid_instance(otherSpeciesID)%potential%values=0.0_8
        Grid_instance(otherSpeciesID)%sigmaPotential%values=0.0_8
 
-       call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
-       call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, &
-            Grid_instance(speciesID)%densityGradient)
        call GridManager_getDensityAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%density)
        call GridManager_getDensityGradientAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%densityGradient)
 
@@ -786,15 +784,27 @@ contains
             Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential,&
             otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy,&
             Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%sigmaPotential )
-
+       
     elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-BETA") then
+       
+    elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-"  ) then !El potencial de H_1 se calcula simultaneamente con E-
+       otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="H_1" )
+       Grid_instance(otherSpeciesID)%potential%values=0.0_8
+       Grid_instance(otherSpeciesID)%sigmaPotential%values=0.0_8
+       call GridManager_getDensityAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%density)
+       call GridManager_getDensityGradientAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%densityGradient)
+       
+       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
+            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential,&
+            otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy,&
+            Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%sigmaPotential )
+
+    elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "H_1") then
 
     else
-       
-       call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
-       call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
        call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
             Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential )
+
    
     end if
     

@@ -28,7 +28,8 @@ module Functional_
      character(30) :: species1
      character(30) :: species2
      character(50) :: name
-     TYPE(xc_f03_func_t) :: xc1
+     real(8) :: exactExchangeFraction
+     TYPE(xc_f03_func_t) :: xc1 
      TYPE(xc_f03_func_info_t) :: info1
      TYPE(xc_f03_func_t) :: xc2
      TYPE(xc_f03_func_info_t) :: info2
@@ -43,6 +44,7 @@ module Functional_
        Functional_getExchangeFraction, &
        Functional_libxcEvaluate, &
        Functional_LDAEvaluate, &
+       Functional_CSEvaluate, &
        padevwn, &
        dpadevwn, &
        ecvwn, &
@@ -71,6 +73,7 @@ contains
     integer :: otherSpeciesID
 
     this%name="NONE"
+    this%exactExchangeFraction=1.0_8
     this%species1=MolecularSystem_getNameOfSpecie(speciesID)
     this%species2=MolecularSystem_getNameOfSpecie(otherSpeciesID)
 
@@ -96,6 +99,9 @@ contains
 
           end if
 
+          this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
+
+          
        elseif ( (this%species1 == "E-ALPHA" .and. this%species2 == "E-ALPHA") .or. &
             (this%species1 == "E-ALPHA" .and. this%species2 == "E-BETA") .or. &
             (this%species1 == "E-BETA" .and. this%species2 == "E-BETA") .or. &
@@ -120,9 +126,10 @@ contains
 
           end if
 
+          this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
+          
        end if
-
-
+       
     else
 
        if((this%species1 == "E-" .and. this%species2 == "E-") .or. &
@@ -132,15 +139,18 @@ contains
          (this%species1 == "E-BETA" .and. this%species2 == "E-ALPHA") ) then
 
           this%name="x:"//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)//"-c:"//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
+
+          this%exactExchangeFraction=0.0_8 !We only have LDA outside libxc
+
        end if
        
     end if
        
-    !Provisional
+    !Provisional, only correlation between electron and other species (nuclei)
     if( (this%species1 == "E-" .or. this%species1 == "E-ALPHA" .or. this%species1 == "E-BETA") .and. &
          (this%species2 .ne.  "E-" .and. this%species2 .ne. "E-ALPHA" .and. this%species2 .ne. "E-BETA") )   then
        
-       this%name="c:"//trim(CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL)
+       this%name="c:"//trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
        
     end if
     
@@ -211,7 +221,7 @@ contains
 
     index=Functional_getIndex(speciesID)
 
-    output=xc_f03_hyb_exx_coef(Functionals(index)%xc1)
+    output=Functionals(index)%exactExchangeFraction
 
   end function Functional_getExchangeFraction
 
@@ -224,13 +234,15 @@ contains
     real(8) :: rho(*), sigma(*) !!Density and gradient - input
     real(8) :: exc(*), vxc(*) !! Energy density and potential - output   
     real(8) :: vsigma(*)  !! Energy derivative with respect to the gradient - output   
-    real(8) :: e_exchange(n),e_correlation(n)
-    real(8) :: v_exchange(n),v_correlation(n)
-    real(8) :: vs_exchange(n),vs_correlation(n)
+    real(8), allocatable :: e_exchange(:),e_correlation(:)
+    real(8), allocatable :: v_exchange(:),v_correlation(:)
+    real(8), allocatable :: vs_exchange(:),vs_correlation(:)
     integer :: i, vmajor, vminor, vmicro, func_id = 1
     TYPE(xc_f03_func_t) :: xc_func
     TYPE(xc_f03_func_info_t) :: xc_info
 
+    allocate( e_exchange(n), e_correlation(n), v_exchange(n), v_correlation(n), vs_exchange(n), vs_correlation(n) )
+    
     e_exchange=0.0_8
     e_correlation=0.0_8
     v_exchange=0.0_8
@@ -244,7 +256,6 @@ contains
     case(XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
        call xc_f03_gga_exc_vxc(this%xc1, n, rho, sigma, e_exchange, v_exchange, vs_exchange)
     end select
-    
 
     if ( CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .eq. "NONE") then
 
@@ -265,9 +276,52 @@ contains
     ! do i = 1, n
     !    write(*,"(F10.6,1X,3F9.6)") rho(i), exc(i), exc(i)*rho(i), vxc(i)
     ! end do
+
+    deallocate( e_exchange, e_correlation, v_exchange, v_correlation, vs_exchange, vs_correlation )
    
   end subroutine Functional_libxcEvaluate
 
+  subroutine Functional_CSEvaluate(n,rhoE, rhoN, ec, vcE, vcN )
+    ! Evaluates Hamess-Schiffer's Colle Salvetti nuclear electron correlation functional
+    ! Felix Moncada, 2017
+    implicit none
+    integer :: n !!gridSize
+    real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcE(*), vcN(*) !! Potentials - output   
+
+    real(8) :: a,b,c
+    real(8), allocatable :: denominator(:)
+    real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
+    integer :: i
+
+    a=2.35
+    b=2.4
+    c=6.6
+
+    allocate(denominator(n))
+    
+    denominator(1:n)=a-b*sqrt(rhoE(1:n)*rhoN(1:n))+c*rhoE(1:n)*rhoN(1:n)
+    
+!!!Energy
+    ec(1:n)= -rhoE(1:n)*rhoN(1:n)/denominator(1:n)
+    
+!!!Potential  
+    vcE(1:n)=vcE(1:n) -rhoN(1:n)/denominator(1:n) + (c*rhoE(1:n)*rhoN(1:n)**2 - b/2*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2))/denominator(1:n)**2
+
+    vcN(1:n)=vcN(1:n) -rhoE(1:n)/denominator(1:n) + (c*rhoN(1:n)*rhoE(1:n)**2 - b/2*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2))/denominator(1:n)**2
+
+    deallocate(denominator)
+
+    ! print *, "rhoE, rhoN, energy density, potentialE, potentialN"
+    ! do i = 1, n
+    !    write(*,"(5F9.6)") rhoE(i), rhoN(i), ec(i), vcE(i), vcN(i)
+    ! end do
+
+    
+  end subroutine Functional_CSEvaluate
+
+  
   subroutine Functional_LDAEvaluate(n,rhoA, rhoB, exc, vxcA, vxcB )
     ! Evaluates Dirac exchange and VWN correlation functionals
     ! Roberto Flores-Moreno, May 2009
@@ -277,14 +331,17 @@ contains
     real(8) :: exc(*), vxcA(*) !! Energy density and potential - output   
     real(8) , optional :: vxcB(*) !! Energy density and potential - output   
 
-    real(8) :: e_exchange(n),e_correlation(n)
-    real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
+    real(8), allocatable :: e_exchange(:),e_correlation(:)
+    real(8), allocatable :: v_exchange(:),va_correlation(:),vb_correlation(:)
     
+    allocate( e_exchange(n), e_correlation(n), v_exchange(n), va_correlation(n), vb_correlation(n) )
+
     e_exchange=0.0_8
     e_correlation=0.0_8
     v_exchange=0.0_8
     va_correlation=0.0_8
     vb_correlation=0.0_8
+
     
 !!!Energy
     call exdirac( (rhoA(1:n) + rhoB(1:n) )/2 , e_exchange, n)         
@@ -297,6 +354,8 @@ contains
     vxcA(1:n)= v_exchange(1:n) + va_correlation(1:n)
     if (present(vxcB)) vxcB(1:n) = v_exchange(1:n) + vb_correlation(1:n)
        
+    deallocate( e_exchange, e_correlation, v_exchange, va_correlation, vb_correlation )
+    
   end subroutine Functional_LDAEvaluate
 
   

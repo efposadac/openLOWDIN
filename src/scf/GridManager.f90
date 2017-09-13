@@ -66,8 +66,11 @@ contains
     !! Allocate memory for specie in system and load some matrices.
     do speciesID = 1, numberOfSpecies
 
-       call Grid_constructor(Grid_instance(speciesID), speciesID )
-
+       if( speciesID .eq. 1) then
+          call Grid_constructor(Grid_instance(speciesID), speciesID )
+       else
+          Grid_instance(speciesID)=Grid_instance(1) !temporary, create only electronic grid and use it for the other species
+       end if
     end do
     
   end subroutine GridManager_buildGrids
@@ -541,7 +544,8 @@ contains
     type(Vector) :: energyDensity
     type(Vector) :: sigma
     integer :: i, index
-
+    real(8) :: nuclearElectronCorrelationEnergy
+    
     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
     if( present(otherSpeciesID) )     otherNameOfSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )
 
@@ -561,13 +565,14 @@ contains
 
           do i=1, gridSize
              sigma%values(i)=(Grid_instance(speciesID)%densityGradient(1)%values(i)**2 + Grid_instance(speciesID)%densityGradient(2)%values(i)**2 + Grid_instance(speciesID)%densityGradient(3)%values(i)**2)
-       end do
-          
+          end do
+
           call Functional_libxcEvaluate(Functionals(index), gridSize, Grid_instance(speciesID)%density%values, sigma%values, energyDensity%values , potentialInGrid%values, sigmaPotentialInGrid%values )
 
           do i=1, gridSize
              exchangeCorrelationEnergy=exchangeCorrelationEnergy+energyDensity%values(i)*Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4) 
           end do
+
 
        else
 
@@ -596,7 +601,26 @@ contains
 
     end if
 
+    if (nameOfSpecies=="E-" .and. otherNameOfSpecies=="H_1") then
+
+       call Functional_CSEvaluate(gridSize, Grid_instance(speciesID)%density%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, potentialInGrid%values, otherPotentialInGrid%values )
+      nuclearElectronCorrelationEnergy=0.0_8
+
+       do i=1, gridSize
+          nuclearElectronCorrelationEnergy=nuclearElectronCorrelationEnergy+energyDensity%values(i)*Grid_instance(speciesID)%points%values(i,4) 
+       end do
+
+       print *, "nuclear electron correlation energy", nuclearElectronCorrelationEnergy
+       
+       exchangeCorrelationEnergy=exchangeCorrelationEnergy+nuclearElectronCorrelationEnergy/2
+       otherExchangeCorrelationEnergy=otherExchangeCorrelationEnergy+nuclearElectronCorrelationEnergy/2
+    end if
+
+
+    
     call Vector_Destructor(energyDensity)
+    call Vector_Destructor(sigma)
 
     ! do i=1, gridSize
     !    print *, densityInGrid%values(i), exchange%values(i), correlationA%values(i)
