@@ -476,6 +476,7 @@ print*,"Number of point charges****************", numberOfPointCharges
        do j = 1, size(MolecularSystem_instance%species(i)%particles)
       
           print*, MolecularSystem_instance%species(i)%particles(j)%basisSetName
+          call  EffectiveCorePotentials_load(MolecularSystem_instance%species(i)%particles(j)%basisSetName, trim(MolecularSystem_instance%species(i)%particles(j)%nickname))
 !          call        EffectiveCorePotentials_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basisSetName, trim(MolecularSystem_instance%species(i)%symbol))
                  ! call ffectiveCorePotentials_load(MolecularSystem_instance%species(i)%particles(j)%basisSetName, trim(MolecularSystem_instance%species(i)%symbol), MolecularSystem_instance%species(i)%particles(j)%origin, 40)
           print*, " ... "
