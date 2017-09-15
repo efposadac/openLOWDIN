@@ -601,7 +601,7 @@ contains
 
     end if
 
-    if (nameOfSpecies=="E-" .and. otherNameOfSpecies=="H_1") then
+    if (nameOfSpecies=="E-" .and. otherNameOfSpecies=="H_1" .and. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL .eq. "epc17-2") then
 
        call Functional_CSEvaluate(gridSize, Grid_instance(speciesID)%density%values, Grid_instance(otherSpeciesID)%density%values, &
             energyDensity%values, potentialInGrid%values, otherPotentialInGrid%values )

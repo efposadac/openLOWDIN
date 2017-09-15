@@ -297,7 +297,7 @@ contains
 
     a=2.35
     b=2.4
-    c=6.6
+    c=3.2
 
     allocate(denominator(n))
     

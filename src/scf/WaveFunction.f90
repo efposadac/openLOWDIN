@@ -765,8 +765,6 @@ contains
     Grid_instance(speciesID)%densityGradient(1)%values=0.0_8
     Grid_instance(speciesID)%densityGradient(2)%values=0.0_8
     Grid_instance(speciesID)%densityGradient(3)%values=0.0_8
-    Grid_instance(speciesID)%potential%values=0.0_8
-    Grid_instance(speciesID)%sigmaPotential%values=0.0_8
          
     call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
     call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, &
@@ -774,6 +772,8 @@ contains
     
     if( trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-ALPHA"  ) then !El potencial de BETA se calcula simultaneamente con ALPHA
        otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="E-BETA" )
+       Grid_instance(speciesID)%potential%values=0.0_8
+       Grid_instance(speciesID)%sigmaPotential%values=0.0_8
        Grid_instance(otherSpeciesID)%potential%values=0.0_8
        Grid_instance(otherSpeciesID)%sigmaPotential%values=0.0_8
 
@@ -789,6 +789,8 @@ contains
        
     elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-"  ) then !El potencial de H_1 se calcula simultaneamente con E-
        otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="H_1" )
+       Grid_instance(speciesID)%potential%values=0.0_8
+       Grid_instance(speciesID)%sigmaPotential%values=0.0_8
        Grid_instance(otherSpeciesID)%potential%values=0.0_8
        Grid_instance(otherSpeciesID)%sigmaPotential%values=0.0_8
        call GridManager_getDensityAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%density)
@@ -798,10 +800,12 @@ contains
             Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential,&
             otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy,&
             Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%sigmaPotential )
-
+              
     elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "H_1") then
 
     else
+       Grid_instance(speciesID)%potential%values=0.0_8
+       Grid_instance(speciesID)%sigmaPotential%values=0.0_8
        call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
             Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential )
 
@@ -833,7 +837,6 @@ contains
        end do
     end do
     
-    ! call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
     ! index=1
     ! particles=0.0
     !    do u = 1 , numberOfContractions
@@ -918,7 +921,8 @@ contains
 
     !!!FELIX, agrega la matriz para hacer calculo DFT
     wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values
-
+   
+    
     if (  CONTROL_instance%DEBUG_SCFS) then
        print *,"MATRIZ DE FOCK 3.1 (+ exchangeCorrelation): "//trim(nameOfSpecieSelected)
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)

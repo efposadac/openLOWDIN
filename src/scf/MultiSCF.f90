@@ -706,6 +706,8 @@ contains
 
        end do
 
+       !Call DFT_actualizeExchangePotentialContributions FELIX
+       
        call WaveFunction_obtainTotalEnergy(&
             MultiSCF_instance%totalEnergy, &
             MultiSCF_instance%totalCouplingEnergy, &
@@ -741,7 +743,7 @@ contains
     implicit none
 
     integer :: speciesID
-
+ 
     character(30) :: nameOfSpecie    
     real(8) :: tolerace
     real(8) :: diisError
