@@ -67,6 +67,7 @@ module ConfigurationInteraction_
 
   type, public :: ConfigurationInteraction
      logical :: isInstanced
+     integer :: numberOfSpecies
      type(matrix) :: hamiltonianMatrix
      type(matrix) :: hamiltonianMatrix2
      type(ivector8) :: auxIndexCIMatrix
@@ -98,6 +99,7 @@ module ConfigurationInteraction_
      type(ivector), allocatable :: couplingMatrixFactorOne(:,:)
      type(ivector), allocatable :: couplingMatrixOrbOne(:,:)
      type(imatrix), allocatable :: nCouplingOneTwo(:,:)
+     type(imatrix), allocatable :: nCouplingSize(:,:)
 
      type(ivector1), allocatable :: couplingOrderList(:,:)
      type(ivector1), allocatable :: couplingOrderIndex(:,:)
@@ -105,7 +107,9 @@ module ConfigurationInteraction_
      integer, allocatable :: ciOrderList(:,:)
      integer, allocatable :: auxciOrderList(:)
      integer :: sizeCiOrderList
-     integer(8), allocatable :: ciOrderSize(:,:)
+     integer(8), allocatable :: ciOrderSize1(:,:)
+     integer(8), allocatable :: ciOrderSize2(:,:)
+     integer(8), allocatable :: ciOrderSize3(:,:)
 
      integer :: ncouplingOrderOne
      integer :: ncouplingOrderTwo
@@ -194,6 +198,7 @@ contains
          arguments=["PUNTUALINTERACTIONENERGY"])
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    ConfigurationInteraction_instance%numberOfSpecies = numberOfSpecies
 
 
     do i=1, numberOfSpecies
@@ -258,6 +263,10 @@ contains
     if  ( allocated (ConfigurationInteraction_instance%nCouplingOneTwo ) ) &
     deallocate ( ConfigurationInteraction_instance%nCouplingOneTwo )
     allocate ( ConfigurationInteraction_instance%nCouplingOneTwo ( numberOfSpecies, ConfigurationInteraction_instance%nproc  ) )
+
+    if  ( allocated (ConfigurationInteraction_instance%nCouplingSize ) ) &
+    deallocate ( ConfigurationInteraction_instance%nCouplingSize )
+    allocate ( ConfigurationInteraction_instance%nCouplingSize ( numberOfSpecies, ConfigurationInteraction_instance%nproc  ) )
 
     if  ( allocated (ConfigurationInteraction_instance%numberOfStrings ) ) &
     deallocate ( ConfigurationInteraction_instance%numberOfStrings )
@@ -587,7 +596,9 @@ recursive  function ConfigurationInteraction_buildStringsRecursion2( i, numberOf
     implicit none
 
     integer :: c
-    integer :: i,u
+    integer :: i,j, u,v
+    integer :: ci, ii, jj
+    integer(8) :: output, auxsize
     integer :: numberOfSpecies, auxnumberOfSpecies,s
     integer(1), allocatable :: couplingOrder(:)
     integer(1) :: coupling
@@ -605,11 +616,15 @@ recursive  function ConfigurationInteraction_buildStringsRecursion2( i, numberOf
     end do
 
     allocate ( ConfigurationInteraction_instance%ciOrderList( ssize, numberOfSpecies ) ) 
-    allocate ( ConfigurationInteraction_instance%ciOrderSize( ssize, numberOfSpecies ) ) 
+    allocate ( ConfigurationInteraction_instance%ciOrderSize1( ssize, numberOfSpecies ) ) 
+    allocate ( ConfigurationInteraction_instance%ciOrderSize2( ssize, numberOfSpecies ) ) 
+    allocate ( ConfigurationInteraction_instance%ciOrderSize3( ssize, numberOfSpecies ) ) 
     allocate ( ConfigurationInteraction_instance%auxciOrderList( ssize ) ) 
 
     ConfigurationInteraction_instance%ciOrderList = 0
-    ConfigurationInteraction_instance%ciOrderSize = 0
+    ConfigurationInteraction_instance%ciOrderSize1 = 0
+    ConfigurationInteraction_instance%ciOrderSize2 = 0
+    ConfigurationInteraction_instance%ciOrderSize3 = 0
     ConfigurationInteraction_instance%sizeCiOrderList = 0
 
     allocate ( ciLevel ( numberOfSpecies ) )
@@ -625,7 +640,45 @@ recursive  function ConfigurationInteraction_buildStringsRecursion2( i, numberOf
         cilevel(:) =  ConfigurationInteraction_instance%ciOrderList(  ConfigurationInteraction_instance%auxciOrderList(u), :)
         auxnumberOfSpecies = ConfigurationInteraction_getIndexSize(i, ssize, cilevel) 
 
-        ConfigurationInteraction_instance%ciOrderSize(ConfigurationInteraction_instance%auxciOrderList(u),i) = ssize
+        ConfigurationInteraction_instance%ciOrderSize1(ConfigurationInteraction_instance%auxciOrderList(u),i) = ssize
+      end do
+    end do
+
+    do u = 1,  ConfigurationInteraction_instance%sizeCiOrderList 
+
+      do i = 1, numberOfSpecies-1
+        ssize = 0
+        cilevel(:) =  ConfigurationInteraction_instance%ciOrderList(  ConfigurationInteraction_instance%auxciOrderList(u), :)
+
+        !! save 2
+        output = 0 
+
+        ci = cilevel(i)
+        do s = 0, ci-1
+
+          cilevel(i) = s
+          v = 0
+          do ii = i, ConfigurationInteraction_instance%numberOfSpecies
+            auxsize = 1
+            do jj = ii+1, ConfigurationInteraction_instance%numberOfSpecies
+              auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
+            end do
+            v = v + cilevel(ii) * auxsize 
+          end do
+          v = v + 1
+          output = output +  ConfigurationInteraction_instance%numberOfStrings(i)%values(s+1) * ConfigurationInteraction_instance%ciOrderSize1(v,i)
+        end do
+        cilevel(i) = ci
+        ConfigurationInteraction_instance%ciOrderSize2(ConfigurationInteraction_instance%auxciOrderList(u),i) = output
+
+        !! save 3
+        auxsize = 0
+        do j = 1, cilevel(i)
+          auxsize = auxsize + ConfigurationInteraction_instance%numberOfStrings(i)%values(j)
+        end do
+
+        ConfigurationInteraction_instance%ciOrderSize3(ConfigurationInteraction_instance%auxciOrderList(u),i) = auxsize
+
       end do
     end do
 
@@ -1407,6 +1460,8 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       call Matrix_constructorInteger(ConfigurationInteraction_instance%nCouplingOneTwo(i,n), &
         3_8, int(size(ConfigurationInteraction_instance%numberOfStrings(i)%values, dim=1),8),  0 )
 
+      call Matrix_constructorInteger(ConfigurationInteraction_instance%nCouplingSize(i,n), &
+        3_8, int(size(ConfigurationInteraction_instance%numberOfStrings(i)%values, dim=1) + 1 ,8),  0 )
 
       call Vector_constructor(ConfigurationInteraction_instance%couplingMatrixEnergyOne(i,n), &
         int(sum(ConfigurationInteraction_instance%numberOfStrings(i)%values),4), 0.0_8 )
@@ -1689,7 +1744,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
       end if
 
     end do
-    if (  diffOrb(2) > 0 ) then 
+    !if (  diffOrb(2) > 0 ) then 
       !ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,1) = diffOrb(1)
       !ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,2) = diffOrb(2)
 
@@ -1727,7 +1782,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
              end if
           end do
 
-    end if
+    !end if
 
     auxCIenergy= auxCIenergy * factor
 
@@ -1879,7 +1934,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
         cycle
       end if 
     end do 
-    if (  diffOrb(2) > 0 ) then
+    !if (  diffOrb(2) > 0 ) then
 
            auxIndex = ConfigurationInteraction_instance%fourIndexArray(ii)%values( &
                        ConfigurationInteraction_instance%twoIndexArray(ii)%values(&
@@ -1899,7 +1954,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
           auxCIenergy = auxCIenergy + &
                           MolecularSystem_instance%species(ii)%kappa*ConfigurationInteraction_instance%fourCenterIntegrals(ii,ii)%values(auxIndex, 1)
 
-    end if
+    !end if
 
     auxCIenergy= auxCIenergy * factor
 
@@ -1908,10 +1963,10 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
   end function ConfigurationInteraction_calculateEnergyTwoSame
 
 
-  function ConfigurationInteraction_calculateEnergyTwoDiff( ii, jj, thisA, thisB, nn ) result (auxCIenergy)
+  function ConfigurationInteraction_calculateEnergyTwoDiff( ii, jj, thisB, nn ) result (auxCIenergy)
     implicit none
-    integer(8) :: thisA(:), thisB(:)
-    integer(8) :: a, b
+    integer(8) :: thisB(:)
+    integer(8) :: b
     integer :: i,j,nn
     integer(1) :: ii, jj
     integer :: factor
@@ -1921,7 +1976,6 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
 
     !!calculate
 
-    a = thisA(ii)
     b = thisB(ii)
     factor = ConfigurationInteraction_instance%couplingMatrixFactorOne(ii,nn)%values(b) 
 
@@ -1929,7 +1983,6 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
     !diffOrb(2) = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii)%values(a,b,2) 
     auxIndex1 = ConfigurationInteraction_instance%couplingMatrixOrbOne(ii,nn)%values(b) 
 
-    a = thisA(jj)
     b = thisB(jj)
 
     factor = factor * ConfigurationInteraction_instance%couplingMatrixFactorOne(jj,nn)%values(b) 
@@ -2155,7 +2208,7 @@ recursive  function ConfigurationInteraction_buildDiagonalRecursion(s, numberOfS
         do a = 1, ConfigurationInteraction_instance%numberOfStrings(is)%values(i)
           c = c + 1
           indexConf(is) = ssize + a
-          cc = ConfigurationInteraction_getIndex2(indexConf,cilevel) 
+          !cc = ConfigurationInteraction_getIndex2(indexConf,cilevel) 
           !print *, "========",c, cc
           ConfigurationInteraction_instance%diagonalHamiltonianMatrix2%values(c) = &
                               ConfigurationInteraction_calculateEnergyZero ( indexConf )
@@ -2609,9 +2662,9 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
   subroutine ConfigurationInteraction_buildRow( nn, indexConfA, c, w, vc)
     implicit none
 
-    integer(8) :: a,b,c,bb,ci
+    integer(8) :: a,b,c,bb,ci,d
     integer :: u,v,uu,vv, p, nn
-    integer :: i, auxis,auxos
+    integer :: i, auxis,auxos,is
     integer :: numberOfSpecies, s
     integer(1), allocatable :: orbitalsA(:), orbitalsB(:)
     integer(1), allocatable :: couplingOrder(:)
@@ -2619,13 +2672,12 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
     integer(4) :: ssize,auxcoupling(3) !! 0,1,2
     integer(8) :: indexConfA(:)
     integer(8), allocatable :: indexConfB(:)
-    !integer(4), allocatable :: nCouplingOneTwo (:,:)
-    !type(imatrix), allocatable :: couplingOneTwo(:)
+    integer(8), allocatable :: dd(:)
     real(8) :: vc
     real(8) :: w(:)
-    integer, allocatable :: cilevel(:), auxcilevel(:)
+    integer, allocatable :: cilevel(:)
 
-    !$ ConfigurationInteraction_instance%time11 = omp_get_wtime()
+    !!$ ConfigurationInteraction_instance%time11 = omp_get_wtime()
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -2701,14 +2753,14 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
       orbitalsB = 0
 
 !      do a = 1, sum(ConfigurationInteraction_instance%numberOfStrings(i)%values)
-        a = indexConfA(i)
-        orbitalsA = 0
-        do u = 1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
-          orbitalsA( ConfigurationInteraction_instance%strings(i)%values(u,a) ) = 1
-        end do
+      a = indexConfA(i)
+      orbitalsA = 0
+      do u = 1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+        orbitalsA( ConfigurationInteraction_instance%strings(i)%values(u,a) ) = 1
+      end do
 
-        ssize = 0 
-        do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(i)%values, dim = 1)
+      ssize = 0 
+      do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(i)%values, dim = 1)
         do bb = 1, ConfigurationInteraction_instance%numberOfStrings(i)%values(ci)
         !do b = 1, sum(ConfigurationInteraction_instance%numberOfStrings(i)%values)
           b = ssize + bb
@@ -2759,10 +2811,22 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
     end do
 
 
+    do is = 1, numberOfSpecies
+      do i = 1, 3 !! 0,1,2
+        ssize = 0
+        do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1) !! 1 is always zero
+          ssize = ssize + ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
+          ConfigurationInteraction_instance%nCouplingSize(is,nn)%values( i,ci+1 ) = ssize
+         end do
+
+        ConfigurationInteraction_instance%nCouplingSize(is,nn)%values( i,1 ) = 0
+      end do
+   end do
+
     allocate ( couplingOrder ( numberOfSpecies ) )
     allocate ( indexConfB ( numberOfSpecies ) )
     allocate ( cilevel ( numberOfSpecies ) )
-    allocate ( auxcilevel ( numberOfSpecies ) )
+    allocate ( dd ( numberOfSpecies ) )
     indexConfB = 0
 
     !! one diff same species
@@ -2787,16 +2851,11 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
     do i = numberOfSpecies, 1, -1
       couplingOrder = 0
       couplingOrder(i) = 2!! 2
-      !indexConfA = 1
-      !do a = 1, sum(ConfigurationInteraction_instance%numberOfStrings(i)%values)
+      indexConfB = 0
 
-      !  indexConfA(i) = a
-        indexConfB = 0
-
-        auxis = 0
-        auxos = ConfigurationInteraction_buildCouplingMatrixEnergyTwo( auxis, numberOfSpecies,  &
+      auxis = 0
+      auxos = ConfigurationInteraction_buildCouplingMatrixEnergyTwo( auxis, numberOfSpecies,  &
                         couplingOrder, i, indexConfA, indexConfB, nn )
-      !end do
     end do
 
 
@@ -2807,94 +2866,108 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
 
     !! one diff
     do u = 1, ConfigurationInteraction_instance%ncouplingOrderOne
-
-      auxis = 0
-      cilevel = 0
-      auxcilevel = 0
-      auxos = ConfigurationInteraction_buildRowRecursionSecondOne( auxis, &
+      do v = 1,  ConfigurationInteraction_instance%sizeCiOrderList 
+        cilevel(:) =  ConfigurationInteraction_instance%ciOrderList(  ConfigurationInteraction_instance%auxciOrderList(v), :)
+        dd = 0 
+        auxis = 0
+        uu = ConfigurationInteraction_instance%auxciOrderList(v)
+        auxos = ConfigurationInteraction_buildRowRecursionSecondOne( auxis, &
                         ConfigurationInteraction_instance%couplingOrderList(1,u)%values, &
                         ConfigurationInteraction_instance%couplingOrderIndex(1,u)%values, &
-                        indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel )
+                        indexConfA, indexConfB, w, vc, dd, nn, cilevel, uu)
+      end do
     end do
 
     !! two diff same species
     do u = 1, ConfigurationInteraction_instance%ncouplingOrderTwo
+      do v = 1,  ConfigurationInteraction_instance%sizeCiOrderList 
+        cilevel(:) =  ConfigurationInteraction_instance%ciOrderList(  ConfigurationInteraction_instance%auxciOrderList(v), :)
+        dd = 0 
+        auxis = 0
 
-      auxis = 0
-      cilevel = 0
-      auxcilevel = 0
-      auxos = ConfigurationInteraction_buildRowRecursionSecondTwo( auxis,  &
+        uu = ConfigurationInteraction_instance%auxciOrderList(v)
+        auxos = ConfigurationInteraction_buildRowRecursionSecondTwo( auxis,  &
                         ConfigurationInteraction_instance%couplingOrderList(2,u)%values, &
                         ConfigurationInteraction_instance%couplingOrderIndex(2,u)%values, &
-                        indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel )
+                        indexConfA, indexConfB, w, vc, dd, nn, cilevel, uu )
+      end do
     end do
 
     !! two diff diff species
     do u = 1, ConfigurationInteraction_instance%ncouplingOrderTwoDiff
 
-      auxis = 0
-      cilevel = 0
-      auxcilevel = 0
-      auxos = ConfigurationInteraction_buildRowRecursionSecondTwoDiff( auxis,  &
+      do v = 1,  ConfigurationInteraction_instance%sizeCiOrderList 
+        cilevel(:) =  ConfigurationInteraction_instance%ciOrderList(  ConfigurationInteraction_instance%auxciOrderList(v), :)
+        auxis = 0
+        dd = 0 
+        uu = ConfigurationInteraction_instance%auxciOrderList(v)
+        auxos = ConfigurationInteraction_buildRowRecursionSecondTwoDiff( auxis,  &
                         ConfigurationInteraction_instance%couplingOrderList(3,u)%values, &
                         ConfigurationInteraction_instance%couplingOrderIndex(3,u)%values, &
-                        indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel )
+                        indexConfB, w, vc, dd, nn, cilevel, uu )
+      end do
     end do
 
+!    do u = 1, ConfigurationInteraction_instance%ncouplingOrderTwoDiff
+!
+!        cilevel=0
+!        auxis = 0
+!        dd = 0
+!        auxos = ConfigurationInteraction_buildRowRecursionSecondTwoDiff( auxis,  &
+!                        ConfigurationInteraction_instance%couplingOrderList(3,u)%values, &
+!                        ConfigurationInteraction_instance%couplingOrderIndex(3,u)%values, &
+!                        indexConfB, w, vc, dd, nn, cilevel )
+!    end do
 
-    deallocate ( auxcilevel )
+    deallocate ( dd )
     deallocate ( cilevel )
     deallocate ( indexConfB )
-    !deallocate ( nCouplingOneTwo )
     deallocate ( couplingOrder ) 
-    !deallocate ( couplingOneTwo )
 
   end subroutine ConfigurationInteraction_buildRow
  
 recursive  function ConfigurationInteraction_buildRowRecursionSecondOne( s, couplingOrder, iindex,&
-                                          indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel ) result (os)
+                                          indexConfA, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
     implicit none
 
-    integer(8) :: a,b,c,d,aa,bb,aaa
-    integer :: i, j, ii, jj, nn, ci
+    integer(8) :: a,d,aa
+    integer :: i, ii, nn, ci, u
     integer :: s,ssize
     integer :: os,is,ss
     integer(1) :: couplingOrder(:)
     integer(1) :: iindex(:)
     integer(8) :: indexConfA(:)
     integer(8) :: indexConfB(:)
+    integer(8) :: dd(:)
     real(8) :: vc
     real(8) :: w(:), CIenergy
-    integer :: cilevel(:), auxcilevel(:)
+    integer :: cilevel(:)
 
     is = s + 1
-    aa = indexConfA(is)
     i = couplingOrder(is)+1
-
     ii = iindex(1)
-    aaa = indexConfA(ii) 
 
+    !if ( is < numberOfSpecies ) then
     do ss = 1, ConfigurationInteraction_instance%recursionVector1(is) 
       ssize = 0
-    !if ( is < numberOfSpecies ) then
-      !do a = 1, nCouplingOneTwo(i,is) 
-     do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
-      cilevel(is) = ci - 1
-      if ( sum(cilevel) <= ConfigurationInteraction_instance%maxCIlevel ) then !! sorry for the "if"...
+
+      ci = cilevel(is) + 1
+      ssize = ConfigurationInteraction_instance%nCouplingSize(is,nn)%values( i,ci ) 
+
       do aa = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
 
       a = ssize + aa
-      !do a = 1, sum(ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,:))
-        !indexConfB(is) = couplingOneTwo(is)%values(i,a) 
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is,nn)%values(a, i )
-        os = ConfigurationInteraction_buildRowRecursionSecondOne( is, couplingOrder, iindex, &
-                        indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel )
-      end do
-      end if
-        ssize = ssize + ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-    end do
 
-      cilevel(is) = 0
+        dd(is) = ConfigurationInteraction_instance%ciOrderSize2(u,is) + &
+                     (indexConfB(is) - ConfigurationInteraction_instance%ciOrderSize3(u,is) - 1) * &
+                     ConfigurationInteraction_instance%ciOrderSize1(u,is)
+ 
+
+        os = ConfigurationInteraction_buildRowRecursionSecondOne( is, couplingOrder, iindex, &
+                        indexConfA, indexConfB, w, vc, dd, nn, cilevel, u )
+      end do
+
     end do
     !else 
     do ss = 1, ConfigurationInteraction_instance%recursionVector2(is) 
@@ -2902,211 +2975,158 @@ recursive  function ConfigurationInteraction_buildRowRecursionSecondOne( s, coup
 
       ssize = 0
 
-      do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
-      cilevel(is) = ci - 1
-      if ( sum(cilevel) <= ConfigurationInteraction_instance%maxCIlevel ) then !! sorry for the "if"...
-      do aa = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      a = ssize + aa
-      !d = d + 1
-      !do a = 1, nCouplingOneTwo(i,is) 
-      !do a = 1, sum(ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,:))
-        !indexConfB(is) = couplingOneTwo(is)%values(i,a) 
-        indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is,nn)%values(a, i) ! a?
-        !d = ConfigurationInteraction_getIndex ( indexConfB ) 
-        d = ConfigurationInteraction_getIndex2 ( indexConfB, cilevel ) 
-        bb = indexConfB(ii) 
+      ci = cilevel(is) + 1
+      ssize = ConfigurationInteraction_instance%nCouplingSize(is,nn)%values( i,ci ) 
 
-        CIenergy = ConfigurationInteraction_instance%couplingMatrixEnergyOne(ii,nn)%values(bb) 
-        !print *, ii, couplingOrder(ii), aaa,bb, CIenergy
+      do aa = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
+
+        a = ssize + aa
+        indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is,nn)%values(a, i) ! a?
+
+        d = sum(dd) + indexConfB(is)
+
+        CIenergy = ConfigurationInteraction_instance%couplingMatrixEnergyOne(ii,nn)%values(indexConfB(ii)) 
         CIenergy = CIenergy + ConfigurationInteraction_calculateEnergyOneDiff ( ii, indexConfA, indexConfB, nn )
-        !print *, "CI1", CIenergy
         CIenergy = vc*CIenergy 
         
-        !print *, indexConfA
-        !print *, indexConfB
-
-        !CIenergy = vc*ConfigurationInteraction_calculateEnergyOne ( nn, indexConfA, indexConfB )
-        !CIenergy = ConfigurationInteraction_calculateEnergyOne ( nn, indexConfA, indexConfB )
-        !print *, "CI2",CIenergy
-
-        !CIenergy = vc*CIenergy 
         !$omp atomic
         w(d) = w(d) + CIenergy
         !$omp end atomic
       end do
-      end if
-        ssize = ssize + ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      end do
-
-      cilevel(is) = 0
     end do
     !end if
 
   end function ConfigurationInteraction_buildRowRecursionSecondOne
 
 recursive  function ConfigurationInteraction_buildRowRecursionSecondTwo( s, couplingOrder, iindex,&
-                                          indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel ) result (os)
+                                          indexConfA, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
     implicit none
 
-    integer(8) :: a,d, aa,bb,aaa
-    integer :: i, ii, nn, ci
+    integer(8) :: a,d, aa
+    integer :: i, ii, nn, ci, u
     integer :: s, ssize
     integer :: os,is,ss
     integer(1) :: couplingOrder(:)
     integer(1) :: iindex(:)
     integer(8) :: indexConfA(:)
     integer(8) :: indexConfB(:)
+    integer(8) :: dd(:)
     real(8) :: vc
     real(8) :: w(:)
     real(8) :: CIenergy
-    integer :: cilevel(:), auxcilevel(:)
+    integer :: cilevel(:)
 
     is = s + 1
-    !aa = indexConfA(is)
     i = couplingOrder(is)+1
 
     ii = iindex(1)
-    aaa = indexConfA(ii) 
 
     !if ( is < numberOfSpecies ) then
     do ss = 1, ConfigurationInteraction_instance%recursionVector1(is) 
+
       ssize = 0
-      !do a = 1, nCouplingOneTwo(i,is) 
-      !  indexConfB(is) = couplingOneTwo(is)%values(i,a) 
-      do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
-      cilevel(is) = ci - 1
-      if ( sum(cilevel) <= ConfigurationInteraction_instance%maxCIlevel ) then !! sorry for the "if"...
+
+      ci = cilevel(is) + 1
+      ssize = ConfigurationInteraction_instance%nCouplingSize(is,nn)%values( i,ci ) 
+
       do aa = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      a = ssize + aa
-      !do a = 1, sum(ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,: ))
+        a = ssize + aa
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is,nn)%values(a, i)
 
+        dd(is) = ConfigurationInteraction_instance%ciOrderSize2(u,is) + &
+                     (indexConfB(is) - ConfigurationInteraction_instance%ciOrderSize3(u,is) - 1) * &
+                     ConfigurationInteraction_instance%ciOrderSize1(u,is)
+
         os = ConfigurationInteraction_buildRowRecursionSecondTwo( is, couplingOrder, iindex, &
-                        indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel )
+                        indexConfA, indexConfB, w, vc, dd, nn, cilevel, u )
       end do
-      end if
-        ssize = ssize + ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      end do
-      cilevel(is) = 0
+
     end do
     !else 
     do ss = 1, ConfigurationInteraction_instance%recursionVector2(is) 
       os = is
 
-      !do a = 1, nCouplingOneTwo(i,is) 
-      !  indexConfB(is) = couplingOneTwo(is)%values(i,a) 
-      ssize = 0
-      do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
-      cilevel(is) = ci - 1
-      if ( sum(cilevel) <= ConfigurationInteraction_instance%maxCIlevel ) then !! sorry for the "if"...
+      ci = cilevel(is) + 1
+      ssize = ConfigurationInteraction_instance%nCouplingSize(is,nn)%values( i,ci ) 
+
       do aa = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      a = ssize + aa
+        a = ssize + aa
 
-      !do a = 1, sum(ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,: ))
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is,nn)%values(a, i)
+        d = sum(dd) + indexConfB(is)
 
-        bb = indexConfB(ii) 
-        !d = ConfigurationInteraction_getIndex ( indexConfB ) 
-        d = ConfigurationInteraction_getIndex2 ( indexConfB, cilevel ) 
-
-        !CIenergy = ConfigurationInteraction_instance%couplingMatrixEnergyTwo(ii,nn)%values(bb) !one
-        CIenergy = ConfigurationInteraction_instance%couplingMatrixEnergyOne(ii,nn)%values(bb) !one
-
+        CIenergy = ConfigurationInteraction_instance%couplingMatrixEnergyOne(ii,nn)%values(indexConfB(ii)) !one
         CIenergy = vc*CIenergy 
-!        CIenergy = vc*ConfigurationInteraction_calculateEnergyTwo ( nn, indexConfA, indexConfB )
 
         !$omp atomic
         w(d) = w(d) + CIenergy 
         !$omp end atomic
       end do
-
-      end if
-        ssize = ssize + ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      end do
-      cilevel(is) = 0
     end do
     !end if
 
   end function ConfigurationInteraction_buildRowRecursionSecondTwo
 
 recursive  function ConfigurationInteraction_buildRowRecursionSecondTwoDiff( s, couplingOrder, iindex, &
-                                          indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel) result (os)
+                                          indexConfB, w, vc, dd, nn, cilevel, u) result (os)
     implicit none
 
-    integer(8) :: a,d, aa, bb, ci
-    integer :: i, nn
-    integer :: s, ssize
+    integer(8) :: a,d, aa, ci, j
+    integer :: i, nn, u
+    integer :: s, ssize,ssize2
     integer :: os,is,ss
     integer(1) :: couplingOrder(:)
     integer(1) :: iindex(:)
-    integer(8) :: indexConfA(:)
     integer(8) :: indexConfB(:)
+    integer(8) :: dd(:)
     real(8) :: vc
     real(8) :: w(:)
     real(8) :: CIenergy
-    integer :: cilevel(:), auxcilevel(:)
+    integer :: cilevel(:)
 
     is = s + 1
     i = couplingOrder(is)+1
 
-!    if ( is < numberOfSpecies ) then
     do ss = 1, ConfigurationInteraction_instance%recursionVector1(is) 
       ssize = 0
-      !do a = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i ) 
-      do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
-      cilevel(is) = ci - 1
-      if ( sum(cilevel) <= ConfigurationInteraction_instance%maxCIlevel ) then !! sorry for the "if"...
+
+      ci = cilevel(is) + 1
+      ssize = ConfigurationInteraction_instance%nCouplingSize(is,nn)%values( i,ci ) 
+
       do aa = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      a = ssize + aa
-      !do a = 1, sum(ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,: ))
+        a = ssize + aa
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is,nn)%values(a, i )
 
+        dd(is) = ConfigurationInteraction_instance%ciOrderSize2(u,is) + &
+                     (indexConfB(is) - ConfigurationInteraction_instance%ciOrderSize3(u,is) - 1) * &
+                     ConfigurationInteraction_instance%ciOrderSize1(u,is)
+
         os = ConfigurationInteraction_buildRowRecursionSecondTwoDiff( is, couplingOrder, iindex, &
-                        indexConfA, indexConfB, w, vc, nn, cilevel, auxcilevel )
+                        indexConfB, w, vc, dd, nn, cilevel, u )
       end do
-      end if
-        ssize = ssize + ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      end do
-      cilevel(is) = 0
+
     end do
-!    else 
+!! else
     do ss = 1, ConfigurationInteraction_instance%recursionVector2(is) 
       os = is
-      !do a = 1, nCouplingOneTwo(i,is) 
-      !  indexConfB(is) = couplingOneTwo(is)%values(i,a) 
-      !do a = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i ) 
-      !do a = 1, sum(ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,: ) )
-      ssize = 0
-      do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(is)%values, dim = 1)
-      cilevel(is) = ci - 1
-      if ( sum(cilevel) <= ConfigurationInteraction_instance%maxCIlevel ) then !! sorry for the "if"...
+
+      ci = cilevel(is) + 1
+      ssize = ConfigurationInteraction_instance%nCouplingSize(is,nn)%values( i,ci ) 
+
       do aa = 1, ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-      a = ssize + aa
+        a = ssize + aa
  
         indexConfB(is) = ConfigurationInteraction_instance%couplingMatrix(is,nn)%values(a, i)
 
-        !d = ConfigurationInteraction_getIndex ( indexConfB ) 
-        d = ConfigurationInteraction_getIndex2 ( indexConfB, cilevel ) 
+        d = sum(dd) + indexConfB(is)
 
-        CIenergy = ConfigurationInteraction_calculateEnergyTwoDiff ( iindex(1), iindex(2), indexConfA, indexConfB, nn )
-
+        CIenergy = ConfigurationInteraction_calculateEnergyTwoDiff ( iindex(1), iindex(2), indexConfB, nn )
         CIenergy = vc*CIenergy 
 
-        !! call
-        !CIenergy = ConfigurationInteraction_calculateEnergyTwo ( nn, indexConfA, indexConfB )
-
-        !CIenergy = vc*CIenergy 
-        !CIenergy = vc*ConfigurationInteraction_calculateEnergyTwo ( nn, indexConfA, indexConfB )
         !$omp atomic
         w(d) = w(d) + CIenergy 
         !$omp end atomic
       end do
-      !  ssize = ssize + ConfigurationInteraction_instance%numberOfStrings(is)%values(ci)
-        end if
-        ssize = ssize + ConfigurationInteraction_instance%nCouplingOneTwo(is,nn)%values( i,ci ) 
-
-      end do
-      cilevel(is) = 0
     end do
     !end if
 
@@ -3173,64 +3193,77 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
   end function ConfigurationInteraction_getIndexSize
 
-
-
   function ConfigurationInteraction_getIndex2 ( indexConf, cilevel ) result ( output )
     implicit none
     integer(8) :: indexConf(:)
     integer :: cilevel(:)
     integer(8) :: output, auxsize, ssize2
-    integer :: i,j, ii,jj,numberOfSpecies, s,u
+    integer :: i,j, ii,jj,s,u,ci
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    !numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     output = 0 
 
-    do i = 1, numberOfSpecies-1
+    do i = 1,  ConfigurationInteraction_instance%numberOfSpecies - 1
+      ci = cilevel(i)
+      do s = 0, ci-1
 
-      do s = 0, cilevel(i)-1
+        cilevel(i) = s
 
-        !! first
         u = 0
-        do ii = 1, i-1
+        do ii = i, ConfigurationInteraction_instance%numberOfSpecies
           auxsize = 1
-          do jj = ii+1, numberOfSpecies
+          do jj = ii+1, ConfigurationInteraction_instance%numberOfSpecies
             auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
           end do
           u = u + cilevel(ii) * auxsize 
         end do
-        !! i
-        auxsize = 1
-        do jj = ii+1, numberOfSpecies
-          auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
-        end do
-        u = u + s * auxsize 
-        !! final
-        do ii = i+1, numberOfSpecies
-          auxsize = 1
-          do jj = ii+1, numberOfSpecies
-            auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
-          end do
-          u = u + cilevel(ii) * auxsize 
-        end do
- 
+
         u = u + 1
 
-        ssize2 = ConfigurationInteraction_instance%ciOrderSize(u,i)
+        !! first
+!        u = 0
+!        do ii = 1, i-1
+!          auxsize = 1
+!          do jj = ii+1, ConfigurationInteraction_instance%numberOfSpecies
+!            auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
+!          end do
+!          u = u + cilevel(ii) * auxsize 
+!        end do
+!        !! i
+!        auxsize = 1
+!        do jj = ii+1, ConfigurationInteraction_instance%numberOfSpecies
+!          auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
+!        end do
+!        u = u + s * auxsize 
+!        !! final
+!        do ii = i+1, ConfigurationInteraction_instance%numberOfSpecies
+!          auxsize = 1
+!          do jj = ii+1, ConfigurationInteraction_instance%numberOfSpecies
+!            auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
+!          end do
+!          u = u + cilevel(ii) * auxsize 
+!        end do
+! 
+!        u = u + 1
+
+        ssize2 = ConfigurationInteraction_instance%ciOrderSize1(u,i)
         output = output +  ConfigurationInteraction_instance%numberOfStrings(i)%values(s+1) *ssize2
 
       end do
 
+      cilevel(i) = ci
+
       u = 0
-      do ii = 1, numberOfSpecies
+      do ii = 1, ConfigurationInteraction_instance%numberOfSpecies
         auxsize = 1
-        do jj = ii+1, numberOfSpecies
+        do jj = ii+1, ConfigurationInteraction_instance%numberOfSpecies
           auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
         end do
         u = u + cilevel(ii) * auxsize 
       end do
       u = u + 1
  
-      ssize2 = ConfigurationInteraction_instance%ciOrderSize(u,i)
+      ssize2 = ConfigurationInteraction_instance%ciOrderSize1(u,i)
 
       auxsize = 0
       do j = 1, cilevel(i)
@@ -3242,8 +3275,9 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
       
     end do
 
-    output = output + ( indexConf(numberOfSpecies) - 1 ) 
-    output = output + 1
+    output = output + indexConf(ConfigurationInteraction_instance%numberOfSpecies)  
+
+!    auxcilevel = cilevel
 
 !    implicit none
 !    integer(8) :: indexConf(:)
@@ -3319,6 +3353,71 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 !    output = output + 1
 
   end function ConfigurationInteraction_getIndex2
+
+  function ConfigurationInteraction_getIndex3 ( i, indexConf, cilevel ) result ( output )
+    implicit none
+    integer(8) :: indexConf
+    integer :: cilevel(:)
+    integer(8) :: output, auxsize
+    integer :: i,j, ii,jj,s,u,ci
+
+    !numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    output = 0 
+
+    ci = cilevel(i)
+    do s = 0, ci-1
+
+      cilevel(i) = s
+
+      u = 0
+      do ii = i, ConfigurationInteraction_instance%numberOfSpecies
+        auxsize = 1
+        do jj = ii+1, ConfigurationInteraction_instance%numberOfSpecies
+          auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
+        end do
+        u = u + cilevel(ii) * auxsize 
+      end do
+
+      u = u + 1
+      output = output +  ConfigurationInteraction_instance%numberOfStrings(i)%values(s+1) * ConfigurationInteraction_instance%ciOrderSize1(u,i)
+
+    end do
+
+    cilevel(i) = ci
+
+    u = 0
+    do ii = 1, ConfigurationInteraction_instance%numberOfSpecies
+      auxsize = 1
+      do jj = ii+1, ConfigurationInteraction_instance%numberOfSpecies
+        auxsize = auxsize *  (ConfigurationInteraction_instance%CILevel(jj) + 1)
+      end do
+      u = u + cilevel(ii) * auxsize 
+    end do
+    u = u + 1
+ 
+    auxsize = 0
+    do j = 1, cilevel(i)
+      auxsize = auxsize + ConfigurationInteraction_instance%numberOfStrings(i)%values(j)
+    end do
+
+    output = output +  (indexConf - auxsize - 1) * ConfigurationInteraction_instance%ciOrderSize1(u,i)
+
+  end function ConfigurationInteraction_getIndex3
+
+  function ConfigurationInteraction_getIndex4 ( i, indexConf, u ) result ( output )
+    implicit none
+    integer(8) :: indexConf
+    integer(8) :: output
+    integer :: i, u
+
+    !numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    output = ConfigurationInteraction_instance%ciOrderSize2(u,i)
+
+    output = output + (indexConf - ConfigurationInteraction_instance%ciOrderSize3(u,i) - 1) * &
+               ConfigurationInteraction_instance%ciOrderSize1(u,i)
+
+  end function ConfigurationInteraction_getIndex4
+      
 
   !>
   !! @brief Muestra informacion del objeto
