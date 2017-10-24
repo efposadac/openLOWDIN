@@ -41,6 +41,7 @@ program SCF
   character(30) :: labels(2)
   character(100) :: iterationScheme(0:3)
   character :: convergenceType
+  integer :: statusSystem
 
   !! Open file for wfn
   wfnUnit = 300
@@ -87,9 +88,16 @@ program SCF
         write(*,*) "---------------------------------------------------------"
      end if
 
+     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+        statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+     end if
+     
      do i = 1, numberOfSpecies
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
+        
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
+
+        call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie))
 
         if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
            call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
@@ -233,6 +241,16 @@ program SCF
 
   close(wfnUnit)
 
+  ! Final integration grid goes here
+  if ( (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") .and. &
+       ( CONTROL_instance%FINAL_GRID_ANGULAR_POINTS*CONTROL_instance%FINAL_GRID_RADIAL_POINTS  .gt. &
+       CONTROL_instance%GRID_ANGULAR_POINTS*CONTROL_instance%GRID_RADIAL_POINTS ) ) then
+     statusSystem = system ("lowdin-DFT.x FINAL_GRID")
+     do speciesID = 1, numberOfSpecies
+        call WaveFunction_buildExchangeCorrelationMatrix( trim(MolecularSystem_getNameOfSpecie(speciesID)) )
+     end do
+  end if
+
   !!**********************************************************
   !! Save matrices to lowdin.wfn file
   !!
@@ -240,7 +258,9 @@ program SCF
   rewind(wfnUnit)
 
   labels = ""
-
+  
+  
+  
   do speciesID = 1, numberOfSpecies
 
      labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
@@ -262,7 +282,7 @@ program SCF
 
      labels(1) = "DENSITY"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
-
+     
      labels(1) = "HCORE"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%hcoreMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 

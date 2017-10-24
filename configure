@@ -90,24 +90,24 @@ else
     ###############################################################################
     if [ -e CONFIG ] ; then
         FC=`awk '{if($1 == "FC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print  $i}}' CONFIG`
         PREFIX=`awk '{if($1 == "PREFIX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         SCRATCH=`awk '{if($1 == "SCRATCH" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CXX=`awk '{if($1 == "CXX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         CC=`awk '{if($1 == "CC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        LIBXC_LIBS=`awk '{if($1 == "LIBXC_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print "%s ", $i}}' CONFIG`
+        CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        LIBXC_LIBS=`awk '{if($1 == "LIBXC_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        # ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
     fi
     
     ###############################################################################
@@ -255,7 +255,7 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="core ints HF scf integralsTransformation MP2 PT CalcProp aduw gepol cosmo output CI MM molden2aim jadamilu"
+SUBDIRS="core ints HF DFT scf integralsTransformation MP2 PT CalcProp aduw gepol cosmo output CI MM molden2aim jadamilu"
 
 for DIR in $SRCDIR ; do
     cd $DIR

@@ -27,9 +27,6 @@ module WaveFunction_
   use MolecularSystem_
   use CosmoCore_
   use DirectIntegralManager_
-  use Grid_
-  use GridManager_
-  use Functional_
 
   implicit none
 
@@ -109,8 +106,12 @@ contains
     integer, intent(in) :: wfnUnit
 
     integer :: speciesID, i    
+    integer :: statusSystem    
     integer(8) :: numberOfContractions
     character(50) :: labels(2)
+    character(50) :: dftFile, vecFile
+    integer :: dftUnit, vecUnit
+    logical :: existFile
 
     !! Allocate memory.
     allocate(WaveFunction_instance(MolecularSystem_instance%numberOfQuantumSpecies))
@@ -217,35 +218,69 @@ contains
        WaveFunction_instance(speciesID)%builtTwoParticlesMatrix = .true.
 
        WaveFunction_instance(speciesID)%exactExchangeFraction = 1.0_8
+
+       !! read the coefficients again from the ".vec" file again
+       if ( CONTROL_instance%READ_COEFFICIENTS) then
+
+          labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          labels(1) = "COEFFICIENTS"
+
+          vecUnit=77
+          
+          vecFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
+          inquire(FILE = vecFile, EXIST = existFile )
+
+          if ( existFile) then
+             open(unit=vecUnit, file=trim(vecFile), status="old", form="formatted")
+
+             WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=vecUnit, &
+                  rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
+                  arguments=labels(1:2))
+
+             close(vecUnit)
+
+          else 
+             vecFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
+             inquire(FILE = vecFile, EXIST = existFile )
+
+             if ( existFile) then
+                open(unit=vecUnit, file=trim(vecFile), status="old", form="unformatted")
+
+                WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=vecUnit, &
+                     rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
+                     arguments=labels(1:2))
+
+                close(vecUnit)
+
+             else
+                call  Wavefunction_exception( ERROR, "I did not find any .vec coefficients file", "At SCF program, at Wavefunction_constructor")
+             end if
+
+          end if
+       end if
+
        
     end do
-    !!Initialize DFT: Calculate Grids and fill them with stuff
+    !!Initialize DFT: Calculate Grids and build functionals
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-       call GridManager_buildGrids( )
-       call GridManager_createFunctionals( )
-       call GridManager_atomicOrbitals( )
+
+       statusSystem = system ("lowdin-DFT.x INITIALIZE")
 
        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
-          WaveFunction_instance(speciesID)%exactExchangeFraction=Functional_getExchangeFraction(speciesID)
+          dftUnit = 77
+          dftFile = trim(CONTROL_instance%INPUT_FILE)//trim(MolecularSystem_getNameOfSpecie(speciesID))//".grid"
+          open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
 
-          call Vector_Constructor( Grid_instance(speciesID)%density, Grid_instance(speciesID)%totalSize, 0.0_8)
-          call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
+          labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          labels(1) = "EXACT-EXCHANGE-FRACTION"
 
-          call Vector_Constructor( Grid_instance(speciesID)%densityGradient(1), Grid_instance(speciesID)%totalSize, 0.0_8)
-          call Vector_Constructor( Grid_instance(speciesID)%densityGradient(2), Grid_instance(speciesID)%totalSize, 0.0_8)
-          call Vector_Constructor( Grid_instance(speciesID)%densityGradient(3), Grid_instance(speciesID)%totalSize, 0.0_8)
-          call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%densityGradient)
+          call Vector_getFromFile(unit=dftUnit, binary=.true., value=WaveFunction_instance(speciesID)%exactExchangeFraction, arguments=labels)
+          close(unit=dftUnit)
 
-          call Vector_Constructor( Grid_instance(speciesID)%potential, Grid_instance(speciesID)%totalSize, 0.0_8)
-          call Vector_Constructor( Grid_instance(speciesID)%sigmaPotential, Grid_instance(speciesID)%totalSize, 0.0_8)
-
-          ! do i=1, Grid_instance(speciesID)%totalSize
-          !    if (Grid_instance(speciesID)%points%values(i,1) .eq. 0.0 .and. Grid_instance(speciesID)%points%values(i,2) .eq. 0.0)  then
-          !       print*, Grid_instance(speciesID)%points%values(i,3), Grid_instance(speciesID)%density%values(i), Grid_instance(speciesID)%densityGradient%values(i)
-          !    end if
-          ! end do
-
+          ! print *, "el tormento tuyo", speciesID, WaveFunction_instance(speciesID)%exactExchangeFraction
+          
        end do
+
     end if
 
   end subroutine WaveFunction_constructor
@@ -740,122 +775,30 @@ contains
     type(Matrix) :: grid
     type(Vector) :: densityInGrid, potentialInGrid
     
-    character(50) :: labels(2), dftFile
-    integer :: dftUnit
+    character(50) :: labels(2), excFile
+    integer :: excUnit
 
+    speciesID = MolecularSystem_getSpecieID( nameOfSpecies )
 
-    !! Open file for dft
-    ! dftUnit = 77
-    ! dftFile = trim(CONTROL_instance%INPUT_FILE)//"dft"
-    
-    speciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
-    Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values=0.0_8
+    !! Open file from dft and read matrices
+    excUnit = 79
+    excFile = trim(CONTROL_instance%INPUT_FILE)//nameOfSpecies//".excmatrix"
+    open(unit = excUnit, file=trim(excFile), status="old", form="unformatted")
+
+    labels(2) = nameOfSpecies
+    labels(1) = "EXCHANGE-CORRELATION-ENERGY"
+    call Vector_getFromFile(unit=excUnit, binary=.true., value=Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, arguments= labels )
+
+    labels(1) = "EXCHANGE-CORRELATION-MATRIX"
+    Wavefunction_instance(speciesID)%exchangeCorrelationMatrix=Matrix_getFromFile(unit=excUnit, rows= int(numberOfContractions,4), columns= int(numberOfContractions,4),&
+         binary=.true., arguments=labels)
     
-    ! labels(2) = trim(nameOfSpecies)
-    ! labels(1) = "ORBITALPRODUCT-GRID"
+    close(unit=excUnit)
 
-    ! open( UNIT=dftUnit,FILE=dftFile, status='old', access='sequential', form='formatted')
-    ! orbitalsProductInGrid=Matrix_getFromFile(unit=dftUnit, file=dftFile, rows=gridSize, columns=numberOfContractions*(numberOfContractions+1)/2, binary=.false., arguments=labels)
-    ! close( dftUnit)
-    
-
-    Grid_instance(speciesID)%density%values=0.0_8
-    Grid_instance(speciesID)%densityGradient(1)%values=0.0_8
-    Grid_instance(speciesID)%densityGradient(2)%values=0.0_8
-    Grid_instance(speciesID)%densityGradient(3)%values=0.0_8
-         
-    call GridManager_getDensityAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, Grid_instance(speciesID)%density)
-    call GridManager_getDensityGradientAtGrid( speciesID, wavefunction_instance(speciesID)%densityMatrix, &
-         Grid_instance(speciesID)%densityGradient)
-    
-    if( trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-ALPHA"  ) then !El potencial de BETA se calcula simultaneamente con ALPHA
-       otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="E-BETA" )
-       Grid_instance(speciesID)%potential%values=0.0_8
-       Grid_instance(speciesID)%sigmaPotential%values=0.0_8
-       Grid_instance(otherSpeciesID)%potential%values=0.0_8
-       Grid_instance(otherSpeciesID)%sigmaPotential%values=0.0_8
-
-       call GridManager_getDensityAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%density)
-       call GridManager_getDensityGradientAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%densityGradient)
-
-       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
-            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential,&
-            otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy,&
-            Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%sigmaPotential )
-       
-    elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-BETA") then
-       
-    elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "E-"  ) then !El potencial de H_1 se calcula simultaneamente con E-
-       otherSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie="H_1" )
-       Grid_instance(speciesID)%potential%values=0.0_8
-       Grid_instance(speciesID)%sigmaPotential%values=0.0_8
-       Grid_instance(otherSpeciesID)%potential%values=0.0_8
-       Grid_instance(otherSpeciesID)%sigmaPotential%values=0.0_8
-       call GridManager_getDensityAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%density)
-       call GridManager_getDensityGradientAtGrid( otherSpeciesID, wavefunction_instance(otherSpeciesID)%densityMatrix, Grid_instance(otherSpeciesID)%densityGradient)
-       
-       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
-            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential,&
-            otherSpeciesID, Wavefunction_instance(otherSpeciesID)%exchangeCorrelationEnergy,&
-            Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%sigmaPotential )
-              
-    elseif (trim(MolecularSystem_getNameOfSpecie(speciesID)) .eq. "H_1") then
-
-    else
-       Grid_instance(speciesID)%potential%values=0.0_8
-       Grid_instance(speciesID)%sigmaPotential%values=0.0_8
-       call GridManager_getEnergyAndPotentialAtGrid( speciesID, Wavefunction_instance(speciesID)%exchangeCorrelationEnergy, &
-            Grid_instance(speciesID)%potential, Grid_instance(speciesID)%sigmaPotential )
-
-   
-    end if
-    
-    do u = 1 , numberOfContractions
-       do v = u , numberOfContractions
-          do i=1 , Grid_instance(speciesID)%totalSize
-             Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)=&
-                  Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)&
-                  +Grid_instance(speciesID)%potential%values(i)*Grid_instance(speciesID)%orbitals%values(i,u)&
-                  *Grid_instance(speciesID)%orbitals%values(i,v)*Grid_instance(speciesID)%points%values(i,4)&
-                  +2*Grid_instance(speciesID)%sigmaPotential%values(i)&
-                  *(Grid_instance(speciesID)%densityGradient(1)%values(i)&
-                  *(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(1)%values(i,v)&
-                  +Grid_instance(speciesID)%orbitalsGradient(1)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))&
-                  +Grid_instance(speciesID)%densityGradient(2)%values(i)&
-                  *(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(2)%values(i,v)&
-                  +Grid_instance(speciesID)%orbitalsGradient(2)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))&
-                  +Grid_instance(speciesID)%densityGradient(3)%values(i)&
-                  *(Grid_instance(speciesID)%orbitals%values(i,u)*Grid_instance(speciesID)%orbitalsGradient(3)%values(i,v)&
-                  +Grid_instance(speciesID)%orbitalsGradient(3)%values(i,u)*Grid_instance(speciesID)%orbitals%values(i,v))&
-                  )*Grid_instance(speciesID)%points%values(i,4)
-             
-          end do
-          Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(v,u)=&
-               Wavefunction_instance(speciesID)%exchangeCorrelationMatrix%values(u,v)
-       end do
-    end do
-    
-    ! index=1
-    ! particles=0.0
-    !    do u = 1 , numberOfContractions
-    !       do v = u , numberOfContractions
-    !          if ( u .eq. v) then
-    !             do i=1,gridSize
-    !                particles=particles + WaveFunction_instance(speciesID)%densityMatrix%values(u,v)*orbitalsProductInGrid%values(i,index)*grid%values(i,4)
-    !             end do
-    !          else
-    !             do i=1,gridSize
-    !                particles=particles + 2*WaveFunction_instance(speciesID)%densityMatrix%values(u,v)*orbitalsProductInGrid%values(i,index)*grid%values(i,4)
-    !             end do
-    !          end if
-    !          index=index+1
-    !    end do
-    ! end do
-    ! print *, "particles", particles
-    
-
+    ! print *, "Exc. Corr. Matrix for species ", nameOfSpecies 
+    ! call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
     
   end subroutine WaveFunction_buildExchangeCorrelationMatrix
 
@@ -962,6 +905,8 @@ contains
     integer :: i
     integer :: j
     integer :: k
+    character(50) :: densFile, labels(2)
+    integer :: densUnit
 
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
@@ -1007,6 +952,21 @@ contains
        call Matrix_show(wavefunction_instance(speciesID)%densityMatrix)
     end if
 
+    !!Save this matrix for DFT calculations, because reasons
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       
+       densUnit = 78
+       densFile = trim(CONTROL_instance%INPUT_FILE)//trim(MolecularSystem_getNameOfSpecie(speciesID))//".densmatrix"
+       open(unit = densUnit, file=trim(densFile), status="replace", form="unformatted")
+
+       labels(1) = "DENSITY-MATRIX"
+       labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+     
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=densUnit, binary=.true., arguments = labels )
+
+       close (78)
+    end if
+    
   end subroutine WaveFunction_builtDensityMatrix
 
   !>
@@ -1034,8 +994,6 @@ contains
     end if
 
 
-    !! FELIX Añadir llamado a DFT, tal vez
-    
     if( .not. allocated(wavefunction_instance(speciesID)%externalPotentialMatrix%values) ) then
 
        wavefunction_instance(speciesID)%totalEnergyForSpecie = &
@@ -1113,7 +1071,6 @@ contains
     cosmo3Energy = 0.0_8
 
 
-    !! FELIX Añadir llamado a DFT
 
     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
 

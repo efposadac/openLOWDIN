@@ -459,9 +459,9 @@ contains
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie) )
 
                          !! At first iteration is not included the coupling operator.
-                         if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
-                            call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
-                         end if
+                         ! if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
+                         call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
+                         ! end if
 
                          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
                             call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
@@ -682,12 +682,17 @@ contains
     real(8) :: startTime, endTime
     real(8) :: time1,time2
     logical :: auxValue
+    integer :: statusSystem
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     if( numberOfSpecies > 1 ) then
 
+       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+          statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+       end if
+       
        do i = 1, numberOfSpecies
 
           nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
@@ -719,7 +724,7 @@ contains
        return
 
     else
-
+       
        !!Especifica el procedimiento a seguir si lo electrones han sido congelados
        if ( .not. CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS) then
           call MultiSCF_iterateUniqueSpecie( speciesID = numberOfSpecies )
@@ -748,7 +753,8 @@ contains
     real(8) :: tolerace
     real(8) :: diisError
     character :: typeConvergence
-
+    integer :: statusSystem
+    
     nameOfSpecie = MolecularSystem_getNameOfSpecie(speciesID)
 
     if ( MolecularSystem_instance%species(speciesID)%isElectron ) then
@@ -772,10 +778,6 @@ contains
     !! Build an initial two particles matrix, which it will be recalculated in SingleSCF_iterate
     call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
 
-    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-       call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
-    end if
-
     
     ! write(*,*)"entre al unique specie"
     do while ( ( MultiSCF_instance%status ==  SCF_INTRASPECIES_CONVERGENCE_CONTINUE ) .and. &
@@ -789,6 +791,17 @@ contains
           call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
        end if
 
+       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+          statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+       end if
+
+
+
+       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+          call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+       end if
+
+       
        call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )
        call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
 

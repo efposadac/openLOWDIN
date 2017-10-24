@@ -198,6 +198,10 @@ module CONTROL_
      character(50) :: NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
      integer :: GRID_RADIAL_POINTS
      integer :: GRID_ANGULAR_POINTS
+     integer :: GRID_NUMBER_OF_SHELLS
+     integer :: FINAL_GRID_RADIAL_POINTS
+     integer :: FINAL_GRID_ANGULAR_POINTS
+     integer :: FINAL_GRID_NUMBER_OF_SHELLS
      integer :: POLARIZATION_ORDER
      integer :: NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS
      logical :: FUKUI_FUNCTIONS
@@ -458,6 +462,10 @@ module CONTROL_
   character(50) :: LowdinParameters_nuclearElectronCorrelationFunctional
   integer :: LowdinParameters_gridRadialPoints
   integer :: LowdinParameters_gridAngularPoints
+  integer :: LowdinParameters_gridNumberOfShells
+  integer :: LowdinParameters_finalGridRadialPoints
+  integer :: LowdinParameters_finalGridAngularPoints
+  integer :: LowdinParameters_finalGridNumberOfShells
   integer :: LowdinParameters_polarizationOrder
   integer :: LowdinParameters_numberOfBlocksInAuxiliaryFunctions
   logical :: LowdinParameters_fukuiFunctions
@@ -714,6 +722,10 @@ module CONTROL_
        LowdinParameters_nuclearElectronCorrelationFunctional,&
        LowdinParameters_gridRadialPoints,&
        LowdinParameters_gridAngularPoints,&
+       LowdinParameters_gridNumberOfShells,&
+       LowdinParameters_finalGridRadialPoints,&
+       LowdinParameters_finalGridAngularPoints,&
+       LowdinParameters_finalGridNumberOfShells,&
        LowdinParameters_polarizationOrder,&
        LowdinParameters_numberOfBlocksInAuxiliaryFunctions,&
        LowdinParameters_fukuiFunctions,&
@@ -995,8 +1007,12 @@ contains
     LowdinParameters_electronExchangeFunctional = "NONE"
     LowdinParameters_electronExchangeCorrelationFunctional = "NONE"
     LowdinParameters_nuclearElectronCorrelationFunctional = "NONE"
-    LowdinParameters_gridRadialPoints=75
-    LowdinParameters_gridAngularPoints=302
+    LowdinParameters_gridRadialPoints=35
+    LowdinParameters_gridAngularPoints=110
+    LowdinParameters_gridNumberOfShells=5
+    LowdinParameters_finalGridRadialPoints=50
+    LowdinParameters_finalGridAngularPoints=302
+    LowdinParameters_finalGridNumberOfShells=5
     LowdinParameters_polarizationOrder = 1
     LowdinParameters_numberOfBlocksInAuxiliaryFunctions = 3
     LowdinParameters_fukuiFunctions = .false.
@@ -1257,8 +1273,12 @@ contains
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
-    CONTROL_instance%GRID_RADIAL_POINTS= 75
-    CONTROL_instance%GRID_ANGULAR_POINTS= 302
+    CONTROL_instance%GRID_RADIAL_POINTS= 35
+    CONTROL_instance%GRID_ANGULAR_POINTS= 110
+    CONTROL_instance%GRID_NUMBER_OF_SHELLS= 5
+    CONTROL_instance%FINAL_GRID_RADIAL_POINTS= 50
+    CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= 302
+    CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= 5
     CONTROL_instance%POLARIZATION_ORDER = 1
     CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS = 3
     CONTROL_instance%FUKUI_FUNCTIONS = .false.
@@ -1559,6 +1579,17 @@ contains
     CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_nuclearElectronCorrelationFunctional
     CONTROL_instance%GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
     CONTROL_instance%GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
+    CONTROL_instance%GRID_NUMBER_OF_SHELLS= LowdinParameters_gridNumberOfShells
+    if(LowdinParameters_finalGridRadialPoints*LowdinParameters_finalGridAngularPoints .gt. LowdinParameters_gridRadialPoints*LowdinParameters_gridAngularPoints) then
+       CONTROL_instance%FINAL_GRID_RADIAL_POINTS= LowdinParameters_finalGridRadialPoints
+       CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= LowdinParameters_finalGridAngularPoints
+       CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= LowdinParameters_finalGridNumberOfShells
+    else
+       CONTROL_instance%FINAL_GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
+       CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
+       CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= LowdinParameters_gridNumberOfShells
+    end if
+
     CONTROL_instance%POLARIZATION_ORDER = LowdinParameters_polarizationOrder
     CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS = LowdinParameters_numberOfBlocksInAuxiliaryFunctions
     CONTROL_instance%FUKUI_FUNCTIONS = LowdinParameters_fukuiFunctions
@@ -1833,6 +1864,10 @@ contains
     LowdinParameters_nuclearElectronCorrelationFunctional = CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
     LowdinParameters_gridRadialPoints = CONTROL_instance%GRID_RADIAL_POINTS
     LowdinParameters_gridAngularPoints = CONTROL_instance%GRID_ANGULAR_POINTS
+    LowdinParameters_gridNumberOfShells = CONTROL_instance%GRID_NUMBER_OF_SHELLS
+    LowdinParameters_finalGridRadialPoints = CONTROL_instance%FINAL_GRID_RADIAL_POINTS
+    LowdinParameters_finalGridAngularPoints = CONTROL_instance%FINAL_GRID_ANGULAR_POINTS
+    LowdinParameters_finalGridNumberOfShells = CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS
     LowdinParameters_polarizationOrder = CONTROL_instance%POLARIZATION_ORDER
     LowdinParameters_numberOfBlocksInAuxiliaryFunctions = CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS
     LowdinParameters_fukuiFunctions = CONTROL_instance%FUKUI_FUNCTIONS
@@ -2091,6 +2126,10 @@ contains
     otherThis%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = this%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL 
     otherThis%GRID_RADIAL_POINTS=this%GRID_RADIAL_POINTS
     otherThis%GRID_ANGULAR_POINTS=this%GRID_ANGULAR_POINTS
+    otherThis%GRID_NUMBER_OF_SHELLS=this%GRID_NUMBER_OF_SHELLS
+    otherThis%FINAL_GRID_RADIAL_POINTS=this%FINAL_GRID_RADIAL_POINTS
+    otherThis%FINAL_GRID_ANGULAR_POINTS=this%FINAL_GRID_ANGULAR_POINTS
+    otherThis%FINAL_GRID_NUMBER_OF_SHELLS=this%FINAL_GRID_NUMBER_OF_SHELLS
     otherThis%STORE_THREE_CENTER_ELECTRON_INTEGRALS = this%STORE_THREE_CENTER_ELECTRON_INTEGRALS 
     otherThis%POLARIZATION_ORDER = this%POLARIZATION_ORDER 
     otherThis%FUKUI_FUNCTIONS = this%FUKUI_FUNCTIONS 
@@ -2198,7 +2237,12 @@ contains
        end if
        
        write (*,"(T10,A)") "ELECTRON-NUCLEAR CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
-       write (*,"(T10,A,I5,A,I5)") "ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%GRID_RADIAL_POINTS,"x",CONTROL_instance%GRID_ANGULAR_POINTS
+       write (*,"(T10,A,I5,A,I5)") "SCF ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%GRID_RADIAL_POINTS,"x",CONTROL_instance%GRID_ANGULAR_POINTS
+       if( CONTROL_instance%FINAL_GRID_ANGULAR_POINTS*CONTROL_instance%FINAL_GRID_RADIAL_POINTS  .gt. &
+            CONTROL_instance%GRID_ANGULAR_POINTS*CONTROL_instance%GRID_RADIAL_POINTS) then
+          write (*,"(T10,A,I5,A,I5)") "FINAL ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%FINAL_GRID_RADIAL_POINTS,"x",CONTROL_instance%FINAL_GRID_ANGULAR_POINTS
+       end if
+       
 
        ! if(CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS) then
 
@@ -2389,6 +2433,16 @@ contains
           write(*,"(T10,A,I5)") "DIIS DIMENSIONALITY: ", CONTROL_instance%DIIS_DIMENSIONALITY
 
        end select
+    end if
+
+    if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
+       
+       if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+            write(*,"(T10,A,F10.6)") "SHIFTING ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
+
+       if ( CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+            write(*,"(T10,A,F10.6)") "SHIFTING NON-ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
+
     end if
 
   end subroutine CONTROL_show
