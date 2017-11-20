@@ -15,6 +15,7 @@ CONTROL
 	!CIdiagonalizationMethod = "DSYEVX"
 	!CIdiagonalizationMethod = "ARPACK"
 	CIdiagonalizationMethod = "JADAMILU"
+!	CISizeOfGuessMatrix=1728
 	CISizeOfGuessMatrix=300
 	CIConvergence=1E-4
 	CIJacobi = F
