@@ -99,6 +99,7 @@ contains
     integer :: massNumber
     integer :: auxAdditionOfParticles
     real(8) :: auxOrigin(3)
+    real(8) :: auxCharge
     real(8) :: auxMultiplicity
     logical :: isDummy
     logical :: isElectron
@@ -108,6 +109,9 @@ contains
 
     auxOrigin=[0.0_8,0.0_8,0.0_8]
     if   ( present(origin) ) auxOrigin= origin
+
+    auxCharge=0.0_8
+    if   ( present(charge) ) auxCharge= charge
     
     auxMultiplicity=1.0_8
     if   ( present(multiplicity) ) auxMultiplicity=multiplicity
@@ -171,6 +175,7 @@ contains
           call Particle_build( this=this, &
                isQuantum= .true., &
                origin=auxOrigin, &
+               charge=auxCharge, &
                basisSetName=trim(baseName), &
                elementSymbol=trim(elementSymbol), &
                isDummy= isDummy, &
@@ -185,7 +190,9 @@ contains
                 
                 this%name = "E-ALPHA"
                 this%symbol = "E-ALPHA"
-                this%charge = PhysicalConstants_ELECTRON_CHARGE
+                if ( auxCharge == 0.0_8) then
+                  this%charge = PhysicalConstants_ELECTRON_CHARGE
+                end if
                 this%mass = PhysicalConstants_ELECTRON_MASS
                 this%totalCharge = -element%atomicNumber
                 this%internalSize = element%atomicNumber + (auxMultiplicity-1)  + auxAdditionOfParticles             
@@ -200,7 +207,9 @@ contains
                 
                 this%name = "E-BETA"
                 this%symbol = "E-BETA"
-                this%charge = PhysicalConstants_ELECTRON_CHARGE
+                if ( auxCharge == 0.0_8) then
+                  this%charge = PhysicalConstants_ELECTRON_CHARGE
+                end if
                 this%mass = PhysicalConstants_ELECTRON_MASS
                 this%totalCharge = -element%atomicNumber
                 this%internalSize = element%atomicNumber - (auxMultiplicity-1)  + auxAdditionOfParticles             
@@ -217,7 +226,9 @@ contains
              !! Restricted case
              this%name = "E-"
              this%symbol = "E-"
-             this%charge = PhysicalConstants_ELECTRON_CHARGE
+             if ( auxCharge == 0.0_8) then
+               this%charge = PhysicalConstants_ELECTRON_CHARGE
+             end if
              this%mass = PhysicalConstants_ELECTRON_MASS
              this%totalCharge = -element%atomicNumber
              this%internalSize = element%atomicNumber  + auxAdditionOfParticles
@@ -236,6 +247,7 @@ contains
           call Particle_build( this = this, &
                isQuantum = .true., &
                origin = auxOrigin,&
+               charge = auxCharge,&
                basisSetName = trim(baseName), &
                elementSymbol = trim(elementSymbol), &
                isDummy = isDummy, &
@@ -248,7 +260,9 @@ contains
           !! Setting remaining variables...
           this%name = name
           this%symbol = trim(name)
-          this%charge = element%atomicNumber
+          if ( auxCharge == 0.0_8) then
+            this%charge = element%atomicNumber
+          end if
           this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
                + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)          
           this%totalCharge = element%atomicNumber
@@ -282,6 +296,7 @@ contains
        !! Load Point charges (of an atomic element)
        else
 
+       !! Load MM Point charges (of an atomic element)
           if(present(baseName) .and. trim(baseName) == "MM" ) then
              
              call Particle_build( this, &
@@ -326,7 +341,7 @@ contains
 
              end if
 
-
+       !! Load Point charges (of an atomic element)
           else
           
              call Particle_build( this, &
@@ -334,6 +349,7 @@ contains
                   name=trim(elementSymbol), &
                   origin=auxOrigin, &
                   owner=id, &
+                  charge=auxCharge, &
                   nickname=trim(element%symbol))
 
              call Particle_setComponentFixed(this, varsToFix )
@@ -341,7 +357,9 @@ contains
              this%basisSetName="DIRAC"
              this%name = trim(name)
              this%symbol = trim(elementSymbol)
-             this%charge = element%atomicNumber
+             if ( auxCharge == 0.0_8) then
+              this%charge = element%atomicNumber
+             end if
              this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
                   + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)
              this%totalCharge = element%atomicNumber
@@ -375,6 +393,7 @@ contains
        call Particle_build( this = this, &
             isQuantum = .true., &
             origin = auxOrigin, &
+            charge = auxCharge, &
             basisSetName = trim(baseName), &
             elementSymbol = trim(elementSymbol), &
             isDummy = isDummy, &
@@ -384,7 +403,9 @@ contains
        !! Setting remaining variables       
        this%name = eParticle%name
        this%symbol = eParticle%symbol
-       this%charge = eParticle%charge
+       if ( auxCharge == 0.0_8) then
+        this%charge = eParticle%charge
+       end if
        this%mass = eParticle%mass
        this%totalCharge = eParticle%charge
        this%internalSize = 1  + auxAdditionOfParticles
@@ -401,6 +422,7 @@ contains
    !! Load Point charges (elemental Particles)       
     else
 
+   !! Load MM Point charges (elemental Particles)       
        if(present(baseName) .and. trim(baseName) == "MM" ) then
           call ElementalParticle_load( eparticle, trim( name ) )
 
@@ -425,6 +447,7 @@ contains
           this%spin = eParticle%spin
           this%id = id
           
+   !! Load Point charges (elemental Particles)       
        else
           
           call ElementalParticle_load( eparticle, trim( name ) )
@@ -433,6 +456,7 @@ contains
                isQuantum=.false., &
                name=trim(name), &
                origin=auxOrigin, &
+               charge=auxCharge, &
                owner=id, &
                nickname=trim(eparticle%symbol))
 
@@ -441,7 +465,9 @@ contains
           this%basisSetName="DIRAC"
           this%name = eParticle%name
           this%symbol = eParticle%symbol
-          this%charge = eParticle%charge
+          if ( auxCharge == 0.0_8) then
+            this%charge = eParticle%charge
+          end if
           this%mass = eParticle%mass
           this%totalCharge = eParticle%charge
           this%internalSize = 1 + auxAdditionOfParticles
