@@ -1,7 +1,7 @@
 GEOMETRY
-	e-(H)   SHARON-E-6S2P 	0.00	0.00 	0.00 addParticles=1 
-	H	dirac			0.00	0.00 	0.00
-	e+	SHARON-E+6S2P	0.00	0.00	0.00
+	e-(H)   SHARON-E-6S2P 	0.00	0.00 	0.00 addParticles=1  q = 1.00
+	H	dirac			0.00	0.00 	0.00  q = -1.00
+	e+	SHARON-E+6S2P	0.00	0.00	0.00  q = -1.00
 END GEOMETRY
 
 TASKS
@@ -15,6 +15,7 @@ CONTROL
 	!CIdiagonalizationMethod = "DSYEVX"
 	!CIdiagonalizationMethod = "ARPACK"
 	CIdiagonalizationMethod = "JADAMILU"
+!	CISizeOfGuessMatrix=1728
 	CISizeOfGuessMatrix=300
 	CIConvergence=1E-4
 	CIJacobi = F

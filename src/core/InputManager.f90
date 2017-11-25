@@ -520,19 +520,18 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID)  )
+                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), charge = InputParticle_charge  )
              
              !!BETA SET
              speciesID = speciesID + 1
              
              particlesID(speciesID) = particlesID(speciesID) + 1
              InputParticle_name = "E-BETA-"//trim(atomName)             
-             
              !! Loads Particle
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID) )
+                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), charge = InputParticle_charge)
              
           else 
 
@@ -548,7 +547,7 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID))
+                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), charge = InputParticle_charge)
 
 
              
@@ -563,13 +562,13 @@ contains
              call Particle_load( MolecularSystem_instance%pointCharges(counter),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = counter, charge = inputParticle_charge)
+                  multiplicity=inputParticle_multiplicity, id = counter, charge = InputParticle_charge)
           else
           !! Loads Particle
              call Particle_load( MolecularSystem_instance%pointCharges(counter),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = counter)
+                  multiplicity=inputParticle_multiplicity, id = counter,  charge = InputParticle_charge)
           end if
        end if
     end do

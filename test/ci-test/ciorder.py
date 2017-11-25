@@ -15,6 +15,6 @@ for ci in range(1,maxci+1) :
                 totalorder = i + j + k
                 if ( totalorder <= ci ) : 
                     c = c + 1
-                    print i,j,k, "\t", totalorder
+                    print i,j,k, "\t", totalorder, "|", (i)*3*2+(j)*2+k+1
 
     print "total ",c 
