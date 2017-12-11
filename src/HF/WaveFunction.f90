@@ -392,6 +392,8 @@ contains
     integer :: speciesID
 
     integer :: totalNumberOfContractions
+    character(50) :: densFile, labels(2)
+    integer :: densUnit
 
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
@@ -405,6 +407,21 @@ contains
     !! Debug
     ! print*, "Matriz de densidad inicial ", MolecularSystem_getNameOfSpecie(speciesID)
     ! call Matrix_show(WaveFunction_instance( speciesID )%densityMatrix)
+
+    !!Save this matrix for DFT calculations, because reasons
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       
+       densUnit = 78
+       densFile = trim(CONTROL_instance%INPUT_FILE)//trim(MolecularSystem_getNameOfSpecie(speciesID))//".densmatrix"
+       open(unit = densUnit, file=trim(densFile), status="replace", form="unformatted")
+
+       labels(1) = "DENSITY-MATRIX"
+       labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+     
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=densUnit, binary=.true., arguments = labels )
+
+       close (78)
+    end if
 
   end subroutine WaveFunction_setDensityMatrix
 

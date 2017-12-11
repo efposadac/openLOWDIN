@@ -175,7 +175,7 @@ contains
     integer(8) :: total3
     integer(8) :: numberOfContractions
     real(8) :: threshold, hold
-    real(8) :: levelShiftingFactor    
+    real(8) :: levelShiftingFactor, deltaEnergy    
     integer :: speciesID
     integer :: ocupados, occupatedOrbitals, prodigals
     integer :: totales
@@ -235,6 +235,7 @@ contains
 
        call Matrix_copyConstructor( fockMatrixTransformed, WaveFunction_instance( speciesID )%fockMatrix )
 
+       
        !!**********************************************************************************************
        !! Level Shifting Convergence Method       
        !!
@@ -246,6 +247,24 @@ contains
              levelShiftingFactor=CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
           end if
 
+          !The level shifting should be turned off when we are close to convergence, should be a parameter in CONTROL 
+          if ( WaveFunction_instance(speciesID)%numberOfIterations .gt. 1 ) then
+             !! Obtiene el valor de energia de la ultima iteracion
+             call List_end( WaveFunction_instance(speciesID)%energySCF )
+             deltaEnergy= List_current( WaveFunction_instance(speciesID)%energySCF )
+             
+             !! Obtiene el valor  de energia anterior a la ultima iteracion
+             call List_iterate( WaveFunction_instance(speciesID)%energySCF, -1)
+             
+             !! Obtiene el cambio de energia en las ultimas dos iteraciones
+             deltaEnergy = abs(deltaEnergy - List_current( WaveFunction_instance(speciesID)%energySCF ))
+             
+             ! if( levelShiftingFactor .gt. 0.0_8 .and. deltaEnergy .lt. 1E-6 ) then
+             !    levelShiftingFactor = 0.0_8
+             !    print *, "turned off level shifting for ",  trim(nameOfSpecie) 
+             ! end if
+          end if
+          
           fockMatrixTransformed%values = &
                matmul( matmul( transpose( WaveFunction_instance( speciesID )%waveFunctionCoefficients%values ) , &
                fockMatrixTransformed%values), WaveFunction_instance( speciesID )%waveFunctionCoefficients%values )
@@ -266,17 +285,21 @@ contains
           fockMatrixTransformed%values = &
                matmul( matmul(auxOverlapMatrix%values, &
                fockMatrixTransformed%values), transpose(auxOverlapMatrix%values ))                    
+
        end if
 
-       if (CONTROL_instance%MO_FRACTION_OCCUPATION < 1.0_8) then
+       if (CONTROL_instance%MO_FRACTION_OCCUPATION < 1.0_8 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) then
 
           call Matrix_copyConstructor( previousWavefunctionCoefficients, WaveFunction_instance( speciesID )%waveFunctionCoefficients )
 
-       end if
+       end if       
        !!
        !! End of Level Shifting Convergence Routine       
        !!**********************************************************************************************
 
+       ! print *, "Coefficients before for ", speciesID
+       ! call Matrix_show(WaveFunction_instance( speciesID )%waveFunctionCoefficients)
+       
        !!**********************************************************************************************
        !! Iteration begins
        !!
@@ -296,6 +319,10 @@ contains
        !! Interation ends
        !!**********************************************************************************************
 
+       ! print *, "Coefficients after for ", speciesID
+       ! call Matrix_show(WaveFunction_instance( speciesID )%waveFunctionCoefficients)
+
+       
        !!**********************************************************************************************
        !! Orbital exchange for TOM calculation
        !!
@@ -303,7 +330,7 @@ contains
 
           startIteration=5
 
-          threshold=0.9_8
+          threshold=0.8_8
 
           call Matrix_copyConstructor(auxOverlapMatrix,WaveFunction_instance(speciesID)%overlapMatrix)
 
@@ -313,15 +340,15 @@ contains
           call Matrix_constructor (matchingMatrix, total3, total3)
 
           matchingMatrix%values = &
-               matmul( matmul( transpose( previousWavefunctionCoefficients%values(:,1:occupatedOrbitals) ) , &
-               auxOverlapMatrix%values), WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,1:occupatedOrbitals) )
+               matmul( matmul( transpose( previousWavefunctionCoefficients%values ) , &
+               auxOverlapMatrix%values), WaveFunction_instance(speciesID)%waveFunctionCoefficients%values )
 
           astrayOrbitals=0 !!! number of orbitals that must be reordered
 
           do ii= 1, occupatedOrbitals
 
-             !! DEBUG
-             ! print *,"Antes ","Orbital: ",i," ",abs(matchingMatrix%values(i,i))," energy ",WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)
+             !DEBUG
+             ! print *,"Antes ","Orbital: ",ii," ",abs(matchingMatrix%values(ii,ii))," energy ",WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(ii)
 
              if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
                 astrayOrbitals=astrayOrbitals+1
@@ -329,7 +356,7 @@ contains
 
           end do
 
-          !!DEBUG
+          !DEBUG
           ! print *,"Number of astrayOrbitals",astrayOrbitals            
           ! print *,"Initial MM:"
           ! call Matrix_show (matchingMatrix)
@@ -346,8 +373,8 @@ contains
 
           prodigals = astrayOrbitals
 
-          if(astrayOrbitals >= 2 .and. WaveFunction_instance(speciesID)%numberOfIterations > startIteration) then
-             print *, "Switching orbitals..."
+          if(astrayOrbitals .ge. 1 .and. WaveFunction_instance(speciesID)%numberOfIterations > startIteration) then
+             ! print *, "Switching orbitals..."
 
              do ii=1,astrayOrbitals
 
@@ -357,9 +384,10 @@ contains
                 search=deltaVector%values(ii)            
                 ! print *,"search: ",search
 
-                do jj=ii,astrayOrbitals
+                do jj=1, numberOfContractions
 
-                   trial=deltaVector%values(jj)
+                   !trial=deltaVector%values(jj)
+                   trial=jj
                    ! print *,"trial: ",trial
 
                    ! print *,"valor: ",abs(matchingMatrix%values(search,trial))
@@ -377,8 +405,8 @@ contains
                       matchingMatrix%values(:,search)=matchingMatrix2%values(:,trial)
 
                       prodigals = prodigals - 1
-
-                      ! print *,"cambio OM: ",search," por ",trial
+                      
+                      print *, "Switching orbital... ",search," with ",trial, " for ", trim(nameOfSpecie)
 
                       exit
 
@@ -386,14 +414,18 @@ contains
 
                 end do
 
-                if (prodigals<2) then
-                   exit
-                end if
+                ! if (prodigals<2) then
+                !    exit
+                ! end if
 
              end do
 
           end if
 
+          ! print *, "Coefficients after switching for ", speciesID
+          ! call Matrix_show(WaveFunction_instance( speciesID )%waveFunctionCoefficients)
+
+          
           call Matrix_destructor(matchingMatrix)
           call Vector_destructor(deltaVector)           
 
@@ -472,7 +504,6 @@ contains
 
        end if
 
-       !! Update the density matrix
        if (  internalActualizeDensityMatrix ) then
 
           !! Determina la desviacion estandar de los elementos de la matriz de densidad
@@ -487,7 +518,7 @@ contains
           call List_push_back( WaveFunction_instance(speciesID)%diisError, Convergence_getDiisError( WaveFunction_instance(speciesID)%convergenceMethod) )
 
        end if
-
+       
        !! Actualiza el contador para el numero de iteraciones SCF de la especie actual
        WaveFunction_instance(speciesID)%numberOfIterations =  WaveFunction_instance(speciesID)%numberOfIterations + 1
        call Matrix_destructor(fockMatrixTransformed)
@@ -509,7 +540,7 @@ contains
     WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .false.
 
   end subroutine SingleSCF_iterate
-
+  
 
   !>
   !! @brief Reinicia el proceso de iteracion SCF para la especie especificada

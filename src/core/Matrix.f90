@@ -677,9 +677,10 @@ contains
                 read(unit) values
                 
                 m = 1
-                do i=1,rows
-                   do j=1,columns
-                      output%values(j, i) = values(m)
+                do j=1,columns
+                   do i=1,rows
+                      output%values(i, j) = values(m)
+                      ! output%values(j, i) = values(m)
                       m = m + 1
                    end do
                 end do

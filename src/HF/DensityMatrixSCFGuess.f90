@@ -323,6 +323,8 @@ contains
 
     densityMatrix%values =  MolecularSystem_getEta( speciesID ) * densityMatrix%values
 
+    print *, "Combination coefficients for ", trim(nameOfSpecie), " were read from ", trim(wfnFile)
+    
     call Matrix_destructor(vectors)
 
   end subroutine DensityMatrixSCFGuess_read
