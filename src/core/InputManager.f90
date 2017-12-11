@@ -25,6 +25,7 @@ module InputManager_
   use MolecularSystem_
   use InterPotential_
   use ExternalPotential_
+  use LJPotential_
   implicit none
 
   
@@ -35,6 +36,7 @@ module InputManager_
      character(255) :: systemDescription
      integer :: numberOfParticles
      integer :: numberOfExternalPots
+     integer :: numberOfLJPots
      integer :: numberOfInterPots
      integer :: numberOfOutputs
      integer :: numberOfSpeciesInCI
@@ -76,6 +78,7 @@ contains
     character(255):: InputSystem_description
     integer:: InputSystem_numberOfParticles
     integer:: InputSystem_numberOfExternalPots
+    integer:: InputSystem_numberOfLJPots
     integer:: InputSystem_numberOfInterPots
     integer:: InputSystem_numberOfOutputs
     integer:: InputSystem_numberOfSpeciesInCI
@@ -83,6 +86,7 @@ contains
     NAMELIST /InputSystem/ &
          InputSystem_numberOfParticles, &
          InputSystem_numberOfExternalPots, &
+         InputSystem_numberOfLJPots, &
          InputSystem_numberOfInterPots, &
          InputSystem_numberOfOutputs, &
          InputSystem_numberOfSpeciesInCI, & 
@@ -112,6 +116,7 @@ contains
        
        !! Setting defaults
        InputSystem_numberOfExternalPots=0
+       InputSystem_numberOfLJPots=0
        InputSystem_numberOfInterPots=0
        InputSystem_numberOfOutputs=0
        InputSystem_numberOfSpeciesInCI=0
@@ -131,6 +136,7 @@ contains
        Input_instance%systemDescription = trim(InputSystem_description)       
        Input_instance%numberOfParticles = InputSystem_numberOfParticles
        Input_instance%numberOfExternalPots = InputSystem_numberOfExternalPots
+       Input_instance%numberOfLJPots = InputSystem_numberOfLJPots
        Input_instance%numberOfInterPots = InputSystem_numberOfInterPots
        Input_instance%numberOfOutputs = InputSystem_numberOfOutputs
        Input_instance%numberOfSpeciesInCI = InputSystem_numberOfSpeciesInCI
@@ -268,6 +274,11 @@ contains
 
     end if
         
+    if( Input_instance%numberOfLJPots > 0) then    
+       CONTROL_instance%IS_THERE_LJ_POTENTIAL=.true.
+
+    end if
+
     if(Input_instance%numberOfInterPots > 0) then
        CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL=.true.
     end if
@@ -625,10 +636,19 @@ contains
     character(15) :: InterPot_specie
     character(15) :: InterPot_otherSpecie
     
+    ! LJ 
+    character(15) :: LJPot_name
+    character(15) :: LJPot_specie
+    
     NAMELIST /ExternalPot/ &
          ExternalPot_name, &
          ExternalPot_specie
-    
+
+
+    NAMELIST /LJPot/ &
+         LJPot_name, &
+         LJPot_specie
+
     NAMELIST /InterPot/ &
          InterPot_name, &
          InterPot_specie, &
@@ -677,6 +697,27 @@ contains
       end do
     end if
       
+    ! Load LJ Potentials
+    if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+
+      call LJPotential_constructor(Input_instance%numberOfLJPots)
+
+      !! Reload input file
+      rewind(4)
+      
+      do potId = 1, LJPotential_instance%ssize
+        !! Read InputTask namelist from input file
+        read(4,NML=LJPot, iostat=stat)
+    
+        if( stat > 0 ) then       
+          call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
+        end if
+
+        call LJPotential_load(potId, trim(LJPot_name), trim(LJPot_specie))
+
+      end do
+    end if
+
   end subroutine InputManager_loadPotentials
 
   !>

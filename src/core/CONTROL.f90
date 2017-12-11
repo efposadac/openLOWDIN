@@ -443,6 +443,7 @@ module CONTROL_
   logical :: LowdinParameters_transformToCenterOfMass
   logical :: LowdinParameters_areThereDummyAtoms
   logical :: LowdinParameters_isThereExternalPotential
+  logical :: LowdinParameters_isThereLJPotential
   logical :: LowdinParameters_isThereInterparticlePotential
   logical :: LowdinParameters_isThereOutput
   logical :: LowdinParameters_isThereFrozenParticle
@@ -698,6 +699,7 @@ module CONTROL_
        LowdinParameters_transformToCenterOfMass,&
        LowdinParameters_areThereDummyAtoms,&
        LowdinParameters_isThereExternalPotential,&
+       LowdinParameters_isThereLJPotential,&
        LowdinParameters_isThereInterparticlePotential,&
        LowdinParameters_isThereOutput,&
        LowdinParameters_isThereFrozenParticle,&
@@ -980,6 +982,7 @@ contains
     LowdinParameters_transformToCenterOfMass = .false.
     LowdinParameters_areThereDummyAtoms = .false.
     LowdinParameters_isThereExternalPotential = .false.
+    LowdinParameters_isThereLJPotential = .false.
     LowdinParameters_isThereInterparticlePotential = .false.
     LowdinParameters_isThereOutput = .false.
     LowdinParameters_isThereFrozenParticle = .false. 
@@ -1540,6 +1543,7 @@ contains
     CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS = LowdinParameters_transformToCenterOfMass
     CONTROL_instance%ARE_THERE_DUMMY_ATOMS = LowdinParameters_areThereDummyAtoms
     CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL = LowdinParameters_isThereExternalPotential
+    CONTROL_instance%IS_THERE_LJPOTENTIAL = LowdinParameters_isThereLJPotential
     CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL = LowdinParameters_isThereInterparticlePotential
     CONTROL_instance%IS_THERE_OUTPUT = LowdinParameters_isThereOutput
     CONTROL_instance%IS_THERE_FROZEN_PARTICLE = LowdinParameters_isThereFrozenParticle
@@ -1813,6 +1817,7 @@ contains
     LowdinParameters_transformToCenterOfMass = CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS
     LowdinParameters_areThereDummyAtoms = CONTROL_instance%ARE_THERE_DUMMY_ATOMS
     LowdinParameters_isThereExternalPotential = CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL
+    LowdinParameters_isThereLJPotential = CONTROL_instance%IS_THERE_LJPOTENTIAL
     LowdinParameters_isThereInterparticlePotential = CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL
     LowdinParameters_isThereOutput = CONTROL_instance%IS_THERE_OUTPUT
     LowdinParameters_isThereFrozenParticle = CONTROL_instance%IS_THERE_FROZEN_PARTICLE

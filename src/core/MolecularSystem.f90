@@ -39,6 +39,7 @@ module MolecularSystem_
   use Vector_
   use InternalCoordinates_
   use ExternalPotential_
+  use LJPotential_
   use InterPotential_
   implicit none
   
@@ -225,6 +226,7 @@ contains
     call MecanicProperties_destructor(MolecularSystem_instance%mechanicalProp)
 
     call ExternalPotential_destructor()
+    call LJPotential_destructor()
     call InterPotential_destructor()
 
 
@@ -483,6 +485,15 @@ contains
       print *,""
     end if
 
+    if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+      print *,""
+      print *," INFORMATION OF LJ POTENTIAL "
+      call LJPotential_show()
+      print *,""
+      print *," END INFORMATION OF LJ POTENTIAL"
+      print *,""
+    end if
+
     if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
       print *,""
       print *," INFORMATION OF INTER-PARTICLE POTENTIALS "
@@ -640,6 +651,16 @@ contains
 
     end if
 
+    ! Saving LJ-particle potential information
+    if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+      write(40,*) LJPotential_instance%ssize 
+      do i = 1, LJPotential_instance%ssize 
+        write(40,*) i 
+        write(40,*) LJPotential_instance%potentials(i)%name
+        write(40,*) LJPotential_instance%potentials(i)%specie 
+      end do
+
+    end if
     close(40)
     
     !!****************************************************************************
@@ -938,6 +959,23 @@ contains
               read(40,*) otherSpecies
   
               call InterPotential_load(i, name, species, otherSpecies)
+
+            end do
+
+          end if
+
+          !! Loadingi LJ potential information
+          if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+
+            read(40,*) auxValue
+            call LJPotential_constructor(auxValue)
+
+            do j = 1, LJPotential_instance%ssize 
+              read(40,*) i 
+              read(40,*) name
+              read(40,*) species
+
+              call LJPotential_load(i, name, species)
 
             end do
 
