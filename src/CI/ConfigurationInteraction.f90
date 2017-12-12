@@ -88,7 +88,7 @@ module ConfigurationInteraction_
      type(imatrix), allocatable :: strings(:) !! species, conf, occupations
      type(imatrix), allocatable :: strings2(:) !! species, conf, occupations
      integer, allocatable :: sumstrings(:) !! species
-     type(ivector1), allocatable :: auxstring(:,:) !! species, occupations
+     type(ivector), allocatable :: auxstring(:,:) !! species, occupations
      type(ivector8), allocatable :: numberOfStrings(:) !! species, excitation level, number of strings
      type(ivector8), allocatable :: numberOfStrings2(:) !! species, excitation level, number of strings
 
@@ -1317,8 +1317,8 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     !1 auxiliary string for omp paralelization
     do n = 1, ConfigurationInteraction_instance%nproc
       do i = 1, numberOfSpecies
-        call Vector_constructorInteger1( ConfigurationInteraction_instance%auxstring(n,i), &
-          int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i),8), int(0,1))
+        call Vector_constructorInteger( ConfigurationInteraction_instance%auxstring(n,i), &
+          int(ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i),4), int(0,4))
       end do  
     end do  
 
@@ -1523,7 +1523,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
     integer(8) :: a, b
     integer :: i,j,s,n, nn,ii
     integer :: l,k,z,kk,ll
-    integer :: factor
+    integer :: factor, auxOcc
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
     integer :: auxIndex1, auxIndex2, auxIndex
     integer :: diffOrb(2), otherdiffOrb(2) !! to avoid confusions
@@ -1532,12 +1532,16 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
     auxCIenergy = 0.0_8
     factor = 1
 
+    !  print *, "ii", ii
+    !  print *, "a", thisA
+    !  print *, "b", thisB
     !! copy a
     a = thisA(ii)
     b = thisB(ii)
 
     ConfigurationInteraction_instance%auxstring(n,ii)%values(:) = ConfigurationInteraction_instance%strings(ii)%values(:,a)
 
+    ! print *, "aux ", ConfigurationInteraction_instance%auxstring(n,ii)%values(:)
     !! set at maximum coincidence
 
     do i = 1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(ii) !b
@@ -1545,8 +1549,11 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
         if ( ConfigurationInteraction_instance%auxstring(n,ii)%values(j) == &
              ConfigurationInteraction_instance%strings(ii)%values(i,b) ) then
 
+          auxOcc = ConfigurationInteraction_instance%auxstring(n,ii)%values(i)
           ConfigurationInteraction_instance%auxstring(n,ii)%values(i) = ConfigurationInteraction_instance%strings(ii)%values(i,b)
-          ConfigurationInteraction_instance%auxstring(n,ii)%values(j) = ConfigurationInteraction_instance%strings(ii)%values(i,a)
+!          ConfigurationInteraction_instance%auxstring(n,ii)%values(j) = ConfigurationInteraction_instance%strings(ii)%values(i,a)
+          ConfigurationInteraction_instance%auxstring(n,ii)%values(j) = auxOcc
+
 
           if ( i /= j ) factor = -1*factor
           exit
@@ -1556,6 +1563,8 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
 
     ConfigurationInteraction_instance%couplingMatrixFactorOne(ii,n)%values(b) = factor
 
+!     print *, "aux ", ConfigurationInteraction_instance%auxstring(n,ii)%values(:)
+
     !! get the different orbitals
 
     diffOrb = 0
@@ -1564,6 +1573,9 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
 
       if ( ConfigurationInteraction_instance%auxstring(n,ii)%values(kk) .ne. &
               ConfigurationInteraction_instance%strings(ii)%values(kk,b) ) then
+
+!        print *, "aux do1", ConfigurationInteraction_instance%auxstring(n,ii)%values(kk)
+
         diffOrb(1) = ConfigurationInteraction_instance%auxstring(n,ii)%values(kk)
         diffOrb(2) = ConfigurationInteraction_instance%strings(ii)%values(kk,b)
         exit                   
@@ -1573,7 +1585,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
 
     !One particle terms
 
-    auxCIenergy= auxCIenergy +  ConfigurationInteraction_instance%twoCenterIntegrals(ii)%values( diffOrb(1), diffOrb(2) )
+      auxCIenergy= auxCIenergy +  ConfigurationInteraction_instance%twoCenterIntegrals(ii)%values( diffOrb(1), diffOrb(2) )
 
     !! save the different orbitals
 
@@ -1674,7 +1686,7 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
     integer(8) :: a, b
     integer :: i,ii,j,n
     integer :: k,z
-    integer :: factor
+    integer :: factor, auxOcc
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
     integer :: auxIndex1, auxIndex2, auxIndex
     integer :: diffOrb(4)  !! to avoid confusions
@@ -1693,8 +1705,15 @@ recursive  function ConfigurationInteraction_buildCouplingMatrixEnergyTwo( s, nu
         if ( ConfigurationInteraction_instance%auxstring(n,ii)%values(j) == &
             ConfigurationInteraction_instance%strings(ii)%values(i,b) ) then
 
+!          ConfigurationInteraction_instance%auxstring(n,ii)%values(i) = ConfigurationInteraction_instance%strings(ii)%values(i,b)
+!          ConfigurationInteraction_instance%auxstring(n,ii)%values(j) = ConfigurationInteraction_instance%strings(ii)%values(i,a) 
+
+          auxOcc = ConfigurationInteraction_instance%auxstring(n,ii)%values(i)
           ConfigurationInteraction_instance%auxstring(n,ii)%values(i) = ConfigurationInteraction_instance%strings(ii)%values(i,b)
-          ConfigurationInteraction_instance%auxstring(n,ii)%values(j) = ConfigurationInteraction_instance%strings(ii)%values(i,a) 
+!          ConfigurationInteraction_instance%auxstring(n,ii)%values(j) = ConfigurationInteraction_instance%strings(ii)%values(i,a)
+          ConfigurationInteraction_instance%auxstring(n,ii)%values(j) = auxOcc
+
+
 
           if ( i /= j ) factor = -1*factor
           exit
@@ -2294,9 +2313,10 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
       do a = 1, ConfigurationInteraction_instance%numberOfStrings(is)%values(i)
         c = c + 1
 
-        if ( abs(v(c)) > 1E-8 ) then 
+        if ( abs(v(c)) > 1E-10 ) then 
           cc(n) = c 
           indexConf(is,n:) = ssize + a
+
           auxindexConf = indexConf
 
           if ( n == nproc ) then
@@ -4314,7 +4334,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
     nonzero = 0
     w = 0 
-    tol = 1E-8
+    tol = 1E-10
 
     do i = 1 , nx
        if ( abs(v(i) ) >= tol) nonzero = nonzero + 1
@@ -4345,6 +4365,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
     if  ( n > 1 ) then
        do nn = 1, n-1
+
        call ConfigurationInteraction_buildRow( nn, auxindexConf(:,nn), cc(nn), w, v(cc(nn)))
       end do
     end if
