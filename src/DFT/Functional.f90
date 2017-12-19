@@ -487,10 +487,10 @@ contains
     end do
 
 
-    print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
-    do i = 1, n
-       write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i),  ec(i), vcE(i), vcN(i)
-    end do
+    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
+    ! do i = 1, n
+    !    write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i),  ec(i), vcE(i), vcN(i)
+    ! end do
 
     deallocate(denominator)
     
