@@ -631,6 +631,10 @@ contains
           !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
           !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
 
+          ! call Functional_lowLimitEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+          !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+          !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+
           !!Adds the nuclear electron potential to the relevant points in the electronic grid
           ! print *, "i, electronicPotentialAtOtherGrid%values(i), Grid_instance(otherSpeciesID)%density%values(i), energyDensity%values(i)"
           do i=1, otherGridSize
@@ -675,10 +679,14 @@ contains
           !!!This is a very dirty way of preventing double counting of the nuclear potential
           if(nameOfSpecies .eq. "E-BETA") call Vector_copyConstructor (holdNuclearPotential,otherPotentialInGrid)
 
+          ! call Functional_lowLimitEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+          !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+          !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+
           call Functional_CSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
                electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
                energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
-
+          
           ! call Functional_PSNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
           !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
           !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )

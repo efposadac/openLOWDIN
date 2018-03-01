@@ -50,6 +50,7 @@ module Functional_
        Functional_CSEvaluate, &
        Functional_myCSEvaluate, &
        Functional_PSNEvaluate, &
+       Functional_lowLimitEvaluate, &
        padevwn, &
        dpadevwn, &
        ecvwn, &
@@ -459,6 +460,7 @@ contains
        b=2.4
        c=3.2
     else
+       print *, this%name
        STOP "The nuclear electron functional chosen is not implemented"
     end if
        
@@ -524,6 +526,7 @@ contains
        a5=-0.05045899525215592
        a6=0.002906302490376316
     else
+       print *, this%name
        STOP "The nuclear electron functional chosen is not implemented"
     end if
         
@@ -601,6 +604,7 @@ contains
         Cb=-33.6472*2.0_8
         Cc=5.21152*2.0_8
     else
+       print *, this%name
        STOP "The nuclear electron functional chosen is not implemented"
     end if
            
@@ -683,6 +687,44 @@ contains
   end subroutine Functional_PSNEvaluate
 
 
+  subroutine Functional_lowLimitEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
+    ! Evaluates E/sqrt(PePn)
+    ! Felix Moncada, 2018
+    implicit none
+    type(Functional):: this !!type of functional
+    real(8) :: mass !!nuclear mass
+    integer :: n !!nuclear gridSize
+    real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcE(*), vcN(*) !! Potentials - output   
+
+    real(8) :: energyDensity, b
+    integer :: i
+
+    print *, this%name
+    !!The idea is that the parameters are a functional of the nuclear mass and charge
+    if(this%name .eq. "correlation:lowlimit" ) then
+       energyDensity=-0.5_8*mass/(mass+1.0_8)
+       b=-0.5_8
+    else
+       ! STOP  "The nuclear electron functional chosen is not implemented"
+    end if
+        
+    do i = 1, n
+
+       ec(i)=rhoE(i)*rhoN(i)*energyDensity/(sqrt(rhoE(i)*rhoN(i)) + b*rhoE(i)*rhoN(i)**(3.0/2.0))
+
+       ! vcE(i)=0.5_8*energyDensity*sqrt(rhoN(i))/sqrt(rhoE(i))
+       ! vcN(i)=0.5_8*energyDensity*sqrt(rhoE(i))/sqrt(rhoN(i))
+       
+       ! write(*,"(I0.1,5F16.6)") i, rhoN(i), rhoE(i), ec(i), vcE(i), vcN(i)
+
+    end do
+
+  end subroutine Functional_lowLimitEvaluate
+
+
+  
   
   subroutine Functional_LDAEvaluate(n,rhoA, rhoB, exc, vxcA, vxcB )
     ! Evaluates Dirac exchange and VWN correlation functionals
