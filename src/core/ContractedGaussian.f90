@@ -64,6 +64,7 @@ module ContractedGaussian_
      integer :: angularMoment
      integer :: numCartesianOrbital
      integer :: owner
+
      real(8) :: origin(3)
      real(8) , allocatable :: orbitalExponents(:)
      real(8) , allocatable :: contractionCoefficients(:)
@@ -854,6 +855,7 @@ contains
     end do
 
     output%owner= this%owner!! ????????????
+    output%origin(:)= output%primOrigin(1,:)!! ????????????
     
   end subroutine ContractedGaussian_product
 

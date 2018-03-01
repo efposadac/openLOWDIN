@@ -476,24 +476,24 @@ contains
     print *,""
 
 
-    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+    if(control_instance%is_there_external_potential) then
       print *,""
-      print *," INFORMATION OF EXTERNAL POTENTIALS "
-      call ExternalPotential_show()
+      print *," information of external potentials "
+      call externalpotential_show()
       print *,""
-      print *," END INFORMATION OF EXTERNAL POTENTIALS"
+      print *," end information of external potentials"
       print *,""
     end if
 
     if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
       print *,""
-      print *," INFORMATION OF LJ POTENTIAL "
+      print *," information of LJ potentials "
       call LJPotential_show()
       print *,""
-      print *," END INFORMATION OF LJ POTENTIAL"
+      print *," end information of LJ potentials"
       print *,""
     end if
-
+    
     if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
       print *,""
       print *," INFORMATION OF INTER-PARTICLE POTENTIALS "
@@ -640,6 +640,16 @@ contains
 
     end if
 
+    if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+      write(40,*) LJPotential_instance%ssize 
+      do i = 1, LJPotential_instance%ssize 
+        write(40,*) i 
+        write(40,*) LJPotential_instance%potentials(i)%name
+        write(40,*) LJPotential_instance%potentials(i)%specie 
+      end do
+
+    end if
+
     if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
       write(40,*) InterPotential_instance%ssize 
       do i = 1, InterPotential_instance%ssize 
@@ -651,16 +661,6 @@ contains
 
     end if
 
-    ! Saving LJ-particle potential information
-    if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
-      write(40,*) LJPotential_instance%ssize 
-      do i = 1, LJPotential_instance%ssize 
-        write(40,*) i 
-        write(40,*) LJPotential_instance%potentials(i)%name
-        write(40,*) LJPotential_instance%potentials(i)%specie 
-      end do
-
-    end if
     close(40)
     
     !!****************************************************************************
@@ -947,6 +947,22 @@ contains
 
           end if
 
+          if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+
+            read(40,*) auxValue
+            call LJPotential_constructor(auxValue)
+
+            do j = 1, LJPotential_instance%ssize 
+              read(40,*) i 
+              read(40,*) name
+              read(40,*) species
+
+              call LJPotential_load(i, name, species)
+
+            end do
+
+          end if
+
           if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
 
             read(40,*) auxValue 
@@ -959,23 +975,6 @@ contains
               read(40,*) otherSpecies
   
               call InterPotential_load(i, name, species, otherSpecies)
-
-            end do
-
-          end if
-
-          !! Loadingi LJ potential information
-          if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
-
-            read(40,*) auxValue
-            call LJPotential_constructor(auxValue)
-
-            do j = 1, LJPotential_instance%ssize 
-              read(40,*) i 
-              read(40,*) name
-              read(40,*) species
-
-              call LJPotential_load(i, name, species)
 
             end do
 

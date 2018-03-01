@@ -57,6 +57,7 @@ module WaveFunction_
      type(Matrix) :: exchangeCorrelationMatrix
      ! type(Matrix) :: interParticleCorrMatrix
      type(Matrix) :: externalPotentialMatrix
+     type(Matrix) :: ljPotentialMatrix
      type(Matrix) :: beforeDensityMatrix
      type(Matrix) :: transformationMatrix
      type(Matrix) :: waveFunctionCoefficients
@@ -144,6 +145,8 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%cosmo4,numberOfContractions, numberOfContractions, 0.0_8 )
 
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
+       
+       call Matrix_constructor( WaveFunction_instance(speciesID)%ljPotentialMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
 
        !! Load integrals form lowdin.wfn
        labels(1) = "OVERLAP"
@@ -168,6 +171,12 @@ contains
             columns= int(numberOfContractions,4), binary=.true., arguments=labels)
        end if
 
+       if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+         labels(1) = "LJ_POTENTIAL"
+         WaveFunction_instance(speciesID)%ljPotentialMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=labels)
+       end if
+       
        !! Cosmo things
 
        if (CONTROL_instance%COSMO) then
@@ -882,6 +891,16 @@ contains
       end if
     end if
 
+    if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+      wavefunction_instance(speciesID)%fockMatrix%values = wavefunction_instance(speciesID)%fockMatrix%values + &
+         wavefunction_instance(speciesID)%ljPotentialMatrix%values
+      if (  CONTROL_instance%DEBUG_SCFS) then
+       print *,"MATRIZ DE FOCK 4 (+ lj potential): "//trim(nameOfSpecieSelected)
+       call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
+
+      end if
+    end if
+    
     if (  CONTROL_instance%DEBUG_SCFS) then
        print *,"MATRIZ DE FOCK: "//trim(nameOfSpecieSelected)
        call Matrix_show(wavefunction_instance(speciesID)%fockMatrix)
@@ -994,17 +1013,17 @@ contains
     end if
 
 
-    if( .not. allocated(wavefunction_instance(speciesID)%externalPotentialMatrix%values) ) then
+!   if( .not. allocated(wavefunction_instance(speciesID)%externalPotentialMatrix%values) ) then
 
-       wavefunction_instance(speciesID)%totalEnergyForSpecie = &
-            sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
-            *  (( wavefunction_instance(speciesID)%hcoreMatrix%values ) &
-            + 0.5_8 *wavefunction_instance(speciesID)%twoParticlesMatrix%values &
-            + wavefunction_instance(speciesID)%couplingMatrix%values)) &
-            + wavefunction_instance(speciesID)%exchangeCorrelationEnergy
+!       wavefunction_instance(speciesID)%totalEnergyForSpecie = &
+!            sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
+!            *  (( wavefunction_instance(speciesID)%hcoreMatrix%values ) &
+!            + 0.5_8 *wavefunction_instance(speciesID)%twoParticlesMatrix%values &
+!            + wavefunction_instance(speciesID)%couplingMatrix%values)) &
+!            + wavefunction_instance(speciesID)%exchangeCorrelationEnergy
 
 
-    else if(CONTROL_instance%COSMO)then
+     if(CONTROL_instance%COSMO)then
 
        wavefunction_instance(speciesID)%totalEnergyForSpecie = &
             sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
@@ -1039,7 +1058,8 @@ contains
             *  (  ( wavefunction_instance(speciesID)%hcoreMatrix%values ) &
             + 0.5_8 *wavefunction_instance(speciesID)%twoParticlesMatrix%values &
             + wavefunction_instance(speciesID)%couplingMatrix%values &
-            + wavefunction_instance(speciesID)%externalPotentialMatrix%values ))&
+            + wavefunction_instance(speciesID)%externalPotentialMatrix%values&
+            + wavefunction_instance(speciesID)%ljPotentialMatrix%values ))&
             + wavefunction_instance(speciesID)%exchangeCorrelationEnergy
 
     end if
@@ -1075,14 +1095,14 @@ contains
     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
        !! Calula enegia de especie independiente ( sin considerar el termino de acoplamiento )
-       if( .not. allocated( WaveFunction_instance( speciesID )%externalPotentialMatrix%values ) ) then
-
-          WaveFunction_instance( speciesID )%independentSpecieEnergy = &
-               sum(  transpose(WaveFunction_instance( speciesID )%densityMatrix%values) &
-               *  (  ( WaveFunction_instance( speciesID )%hcoreMatrix%values ) &
-               + 0.5_8 * WaveFunction_instance( speciesID )%twoParticlesMatrix%values))
-
-       else if(CONTROL_instance%COSMO)then
+!       if( .not. allocated( WaveFunction_instance( speciesID )%externalPotentialMatrix%values ) ) then
+!
+!          WaveFunction_instance( speciesID )%independentSpecieEnergy = &
+!               sum(  transpose(WaveFunction_instance( speciesID )%densityMatrix%values) &
+!               *  (  ( WaveFunction_instance( speciesID )%hcoreMatrix%values ) &
+!               + 0.5_8 * WaveFunction_instance( speciesID )%twoParticlesMatrix%values))
+!
+       if(CONTROL_instance%COSMO)then
 
 
           WaveFunction_instance( speciesID )%independentSpecieEnergy = &
@@ -1116,7 +1136,8 @@ contains
                sum(  transpose(WaveFunction_instance( speciesID )%densityMatrix%values) &
                *  (  ( WaveFunction_instance( speciesID )%hcoreMatrix%values ) &
                + 0.5_8 * WaveFunction_instance( speciesID )%twoParticlesMatrix%values &
-               + WaveFunction_instance( speciesID )%externalPotentialMatrix%values))
+               + WaveFunction_instance( speciesID )%externalPotentialMatrix%values&
+               + WaveFunction_instance( speciesID )%ljPotentialMatrix%values ))
 
        end if
 

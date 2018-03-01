@@ -297,6 +297,11 @@ program SCF
        call Matrix_writeToFile(WaveFunction_instance(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
      end if
 
+     if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+       labels(1) = "LJ_POTENTIAL"
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%ljPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+     end if
+
      if (CONTROL_instance%COSMO) then
         labels(1) = "COSMO2"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  

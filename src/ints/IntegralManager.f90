@@ -39,14 +39,15 @@ module IntegralManager_
   use CosmoCore_
   use Stopwatch_
   use ExternalPotential_
-
-
+  use LJPotential_
+  use LJIntegrals_
   implicit none
 
   public :: &
        IntegralManager_getOverlapIntegrals, &
        IntegralManager_getKineticIntegrals, &
        IntegralManager_getAttractionIntegrals, &
+       IntegralManager_getLJIntegrals, &
        IntegralManager_getMomentIntegrals, &
        IntegralManager_getInterRepulsionIntegrals, &
        IntegralManager_getIntraRepulsionIntegrals
@@ -644,6 +645,7 @@ contains
 
   end subroutine IntegralManager_getAttractionIntegrals
 
+
   !> 
   !! @brief Calculate moment integrals
   !! @author E. F. Posada, 2013
@@ -941,9 +943,9 @@ contains
                      !! Calculating integrals for shell
   
                      call ContractedGaussian_product(auxContractionA, &
-                        ExternalPotential_instance%potentials(potID)%gaussianComponents(p), auxContraction)
+                        auxContractionB, auxContraction)
 
-                     call OverlapIntegrals_computeShell( auxContraction, auxContractionB, auxintegralValue)
+                     call OverlapIntegrals_computeShell( auxContraction,  ExternalPotential_instance%potentials(potID)%gaussianComponents(p), auxintegralValue)
                      !call OverlapIntegrals_computeShell( auxContractionA, auxContractionB, auxintegralValue)
                      !call OverlapIntegrals_computeShell ( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
                      !  MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), auxintegralValue )
@@ -981,6 +983,124 @@ contains
     end do !done!    
 
   end subroutine IntegralManager_getThreeCenterIntegrals
+
+
+
+  !> 
+  !! @brief Calculate Lennard Jones integrals and write it on file as a matrix
+  !! (1-exp^-(\alpha r^2)^n)* 1/r^6 y  (1-exp^(-\alpha r^2)^n)* 1/r^12 
+  !! @author E. F. Posada, 2013
+  !! @version 1.0
+  subroutine IntegralManager_getLJIntegrals()
+    implicit none
+
+    integer :: f, i, g, h
+    integer :: ii, jj, hh
+    
+    real(8), allocatable :: integralsMatrix(:,:)
+    integer :: numberOfPoints
+   
+
+    integer :: j, k, l, m
+    integer :: o, p, potID
+    integer, allocatable :: labels(:)
+    real(16), allocatable :: integralValue(:), auxintegralValue(:)
+    character(100) :: job, speciesName
+    type (ContractedGaussian) :: auxContractionA, auxContractionB, auxContractionC
+    type (LJPot) :: potential
+    
+    job = "LJ_POTENTIAL"
+
+   ! if(allocated(atomsCenter)) deallocate(atomsCenter)
+   ! allocate(atomsCenter(1:numberOfPoints))
+
+    !! LJ Integrals for all species
+    do f = 1, size(MolecularSystem_instance%species)
+
+       write(30) job
+       print*, job
+       speciesName = MolecularSystem_instance%species(f)%name
+       write(30) speciesName
+
+       if(allocated(labels)) deallocate(labels)
+       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+
+       if(allocated(integralsMatrix)) deallocate(integralsMatrix)
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+
+       integralsMatrix = 0.0_8
+      
+      do i= 1, LJPotential_instance%ssize
+        if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(LJPotential_instance%potentials(i)%specie))) ) then
+          potential=LJPotential_instance%potentials(i)
+          exit
+        end if
+      end do
+        
+
+           ii = 0
+           do g = 1, size(MolecularSystem_instance%species(f)%particles)
+              do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+
+             hh = h
+
+             ii = ii + 1
+             jj = ii - 1
+
+             do i = g, size(MolecularSystem_instance%species(f)%particles)
+                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+
+                   jj = jj + 1
+
+                   !! allocating memory Integrals for shell
+                   if(allocated(integralValue)) deallocate(integralValue)
+                   allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+                   
+                   integralValue =0.0_16
+
+
+                     numberOfPoints = potential%numOfatoms
+
+                     !! Calculating integrals for shell
+                     call LJIntegrals_computeShell(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                             MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), auxContractionC, &
+                             potential%atomsCenter, numberOfPoints, potential%ljparameters, integralValue)
+     
+
+                   !! saving integrals on Matrix
+                   m = 0
+                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         m = m + 1
+
+                         integralsMatrix(k, l) = integralValue(m)
+                         integralsMatrix(l, k) = integralsMatrix(k, l)
+
+                      end do
+                   end do
+       
+                end do
+                hh = 1
+              end do
+             
+             end do 
+
+           end do
+
+       !! Write integrals to file (unit 30)
+       if(CONTROL_instance%LAST_STEP) then
+          ! write(*,"(A, A ,A,I6)")" Number of Overlap integrals for species ", &
+          ! trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+       end if
+       write(30) int(size(integralsMatrix),8)
+       write(30) integralsMatrix
+    end do !done!    
+
+  end subroutine IntegralManager_getLJIntegrals
+
+
 
   !>
   !! @brief Return real labels for integrals

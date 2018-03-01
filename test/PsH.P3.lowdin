@@ -10,7 +10,7 @@ TASKS
 END TASKS
 
 CONTROL
-!	integralsTransformationMethod = "A"
+	integralsTransformationMethod = "A"
 END CONTROL
 
 

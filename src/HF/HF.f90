@@ -59,6 +59,7 @@ program HF
   real(8) :: totalRepulsionEnergy
   real(8) :: totalQuantumPuntualInteractionEnergy
   real(8) :: totalExternalPotentialEnergy
+  real(8) :: totalLJPotentialEnergy
   real(8) :: electronicRepulsionEnergy
   real(8) :: puntualInteractionEnergy
   real(8) :: puntualMMInteractionEnergy
@@ -156,6 +157,11 @@ program HF
      if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
        call WaveFunction_buildExternalPotentialMatrix(trim(integralsFile), speciesID)
      end if
+     
+     !!LJ potential Matrix
+     if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+       call WaveFunction_buildLJPotentialMatrix(trim(integralsFile), speciesID)
+     end if
 
      !! Hcore Matrix
      call WaveFunction_HCoreMatrix(trim(integralsFile), speciesID)
@@ -213,6 +219,12 @@ program HF
      if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
        arguments(1) = "EXTERNAL_POTENTIAL"
        call Matrix_writeToFile(WaveFunction_instance(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., &
+               arguments = arguments(1:2) )
+     end if
+
+     if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+       arguments(1) = "LJ_POTENTIAL"
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%ljPotentialMatrix, unit=wfnUnit, binary=.true., &
                arguments = arguments(1:2) )
      end if
 
@@ -337,6 +349,7 @@ program HF
   totalQuantumPuntualInteractionEnergy = sum ( WaveFunction_instance(:)%puntualInteractionEnergy )
   totalExchangeCorrelationEnergy = sum ( WaveFunction_instance(:)%exchangeCorrelationEnergy )             
   totalExternalPotentialEnergy = sum ( WaveFunction_instance(:)%externalPotentialEnergy )             
+  totalLJPotentialEnergy = sum ( WaveFunction_instance(:)%ljPotentialEnergy )             
   puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy()
   puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy()
   potentialEnergy = totalRepulsionEnergy &
@@ -344,7 +357,8 @@ program HF
        + totalQuantumPuntualInteractionEnergy &
        + totalCouplingEnergy &
        + totalExchangeCorrelationEnergy &
-       + totalExternalPotentialEnergy
+       + totalExternalPotentialEnergy &
+       + totalLJPotentialEnergy
   totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
 
   if(CONTROL_instance%COSMO) then
@@ -425,6 +439,7 @@ program HF
      write (6,"(T10,A30,F20.10)") "Exchange Correlation energy= ", totalExchangeCorrelationEnergy
      end if
      write (6,"(T10,A30,F20.10)") "External Potential energy  = ", totalExternalPotentialEnergy             
+     write (6,"(T10,A30,F20.10)") "LJ Potential energy  = ", totalLJPotentialEnergy             
      write (6,"(T10,A50)") "________________"
      write (6,"(T10,A30,F20.10)") "Total potential energy     = ", potentialEnergy
 
@@ -468,6 +483,21 @@ program HF
 
            write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name) // &
                 " Ext Pot energy  ","= ", WaveFunction_instance(speciesID)%externalPotentialEnergy
+        end do
+
+     end if
+
+     if( CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+
+        write(*,*) ""
+        write(*,*) " LJ Potential energy: "
+        write(*,*) "----------------"
+        write(*,*) ""
+
+        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+
+           write (6,"(T10,A26,A2,F20.10)") trim( MolecularSystem_instance%species(speciesID)%name) // &
+                " LJ Pot energy  ","= ", WaveFunction_instance(speciesID)%ljPotentialEnergy
         end do
 
      end if

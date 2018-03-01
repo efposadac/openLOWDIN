@@ -184,6 +184,7 @@ module CONTROL_
      logical :: TRANSFORM_TO_CENTER_OF_MASS
      logical :: ARE_THERE_DUMMY_ATOMS
      logical :: IS_THERE_EXTERNAL_POTENTIAL
+     logical :: IS_THERE_LJ_POTENTIAL
      logical :: IS_THERE_INTERPARTICLE_POTENTIAL
      logical :: IS_THERE_OUTPUT
      logical :: IS_THERE_FROZEN_PARTICLE
@@ -226,6 +227,13 @@ module CONTROL_
      real(8) :: ORIGIN_OF_GAUSSIAN_EXTERNAL_POTENTIAL
      character(50) :: NUMERICAL_INTEGRATION_METHOD
 
+     !!*****************************************************
+     !! LJ Potential Options
+     !!
+     logical :: NUMERICAL_INTEGRATION_FOR_LJ_POTENTIAL
+     real(8) :: LJPARAMETERS_FOR_LJ_POTENTIAL
+     real(8) :: CENTER_OF_ATOM_LJ_POTENTIAL
+     
      !!*****************************************************
      !! Graphs Options
      !!
@@ -492,6 +500,14 @@ module CONTROL_
   character(50) :: LowdinParameters_numericalIntegrationMethod
 
   !!*****************************************************
+  !! LJ Potential Options
+  !!
+  logical :: LowdinParameters_numericalIntegrationForLJPotential
+  real(8) :: LowdinParameters_ljparametersForLJPotential
+  real(8) :: LowdinParameters_centerOfAtomLJPotential
+  
+  
+  !!*****************************************************
   !! Graphs Options
   !!
   integer :: LowdinParameters_numberOfPointsPerDimension
@@ -751,6 +767,14 @@ module CONTROL_
        LowdinParameters_exponentForGaussianExternalPotential,&
        LowdinParameters_originOfGaussianExternalPotential,&
        LowdinParameters_numericalIntegrationMethod,&
+       
+                                !!*****************************************************
+                                !! LJ Potential Options
+                                !!
+       LowdinParameters_numericalIntegrationForLJPotential,&
+       LowdinParameters_ljparametersForLJPotential,&
+       LowdinParameters_centerOfAtomLJPotential,&
+                                
        
                                 !!*****************************************************
                                 !! Graphs Options
@@ -1041,6 +1065,13 @@ contains
     LowdinParameters_numericalIntegrationMethod = "NONE"
 
     !!*****************************************************
+    !! LJ Potential Options
+    !!
+    LowdinParameters_numericalIntegrationForLJPotential = .false. 
+    LowdinParameters_ljparametersForLJPotential = 0.0_8
+    LowdinParameters_centerOfAtomLJPotential = 0.0_8
+    
+    !!*****************************************************
     !! Graphs Options
     !!
     LowdinParameters_numberOfPointsPerDimension = 50
@@ -1264,6 +1295,7 @@ contains
     CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS = .false.
     CONTROL_instance%ARE_THERE_DUMMY_ATOMS = .false.
     CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL = .false.
+    CONTROL_instance%IS_THERE_LJ_POTENTIAL = .false.
     CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL = .false.
     CONTROL_instance%IS_THERE_OUTPUT = .false.
     CONTROL_instance%IS_THERE_FROZEN_PARTICLE = .false. 
@@ -1293,6 +1325,7 @@ contains
     !! External Potential Options                                                                                              
     !!                                                                                                                         
     CONTROL_instance%NUMERICAL_INTEGRATION_FOR_EXTERNAL_POTENTIAL = .false. 
+    CONTROL_instance%NUMERICAL_INTEGRATION_FOR_EXTERNAL_POTENTIAL = .false. 
     CONTROL_instance%NUMERICAL_INTEGRATION_FOR_OVERLAP = .false.
     CONTROL_instance%MAX_INTERVAL_IN_NUMERICAL_INTEGRATION = 10.0_8
     CONTROL_instance%RELATIVE_ERROR_IN_NUMERICAL_INTEGRATION = 1E-10
@@ -1306,6 +1339,13 @@ contains
     CONTROL_instance%ORIGIN_OF_GAUSSIAN_EXTERNAL_POTENTIAL = 0.0_8
     CONTROL_instance%NUMERICAL_INTEGRATION_METHOD = "NONE"
 
+    !!*****************************************************                                                                    
+    !! LJ Potential Options                                                                                              
+    !!                                                                                                                         
+    CONTROL_instance%NUMERICAL_INTEGRATION_FOR_LJ_POTENTIAL = .false. 
+    CONTROL_instance%LJPARAMETERS_FOR_LJ_POTENTIAL = 0.0_8
+    CONTROL_instance%CENTER_OF_ATOM_LJ_POTENTIAL = 0.0_8
+    
     !!*****************************************************                                                                    
     !! Graphs Options                                                                                                          
     !!                                                                                                                         
@@ -1568,7 +1608,7 @@ contains
     CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS = LowdinParameters_transformToCenterOfMass
     CONTROL_instance%ARE_THERE_DUMMY_ATOMS = LowdinParameters_areThereDummyAtoms
     CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL = LowdinParameters_isThereExternalPotential
-    CONTROL_instance%IS_THERE_LJPOTENTIAL = LowdinParameters_isThereLJPotential
+    CONTROL_instance%IS_THERE_LJ_POTENTIAL = LowdinParameters_isThereLJPotential
     CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL = LowdinParameters_isThereInterparticlePotential
     CONTROL_instance%IS_THERE_OUTPUT = LowdinParameters_isThereOutput
     CONTROL_instance%IS_THERE_FROZEN_PARTICLE = LowdinParameters_isThereFrozenParticle
@@ -1618,6 +1658,13 @@ contains
     CONTROL_instance%ORIGIN_OF_GAUSSIAN_EXTERNAL_POTENTIAL = LowdinParameters_originOfGaussianExternalPotential
     CONTROL_instance%NUMERICAL_INTEGRATION_METHOD = LowdinParameters_numericalIntegrationMethod
 
+    !!*****************************************************                            
+    !! LJ Potential Options                                                      
+    !!                                                                                 
+    CONTROL_instance%NUMERICAL_INTEGRATION_FOR_LJ_POTENTIAL = LowdinParameters_numericalIntegrationForLJPotential
+    CONTROL_instance%LJPARAMETERS_FOR_LJ_POTENTIAL = LowdinParameters_ljparametersForLJPotential
+    CONTROL_instance%CENTER_OF_ATOM_LJ_POTENTIAL = LowdinParameters_centerOfAtomLJPotential
+   
     !!*****************************************************                            
     !! Graphs Options                                                                  
     !!                                                                                 
@@ -1854,7 +1901,7 @@ contains
     LowdinParameters_transformToCenterOfMass = CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS
     LowdinParameters_areThereDummyAtoms = CONTROL_instance%ARE_THERE_DUMMY_ATOMS
     LowdinParameters_isThereExternalPotential = CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL
-    LowdinParameters_isThereLJPotential = CONTROL_instance%IS_THERE_LJPOTENTIAL
+    LowdinParameters_isThereLJPotential = CONTROL_instance%IS_THERE_LJ_POTENTIAL
     LowdinParameters_isThereInterparticlePotential = CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL
     LowdinParameters_isThereOutput = CONTROL_instance%IS_THERE_OUTPUT
     LowdinParameters_isThereFrozenParticle = CONTROL_instance%IS_THERE_FROZEN_PARTICLE
@@ -1897,6 +1944,13 @@ contains
     LowdinParameters_originOfGaussianExternalPotential = CONTROL_instance%ORIGIN_OF_GAUSSIAN_EXTERNAL_POTENTIAL
     LowdinParameters_numericalIntegrationMethod = CONTROL_instance%NUMERICAL_INTEGRATION_METHOD
 
+    !!*****************************************************                            
+    !! LJ Potential Options                                                      
+    !!                                                                                 
+    LowdinParameters_numericalIntegrationForLJPotential = CONTROL_instance%NUMERICAL_INTEGRATION_FOR_LJ_POTENTIAL
+    LowdinParameters_ljparametersForLJPotential = CONTROL_instance%LJPARAMETERS_FOR_LJ_POTENTIAL
+    LowdinParameters_centerOfAtomLJPotential = CONTROL_instance%CENTER_OF_ATOM_LJ_POTENTIAL
+    
     !!*****************************************************                            
     !! Graphs Options                                                                  
     !!                                                                                 
@@ -2119,6 +2173,7 @@ contains
     otherThis%TRANSFORM_TO_CENTER_OF_MASS = this%TRANSFORM_TO_CENTER_OF_MASS 
     otherThis%ARE_THERE_DUMMY_ATOMS = this%ARE_THERE_DUMMY_ATOMS 
     otherThis%IS_THERE_EXTERNAL_POTENTIAL = this%IS_THERE_EXTERNAL_POTENTIAL 
+    otherThis%IS_THERE_LJ_POTENTIAL = this%IS_THERE_LJ_POTENTIAL 
     otherThis%IS_THERE_FROZEN_PARTICLE = this%IS_THERE_FROZEN_PARTICLE 
     !!*****************************************************
     !! Density Functional Theory Options
@@ -2155,6 +2210,12 @@ contains
     otherThis%INCREASE_NUMBER_OF_EVALUATIONS = this%INCREASE_NUMBER_OF_EVALUATIONS 
     otherThis%MINIMUM_NUMBER_OF_EVALUATIONS = this%MINIMUM_NUMBER_OF_EVALUATIONS 
     otherThis%MAXIMUM_NUMBER_OF_EVALUATIONS = this%MAXIMUM_NUMBER_OF_EVALUATIONS 
+    !!*****************************************************
+    !! LJ Potential Options
+    !!
+    otherThis%NUMERICAL_INTEGRATION_FOR_LJ_POTENTIAL = this%NUMERICAL_INTEGRATION_FOR_LJ_POTENTIAL 
+    otherThis%LJPARAMETERS_FOR_LJ_POTENTIAL = this%LJPARAMETERS_FOR_LJ_POTENTIAL 
+    otherThis%CENTER_OF_ATOM_LJ_POTENTIAL = this%CENTER_OF_ATOM_LJ_POTENTIAL 
     !!*****************************************************
     !! Graphs Options
     !!

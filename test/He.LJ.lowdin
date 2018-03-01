@@ -1,23 +1,26 @@
 GEOMETRY
-        e-(He) 6-31G 0 0 0
+        HEA3 10S.HE 0 0 0.0
 END GEOMETRY
 
 TASKS
         method = "UHF"
-!	configurationInteractionLevel ="FCI"
+	configurationInteractionLevel ="FCI"
 END TASKS
 
 CONTROL
-	transformToCenterOfMass=F
-        !CIdiagonalizationMethod="ARPACK"
-        !CIdiagonalizationMethod="JADAMILU"
-	CISizeOfGuessMatrix=1
-	convergenceMethod=1
-	iterationScheme=3
+	numberOfCIstates=3
+	CIdiagonalizationMethod = "DSYEVX"
 END CONTROL
 
+!EXTERPOTENTIAL
+!	HEA3 HEBOX
+!END EXTERPOTENTIAL
+!
 LJPOTENTIAL
-	! ATOM POS
-	C 0.0 0.0 0.0
-	! ...
+        HEA3 HELJC60
+!        HE-B_3 HELJC60
 END LJPOTENTIAL
+
+OUTPUTS
+	moldenFile
+END OUTPUTS

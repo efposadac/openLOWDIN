@@ -59,6 +59,7 @@ module WaveFunction_
      type(Matrix) :: couplingMatrix
      type(Matrix) :: exchangeCorrelationMatrix
      type(Matrix) :: externalPotentialMatrix
+     type(Matrix) :: ljPotentialMatrix
      type(Matrix) :: coefficientsofcombination
      type(vector) :: energyofmolecularorbital
      !! Cosmo Things
@@ -81,6 +82,7 @@ module WaveFunction_
      real(8) :: repulsionEnergy
      real(8) :: couplingEnergy
      real(8) :: externalPotentialEnergy
+     real(8) :: ljPotentialEnergy
      real(8) :: exchangeCorrelationEnergy
      !! Cosmo Things
      real(8) :: cosmoEnergy
@@ -116,10 +118,12 @@ contains
        WaveFunction_instance( speciesID )%independentParticleEnergy = 0.0_8
        WaveFunction_instance( speciesID )%repulsionEnergy = 0.0_8
        WaveFunction_instance( speciesID )%externalPotentialEnergy = 0.0_8
+       WaveFunction_instance( speciesID )%ljPotentialEnergy = 0.0_8
        WaveFunction_instance( speciesID )%couplingEnergy = 0.0_8
        WaveFunction_instance( speciesID )%exchangeCorrelationEnergy = 0.0_8
 
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions )
+       call Matrix_constructor( WaveFunction_instance(speciesID)%ljPotentialMatrix, numberOfContractions, numberOfContractions )
 
     end do
 
@@ -475,11 +479,28 @@ contains
     WaveFunction_instance( specieID )%kineticEnergy = &
          sum( transpose(WaveFunction_instance( specieID )%densityMatrix%values) * &
          WaveFunction_instance( specieID )%kineticMatrix%values )
-
+!print*, "KINETIC ENERGY MATRIX", WaveFunction_instance( specieID )%kineticMatrix%values
+!print*, "TIMES KINETIC MATRIX", transpose(WaveFunction_instance( specieID )%densityMatrix%values)* WaveFunction_instance( specieID )%kineticMatrix%values
     !! Calcula energia de potencial externo para la especie dada
     WaveFunction_instance( specieID )%externalPotentialEnergy = &
          sum( transpose(WaveFunction_instance( specieID )%densityMatrix%values) * &
          WaveFunction_instance( specieID )%externalPotentialMatrix%values )
+    
+print*, "External Matrix" 
+ call Matrix_show(WaveFunction_instance( specieID )%externalPotentialMatrix) 
+ 
+ !! Calcula energia de potencial lennard jones para la especie dada
+    WaveFunction_instance( specieID )%ljPotentialEnergy = &
+         sum( transpose(WaveFunction_instance( specieID )%densityMatrix%values) * &
+         WaveFunction_instance( specieID )%ljPotentialMatrix%values )
+
+ call Matrix_show(WaveFunction_instance( specieID )%ljPotentialMatrix) 
+ call Matrix_show(WaveFunction_instance( specieID )%densityMatrix)
+
+!        print*, "DEBUGGGGGGGGG VALUES DENSITY", transpose(WaveFunction_instance( specieID )%densityMatrix%values)
+!        print*, "DEBUGGGGGGGGG VALUES LJ", WaveFunction_instance( specieID )%ljPotentialMatrix%values
+!        print*, "DEBUGGGGGGGGG MULTIPLICACION", transpose(WaveFunction_instance( specieID )%densityMatrix%values)*WaveFunction_instance( specieID )%ljPotentialMatrix%values
+!        print*, "DEBUGGGGGGGG LJ POTENTIAL ENERGY", WaveFunction_instance( specieID )%ljPotentialEnergy
 
     !! Calcula energia de interaccion entre particulas puntuales y cuanticas
     WaveFunction_instance( specieID )%puntualInteractionEnergy =  &
@@ -491,8 +512,8 @@ contains
          sum( transpose(WaveFunction_instance( specieID )%densityMatrix%values) * &
          (  ( WaveFunction_instance( specieID )%hcoreMatrix%values ) + &
          0.5_8 * WaveFunction_instance( specieID )%twoParticlesMatrix%values + &
-         WaveFunction_instance( specieID )%externalPotentialMatrix%values))
-
+         WaveFunction_instance( specieID )%externalPotentialMatrix%values + &
+         WaveFunction_instance( specieID )%ljPotentialMatrix%values ))
 
     WaveFunction_instance( specieID )%independentSpecieEnergy = &
          WaveFunction_instance( specieID )%independentSpecieEnergy 
@@ -717,6 +738,44 @@ contains
   end subroutine WaveFunction_buildExternalPotentialMatrix
 
 
+  subroutine WaveFunction_buildLJPotentialMatrix( file, speciesID )
+    implicit none
+    character(30) :: nameOfSpecieSelected
+    character(*), intent(in) :: file
+    integer, intent(in) :: speciesID
+
+    integer :: unit
+    integer :: numberOfContractions
+    integer :: totalNumberOfContractions
+    character(50) :: arguments(2)
+
+    arguments(1) = "LJ_POTENTIAL"
+    arguments(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
+
+    !! Open file
+    unit = 34
+    open(unit = unit, file=trim(file), status="old", form="unformatted")
+
+    WaveFunction_instance(speciesID)%ljPotentialMatrix%values = 0.0_8
+
+    !! Get number of shells and number of cartesian contractions
+    numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
+    WaveFunction_instance( speciesID )%ljPotentialMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, &
+         columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments(1:2))
+    close(34)
+
+      print *,"LJ POTENTIAL MATRIX : "
+      call Matrix_show(WaveFunction_instance(speciesID)%ljPotentialMatrix)
+
+    !! Debug
+    if (  CONTROL_instance%DEBUG_SCFS) then
+      print *,"LJ POTENTIAL MATRIX FOR: ", arguments(2)
+      call Matrix_show(WaveFunction_instance(speciesID)%ljPotentialMatrix)
+    end if
+
+  end subroutine WaveFunction_buildLJPotentialMatrix
   !   function WaveFunction_getValueForOrbitalAt( nameOfSpecie, orbitalNum, coordinate ) result(output)
   !     implicit none
   !     character(*), optional, intent(in) :: nameOfSpecie

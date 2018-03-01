@@ -271,12 +271,10 @@ contains
     
     if( Input_instance%numberOfExternalPots > 0) then    
        CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL=.true.
-
     end if
         
     if( Input_instance%numberOfLJPots > 0) then    
        CONTROL_instance%IS_THERE_LJ_POTENTIAL=.true.
-
     end if
 
     if(Input_instance%numberOfInterPots > 0) then
@@ -631,19 +629,19 @@ contains
     character(15) :: ExternalPot_name
     character(15) :: ExternalPot_specie
 
+    ! LJ
+    character(15) :: LJPot_name
+    character(15) :: LJPot_specie
+    
     ! Inter
     character(15) :: InterPot_name
     character(15) :: InterPot_specie
     character(15) :: InterPot_otherSpecie
     
-    ! LJ 
-    character(15) :: LJPot_name
-    character(15) :: LJPot_specie
     
     NAMELIST /ExternalPot/ &
          ExternalPot_name, &
          ExternalPot_specie
-
 
     NAMELIST /LJPot/ &
          LJPot_name, &
@@ -717,7 +715,7 @@ contains
 
       end do
     end if
-
+ 
   end subroutine InputManager_loadPotentials
 
   !>

@@ -104,6 +104,12 @@ Program Ints
      if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
        call IntegralManager_getThreeCenterIntegrals()
      end if
+     
+     !! Calculate integrals with lj potential
+     if(CONTROL_instance%IS_THERE_LJ_POTENTIAL) then
+       call IntegralManager_getLJIntegrals()
+     end if
+
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
 
