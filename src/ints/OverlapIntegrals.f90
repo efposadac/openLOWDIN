@@ -109,10 +109,16 @@ contains
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexB, contractedGaussianB)
 
     nprim1 = contractedGaussianA%length
+    A(0) = contractedGaussianA%origin(1)
+    A(1) = contractedGaussianA%origin(2)
+    A(2) = contractedGaussianA%origin(3)
     coef1(0:nprim1-1) =  contractedGaussianA%contractionCoefficients(1:nprim1)
     
     
     nprim2 = contractedGaussianB%length
+    B(0) = contractedGaussianB%origin(1)
+    B(1) = contractedGaussianB%origin(2)
+    B(2) = contractedGaussianB%origin(3)
     coef2(0:nprim2-1) =  contractedGaussianB%contractionCoefficients(1:nprim2)
     
     m = 0
@@ -121,15 +127,7 @@ contains
        do q = 1, contractedGaussianB%numcartesianOrbital
 
           m = m + 1
-
-          A(0) = contractedGaussianA%primOrigin(p,1)
-          A(1) = contractedGaussianA%primOrigin(p,2)
-          A(2) = contractedGaussianA%primOrigin(p,3)
           
-          B(0) = contractedGaussianB%primOrigin(q,1)
-          B(1) = contractedGaussianB%primOrigin(q,2)
-          B(2) = contractedGaussianB%primOrigin(q,3)
-
           exp1(0:nprim1-1) = contractedGaussianA%orbitalExponents(1:nprim1)
           nor1(0:nprim1-1) = contractedGaussianA%primNormalization(1:nprim1,p)
           

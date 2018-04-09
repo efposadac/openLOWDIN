@@ -134,8 +134,28 @@ contains
 
           case("NONE")
 
-             stop "ERROR: Please select an electronic functional to call LIBXC (LDA, PBE, BLYP, PBE0, B3LYP, or choose one from their web page)"
+             if (CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL .ne. "NONE") then
+                
+                this%name="exchange:"//CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
+                this%exchangeName="XC_"//CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
+                
+                call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)
+                this%info1 = xc_f03_func_get_info(this%xc1)
+                          
+                if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA ) this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
              
+             end if
+             
+             if (CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL .ne. "NONE") then
+                
+                this%name=this%name//"-correlation:"//CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
+                this%correlationName="XC_"//CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
+             
+                call xc_f03_func_init(this%xc2, xc_f03_functional_get_number( this%correlationName), this%shell)
+                this%info2 = xc_f03_func_get_info(this%xc2)
+             
+             end if
+                          
           case("LDA")
              this%name="exchange:Slater-correlation:VWN5"
              this%exchangeName="XC_LDA_X"
@@ -202,30 +222,10 @@ contains
              this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
 
              if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA) this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
+
+             ! stop "ERROR: Please select an electronic functional to call LIBXC (LDA, PBE, BLYP, PBE0, B3LYP, or choose one from their web page)"
              
           end select
-
-          if (CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL .ne. "NONE") then
-             
-             this%name="exchange:"//CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
-             this%exchangeName="XC_"//CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
-
-             call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)
-             this%info1 = xc_f03_func_get_info(this%xc1)
-                          
-             if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA ) this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
-             
-          end if
-             
-          if (CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL .ne. "NONE") then
-
-             this%name=this%name//"-correlation:"//CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
-             this%correlationName="XC_"//CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
-             
-             call xc_f03_func_init(this%xc2, xc_f03_functional_get_number( this%correlationName), this%shell)
-             this%info2 = xc_f03_func_get_info(this%xc2)
-             
-          end if
           
           ! print *, "sere yo maestro", this%species1, this%exactExchangeFraction
           
@@ -402,7 +402,7 @@ contains
        call xc_f03_gga_exc_vxc(this%xc1, n, rho, sigma, e_exchange, v_exchange, vs_exchange)
     end select
 
-    if ( CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .eq. "NONE") then
+    if( this%correlationName .ne. "NONE" ) then
 
        select case ( xc_f03_func_info_get_family(this%info2))
        case(XC_FAMILY_LDA)
@@ -480,13 +480,13 @@ contains
     vcE(1:n)=vcE(1:n) + (b*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2)-2*a*rhoN(1:n))/denominator(1:n)**2/2
     vcN(1:n)=vcN(1:n) + (b*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2)-2*a*rhoE(1:n))/denominator(1:n)**2/2
     
-    do i = 1, n
-       if(denominator(i) .lt. 1E-6 .or. rhoE(i) .lt. 1E-6 .or. rhoN(i) .lt. 1E-6) then
-          ec(i)=0.0
-          vcE(i)=0.0
-          vcN(i)=0.0
-       end if
-    end do
+    ! do i = 1, n
+    !    if(denominator(i) .lt. 1E-6 .or. rhoE(i) .lt. 1E-6 .or. rhoN(i) .lt. 1E-6) then
+    !       ec(i)=0.0
+    !       vcE(i)=0.0
+    !       vcN(i)=0.0
+    !    end if
+    ! end do
 
 
     ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"

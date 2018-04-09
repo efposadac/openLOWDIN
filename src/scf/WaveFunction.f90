@@ -797,8 +797,8 @@ contains
     
     close(unit=excUnit)
 
-    ! print *, "Exc. Corr. Matrix for species ", nameOfSpecies 
-    ! call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
+    print *, "Exc. Corr. Matrix for species ", nameOfSpecies 
+    call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
     
   end subroutine WaveFunction_buildExchangeCorrelationMatrix
 
