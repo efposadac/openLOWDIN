@@ -227,6 +227,7 @@ module CONTROL_
      !! Graphs Options
      !!
      integer :: NUMBER_OF_POINTS_PER_DIMENSION
+     character(50) :: MOLDEN_FILE_FORMAT
 
      !!*****************************************************
      !! Cubes Options
@@ -487,6 +488,7 @@ module CONTROL_
   !! Graphs Options
   !!
   integer :: LowdinParameters_numberOfPointsPerDimension
+  character(50) :: LowdinParameters_moldenFileFormat
 
   !!*****************************************************
   !! Cubes Options
@@ -744,6 +746,7 @@ module CONTROL_
                                 !! Graphs Options
                                 !!
        LowdinParameters_numberOfPointsPerDimension,&
+       LowdinParameters_moldenFileFormat, &
        
                                 !!*****************************************************
                                 !! Cubes Options
@@ -1028,6 +1031,7 @@ contains
     !! Graphs Options
     !!
     LowdinParameters_numberOfPointsPerDimension = 50
+    LowdinParameters_moldenFileFormat = "MIXED" 
 
     !!*****************************************************
     !! Cubes Options
@@ -1291,6 +1295,7 @@ contains
     !! Graphs Options                                                                                                          
     !!                                                                                                                         
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = 50
+    LowdinParameters_moldenFileFormat = "MIXED" 
 
     !!*****************************************************                                                                    
     !! Cubes Options                                                                                                           
@@ -1592,6 +1597,8 @@ contains
     !! Graphs Options                                                                  
     !!                                                                                 
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = LowdinParameters_numberOfPointsPerDimension
+    CONTROL_instance%MOLDEN_FILE_FORMAT = LowdinParameters_moldenFileFormat
+
 
     !!*****************************************************                            
     !! Cubes Options                                                                   
@@ -1867,7 +1874,7 @@ contains
     !! Graphs Options                                                                  
     !!                                                                                 
     LowdinParameters_numberOfPointsPerDimension = CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
-
+    LowdinParameters_moldenFileFormat = CONTROL_instance%MOLDEN_FILE_FORMAT 
     !!*****************************************************                            
     !! Cubes Options                                                                   
     !!                                                                                 
@@ -2122,6 +2129,7 @@ contains
     !! Graphs Options
     !!
     otherThis%NUMBER_OF_POINTS_PER_DIMENSION = this%NUMBER_OF_POINTS_PER_DIMENSION 
+    otherThis%MOLDEN_FILE_FORMAT = this%MOLDEN_FILE_FORMAT 
     !!*****************************************************
     !! Cubes Options
     !!
