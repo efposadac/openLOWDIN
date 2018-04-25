@@ -76,7 +76,7 @@ contains
   !!      -Adapted for open shell systems, 2011. E. F. Posada
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
-  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge )
+  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge, mass )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
@@ -88,6 +88,7 @@ contains
     integer, intent(in), optional :: addParticles
     integer, intent(in) :: id
     real(8), intent(in), optional :: charge
+    real(8), intent(in), optional :: mass
     
     type(AtomicElement) :: element
     type(ElementalParticle) :: eparticle
@@ -100,6 +101,7 @@ contains
     integer :: auxAdditionOfParticles
     real(8) :: auxOrigin(3)
     real(8) :: auxCharge
+    real(8) :: auxMass
     real(8) :: auxMultiplicity
     logical :: isDummy
     logical :: isElectron
@@ -112,6 +114,9 @@ contains
 
     auxCharge=0.0_8
     if   ( present(charge) ) auxCharge= charge
+
+    auxMass=0.0_8
+    if   ( present(mass) ) auxMass= mass
     
     auxMultiplicity=1.0_8
     if   ( present(multiplicity) ) auxMultiplicity=multiplicity
@@ -176,6 +181,7 @@ contains
                isQuantum= .true., &
                origin=auxOrigin, &
                charge=auxCharge, &
+               mass=auxMass, &
                basisSetName=trim(baseName), &
                elementSymbol=trim(elementSymbol), &
                isDummy= isDummy, &
@@ -193,7 +199,11 @@ contains
                 if ( auxCharge == 0.0_8) then
                   this%charge = PhysicalConstants_ELECTRON_CHARGE
                 end if
-                this%mass = PhysicalConstants_ELECTRON_MASS
+
+                if ( auxMass == 0.0_8) then
+                  this%mass = PhysicalConstants_ELECTRON_MASS
+                end if
+ 
                 this%totalCharge = -element%atomicNumber
                 this%internalSize = element%atomicNumber + (auxMultiplicity-1)  + auxAdditionOfParticles             
                 this%klamt = element%klamt
@@ -210,7 +220,11 @@ contains
                 if ( auxCharge == 0.0_8) then
                   this%charge = PhysicalConstants_ELECTRON_CHARGE
                 end if
-                this%mass = PhysicalConstants_ELECTRON_MASS
+
+                if ( auxMass == 0.0_8) then
+                  this%mass = PhysicalConstants_ELECTRON_MASS
+                end if
+
                 this%totalCharge = -element%atomicNumber
                 this%internalSize = element%atomicNumber - (auxMultiplicity-1)  + auxAdditionOfParticles             
                 this%klamt = element%klamt
@@ -229,7 +243,11 @@ contains
              if ( auxCharge == 0.0_8) then
                this%charge = PhysicalConstants_ELECTRON_CHARGE
              end if
-             this%mass = PhysicalConstants_ELECTRON_MASS
+
+             if ( auxMass == 0.0_8) then
+               this%mass = PhysicalConstants_ELECTRON_MASS
+             end if
+
              this%totalCharge = -element%atomicNumber
              this%internalSize = element%atomicNumber  + auxAdditionOfParticles
              this%klamt = element%klamt
@@ -248,6 +266,7 @@ contains
                isQuantum = .true., &
                origin = auxOrigin,&
                charge = auxCharge,&
+               mass = auxMass,&
                basisSetName = trim(baseName), &
                elementSymbol = trim(elementSymbol), &
                isDummy = isDummy, &
@@ -263,8 +282,12 @@ contains
           if ( auxCharge == 0.0_8) then
             this%charge = element%atomicNumber
           end if
-          this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
+
+          if ( auxMass == 0.0_8) then
+            this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
                + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)          
+          end if
+
           this%totalCharge = element%atomicNumber
           this%internalSize = 1  + auxAdditionOfParticles
           this%klamt = element%klamt
@@ -394,6 +417,7 @@ contains
             isQuantum = .true., &
             origin = auxOrigin, &
             charge = auxCharge, &
+            mass = auxMass, &
             basisSetName = trim(baseName), &
             elementSymbol = trim(elementSymbol), &
             isDummy = isDummy, &
@@ -406,7 +430,9 @@ contains
        if ( auxCharge == 0.0_8) then
         this%charge = eParticle%charge
        end if
-       this%mass = eParticle%mass
+       if ( auxMass == 0.0_8) then
+         this%mass = eParticle%mass
+       end if
        this%totalCharge = eParticle%charge
        this%internalSize = 1  + auxAdditionOfParticles
        this%spin = eParticle%spin
