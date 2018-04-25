@@ -354,11 +354,11 @@ contains
     print *,""
     print *,"                INFORMATION OF QUANTUM SPECIES "
     write (6,"(T5,A70)") "---------------------------------------------------------------------"
-    write (6,"(T10,A2,A4,A8,A10,A4,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","spin","","multiplicity"
+    write (6,"(T10,A2,A4,A8,A12,A4,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","spin","","multiplicity"
     write (6,"(T5,A70)") "---------------------------------------------------------------------"
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-       write (6,'(T8,I3.0,A5,A10,A5,F7.1,A5,F5.1,A5,F5.2,A5,F5.2)') &
+       write (6,'(T8,I3.0,A5,A10,A5,F10.4,A5,F5.2,A5,F5.2,A5,F5.2)') &
             i, " ", &
             trim(MolecularSystem_instance%species(i)%symbol)," ",&
             MolecularSystem_instance%species(i)%mass," ",&
