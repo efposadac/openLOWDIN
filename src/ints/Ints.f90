@@ -99,7 +99,12 @@ Program Ints
 
      ! !!Calculate moment integrals
      call IntegralManager_getMomentIntegrals()
-
+     
+     !!Calculate confining integrals
+     if (CONTROL_instance%PSEUDOATOMIC_CALCULATION .eqv. .true.) then
+     call IntegralManager_getConfiningIntegrals()
+     end if
+  
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
 

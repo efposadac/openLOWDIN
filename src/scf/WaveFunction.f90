@@ -69,6 +69,9 @@ module WaveFunction_
      type(Matrix) :: cosmoCoupling
      real(8) :: cosmoChargeValue
 
+     !! DFTB
+     type(Matrix) :: confiningMatrix
+
      !!
      !!**************************************************************
 
@@ -146,6 +149,13 @@ contains
        WaveFunction_instance(speciesID)%HcoreMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
             columns= int(numberOfContractions,4), binary=.true., arguments=labels)
 
+       !! DFTB
+if  ( CONTROL_instance%PSEUDOATOMIC_CALCULATION) then
+       labels(1) = "CONFINING"
+       WaveFunction_instance(speciesID)%confiningMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=labels)
+end if
+       
        labels(1) = "DENSITY"
        WaveFunction_instance(speciesID)%densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
             columns= int(numberOfContractions,4), binary=.true., arguments=labels)
@@ -183,7 +193,12 @@ contains
           write(*,*) "Matriz de Densidad "//trim(MolecularSystem_getNameOfSpecie(speciesID))
           call Matrix_show(WaveFunction_instance(speciesID)%densityMatrix)
           write(*,*) "Matriz de Transformacion "//trim(MolecularSystem_getNameOfSpecie(speciesID))
-          call Matrix_show(WaveFunction_instance(speciesID)%transformationMatrix)          
+          call Matrix_show(WaveFunction_instance(speciesID)%transformationMatrix)
+          !! DFTB
+          if ( CONTROL_instance%PSEUDOATOMIC_CALCULATION ) then
+          write(*,*) "Matriz de Confinamiento "//trim(MolecularSystem_getNameOfSpecie(speciesID))
+          call Matrix_show(WaveFunction_instance(speciesID)%confiningMatrix)
+          end if
        end if
 
        !! Build some matrices
@@ -193,6 +208,10 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%interParticleCorrMatrix, numberOfContractions, numberOfContractions, 0.0_8 )       
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( WaveFunction_instance(speciesID)%waveFunctionCoefficients,numberOfContractions, numberOfContractions, 0.0_8 )
+       !! DFTB
+       if  ( CONTROL_instance%PSEUDOATOMIC_CALCULATION ) then
+          call Matrix_constructor( WaveFunction_instance(speciesID)%confiningMatrix,numberOfContractions, numberOfContractions, 0.0_8 )
+          end if
        call Vector_constructor( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, int(numberOfContractions) )
 
        !!cosmo things

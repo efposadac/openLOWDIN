@@ -62,6 +62,7 @@ module Particle_
      integer :: owner			!< asocia un indice a la particula que la indentifica como un centro de referencia.
      integer :: basisSetSize		!< Este atributo es adicionado por conveniencia
      integer, allocatable :: childs(:)	!< Cuando la particula es un centro de optimizacion (es padre), almacena los Ids de sus hijas
+     real(8) :: particleRadius          !< Radio covalente de los átomos (y partículas?)
   end type Particle
 
   public :: &

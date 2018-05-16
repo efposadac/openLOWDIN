@@ -148,6 +148,11 @@ program HF
      !! Overlap Matrix
      call WaveFunction_buildOverlapMatrix(trim(integralsFile), speciesID)
 
+     !! Confining Matrix (DFTB)
+     if  ( CONTROL_instance%PSEUDOATOMIC_CALCULATION ) then
+        call WaveFunction_buildConfiningMatrix(trim(integralsFile), speciesID)
+     end if
+
      !! Transformation Matrix
      call WaveFunction_buildTransformationMatrix( trim(integralsFile), speciesID, 2 )
 
@@ -197,6 +202,11 @@ program HF
 
      arguments(1) = "HCORE"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%HcoreMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+
+     if  ( CONTROL_instance%PSEUDOATOMIC_CALCULATION) then
+     arguments(1) = "CONFINING"
+     call Matrix_writeToFile(WaveFunction_instance(speciesID)%confiningMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+     end if
 
      arguments(1) = "DENSITY"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )

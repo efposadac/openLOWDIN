@@ -44,7 +44,8 @@ module InputManager_
      integer :: propagatorTheoryCorrection
      logical :: optimizeGeometry
      logical :: TDHF
-     logical :: cosmo		
+     logical :: cosmo
+     logical :: pseudoatomicCalculation
 
   end type InputManager
 
@@ -176,6 +177,7 @@ contains
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
     logical:: InputTasks_cosmo
+    logical:: InputTasks_pseudoatomicCalculation
 
     
     NAMELIST /InputTasks/ &
@@ -185,7 +187,8 @@ contains
          InputTasks_propagatorTheoryCorrection, &
          InputTasks_optimizeGeometry, &
          InputTasks_TDHF, &
-         InputTasks_cosmo		
+         InputTasks_cosmo, &
+         InputTasks_pseudoatomicCalculation
 
     
     !! Setting defaults    
@@ -195,7 +198,8 @@ contains
     InputTasks_propagatorTheoryCorrection = 0
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
-    InputTasks_cosmo= .false.	
+    InputTasks_cosmo= .false.
+    InputTasks_pseudoatomicCalculation = .false.
     
     !! reload input file
     rewind(4)
@@ -214,7 +218,8 @@ contains
     Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
-    Input_instance%cosmo = InputTasks_cosmo	
+    Input_instance%cosmo = InputTasks_cosmo
+    Input_instance%pseudoatomicCalculation = InputTasks_pseudoatomicCalculation
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -258,6 +263,10 @@ contains
     if (input_instance%cosmo) then 	
        CONTROL_instance%cosmo = .true.	
        CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
+    end if
+
+    if( Input_instance%pseudoatomicCalculation ) then    
+       CONTROL_instance%PSEUDOATOMIC_CALCULATION = .true.
     end if
     
     if( Input_instance%numberOfExternalPots > 0) then    

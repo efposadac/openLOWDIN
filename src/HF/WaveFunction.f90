@@ -60,6 +60,8 @@ module WaveFunction_
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: coefficientsofcombination
      type(vector) :: energyofmolecularorbital
+     !! DFTB
+     type(Matrix) :: confiningMatrix
      !! Cosmo Things
      type(Matrix) :: cosmo1
      type(Matrix) :: cosmo2
@@ -155,6 +157,43 @@ contains
     ! call Matrix_show(WaveFunction_instance( speciesID )%overlapMatrix)
 
   end subroutine WaveFunction_buildOverlapMatrix
+
+  !>
+  !! @brief Contruye la matrix de confinamiento.
+  !! @param nameOfSpecie nombre de la especie seleccionada.
+  subroutine WaveFunction_buildConfiningMatrix(file, speciesID)
+    implicit none
+
+    character(*), intent(in) :: file
+    integer, intent(in) :: speciesID
+
+    integer :: unit
+    integer :: numberOfContractions
+    integer :: totalNumberOfContractions
+    character(10) :: arguments(2)
+
+    arguments(1) = "CONFINING"
+    arguments(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
+
+    !    print*,"Construyendo matriz de confinamiento................"
+    !! Open file
+    unit = 34
+    open(unit = unit, file=trim(file), status="old", form="unformatted")
+
+    !! Get number of shells and number of cartesian contractions
+    numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
+
+    WaveFunction_instance( speciesID )%confiningMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments)
+
+    close(34)
+
+    !! DEBUG
+    !     print *,"Matriz de confinamiento: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+    !     call Matrix_show(WaveFunction_instance( speciesID )%confiningMatrix)
+
+  end subroutine WaveFunction_buildConfiningMatrix
 
 
   !>

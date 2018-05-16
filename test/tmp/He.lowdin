@@ -5,7 +5,7 @@ GEOMETRY
 END GEOMETRY
 TASKS
 	method = "RHF"
-	pseudoatomicCalculation=T
+!	pseudoatomicCalculation=T
 END TASKS
 
 CONTROL

@@ -289,10 +289,15 @@ module CONTROL_
      character(255) :: ELEMENTAL_PARTICLES_DATABASE="NONE"
      character(100) :: INPUT_FILE=""
 
+    !!***************************************************************************
+    !! DFTB options. 
+    !!
+    logical :: PSEUDOATOMIC_CALCULATION
+     
   end type CONTROL
 
   !< Namelist definition
-
+  
   !!***************************************************************************
   !! Dummy variables, just for debugging. 
   !!
@@ -558,6 +563,10 @@ module CONTROL_
   character(255) :: LowdinParameters_elementalParticlesDataBase
   character(100) :: LowdinParameters_inputFile
 
+  !!***************************************************************************
+  !! DFTB options
+  !!
+  logical :: LowdinParameters_pseudoatomicCalculation
 
   NAMELIST /LowdinParameters/ &
 
@@ -824,9 +833,13 @@ module CONTROL_
        LowdinParameters_atomicElementsDataBase,&
        LowdinParameters_basisSetDataBase,&
        LowdinParameters_potentialsDataBase,&
-       LowdinParameters_elementalParticlesDataBase
+       LowdinParameters_elementalParticlesDataBase,&
 
-
+                                !!***************************************************************************
+                                !! DFTB Options
+                                !!
+       LowdinParameters_pseudoatomicCalculation
+  
   public :: &
        CONTROL_start, &
        CONTROL_load, &
@@ -1119,6 +1132,11 @@ contains
     LowdinParameters_potentialsDataBase = "/potentials/"
     LowdinParameters_elementalParticlesDataBase = "/dataBases/elementalParticles.lib"
     LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
+    
+    !!***************************************************************************
+    !! DFTB Options
+    !!
+    LowdinParameters_pseudoatomicCalculation = .false.
 
     !! Set defaults for CONTROL Object
 
@@ -1390,6 +1408,11 @@ contains
     CONTROL_instance%POTENTIALS_DATABASE = "/potentials/"
     CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE = "/dataBases/elementalParticles.lib"
     CONTROL_instance%INPUT_FILE = CONTROL_instance%INPUT_FILE
+
+    !!***************************************************************************                                              
+    !! DFTB Options
+    !!                                                                                                                         
+    CONTROL_instance%PSEUDOATOMIC_CALCULATION = .false.
 
   end subroutine CONTROL_start
 
@@ -1701,7 +1724,11 @@ contains
     CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE = LowdinParameters_elementalParticlesDataBase
     CONTROL_instance%INPUT_FILE = LowdinParameters_inputFile
 
-
+    !!***************************************************************************      
+    !! DFTB Options
+    !!                                                                                 
+    CONTROL_instance%PSEUDOATOMIC_CALCULATION = LowdinParameters_pseudoatomicCalculation
+    
   end subroutine CONTROL_load
 
   !> 
@@ -1988,6 +2015,11 @@ contains
     LowdinParameters_elementalParticlesDataBase = CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE
     LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
 
+    !!***************************************************************************      
+    !! DFTB Options                       
+    !!                                                                                 
+    LowdinParameters_pseudoatomicCalculation = CONTROL_instance%PSEUDOATOMIC_CALCULATION
+
     !! Write the name list in the specified unit.
     write(unit, NML=LowdinParameters)
 
@@ -2248,6 +2280,11 @@ contains
     otherThis%POTENTIALS_DATABASE = this%POTENTIALS_DATABASE 
     otherThis%ELEMENTAL_PARTICLES_DATABASE = this%ELEMENTAL_PARTICLES_DATABASE 
 
+    !!***************************************************************************
+    !! DFTB Options
+    !!
+    otherThis%PSEUDOATOMIC_CALCULATION = this%PSEUDOATOMIC_CALCULATION
+    
   end subroutine CONTROL_copy
 
   !>
@@ -2472,6 +2509,12 @@ contains
        end select
     end if
 
+    if ( CONTROL_instance%PSEUDOATOMIC_CALCULATION ) then
+
+       write(*,"(T10,A)") "PSEUDOATOMIC CALCULATION: T"
+
+    end if
+    
   end subroutine CONTROL_show
 
   !>
