@@ -261,15 +261,17 @@ contains
   !!
   !! @param this
   !<
-  subroutine Configuration_constructorB(this,occupiedCode,unoccupiedCode,i,k,order)
+  subroutine Configuration_constructorB(this,orbitals,occupiedCode,unoccupiedCode,i,k,order)
     implicit none
     type(imatrix) :: this
+    type(imatrix1) :: orbitals
     type(IVector) :: order
     type(Vector), allocatable :: occupiedCode(:)
     type(Vector), allocatable :: unoccupiedCode(:)
 
     integer :: numberOfOccupiedOrbitals 
-    integer :: i,j
+    integer :: numberOfOrbitals 
+    integer :: i,j,jj
     integer :: numberOfSpecies
     integer :: div1
     integer :: div2
@@ -281,10 +283,12 @@ contains
     !spin orbitals not spatial orbitals
     lambda=MolecularSystem_getLambda(i)
     numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(i)*lambda
+    numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda
 
     do j=1, numberOfOccupiedOrbitals
       !this%values(j,k) = 1_1
       this%values(j,k)=j
+      orbitals%values(j,k) = 1
     end do
 
     do j= int(order%values(i)), 1, -1 
@@ -293,9 +297,21 @@ contains
        div2= int(unoccupiedCode(i)%values(j))
 
        this%values(div1,k) = div2
+
+       orbitals%values(div1,k) = 0_1
+       orbitals%values(div2,k) = 1_1
+
        !this%values(div1,k) = 0_1
        !this%values(div2,k) = 1_1
 
+    end do
+
+    jj = 0 
+    do j=1, numberOfOrbitals
+       if ( orbitals%values(j,k) == 1 ) then
+         jj = jj + 1
+         this%values(jj,k) = j  
+       end if
     end do
 
   end subroutine Configuration_constructorB
