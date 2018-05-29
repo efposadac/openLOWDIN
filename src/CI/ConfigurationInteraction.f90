@@ -1541,9 +1541,6 @@ contains
                 end do
              end do
 
-             print *, "density CI diagonal", speciesName
-             call Matrix_show ( densityMatrix )
-
              !!off-Diagonal ground state
              do i=1, ConfigurationInteraction_instance%numberOfConfigurations-1
                 do j=i+1, ConfigurationInteraction_instance%numberOfConfigurations
@@ -1557,15 +1554,16 @@ contains
                       call Configuration_setAtMaximumCoincidenceB( auxthisA%occupations,auxthisB%occupations, numberOfSpecies, factor )
 
                       ! print *, i, j, ConfigurationInteraction_instance%configurations(i)%occupations(:,specie), ConfigurationInteraction_instance%configurations(j)%occupations(:,specie)
+                      ! print *, i, j, auxthisA%occupations(:,specie), auxthisB%occupations(:,specie)
 
                       do k=1, numberOfOccupiedOrbitals
 
-                         if(ConfigurationInteraction_instance%configurations(i)%occupations(k,specie) .ne. &
-                              ConfigurationInteraction_instance%configurations(j)%occupations(k,specie)) then
+                         if(auxthisA%occupations(k,specie) .ne. auxthisB%occupations(k,specie)) then
 
-                            orbitalA = ConfigurationInteraction_instance%configurations(i)%occupations(k,specie) 
-                            orbitalB = ConfigurationInteraction_instance%configurations(j)%occupations(k,specie)
+                            orbitalA = auxthisA%occupations(k,specie)
+                            orbitalB = auxthisB%occupations(k,specie)
 
+                            ! print *, "trololooooo"
                             ! print *, i, j, orbitalA, orbitalB, factor*ConfigurationInteraction_instance%eigenVectors%values(i,1)*ConfigurationInteraction_instance%eigenVectors%values(j,1)
 
                             ! ciOccupationMatrix%values( orbitalA, orbitalB)= ciOccupationMatrix%values( orbitalA, orbitalB) + &
