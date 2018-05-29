@@ -120,7 +120,7 @@ contains
     this%type=type
     this%outputID=ID
     this%specie=trim(String_getUppercase(specie))
-    ! this%state=state
+    this%state=1 !only ground state properties and plots
     this%orbital=orbital
     this%dimensions=dimensions
     this%cubeSize=cubeSize
