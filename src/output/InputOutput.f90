@@ -172,9 +172,9 @@ contains
           Output_orbital=0
           Output_dimensions=0
           Output_cubeSize=0.0_8
-          Output_point1=0.0_8
-          Output_point2=0.0_8
-          Output_point3=0.0_8
+          Output_point1(:)=0.0_8
+          Output_point2(:)=0.0_8
+          Output_point3(:)=0.0_8
           read(4,NML=Output, iostat=stat)
 
           if(stat > 0 ) then
