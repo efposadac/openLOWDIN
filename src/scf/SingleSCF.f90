@@ -420,6 +420,7 @@ contains
                         rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
                         arguments=arguments(1:2))
 
+                   close(wfnUnit)
                 else 
                    !! Open file for wavefunction
                    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
@@ -427,12 +428,48 @@ contains
                    WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
                         rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
                         arguments=arguments(1:2))
+                   close(wfnUnit)
                 end if
-
-                close(wfnUnit)
 
              end if
           end if
+       end if
+
+       !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
+       if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS <= 2 ) then
+         if ( CONTROL_instance%READ_EIGENVALUES ) then
+           inquire(FILE = "lowdin.vec", EXIST = existFile )
+
+           if ( existFile) then
+
+             arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+             arguments(1) = "ORBITALS"
+
+             if ( CONTROL_instance%READ_EIGENVALUES_IN_BINARY ) then
+
+               !! Open file for wavefunction
+               open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+                call Vector_getFromFile(unit=wfnUnit, &
+                          output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
+                          elementsNum= int(numberOfContractions,4), binary=.true., & 
+                          arguments=arguments(1:2))
+
+               close(wfnUnit)
+             else 
+               !! Open file for wavefunction
+               open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+
+                call Vector_getFromFile(unit=wfnUnit, &
+                          output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
+                          elementsNum= int(numberOfContractions,4), binary=.false., & 
+                          arguments=arguments(1:2))
+               close(wfnUnit)
+
+             end if
+
+           end if
+         end if
        end if
 
        !! Not implemented yet

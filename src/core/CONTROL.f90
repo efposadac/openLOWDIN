@@ -72,6 +72,9 @@ module CONTROL_
      logical :: READ_COEFFICIENTS
      logical :: READ_COEFFICIENTS_IN_BINARY
      logical :: WRITE_COEFFICIENTS_IN_BINARY
+     logical :: READ_EIGENVALUES
+     logical :: READ_EIGENVALUES_IN_BINARY
+     logical :: WRITE_EIGENVALUES_IN_BINARY
      logical :: NO_SCF
      logical :: FINITE_MASS_CORRECTION
      logical :: REMOVE_TRANSLATIONAL_CONTAMINATION
@@ -334,6 +337,9 @@ module CONTROL_
   logical :: LowdinParameters_readCoefficients
   logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_writeCoefficientsInBinary
+  logical :: LowdinParameters_readEigenvalues
+  logical :: LowdinParameters_readEigenvaluesInBinary
+  logical :: LowdinParameters_writeEigenvaluesInBinary
   logical :: LowdinParameters_noSCF
   logical :: LowdinParameters_finiteMassCorrection
   logical :: LowdinParameters_removeTranslationalContamination
@@ -589,10 +595,13 @@ module CONTROL_
        LowdinParameters_frozen,&
        LowdinParameters_freezeNonElectronicOrbitals,&
        LowdinParameters_hartreeProductGuess,&
-       LowdinParameters_readCoefficients,&
        LowdinParameters_noSCF,&
+       LowdinParameters_readCoefficients,&
        LowdinParameters_readCoefficientsInBinary, &
        LowdinParameters_writeCoefficientsInBinary, &
+       LowdinParameters_readEigenvalues,&
+       LowdinParameters_readEigenvaluesInBinary, &
+       LowdinParameters_writeEigenvaluesInBinary, &
        LowdinParameters_finiteMassCorrection,&
        LowdinParameters_removeTranslationalContamination,&
        LowdinParameters_buildTwoParticlesMatrixForOneParticle,&
@@ -877,6 +886,9 @@ contains
     LowdinParameters_readCoefficients = .false.
     LowdinParameters_readCoefficientsInBinary = .true.
     LowdinParameters_writeCoefficientsInBinary = .true.
+    LowdinParameters_readEigenvalues = .false.
+    LowdinParameters_readEigenvaluesInBinary = .true.
+    LowdinParameters_writeEigenvaluesInBinary = .true.
     LowdinParameters_noSCF = .false.
     LowdinParameters_finiteMassCorrection = .false.
     LowdinParameters_removeTranslationalContamination = .false.
@@ -1444,6 +1456,9 @@ contains
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
     CONTROL_instance%READ_COEFFICIENTS_IN_BINARY =  LowdinParameters_readCoefficientsInBinary
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
+    CONTROL_instance%READ_EIGENVALUES = LowdinParameters_readEigenvalues
+    CONTROL_instance%READ_EIGENVALUES_IN_BINARY =  LowdinParameters_readEigenvaluesInBinary
+    CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY = LowdinParameters_writeEigenvaluesInBinary
     CONTROL_instance%NO_SCF = LowdinParameters_noSCF
     CONTROL_instance%FINITE_MASS_CORRECTION = LowdinParameters_finiteMassCorrection
     CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION = LowdinParameters_removeTranslationalContamination
@@ -1713,6 +1728,9 @@ contains
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
     LowdinParameters_readCoefficientsInBinary = CONTROL_instance%READ_COEFFICIENTS_IN_BINARY
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
+    LowdinParameters_readEigenvalues = CONTROL_instance%READ_EIGENVALUES
+    LowdinParameters_readEigenvaluesInBinary = CONTROL_instance%READ_EIGENVALUES_IN_BINARY
+    LowdinParameters_writeEigenvaluesInBinary = CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY
     LowdinParameters_noSCF = CONTROL_instance%NO_SCF
     LowdinParameters_finiteMassCorrection = CONTROL_instance%FINITE_MASS_CORRECTION
     LowdinParameters_removeTranslationalContamination = CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION

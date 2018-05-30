@@ -21,6 +21,10 @@ usage(){
 	echo "      This is the lowdin version that will be used"
 	echo "   -p"
 	echo "      This will print the output file to the standard output on the fly"
+	echo "   -w"
+	echo "      This will save the LOWDIN .wfn file"
+	echo "   -k"
+	echo "      This will keep the temporary files in the scratch directory after running the calculation"
 	echo "   -s"
 	echo "      This activate the singleton mode"
 	echo "   -h"
@@ -62,11 +66,13 @@ then
 fi
 
 printOut="F"
+saveWfn="F"
 singleton="F"
 version=".x"
 runTest="F"
+keepScratch="F"
 
-while getopts 	"i:pt:sv:n:h" OPTNAME
+while getopts 	"i:pt:sv:n:hwk" OPTNAME
 do
 	case $OPTNAME in
 		i)
@@ -78,6 +84,12 @@ do
 			;;
 		p)
 			printOut="T"
+			;;
+		w)
+			saveWfn="T"
+			;;
+		k)
+			keepScratch="T"
 			;;
 		s)
 			singleton="T"
@@ -381,12 +393,15 @@ if [ $extFile="lowdin" ]; then
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
 	fi
 
+	if [ $saveWfn = "T" ]; then
+	   cp $LOWDIN_SCRATCH/$nameFile/lowdin.wfn $currentPath
+	fi
+
 	mv $LOWDIN_SCRATCH/$nameFile/lowdin-plain.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
-	#mv $LOWDIN_SCRATCH/$nameFile/*.wfn $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
 	mv $LOWDIN_SCRATCH/$nameFile/*.molden $currentPath &> 2
@@ -410,7 +425,10 @@ if [ $extFile="lowdin" ]; then
 	# mv $LOWDIN_SCRATCH/$nameFile/*.kin $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
-	rm -rf $LOWDIN_SCRATCH/$nameFile
+
+	if [ $keepScratch = "F" ]; then
+	   rm -rf $LOWDIN_SCRATCH/$nameFile
+	fi
 	
     else
 		echo $1 ", this file does not exist. "
