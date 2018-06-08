@@ -2,7 +2,7 @@ TOPDIR=..
 
 include $(TOPDIR)/CONFIG
 
-SUBDIRS = aduw gepol molden2aim
+SUBDIRS = aduw gepol molden2aim jadamilu
 ALLDIRS = $(SUBDIRS) 
 
 default::

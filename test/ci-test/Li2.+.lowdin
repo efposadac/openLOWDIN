@@ -1,0 +1,18 @@
+GEOMETRY
+	e-(Li)	aug-cc-pVTZ	0.0000000000	0.0000000000	-8.0000 addParticles=-1 multiplicity=2
+	e-(Li)	aug-cc-pVTZ	0.0000000000	0.0000000000	8.0000
+	Li	dirac	0.0000000000	0.0000000000	-8.0000
+	Li	dirac	0.0000000000	0.0000000000	8.0000
+END GEOMETRY
+TASKS
+	method = "UHF"
+END TASKS
+CONTROL
+	!iterationScheme=3
+	!convergenceMethod=1
+	!scfNonelectronicEnergyTolerance = 1E-7
+	!scfElectronicEnergyTolerance = 1E-7
+	!numberOfPointsPerDimension=600
+	buildMixedDensityMatrix=T
+END CONTROL
+

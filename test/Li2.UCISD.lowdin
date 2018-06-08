@@ -6,10 +6,10 @@
 SYSTEM_DESCRIPTION='Molecula de Li'
 
 GEOMETRY
-e-(Li)  6-31G	0.000	0.000	1.6075621
-e-(Li)  6-31G	0.000	0.000	0.000000
-Li    	dirac	0.000	0.000	1.6075621
-Li    	dirac	0.000	0.000	0.0000
+e-(Li)  6-31G	0.000	0.000	1.6075621 q = 1.0
+e-(Li)  6-31G	0.000	0.000	0.000000 q = 1.0
+Li    	dirac	0.000	0.000	1.6075621 q = -3.0
+Li    	dirac	0.000	0.000	0.0000 q = -3.0
 END GEOMETRY
 
 TASKS
@@ -21,7 +21,10 @@ CONTROL
 	!numberOfCores=1
 	scfelectronicenergytolerance=1E-8
         !CIdiagonalizationMethod="DSYEVX"
-        CIdiagonalizationMethod="ARPACK"
+        !CIdiagonalizationMethod="ARPACK"
+        CIdiagonalizationMethod="JADAMILU"
+	!CISaveEigenvector = true
+	!CILoadEigenvector = true
 END CONTROL
 
 

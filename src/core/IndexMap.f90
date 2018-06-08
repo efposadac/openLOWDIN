@@ -294,7 +294,7 @@ contains
         kl = IndexMap_tensorR2ToVectorC( k, l, basisSizeB)
 
         auxSize = ( basisSizeB * ( basisSizeB + 1 ) ) / 2
-        output = int(auxSize,8) * int(ij,8) + int(kl,8)
+        output = auxSize * ij + kl
            
     end if
 

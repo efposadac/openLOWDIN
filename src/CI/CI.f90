@@ -41,7 +41,7 @@ program CI
   job = ""  
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
-  read(job,"(I10)"), numberOfSpeciesInCI
+  read(job,"(I10)") numberOfSpeciesInCI
 
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
@@ -59,6 +59,7 @@ program CI
   call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
   call ConfigurationInteraction_run()
   call ConfigurationInteraction_show()
+  !!call ConfigurationInteraction_naturalOrbitals()!! currently unavailable 
   call ConfigurationInteraction_destructor()
 
   !!stop time

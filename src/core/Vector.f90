@@ -59,21 +59,38 @@ module Vector_
      real(8) , allocatable :: values(:)
   end type Vector
 
+  type, public :: Vector8
+     character(50) :: name
+     real(8) , allocatable :: values(:)
+  end type Vector8
+
+  type, public :: IVector1
+     integer(1) , allocatable :: values(:)
+  end type IVector1
+
   type, public :: IVector
      integer , allocatable :: values(:)
   end type IVector
   
-
+  type, public :: IVector8
+     integer(8) , allocatable :: values(:)
+  end type IVector8
+ 
   
   public :: &
        Vector_constructor, &
+       Vector_constructor8, &
        Vector_copyConstructor, &
+       Vector_copyConstructor8, &
        Vector_destructor, &
+       Vector_destructor8, &
        Vector_show, &
        Vector_writeToFile, &
        Vector_getPtr, &
        Vector_sortElements, &
        Vector_reverseSortElements, &
+       Vector_reverseSortElements8, &
+       Vector_reverseSortElements8Int, &
        Vector_swapElements, &
        Vector_getSize, &
        Vector_getElement, &
@@ -89,7 +106,9 @@ module Vector_
        Vector_cross, &
        Vector_norm, &
        Vector_removeElement, &
+       Vector_constructorInteger1, &
        Vector_constructorInteger, &
+       Vector_constructorInteger8, &
        Vector_destructorInteger, &
        Vector_swapIntegerElements
   
@@ -142,6 +161,87 @@ contains
 
   !>
   !! @brief Constructor por omision
+  subroutine Vector_constructor8( this, ssize, value, values, name )
+    implicit none
+    type(Vector8), intent(inout) :: this
+    integer(8), intent(in) :: ssize
+    real(8), optional, intent(in) :: value
+    real(8), optional, intent(in) :: values(:)
+    character(50), optional :: name
+    
+    real(8) :: valueTmp
+    character(50) :: auxName
+    
+    valueTmp = 0.0_8
+    
+    if ( allocated( this%values ) ) then
+       deallocate( this%values )
+       
+    end if
+    
+    allocate( this%values( ssize ) )
+    
+    auxName = "none"
+    
+    if( present( name )) then
+       
+       auxName = trim(name)
+       
+    end if
+    
+    if( present(value) ) then
+       
+       valueTmp = value
+       this%values = valueTmp
+       
+    end if
+    
+    if( present(values) ) then
+       
+       this%values = values
+       
+    end if
+    
+  end subroutine Vector_constructor8
+
+   !>
+  !! @brief Constructor por omision
+  subroutine Vector_constructorInteger1( this, ssize, value, values )
+    implicit none
+    type(IVector1), intent(inout) :: this
+    integer(8), intent(in) :: ssize
+    integer(1), optional, intent(in) :: value
+    integer(1), optional, intent(in) :: values(:)
+    
+    integer :: valueTmp
+    
+    valueTmp = 0
+    
+    if ( allocated( this%values ) ) then
+       deallocate( this%values )
+       
+    end if
+    
+    allocate( this%values( ssize ) )
+    
+    if( present(value) ) then
+       
+       valueTmp = value
+       this%values = valueTmp
+       
+    end if
+    
+    if( present(values) ) then
+       
+       this%values = values
+       
+    end if
+    
+  end subroutine Vector_constructorInteger1
+
+
+  !>
+  !! @brief Constructor por omision
   subroutine Vector_constructorInteger( this, ssize, value, values )
     implicit none
     type(IVector), intent(inout) :: this
@@ -176,6 +276,42 @@ contains
   end subroutine Vector_constructorInteger
 
   !>
+  !! @brief Constructor por omision
+  subroutine Vector_constructorInteger8( this, ssize, value, values )
+    implicit none
+    type(IVector8), intent(inout) :: this
+    integer(8), intent(in) :: ssize
+    integer(8), optional, intent(in) :: value
+    integer(8), optional, intent(in) :: values(:)
+    
+    integer :: valueTmp
+    
+    valueTmp = 0
+    
+    if ( allocated( this%values ) ) then
+       deallocate( this%values )
+       
+    end if
+    
+    allocate( this%values( ssize ) )
+    
+    if( present(value) ) then
+       
+       valueTmp = value
+       this%values = valueTmp
+       
+    end if
+    
+    if( present(values) ) then
+       
+       this%values = values
+       
+    end if
+    
+  end subroutine Vector_constructorInteger8
+ 
+
+  !>
   !! @brief Constructor de copia
   !! Reserva la memoria necesaria para otherMatrix y le asigna los valores de this
   subroutine Vector_copyConstructorInteger( this, otherVector )
@@ -208,6 +344,21 @@ contains
   end subroutine Vector_copyConstructor
 
   !>
+  !! @brief Constructor de copia
+  !! Reserva la memoria necesaria para otherMatrix y le asigna los valores de this
+  subroutine Vector_copyConstructor8( this, otherVector )
+    implicit none
+    type(Vector8), intent(inout) :: this
+    type(Vector8), intent(in) :: otherVector
+    
+    if ( allocated( this%values ) ) deallocate( this%values )
+    allocate( this%values( size(otherVector%values, DIM=1) ) )
+    
+    this%values = otherVector%values
+    
+  end subroutine Vector_copyConstructor8
+
+  !>
   !! @brief Destructor
   subroutine Vector_destructor( this )
     implicit none
@@ -216,6 +367,18 @@ contains
     if( allocated(this%values) ) deallocate( this%values )
     
   end subroutine Vector_destructor
+
+  !>
+  !! @brief Destructor
+  subroutine Vector_destructor8( this )
+    implicit none
+    type(Vector8), intent(inout) :: this
+    
+    if( allocated(this%values) ) deallocate( this%values )
+    
+  end subroutine Vector_destructor8
+
+
 
   !>
   !! @brief Destructor
@@ -447,58 +610,98 @@ contains
     bbinary = .false.
     if(present(binary)) bbinary = binary
     
-    
-    if ( present( unit ) ) then
-       !! It is assumed that the unit y conected to any file (anyways will check)
-       inquire(unit=unit, exist=existFile)
-       
-       if(existFile) then
-          
-          if(present(arguments)) then
-             
-             do n = 1, size(arguments)
-                
-                write(unit) arguments(n)
-                
-             end do
-          end if
-             
-          if(present(value)) then
-             write(unit) 1_8
-             write(unit) value
-             
-          else
-             
-             write(unit) int(size(vvector%values), 8)
-             write(unit) vvector%values
-             
-          end if
+    if ( bbinary ) then    
+      if ( present( unit ) ) then
+         !! It is assumed that the unit y conected to any file (anyways will check)
+         inquire(unit=unit, exist=existFile)
+         
+         if(existFile) then
+            
+            if(present(arguments)) then
+               
+               do n = 1, size(arguments)
+                  
+                  write(unit) arguments(n)
+                  
+               end do
+            end if
+               
+            if(present(value)) then
+               write(unit) 1_8
+               write(unit) value
+               
+            else
+               
+               write(unit) int(size(vvector%values), 8)
+               write(unit) vvector%values
+               
+            end if
+  
+         else
+            
+            call Vector_exception( ERROR, "Unit file no connected!",&
+                 "Class object Matrix  in the writeToFile() function" )
+               
+         end if
+         
+         
+      else if ( present(file) ) then
+         if(bbinary) then
+            open ( 4,FILE=trim(file),STATUS='REPLACE',ACTION='WRITE', FORM ='UNFORMATTED')
+            write(4) int(size(vvector%values), 8)
+            write(4) vvector%values
+            close(4)
+            
+         else
+            
+            open ( 4,FILE=trim(file),STATUS='REPLACE',ACTION='WRITE')
+            elementsNum = size( vvector%values )
+            write(auxSize,*) elementsNum
+            write (4,"("//trim(auxSize)//"ES15.8)") (vvector%values(n), n=1 , elementsNum)
+            close(4)
+         end if
 
-       else
-          
-          call Vector_exception( ERROR, "Unit file no connected!",&
-               "Class object Matrix  in the writeToFile() function" )
-             
        end if
-       
-       
-    else if ( present(file) ) then
-       if(bbinary) then
-          open ( 4,FILE=trim(file),STATUS='REPLACE',ACTION='WRITE', FORM ='UNFORMATTED')
-          write(4) int(size(vvector%values), 8)
-          write(4) vvector%values
-          close(4)
-          
-       else
-          
-          open ( 4,FILE=trim(file),STATUS='REPLACE',ACTION='WRITE')
-          elementsNum = size( vvector%values )
-          write(auxSize,*) elementsNum
-          write (4,"("//trim(auxSize)//"ES15.8)") (vvector%values(n), n=1 , elementsNum)
-          close(4)
-       end if
-       
-    end if
+
+      else !! not binary
+
+        if ( present( unit ) ) then
+         !! It is assumed that the unit y conected to any file (anyways will check)
+         inquire(unit=unit, exist=existFile)
+         
+         if(existFile) then
+            
+            if(present(arguments)) then
+               
+               do n = 1, size(arguments)
+                  
+                  write(unit,*) arguments(n)
+                  
+               end do
+            end if
+               
+            if(present(value)) then
+               write(unit,*) 1_8
+               write(unit,*) value
+               
+            else
+               
+               write(unit,*) int(size(vvector%values), 8)
+               write(unit,*) vvector%values
+               
+            end if
+  
+         else
+            
+            call Vector_exception( ERROR, "Unit file no connected!",&
+                 "Class object Matrix  in the writeToFile() function" )
+               
+         end if
+ 
+       end if !! unit not present
+
+         
+      end if
     
   end subroutine Vector_writeToFile
   
@@ -532,7 +735,8 @@ contains
     
     if(present(binary)) bbinary = binary
     
-    if ( present( unit ) ) then
+    if ( bbinary ) then
+      if ( present( unit ) ) then
        
        !! check file
        inquire(unit=unit, exist=existFile)
@@ -676,7 +880,102 @@ contains
                "Class object Vector_  in the getFromFile() function" )
           
        end if
+     end if
+
+    else !! not binary
+
+      if ( present( unit ) ) then
        
+       !! check file
+       inquire(unit=unit, exist=existFile)
+       
+       if(existFile) then
+          
+          rewind(unit)
+          
+          found = .false.
+          line = ""
+             
+          if(present(arguments)) then
+
+             do                   
+                read(unit, *, iostat = status) line (1:len_trim(arguments(1)))
+
+                if(status == -1) then
+                      
+                   call vector_exception( ERROR, "End of file!",&
+                        "Class object Vector in the getfromFile() function" )
+                end if
+
+                if(trim(line) == trim(arguments(1))) then
+                   
+                   found = .true.                   
+                   
+                end if
+                
+                if(found) then
+                      
+                   backspace(unit)
+                   
+                   do n = 1, size(arguments)
+                      
+                      found = .false.
+                      read(unit, *, iostat = status) line
+                         
+                      if(trim(line) == trim(arguments(n))) then
+                            
+                         found = .true.
+                                                     
+                      end if
+                         
+                   end do
+                      
+                end if
+                   
+                if(found) exit
+                      
+             end do
+
+
+          end if
+             
+          !! check size
+          read(unit,*) totalSize
+          
+          if(present(value)) then
+             
+             read(unit,*) value
+             
+          else
+             
+             if(totalSize == int(elementsNum,8)) then
+                
+                if(.not. allocated(output%values)) then                   
+                   
+                   call Vector_constructor( output, elementsNum )
+                   
+                end if
+                
+                read(unit,*) output%values
+                
+                ! call Vector_show(output)
+                
+             else
+                
+                call Vector_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                     "Class object Matrix  in the getFromFile() function"  )
+                
+             end if
+
+          end if
+             
+       else
+
+          call Vector_exception( ERROR, "Unit file no connected!",&
+               "Class object Matrix  in the getFromFile() function" )
+             
+       end if
+      end if
     end if
     
   end subroutine Vector_getFromFile
@@ -775,6 +1074,108 @@ contains
 
   end subroutine Vector_reverseSortElements
 
+  subroutine Vector_reverseSortElements8(this,indexVector,m)
+    type(Vector8) :: this
+    type(IVector8), optional :: indexVector
+    integer(8), optional :: m
+    integer(8) i,j,n
+    
+    n = Vector_getSize8(this)
+    if ( .not. present (indexVector) ) then
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).lt.this%values(i)) then
+               call Vector_swapElements8( this, i, j )
+            end if
+         end do
+      end do
+    else
+    
+      if ( .not. present (m) ) then
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,n
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      else
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,m
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      end if
+    end if
+
+  end subroutine Vector_reverseSortElements8
+
+  subroutine Vector_reverseSortElements8Int(this,indexVector,m)
+    type(IVector8) :: this
+    type(IVector8), optional :: indexVector
+    integer(8), optional :: m
+    integer(8) i,j,n
+    
+    n = size( this%values , DIM=1 )
+
+    if ( .not. present (indexVector) ) then
+      do i=1,n
+         do j=i+1,n
+            if (this%values(j).lt.this%values(i)) then
+               call Vector_swapIntegerElements8( this, i, j )
+            end if
+         end do
+      end do
+    else
+    
+      if ( .not. present (m) ) then
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,n
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapIntegerElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      else
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,m
+           do j=i+1,n
+              if (this%values(j).lt.this%values(i)) then
+                 call Vector_swapIntegerElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      end if
+    end if
+
+  end subroutine Vector_reverseSortElements8Int
+  
+
   
   !>
   !! @brief Intercambia los elementos i y j el vector
@@ -797,6 +1198,25 @@ contains
 
   !>
   !! @brief Intercambia los elementos i y j el vector
+  subroutine Vector_swapElements8( this, i, j )
+    implicit none
+    type(Vector8), intent(inout) :: this
+    integer(8), intent(in) :: i
+    integer(8), intent(in) :: j
+    
+    real(8) :: value1
+    real(8) :: value2
+    
+    value1 = this%values( i )
+    value2 = this%values( j )
+    
+    this%values( i ) = value2
+    this%values( j ) = value1
+    
+  end subroutine Vector_swapElements8
+
+  !>
+  !! @brief Intercambia los elementos i y j el vector
   subroutine Vector_swapIntegerElements( this, i, j )
     implicit none
     type(IVector), intent(inout) :: this
@@ -814,6 +1234,27 @@ contains
     
   end subroutine Vector_swapIntegerElements
 
+
+  !>
+  !! @brief Intercambia los elementos i y j el vector
+  subroutine Vector_swapIntegerElements8( this, i, j )
+    implicit none
+    type(IVector8), intent(inout) :: this
+    integer(8), intent(in) :: i
+    integer(8), intent(in) :: j
+    
+    integer(8) :: value1
+    integer(8) :: value2
+    
+    value1 = this%values( i )
+    value2 = this%values( j )
+    
+    this%values( i ) = value2
+    this%values( j ) = value1
+    
+  end subroutine Vector_swapIntegerElements8
+
+
   
   !>
   !! @brief Retorna el tamano del vector
@@ -825,6 +1266,17 @@ contains
     output = size( this%values , DIM=1 )
     
   end function Vector_getSize
+  
+  !>
+  !! @brief Retorna el tamano del vector
+  function Vector_getSize8( this ) result ( output )
+    implicit none
+    type(Vector8), intent(inout) :: this
+    integer(8) :: output
+    
+    output = size( this%values , DIM=1 )
+    
+  end function Vector_getSize8
   
   !>
   !! @brief Retorna el elemento i-esimo del vector

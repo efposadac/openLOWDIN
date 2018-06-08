@@ -89,6 +89,9 @@ module CONTROL_
      logical :: READ_COEFFICIENTS
      logical :: READ_COEFFICIENTS_IN_BINARY
      logical :: WRITE_COEFFICIENTS_IN_BINARY
+     logical :: READ_EIGENVALUES
+     logical :: READ_EIGENVALUES_IN_BINARY
+     logical :: WRITE_EIGENVALUES_IN_BINARY
      logical :: NO_SCF
      logical :: FINITE_MASS_CORRECTION
      logical :: REMOVE_TRANSLATIONAL_CONTAMINATION
@@ -181,10 +184,18 @@ module CONTROL_
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
+     integer :: CI_STATES_TO_PRINT
      integer :: CI_ACTIVE_SPACE
      integer :: CI_MAX_NCV
      integer :: CI_SIZE_OF_GUESS_MATRIX
      integer :: CI_STACK_SIZE
+     real(8) :: CI_CONVERGENCE
+     real(8) :: CI_MATVEC_TOLERANCE
+     logical :: CI_SAVE_EIGENVECTOR
+     logical :: CI_LOAD_EIGENVECTOR
+     logical :: CI_JACOBI
+     logical :: CI_BUILD_FULL_MATRIX
+     integer :: CI_MADSPACE
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -237,6 +248,7 @@ module CONTROL_
      !! Graphs Options
      !!
      integer :: NUMBER_OF_POINTS_PER_DIMENSION
+     character(50) :: MOLDEN_FILE_FORMAT
 
      !!*****************************************************
      !! Cubes Options
@@ -359,6 +371,9 @@ module CONTROL_
   logical :: LowdinParameters_readCoefficients
   logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_writeCoefficientsInBinary
+  logical :: LowdinParameters_readEigenvalues
+  logical :: LowdinParameters_readEigenvaluesInBinary
+  logical :: LowdinParameters_writeEigenvaluesInBinary
   logical :: LowdinParameters_noSCF
   logical :: LowdinParameters_finiteMassCorrection
   logical :: LowdinParameters_removeTranslationalContamination
@@ -451,10 +466,17 @@ module CONTROL_
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
   integer :: LowdinParameters_CIactiveSpace
+  integer :: LowdinParameters_CIstatesToPrint
   integer :: LowdinParameters_CImaxNCV
   integer :: LowdinParameters_CIsizeOfGuessMatrix
   integer :: LowdinParameters_CIstackSize
-
+  real(8) :: LowdinParameters_CIConvergence
+  real(8) :: LowdinParameters_CImatvecTolerance
+  logical :: LowdinParameters_CISaveEigenVector
+  logical :: LowdinParameters_CILoadEigenVector
+  logical :: LowdinParameters_CIJacobi
+  logical :: LowdinParameters_CIBuildFullMatrix
+  integer :: LowdinParameters_CIMadSpace
 
   !!***************************************************************************
   !! CCSD
@@ -507,6 +529,7 @@ module CONTROL_
   !! Graphs Options
   !!
   integer :: LowdinParameters_numberOfPointsPerDimension
+  character(50) :: LowdinParameters_moldenFileFormat
 
   !!*****************************************************
   !! Cubes Options
@@ -625,10 +648,13 @@ module CONTROL_
        LowdinParameters_frozen,&
        LowdinParameters_freezeNonElectronicOrbitals,&
        LowdinParameters_hartreeProductGuess,&
-       LowdinParameters_readCoefficients,&
        LowdinParameters_noSCF,&
+       LowdinParameters_readCoefficients,&
        LowdinParameters_readCoefficientsInBinary, &
        LowdinParameters_writeCoefficientsInBinary, &
+       LowdinParameters_readEigenvalues,&
+       LowdinParameters_readEigenvaluesInBinary, &
+       LowdinParameters_writeEigenvaluesInBinary, &
        LowdinParameters_finiteMassCorrection,&
        LowdinParameters_removeTranslationalContamination,&
        LowdinParameters_buildTwoParticlesMatrixForOneParticle,&
@@ -720,9 +746,17 @@ module CONTROL_
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
        LowdinParameters_CIactiveSpace, &
+       LowdinParameters_CIstatesToPrint, &
        LowdinParameters_CImaxNCV, &
        LowdinParameters_CIsizeOfGuessMatrix, &
        LowdinParameters_CIstackSize, &
+       LowdinParameters_CIConvergence, &
+       LowdinParameters_CImatvecTolerance, &
+       LowdinParameters_CISaveEigenVector, &
+       LowdinParameters_CILoadEigenVector, &
+       LowdinParameters_CIJacobi, &
+       LowdinParameters_CIBuildFullMatrix, &
+       LowdinParameters_CIMadSpace, &
 
        !!***************************************************************************
        !! CCSD 
@@ -775,6 +809,7 @@ module CONTROL_
                                 !! Graphs Options
                                 !!
        LowdinParameters_numberOfPointsPerDimension,&
+       LowdinParameters_moldenFileFormat, &
        
                                 !!*****************************************************
                                 !! Cubes Options
@@ -921,6 +956,9 @@ contains
     LowdinParameters_readCoefficients = .false.
     LowdinParameters_readCoefficientsInBinary = .true.
     LowdinParameters_writeCoefficientsInBinary = .true.
+    LowdinParameters_readEigenvalues = .false.
+    LowdinParameters_readEigenvaluesInBinary = .true.
+    LowdinParameters_writeEigenvaluesInBinary = .true.
     LowdinParameters_noSCF = .false.
     LowdinParameters_finiteMassCorrection = .false.
     LowdinParameters_removeTranslationalContamination = .false.
@@ -1013,9 +1051,17 @@ contains
     LowdinParameters_numberOfCIStates = 1
     LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
     LowdinParameters_CIactiveSpace = 0 !! Full
+    LowdinParameters_CIstatesToPrint = 1
     LowdinParameters_CImaxNCV = 30
     LowdinParameters_CIsizeOfGuessMatrix = 300
     LowdinParameters_CIstackSize = 5000
+    LowdinParameters_CIConvergence = 1E-4
+    LowdinParameters_CImatvecTolerance = 1E-10
+    LowdinParameters_CISaveEigenVector = .false.
+    LowdinParameters_CILoadEigenVector = .false.
+    LowdinParameters_CIJacobi = .false.
+    LowdinParameters_CIBuildFullMatrix = .false. 
+    LowdinParameters_CIMadSpace = 5
 
     !!***************************************************************************
     !! CCSD
@@ -1068,6 +1114,7 @@ contains
     !! Graphs Options
     !!
     LowdinParameters_numberOfPointsPerDimension = 50
+    LowdinParameters_moldenFileFormat = "MIXED" 
 
     !!*****************************************************
     !! Cubes Options
@@ -1285,9 +1332,17 @@ contains
     CONTROL_instance%NUMBER_OF_CI_STATES= 1
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
     CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
+    CONTROL_instance%CI_STATES_TO_PRINT = 1
     CONTROL_instance%CI_MAX_NCV = 30 
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = 300
     CONTROL_instance%CI_STACK_SIZE = 5000
+    CONTROL_instance%CI_CONVERGENCE = 1E-4
+    CONTROL_instance%CI_MATVEC_TOLERANCE = 1E-10
+    CONTROL_instance%CI_SAVE_EIGENVECTOR = .FALSE.
+    CONTROL_instance%CI_LOAD_EIGENVECTOR = .FALSE.
+    CONTROL_instance%CI_JACOBI = .False.
+    CONTROL_instance%CI_BUILD_FULL_MATRIX = .FALSE. 
+    CONTROL_instance%CI_MADSPACE = 5
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1340,6 +1395,7 @@ contains
     !! Graphs Options                                                                                                          
     !!                                                                                                                         
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = 50
+    LowdinParameters_moldenFileFormat = "MIXED" 
 
     !!*****************************************************                                                                    
     !! Cubes Options                                                                                                           
@@ -1505,6 +1561,9 @@ contains
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
     CONTROL_instance%READ_COEFFICIENTS_IN_BINARY =  LowdinParameters_readCoefficientsInBinary
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
+    CONTROL_instance%READ_EIGENVALUES = LowdinParameters_readEigenvalues
+    CONTROL_instance%READ_EIGENVALUES_IN_BINARY =  LowdinParameters_readEigenvaluesInBinary
+    CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY = LowdinParameters_writeEigenvaluesInBinary
     CONTROL_instance%NO_SCF = LowdinParameters_noSCF
     CONTROL_instance%FINITE_MASS_CORRECTION = LowdinParameters_finiteMassCorrection
     CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION = LowdinParameters_removeTranslationalContamination
@@ -1596,9 +1655,17 @@ contains
     CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
     CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
+    CONTROL_instance%CI_STATES_TO_PRINT = LowdinParameters_CIstatesToPrint
     CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
     CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
+    CONTROL_instance%CI_CONVERGENCE = LowdinParameters_CIConvergence
+    CONTROL_instance%CI_MATVEC_TOLERANCE = LowdinParameters_CIMatvecTolerance
+    CONTROL_instance%CI_SAVE_EIGENVECTOR = LowdinParameters_CISaveEigenVector
+    CONTROL_instance%CI_LOAD_EIGENVECTOR = LowdinParameters_CILoadEigenVector
+    CONTROL_instance%CI_JACOBI = LowdinParameters_CIJacobi
+    CONTROL_instance%CI_BUILD_FULL_MATRIX = LowdinParameters_CIBuildFullMatrix 
+    CONTROL_instance%CI_MADSPACE = LowdinParameters_CIMadSpace
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1651,6 +1718,8 @@ contains
     !! Graphs Options                                                                  
     !!                                                                                 
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = LowdinParameters_numberOfPointsPerDimension
+    CONTROL_instance%MOLDEN_FILE_FORMAT = LowdinParameters_moldenFileFormat
+
 
     !!*****************************************************                            
     !! Cubes Options                                                                   
@@ -1781,6 +1850,9 @@ contains
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
     LowdinParameters_readCoefficientsInBinary = CONTROL_instance%READ_COEFFICIENTS_IN_BINARY
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
+    LowdinParameters_readEigenvalues = CONTROL_instance%READ_EIGENVALUES
+    LowdinParameters_readEigenvaluesInBinary = CONTROL_instance%READ_EIGENVALUES_IN_BINARY
+    LowdinParameters_writeEigenvaluesInBinary = CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY
     LowdinParameters_noSCF = CONTROL_instance%NO_SCF
     LowdinParameters_finiteMassCorrection = CONTROL_instance%FINITE_MASS_CORRECTION
     LowdinParameters_removeTranslationalContamination = CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION
@@ -1882,9 +1954,13 @@ contains
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
 
     LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE 
+    LowdinParameters_CIstatesToPrint = CONTROL_instance%CI_STATES_TO_PRINT
     LowdinParameters_CImaxNCV = CONTROL_instance%CI_MAX_NCV 
     LowdinParameters_CIsizeOfGuessMatrix = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX  
     LowdinParameters_CIstackSize = CONTROL_instance%CI_STACK_SIZE 
+    LowdinParameters_CIJacobi = CONTROL_instance%CI_JACOBI
+    LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
+    LowdinParameters_CIMadSpace = CONTROL_instance%CI_MADSPACE
 
 
     !!***************************************************************************      
@@ -1938,7 +2014,7 @@ contains
     !! Graphs Options                                                                  
     !!                                                                                 
     LowdinParameters_numberOfPointsPerDimension = CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
-
+    LowdinParameters_moldenFileFormat = CONTROL_instance%MOLDEN_FILE_FORMAT 
     !!*****************************************************                            
     !! Cubes Options                                                                   
     !!                                                                                 
@@ -2152,9 +2228,17 @@ contains
     otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
     otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
     otherThis%CI_ACTIVE_SPACE =  this%CI_ACTIVE_SPACE 
+    otherThis%CI_STATES_TO_PRINT =  this%CI_STATES_TO_PRINT
     otherThis%CI_MAX_NCV = this%CI_MAX_NCV
     otherThis%CI_SIZE_OF_GUESS_MATRIX = this%CI_SIZE_OF_GUESS_MATRIX
     otherThis%CI_STACK_SIZE = this%CI_STACK_SIZE 
+    otherThis%CI_CONVERGENCE = this%CI_CONVERGENCE
+    otherThis%CI_MATVEC_TOLERANCE = this%CI_MATVEC_TOLERANCE 
+    otherThis%CI_SAVE_EIGENVECTOR = this%CI_SAVE_EIGENVECTOR
+    otherThis%CI_LOAD_EIGENVECTOR = this%CI_LOAD_EIGENVECTOR
+    otherThis%CI_JACOBI = this%CI_JACOBI
+    otherThis%CI_BUILD_FULL_MATRIX = this%CI_BUILD_FULL_MATRIX
+    otherThis%CI_MADSPACE = this%CI_MADSPACE
 
     !!***************************************************************************
     !! CCSD
@@ -2202,6 +2286,7 @@ contains
     !! Graphs Options
     !!
     otherThis%NUMBER_OF_POINTS_PER_DIMENSION = this%NUMBER_OF_POINTS_PER_DIMENSION 
+    otherThis%MOLDEN_FILE_FORMAT = this%MOLDEN_FILE_FORMAT 
     !!*****************************************************
     !! Cubes Options
     !!

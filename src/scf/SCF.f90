@@ -270,25 +270,39 @@ program SCF
 
   end do
 
-  if ( .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
-     labels = ""
-     !! Open file for wfn
-     vecUnit = 36
-     vecFile = "lowdin-plain.vec"
-     open(unit=vecUnit, file=trim(vecFile), status="replace", form="formatted")
 
-     do speciesID = 1, numberOfSpecies
+  if ( .not. CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY .or. .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+
+    labels = ""
+    !! Open file for vec
+    vecUnit = 36
+    vecFile = "lowdin-plain.vec"
+    open(unit=vecUnit, file=trim(vecFile), form="formatted", status='unknown')
+
+    if ( .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+      do speciesID = 1, numberOfSpecies
 
         labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
         labels(1) = "COEFFICIENTS"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
              unit=vecUnit, binary=.false., arguments = labels)
+      end do
+    end if
 
-     end do
+    if ( .not. CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY ) then
 
-     close (vecUnit)
+      do speciesID = 1, numberOfSpecies
 
+        labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+        labels(1) = "ORBITALS"
+        call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, & 
+             unit=vecUnit, binary=.false., arguments = labels )
+      end do
+    end if
+    close (vecUnit)
   end if
+
+
   !!**********************************************************
   !! Save Some energies
   !!
