@@ -70,6 +70,7 @@ module ConfigurationInteraction_
      type(vector8) :: initialEigenValues
      integer(8) :: numberOfConfigurations
      integer :: nproc
+     type(ivector) :: numberOfCoreOrbitals
      type(ivector) :: numberOfOccupiedOrbitals
      type(ivector) :: numberOfOrbitals
      type(vector) ::  numberOfSpatialOrbitals2 
@@ -214,6 +215,7 @@ contains
     ConfigurationInteraction_instance%level=level
     ConfigurationInteraction_instance%numberOfConfigurations=0
 
+    call Vector_constructorInteger (ConfigurationInteraction_instance%numberOfCoreOrbitals, numberOfSpecies)
     call Vector_constructorInteger (ConfigurationInteraction_instance%numberOfOccupiedOrbitals, numberOfSpecies)
     call Vector_constructorInteger (ConfigurationInteraction_instance%numberOfOrbitals, numberOfSpecies)
     call Vector_constructor (ConfigurationInteraction_instance%lambda, numberOfSpecies)
@@ -309,8 +311,11 @@ contains
     do i=1, numberOfSpecies
        !! We are working in spin orbitals not in spatial orbitals!
        ConfigurationInteraction_instance%lambda%values(i) = MolecularSystem_getLambda( i )
-       ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)= int (MolecularSystem_getOcupationNumber( i )* ConfigurationInteraction_instance%lambda%values(i))
-       ConfigurationInteraction_instance%numberOfOrbitals%values(i)=MolecularSystem_getTotalNumberOfContractions( i )* ConfigurationInteraction_instance%lambda%values(i)
+       ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i) = 0
+       ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) = int (MolecularSystem_getOcupationNumber( i )* &
+                                                                              ConfigurationInteraction_instance%lambda%values(i))
+       ConfigurationInteraction_instance%numberOfOrbitals%values(i) = MolecularSystem_getTotalNumberOfContractions( i )* &
+                                                                      ConfigurationInteraction_instance%lambda%values(i) 
        ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) = MolecularSystem_getTotalNumberOfContractions( i )
        ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) = &
          ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(i) *  ( &
@@ -320,16 +325,22 @@ contains
        ConfigurationInteraction_instance%totalNumberOfContractions( i ) = MolecularSystem_getTotalNumberOfContractions( i )
        ConfigurationInteraction_instance%occupationNumber( i ) = int( MolecularSystem_instance%species(i)%ocupationNumber )
        Conf_occupationNumber( i ) =  MolecularSystem_instance%species(i)%ocupationNumber
+
+
       !! Take the active space from input
+      if ( InputCI_Instance(i)%coreOrbitals /= 0 ) then
+       ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i) = InputCI_Instance(i)%coreOrbitals 
+      end if
       if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
         ConfigurationInteraction_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
-                                    ConfigurationInteraction_instance%lambda%values(i)
-
+                                    ConfigurationInteraction_instance%lambda%values(i) + &
+                                    ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i)
       end if
 
        !!Uneven occupation number = alpha
        !!Even occupation number = beta     
     end do
+
 
     call Configuration_globalConstructor()
 
@@ -363,9 +374,6 @@ contains
     order%values = 0
 
     s = 0
-
-    write (*,*) "Building Strings"
-    
     do i = 1, numberOfSpecies
 
       call Vector_constructorInteger8 (ConfigurationInteraction_instance%numberOfStrings(i), &
@@ -377,7 +385,7 @@ contains
 
       do cilevel = 1,ConfigurationInteraction_instance%CILevel(i) 
 
-        call Vector_constructor (occupiedCode(i), cilevel, 0.0_8)
+        call Vector_constructor (occupiedCode(i), cilevel, real(ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i),8) )
         call Vector_constructor (unoccupiedCode(i), cilevel, 0.0_8)
 
         unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)  ! it's also a lower bound in a for loop
@@ -416,7 +424,7 @@ contains
       !! zero, build the reference
       call Vector_constructorInteger (order, numberOfSpecies, 0 )
 
-      call Vector_constructor (occupiedCode(i), 1, 0.0_8)
+      call Vector_constructor (occupiedCode(i), 1, 0.0_8) !! initialize in zero
       call Vector_constructor (unoccupiedCode(i), 1, 0.0_8)
 
       c = 0 
@@ -430,7 +438,7 @@ contains
         call Vector_constructorInteger (order, numberOfSpecies, 0 )
         order%values(i) = cilevel
 
-        call Vector_constructor (occupiedCode(i), cilevel, 0.0_8)
+        call Vector_constructor (occupiedCode(i), cilevel, real(ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i),8) )
         call Vector_constructor (unoccupiedCode(i), cilevel, 0.0_8)
 
         unoccupiedCode(i)%values = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)  ! it's also a lower bound in a for loop
@@ -1131,24 +1139,84 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
   !<
   subroutine ConfigurationInteraction_run()
     implicit none 
-    integer :: i,j,m
+    integer :: i,j,m, numberOfSpecies
     real(8), allocatable :: eigenValues(:) 
 
 !    select case ( trim(ConfigurationInteraction_instance%level) )
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     write (*,*) ""
     write (*,*) "==============================================="
-    write (*,*) "|         BEGIN ", trim(ConfigurationInteraction_instance%level)," CALCULATION"
+    write (*,*) "         BEGIN ", trim(ConfigurationInteraction_instance%level)," CALCULATION"
+    write (*,*) "         J. Charry, F. Moncada                "
     write (*,*) "-----------------------------------------------"
     write (*,*) ""
 
+    write (*,"(A32)",advance="no") "Number of orbitals for species: "
+    do i = 1, numberOfSpecies-1
+      write (*,"(A)",advance="no") trim(MolecularSystem_getNameOfSpecie(i))//", "
+    end do
+    write (*,"(A)",advance="no") trim(MolecularSystem_getNameOfSpecie(numberOfSpecies))
+    write (*,*) ""
+
+    write (*,"(A28)",advance="no") "  occupied orbitals: "
+    do i = 1, numberOfSpecies
+      write (*,"(I5)", advance="no") ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+    end do
+    write (*,*) ""
+
+    write (*,"(A28)",advance="no") "  virtual orbitals: "
+    do i = 1, numberOfSpecies
+      write (*,"(I5)",advance="no") int(MolecularSystem_getTotalNumberOfContractions( i )* &
+                                                ConfigurationInteraction_instance%lambda%values(i)  - &
+                                                ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) )
+    end do
+    write (*,*) ""
+
+    write (*,"(A28)",advance="no") "  total number of orbitals: "
+    do i = 1, numberOfSpecies
+      write (*,"(I5)",advance="no") int(MolecularSystem_getTotalNumberOfContractions( i )* &
+                       ConfigurationInteraction_instance%lambda%values(i)   )
+    end do
+    write (*,*) ""
+
+
+    write (*,"(A28)",advance="no") "  frozen core orbitals: "
+    do i = 1, numberOfSpecies
+      write (*,"(I5)",advance="no") ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i) 
+    end do
+    write (*,*) ""
+
+    write (*,"(A28)",advance="no") "  active occupied orbitals: "
+    do i = 1, numberOfSpecies
+      write (*,"(I5)",advance="no") ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) - &
+                         ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i) 
+    end do
+    write (*,*) ""
+
+    write (*,"(A28)",advance="no") "  active virtual orbitals: "
+    do i = 1, numberOfSpecies
+      write (*,"(I5)",advance="no") ConfigurationInteraction_instance%numberOfOrbitals%values(i) - &
+                         ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+    end do
+    write (*,*) ""
+
+    write (*,"(A28)",advance="no") " total active orbitals: "
+    do i = 1, numberOfSpecies
+      write (*,"(I5)",advance="no")  ConfigurationInteraction_instance%numberOfOrbitals%values(i) - &
+                          ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i) 
+    end do
+    write (*,*) ""
+    write (*,*) " "
+
     write (*,*) "Getting transformed integrals..."
     call ConfigurationInteraction_getTransformedIntegrals()
+    write (*,*) " "
 
     !write (*,*) ConfigurationInteraction_instance%fourCenterIntegrals(1,1)%values(171, 1) a bug...
-    write (*,*) "Building configurations..."
+    write (*,*) "Setting CI level..."
 
-    call ConfigurationInteraction_buildConfigurations()
+    call ConfigurationInteraction_settingCILevel()
 
    !! write (*,*) "Total number of configurations", ConfigurationInteraction_instance%numberOfConfigurations
     write (*,*) ""
@@ -1163,8 +1231,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
     case ("JADAMILU")
 
-      write (*,*) "Building initial hamiltonian..."
-
+      write (*,*) "Building Strings..."
       call ConfigurationInteraction_buildStrings()
 
       write (*,*) "Building CI level table..."
@@ -1174,8 +1241,10 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       call ConfigurationInteraction_buildCouplingMatrix()
       call ConfigurationInteraction_buildCouplingOrderList()
 
+      write (*,*) "Building diagonal..."
       call ConfigurationInteraction_buildDiagonal()
 
+      write (*,*) "Building initial hamiltonian..."
       call ConfigurationInteraction_buildInitialCIMatrix2()
       !!call ConfigurationInteraction_buildHamiltonianMatrix() This should be  modified to build the CI matrix in memory
 
@@ -1214,12 +1283,16 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       end if
     case ("DSYEVX")
 
+      write (*,*) "Building Strings..."
       call ConfigurationInteraction_buildStrings()
 
+      write (*,*) "Building CI level table..."
       call ConfigurationInteraction_buildCIOrderList()
 
+      write (*,*) "Building diagonal..."
       call ConfigurationInteraction_buildDiagonal()
 
+      write (*,*) "Building initial hamiltonian..."
       call ConfigurationInteraction_buildHamiltonianMatrix()
 
       call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
@@ -1246,7 +1319,17 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
     case ("DSYEVR")
 
-      write(*,*) "Reference Energy", ConfigurationInteraction_instance%hamiltonianMatrix%values(1,1)
+      write (*,*) "Building Strings..."
+      call ConfigurationInteraction_buildStrings()
+
+      write (*,*) "Building CI level table..."
+      call ConfigurationInteraction_buildCIOrderList()
+
+      write (*,*) "Building diagonal..."
+      call ConfigurationInteraction_buildDiagonal()
+
+      write (*,*) "Building initial hamiltonian..."
+      call ConfigurationInteraction_buildHamiltonianMatrix()
 
       call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
            int(ConfigurationInteraction_instance%numberOfConfigurations,8), &
@@ -1255,11 +1338,6 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       !! deallocate transformed integrals
       deallocate(ConfigurationInteraction_instance%twoCenterIntegrals)
       deallocate(ConfigurationInteraction_instance%fourCenterIntegrals)
-
-      write(*,*) ""
-      write(*,*) "Diagonalizing hamiltonian..."
-      write(*,*) "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
 
       call Matrix_eigen_dsyevr (ConfigurationInteraction_instance%hamiltonianMatrix, ConfigurationInteraction_instance%eigenvalues, &
            1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
@@ -1279,7 +1357,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
     write(*,*) ""
     write(*,*) "-----------------------------------------------"
-    write(*,*) "|         END ", trim(ConfigurationInteraction_instance%level)," CALCULATION"
+    write(*,*) "          END ", trim(ConfigurationInteraction_instance%level)," CALCULATION"
     write(*,*) "==============================================="
     write(*,*) ""
 
@@ -1305,7 +1383,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
   !!
   !! @param this 
   !<
-  subroutine ConfigurationInteraction_buildConfigurations()
+  subroutine ConfigurationInteraction_settingCILevel()
     implicit none
 
     integer :: numberOfSpecies
@@ -1394,7 +1472,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     end select
 
 
-  end subroutine ConfigurationInteraction_buildConfigurations
+  end subroutine ConfigurationInteraction_settingCILevel
 
   !>
   !! @brief Muestra informacion del objeto
@@ -2296,7 +2374,7 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
       do a = 1, ConfigurationInteraction_instance%numberOfStrings(is)%values(i)
         c = c + 1
 
-        if ( abs(v(c)) > 1E-12 ) then 
+        if ( abs(v(c)) > CONTROL_instance%CI_MATVEC_TOLERANCE ) then
           cc(n) = c 
           indexConf(is,n:) = ssize + a
 
@@ -4286,7 +4364,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
     nonzero = 0
     w = 0 
-    tol = 1E-12
+    tol = CONTROL_instance%CI_MATVEC_TOLERANCE 
 
     do i = 1 , nx
        if ( abs(v(i) ) >= tol) nonzero = nonzero + 1

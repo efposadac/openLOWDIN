@@ -20,7 +20,7 @@ END TASKS
 CONTROL
 	!numberOfCores=1
 	scfelectronicenergytolerance=1E-8
-        !CIdiagonalizationMethod="DSYEVR"
+        !CIdiagonalizationMethod="DSYEVX"
         !CIdiagonalizationMethod="ARPACK"
         CIdiagonalizationMethod="JADAMILU"
 	!CISaveEigenvector = true

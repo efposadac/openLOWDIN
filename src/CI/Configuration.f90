@@ -71,6 +71,7 @@ module Configuration_
 
      logical :: isInstanced
      type(ivector) :: numberOfOccupiedOrbitals
+     type(ivector) :: numberOfCoreOrbitals
      type(ivector) :: numberOfOrbitals
      type(ivector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
      type(ivector) :: excitationType
@@ -105,6 +106,7 @@ contains
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOccupiedOrbitals, numberOfSpecies, 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfCoreOrbitals, numberOfSpecies, 0 )
     call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOrbitals, numberOfSpecies, 0 )
     call Vector_constructorInteger ( GlobalConfiguration_instance%lambda, numberOfSpecies, 0 )
     call Vector_constructorInteger ( GlobalConfiguration_instance%excitationType, numberOfSpecies, 0 )
@@ -115,17 +117,25 @@ contains
        GlobalConfiguration_instance%lambda%values(i) = MolecularSystem_getLambda(i)
        GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(i) = MolecularSystem_getOcupationNumber(i) * &
            GlobalConfiguration_instance%lambda%values(i)
-       GlobalConfiguration_instance%numberOfOrbitals%values(i) =  MolecularSystem_getTotalNumberOfContractions(i) * &
+       GlobalConfiguration_instance%numberOfCoreOrbitals%values(i) = 0
+       GlobalConfiguration_instance%numberOfOrbitals%values(i) = MolecularSystem_getTotalNumberOfContractions(i) * &
            GlobalConfiguration_instance%lambda%values(i)
+
+
+      if ( InputCI_Instance(i)%coreOrbitals /= 0 ) then
+        GlobalConfiguration_instance%numberOfCoreOrbitals%values(i) = InputCI_Instance(i)%coreOrbitals 
+      end if
 
       if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
         GlobalConfiguration_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
-                                    GlobalConfiguration_instance%lambda%values(i)
+                                    GlobalConfiguration_instance%lambda%values(i) + &
+                                    GlobalConfiguration_instance%numberOfCoreOrbitals%values(i) 
+
      end if
 
-      if ( InputCI_Instance(i)%excitationType /= 0 ) then
-        GlobalConfiguration_instance%excitationType%values(i) = InputCI_Instance(i)%excitationType
-      end if
+     !if ( InputCI_Instance(i)%excitationType /= 0 ) then
+     !  GlobalConfiguration_instance%excitationType%values(i) = InputCI_Instance(i)%excitationType
+     !end if
 
     end do
 
@@ -283,7 +293,8 @@ contains
     !spin orbitals not spatial orbitals
     lambda=MolecularSystem_getLambda(i)
     numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(i)*lambda
-    numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda
+    !numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda - 7
+    numberOfOrbitals = GlobalConfiguration_instance%numberOfOrbitals%values(i) 
 
     do j=1, numberOfOccupiedOrbitals
       !this%values(j,k) = 1_1

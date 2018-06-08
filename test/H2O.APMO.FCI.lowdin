@@ -1,0 +1,47 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test RHF
+%  H2O Single Point
+%  Electronic Hartree Fock
+%  Basis sets used:
+%      6-311g e-
+%  Results
+%      TEST ENERGY =     -76.008843007734
+%      VIRIAL RATIO (V/T) =         1.9991485503
+% End Results
+%      Author: Felix Moncada - GQT-UNAL/2011
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de H2O'
+
+GEOMETRY
+	e-[O]   6-31G     0.000000      0.000000     -0.066575
+	e-[H]   6-31G     0.000000      0.754175      0.528381
+	e-[H]   6-31G     0.000000     -0.754174      0.528382
+	O        dirac     0.000000      0.000000     -0.066575
+	H-a_1   Nakai-3-s     0.000000      0.754175      0.528381 
+	H-b_1   Nakai-3-s    0.000000     -0.754174      0.528382  
+END GEOMETRY
+
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="FCI"
+END TASKS
+
+CONTROL
+	integralsTransformationMethod = "C"
+	numberOfCIstates=1
+	CIdiagonalizationMethod = "JADAMILU"
+END CONTROL
+INPUT_CI
+	species="E-ALPHA" core=1 active=7
+	species="E-BETA" core=1 active=7
+	species="H-A_1" core=0 active=0
+	species="H-B_1" core=0 active=0
+END INPUT_CI
+
+
+
+
+

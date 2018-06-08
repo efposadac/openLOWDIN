@@ -173,6 +173,7 @@ module CONTROL_
      integer :: CI_SIZE_OF_GUESS_MATRIX
      integer :: CI_STACK_SIZE
      real(8) :: CI_CONVERGENCE
+     real(8) :: CI_MATVEC_TOLERANCE
      logical :: CI_SAVE_EIGENVECTOR
      logical :: CI_LOAD_EIGENVECTOR
      logical :: CI_JACOBI
@@ -437,6 +438,7 @@ module CONTROL_
   integer :: LowdinParameters_CIsizeOfGuessMatrix
   integer :: LowdinParameters_CIstackSize
   real(8) :: LowdinParameters_CIConvergence
+  real(8) :: LowdinParameters_CImatvecTolerance
   logical :: LowdinParameters_CISaveEigenVector
   logical :: LowdinParameters_CILoadEigenVector
   logical :: LowdinParameters_CIJacobi
@@ -698,6 +700,7 @@ module CONTROL_
        LowdinParameters_CIsizeOfGuessMatrix, &
        LowdinParameters_CIstackSize, &
        LowdinParameters_CIConvergence, &
+       LowdinParameters_CImatvecTolerance, &
        LowdinParameters_CISaveEigenVector, &
        LowdinParameters_CILoadEigenVector, &
        LowdinParameters_CIJacobi, &
@@ -986,6 +989,7 @@ contains
     LowdinParameters_CIsizeOfGuessMatrix = 300
     LowdinParameters_CIstackSize = 5000
     LowdinParameters_CIConvergence = 1E-4
+    LowdinParameters_CImatvecTolerance = 1E-10
     LowdinParameters_CISaveEigenVector = .false.
     LowdinParameters_CILoadEigenVector = .false.
     LowdinParameters_CIJacobi = .false.
@@ -1250,6 +1254,7 @@ contains
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = 300
     CONTROL_instance%CI_STACK_SIZE = 5000
     CONTROL_instance%CI_CONVERGENCE = 1E-4
+    CONTROL_instance%CI_MATVEC_TOLERANCE = 1E-10
     CONTROL_instance%CI_SAVE_EIGENVECTOR = .FALSE.
     CONTROL_instance%CI_LOAD_EIGENVECTOR = .FALSE.
     CONTROL_instance%CI_JACOBI = .False.
@@ -1555,6 +1560,7 @@ contains
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
     CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
     CONTROL_instance%CI_CONVERGENCE = LowdinParameters_CIConvergence
+    CONTROL_instance%CI_MATVEC_TOLERANCE = LowdinParameters_CIMatvecTolerance
     CONTROL_instance%CI_SAVE_EIGENVECTOR = LowdinParameters_CISaveEigenVector
     CONTROL_instance%CI_LOAD_EIGENVECTOR = LowdinParameters_CILoadEigenVector
     CONTROL_instance%CI_JACOBI = LowdinParameters_CIJacobi
@@ -2095,6 +2101,7 @@ contains
     otherThis%CI_SIZE_OF_GUESS_MATRIX = this%CI_SIZE_OF_GUESS_MATRIX
     otherThis%CI_STACK_SIZE = this%CI_STACK_SIZE 
     otherThis%CI_CONVERGENCE = this%CI_CONVERGENCE
+    otherThis%CI_MATVEC_TOLERANCE = this%CI_MATVEC_TOLERANCE 
     otherThis%CI_SAVE_EIGENVECTOR = this%CI_SAVE_EIGENVECTOR
     otherThis%CI_LOAD_EIGENVECTOR = this%CI_LOAD_EIGENVECTOR
     otherThis%CI_JACOBI = this%CI_JACOBI
