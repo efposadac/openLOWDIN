@@ -326,8 +326,8 @@ contains
     implicit none
 
     real(8), intent(inout), allocatable :: x(:,:), y(:,:), z(:,:) !! Matrices de recursión
-    real(8), intent(in) :: PA(0:3), PB(0:3) !! orígenes reducidos de A y B
-    real(8), intent(in) :: gamma !! Exponente reducido
+    real(8), intent(in) :: PA(0:3), PB(0:3) !! orígenes reducidos de A y B ! P-Q de (5) en [Ahlrichs2006] (??????????????????)
+    real(8), intent(in) :: gamma !! Exponente reducido ! \xi, \nu y \rho de (3) en [Ahlrichs2006]
     integer, intent(in) :: angularMoment1, angularMoment2
 
     real(8) :: pp, gammaInv
@@ -356,10 +356,12 @@ contains
 
     call ConfiningPotential_loadParticles(elementSymbol)
     this(1)%elementSymbol=elementSymbol
-print*,elementSymbol
+    ! print*,"EEEEEEEEEEEEEEEeeeeeeeeeeeeeeeeeelement symbol: ",this(1)%elementSymbol
+    ! print*,"QQQQQQQQQqqqqqqqqqqqqqqqquantum species: ", quantumSpecies
     
         do ii = 1, quantumSpecies
-       this%particle = MolecularSystem_getNameOfSpecie(ii)
+           this%particle = MolecularSystem_getNameOfSpecie(ii)
+           ! print*,"TTTTTTTTTTTTTTTTTTTTTTtttttttttttttttttttthis particle: ",this%particle
        call ConfiningPotential_constructPotential(this(ii))
        ! write(6,"(T10,A10,A10,F20.10,F20.10,F20.10,F20.10)") &
        !      this(ii)%elementSymbol,this(ii)%particle,this(ii)%radius,this(ii)%exponent, this(ii)%confiningCoefficient, this(ii)%rZero
@@ -377,7 +379,7 @@ print*,elementSymbol
     y(0,1) = PB(1)
     z(0,1) = PB(2)
 
-!    print*,x(0,1),y(0,1),z(0,1)
+    ! print*,"xxxxxxxxxxxxxx, yyyyyyyyyyyyyyyy, zzzzzzzzzzzzzzzz ",x(0,1),y(0,1),z(0,1)
     do j=1, angularMoment2 -1
        x(0,j+1) = PB(0)*x(0,j)
        y(0,j+1) = PB(1)*y(0,j)
