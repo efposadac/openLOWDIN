@@ -340,7 +340,7 @@ contains
        
        numberOfStates=CONTROL_instance%CI_STATES_TO_PRINT
        occupationsUnit = 29
-       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
 
        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
        do l=1,numberOfSpecies
@@ -1303,7 +1303,7 @@ contains
        print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
 
        occupationsUnit = 29
-       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
 
        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
 
@@ -1423,7 +1423,7 @@ contains
         print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
 
        occupationsUnit = 29
-       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
 
        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
 

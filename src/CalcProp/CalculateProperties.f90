@@ -151,8 +151,8 @@ contains
                " in the CI ground state"
 
           occupationsUnit = 29
-          occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
-
+          occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+          
           open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
 
           auxstring="1" !ground state
