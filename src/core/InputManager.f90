@@ -46,6 +46,7 @@ module InputManager_
      logical :: TDHF
      logical :: cosmo
      logical :: pseudoatomicCalculation
+     logical :: dftbplus
 
   end type InputManager
 
@@ -188,7 +189,8 @@ contains
          InputTasks_optimizeGeometry, &
          InputTasks_TDHF, &
          InputTasks_cosmo, &
-         InputTasks_pseudoatomicCalculation
+         InputTasks_pseudoatomicCalculation, &
+         InputTasks_dftbplus
 
     
     !! Setting defaults    
@@ -200,6 +202,7 @@ contains
     InputTasks_TDHF = .false.
     InputTasks_cosmo= .false.
     InputTasks_pseudoatomicCalculation = .false.
+    InputTasks_dftbplus = .false.
     
     !! reload input file
     rewind(4)
@@ -220,6 +223,7 @@ contains
     Input_instance%TDHF = InputTasks_TDHF
     Input_instance%cosmo = InputTasks_cosmo
     Input_instance%pseudoatomicCalculation = InputTasks_pseudoatomicCalculation
+    Input_instance%dftbplus = InputTasks_dftbplus
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -267,6 +271,10 @@ contains
 
     if( Input_instance%pseudoatomicCalculation ) then    
        CONTROL_instance%PSEUDOATOMIC_CALCULATION = .true.
+    end if
+
+        if( Input_instance%dftbplus ) then    
+       CONTROL_instance%DFTBPLUS = .true.
     end if
     
     if( Input_instance%numberOfExternalPots > 0) then    
@@ -584,6 +592,137 @@ contains
     end do
 
   end subroutine InputManager_loadGeometry
+
+  !>
+  !! @brief Load dftb options
+  !! @author I. Ortiz-Verano
+  !! @version 1.0
+  subroutine InputManager_loadDftbplus()
+    implicit none
+    
+    integer :: stat
+
+    !! Namelist definition
+    character(50):: dftbplus_hamiltonian
+    
+    character(20):: InputTasks_configurationInteractionLevel
+    integer:: InputTasks_mollerPlessetCorrection
+    integer:: InputTasks_propagatorTheoryCorrection
+    logical:: InputTasks_optimizeGeometry
+    logical:: InputTasks_TDHF
+    logical:: InputTasks_cosmo
+    logical:: InputTasks_pseudoatomicCalculation
+
+    
+    NAMELIST /InputTasks/ &
+         InputTasks_method, &
+         InputTasks_configurationInteractionLevel, &
+         InputTasks_mollerPlessetCorrection, &
+         InputTasks_propagatorTheoryCorrection, &
+         InputTasks_optimizeGeometry, &
+         InputTasks_TDHF, &
+         InputTasks_cosmo, &
+         InputTasks_pseudoatomicCalculation, &
+         InputTasks_dftbplus
+
+    
+    !! Setting defaults    
+    InputTasks_method = "NONE"
+    InputTasks_mollerPlessetCorrection = 0
+    InputTasks_configurationInteractionLevel = "NONE"
+    InputTasks_propagatorTheoryCorrection = 0
+    InputTasks_optimizeGeometry = .false.
+    InputTasks_TDHF = .false.
+    InputTasks_cosmo= .false.
+    InputTasks_pseudoatomicCalculation = .false.
+    InputTasks_dftbplus = .false.
+    
+    !! reload input file
+    rewind(4)
+    
+    !! Read InputTask namelist from input file
+    read(4,NML=InputTasks, iostat=stat)
+    
+    if( stat > 0 ) then       
+       call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
+    end if
+    
+    !! all uppercase! Mandatory for ALL character variables
+    Input_instance%method = trim(String_getUppercase(trim(InputTasks_method)))
+    Input_instance%mollerPlessetCorrection = InputTasks_mollerPlessetCorrection
+    Input_instance%configurationInteractionLevel = trim(String_getUppercase(trim(InputTasks_configurationInteractionLevel)))
+    Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
+    Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
+    Input_instance%TDHF = InputTasks_TDHF
+    Input_instance%cosmo = InputTasks_cosmo
+    Input_instance%pseudoatomicCalculation = InputTasks_pseudoatomicCalculation
+    Input_instance%dftbplus = InputTasks_dftbplus
+    
+    !! If the method is for open shell systems
+    if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
+         trim(Input_instance%method) == "UKS"  .or. trim(Input_instance%method) == "ROKS") then
+       
+       CONTROL_instance%IS_OPEN_SHELL = .true.
+       
+    end if
+    
+    !! If there is no method in the input file
+    if( Input_instance%method == "NONE" .or. Input_instance%method == "" ) then       
+       call InputManager_exception( ERROR, "check the TASKS block in  input file, what method you want to use? I dont have super cow powers!", "InputManager loadTask function" )       
+    end if
+    
+    !! Setting some parameters-object variables
+    CONTROL_instance%METHOD = trim(input_instance%method)
+    CONTROL_instance%MOLLER_PLESSET_CORRECTION = input_instance%mollerPlessetCorrection
+    CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = input_instance%configurationInteractionLevel
+    CONTROL_instance%PT_ORDER = input_instance%propagatorTheoryCorrection
+
+    if ( input_instance%mollerPlessetCorrection /= 0 ) then
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-MP2"
+    end if
+        
+    if ( input_instance%configurationInteractionLevel /= "NONE" ) then
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-CI"
+    end if
+
+    if ( input_instance%propagatorTheoryCorrection /= 0 ) then
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-PT"
+    end if
+    
+    if ( input_instance%optimizeGeometry ) then 
+       CONTROL_instance%OPTIMIZE = .true.
+    end if
+    
+    if ( input_instance%TDHF ) then 
+       CONTROL_instance%TDHF = .true.
+    end if    
+    
+    if (input_instance%cosmo) then 	
+       CONTROL_instance%cosmo = .true.	
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
+    end if
+
+    if( Input_instance%pseudoatomicCalculation ) then    
+       CONTROL_instance%PSEUDOATOMIC_CALCULATION = .true.
+    end if
+
+        if( Input_instance%dftbplus ) then    
+       CONTROL_instance%DFTBPLUS = .true.
+    end if
+    
+    if( Input_instance%numberOfExternalPots > 0) then    
+       CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL=.true.
+    end if
+        
+    if(Input_instance%numberOfInterPots > 0) then
+       CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL=.true.
+    end if
+           
+    if(Input_instance%numberOfOutputs > 0) then
+       CONTROL_instance%IS_THERE_OUTPUT=.true.
+    end if
+        
+  end subroutine InputManager_loadDftbplus  
 
   !>
   !! @brief Retorna la descripcion del sistema
