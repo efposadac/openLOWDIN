@@ -57,6 +57,7 @@ module WaveFunction_
      type(Matrix) :: densityMatrix
      type(Matrix) :: twoParticlesMatrix
      type(Matrix) :: couplingMatrix
+     type(Matrix) :: exchangeCorrelationMatrix
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: coefficientsofcombination
      type(vector) :: energyofmolecularorbital
@@ -80,6 +81,7 @@ module WaveFunction_
      real(8) :: repulsionEnergy
      real(8) :: couplingEnergy
      real(8) :: externalPotentialEnergy
+     real(8) :: exchangeCorrelationEnergy
      !! Cosmo Things
      real(8) :: cosmoEnergy
      !!**************************************************************
@@ -115,6 +117,7 @@ contains
        WaveFunction_instance( speciesID )%repulsionEnergy = 0.0_8
        WaveFunction_instance( speciesID )%externalPotentialEnergy = 0.0_8
        WaveFunction_instance( speciesID )%couplingEnergy = 0.0_8
+       WaveFunction_instance( speciesID )%exchangeCorrelationEnergy = 0.0_8
 
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions )
 
@@ -371,7 +374,8 @@ contains
 
     WaveFunction_instance(speciesID)%HCoreMatrix%values = &
          WaveFunction_instance(speciesID)%kineticMatrix%values + &
-         WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
+         WaveFunction_instance(speciesID)%puntualInteractionMatrix%values !+ &
+         !WaveFunction_instance(speciesID)%externalPotentialMatrix%values 
 
     !! DEBUG
     !!   print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
@@ -388,6 +392,8 @@ contains
     integer :: speciesID
 
     integer :: totalNumberOfContractions
+    character(50) :: densFile, labels(2)
+    integer :: densUnit
 
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
@@ -401,6 +407,21 @@ contains
     !! Debug
     ! print*, "Matriz de densidad inicial ", MolecularSystem_getNameOfSpecie(speciesID)
     ! call Matrix_show(WaveFunction_instance( speciesID )%densityMatrix)
+
+    !!Save this matrix for DFT calculations, because reasons
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       
+       densUnit = 78
+       densFile = trim(CONTROL_instance%INPUT_FILE)//trim(MolecularSystem_getNameOfSpecie(speciesID))//".densmatrix"
+       open(unit = densUnit, file=trim(densFile), status="replace", form="unformatted")
+
+       labels(1) = "DENSITY-MATRIX"
+       labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+     
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=densUnit, binary=.true., arguments = labels )
+
+       close (78)
+    end if
 
   end subroutine WaveFunction_setDensityMatrix
 
@@ -479,13 +500,13 @@ contains
     !! Calcula energia de acoplamiento en caso de mas de una especie presente
     WaveFunction_instance( specieID )%couplingEnergy = &
          sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-         WaveFunction_instance( specieID )%couplingMatrix%values )
-
+         WaveFunction_instance( specieID )%couplingMatrix%values )    
 
     !! Total energy for species
     WaveFunction_instance( specieID )%totalEnergyForSpecie = &
          WaveFunction_instance( specieID )%independentSpecieEnergy +  &
-         WaveFunction_instance( specieID )%couplingEnergy
+         WaveFunction_instance( specieID )%couplingEnergy + &
+         WaveFunction_instance( specieID )%exchangeCorrelationEnergy
 
 
     !! Calcula la energia COSMO	
@@ -639,61 +660,61 @@ contains
 
   end subroutine WaveFunction_cosmoHcoreMatrix
 
-  !   !<
-  !   !! @brief Contruye una matriz de interaccion con un potencial externo
-  !   !!
-  !   !! @param nameOfSpecie nombre de la especie seleccionada.
-  !   !>
-  !   subroutine WaveFunction_buildExternalPotentialMatrix( nameOfSpecie )
-  !     implicit none
-  !     character(*), optional :: nameOfSpecie
+  !<
+  !! @brief Contruye una matriz de interaccion con un potencial externo
+  !!
+  !! @param nameOfSpecie nombre de la especie seleccionada.
+  !>
+  subroutine WaveFunction_buildExternalPotentialMatrix( file, speciesID )
+    implicit none
+    character(30) :: nameOfSpecieSelected
+    character(*), intent(in) :: file
+    integer, intent(in) :: speciesID
 
-  !     character(30) :: nameOfSpecieSelected
-  !     integer :: specieID
+    integer :: unit
+    integer :: numberOfContractions
+    integer :: totalNumberOfContractions
+    character(50) :: arguments(2)
 
-  !     nameOfSpecieSelected = "e-"
-  !     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
+    arguments(1) = "EXTERNAL_POTENTIAL"
+    arguments(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
 
-  !     specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
+    !! Open file
+    unit = 34
+    open(unit = unit, file=trim(file), status="old", form="unformatted")
 
-  !     if ( nameOfspecie /= "e-BETA" ) then
+    WaveFunction_instance(speciesID)%externalPotentialMatrix%values = 0.0_8
 
-  ! 	if( WaveFunction_instance(specieID)%isThereExternalPotential ) then
-  ! 		WaveFunction_instance(specieID)%externalPotentialMatrix%values = 0.0_8
+    !! Get number of shells and number of cartesian contractions
+    numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
+    WaveFunction_instance( speciesID )%externalPotentialMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, &
+         columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments(1:2))
+    close(34)
 
+      !!if ( CONTROL_instance%NUMERICAL_INTEGRATION_FOR_EXTERNAL_POTENTIAL )  then  !! Numerical integration
+      !!if ( trim(ExternalPotential_Manager_instance%externalsPots(1)%name) == "none" ) then
+      !!  WaveFunction_instance(specieID)%externalPotentialMatrix = &
+      !!    IntegralManager_getNumericalInteractionWithPotentialMatrix( &
+      !!    ExternalPotential_Manager_instance%externalsPots, specieID, integralName="external" )
 
-  ! 	if ( CONTROL_instance%NUMERICAL_INTEGRATION_FOR_EXTERNAL_POTENTIAL )	then	!! Numerical integration
-  ! 		if ( trim(ExternalPotential_Manager_instance%externalsPots(1)%name) == "none" ) then
-  ! 			WaveFunction_instance(specieID)%externalPotentialMatrix = &
-  ! 				IntegralManager_getNumericalInteractionWithPotentialMatrix( &
-  ! 				ExternalPotential_Manager_instance%externalsPots, specieID, integralName="external" )
+      !!else     !! From xml file
+      !!  WaveFunction_instance(specieID)%externalPotentialMatrix = &
+      !!    IntegralManager_getNumericalPotentialMatrixFromXml( &
+      !!    ExternalPotential_Manager_instance%externalsPots, specieID, integralName="external" )
+      !!end if
+      !!else    !! Analytical Integration  
 
-  ! 		else 		!! From xml file
-  ! 			WaveFunction_instance(specieID)%externalPotentialMatrix = &
-  ! 				IntegralManager_getNumericalPotentialMatrixFromXml( &
-  ! 				ExternalPotential_Manager_instance%externalsPots, specieID, integralName="external" )
-  ! 		end if
-  ! 	else		!! Analytical Integration	
+      !!end if
 
-  ! 		WaveFunction_instance(specieID)%externalPotentialMatrix = &
-  ! 		IntegralManager_getInteractionWithPotentialMatrix( &
-  ! 		ExternalPotential_Manager_instance%externalsPots, specieID, "external" )
+    !! Debug
+    if (  CONTROL_instance%DEBUG_SCFS) then
+      print *,"EXTERNAL POTENTIAL MATRIX FOR: ", arguments(2)
+      call Matrix_show(WaveFunction_instance(speciesID)%externalPotentialMatrix)
+    end if
 
-  !           end if
-
-  !        end if
-
-  !    else !! Use the same matrix for e-beta and e-alpha
-
-  !        WaveFunction_instance(specieID)%externalPotentialMatrix = &
-  !             WaveFunction_instance( MolecularSystem_getSpecieID( nameOfSpecie="e-ALPHA" ))%externalPotentialMatrix
-
-  !     end if
-
-  !     			print *,"EXTERNAL POTENTIAL MATRIX FOR: ", nameOfSpecie
-  !     			call Matrix_show(WaveFunction_instance(specieID)%externalPotentialMatrix)
-
-  !   end subroutine WaveFunction_buildExternalPotentialMatrix
+  end subroutine WaveFunction_buildExternalPotentialMatrix
 
 
   !   function WaveFunction_getValueForOrbitalAt( nameOfSpecie, orbitalNum, coordinate ) result(output)

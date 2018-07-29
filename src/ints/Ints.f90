@@ -31,12 +31,12 @@ Program Ints
   use CosmoCore_
   use ParticleManager_
   use Libint2Interface_
+  use G12Integrals_
 
   implicit none
 
   character(50) :: job
-  character(50) :: speciesName
-  integer :: speciesID
+  integer :: speciesID, i, j
 
   type(surfaceSegment) :: surface_aux
 
@@ -99,7 +99,11 @@ Program Ints
 
      ! !!Calculate moment integrals
      call IntegralManager_getMomentIntegrals()
-
+      
+     !! Calculate integrals with external potential
+     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+       call IntegralManager_getThreeCenterIntegrals()
+     end if
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
 
@@ -205,9 +209,48 @@ Program Ints
      call EnergyGradients_constructor()
      call EnergyGradients_getAnalyticDerivative()
 
-  case("TWO_PARTICLE_F12")
+  case("TWO_PARTICLE_G12")
 
-     stop "NOT IMPLEMENTED"
+     !! intra-species G12 integration
+     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+        !!Calculate repulsion integrals (intra-species)
+
+        ! call G12Integrals_diskIntraSpecie(speciesID)
+
+        call Libint2Interface_computeG12Intraspecies_disk(speciesID)
+
+
+     end do
+
+     !stop time
+     if(CONTROL_instance%LAST_STEP) then
+        write(*,"(/A)", advance="no") "*** TOTAL elapsed time  G12 intra-species integrals : "
+        call Stopwatch_splitTime()
+        write(*,"(A4/)") " (s)"
+     end if
+
+     !! inter-species two-boy integration
+     if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
+
+        !!Calculate attraction integrals (inter-species)
+        do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
+
+             call Libint2Interface_computeG12Interspecies_disk(i, j)
+        
+             ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecie(i)), &
+             !  trim(MolecularSystem_getNameOfSpecie(j)), i, j)
+
+          end do
+        end do
+
+        !stop time
+        call Stopwatch_stop(lowdin_stopwatch)
+
+        if(CONTROL_instance%LAST_STEP) then
+           write(*,"(/A,F10.3,A4/)") "*** TOTAL elapsed time G12 inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        end if
+     end if
 
   case default
 
@@ -215,9 +258,8 @@ Program Ints
      write(*,*) "Where job can be: "
      write(*,*) "  ONE_PARTICLE"
      write(*,*) "  TWO_PARTICLE_R12"
-     write(*,*) "  TWO_PARTICLE_R12"
      write(*,*) "  GET_GRADIENTS"
-     write(*,*) "  TWO_PARTICLE_F12"
+     write(*,*) "  TWO_PARTICLE_G12"
      stop "ERROR"
 
   end select

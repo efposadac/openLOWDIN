@@ -818,8 +818,6 @@ contains
                       end do
                    end do
                 end do
-                                
-             end if
 
              if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
                 
@@ -841,7 +839,8 @@ contains
                    end do
                 end do
                 
-             end if
+              end if
+            end if
 
           end do
 

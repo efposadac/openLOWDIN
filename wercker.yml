@@ -21,7 +21,7 @@ build:
     # http://devcenter.wercker.com/docs/steps/index.html
   steps:
     - install-packages:
-        packages: git build-essential liblapack-dev libblas-dev libgsl0-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev
+        packages: wget git build-essential liblapack-dev libblas-dev libgsl0-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev libxc-dev
     - script:
         name: setup
         code: |
@@ -30,6 +30,11 @@ build:
           mkdir $WORKDIR
           mkdir $WORKDIR/bin
           mkdir $WORKDIR/lib
+          cd $WORKDIR
+          #wget https://www.dropbox.com/s/dlc3u9pbelp9iu1/libint2.0-beta-old.tgz
+          wget https://www.dropbox.com/s/tzmqzt3n0trpayf/libint2.0-beta.tgz
+          tar xzvf libint2.0-beta.tgz
+          cd -
           # Build libint
           git clone https://github.com/evaleev/libint.git
           cd libint
@@ -41,18 +46,18 @@ build:
           make install
           make clean
           make distclean
-          #Build libint2
-          export CC=gcc
-          export CXX=g++
-          export OPENMPFLAGS=-fopenmp
-          export CXXFLAGS="-std=c++11 -Wno-enum-compare $OPENMPFLAGS"
-          export LDFLAGS=$OPENMPFLAGS
-          git checkout master
-          aclocal -I lib/autoconf
-          autoconf
-          ./configure --prefix=$WORKDIR CPPFLAGS='-I/usr/include/eigen3'
-          make -j 4
-          make install
+          # #Build libint2
+          # export CC=gcc
+          # export CXX=g++
+          # export OPENMPFLAGS=-fopenmp
+          # export CXXFLAGS="-std=c++11 -Wno-enum-compare $OPENMPFLAGS"
+          # export LDFLAGS=$OPENMPFLAGS
+          # git checkout master
+          # aclocal -I lib/autoconf
+          # autoconf
+          # ./configure --prefix=$WORKDIR CPPFLAGS='-I/usr/include/eigen3'
+          # make -j 4
+          # make install
           cd ..
     - script:
         name: build

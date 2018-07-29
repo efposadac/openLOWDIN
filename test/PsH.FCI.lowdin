@@ -25,6 +25,9 @@ INPUT_CI
 	species="POSITRON" core=0 active=0 
 END INPUT_CI
 
+OUTPUTS
+	moldenFile
+END OUTPUTS
 
 
 

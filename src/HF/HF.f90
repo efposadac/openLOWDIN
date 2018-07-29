@@ -54,6 +54,7 @@ program HF
   integer :: speciesID
   real(8) :: totalEnergy
   real(8) :: totalCouplingEnergy
+  real(8) :: totalExchangeCorrelationEnergy
   real(8) :: totalKineticEnergy
   real(8) :: totalRepulsionEnergy
   real(8) :: totalQuantumPuntualInteractionEnergy
@@ -116,6 +117,7 @@ program HF
   existFile = .false.     
   inquire(file=trim(integralsFile), exist=existFile)
 
+  
   if( existFile ) then
      open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
 
@@ -150,6 +152,10 @@ program HF
 
      !! Transformation Matrix
      call WaveFunction_buildTransformationMatrix( trim(integralsFile), speciesID, 2 )
+
+     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+       call WaveFunction_buildExternalPotentialMatrix(trim(integralsFile), speciesID)
+     end if
 
      !! Hcore Matrix
      call WaveFunction_HCoreMatrix(trim(integralsFile), speciesID)
@@ -204,6 +210,11 @@ program HF
      arguments(1) = "TRANSFORMATION"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
 
+     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+       arguments(1) = "EXTERNAL_POTENTIAL"
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., &
+               arguments = arguments(1:2) )
+     end if
 
      if(CONTROL_instance%COSMO)then
 
@@ -225,9 +236,9 @@ program HF
   !! Calculate two-particle integrals (not building 2 particles and coupling matrix... those matrices are done by SCF program)
   !!
 
-  if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL ) then        
+  if( CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL ) then
 
-     call system(" lowdin-ints.x TWO_PARTICLE_F12")
+     call system(" lowdin-ints.x TWO_PARTICLE_G12")
 
   else        
 
@@ -281,6 +292,15 @@ program HF
           Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
           columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
+     arguments(1) = "EXCHANGE-CORRELATION"
+     WaveFunction_instance(speciesID)%exchangeCorrelationMatrix = &
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+     arguments(1) = "EXCHANGE-CORRELATION-ENERGY"
+     call Vector_getFromFile( value=WaveFunction_instance(speciesID)%exchangeCorrelationEnergy, unit=wfnUnit, &
+          binary=.true., arguments=arguments(1:2))
+          
      arguments(1) = "TWOPARTICLES"
      WaveFunction_instance(speciesID)%twoParticlesMatrix = &
           Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -315,6 +335,7 @@ program HF
   totalKineticEnergy = sum( WaveFunction_instance(:)%kineticEnergy)             
   totalRepulsionEnergy = sum( WaveFunction_instance(:)%repulsionEnergy ) + electronicRepulsionEnergy                          
   totalQuantumPuntualInteractionEnergy = sum ( WaveFunction_instance(:)%puntualInteractionEnergy )
+  totalExchangeCorrelationEnergy = sum ( WaveFunction_instance(:)%exchangeCorrelationEnergy )             
   totalExternalPotentialEnergy = sum ( WaveFunction_instance(:)%externalPotentialEnergy )             
   puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy()
   puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy()
@@ -322,6 +343,7 @@ program HF
        + puntualInteractionEnergy &
        + totalQuantumPuntualInteractionEnergy &
        + totalCouplingEnergy &
+       + totalExchangeCorrelationEnergy &
        + totalExternalPotentialEnergy
   totalCosmoEnergy = sum( WaveFunction_instance(:)%cosmoEnergy)
 
@@ -392,16 +414,19 @@ program HF
      write(*,*) " COMPONENTS OF POTENTIAL ENERGY: "
      write(*,*) "-------------------------------"
      write(*,*) ""
-     write (6,"(T10,A30,F20.10)") "Fixed potential energy    = ", puntualInteractionEnergy
+     write (6,"(T10,A30,F20.10)") "Fixed potential energy     = ", puntualInteractionEnergy
      if(CONTROL_instance%CHARGES_MM) then
-        write (6,"(T10,A30,F20.10)") "Self MM potential energy    = ", puntualMMInteractionEnergy
+     write (6,"(T10,A30,F20.10)") "Self MM potential energy   = ", puntualMMInteractionEnergy
      end if
-     write (6,"(T10,A30,F20.10)") "Q/Fixed potential energy  = ", totalQuantumPuntualInteractionEnergy
-     write (6,"(T10,A30,F20.10)") "Coupling energy           = ", totalCouplingEnergy
-     write (6,"(T10,A30,F20.10)") "Repulsion energy          = ", totalRepulsionEnergy
-     write (6,"(T10,A30,F20.10)") "ExternalPotential energy  = ", totalExternalPotentialEnergy             
+     write (6,"(T10,A30,F20.10)") "Q/Fixed potential energy   = ", totalQuantumPuntualInteractionEnergy
+     write (6,"(T10,A30,F20.10)") "Coupling energy            = ", totalCouplingEnergy
+     write (6,"(T10,A30,F20.10)") "Repulsion energy           = ", totalRepulsionEnergy
+     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+     write (6,"(T10,A30,F20.10)") "Exchange Correlation energy= ", totalExchangeCorrelationEnergy
+     end if
+     write (6,"(T10,A30,F20.10)") "External Potential energy  = ", totalExternalPotentialEnergy             
      write (6,"(T10,A50)") "________________"
-     write (6,"(T10,A30,F20.10)") "Total potential energy = ", potentialEnergy
+     write (6,"(T10,A30,F20.10)") "Total potential energy     = ", potentialEnergy
 
      write(*,*) ""
      write(*,*) " Repulsion energy: "
@@ -488,12 +513,18 @@ program HF
 
   case("UHF")
 
+  case("RKS")
+
+  case("UKS")
+
   case default
 
      write(*,*) "USAGE: lowdin-HF.x job "
      write(*,*) "Where job can be: "
      write(*,*) "  RHF"
      write(*,*) "  UHF"
+     write(*,*) "  RKS"
+     write(*,*) "  UKS"
      stop "ERROR"
 
   end select

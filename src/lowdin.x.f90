@@ -73,6 +73,9 @@ program lowdin_
  !! Load GEOMETRY block
  call InputManager_loadGeometry() 
 
+ !! Load potentials if any
+ call InputManager_loadPotentials()
+
  !! Load OUTPUTY block
 ! call InputManager_loadOUTPUT() 
  
@@ -88,19 +91,22 @@ program lowdin_
  call MolecularSystem_showInformation()  
 
  if (CONTROL_instance%METHOD/="MM") then 
+ 
     call MolecularSystem_showParticlesInformation()
 
- !!
- !!****************************************************************************
+    !!
+    !!****************************************************************************
 
- !!***************************************************************************
- !!        Shows system's geometry
- !!
+    !!***************************************************************************
+    !!        Shows system's geometry
+    !!
     write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
     write (6,"(T18,A35)") "------------------------------------------"
  
     call MolecularSystem_showCartesianMatrix()
+ 
  end if 
+
  !! Transform to center of mass
  call MecanicProperties_constructor(MolecularSystem_instance%mechanicalProp)
   
@@ -164,7 +170,7 @@ program lowdin_
  !    call TimeEvolution_constructor( lowdin_TimeEvolution, ssolver = lowdin_solver)
  !    call TimeEvolution_run( lowdin_TimeEvolution )
  !    call TimeEvolution_destructor( lowdin_TimeEvolution )
- !!Debug Mauricio Rodas
+
  if ( CONTROL_instance%OPTIMIZE ) then 
     call GeometryOptimizer_constructor( GeometryOptimizer_instance )
     call GeometryOptimizer_run( GeometryOptimizer_instance )
@@ -176,16 +182,12 @@ program lowdin_
  !!
  !!******************************************************************************
 
-
-!!Propiedades Habilitar luego Mauricio Rodas
-!! ?
-!! call system("lowdin-CalcProp.x") 
   statusSystem = system ("lowdin-CalcProp.x")
 
   if ( CONTROL_instance%IS_THERE_OUTPUT ) then
-        write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
-!!        call system("lowdin-output.x" //trim(strAuxNumber))
-  	statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
+    write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
+!!  call system("lowdin-output.x" //trim(strAuxNumber))
+    statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
   end if
 
 

@@ -64,7 +64,6 @@ program Output_
      call OutputBuilder_constructor( outputs(i), i, &
           InputOutput_Instance(i)%type, &
           InputOutput_Instance(i)%specie, & 
-          InputOutput_Instance(i)%state, &
           InputOutput_Instance(i)%orbital, &
           InputOutput_Instance(i)%dimensions, &
           InputOutput_Instance(i)%cubeSize, &
