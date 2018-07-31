@@ -727,6 +727,12 @@ recursive  function ConfigurationInteraction_buildCIOrderRecursion( s, numberOfS
          ConfigurationInteraction_instance%sizeCiOrderList = ConfigurationInteraction_instance%sizeCiOrderList + 1
          ConfigurationInteraction_instance%auxciOrderList(  ConfigurationInteraction_instance%sizeCiOrderList  ) = c
        end if
+       if ( trim(ConfigurationInteraction_instance%level) == "CISD+" ) then !!special case. 
+         if ( product(cilevel) == 1 .and. sum(cilevel) == ConfigurationInteraction_instance%maxCIlevel + 1) then
+           ConfigurationInteraction_instance%sizeCiOrderList = ConfigurationInteraction_instance%sizeCiOrderList + 1
+           ConfigurationInteraction_instance%auxciOrderList(  ConfigurationInteraction_instance%sizeCiOrderList  ) = c
+         end if
+       end if
       end do
       cilevel(is) = 0
     end if
@@ -2701,11 +2707,13 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
 
       ssize = 0 
       do ci = 1,  size(ConfigurationInteraction_instance%numberOfStrings(i)%values, dim = 1)
-        do bb = 1, ConfigurationInteraction_instance%numberOfStrings(i)%values(ci)
+        do b = 1 + ssize , ConfigurationInteraction_instance%numberOfStrings(i)%values(ci) + ssize
 
-          b = ssize + bb
-
-          do p = 1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+          !b = ssize + bb
+          do p = ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i)+1, &
+                 ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+          !do p = 1, &
+          !       ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
 
             stringAinB(p) = ConfigurationInteraction_instance%orbitals(i)%values( &
                               ConfigurationInteraction_instance%strings(i)%values(p,a),b) 
@@ -2714,7 +2722,10 @@ recursive  function ConfigurationInteraction_buildMatrixRecursion(nproc, s, inde
             !                  ConfigurationInteraction_instance%strings(i)%values(p,b),a) 
           end do
 
-          coupling = configurationinteraction_instance%numberOfOccupiedOrbitals%values(i) - sum ( stringAinB )
+          coupling = configurationinteraction_instance%numberOfOccupiedOrbitals%values(i) - sum ( stringAinB ) - &
+                     ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i) 
+
+         ! coupling = configurationinteraction_instance%numberOfOccupiedOrbitals%values(i) - sum ( stringAinB ) 
 
           if ( coupling  <= 2 ) then
 

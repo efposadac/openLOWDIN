@@ -9608,7 +9608,7 @@ contains
     real(8) :: valueOfW, valueOfU, valueOfdU, sub2, subW, subU, subd2, subdW, subdU
     real(8) :: lastOmega, newOmega, residual, threshold, selfEnergy, selfEnergyDerivative, koopmans 
     real(8) :: a1, a2, b, c, d, poleStrenght, partialValue, partialValue2, initialValue
-    real(8) :: fW, fI, thirdOrderResults(2,5)
+    real(8) :: fW, fI, thirdOrderResults(2,6)
     real(8) :: value1, value2, value3, value4
     real(8),allocatable :: s2hp(:), s2ph(:), W2hp(:), W2ph(:), U2hp(:), U2ph(:), constantSelfEnergy(:,:), factors(:,:,:)
     real(8),allocatable :: W22hp(:), W22ph(:), U22hp(:), U22ph(:), factors2(:,:,:)
@@ -14759,3 +14759,4 @@ contains
   end subroutine PropagatorTheory_exception
   
 end module PropagatorTheory_
+

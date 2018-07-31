@@ -329,7 +329,7 @@ contains
   !! @brief Retorna el valor de masa localizada en un punto dado del espacio.
   function ParticleManager_getMassInPosition( position, unid) result( output )
     implicit none
-    real(8),intent(in) :: position(3)
+    real(8),intent(in) :: position(:)
 
     character(*), optional :: unid
     real(8) :: output

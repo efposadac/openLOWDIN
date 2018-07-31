@@ -655,7 +655,7 @@ contains
     character(1) :: shellCode(0:8) !< Codigo para una capa dada
     character(1) :: coordCode(3) !< Codigo de las coordenadas cartesianas
     integer :: nx, ny, nz !< Indices de momento angular
-    integer :: i, j, m, u, v !< Iteradores
+    integer :: i, j, m, u, v,uu !< Iteradores
 
     if ( this%angularMoment <= 8 ) then
        
@@ -692,7 +692,12 @@ contains
                    u = u + 1
                    indexCode(u) = trim(coordCode(3))
                 end do
-                output(m) = trim(indexCode(1)(0:this%angularMoment))
+
+                do uu = 0, size(indexCode)-1
+                  output(m)(uu+1:uu+1) = indexCode(uu)
+                end do
+                !!output(m) = trim(indexCode(1)(0:this%angularMoment))
+
              end do
           end do
           
@@ -964,3 +969,4 @@ contains
   end subroutine ContractedGaussian_exception
   
 end module ContractedGaussian_
+
