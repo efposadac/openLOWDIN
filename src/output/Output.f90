@@ -70,7 +70,6 @@ program Output_
           InputOutput_Instance(i)%point1, & 
           InputOutput_Instance(i)%point2, &
           InputOutput_Instance(i)%point3  )
-          ! InputOutput_Instance(i)%state, &
 
      call OutputBuilder_buildOutput(outputs(i))
      call OutputBuilder_show(outputs(i))

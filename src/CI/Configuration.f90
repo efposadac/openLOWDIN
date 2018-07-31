@@ -71,6 +71,7 @@ module Configuration_
 
      logical :: isInstanced
      type(ivector) :: numberOfOccupiedOrbitals
+     type(ivector) :: numberOfCoreOrbitals
      type(ivector) :: numberOfOrbitals
      type(ivector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
      type(ivector) :: excitationType
@@ -81,6 +82,7 @@ module Configuration_
   public :: &
         Configuration_globalConstructor, &
         Configuration_constructor, &
+        Configuration_constructorB, &
         Configuration_copyConstructor, &
 !        Configuration_checkMaximumCoincidence, &
         Configuration_destructor, &
@@ -104,6 +106,7 @@ contains
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOccupiedOrbitals, numberOfSpecies, 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfCoreOrbitals, numberOfSpecies, 0 )
     call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOrbitals, numberOfSpecies, 0 )
     call Vector_constructorInteger ( GlobalConfiguration_instance%lambda, numberOfSpecies, 0 )
     call Vector_constructorInteger ( GlobalConfiguration_instance%excitationType, numberOfSpecies, 0 )
@@ -114,17 +117,25 @@ contains
        GlobalConfiguration_instance%lambda%values(i) = MolecularSystem_getLambda(i)
        GlobalConfiguration_instance%numberOfOccupiedOrbitals%values(i) = MolecularSystem_getOcupationNumber(i) * &
            GlobalConfiguration_instance%lambda%values(i)
-       GlobalConfiguration_instance%numberOfOrbitals%values(i) =  MolecularSystem_getTotalNumberOfContractions(i) * &
+       GlobalConfiguration_instance%numberOfCoreOrbitals%values(i) = 0
+       GlobalConfiguration_instance%numberOfOrbitals%values(i) = MolecularSystem_getTotalNumberOfContractions(i) * &
            GlobalConfiguration_instance%lambda%values(i)
+
+
+      if ( InputCI_Instance(i)%coreOrbitals /= 0 ) then
+        GlobalConfiguration_instance%numberOfCoreOrbitals%values(i) = InputCI_Instance(i)%coreOrbitals 
+      end if
 
       if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
         GlobalConfiguration_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
-                                    GlobalConfiguration_instance%lambda%values(i)
+                                    GlobalConfiguration_instance%lambda%values(i) + &
+                                    GlobalConfiguration_instance%numberOfCoreOrbitals%values(i) 
+
      end if
 
-      if ( InputCI_Instance(i)%excitationType /= 0 ) then
-        GlobalConfiguration_instance%excitationType%values(i) = InputCI_Instance(i)%excitationType
-      end if
+     !if ( InputCI_Instance(i)%excitationType /= 0 ) then
+     !  GlobalConfiguration_instance%excitationType%values(i) = InputCI_Instance(i)%excitationType
+     !end if
 
     end do
 
@@ -254,6 +265,68 @@ contains
     !this%isInstanced = .true.
 
   end subroutine Configuration_constructor
+
+  !>
+  !! @brief Constructor por omision
+  !!
+  !! @param this
+  !<
+  subroutine Configuration_constructorB(this,orbitals,occupiedCode,unoccupiedCode,i,k,order)
+    implicit none
+    type(imatrix) :: this
+    type(imatrix1) :: orbitals
+    type(IVector) :: order
+    type(Vector), allocatable :: occupiedCode(:)
+    type(Vector), allocatable :: unoccupiedCode(:)
+
+    integer :: numberOfOccupiedOrbitals 
+    integer :: numberOfOrbitals 
+    integer :: i,j,jj
+    integer :: numberOfSpecies
+    integer :: div1
+    integer :: div2
+    integer :: lambda !Ocupation per orbital
+    integer(8) :: k
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    !spin orbitals not spatial orbitals
+    lambda=MolecularSystem_getLambda(i)
+    numberOfOccupiedOrbitals=MolecularSystem_getOcupationNumber(i)*lambda
+    !numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(i)*lambda - 7
+    numberOfOrbitals = GlobalConfiguration_instance%numberOfOrbitals%values(i) 
+
+    do j=1, numberOfOccupiedOrbitals
+      !this%values(j,k) = 1_1
+      this%values(j,k)=j
+      orbitals%values(j,k) = 1
+    end do
+
+    do j= int(order%values(i)), 1, -1 
+
+       div1= int(occupiedCode(i)%values(j))
+       div2= int(unoccupiedCode(i)%values(j))
+
+       this%values(div1,k) = div2
+
+       orbitals%values(div1,k) = 0_1
+       orbitals%values(div2,k) = 1_1
+
+       !this%values(div1,k) = 0_1
+       !this%values(div2,k) = 1_1
+
+    end do
+
+    jj = 0 
+    do j=1, numberOfOrbitals
+       if ( orbitals%values(j,k) == 1 ) then
+         jj = jj + 1
+         this%values(jj,k) = j  
+       end if
+    end do
+
+  end subroutine Configuration_constructorB
+
 
   !>
   !! @brief Constructor por omision

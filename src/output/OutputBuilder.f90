@@ -310,7 +310,8 @@ contains
     character(4) :: shellCode
     character(2) :: space
     integer :: totalNumberOfParticles, n
-
+    logical :: existFile
+    
     this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim("species-states")//".molden"
 
     !     if ( CONTROL_instance%ARE_THERE_DUMMY_ATOMS ) then
@@ -333,14 +334,16 @@ contains
        
     !! Check if there are CI fractional occupations or build the occupations vector
     allocate(fractionalOccupations(numberOfSpecies))
-    
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+
+    occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+    inquire(FILE = occupationsFile, EXIST = existFile )
+
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
 
        print *, "              We are printing the molden files for the CI states!"
        
        numberOfStates=CONTROL_instance%CI_STATES_TO_PRINT
        occupationsUnit = 29
-       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
 
        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
        do l=1,numberOfSpecies
@@ -378,13 +381,18 @@ contains
              auxString=trim(MolecularSystem_getNameOfSpecie( l ))//"-"//trim( adjustl(auxString))
           end if
           
-          fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
+          this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
 
           totalNumberOfParticles = 0
 
-          open(10,file=fileName,status='replace',action='write')
+          open(10,file=this%fileName,status='replace',action='write')
           write(10,"(A)") "[Molden Format]"
-          write(10,"(A)") "[Atoms] AU"
+          if ( CONTROL_instance%UNITS=="ANGS") then
+            write(10,"(A)") "[Atoms] Angs"
+          else 
+            write(10,"(A)") "[Atoms] AU"
+          end if
+
           auxMatrix%values=0.0
           j=0
           do i=1, size(MolecularSystem_instance%species(l)%particles)
@@ -406,41 +414,42 @@ contains
 #else
 
              write (10,"(A,I8,I8,3F15.8)") trim(symbol), j,&
-                  int(abs(MolecularSystem_instance%species(l)%particles(j)%charge)), origin(1), origin(2), origin(3)
+                  int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), origin(1), origin(2), origin(3)
 #endif
 
-             !                end if
           end do
 
-          m=j
-          do k=1,size(localizationOfCenters%values,dim=1)
 
-             wasPress=.false.
-             do i=1,j
-                if(  abs( auxMatrix%values(i,1) - localizationOfCenters%values(k,1)) < 1.0D-9 .and. &
-                     abs( auxMatrix%values(i,2) - localizationOfCenters%values(k,2)) < 1.0D-9 .and. &
-                     abs( auxMatrix%values(i,3) - localizationOfCenters%values(k,3)) < 1.0D-9  ) then
-                   wasPress=.true.
-                end if
-             end do
-
-             if( .not.wasPress) then
-                m=m+1
-
-                totalNumberOfParticles = totalNumberOfParticles + 1
-                origin=localizationOfCenters%values(k,:)
-                !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
-                symbol=labels(k)
-                if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
+          if ( CONTROL_instance%MOLDEN_FILE_FORMAT /= "QUANTUM" ) then
+            m=j
+            do k=1,size(localizationOfCenters%values,dim=1)
+  
+               wasPress=.false.
+               do i=1,j
+                  if(  abs( auxMatrix%values(i,1) - localizationOfCenters%values(k,1)) < 1.0D-9 .and. &
+                       abs( auxMatrix%values(i,2) - localizationOfCenters%values(k,2)) < 1.0D-9 .and. &
+                       abs( auxMatrix%values(i,3) - localizationOfCenters%values(k,3)) < 1.0D-9  ) then
+                     wasPress=.true.
+                  end if
+               end do
+  
+               if( .not.wasPress) then
+                  m=m+1
+  
+                  totalNumberOfParticles = totalNumberOfParticles + 1
+                  origin=localizationOfCenters%values(k,:)
+                  if ( CONTROL_instance%UNITS=="ANGS") origin = origin * AMSTRONG
+                  symbol=labels(k)
+                  if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
 #ifdef intel
-                write (10,"(A,I,I,<3>F15.8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
+                  write (10,"(A,I,I,<3>F15.8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
 #else
-                write (10,"(A,I8,I8,3F15.8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
+                   write (10,"(A,I8,I8,3F15.8,I8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
 #endif
-             end if
-
-          end do
-
+               end if
+  
+            end do
+          end if
           !          print *, "totalNumberOfParticles ", totalNumberOfParticles
           !         print *, "particles for specie", size(MolecularSystem_instance%species(l)%particles)
 
@@ -456,18 +465,20 @@ contains
                   trim(MolecularSystem_instance%species(l)%particles(i)%nickname),10 )
              write(10,*) ""
 
-             if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
-
-                do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-                   write(10,"(I3,I2)") j+n,0
-                   write(10,"(A,I1,F5.2)") "s  ",1,1.00
-                   write(10,"(ES19.10,ES19.10)") 0.00,0.00
-                   write(10,*) ""
-                end do
-             end if
-             !              end if
-
           end do
+
+          if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+            if ( CONTROL_instance%MOLDEN_FILE_FORMAT == "MIXED" ) then
+              do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+                write(10,"(I3,I2)") j+n,0
+                write(10,"(A,I1,F5.2)") " s  ",1,1.00
+                write(10,"(ES19.10,ES19.10)") 1.00,1.00
+                write(10,*) ""
+              end do
+            end if
+          end if
+             !              end if
+          write(10,*) ""
 
           write(10,"(A)") "[MO]"
 
@@ -534,7 +545,6 @@ contains
           end do
 
           !Aqui termina de modificar laura
-
           do j=1,size(energyOfMolecularOrbital%values)
              write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital%values(j)
 
@@ -544,22 +554,28 @@ contains
              
              write (10,"(A,F7.4)") "Occup= ",occupation
 
+             i = 0
              do k=1,size(coefficientsOfCombination%values,dim=1)
+                i = i + 1
                 write(10,"(I4,F15.6)") k,coefficientsOfCombination%values(k,j)
              end do
 
-             !FELIX: PROBANDO
-             ! if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
-             !    do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-             !       write(10,"(I4,F15.6)") k-1+n,0.0_8
-             !    end do
-             ! end if
+              if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+                if ( CONTROL_instance%MOLDEN_FILE_FORMAT == "MIXED" ) then
+                  do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+                    write(10,"(I4,F15.6)") i+n,0.0_8
+                  end do
+                end if
+              end if
 
           end do
+
 
           close(10)
        end do
     end do
+
+    this%fileName=trim(CONTROL_instance%INPUT_FILE)//"species.molden"
 
     call Matrix_destructor( localizationOfCenters )
     call Matrix_destructor( auxMatrix )
@@ -1286,6 +1302,7 @@ contains
     type(matrix) :: densityMatrix
 
     character(50) :: arguments(20), wfnFile, occupationsFile, auxstring, nameOfSpecies
+    logical :: existFile
 
     !Writes Gaussian Cube 
     
@@ -1299,11 +1316,13 @@ contains
     outputID=String_convertIntegerToString(this%outputID)
 
     ! Check if there are CI density matrices and read those or the HF matrix
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+    occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+    inquire(FILE = occupationsFile, EXIST = existFile )
+    
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile ) then
        print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
 
        occupationsUnit = 29
-       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
 
        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
 
@@ -1393,8 +1412,7 @@ contains
     
   end subroutine OutputBuilder_getDensityCube
 
-  
-   subroutine OutputBuilder_getDensityPlot(this)
+  subroutine OutputBuilder_getDensityPlot(this)
      type(OutputBuilder) :: this
      character(50) :: outputID
      character(50) :: orbitalNum
@@ -1408,7 +1426,8 @@ contains
 
      character(50) :: arguments(20), wfnFile, occupationsFile, auxstring, nameOfSpecies
      character(50) :: title, x_title, y_title, z_title
-     
+     logical :: existFile
+
      call Vector_Constructor(step1, 3)
      call Vector_Constructor(step2, 3)
 
@@ -1417,13 +1436,14 @@ contains
      nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
      numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
     
+     occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+     inquire(FILE = occupationsFile, EXIST = existFile )
 
      ! Check if there are CI density matrices and read those or the HF matrix
-     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
         print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
 
        occupationsUnit = 29
-       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
 
        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
 
@@ -1769,3 +1789,4 @@ contains
 ! set yrange [-3.5:3.5]
 
 end module OutputBuilder_
+

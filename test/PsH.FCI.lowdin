@@ -12,9 +12,18 @@ END TASKS
 
 CONTROL
 	numberOfCIstates=3
-	CIdiagonalizationMethod = "DSYEVX"
+	!CIdiagonalizationMethod = "DSYEVX"
+	CIdiagonalizationMethod = "JADAMILU"
 	!CIdiagonalizationMethod = "ARPACK"
 END CONTROL
+!OUTPUTS
+!	moldenFile
+!END OUTPUTS
+INPUT_CI
+	species="E-ALPHA" core=0 active=0 
+	species="E-BETA" core=0 active=0 
+	species="POSITRON" core=0 active=0 
+END INPUT_CI
 
 OUTPUTS
 	moldenFile

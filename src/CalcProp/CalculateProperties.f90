@@ -124,6 +124,7 @@ contains
     character(50) :: occupationsFile, auxstring
     integer :: occupationsUnit
     integer :: numberOfSpecies, speciesID, numberOfContractions
+    logical :: existFile
 
     integralsFile = "lowdin.opints"
     integralsUnit = 30
@@ -145,14 +146,16 @@ contains
     do speciesID=1, numberOfSpecies
        numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
 
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+       inquire(FILE = occupationsFile, EXIST = existFile )
+
        ! Check if there are CI density matrices and read those or the HF matrix
-       if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  ) then
+       if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" .and. existFile ) then
+
           print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
                " in the CI ground state"
 
           occupationsUnit = 29
-          occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-          
           open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
 
           auxstring="1" !ground state

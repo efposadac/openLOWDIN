@@ -202,6 +202,13 @@ contains
        end do
     end do
     
+    if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX ) then
+
+      hcoreDensityMatrix%values(ocupationNumber,:) = 0.1*hcoreDensityMatrix%values(ocupationNumber,:)*hcoreDensityMatrix%values(ocupationNumber+1,:)
+
+    end if
+
+
     hcoreDensityMatrix%values =  MolecularSystem_getEta( speciesID ) * hcoreDensityMatrix%values
     
     call Matrix_destructor( auxGuess )

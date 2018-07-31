@@ -11,7 +11,7 @@ outputName = testName + ".out"
 # Reference values
 
 refTotalEnergy = -0.666783062050
-refFCIEnergy = -0.743335967433
+refFCIEnergy = -0.743335966767
 
 # Run calculation
 

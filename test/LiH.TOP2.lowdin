@@ -1,0 +1,21 @@
+
+GEOMETRY
+e-(Li)	cc-pVTZ	  0.0000	0.0000	1.5949 	 multiplicity=1
+e-(H)	cc-pVTZ	  0.0000	0.0000	0.00000 
+Li	dirac	  0.0000	0.0000 1.5949
+!H_1	Nakai-trf-7sp	  0.0000	0.0000 0.0000
+H_1	dirac	  0.0000	0.0000 0.0000
+END GEOMETRY
+
+TASKS
+        method = "UHF" 
+        propagatorTheoryCorrection=2
+END TASKS
+
+CONTROL
+	!buildTwoParticlesMatrixForOneParticle=T ! active to compare with Romero.JCP.137.74105.2012
+	ionizeSpecie="E-ALPHA" 
+ 	IonizeMO=2
+ 	MOfractionOccupation=0.5
+ 	ptTransitionOperator=T
+END CONTROL

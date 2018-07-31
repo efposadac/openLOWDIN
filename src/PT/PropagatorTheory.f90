@@ -653,7 +653,7 @@ contains
                 if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
 
                    vectorSize3 = occupationNumberOfSpeciesA * virtualNumberOfSpeciesA
-                   call Matrix_constructor(selfEnergyhp(j), 2_8, vectorSize2, 0.0_8)
+                   call Matrix_constructor(selfEnergyhp(j), 2_8, vectorSize3, 0.0_8)
 
                 end if
 
@@ -730,8 +730,9 @@ contains
                          auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
                          auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
                          auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
-                         
-                         selfEnergyhp(j)%values(1,id3) = auxValue_A*(lambdaOfSpeciesA*auxValue_A - auxValue_B)
+                          
+                         selfEnergyhp(j)%values(1,id3) = ( 1 - occupationsOfSpeciesA%values(pa)) * &
+                            auxValue_A*(lambdaOfSpeciesA*auxValue_A - auxValue_B)
                          
                          selfEnergyhp(j)%values(2,id3) = eigenValuesOfSpeciesA%values(ia) - eigenValuesOfSpeciesA%values(pa) &
                               - eigenValuesOfSpeciesA%values(aa)
@@ -749,7 +750,9 @@ contains
                 occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
                 lambdaOfSpeciesB = MolecularSystem_getLambda( j )
                 virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
-                
+
+                call Vector_constructor(occupationsOfSpeciesB,occupationNumberOfSpeciesB,1.0_8)
+
                 vectorSize1 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesA * virtualNumberOfSpeciesB
                 vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
 
@@ -815,8 +818,6 @@ contains
                       end do
                    end do
                 end do
-                                
-             end if
 
              if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
                 
@@ -830,15 +831,16 @@ contains
                       auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                       auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
                       
-                      selfEnergyhp(j)%values(1,id3) = lambdaOfSpeciesA*lambdaOfSpeciesB*((auxValue_A)**2.0_8)
-                      
+                      selfEnergyhp(j)%values(1,id3) = ( 1- occupationsOfSpeciesA%values(pa))*&
+                        lambdaOfSpeciesA*lambdaOfSpeciesB*((auxValue_A)**2.0_8)
                       selfEnergyhp(j)%values(2,id3) = eigenValuesOfSpeciesB%values(ib) - eigenValuesOfSpeciesA%values(pa) &
                            - eigenValuesOfSpeciesB%values(ab)
                       
                    end do
                 end do
                 
-             end if
+              end if
+            end if
 
           end do
 
@@ -936,21 +938,21 @@ contains
 
                    if (paso1.and.paso2) then
 
-                      selfEnergy = selfEnergy - factorSS(n)*( E2ph + E2hp + (1.0_8-occupationsOfSpeciesA%values(pa))*Ehp )
+                      selfEnergy = selfEnergy - factorSS(n)*( E2ph + E2hp + Ehp )
                       
-                      selfEnergyDerivative = selfEnergyDerivative + factorSS(n)*( dE2ph + dE2hp + (1.0_8-occupationsOfSpeciesA%values(pa))*dEhp )
+                      selfEnergyDerivative = selfEnergyDerivative + factorSS(n)*( dE2ph + dE2hp + dEhp )
                       
                    else if (paso3) then
 
-                      selfEnergy = selfEnergy - factorOS(n)*( E2ph + E2hp + (1.0_8-occupationsOfSpeciesA%values(pa))*Ehp )
+                      selfEnergy = selfEnergy - factorOS(n)*( E2ph + E2hp + Ehp )
 
-                      selfEnergyDerivative = selfEnergyDerivative + factorOS(n)*( dE2ph + dE2hp + (1.0_8-occupationsOfSpeciesA%values(pa))*dEhp )
+                      selfEnergyDerivative = selfEnergyDerivative + factorOS(n)*( dE2ph + dE2hp + dEhp )
                       
                    else
 
-                      selfEnergy = selfEnergy - ( E2ph + E2hp + (1.0_8-occupationsOfSpeciesA%values(pa))*Ehp )
+                      selfEnergy = selfEnergy - ( E2ph + E2hp + Ehp )
 
-                      selfEnergyDerivative = selfEnergyDerivative + ( dE2ph + dE2hp + (1.0_8-occupationsOfSpeciesA%values(pa))*dEhp )
+                      selfEnergyDerivative = selfEnergyDerivative + ( dE2ph + dE2hp + dEhp )
 
                    end if
 

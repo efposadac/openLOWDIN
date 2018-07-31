@@ -97,7 +97,7 @@ program SCF
         
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
 
-        call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie))
+        !call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie))
 
         if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
            call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
@@ -305,44 +305,98 @@ program SCF
      end if
 
   end do
-  
-  vecUnit = 36
-  if ( CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
 
-     vecFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
-     open(unit=vecUnit, file=trim(vecFile), status="replace", form="unformatted")
+  if ( .not. CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY .or. .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
 
-     do speciesID = 1, numberOfSpecies
-
-        labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
-        labels(1) = "COEFFICIENTS"
-        call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
-             unit=vecUnit, binary=.true., arguments = labels)
-
-     end do
-
-     close (vecUnit)
-
-  else
      labels = ""
-     !! Open file for wfn
-     vecFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
-     open(unit=vecUnit, file=trim(vecFile), status="replace", form="formatted")
+     !! Open file for vec
+     vecUnit = 36
+     vecFile = "lowdin-plain.vec"
+     open(unit=vecUnit, file=trim(vecFile), form="formatted", status='unknown')
 
-     do speciesID = 1, numberOfSpecies
+     if ( .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+        do speciesID = 1, numberOfSpecies
 
-        labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
-        labels(1) = "COEFFICIENTS"
-        call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
-             unit=vecUnit, binary=.false., arguments = labels)
+           labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+           labels(1) = "COEFFICIENTS"
+           call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
+                unit=vecUnit, binary=.false., arguments = labels)
+        end do
+     end if
 
-     end do
+     if ( .not. CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY ) then
 
+        do speciesID = 1, numberOfSpecies
+
+           labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+           labels(1) = "ORBITALS"
+           call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, & 
+                unit=vecUnit, binary=.false., arguments = labels )
+        end do
+     end if
      close (vecUnit)
+  end if
 
+!   vecUnit = 36
+!   if ( CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+     
+!      vecFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
+!      open(unit=vecUnit, file=trim(vecFile), status="replace", form="unformatted")
+
+!      do speciesID = 1, numberOfSpecies
+
+!         labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+!         labels(1) = "COEFFICIENTS"
+!         call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
+!              unit=vecUnit, binary=.true., arguments = labels)
+
+!      end do
+
+!      close (vecUnit)
+
+!   else
+!      labels = ""
+!      !! Open file for wfn
+!      vecFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
+!      open(unit=vecUnit, file=trim(vecFile), status="replace", form="formatted")
+
+!      if ( .not. CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY .or. .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+
+!         labels = ""
+!     !! Open file for vec
+!     vecUnit = 36
+!     vecFile = "lowdin-plain.vec"
+!     open(unit=vecUnit, file=trim(vecFile), form="formatted", status='unknown')
+
+!     if ( .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+!       do speciesID = 1, numberOfSpecies
+
+!         labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+!         labels(1) = "COEFFICIENTS"
+!         call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
+!              unit=vecUnit, binary=.false., arguments = labels)
+!       end do
+!     end if
+
+!     if ( .not. CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY ) then
+
+!       do speciesID = 1, numberOfSpecies
+
+! <<<<<<< HEAD
+!         labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+!         labels(1) = "ORBITALS"
+!         call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, & 
+!              unit=vecUnit, binary=.false., arguments = labels )
+!       end do
+!     end if
+!     close (vecUnit)
+! =======
 
   
-  end if
+! >>>>>>> 65f17bb51f2cb9cb348777354352854d08e936e2
+! end if
+
+
   !!**********************************************************
   !! Save Some energies
   !!
@@ -372,3 +426,5 @@ program SCF
   end if
 
 end program SCF
+
+

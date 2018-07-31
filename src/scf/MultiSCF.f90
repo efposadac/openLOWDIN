@@ -459,9 +459,9 @@ contains
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie) )
 
                          !! At first iteration is not included the coupling operator.
-                         ! if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
-                         call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
-                         ! end if
+                          if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
+                            call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
+                          end if
 
                          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
                             call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))

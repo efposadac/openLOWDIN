@@ -9,5 +9,7 @@ FROM ubuntu:14.04
 #   build-essential \
 #   libblas-dev \
 #   liblapack-dev \
-#   libarpack2-dev
+#   libarpack2-dev \
+#   libxc-dev
+
 

@@ -430,6 +430,113 @@ contains
           call Vector_destructor(deltaVector)           
 
        end if
+       !!**********************************************************************************************
+       !! Orbital exchange for TOM calculation
+       !!
+       if (CONTROL_instance%MO_FRACTION_OCCUPATION < 1.0_8 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) then
+
+          startIteration=5
+
+          threshold=0.8_8
+
+          call Matrix_copyConstructor(auxOverlapMatrix,WaveFunction_instance(speciesID)%overlapMatrix)
+
+          occupatedOrbitals = MolecularSystem_getOcupationNumber( speciesID )
+          total3 = int(occupatedOrbitals,8)
+
+          call Matrix_constructor (matchingMatrix, total3, total3)
+
+          matchingMatrix%values = &
+               matmul( matmul( transpose( previousWavefunctionCoefficients%values ) , &
+               auxOverlapMatrix%values), WaveFunction_instance(speciesID)%waveFunctionCoefficients%values )
+
+          astrayOrbitals=0 !!! number of orbitals that must be reordered
+
+          do ii= 1, occupatedOrbitals
+
+             !DEBUG
+             ! print *,"Antes ","Orbital: ",ii," ",abs(matchingMatrix%values(ii,ii))," energy ",WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(ii)
+
+             if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
+                astrayOrbitals=astrayOrbitals+1
+             end if
+
+          end do
+
+          !DEBUG
+          ! print *,"Number of astrayOrbitals",astrayOrbitals            
+          ! print *,"Initial MM:"
+          ! call Matrix_show (matchingMatrix)
+
+          call Vector_constructor (deltaVector,astrayOrbitals)
+
+          jj=0
+          do ii= 1, occupatedOrbitals
+             if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
+                jj=jj+1
+                deltaVector%values(jj)=ii
+             end if
+          end do
+
+          prodigals = astrayOrbitals
+
+          if(astrayOrbitals .ge. 1 .and. WaveFunction_instance(speciesID)%numberOfIterations > startIteration) then
+             ! print *, "Switching orbitals..."
+
+             do ii=1,astrayOrbitals
+
+                call Matrix_copyConstructor( auxiliaryMatrix, WaveFunction_instance(speciesID)%waveFunctionCoefficients )            
+                call Matrix_copyConstructor( matchingMatrix2, matchingMatrix )            
+
+                search=deltaVector%values(ii)            
+                ! print *,"search: ",search
+
+                do jj=1, numberOfContractions
+
+                   !trial=deltaVector%values(jj)
+                   trial=jj
+                   ! print *,"trial: ",trial
+
+                   ! print *,"valor: ",abs(matchingMatrix%values(search,trial))
+
+                   if ( abs(matchingMatrix%values(search,trial)) > threshold ) then
+
+                      WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,search)=auxiliaryMatrix%values(:,trial)
+                      WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,trial)=auxiliaryMatrix%values(:,search)
+
+                      hold=WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(search)
+                      WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(search)=WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(trial)
+                      WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(trial)=hold
+
+                      matchingMatrix%values(:,trial)=matchingMatrix2%values(:,search)
+                      matchingMatrix%values(:,search)=matchingMatrix2%values(:,trial)
+
+                      prodigals = prodigals - 1
+                      
+                      print *, "Switching orbital... ",search," with ",trial, " for ", trim(nameOfSpecie)
+
+                      exit
+
+                   end if
+
+                end do
+
+                ! if (prodigals<2) then
+                !    exit
+                ! end if
+
+             end do
+
+          end if
+
+          ! print *, "Coefficients after switching for ", speciesID
+          ! call Matrix_show(WaveFunction_instance( speciesID )%waveFunctionCoefficients)
+
+          
+          call Matrix_destructor(matchingMatrix)
+          call Vector_destructor(deltaVector)           
+
+       end if
        !!
        !!**********************************************************************************************
 
@@ -470,6 +577,43 @@ contains
 
           end if
        end if
+
+       !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
+       if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS <= 2 ) then
+         if ( CONTROL_instance%READ_EIGENVALUES ) then
+           inquire(FILE = "lowdin.vec", EXIST = existFile )
+
+           if ( existFile) then
+
+             arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+             arguments(1) = "ORBITALS"
+
+             if ( CONTROL_instance%READ_EIGENVALUES_IN_BINARY ) then
+
+               !! Open file for wavefunction
+               open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+                call Vector_getFromFile(unit=wfnUnit, &
+                          output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
+                          elementsNum= int(numberOfContractions,4), binary=.true., & 
+                          arguments=arguments(1:2))
+
+               close(wfnUnit)
+             else 
+               !! Open file for wavefunction
+               open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+
+                call Vector_getFromFile(unit=wfnUnit, &
+                          output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
+                          elementsNum= int(numberOfContractions,4), binary=.false., & 
+                          arguments=arguments(1:2))
+               close(wfnUnit)
+
+             end if
+
+           end if
+         end if
+      end if
 
        !! Not implemented yet
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
@@ -804,3 +948,4 @@ contains
   end subroutine SingleSCF_exception
 
 end module SingleSCF_
+

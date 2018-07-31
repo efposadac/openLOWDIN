@@ -617,9 +617,9 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
 
   auto max_nprim4 = nprim_max * nprim_max * nprim_max * nprim_max;
 
-  auto engine_precision =
-      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
-      max_nprim4;
+  auto engine_precision = 1.0e-40;
+      //std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      //max_nprim4;
 
   // construct the 2-electron repulsion integrals engine pool
   using libint2::Engine;
@@ -639,6 +639,7 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
   }
 
   std::atomic<size_t> num_ints_computed{0};
+  int screened;
 
   // setting buffers
   using libint2::QuartetBuffer;
@@ -651,6 +652,7 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
   auto shell2bf = map_shell_to_basis_function();
   auto oshell2bf = other.map_shell_to_basis_function();
 
+  screened = 0;
   auto lambda = [&](int thread_id) {
 
     std::string file = std::to_string(thread_id);
@@ -708,8 +710,10 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
             timer.stop(0);
 #endif
 
-            if (buf[0] == nullptr)
+            if (buf[0] == nullptr){
+              screened+=1;
               continue; // all screened out
+            }
 
             for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
               const auto bf1 = f1 + bf1_first;
@@ -779,7 +783,7 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
 #endif
 
   std::cout << " Number of unique integrals for species: " << speciesID << " / "
-            << other.get_speciesID() << " = " << num_ints_computed << std::endl;
+            << other.get_speciesID() << " = " << num_ints_computed << " Screened: "<< screened<<std::endl;
 }
 
 Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
@@ -813,6 +817,7 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
   using libint2::Engine;
   std::vector<Engine> engines(nthreads);
   engines[0] = Engine(libint2::Operator::coulomb, nprim_max, l_max, 0);
+  engine_precision = 1.0e-40;
   engines[0].set_precision(engine_precision); // shellset-dependentprecision
                                               // control will likely break
                                               // positive definiteness

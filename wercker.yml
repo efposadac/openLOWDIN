@@ -31,7 +31,8 @@ build:
           mkdir $WORKDIR/bin
           mkdir $WORKDIR/lib
           cd $WORKDIR
-          wget https://www.dropbox.com/s/0yhkcrh2nqvgbkg/libint2.0-beta.tgz
+          #wget https://www.dropbox.com/s/dlc3u9pbelp9iu1/libint2.0-beta-old.tgz
+          wget https://www.dropbox.com/s/tzmqzt3n0trpayf/libint2.0-beta.tgz
           tar xzvf libint2.0-beta.tgz
           cd -
           # Build libint
