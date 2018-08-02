@@ -12,6 +12,7 @@ END TASKS
 
 CONTROL
 	numberOfCIstates=3
+	CIStatesToPrint = 1
 	!CIdiagonalizationMethod = "DSYEVX"
 	CIdiagonalizationMethod = "JADAMILU"
 	!CIdiagonalizationMethod = "ARPACK"
