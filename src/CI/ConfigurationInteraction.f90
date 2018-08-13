@@ -1444,6 +1444,15 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       end do
       ConfigurationInteraction_instance%maxCILevel = 2
 
+    case ( "CISD+" )
+
+      do i=1, numberOfSpecies
+        ConfigurationInteraction_instance%CILevel(i) = 2
+        if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
+          ConfigurationInteraction_instance%CILevel(i) = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+      ConfigurationInteraction_instance%maxCILevel = 2
+
     case ("CISDT")
 
       do i=1, numberOfSpecies
