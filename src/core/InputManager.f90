@@ -179,6 +179,7 @@ contains
     logical:: InputTasks_TDHF
     logical:: InputTasks_cosmo
     logical:: InputTasks_pseudoatomicCalculation
+    logical:: InputTasks_dftbplus
 
     
     NAMELIST /InputTasks/ &
@@ -604,7 +605,7 @@ contains
 
     !! Namelist definition
     character(50):: dftbplus_hamiltonian
-    
+    character(50):: InputTasks_method
     character(20):: InputTasks_configurationInteractionLevel
     integer:: InputTasks_mollerPlessetCorrection
     integer:: InputTasks_propagatorTheoryCorrection
@@ -612,6 +613,7 @@ contains
     logical:: InputTasks_TDHF
     logical:: InputTasks_cosmo
     logical:: InputTasks_pseudoatomicCalculation
+    logical:: InputTasks_dftbplus
 
     
     NAMELIST /InputTasks/ &

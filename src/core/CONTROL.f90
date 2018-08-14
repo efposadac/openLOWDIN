@@ -289,15 +289,16 @@ module CONTROL_
      character(255) :: ELEMENTAL_PARTICLES_DATABASE="NONE"
      character(100) :: INPUT_FILE=""
 
-    !!***************************************************************************
-    !! DFTB options. 
-    !!
-    logical :: PSEUDOATOMIC_CALCULATION
-     
+     !!***************************************************************************
+     !! DFTB options. 
+     !!
+     logical :: PSEUDOATOMIC_CALCULATION
+     logical :: DFTBPLUS
+
   end type CONTROL
 
   !< Namelist definition
-  
+
   !!***************************************************************************
   !! Dummy variables, just for debugging. 
   !!
@@ -567,26 +568,27 @@ module CONTROL_
   !! DFTB options
   !!
   logical :: LowdinParameters_pseudoatomicCalculation
+  logical :: LowdinParameters_dftbplus
 
   NAMELIST /LowdinParameters/ &
-
-    !!***************************************************************************
-    !! Dummy variables, just for debugging. 
-    !!
-    LowdinParameters_dummyRealA,&
-    LowdinParameters_dummyRealB,&
-    LowdinParameters_dummyRealC,&
-    LowdinParameters_dummyIntegerA,&
-    LowdinParameters_dummyIntegerB,&
-    LowdinParameters_dummyIntegerC,&
-    LowdinParameters_dummyLogicalA,&
-    LowdinParameters_dummyLogicalB,&
-    LowdinParameters_dummyLogicalC,&
-    LowdinParameters_dummyCharacterA,&
-    LowdinParameters_dummyCharacterB,&
-    LowdinParameters_dummyCharacterC,&
-
-
+       
+                                !!***************************************************************************
+                                !! Dummy variables, just for debugging. 
+                                !!
+       LowdinParameters_dummyRealA,&
+       LowdinParameters_dummyRealB,&
+       LowdinParameters_dummyRealC,&
+       LowdinParameters_dummyIntegerA,&
+       LowdinParameters_dummyIntegerB,&
+       LowdinParameters_dummyIntegerC,&
+       LowdinParameters_dummyLogicalA,&
+       LowdinParameters_dummyLogicalB,&
+       LowdinParameters_dummyLogicalC,&
+       LowdinParameters_dummyCharacterA,&
+       LowdinParameters_dummyCharacterB,&
+       LowdinParameters_dummyCharacterC,&
+       
+       
                                 !!***************************************************************************
                                 !! Parameter to control Integrals library
                                 !!  
@@ -709,7 +711,7 @@ module CONTROL_
        LowdinParameters_ptMaxNumberOfPolesSearched,&
        LowdinParameters_ptFactorSS, &
        LowdinParameters_ptFactorOS, &
-
+       
        
                                 !!***************************************************************************
                                 !! Control print level and units
@@ -722,9 +724,9 @@ module CONTROL_
        LowdinParameters_units    ,&
        LowdinParameters_doubleZeroThreshold,&
        
-       !!***************************************************************************
-       !! CISD - FCI
-       !!
+                                !!***************************************************************************
+                                !! CISD - FCI
+                                !!
        LowdinParameters_configurationInteractionLevel,&
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
@@ -732,15 +734,15 @@ module CONTROL_
        LowdinParameters_CImaxNCV, &
        LowdinParameters_CIsizeOfGuessMatrix, &
        LowdinParameters_CIstackSize, &
-
-       !!***************************************************************************
-       !! CCSD 
-       !!
+       
+                                !!***************************************************************************
+                                !! CCSD 
+                                !!
        LowdinParameters_coupledClusterLevel,&
        
-       !!*****************************************************
-       !! Parameter to general control
-       !!
+                                !!*****************************************************
+                                !! Parameter to general control
+                                !!
        LowdinParameters_method,&
        LowdinParameters_transformToCenterOfMass,&
        LowdinParameters_areThereDummyAtoms,&
@@ -834,12 +836,14 @@ module CONTROL_
        LowdinParameters_basisSetDataBase,&
        LowdinParameters_potentialsDataBase,&
        LowdinParameters_elementalParticlesDataBase,&
-
+       
                                 !!***************************************************************************
                                 !! DFTB Options
                                 !!
-       LowdinParameters_pseudoatomicCalculation
-  
+       LowdinParameters_pseudoatomicCalculation,&
+       LowdinParameters_dftbplus
+
+
   public :: &
        CONTROL_start, &
        CONTROL_load, &
@@ -1132,11 +1136,12 @@ contains
     LowdinParameters_potentialsDataBase = "/potentials/"
     LowdinParameters_elementalParticlesDataBase = "/dataBases/elementalParticles.lib"
     LowdinParameters_inputFile = CONTROL_instance%INPUT_FILE
-    
+
     !!***************************************************************************
     !! DFTB Options
     !!
     LowdinParameters_pseudoatomicCalculation = .false.
+    LowdinParameters_dftbplus = .false.
 
     !! Set defaults for CONTROL Object
 
@@ -1413,6 +1418,7 @@ contains
     !! DFTB Options
     !!                                                                                                                         
     CONTROL_instance%PSEUDOATOMIC_CALCULATION = .false.
+    CONTROL_instance%DFTBPLUS = .false.
 
   end subroutine CONTROL_start
 
@@ -1728,7 +1734,8 @@ contains
     !! DFTB Options
     !!                                                                                 
     CONTROL_instance%PSEUDOATOMIC_CALCULATION = LowdinParameters_pseudoatomicCalculation
-    
+    CONTROL_instance%DFTBPLUS = LowdinParameters_dftbplus
+
   end subroutine CONTROL_load
 
   !> 
@@ -2019,6 +2026,7 @@ contains
     !! DFTB Options                       
     !!                                                                                 
     LowdinParameters_pseudoatomicCalculation = CONTROL_instance%PSEUDOATOMIC_CALCULATION
+    LowdinParameters_dftbplus = CONTROL_instance%DFTBPLUS
 
     !! Write the name list in the specified unit.
     write(unit, NML=LowdinParameters)
@@ -2284,7 +2292,8 @@ contains
     !! DFTB Options
     !!
     otherThis%PSEUDOATOMIC_CALCULATION = this%PSEUDOATOMIC_CALCULATION
-    
+    otherThis%DFTBPLUS = this%DFTBPLUS
+
   end subroutine CONTROL_copy
 
   !>
@@ -2305,8 +2314,8 @@ contains
     !$OMP PARALLEL private(nthreads, proc)
     proc = OMP_GET_THREAD_NUM()
     if(proc == 0) then
-      nthreads = OMP_GET_NUM_THREADS()
-      write (*,"(T10,A,I5)") "NUMBER OF CORES: ", nthreads
+       nthreads = OMP_GET_NUM_THREADS()
+       write (*,"(T10,A,I5)") "NUMBER OF CORES: ", nthreads
     end if
     !$OMP END PARALLEL
 
@@ -2353,10 +2362,10 @@ contains
     end if
 
     if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
-      
-      write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
-      CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = 1E-08
-      CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
+
+       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+       CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = 1E-08
+       CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
 
     end if
 
@@ -2514,7 +2523,13 @@ contains
        write(*,"(T10,A)") "PSEUDOATOMIC CALCULATION: T"
 
     end if
-    
+
+        if ( CONTROL_instance%DFTBPLUS ) then
+
+       write(*,"(T10,A)") "DFTB+ CALCULATION: T"
+
+    end if
+
   end subroutine CONTROL_show
 
   !>
