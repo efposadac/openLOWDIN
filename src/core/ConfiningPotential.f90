@@ -104,7 +104,7 @@ contains
        this%rZero = this%radius * confiningCoefficient
     end if
   end subroutine ConfiningPotential_constructPotential
- 
+
   !>
   !! @brief loads some necesary information from the input file
   !! @param this
@@ -158,7 +158,7 @@ contains
 
     else
        print*,"*_*_*_*_*_*_*_*_*_*_   ERROR   _*_*_*_*_*_*_*_*_*_*"
-              call ConfiningPotential_exception(ERROR, "ERROR reading chemical symbol (Confining Potential) from file: "//trim(auxFile)//" This file doesn't exists!","ConfiningPotential module at loadParticles function.")
+       call ConfiningPotential_exception(ERROR, "ERROR reading chemical symbol (Confining Potential) from file: "//trim(auxFile)//" This file doesn't exists!","ConfiningPotential module at loadParticles function.")
     end if
 
   end subroutine ConfiningPotential_loadParticles

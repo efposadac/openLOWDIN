@@ -26,7 +26,6 @@ module ConfiningIntegrals_
   use Exception_
   use Math_
   use ContractedGaussian_
-  !  use AtomicElement_
   use ConfiningPotential_
   implicit none
 
@@ -57,7 +56,7 @@ contains
     integer, allocatable :: angularMomentIndexA(:,:)
     integer, allocatable :: angularMomentIndexB(:,:)
     integer ::  i, m, p, q
-
+!    print*,"EEEEEEEEEEEEeeeeeeeeeeeeeeeeeeeentrando a ConfiningIntegrals_computeShell"
     integral = 0.0_8
 
     if(allocated(angularMomentIndexA)) deallocate(angularMomentIndexA)
@@ -189,6 +188,7 @@ contains
                * auxCoefficientA * auxCoefficientB * auxConstantA * auxConstantB
 
           !! recursion
+          ! print*,"LLLLLLLLLLLLlllllllllllllllllllllllamando a ConfiningIntegrals_obaraSaikaRecursion en ConfiningIntegrals_computeContractionPair"
           call ConfiningIntegrals_obaraSaikaRecursion(x, y, z, PA, PB, gamma, angularMomentA+2, angularMomentB+2)
 
           x0 = x(angularMomentIndexA(0),angularMomentIndexB(0))
@@ -276,6 +276,7 @@ contains
     PB(2) = P(2) - B(3)
 
     !! recursion
+    ! print*,"LLLLLLLLLLLLlllllllllllllllllllllllamando a ConfiningIntegrals_obaraSaikaRecursion en ConfiningIntegrals_computePrimitivePair"
     call ConfiningIntegrals_obaraSaikaRecursion(x, y, z, PA, PB, gamma, angularMomentA+2, angularMomentB+2)
 
     if(allocated(angularMomentIndexA)) deallocate(angularMomentIndexA)
@@ -315,8 +316,8 @@ contains
   end subroutine ConfiningIntegrals_computePrimitivePair
 
   !>
-  !!@brief Implementation of recursion proposed by Obara-Saika for overlap integrals.
-  !!@author Edwin Posada, 2010
+  !!@brief Implementation of recursion proposed by Obara-Saika for confining integrals.
+  !!@author Ismael Ortiz-Verano, 2018
   !!@return x, y, z : recursion matrixes
   !!@param PA, PB : reduced origin for gaussian A and B
   !!@param gamma : reduced exponent
@@ -324,13 +325,17 @@ contains
   subroutine ConfiningIntegrals_obaraSaikaRecursion(x, y, z, PA, PB, gamma, angularMoment1, angularMoment2)
     implicit none
 
-    real(8), intent(inout), allocatable :: x(:,:), y(:,:), z(:,:)
-    real(8), intent(in) :: PA(0:3), PB(0:3)
-    real(8), intent(in) :: gamma
+    real(8), intent(inout), allocatable :: x(:,:), y(:,:), z(:,:) !! Matrices de recursión
+    real(8), intent(in) :: PA(0:3), PB(0:3) !! orígenes reducidos de A y B ! P-Q de (5) en [Ahlrichs2006] (??????????????????)
+    real(8), intent(in) :: gamma !! Exponente reducido ! \xi, \nu y \rho de (3) en [Ahlrichs2006]
     integer, intent(in) :: angularMoment1, angularMoment2
 
     real(8) :: pp, gammaInv
     integer :: i, j, k
+
+    type(ConfPot),allocatable :: this(:)
+    integer :: quantumSpecies, ii
+    character(5):: elementSymbol
 
     real(8) :: mExponent
     real(8) :: factor
@@ -346,6 +351,24 @@ contains
     ! factor = (4 * Math_PI ) * sqrt(gammaInv*gammaInv*gammaInv) ! eq (47) de Ahlrichs2006
     ! print *, "Factor: ",factor,i,coefRZero,rZero!,j,k,x,y,z
     !* exp(-PA) !
+    quantumSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+    allocate(this(quantumSpecies))
+
+    call ConfiningPotential_loadParticles(elementSymbol)
+    this(1)%elementSymbol=elementSymbol
+    ! print*,"EEEEEEEEEEEEEEEeeeeeeeeeeeeeeeeeelement symbol: ",this(1)%elementSymbol
+    ! print*,"QQQQQQQQQqqqqqqqqqqqqqqqquantum species: ", quantumSpecies
+    
+        do ii = 1, quantumSpecies
+           this%particle = MolecularSystem_getNameOfSpecie(ii)
+           ! print*,"TTTTTTTTTTTTTTTTTTTTTTtttttttttttttttttttthis particle: ",this%particle
+       call ConfiningPotential_constructPotential(this(ii))
+       ! write(6,"(T10,A10,A10,F20.10,F20.10,F20.10,F20.10)") &
+       !      this(ii)%elementSymbol,this(ii)%particle,this(ii)%radius,this(ii)%exponent, this(ii)%confiningCoefficient, this(ii)%rZero
+       print*,"CCCCCCCCCCCCCCCcccccccccccccccosas de recursión de Obara Saika en confining integrals"
+       print*,this(ii)%elementSymbol,this(ii)%particle,this(ii)%radius,this(ii)%exponent, this(ii)%confiningCoefficient, this(ii)%rZero
+    end do
+    
 
     x(0,0) = 1.0_8
     y(0,0) = 1.0_8
@@ -356,6 +379,7 @@ contains
     y(0,1) = PB(1)
     z(0,1) = PB(2)
 
+    ! print*,"xxxxxxxxxxxxxx, yyyyyyyyyyyyyyyy, zzzzzzzzzzzzzzzz ",x(0,1),y(0,1),z(0,1)
     do j=1, angularMoment2 -1
        x(0,j+1) = PB(0)*x(0,j)
        y(0,j+1) = PB(1)*y(0,j)
