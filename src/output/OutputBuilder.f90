@@ -1308,8 +1308,6 @@ contains
     
     speciesID = MolecularSystem_getSpecieIDFromSymbol( trim(this%specie) )
 
-    print *, "speciesID", speciesID
-
     nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
     numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
 
@@ -1433,15 +1431,16 @@ contains
 
      
      speciesID = MolecularSystem_getSpecieIDFromSymbol( trim(this%specie) )
+     print *, "speciesID", speciesID, this%specie
      nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
      numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
     
-     occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-     inquire(FILE = occupationsFile, EXIST = existFile )
-
      ! Check if there are CI density matrices and read those or the HF matrix
      if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
         print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
+
+        occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+        inquire(FILE = occupationsFile, EXIST = existFile )
 
        occupationsUnit = 29
 
