@@ -15,6 +15,10 @@ CONTROL
 	!CIdiagonalizationMethod = "DSYEVX"
 	CIdiagonalizationMethod = "JADAMILU"
 	!CIdiagonalizationMethod = "ARPACK"
+	!CIPrintEigenVectorsFormat = "NONE"
+	CIPrintEigenVectorsFormat = "OCCUPIED"
+	!CIPrintEigenVectorsFormat = "ORBITALS"
+	CIPrintThreshold = 5e-2
 END CONTROL
 !OUTPUTS
 !	moldenFile

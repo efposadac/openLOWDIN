@@ -184,6 +184,8 @@ module CONTROL_
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
+     character(20) :: CI_PRINT_EIGENVECTORS_FORMAT
+     real(8) :: CI_PRINT_THRESHOLD
      integer :: CI_STATES_TO_PRINT
      integer :: CI_ACTIVE_SPACE
      integer :: CI_MAX_NCV
@@ -465,6 +467,8 @@ module CONTROL_
   character(20) :: LowdinParameters_configurationInteractionLevel
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
+  character(20) :: LowdinParameters_CIPrintEigenVectorsFormat
+  real(8) :: LowdinParameters_CIPrintThreshold
   integer :: LowdinParameters_CIactiveSpace
   integer :: LowdinParameters_CIstatesToPrint
   integer :: LowdinParameters_CImaxNCV
@@ -757,6 +761,9 @@ module CONTROL_
        LowdinParameters_CIJacobi, &
        LowdinParameters_CIBuildFullMatrix, &
        LowdinParameters_CIMadSpace, &
+       LowdinParameters_CIPrintEigenVectorsFormat, &
+       LowdinParameters_CIPrintThreshold, &
+
 
        !!***************************************************************************
        !! CCSD 
@@ -1062,6 +1069,9 @@ contains
     LowdinParameters_CIJacobi = .false.
     LowdinParameters_CIBuildFullMatrix = .false. 
     LowdinParameters_CIMadSpace = 5
+    LowdinParameters_CIPrintEigenVectorsFormat = "OCCUPIED"
+    LowdinParameters_CIPrintThreshold = 1E-1
+
 
     !!***************************************************************************
     !! CCSD
@@ -1343,6 +1353,10 @@ contains
     CONTROL_instance%CI_JACOBI = .False.
     CONTROL_instance%CI_BUILD_FULL_MATRIX = .FALSE. 
     CONTROL_instance%CI_MADSPACE = 5
+    CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = "OCCUPIED"
+    CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
+
+
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1666,6 +1680,10 @@ contains
     CONTROL_instance%CI_JACOBI = LowdinParameters_CIJacobi
     CONTROL_instance%CI_BUILD_FULL_MATRIX = LowdinParameters_CIBuildFullMatrix 
     CONTROL_instance%CI_MADSPACE = LowdinParameters_CIMadSpace
+    CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
+    CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
+
+
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1962,6 +1980,8 @@ contains
     LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
     LowdinParameters_CIMadSpace = CONTROL_instance%CI_MADSPACE
 
+    LowdinParameters_CIPrintEigenVectorsFormat = CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT 
+    LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
 
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -2239,6 +2259,8 @@ contains
     otherThis%CI_JACOBI = this%CI_JACOBI
     otherThis%CI_BUILD_FULL_MATRIX = this%CI_BUILD_FULL_MATRIX
     otherThis%CI_MADSPACE = this%CI_MADSPACE
+    otherThis%CI_PRINT_EIGENVECTORS_FORMAT = this%CI_PRINT_EIGENVECTORS_FORMAT 
+    otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
 
     !!***************************************************************************
     !! CCSD

@@ -59,6 +59,7 @@ program CI
   call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
   call ConfigurationInteraction_run()
   call ConfigurationInteraction_show()
+  call ConfigurationInteraction_showEigenVectors()
   !!call ConfigurationInteraction_naturalOrbitals()!! currently unavailable 
   call ConfigurationInteraction_destructor()
 
