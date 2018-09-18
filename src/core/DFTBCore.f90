@@ -4,12 +4,12 @@ module DFTBCore_
   use MolecularSystem_
 
 contains
+  !>
+  !! @brief Construye el archivo de entrada DFTB+
   subroutine DFTBCore_ini()
-    if ( CONTROL_instance%dftbplus .eqv. .true. ) then
+
        print *, " Con DFTB plus"
-    else
-       print *, "Sin DFTB plus"
-    end if
+
 
     call MolecularSystem_showCartesianMatrix()
   end subroutine DFTBCore_ini

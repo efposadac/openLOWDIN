@@ -1,0 +1,17 @@
+SYSTEM_DESCRIPTION='H2O con DFTB'
+GEOMETRY
+	e-[O]     DFTB        0.0000000      0.0000000    0.0000000
+	e-[H]     DFTB        0.7000000      0.0000000    0.0000000
+	e-[H]     DFTB       -0.5000000      0.3000000    0.0000000
+	O        dirac        0.0000000      0.0000000    0.0000000
+	H        dirac        0.7000000      0.0000000    0.0000000
+	H        dirac       -0.5000000      0.3000000    0.0000000	
+END GEOMETRY
+TASKS
+	method = "RHF"
+	dftbplus=T
+END TASKS
+
+CONTROL
+!	numberOfCores = 1
+END CONTROL

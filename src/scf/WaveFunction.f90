@@ -109,6 +109,7 @@ contains
     integer :: speciesID    
     integer(8) :: numberOfContractions
     character(50) :: labels(2)
+    integer :: systemDFTB
 
     !! Allocate memory.
     allocate(WaveFunction_instance(MolecularSystem_instance%numberOfQuantumSpecies))
@@ -222,6 +223,11 @@ end if
        WaveFunction_instance(speciesID)%builtTwoParticlesMatrix = .true.
 
     end do
+
+        if ( CONTROL_instance%dftbplus .eqv. .true. ) then
+           print *, " Con DFTB plus"
+           systemDFTB = system("lowdin-dftb.x")
+    end if
 
   end subroutine WaveFunction_constructor
 

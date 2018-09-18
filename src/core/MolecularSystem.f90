@@ -526,6 +526,49 @@ contains
 
   end subroutine MolecularSystem_showZMatrix
 
+    !>
+  !! @brief Muestra una matriz cartesianas de las particulas del sistema
+  subroutine MolecularSystem_showHSDFormat()
+    implicit none
+    
+    integer :: i, j
+    real(8) :: origin(3)
+    
+    write (6,"(A10,A16,A20,A20)") " ","<x>","<y>","<z>"
+    
+    !! Print quatum species information
+    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+       
+       !! Avoid print twice basis in open-shell case
+       if(trim(MolecularSystem_instance%species(i)%name) == "E-BETA" ) cycle
+
+       do j = 1, size(MolecularSystem_instance%species(i)%particles)
+       
+          origin = MolecularSystem_instance%species(i)%particles(j)%origin * AMSTRONG
+          
+          if(MolecularSystem_instance%species(i)%isElectron) then
+             write (6,"(A10,3F20.10)") trim( MolecularSystem_instance%species(i)%particles(j)%symbol )//trim(MolecularSystem_instance%species(i)%particles(j)%nickname),&
+                  origin(1), origin(2), origin(3)
+          else
+             write (6,"(A10,3F20.10)") trim(MolecularSystem_instance%species(i)%particles(j)%nickname), origin(1), origin(2), origin(3)
+          end if
+          
+       end do
+    end do
+    
+    !! Print Point charges information
+    do i = 1, MolecularSystem_instance%numberOfPointCharges
+       
+       origin = MolecularSystem_instance%pointCharges(i)%origin * AMSTRONG
+       write (6,"(A10,3F20.10)") trim(MolecularSystem_instance%pointCharges(i)%nickname), origin(1), origin(2), origin(3)
+       
+    end do
+    
+    print *," "
+    
+  end subroutine MolecularSystem_showHSDFormat
+
+  
   !>
   !! @brief Imprime una matriz de distancias entre particulas presentes en el sistema
   subroutine MolecularSystem_showDistanceMatrix()
