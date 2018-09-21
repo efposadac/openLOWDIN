@@ -2,6 +2,8 @@ module DFTBCore_
   use CONTROL_
   use Exception_
   use MolecularSystem_
+  use Particle_
+  use ParticleManager_
 
 contains
   !>
@@ -11,7 +13,7 @@ contains
        print *, " Con DFTB plus"
 
 
-    call MolecularSystem_showCartesianMatrix()
+    call MolecularSystem_showHSDFormat()
   end subroutine DFTBCore_ini
 end module DFTBCore_
 

@@ -532,6 +532,7 @@ contains
     implicit none
     
     integer :: i, j
+    integer :: numberOfAtoms
     real(8) :: origin(3)
     
     write (6,"(A10,A16,A20,A20)") " ","<x>","<y>","<z>"
@@ -547,13 +548,17 @@ contains
           origin = MolecularSystem_instance%species(i)%particles(j)%origin * AMSTRONG
           
           if(MolecularSystem_instance%species(i)%isElectron) then
-             write (6,"(A10,3F20.10)") trim( MolecularSystem_instance%species(i)%particles(j)%symbol )//trim(MolecularSystem_instance%species(i)%particles(j)%nickname),&
-                  origin(1), origin(2), origin(3)
+!             write (6,"(A10,3F20.10)") trim( MolecularSystem_instance%species(i)%particles(j)%symbol )//trim(MolecularSystem_instance%species(i)%particles(j)%nickname),&
+             !                  origin(1), origin(2), origin(3)
+!             print *, "electrones"
           else
              write (6,"(A10,3F20.10)") trim(MolecularSystem_instance%species(i)%particles(j)%nickname), origin(1), origin(2), origin(3)
+
           end if
-          
+
        end do
+       numberOfAtoms=j-1
+                    print *, numberOfAtoms
     end do
     
     !! Print Point charges information

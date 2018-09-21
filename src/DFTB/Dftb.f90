@@ -36,7 +36,18 @@ program DFTB
 
   implicit none 
 print *, "DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB "  
-  call DFTBCore_ini()
+
+  !!Start time
+ call Stopwatch_constructor(lowdin_stopwatch)
+ call Stopwatch_start(lowdin_stopwatch)
+
+  !!Load CONTROL Parameters
+  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
+
+  !!Load the system in lowdin.sys format
+  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+
+    call DFTBCore_ini()
   
   end program DFTB
 !   integer(8) :: n
@@ -46,15 +57,6 @@ print *, "DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB "
 !   type(Matrix) :: qq
 
 
-!   !!Start time
-!   call Stopwatch_constructor(lowdin_stopwatch)
-!   call Stopwatch_start(lowdin_stopwatch)
-
-!   !!Load CONTROL Parameters
-!   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
-
-!   !!Load the system in lowdin.sys format
-!   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
 !   !cmatin es el dummy de cmatinv
 !   call CosmoCore_constructor(surfaceSegment_instance,cmatin)	
