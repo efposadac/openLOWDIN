@@ -225,7 +225,7 @@ end if
     end do
 
         if ( CONTROL_instance%dftbplus .eqv. .true. ) then
-           print *, " Con DFTB plus"
+!           print *, " Con DFTB plus"
            systemDFTB = system("lowdin-dftb.x")
     end if
 

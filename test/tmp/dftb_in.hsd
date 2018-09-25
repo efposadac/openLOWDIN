@@ -1,0 +1,37 @@
+ Geometry = GenFormat {
+   <<< "LOWDIN.gen"
+ }
+  
+ Driver = {}
+ 
+ Hamiltonian = DFTB {
+ SCC = Yes
+ SCCTolerance = 1.00E-6
+ MaxSCCIterations = 1000
+ MaxAngularMomentum {
+ H = "s"
+ O = "p"
+ }
+ SlaterKosterFiles = Type2FileNames {
+ Prefix = "/opt/dftbplus-18.2/external/slakos/origin/mio-1-1/"
+ Separator = "-"
+ Suffix  = ".skf"
+ }
+ Dispersion = {}
+ ThirdOrder = Yes
+ HubbardDerivs {
+ O = -0.14
+ H = -0.07
+ }
+ HCorrection = Damping {
+ Exponent = 4.05
+ }
+ }
+ 
+ Options = {}
+ 
+ Analysis = {}
+ 
+ ParserOptions = {
+ ParserVersion = 6
+ }

@@ -1,0 +1,87 @@
+Geometry = GenFormat {
+3 C
+O H
+1   1   0.0000000000E+00   0.0000000000E+00   0.0000000000E+00
+2   2   7.0000000000E-01   0.0000000000E+00   0.0000000000E+00
+3   2  -5.0000000000E-01   3.0000000000E-01   0.0000000000E+00
+}
+Driver = {}
+Hamiltonian = DFTB {
+  SCC = Yes
+  SCCTolerance = 1.00E-6
+  MaxSCCIterations = 1000
+  MaxAngularMomentum = {
+    H = "s"
+    O = "p"
+  }
+  SlaterKosterFiles = Type2FileNames {
+    Prefix = "/opt/dftbplus-18.2/external/slakos/origin/mio-1-1/"
+    Separator = "-"
+    Suffix = ".skf"
+    LowerCaseTypeName = No
+  }
+  Dispersion = {}
+  ThirdOrder = Yes
+  HubbardDerivs = {
+    O = -0.14
+    H = -0.07
+  }
+  HCorrection = Damping {
+    Exponent = 4.05
+  }
+  PolynomialRepulsive = {}
+  OrbitalResolvedSCC = No
+  OldSKInterpolation = No
+  ReadInitialCharges = No
+  InitialCharges = {}
+  Mixer = Broyden {
+    MixingParameter = 0.20000000000000001
+    InverseJacobiWeight = 1.0000000000000000E-002
+    MinimalWeight = 1.0000000000000000
+    MaximalWeight = 100000.00000000000
+    WeightFactor = 1.0000000000000000E-002
+  }
+  SpinPolarisation = {}
+  ElectricField = {}
+  Eigensolver = RelativelyRobust {}
+  Filling = Fermi {
+    Temperature = 0.0000000000000000
+  }
+  Charge = 0.0000000000000000
+  ThirdOrderFull = No
+  Differentiation = FiniteDiff {
+    Delta = 1.2207031250000000E-004
+  }
+  ForceEvaluation = "Traditional"
+}
+Options = {
+  WriteDetailedOut = Yes
+  WriteAutotestTag = No
+  WriteDetailedXML = No
+  WriteResultsTag = No
+  RestartFrequency = 20
+  RandomSeed = 0
+  WriteHS = No
+  WriteRealHS = No
+  MinimiseMemoryUsage = No
+  ShowFoldedCoords = No
+  TimingVerbosity = 0
+  WriteChargesAsText = No
+}
+Analysis = {
+  ProjectStates = {}
+  MullikenAnalysis = Yes
+  AtomResolvedEnergies = No
+  WriteEigenvectors = No
+  EigenvectorsAsTxt = No
+  WriteBandOut = Yes
+  CalculateForces = No
+}
+ParserOptions = {
+  ParserVersion = 6
+  WriteHSDInput = Yes
+  WriteXMLInput = No
+  StopAfterParsing = No
+  IgnoreUnprocessedNodes = No
+}
+ExcitedState = {}

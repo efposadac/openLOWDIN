@@ -35,7 +35,7 @@ program DFTB
   use DFTBCore_
 
   implicit none 
-print *, "DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB DFTB "  
+
 
   !!Start time
  call Stopwatch_constructor(lowdin_stopwatch)

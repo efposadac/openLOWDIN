@@ -10,10 +10,8 @@ contains
   !! @brief Construye el archivo de entrada DFTB+
   subroutine DFTBCore_ini()
 
-       print *, " Con DFTB plus"
-
-
     call MolecularSystem_showHSDFormat()
+    
   end subroutine DFTBCore_ini
 end module DFTBCore_
 
