@@ -294,6 +294,8 @@ module CONTROL_
      !!
      logical :: PSEUDOATOMIC_CALCULATION
      logical :: DFTBPLUS
+     character(100) :: PATH_TO_DFTB
+     character(100) :: PATH_TO_SK_FILES
 
   end type CONTROL
 
@@ -568,7 +570,9 @@ module CONTROL_
   !! DFTB options
   !!
   logical :: LowdinParameters_pseudoatomicCalculation
-  logical :: LowdinParameters_dftbplus
+!  logical :: LowdinParameters_dftbplus
+  character(100) :: LowdinParameters_pathToDFTB
+  character(100) :: LowdinParameters_pathToSKFiles
 
   NAMELIST /LowdinParameters/ &
        
@@ -841,7 +845,9 @@ module CONTROL_
                                 !! DFTB Options
                                 !!
        LowdinParameters_pseudoatomicCalculation,&
-       LowdinParameters_dftbplus
+!       LowdinParameters_dftbplus,&
+       LowdinParameters_pathToDFTB,&
+       LowdinParameters_pathToSKFiles
 
 
   public :: &
@@ -1141,7 +1147,9 @@ contains
     !! DFTB Options
     !!
     LowdinParameters_pseudoatomicCalculation = .false.
-    LowdinParameters_dftbplus = .false.
+!    LowdinParameters_dftbplus = .false.
+    LowdinParameters_pathToDFTB = "NONE"
+    LowdinParameters_PathToSKFiles = "NONE"
 
     !! Set defaults for CONTROL Object
 
@@ -1418,7 +1426,9 @@ contains
     !! DFTB Options
     !!                                                                                                                         
     CONTROL_instance%PSEUDOATOMIC_CALCULATION = .false.
-    CONTROL_instance%DFTBPLUS = .false.
+!    CONTROL_instance%DFTBPLUS = .false.
+    CONTROL_instance%PATH_TO_DFTB = "NONE"
+    CONTROL_instance%PATH_TO_SK_FILES = "NONE"
 
   end subroutine CONTROL_start
 
@@ -1466,6 +1476,7 @@ contains
        LowdinParameters_totalEnergyTolerance = LowdinParameters_totalEnergyTolerance / 2.5_8
 
     end if
+
 
     !!***************************************************************************
     !! Dummy variables, just for debugging. 
@@ -1734,7 +1745,9 @@ contains
     !! DFTB Options
     !!                                                                                 
     CONTROL_instance%PSEUDOATOMIC_CALCULATION = LowdinParameters_pseudoatomicCalculation
-    CONTROL_instance%DFTBPLUS = LowdinParameters_dftbplus
+!    CONTROL_instance%DFTBPLUS = LowdinParameters_dftbplus
+    CONTROL_instance%PATH_TO_DFTB = LowdinParameters_pathToDFTB
+    CONTROL_instance%PATH_TO_SK_FILES = LowdinParameters_pathToSKFiles
 
   end subroutine CONTROL_load
 
@@ -2026,7 +2039,9 @@ contains
     !! DFTB Options                       
     !!                                                                                 
     LowdinParameters_pseudoatomicCalculation = CONTROL_instance%PSEUDOATOMIC_CALCULATION
-    LowdinParameters_dftbplus = CONTROL_instance%DFTBPLUS
+!    LowdinParameters_dftbplus = CONTROL_instance%DFTBPLUS
+    LowdinParameters_pathToDFTB = CONTROL_instance%PATH_TO_DFTB
+    LowdinParameters_pathToSKFiles = CONTROL_instance%PATH_TO_SK_FILES
 
     !! Write the name list in the specified unit.
     write(unit, NML=LowdinParameters)
@@ -2292,7 +2307,9 @@ contains
     !! DFTB Options
     !!
     otherThis%PSEUDOATOMIC_CALCULATION = this%PSEUDOATOMIC_CALCULATION
-    otherThis%DFTBPLUS = this%DFTBPLUS
+!    otherThis%DFTBPLUS = this%DFTBPLUS
+    otherThis%PATH_TO_DFTB = this%PATH_TO_DFTB
+    otherThis%PATH_TO_SK_FILES = this%PATH_TO_SK_FILES
 
   end subroutine CONTROL_copy
 
@@ -2524,9 +2541,11 @@ contains
 
     end if
 
-        if ( CONTROL_instance%DFTBPLUS ) then
+        if ( CONTROL_instance%METHOD == "DFTB" ) then
 
-       write(*,"(T10,A)") "DFTB+ CALCULATION: T"
+!           write(*,"(T10,A)") "DFTB+ CALCULATION: T"
+           write(*,"(T10,A)") "PATH TO DFTB+: "//trim(CONTROL_instance%PATH_TO_DFTB)
+           write(*,"(T10,A)") "PATH TO SLATER KOSTER FILES: "//trim(CONTROL_instance%PATH_TO_SK_FILES)
 
     end if
 

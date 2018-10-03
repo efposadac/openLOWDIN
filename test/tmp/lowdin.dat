@@ -117,7 +117,7 @@
  LOWDINPARAMETERS_CISIZEOFGUESSMATRIX=        300,
  LOWDINPARAMETERS_CISTACKSIZE=       5000,
  LOWDINPARAMETERS_COUPLEDCLUSTERLEVEL="NONE                ",
- LOWDINPARAMETERS_METHOD="RHF                                               ",
+ LOWDINPARAMETERS_METHOD="DFTB                                              ",
  LOWDINPARAMETERS_TRANSFORMTOCENTEROFMASS=F,
  LOWDINPARAMETERS_ARETHEREDUMMYATOMS=F,
  LOWDINPARAMETERS_ISTHEREEXTERNALPOTENTIAL=F,
@@ -174,5 +174,6 @@
  LOWDINPARAMETERS_POTENTIALSDATABASE="/potentials/                                                                                                                                                                                                                                                   ",
  LOWDINPARAMETERS_ELEMENTALPARTICLESDATABASE="/dataBases/elementalParticles.lib                                                                                                                                                                                                                              ",
  LOWDINPARAMETERS_PSEUDOATOMICCALCULATION=F,
- LOWDINPARAMETERS_DFTBPLUS=T,
+ LOWDINPARAMETERS_PATHTODFTB="NONE                                                                                                ",
+ LOWDINPARAMETERS_PATHTOSKFILES="NONE                                                                                                ",
  /

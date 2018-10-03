@@ -74,6 +74,8 @@ contains
        call Solver_RKSRun( )
     case('UKS')
        call Solver_UKSRun( )
+    case('DFTB')
+       call Solver_DFTBRun()
     case default
 
        call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
@@ -310,6 +312,24 @@ contains
 !     this%energy = MolecularSystem_getTotalEnergy()
     
   end subroutine Solver_UKSRun
+
+  !> @brief run UKS-based calculation
+  subroutine Solver_DFTBRun( )
+    implicit none
+print *, "Con el método DFTB"
+    call system("lowdin-dftb.x")
+!     type(Solver) :: this
+    
+!     call UKS_run()
+!     if ( this%withProperties ) then
+!        call CalculateProperties_expectedPosition( CalculateProperties_instance )
+!        call CalculateProperties_dipole( CalculateProperties_instance )
+!     end if
+    
+!     this%energy = MolecularSystem_getTotalEnergy()
+    
+  end subroutine Solver_DFTBRun
+
   
   !>
   !! @brief Manejo de excepciones

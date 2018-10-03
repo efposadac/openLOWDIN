@@ -8,10 +8,11 @@ GEOMETRY
 	H        dirac       -0.5000000      0.3000000    0.0000000	
 END GEOMETRY
 TASKS
-	method = "RHF"
-	dftbplus=T
+	method = "DFTB"
+!	dftbplus=T
 END TASKS
 
 CONTROL
+!        pathToDFTB = opt
 !	numberOfCores = 1
 END CONTROL
