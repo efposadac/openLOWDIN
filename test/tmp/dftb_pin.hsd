@@ -69,10 +69,29 @@ Options = {
   WriteChargesAsText = No
 }
 Analysis = {
+  WriteEigenvectors = Yes
+  ElectrostaticPotential = {
+    Grid = {
+      GridPoints = {
+20 20 20
+      }
+      Origin = {
+0 0 0
+      }
+      Spacing = {
+0.1 0.1 0.1
+      }
+      Directions = {
+1 0 0 0 1 0 0 0 1
+      }
+    }
+    OutputFile = "ESP.dat"
+    Points = {}
+    Softening = 9.9999999999999995E-007
+  }
   ProjectStates = {}
   MullikenAnalysis = Yes
   AtomResolvedEnergies = No
-  WriteEigenvectors = No
   EigenvectorsAsTxt = No
   WriteBandOut = Yes
   CalculateForces = No

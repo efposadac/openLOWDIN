@@ -30,7 +30,17 @@
  
  Options = {}
  
- Analysis = {}
+ Analysis = {
+ WriteEigenvectors = Yes
+ ElectrostaticPotential = {
+Grid = {
+GridPoints = 20 20 20
+Origin = 0 0 0
+Spacing = 0.1 0.1 0.1
+Directions = 1 0 0 0 1 0 0 0 1
+}
+}
+ }
  
  ParserOptions = {
  ParserVersion = 6

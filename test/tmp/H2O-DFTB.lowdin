@@ -13,6 +13,7 @@ TASKS
 END TASKS
 
 CONTROL
-!        pathToDFTB = opt
+        pathToDFTB = "/opt/dftbplus-18.2/_install/bin/"
+	pathToSKFiles= ""
 !	numberOfCores = 1
 END CONTROL

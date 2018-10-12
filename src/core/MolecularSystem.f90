@@ -534,6 +534,7 @@ contains
     integer :: i, j
     integer :: numberOfAtoms
     real(8) :: origin(3)
+    character(100) :: pathToDFTB
 
     !    write (6,"(A10,A16,A20,A20)") " ","<x>","<y>","<z>"
 
@@ -628,6 +629,8 @@ contains
     write (9,*) 'ParserOptions = {'
     write (9,*) 'ParserVersion = 6'
     write (9,*) '}'
+
+    pathToDFTB = CONTROL_instance%PATH_TO_DFTB
 
 
     call system("dftb+ dftb_in.hsd")
