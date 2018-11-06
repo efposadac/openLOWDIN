@@ -55,9 +55,9 @@ Hamiltonian = DFTB {
   ForceEvaluation = "Traditional"
 }
 Options = {
+  WriteDetailedXML = Yes
   WriteDetailedOut = Yes
   WriteAutotestTag = No
-  WriteDetailedXML = No
   WriteResultsTag = No
   RestartFrequency = 20
   RandomSeed = 0
@@ -70,6 +70,7 @@ Options = {
 }
 Analysis = {
   WriteEigenvectors = Yes
+  EigenvectorsAsTxt = Yes
   ElectrostaticPotential = {
     Grid = {
       GridPoints = {
@@ -92,7 +93,6 @@ Analysis = {
   ProjectStates = {}
   MullikenAnalysis = Yes
   AtomResolvedEnergies = No
-  EigenvectorsAsTxt = No
   WriteBandOut = Yes
   CalculateForces = No
 }

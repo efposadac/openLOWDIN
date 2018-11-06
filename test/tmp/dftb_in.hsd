@@ -28,18 +28,21 @@
  }
  }
  
- Options = {}
+ Options = {
+ WriteDetailedXML = Yes
+ }
  
  Analysis = {
  WriteEigenvectors = Yes
+ EigenvectorsAsTxt = Yes
  ElectrostaticPotential = {
-Grid = {
-GridPoints = 20 20 20
-Origin = 0 0 0
-Spacing = 0.1 0.1 0.1
-Directions = 1 0 0 0 1 0 0 0 1
-}
-}
+ Grid = {
+ GridPoints = 20 20 20
+ Origin = 0 0 0
+ Spacing = 0.1 0.1 0.1
+ Directions = 1 0 0 0 1 0 0 0 1
+ }
+ }
  }
  
  ParserOptions = {

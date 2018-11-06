@@ -622,7 +622,20 @@ contains
     ! write (9,*) 'CalculateForces = Yes'
     ! write (9,*) '}'
     write (9,*) ''
-    write (9,*) 'Analysis = {}'
+!    write (9,*) 'Analysis = {}'
+    write (9,*) 'Analysis = {'
+    write (9,*) 'WriteEigenvectors = Yes'
+    write (9,*) 'EigenvectorsAsTxt = Yes'
+    write (9,*) 'ElectrostaticPotential = {'
+    write (9,*) 'Grid = {'
+    write (9,*) 'GridPoints = 20 20 20'
+    write (9,*) 'Origin = 0 0 0'
+    write (9,*) 'Spacing = 0.1 0.1 0.1'
+    write (9,*) 'Directions = 1 0 0 0 1 0 0 0 1'
+    write (9,*) '}'
+    write (9,*) '}'
+    write (9,*) '}'
+    
     ! write (9,*) 'CalculateForces = Yes'
     ! write (9,*) '}'
     write (9,*) ''
@@ -630,7 +643,7 @@ contains
     write (9,*) 'ParserVersion = 6'
     write (9,*) '}'
 
-    pathToDFTB = CONTROL_instance%PATH_TO_DFTB
+!    pathToDFTB = CONTROL_instance%PATH_TO_DFTB
 
 
     call system("dftb+ dftb_in.hsd")

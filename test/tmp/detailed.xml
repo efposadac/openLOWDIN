@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<detailedout>
+ <identity>165716480
+ </identity>
+ <geometry>
+  <typenames> "O" "H"
+  </typenames>
+  <typesandcoordinates>
+   1 0.0000000000000000 0.0000000000000000 0.0000000000000000
+ 2 1.3228081920052461 0.0000000000000000 0.0000000000000000
+ 2 -0.94486299428946163 0.56691779657367691 0.0000000000000000
+
+  </typesandcoordinates>
+  <periodic>No
+  </periodic>
+ </geometry>
+ <real>Yes
+ </real>
+ <nrofkpoints>1
+ </nrofkpoints>
+ <nrofspins>1
+ </nrofspins>
+ <nrofstates>6
+ </nrofstates>
+ <nroforbitals>6
+ </nroforbitals>
+ <kpointsandweights>
+  0.0000000000000000 0.0000000000000000 0.0000000000000000 1.0000000000000000
+
+ </kpointsandweights>
+ <occupations>
+  <spin1>
+   <k1>
+    2.0000000000000000 2.0000000000000000 2.0000000000000000 2.0000000000000000
+0.0000000000000000 0.0000000000000000
+   </k1>
+  </spin1>
+ </occupations>
+</detailedout>

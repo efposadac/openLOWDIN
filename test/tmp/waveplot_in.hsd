@@ -1,48 +1,41 @@
 Options = {
-PlottedRegion = OptimalCuboid {}
-NrOfPoints = 10 10 10
-EigenvecBin = eigenvec.bin
+	PlottedRegion = OptimalCuboid {}
+	NrOfPoints = 10 10 10
+	EigenvecBin = eigenvec.bin
+}
 Basis ={
-Resolution = 0.01
-O = {
-AtomicNumber = 8
-Orbital = {
-AngularMomentum = 0
-Occupation = 2
-Cutoff = 4.9
-Exponents = { 6.0 3.0 1.5 }
-Coefficients = {
+	Resolution = 0.01
+	O = {
+	  AtomicNumber = 8
+	  Orbital = {   # 2s
+	    AngularMomentum = 0
+	    Occupation = 2
+	    Cutoff = 4.9
+	    Exponents = { 6.0 3.0 1.5 }
+	    Coefficients = {
+	    }
+	  }
+	  Orbital = {  # 2p
+	    AngularMomentum = 1
+	    Occupation = 4
+	    Cutoff = 5.0
+	    Exponents = { 6.0 3.0 1.5 }
+	    Coefficients = {
+	    }
+	  }
+	}
+	H = {
+	  AtomicNumber = 1
+	  Orbital = {
+	    AngularMomentum = 0
+	    Occupation = 1
+	    Cutoff = 4.2
+	    Exponents = { 2.0 1.0 }
+	    Coefficients = {
+	      1.374518455977e+01 1.151435212242e+01 2.072671588012e+00
+	      -1.059020844305e+01 3.160957468828e+00 -2.382382105798e-01
+	    }
+	  }
+	}
 }
-}
-Orbital = {
-AngularMomentum = 1
-Occupation = 4
-Cutoff = 5.0
-Exponents = { 6.0 3.0 1.5 }
-Coefficients = {
-}
-}
-}
-H = {
-AtomicNumber = 1
-Orbital = {
-AngularMomentum = 0
-Occupation = 1
-Cutoff = 4.2
-Exponents = { 2.0 1.0 }
-Coefficients = {
-1.374518455977e+01 1.151435212242e+01 2.072671588012e+00
--1.059020844305e+01 3.160957468828e+00 -2.382382105798e-01
-}
-}
-Orbital = {
-AngularMomentum = 1
-Occupation = 4
-Cutoff = 5.0
-Exponents = { 6.0 3.0 1.5 }
-Coefficients = {
-}
-}
-}
-}
-}
+DetailedXML = detailed.xml
