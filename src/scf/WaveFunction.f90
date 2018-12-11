@@ -227,7 +227,7 @@ contains
 
           vecUnit=77
           
-          vecFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
+          vecFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
           inquire(FILE = vecFile, EXIST = existFile )
 
           if ( existFile) then
@@ -240,7 +240,7 @@ contains
              close(vecUnit)
 
           else 
-             vecFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
+             vecFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
              inquire(FILE = vecFile, EXIST = existFile )
 
              if ( existFile) then
@@ -797,8 +797,8 @@ contains
     
     close(unit=excUnit)
 
-    print *, "Exc. Corr. Matrix for species ", nameOfSpecies 
-    call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
+    ! print *, "Exc. Corr. Matrix for species ", nameOfSpecies 
+    ! call Matrix_show(Wavefunction_instance(speciesID)%exchangeCorrelationMatrix)
     
   end subroutine WaveFunction_buildExchangeCorrelationMatrix
 

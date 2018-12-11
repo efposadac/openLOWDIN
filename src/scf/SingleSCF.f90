@@ -546,7 +546,7 @@ contains
           arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
           arguments(1) = "COEFFICIENTS"
 
-          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
+          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
           inquire(FILE = wfnFile, EXIST = existFile )
 
           if ( existFile) then
@@ -559,7 +559,7 @@ contains
              close(wfnUnit)
 
           else 
-             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
+             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
              inquire(FILE = wfnFile, EXIST = existFile )
 
              if ( existFile) then

@@ -103,12 +103,11 @@ contains
   !! @brief Constructor por omision
   !!
   !! @param this
-  !< OutputBuilder_constructor(this, ID, type ,specie, state, orbital, dimensions, cubeSize, point1, point2, point3  )
-  subroutine OutputBuilder_constructor(this, ID, type ,specie, orbital, dimensions, cubeSize, point1, point2, point3  )
+  subroutine OutputBuilder_constructor(this, ID, type ,specie, state, orbital, dimensions, cubeSize, point1, point2, point3  )
     character(*) :: type
     integer :: ID
     character(*) :: specie
-    ! integer :: state
+    integer :: state
     integer :: orbital
     integer :: dimensions
     real(8) :: cubeSize
@@ -120,7 +119,7 @@ contains
     this%type=type
     this%outputID=ID
     this%specie=trim(String_getUppercase(specie))
-    this%state=1 !only ground state properties and plots
+    this%state=state 
     this%orbital=orbital
     this%dimensions=dimensions
     this%cubeSize=cubeSize
@@ -1312,12 +1311,12 @@ contains
     numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
 
     outputID=String_convertIntegerToString(this%outputID)
-
+  
     ! Check if there are CI density matrices and read those or the HF matrix
     occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
     inquire(FILE = occupationsFile, EXIST = existFile )
     
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile ) then
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. existFile ) then
        print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
 
        occupationsUnit = 29
@@ -1435,23 +1434,22 @@ contains
      nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
      numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
     
+     occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+     inquire(FILE = occupationsFile, EXIST = existFile )
+
      ! Check if there are CI density matrices and read those or the HF matrix
-     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
+     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. existFile) then
         print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
 
-        occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-        inquire(FILE = occupationsFile, EXIST = existFile )
+        occupationsUnit = 29
 
-       occupationsUnit = 29
+        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
 
-       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+        write(auxstring,*) this%state
+        arguments(2) = nameOfSpecies
+        arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
 
-
-       write(auxstring,*) this%state
-       arguments(2) = nameOfSpecies
-       arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
-
-       densityMatrix= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,4), &
+        densityMatrix= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,4), &
                   columns= int(numberOfOrbitals,4), binary=.false., arguments=arguments(1:2))
 
 

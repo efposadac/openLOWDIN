@@ -60,7 +60,7 @@ contains
     !!Verifica el archivo que contiene los coeficientes para una especie dada
     if ( CONTROL_instance%READ_COEFFICIENTS ) then
 
-       wfnFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
+       wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
        inquire(FILE = wfnFile, EXIST = existBinnary )
 
        if ( existBinnary ) then
@@ -69,7 +69,7 @@ contains
 
        else
 
-          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
+          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
           inquire(FILE = wfnFile, EXIST = existPlain )
           
           if ( existPlain ) then
@@ -293,7 +293,7 @@ contains
 
     if ( binnary ) then
 
-       wfnFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
+       wfnFile = trim(CONTROL_instance%INPUT_FILE)//"vec"
 
        !! Open file for wavefunction
        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
@@ -305,7 +305,7 @@ contains
 
     else 
 
-       wfnFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
+       wfnFile = trim(CONTROL_instance%INPUT_FILE)//"plainvec"
 
        !! Open file for wavefunction
        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")

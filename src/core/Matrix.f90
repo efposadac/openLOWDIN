@@ -705,13 +705,13 @@ contains
                 
                 m = 1
 
-                do i=1,rows
-                   do j=1,columns
-                      output%values(j, i) = values(m)
+                ! do i=1,rows
+                !    do j=1,columns
+                      ! output%values(j, i) = values(m)
                       ! FELIX: We may need to check this again to read asymmetrical matrices
-                      !do j=1,columns
-                      !  do i=1,rows
-                      !     output%values(i, j) = values(m)
+                do j=1,columns
+                   do i=1,rows
+                      output%values(i, j) = values(m)
                       m = m + 1
                    end do
                 end do

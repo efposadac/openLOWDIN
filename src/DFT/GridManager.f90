@@ -618,19 +618,38 @@ contains
           call Vector_constructor(commonPoints, otherGridSize, 0.0_8) !!To build the electronic potential with the correct size
           
           call GridManager_getElectronicDensityInOtherGrid(speciesID, otherSpeciesID, commonPoints, electronicDensityAtOtherGrid )
-          
-          ! call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-          !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-          !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
 
-          call Functional_CSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+          select case (trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL) )
+             
+          case ("epc17-1")
+             call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+
+          case ("epc17-2")
+             call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+
+          case ("mlcs-fit")
+             call Functional_MLCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+             
+          case ("psn")
+             call Functional_PSNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
                electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
                energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
 
-          ! call Functional_PSNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+          case default
+             print *, trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+             STOP "The nuclear electron functional chosen is not implemented"
+
+          end select
+          ! call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
           !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
           !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
-
+          
           ! call Functional_lowLimitEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
           !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
           !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
@@ -679,13 +698,38 @@ contains
           !!!This is a very dirty way of preventing double counting of the nuclear potential
           if(nameOfSpecies .eq. "E-BETA") call Vector_copyConstructor (holdNuclearPotential,otherPotentialInGrid)
 
+          select case (trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL) )
+             
+          case ("epc17-1")
+             call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+
+          case ("epc17-2")
+             call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+
+          case ("mlcs-fit")
+             call Functional_MLCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+
+          case ("psn")
+             call Functional_PSNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+               energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+
+          case default
+             print *, trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+             STOP "The nuclear electron functional chosen is not implemented"
+
+          end select
+
+          
           ! call Functional_lowLimitEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
           !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
           !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
-
-          call Functional_CSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
           
           ! call Functional_PSNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
           !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &

@@ -247,6 +247,7 @@ program DFT
         open(unit = excUnit, file=trim(excFile), status="replace", form="unformatted")
 
 
+        ! print *, Grid_instance(speciesID)%nameOfSpecies
         ! print *, speciesID, exchangeCorrelationEnergy(speciesID)
         ! call Matrix_show(exchangeCorrelationMatrix(speciesID))
 

@@ -47,7 +47,8 @@ module Functional_
        Functional_getExchangeFraction, &
        Functional_libxcEvaluate, &
        Functional_LDAEvaluate, &
-       Functional_CSEvaluate, &
+       Functional_EPCEvaluate, &
+       Functional_MLCSEvaluate, &
        Functional_myCSEvaluate, &
        Functional_PSNEvaluate, &
        Functional_lowLimitEvaluate, &
@@ -434,7 +435,7 @@ contains
    
   end subroutine Functional_libxcEvaluate
 
-  subroutine Functional_CSEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
+  subroutine Functional_EPCEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
     ! Evaluates Hamess-Schiffer's Colle Salvetti nuclear electron correlation functional
     ! Felix Moncada, 2017
     implicit none
@@ -496,8 +497,87 @@ contains
 
     deallocate(denominator)
     
-  end subroutine Functional_CSEvaluate
+  end subroutine Functional_EPCEvaluate
 
+  subroutine Functional_MLCSEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
+    ! Evaluates Mejia-de la Lande Colle Salvetti nuclear electron correlation functional
+    ! Felix Moncada, 2018
+    implicit none
+    type(Functional):: this !!type of functional
+    real(8) :: mass !!nuclear mass
+    integer :: n !!nuclear gridSize
+    real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcE(*), vcN(*) !! Potentials - output   
+
+    real(8) :: a1,a2,r1,r2,p,q
+    real(8) :: beta, attractiveExp, repulsiveExp, F, G, dbetaE, dbetaN, dFdbeta, dGdbeta
+    real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
+    integer :: i
+
+    !!The idea is that the parameters are a functional of the nuclear mass and charge
+    if(this%name .eq. "correlation:mlcs-fit" ) then
+
+       a1=2.0943951023931953 
+       a2=2.8617697241
+       r1=-0.7611297690
+       r2=0.4348016976
+       q=1.2
+       p=0.5
+    else
+       print *, this%name
+       STOP "The nuclear electron functional chosen is not implemented"
+    end if
+
+    !F=(a1*exp(-a2*beta**2)+r1/beta*exp(-r2*(1/beta)) )/beta**2
+
+    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
+    do i = 1, n
+
+       if(rhoE(i) .gt. 1E-6 .and. rhoN(i) .gt. 1E-6 ) then !
+          !!!Energy
+          beta=q*rhoE(i)**(1.0/3.0)
+          ! beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
+          attractiveExp=exp(-a2*(beta**2))
+          repulsiveExp=exp(-r2/beta)
+          G=a1*attractiveExp+r1/beta*repulsiveExp
+          F=p*G/(beta**2)
+          ec(i)= -rhoE(i)*rhoN(i)*F
+
+          !!!Potential  
+          dGdbeta=-2*a1*a2*beta*attractiveExp - r1/beta**2*repulsiveExp + r1*r2/beta**3*repulsiveExp
+          dFdbeta=p*(-2*G/beta**3 + dGdbeta/beta**2)
+          
+          ! dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
+          ! dbetaN=(1.0/6.0)*q*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
+          dbetaE=(1.0/3.0)*q*rhoE(i)**(-2.0/3.0)
+          dbetaN=0.0
+          
+          vcE(i)=-rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
+          vcN(i)=-rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
+          
+          ! write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i), ec(i), vcE(i), vcN(i)
+          ! write(*,"(I0.1,5F16.6)") 1000, beta,  F, dGdbeta, dFdbeta, dbetaE
+
+       end if
+    end do
+
+
+    ! denominator(1:n)=a
+    
+    ! vcE(1:n)=vcE(1:n) -rhoN(1:n)/denominator(1:n)! + (c*rhoE(1:n)*rhoN(1:n)**2 - b/2*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2))/denominator(1:n)**2
+    ! vcN(1:n)=vcN(1:n) -rhoE(1:n)/denominator(1:n)! + (c*rhoN(1:n)*rhoE(1:n)**2 - b/2*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2))/denominator(1:n)**2
+
+    ! vcE(1:n)=vcE(1:n) + (b*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2)-2*a*rhoN(1:n))/denominator(1:n)**2/2
+    ! vcN(1:n)=vcN(1:n) + (b*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2)-2*a*rhoE(1:n))/denominator(1:n)**2/2
+    
+
+
+    ! STOP
+    
+  end subroutine Functional_MLCSEvaluate
+
+  
   subroutine Functional_myCSEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
     ! Evaluates Hamess-Schiffer's Colle Salvetti nuclear electron correlation functional
     ! Felix Moncada, 2017
