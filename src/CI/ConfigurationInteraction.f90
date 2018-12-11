@@ -1257,7 +1257,8 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       end do
 
 
-     !! Open file - to write density matrices unit = 29
+      !! Open file - to write density matrices
+      unit = 29
        
      file = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
      open(unit = unit, file=trim(file), status="new", form="formatted")
