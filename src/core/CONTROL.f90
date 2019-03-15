@@ -87,7 +87,6 @@ module CONTROL_
      logical :: FREEZE_NON_ELECTRONIC_ORBITALS
      logical :: HARTREE_PRODUCT_GUESS
      logical :: READ_COEFFICIENTS
-     logical :: READ_COEFFICIENTS_IN_BINARY
      logical :: WRITE_COEFFICIENTS_IN_BINARY
      logical :: READ_EIGENVALUES
      logical :: READ_EIGENVALUES_IN_BINARY
@@ -221,13 +220,20 @@ module CONTROL_
      !!
      character(50) :: ELECTRON_CORRELATION_FUNCTIONAL
      character(50) :: ELECTRON_EXCHANGE_FUNCTIONAL
-     character(50) :: ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL
+     character(50) :: ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
+     character(50) :: NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+     integer :: GRID_RADIAL_POINTS
+     integer :: GRID_ANGULAR_POINTS
+     integer :: GRID_NUMBER_OF_SHELLS
+     integer :: FINAL_GRID_RADIAL_POINTS
+     integer :: FINAL_GRID_ANGULAR_POINTS
+     integer :: FINAL_GRID_NUMBER_OF_SHELLS
      integer :: POLARIZATION_ORDER
      integer :: NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS
      logical :: FUKUI_FUNCTIONS
      logical :: AUXILIARY_DENSITY
      logical :: STORE_THREE_CENTER_ELECTRON_INTEGRALS
-     logical :: CALL_DFT
+     logical :: CALL_LIBXC
 
      !!*****************************************************
      !! External Potential Options
@@ -371,8 +377,8 @@ module CONTROL_
   logical :: LowdinParameters_freezeNonElectronicOrbitals
   logical :: LowdinParameters_hartreeProductGuess
   logical :: LowdinParameters_readCoefficients
-  logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_writeCoefficientsInBinary
+  logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_readEigenvalues
   logical :: LowdinParameters_readEigenvaluesInBinary
   logical :: LowdinParameters_writeEigenvaluesInBinary
@@ -504,13 +510,20 @@ module CONTROL_
   !!
   character(50) :: LowdinParameters_electronCorrelationFunctional
   character(50) :: LowdinParameters_electronExchangeFunctional
-  character(50) :: LowdinParameters_electronNuclearCorrelationFunctional
+  character(50) :: LowdinParameters_electronExchangeCorrelationFunctional
+  character(50) :: LowdinParameters_nuclearElectronCorrelationFunctional
+  integer :: LowdinParameters_gridRadialPoints
+  integer :: LowdinParameters_gridAngularPoints
+  integer :: LowdinParameters_gridNumberOfShells
+  integer :: LowdinParameters_finalGridRadialPoints
+  integer :: LowdinParameters_finalGridAngularPoints
+  integer :: LowdinParameters_finalGridNumberOfShells
   integer :: LowdinParameters_polarizationOrder
   integer :: LowdinParameters_numberOfBlocksInAuxiliaryFunctions
   logical :: LowdinParameters_fukuiFunctions
   logical :: LowdinParameters_auxiliaryDensity
   logical :: LowdinParameters_storeThreeCenterElectronIntegrals
-  logical :: LowdinParameters_callDft
+  logical :: LowdinParameters_callLibxc
 
   !!*****************************************************
   !! External Potential Options
@@ -787,13 +800,20 @@ module CONTROL_
                                 !!
        LowdinParameters_electronCorrelationFunctional,&
        LowdinParameters_electronExchangeFunctional,&
-       LowdinParameters_electronNuclearCorrelationFunctional,&
+       LowdinParameters_electronExchangeCorrelationFunctional,&
+       LowdinParameters_nuclearElectronCorrelationFunctional,&
+       LowdinParameters_gridRadialPoints,&
+       LowdinParameters_gridAngularPoints,&
+       LowdinParameters_gridNumberOfShells,&
+       LowdinParameters_finalGridRadialPoints,&
+       LowdinParameters_finalGridAngularPoints,&
+       LowdinParameters_finalGridNumberOfShells,&
        LowdinParameters_polarizationOrder,&
        LowdinParameters_numberOfBlocksInAuxiliaryFunctions,&
        LowdinParameters_fukuiFunctions,&
        LowdinParameters_auxiliaryDensity,&
        LowdinParameters_storeThreeCenterElectronIntegrals,&
-       LowdinParameters_callDft,&
+       LowdinParameters_callLibxc,&
        
                                 !!*****************************************************
                                 !! External Potential Options
@@ -961,7 +981,6 @@ contains
     LowdinParameters_freezeNonElectronicOrbitals = .false.
     LowdinParameters_hartreeProductGuess = .false.
     LowdinParameters_readCoefficients = .false.
-    LowdinParameters_readCoefficientsInBinary = .true.
     LowdinParameters_writeCoefficientsInBinary = .true.
     LowdinParameters_readEigenvalues = .false.
     LowdinParameters_readEigenvaluesInBinary = .true.
@@ -1095,13 +1114,20 @@ contains
     !!
     LowdinParameters_electronCorrelationFunctional = "NONE"
     LowdinParameters_electronExchangeFunctional = "NONE"
-    LowdinParameters_electronNuclearCorrelationFunctional = "NONE"
+    LowdinParameters_electronExchangeCorrelationFunctional = "NONE"
+    LowdinParameters_nuclearElectronCorrelationFunctional = "NONE"
+    LowdinParameters_gridRadialPoints=35
+    LowdinParameters_gridAngularPoints=110
+    LowdinParameters_gridNumberOfShells=5
+    LowdinParameters_finalGridRadialPoints=50
+    LowdinParameters_finalGridAngularPoints=302
+    LowdinParameters_finalGridNumberOfShells=5
     LowdinParameters_polarizationOrder = 1
     LowdinParameters_numberOfBlocksInAuxiliaryFunctions = 3
     LowdinParameters_fukuiFunctions = .false.
     LowdinParameters_auxiliaryDensity = .false.
     LowdinParameters_storeThreeCenterElectronIntegrals = .true.
-    LowdinParameters_callDft = .false.
+    LowdinParameters_callLibxc = .true.
 
     !!*****************************************************
     !! External Potential Options
@@ -1249,7 +1275,6 @@ contains
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = .false.
     CONTROL_instance%HARTREE_PRODUCT_GUESS = .false.
     CONTROL_instance%READ_COEFFICIENTS = .false.
-    CONTROL_instance%READ_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%NO_SCF = .false.
     CONTROL_instance%FINITE_MASS_CORRECTION = .false.
@@ -1380,13 +1405,20 @@ contains
     !!                                                                                                                         
     CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = "NONE"
-    CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%GRID_RADIAL_POINTS= 35
+    CONTROL_instance%GRID_ANGULAR_POINTS= 110
+    CONTROL_instance%GRID_NUMBER_OF_SHELLS= 5
+    CONTROL_instance%FINAL_GRID_RADIAL_POINTS= 50
+    CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= 302
+    CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= 5
     CONTROL_instance%POLARIZATION_ORDER = 1
     CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS = 3
     CONTROL_instance%FUKUI_FUNCTIONS = .false.
     CONTROL_instance%AUXILIARY_DENSITY = .false.
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = .true.
-    CONTROL_instance%CALL_DFT = .false.
+    CONTROL_instance%CALL_LIBXC = .true.
 
     !!*****************************************************                                                                    
     !! External Potential Options                                                                                              
@@ -1573,7 +1605,6 @@ contains
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = LowdinParameters_freezeNonElectronicOrbitals
     CONTROL_instance%HARTREE_PRODUCT_GUESS = LowdinParameters_hartreeProductGuess
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
-    CONTROL_instance%READ_COEFFICIENTS_IN_BINARY =  LowdinParameters_readCoefficientsInBinary
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
     CONTROL_instance%READ_EIGENVALUES = LowdinParameters_readEigenvalues
     CONTROL_instance%READ_EIGENVALUES_IN_BINARY =  LowdinParameters_readEigenvaluesInBinary
@@ -1707,13 +1738,27 @@ contains
     !!                                                                                 
     CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_electronCorrelationFunctional
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = LowdinParameters_electronExchangeFunctional
-    CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = LowdinParameters_electronNuclearCorrelationFunctional
+    CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = LowdinParameters_electronExchangeCorrelationFunctional
+    CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_nuclearElectronCorrelationFunctional
+    CONTROL_instance%GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
+    CONTROL_instance%GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
+    CONTROL_instance%GRID_NUMBER_OF_SHELLS= LowdinParameters_gridNumberOfShells
+    if(LowdinParameters_finalGridRadialPoints*LowdinParameters_finalGridAngularPoints .gt. LowdinParameters_gridRadialPoints*LowdinParameters_gridAngularPoints) then
+       CONTROL_instance%FINAL_GRID_RADIAL_POINTS= LowdinParameters_finalGridRadialPoints
+       CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= LowdinParameters_finalGridAngularPoints
+       CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= LowdinParameters_finalGridNumberOfShells
+    else
+       CONTROL_instance%FINAL_GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
+       CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
+       CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= LowdinParameters_gridNumberOfShells
+    end if
+
     CONTROL_instance%POLARIZATION_ORDER = LowdinParameters_polarizationOrder
     CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS = LowdinParameters_numberOfBlocksInAuxiliaryFunctions
     CONTROL_instance%FUKUI_FUNCTIONS = LowdinParameters_fukuiFunctions
     CONTROL_instance%AUXILIARY_DENSITY = LowdinParameters_auxiliaryDensity
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = LowdinParameters_storeThreeCenterElectronIntegrals
-    CONTROL_instance%CALL_DFT = LowdinParameters_callDft
+    CONTROL_instance%CALL_LIBXC = LowdinParameters_callLibxc
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -1866,7 +1911,6 @@ contains
     LowdinParameters_freezeNonElectronicOrbitals = CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS
     LowdinParameters_hartreeProductGuess = CONTROL_instance%HARTREE_PRODUCT_GUESS
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
-    LowdinParameters_readCoefficientsInBinary = CONTROL_instance%READ_COEFFICIENTS_IN_BINARY
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
     LowdinParameters_readEigenvalues = CONTROL_instance%READ_EIGENVALUES
     LowdinParameters_readEigenvaluesInBinary = CONTROL_instance%READ_EIGENVALUES_IN_BINARY
@@ -2005,13 +2049,20 @@ contains
     !!                                                                                 
     LowdinParameters_electronCorrelationFunctional = CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
     LowdinParameters_electronExchangeFunctional = CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
-    LowdinParameters_electronNuclearCorrelationFunctional = CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL
+    LowdinParameters_electronExchangeCorrelationFunctional = CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
+    LowdinParameters_nuclearElectronCorrelationFunctional = CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+    LowdinParameters_gridRadialPoints = CONTROL_instance%GRID_RADIAL_POINTS
+    LowdinParameters_gridAngularPoints = CONTROL_instance%GRID_ANGULAR_POINTS
+    LowdinParameters_gridNumberOfShells = CONTROL_instance%GRID_NUMBER_OF_SHELLS
+    LowdinParameters_finalGridRadialPoints = CONTROL_instance%FINAL_GRID_RADIAL_POINTS
+    LowdinParameters_finalGridAngularPoints = CONTROL_instance%FINAL_GRID_ANGULAR_POINTS
+    LowdinParameters_finalGridNumberOfShells = CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS
     LowdinParameters_polarizationOrder = CONTROL_instance%POLARIZATION_ORDER
     LowdinParameters_numberOfBlocksInAuxiliaryFunctions = CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS
     LowdinParameters_fukuiFunctions = CONTROL_instance%FUKUI_FUNCTIONS
     LowdinParameters_auxiliaryDensity = CONTROL_instance%AUXILIARY_DENSITY
     LowdinParameters_storeThreeCenterElectronIntegrals = CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS
-    LowdinParameters_callDft = CONTROL_instance%CALL_DFT
+    LowdinParameters_callLibxc = CONTROL_instance%CALL_LIBXC
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -2162,7 +2213,6 @@ contains
     otherThis%FREEZE_NON_ELECTRONIC_ORBITALS = this%FREEZE_NON_ELECTRONIC_ORBITALS 
     otherThis%HARTREE_PRODUCT_GUESS = this%HARTREE_PRODUCT_GUESS 
     otherThis%READ_COEFFICIENTS = this%READ_COEFFICIENTS 
-    otherThis%READ_COEFFICIENTS_IN_BINARY = this%READ_COEFFICIENTS_IN_BINARY
     otherThis%WRITE_COEFFICIENTS_IN_BINARY = this%WRITE_COEFFICIENTS_IN_BINARY
     otherThis%NO_SCF = this%NO_SCF 
     otherThis%FINITE_MASS_CORRECTION = this%FINITE_MASS_CORRECTION 
@@ -2280,10 +2330,17 @@ contains
     !! Density Functional Theory Options
     !!
     otherThis%AUXILIARY_DENSITY = this%AUXILIARY_DENSITY 
-    otherThis%CALL_DFT = this%CALL_DFT 
+    otherThis%CALL_LIBXC = this%CALL_LIBXC
     otherThis%ELECTRON_CORRELATION_FUNCTIONAL = this%ELECTRON_CORRELATION_FUNCTIONAL 
     otherThis%ELECTRON_EXCHANGE_FUNCTIONAL = this%ELECTRON_EXCHANGE_FUNCTIONAL 
-    otherThis%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = this%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL 
+    otherThis%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = this%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL 
+    otherThis%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = this%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL 
+    otherThis%GRID_RADIAL_POINTS=this%GRID_RADIAL_POINTS
+    otherThis%GRID_ANGULAR_POINTS=this%GRID_ANGULAR_POINTS
+    otherThis%GRID_NUMBER_OF_SHELLS=this%GRID_NUMBER_OF_SHELLS
+    otherThis%FINAL_GRID_RADIAL_POINTS=this%FINAL_GRID_RADIAL_POINTS
+    otherThis%FINAL_GRID_ANGULAR_POINTS=this%FINAL_GRID_ANGULAR_POINTS
+    otherThis%FINAL_GRID_NUMBER_OF_SHELLS=this%FINAL_GRID_NUMBER_OF_SHELLS
     otherThis%STORE_THREE_CENTER_ELECTRON_INTEGRALS = this%STORE_THREE_CENTER_ELECTRON_INTEGRALS 
     otherThis%POLARIZATION_ORDER = this%POLARIZATION_ORDER 
     otherThis%FUKUI_FUNCTIONS = this%FUKUI_FUNCTIONS 
@@ -2384,19 +2441,30 @@ contains
 
        if(CONTROL_instance%AUXILIARY_DENSITY) write (*,"(T10,A)") "USING AUXILIARY DENSITY"
 
-       write (*,"(T10,A)") "ELECTRON CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
-       write (*,"(T10,A)") "ELECTRON EXCHANGE FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)
-       write (*,"(T10,A)") "ELECTRON-NUCLEAR CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL)
-
-       if(CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS) then
-
-          write (*,"(T10,A)") "STORING THREE CENTER ELECTRON INTEGRALS IN DISK"
-
+       if(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .ne. "NONE") then
+          write (*,"(T10,A)") "ELECTRON EXCHANGE CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
        else
-
-          write (*,"(T10,A)") "CALCULATING THREE CENTER ELECTRON INTEGRALS ON THE FLY"
-
+          write (*,"(T10,A)") "ELECTRON CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
+          write (*,"(T10,A)") "ELECTRON EXCHANGE FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)
        end if
+       
+       write (*,"(T10,A)") "ELECTRON-NUCLEAR CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+       write (*,"(T10,A,I5,A,I5)") "SCF ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%GRID_RADIAL_POINTS,"x",CONTROL_instance%GRID_ANGULAR_POINTS
+       if( CONTROL_instance%FINAL_GRID_ANGULAR_POINTS*CONTROL_instance%FINAL_GRID_RADIAL_POINTS  .gt. &
+            CONTROL_instance%GRID_ANGULAR_POINTS*CONTROL_instance%GRID_RADIAL_POINTS) then
+          write (*,"(T10,A,I5,A,I5)") "FINAL ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%FINAL_GRID_RADIAL_POINTS,"x",CONTROL_instance%FINAL_GRID_ANGULAR_POINTS
+       end if
+       
+
+       ! if(CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS) then
+
+       !    write (*,"(T10,A)") "STORING THREE CENTER ELECTRON INTEGRALS IN DISK"
+
+       ! else
+
+       !    write (*,"(T10,A)") "CALCULATING THREE CENTER ELECTRON INTEGRALS ON THE FLY"
+
+       ! end if
 
     end if
 
@@ -2425,8 +2493,8 @@ contains
     if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
       
       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
-      CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = 1E-08
-      CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
+      ! CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = 1E-08
+      ! CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
 
     end if
 
@@ -2577,6 +2645,16 @@ contains
           write(*,"(T10,A,I5)") "DIIS DIMENSIONALITY: ", CONTROL_instance%DIIS_DIMENSIONALITY
 
        end select
+    end if
+
+    if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
+       
+       if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+            write(*,"(T10,A,F10.6)") "SHIFTING ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
+
+       if ( CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+            write(*,"(T10,A,F10.6)") "SHIFTING NON-ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
+
     end if
 
   end subroutine CONTROL_show

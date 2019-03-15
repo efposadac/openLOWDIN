@@ -1,4 +1,4 @@
-!!******************************************************************************
+!******************************************************************************
 !!	This code is part of LOWDIN Quantum chemistry package                 
 !!	
 !!	this program has been developed under direction of:
@@ -148,7 +148,7 @@ module ConfigurationInteraction_
        ConfigurationInteraction_getTotalEnergy, &
        ConfigurationInteraction_run, &
        ConfigurationInteraction_showEigenVectors, &
-       ConfigurationInteraction_naturalOrbitals, &
+       ConfigurationInteraction_densityMatrices, &
        ConfigurationInteraction_show
 
   private
@@ -943,9 +943,11 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     implicit none
     type(ConfigurationInteraction) :: this
     integer :: i
-    integer :: m
     real(8) :: davidsonCorrection, HFcoefficient, CIcorrection
- 
+    integer numberOfSpecies
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
     if ( ConfigurationInteraction_instance%isInstanced ) then
 
        write(*,"(A)") ""
@@ -986,10 +988,6 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
          write (6,"(T8,A19, F20.12)") "HF COEFFICIENT = ", HFcoefficient
 
        end if
-
-        !do i=1, ConfigurationInteraction_instance%numberOfConfigurations
-        !   call Configuration_show (ConfigurationInteraction_instance%configurations(i))
-        !end do
 
     else 
 
@@ -1103,146 +1101,471 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
 
   !FELIX IS HERE
-  subroutine ConfigurationInteraction_naturalOrbitals()
+  subroutine ConfigurationInteraction_densityMatrices()
     implicit none
     type(ConfigurationInteraction) :: this
-    integer :: i, j, k, mu, nu
+    type(Configuration) :: auxthisA, auxthisB
+    integer :: i, j, k, l, mu, nu, n
+    integer :: factor
     integer :: unit, wfnunit
-    integer :: numberOfOrbitals, numberOfOccupiedOrbitals
-    integer :: state, specie, orbital, orbitalA, orbitalB
+    integer :: numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
+    integer :: state, species, orbital, orbitalA, orbitalB
     character(50) :: file, wfnfile, speciesName, auxstring
     character(50) :: arguments(2)
-    real(8) :: sumaPrueba
-    type(matrix) :: coefficients, densityMatrix
-    type(matrix) :: ciOccupationNumbers
+    type(matrix), allocatable :: coefficients(:), atomicDensityMatrix(:,:), ciDensityMatrix(:,:), auxDensMatrix(:,:)
     integer numberOfSpecies
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    integer, allocatable :: cilevel(:)
+    integer(8) :: numberOfConfigurations, c
+    integer(8), allocatable :: indexConf(:)
+    type(ivector), allocatable :: stringAinB(:)
+    integer :: s, ci, auxnumberOfSpecies
+    integer, allocatable :: coupling(:)
+    integer :: a, b, AA, BB
+    integer(8), allocatable :: indexConfA(:)
+    integer(8), allocatable :: indexConfB(:)
+    real(8) :: timeDA
+    real(8) :: timeDB
 
+  
+    ! type(Vector) :: eigenValues
+    ! type(Matrix) :: eigenVectors, auxMatrix
+    ! real(8) :: sumaPrueba
+
+    !!Iterators: i,j - Configurations .... k,l - molecular orbitals .... mu,nu - atomic orbitals ... n - threads
     if ( ConfigurationInteraction_instance%isInstanced .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
+       !$  timeDA = omp_get_wtime()
 
-       print *,""
-       print *," FRACTIONAL ORBITAL OCCUPATIONS"
-       print *,"=============================="
-       print *,"column: state, row: orbital"
-       print *,""
-
-       !! Open file - to print natural orbitals
-       unit = 29
-
-       file = trim(CONTROL_instance%INPUT_FILE)//"CIOccupations.occ"
-       open(unit = unit, file=trim(file), status="new", form="formatted")
-       
-       ! call Matrix_show (ConfigurationInteraction_instance%eigenVectors)
-       
-       do specie=1, numberOfSpecies
-          
-          speciesName = MolecularSystem_getNameOfSpecie(specie)
-          numberOfOrbitals = ConfigurationInteraction_instance%numberOfOrbitals%values(specie)
-          numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(specie)
-          !Inicializando la matriz
-
-          call Matrix_constructor ( ciOccupationNumbers , int(numberOfOrbitals,8) , &
-               int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
-          print *, "numb orb", numberOfOccupiedOrbitals
-          do state=1, CONTROL_instance%CI_STATES_TO_PRINT
-             sumaPrueba=0
-             do j=1, numberOfOccupiedOrbitals
-                ciOccupationNumbers%values(j,state) = 1.0
-             end do
-          
-          ! !Get occupation numbers from each configuration contribution
-             
-             do i=1, ConfigurationInteraction_instance%numberOfConfigurations
-                do j=1, numberOfOccupiedOrbitals
-
-                   !! Occupied orbitals
-                   ciOccupationNumbers%values( j, state)= ciOccupationNumbers%values( j, state) -  &
-                        ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
-                   !! Unoccupied orbitals
-                   orbital = ConfigurationInteraction_instance%configurations(i)%occupations(j,specie) 
-
-                   ciOccupationNumbers%values( orbital, state)= ciOccupationNumbers%values( orbital, state) + &
-                        ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
-
-                   ! print *, j, orbital, ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
-                   ! sumaPrueba=sumaPrueba+ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
-                end do
-                ! end if
-
-             end do
-
-             ! print *, "suma", sumaPrueba
-             !Build a new density matrix (P) in atomic orbitals
-
-             call Matrix_constructor ( densityMatrix , &
-                  int(numberOfOrbitals,8), &
-                  int(numberOfOrbitals,8),  0.0_8 )
-             
-             wfnFile = "lowdin.wfn"
-             wfnUnit = 20
-
-             open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-
-             arguments(2) = speciesName
-             arguments(1) = "COEFFICIENTS"
-
-             coefficients = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
-                  columns= int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
-             
-             close(wfnUnit)
-             
-             do mu = 1 , numberOfOrbitals
-                do nu = 1 , numberOfOrbitals
-                   do k = 1 , numberOfOrbitals
-
-                      densityMatrix%values(mu,nu) =  &
-                           densityMatrix%values(mu,nu) + &
-                           ciOccupationNumbers%values(k, state)* &
-                           coefficients%values(mu,k)*coefficients%values(nu,k)
-                    end do
-                 end do
-              end do
-
-              write(auxstring,*) state
-              arguments(2) = speciesName
-              arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
-              
-              call Matrix_writeToFile ( densityMatrix, unit , arguments=arguments(1:2) )
-
-              ! print *, arguments(1:3)
-              ! call Matrix_show ( densityMatrix )
-
-              call Matrix_destructor(coefficients)          
-              call Matrix_destructor(densityMatrix)          
+      numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+  
+      numberOfConfigurations = ConfigurationInteraction_instance%numberOfConfigurations 
+  
+      allocate (stringAinB ( numberOfSpecies ))
+  
+      do i = 1, numberOfSpecies 
+        call Vector_constructorInteger (stringAinB(i), ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i), 0)
+      end do 
+  
+      allocate ( ConfigurationInteraction_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
+      allocate ( ciLevel ( numberOfSpecies ) )
+      allocate ( indexConf ( numberOfSpecies ) )
+      ciLevel = 0
+      ConfigurationInteraction_instance%allIndexConf = 0
+      indexConf = 0
+  
+      !! gather all configurations
+      s = 0
+      c = 0
+      ciLevel = 0
+  
+      do ci = 1,  ConfigurationInteraction_instance%sizeCiOrderList 
+  
+        cilevel(:) =  ConfigurationInteraction_instance%ciOrderList(  ConfigurationInteraction_instance%auxciOrderList(ci), :)
+        s = 0
+        auxnumberOfSpecies = ConfigurationInteraction_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
+      end do
+      !stop
+  
+      deallocate ( indexConf )
+      deallocate ( ciLevel )
+      allocate ( coupling ( numberOfSpecies ) )
 
 
+      write (*,*) ""
+      write (*,*) "=============================="
+      write (*,*) "BUILDING CI DENSITY MATRICES"
+      write (*,*) "=============================="
+      write (*,*) ""
+
+      allocate( coefficients(numberOfSpecies), atomicDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
+               ciDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), auxDensMatrix(numberOfSpecies,ConfigurationInteraction_instance%nproc) )
+
+      wfnFile = "lowdin.wfn"
+      wfnUnit = 20
+      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+      !Inicializando las matrices
+      do species=1, numberOfSpecies
+         speciesName = MolecularSystem_getNameOfSpecie(species)
+         
+         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
+         ! numberOfOrbitals = ConfigurationInteraction_instance%numberOfOrbitals%values(species)
+         numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(species)
+
+        arguments(2) = speciesName
+        arguments(1) = "COEFFICIENTS"
+        ! print *, "trolo", numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
+
+        coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+             columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+        ! print *, "trololo"
+        
+        do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+
+           call Matrix_constructor ( ciDensityMatrix(species,state) , &
+                int(numberOfContractions,8), &
+                int(numberOfContractions,8),  0.0_8 )
+
+           do k=1, numberOfOccupiedOrbitals
+             ciDensityMatrix(species,state)%values( k, k)=1.0_8
            end do
 
-          !Write occupation numbers to file
-          write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecie(specie)),"OCCUPATIONS:"
+        end do
 
-          call Matrix_show ( ciOccupationNumbers )
+        do n=1, ConfigurationInteraction_instance%nproc
 
-          arguments(2) = speciesName
-          arguments(1) = "OCCUPATIONS"
+           call Matrix_constructor ( auxDensMatrix(species,n) , &
+                int(numberOfContractions,8), &
+                int(numberOfContractions,8),  0.0_8 )
+        end do
+      end do
+       
+      close(wfnUnit)
 
-          call Matrix_writeToFile ( ciOccupationNumbers, unit , arguments=arguments(1:2) )
+      allocate ( indexConfA ( numberOfSpecies ) )
+      allocate ( indexConfB ( numberOfSpecies ) )
 
-          call Matrix_destructor(ciOccupationNumbers)          
+      indexConfA = 0
+      indexConfB = 0
 
-       end do
+      !! Building the CI reduced density matrix in the molecular orbital representation in parallel
+      ! call Matrix_show (ConfigurationInteraction_instance%eigenVectors)
+
+      print *, "        State, Progress"
+      
+      do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+
+         !$omp parallel & 
+         !$omp& private(i,j,indexConfA,indexConfB, species, s, numberOfOccupiedOrbitals, k, coupling, stringAinB, orbital, orbitalA, orbitalB, AA, BB, a, b, factor, n),&
+         !$omp& shared(ConfigurationInteraction_instance, auxDensMatrix )
+         n = omp_get_thread_num() + 1
+         !$omp do schedule (dynamic) 
+         do i=1, ConfigurationInteraction_instance%numberOfConfigurations
+
+            if( mod( i , 50000 ) .eq. 0 ) print *, state, floor(real(100*i/ConfigurationInteraction_instance%numberOfConfigurations)), "%"
+            !!Filter very small coefficients
+            if( abs(ConfigurationInteraction_instance%eigenVectors%values(i,state)) .ge. 1E-12) then
+
+               indexConfA(:) = ConfigurationInteraction_instance%allIndexConf(:,i) 
+
+
+               !!Diagonal contributions
+               do species=1, numberOfSpecies
+                  numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(species)
+
+                  do k=1, numberOfOccupiedOrbitals
+
+                     !!Occupied orbitals
+                     auxDensMatrix(species,n)%values(k,k)=auxDensMatrix(species,n)%values(k,k) - ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                     ! ciDensityMatrix(species,state)%values( k, k) = ciDensityMatrix(species,state)%values( k, k) -  &
+                     !      ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+
+                     !print *, i, j, k, species 
+                     !orbital = ConfigurationInteraction_instance%configurations(i)%occupations(k,species) 
+                     orbital =  ConfigurationInteraction_instance%strings(species)%values(k,indexConfA(species))
+                     !!Unoccupied orbitals
+
+                     auxDensMatrix(species,n)%values(orbital,orbital)=auxDensMatrix(species,n)%values(orbital,orbital) + ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+                     ! ciDensityMatrix(species,state)%values( orbital, orbital)= ciDensityMatrix(species,state)%values( orbital, orbital) + &
+                     !      ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+
+                  end do
+               end do
+
+               !!Off Diagonal contributions
+               do j=i+1, ConfigurationInteraction_instance%numberOfConfigurations
+
+                  if( abs(ConfigurationInteraction_instance%eigenVectors%values(j,state)) .ge. 1E-12) then
+
+                     indexConfB(:) = ConfigurationInteraction_instance%allIndexConf(:,j)
+
+
+                     coupling = 0
+                     do s=1, numberOfSpecies
+                        stringAinB(s)%values = 0
+                        do k = 1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(s)
+                           stringAinB(s)%values(k) = ConfigurationInteraction_instance%orbitals(s)%values( &
+                                ConfigurationInteraction_instance%strings(s)%values(k,indexConfA(s) ), indexConfB(s) ) 
+                        end do
+                        coupling(s) = configurationinteraction_instance%numberOfOccupiedOrbitals%values(s) - sum ( stringAinB(s)%values )
+                     end do
+
+                     if (sum(coupling) == 1) then
+
+                        do s = 1, numberOfSpecies
+
+                           if ( coupling(s) == 1) then
+                              orbitalA = 0
+                              orbitalB = 0
+                              AA = 0
+                              BB = 0
+                              a = indexConfA(s)
+                              b = indexConfB(s)
+
+                              do k = 1, ConfigurationInteraction_instance%occupationNumber(s) 
+                                 if ( ConfigurationInteraction_instance%orbitals(s)%values( &
+                                      ConfigurationInteraction_instance%strings(s)%values(k,a),b) == 0 ) then
+                                    orbitalA =  ConfigurationInteraction_instance%strings(s)%values(k,a)
+                                    AA = k
+                                    exit
+                                 end if
+                              end do
+                              do k = 1, ConfigurationInteraction_instance%occupationNumber(s) 
+                                 if ( ConfigurationInteraction_instance%orbitals(s)%values( &
+                                      ConfigurationInteraction_instance%strings(s)%values(k,b),a) == 0 ) then
+                                    orbitalB =  ConfigurationInteraction_instance%strings(s)%values(k,b)
+                                    BB = k
+                                    exit
+                                 end if
+                              end do
+
+                              factor = (-1)**(AA-BB)
+
+                              numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(s)
+
+                              ! print *, i, j, ConfigurationInteraction_instance%configurations(i)%occupations(:,specie), ConfigurationInteraction_instance%configurations(j)%occupations(:,specie)
+                              ! print *, i, j, auxthisA%occupations(:,specie), auxthisB%occupations(:,specie)
+
+                              ! print *, i, j, orbitalA, orbitalB, factor*ConfigurationInteraction_instance%eigenVectors%values(i,1)*ConfigurationInteraction_instance%eigenVectors%values(j,1)
+
+                              auxDensMatrix(s,n)%values( orbitalA,orbitalB)= auxDensMatrix(s,n)%values( orbitalA, orbitalB) + &
+                                   factor*ConfigurationInteraction_instance%eigenVectors%values(i,state)* &
+                                   ConfigurationInteraction_instance%eigenVectors%values(j,state)
+                              ! ciDensityMatrix(s,state)%values( orbitalA,orbitalB)= ciDensityMatrix(s,state)%values( orbitalA, orbitalB) + &
+                              !      factor*ConfigurationInteraction_instance%eigenVectors%values(i,state)* &
+                              !      ConfigurationInteraction_instance%eigenVectors%values(j,state)
+
+                              auxDensMatrix(s,n)%values( orbitalB,orbitalA)= auxDensMatrix(s,n)%values( orbitalB, orbitalA) + &
+                                   factor*ConfigurationInteraction_instance%eigenVectors%values(i,state)* &
+                                   ConfigurationInteraction_instance%eigenVectors%values(j,state)
+
+                              ! ciDensityMatrix(s,state)%values( orbitalB, orbitalA)= ciDensityMatrix(s,state)%values( orbitalB, orbitalA) + &
+                              !      factor*ConfigurationInteraction_instance%eigenVectors%values(i,state)* &
+                              !      ConfigurationInteraction_instance%eigenVectors%values(j,state)
+
+                           end if
+                        end do
+                     end if
+                  end if
+               end do
+            end if
+         end do
+         !$omp end do nowait
+         !$omp end parallel
+         
+         !! Gather the parallel results
+         do species=1, numberOfSpecies
+            do n=1, ConfigurationInteraction_instance%nproc
+               ciDensityMatrix(species,state)%values = ciDensityMatrix(species,state)%values + auxDensMatrix(species,n)%values
+            end do
+         end do
+      end do
+
+
+      !! Open file - to write density matrices
+      unit = 29
+       
+     file = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+     open(unit = unit, file=trim(file), status="new", form="formatted")
+       
+     !! Building the CI reduced density matrix in the atomic orbital representation       
+     do species=1, numberOfSpecies
+       speciesName = MolecularSystem_getNameOfSpecie(species)
+       ! numberOfOrbitals = ConfigurationInteraction_instance%numberOfOrbitals%values(species)
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
+       numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(species)
+
+       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
           
+         ! print *, "CI density matrix ", trim(speciesName), state
+         ! call Matrix_show ( ciDensityMatrix(species,state))
+             
+         call Matrix_constructor ( atomicDensityMatrix(species,state) , &
+                                   int(numberOfContractions,8), &
+                                   int(numberOfContractions,8),  0.0_8 )
+
+         do mu=1, numberOfContractions
+           do nu=1, numberOfContractions
+             do k=1, numberOfContractions
+               do l=k, numberOfContractions
+
+                 if(l .eq. k) then
+                   atomicDensityMatrix(species,state)%values(mu,nu) =  &
+                     atomicDensityMatrix(species,state)%values(mu,nu) + &
+                     ciDensityMatrix(species,state)%values(k,k) *&
+                     coefficients(species)%values(mu,k)*coefficients(species)%values(nu,k)
+
+                 else
+                   atomicDensityMatrix(species,state)%values(mu,nu) =  &
+                     atomicDensityMatrix(species,state)%values(mu,nu) + &
+                     ciDensityMatrix(species,state)%values(k,l) *&
+                     (coefficients(species)%values(mu,k)*coefficients(species)%values(nu,l) + & 
+                     coefficients(species)%values(mu,l)*coefficients(species)%values(nu,k))
+                            
+                 end if
+               end do
+             end do
+           end do
+         end do
+             
+         ! print *, "atomic density matrix ", trim(speciesName), state
+         ! call Matrix_show ( atomicDensityMatrix(species,state))
+
+         write(auxstring,*) state
+         arguments(2) = speciesName
+         arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+             
+         call Matrix_writeToFile ( atomicDensityMatrix(species,state), unit , arguments=arguments(1:2) )
+
+         end do
+       end do
+
        close(unit)
 
-    end if
+      deallocate ( indexConfB )
+      deallocate ( indexConfA )
+      deallocate ( coupling )
+      deallocate ( ConfigurationInteraction_instance%allIndexConf )
+      deallocate ( stringAinB )
+
+     deallocate( coefficients, atomicDensityMatrix, ciDensityMatrix )
+
+     !$  timeDB = omp_get_wtime()
+     !$  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Building density matrices: ", timeDB - timeDA ," (s)"
+
+     
+  end if
+       
+    ! print *, i, i, orbital, orbital, ConfigurationInteraction_instance%eigenVectors%values(i,1)**2
+    
+    ! do mu = 1 , numberOfOrbitals
+    !    do nu = 1 , numberOfOrbitals
+    
+    !       densityMatrix%values(mu,nu) =  &
+    !            densityMatrix%values(mu,nu) + &
+    !            ConfigurationInteraction_instance%eigenVectors%values(i,state)**2 *&
+    !            coefficients%values(mu,orbital)*coefficients%values(nu,orbital)
+    !    end do
+    ! end do
+    
+    !!off-Diagonal ground state
+    
+    ! do mu = 1 , numberOfOrbitals
+    !    do nu = 1 , numberOfOrbitals
+    
+    !       densityMatrix%values(mu,nu) =  &
+    !            densityMatrix%values(mu,nu) + &
+    !            factor *&
+    !            ConfigurationInteraction_instance%eigenVectors%values(i,state) *&
+    !            ConfigurationInteraction_instance%eigenVectors%values(j,state) *&
+    !            (coefficients%values(mu,orbitalA)*coefficients%values(nu,orbitalB) + coefficients%values(mu,orbitalB)*coefficients%values(nu,orbitalA))
+    !    end do
+    ! end do
+    
+    ! call Vector_constructor(eigenValues, numberOfOrbitals)
+    ! call Matrix_constructor(eigenVectors, int(numberOfOrbitals,8), int(numberOfOrbitals,8))
+    ! call Matrix_eigen(ciOccupationMatrix, eigenValues, eigenVectors, SYMMETRIC)
+    
+    ! print *, "Diagonal sum", sum(eigenValues%values)
+    ! call Vector_show(eigenValues)
+    
+    ! call Matrix_show(eigenVectors)
+    ! print *, arguments(1:2)
+    ! call Matrix_show ( densityMatrix )
+    
+    ! call Matrix_constructor ( ciOccupationNumbers , int(numberOfOrbitals,8) , &
+    !      int(CONTROL_instance%CI_STATES_TO_PRINT,8),  0.0_8 )
+    
+    ! do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+    !    sumaPrueba=0
+    !    do j=1, numberOfOccupiedOrbitals
+    !       ciOccupationNumbers%values(j,state) = 1.0
+    !    end do
+    
+    ! ! !Get occupation numbers from each configuration contribution
+    
+    !    do i=1, ConfigurationInteraction_instance%numberOfConfigurations
+    !       do j=1, numberOfOccupiedOrbitals
+    
+    !          !! Occupied orbitals
+    !          ciOccupationNumbers%values( j, state)= ciOccupationNumbers%values( j, state) -  &
+    !               ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+    !          !! Unoccupied orbitals
+    !          orbital = ConfigurationInteraction_instance%configurations(i)%occupations(j,specie) 
+    
+    !          ciOccupationNumbers%values( orbital, state)= ciOccupationNumbers%values( orbital, state) + &
+    !               ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+    
+    !          ! print *, j, orbital, ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+    !          ! sumaPrueba=sumaPrueba+ConfigurationInteraction_instance%eigenVectors%values(i,state)**2
+    !       end do
+    !       ! end if
+    
+    !    end do
+    
+    !    ! print *, "suma", sumaPrueba
+    !    !Build a new density matrix (P) in atomic orbitals
+    
+    !    call Matrix_constructor ( densityMatrix , &
+    !         int(numberOfOrbitals,8), &
+    !         int(numberOfOrbitals,8),  0.0_8 )
+    
+    !    wfnFile = "lowdin.wfn"
+    !    wfnUnit = 20
+    
+    !    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+    
+    !    arguments(2) = speciesName
+    !    arguments(1) = "COEFFICIENTS"
+    
+    !    coefficients = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
+    !         columns= int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
+    
+    !    close(wfnUnit)
+    
+    !    do mu = 1 , numberOfOrbitals
+    !       do nu = 1 , numberOfOrbitals
+    !          do k = 1 , numberOfOrbitals
+    
+    !             densityMatrix%values(mu,nu) =  &
+    !                  densityMatrix%values(mu,nu) + &
+    !                  ciOccupationNumbers%values(k, state)**2* &
+    !                  coefficients%values(mu,k)*coefficients%values(nu,k)
+    !           end do
+    !        end do
+    !     end do
+    
+    !     write(auxstring,*) state
+    !     arguments(2) = speciesName
+    !     arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+    
+    !     call Matrix_writeToFile ( densityMatrix, unit , arguments=arguments(1:2) )
+    
+    !     print *, arguments(1:2)
+    !     call Matrix_show ( densityMatrix )
+    
+    !     call Matrix_destructor(coefficients)          
+    !     call Matrix_destructor(densityMatrix)          
+    
+    
+    !  end do
+    
+    ! !Write occupation numbers to file
+    ! write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecie(specie)),"OCCUPATIONS:"
+    
+    ! call Matrix_show ( ciOccupationNumbers )
+    
+    ! arguments(2) = speciesName
+    ! arguments(1) = "OCCUPATIONS"
+    
+    ! call Matrix_writeToFile ( ciOccupationNumbers, unit , arguments=arguments(1:2) )
+    
+    ! call Matrix_destructor(ciOccupationNumbers)          
+    
 
 
-
-  end subroutine ConfigurationInteraction_naturalOrbitals
-
-
-
+  end subroutine ConfigurationInteraction_densityMatrices
 
   !>
   !! @brief Muestra informacion del objeto
@@ -1348,7 +1671,6 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
       write (*,*) "Building CI level table..."
       call ConfigurationInteraction_buildCIOrderList()
-
 
       call ConfigurationInteraction_buildCouplingMatrix()
       call ConfigurationInteraction_buildCouplingOrderList()
@@ -1472,7 +1794,6 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     write(*,*) "          END ", trim(ConfigurationInteraction_instance%level)," CALCULATION"
     write(*,*) "==============================================="
     write(*,*) ""
-
          
 !    case ( "FCI-oneSpecie" )
 !
@@ -1488,7 +1809,6 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 !
 
   end subroutine ConfigurationInteraction_run
-
 
   !>
   !! @brief Muestra informacion del objeto
@@ -2305,6 +2625,7 @@ recursive  function ConfigurationInteraction_getIndexesRecursion(s, numberOfSpec
     integer, allocatable :: stringAinB(:)
     integer(1), allocatable :: couplingSpecies(:,:)
     integer :: n,nproc
+
 
 !$  timeA = omp_get_wtime()
 
@@ -3595,6 +3916,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     real(8) :: otherSpecieCharge
 
     integer :: ssize1, ssize2
+    type(Matrix) :: externalPotential
 
     character(50) :: wfnFile
     character(50) :: arguments(20)
@@ -3653,11 +3975,38 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
           Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
           columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-      do m=1,numberOfContractions
-        do n=m, numberOfContractions
-          do mu=1, numberOfContractions
-            do nu=1, numberOfContractions
-              ConfigurationInteraction_instance%twoCenterIntegrals(i)%values(m,n) = &
+        !arguments(1) = "FOCK"
+        !ConfigurationInteraction_instance%FockMatrix(i) = &
+        !  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+        !  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+        !arguments(1) = "ORBITALS"
+        !call Vector_getFromFile( elementsNum = numberOfContractions, &
+        !  unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+        !  output =ConfigurationInteraction_instance%energyofmolecularorbitals(i) )     
+
+        !do m=1,numberOfContractions
+        !   ConfigurationInteraction_instance%fockMatrix(i)%values(m,m) = &
+        !        ConfigurationInteraction_instance%energyofmolecularorbitals(i)%values(m) 
+        !end do
+
+        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+          arguments(1) = "EXTERNAL_POTENTIAL"
+
+          externalPotential = &
+            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+          hcoreMatrix%values = hcoreMatrix%values + externalPotential%values
+        end if
+        !print *, "fock matrix for species", i
+        !call matrix_show ( ConfigurationInteraction_instance%fockMatrix(i) )
+
+        do m=1,numberOfContractions
+          do n=m, numberOfContractions
+             do mu=1, numberOfContractions
+                do nu=1, numberOfContractions
+                    ConfigurationInteraction_instance%twoCenterIntegrals(i)%values(m,n) = &
                         ConfigurationInteraction_instance%twoCenterIntegrals(i)%values(m,n) + &
                         coefficients%values(mu,m)* &
                         coefficients%values(nu,n)* &
@@ -4428,21 +4777,21 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
         GOTO 10
       END IF
   
-!    release internal memory and discard preconditioner
-
-      CALL PJDCLEANUP
-
       !! saving the eigenvalues
       eigenValues%values = EIGS
 
       !! saving the eigenvectors
       k = 0
       do j = 1, maxeig
-        do i = 1, N
+         do i = 1, N
           k = k + 1
           eigenVectors%values(i,j) = X(k)
         end do
       end do
+
+!    release internal memory and discard preconditioner
+     CALL PJDCLEANUP
+     if ( allocated ( x ) ) deallocate ( x )
 
   end subroutine ConfigurationInteraction_jadamiluInterface
 
@@ -4536,7 +4885,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     deallocate ( auxindexConf )
     deallocate ( indexConf )
     deallocate ( cc )
-!$    write(*,"(A,I2,A,E10.3,A2,I12)") "  ", iter, "  ", timeB - timeA ,"  ", nonzero
+!$    write(*,"(A,I2,A,E10.3,A2,I12)") "  ", iter, "  ", timeB -timeA ,"  ", nonzero
 !   stop
     
 
@@ -4545,3 +4894,4 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
   end subroutine matvec2
 
 end module ConfigurationInteraction_
+

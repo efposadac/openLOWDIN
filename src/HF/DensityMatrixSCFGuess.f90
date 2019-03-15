@@ -48,29 +48,46 @@ contains
     type(Matrix) :: output
     
     character(30) :: nameOfSpecie
+    character(50) :: wfnFile
     integer(8) :: orderOfMatrix
-    logical :: existFile
+    logical :: existPlain, existBinnary
     
     orderOfMatrix = MolecularSystem_getTotalnumberOfContractions( speciesID )
     nameOfSpecie = MolecularSystem_instance%species(speciesID)%name
     
     call Matrix_constructor(output, orderOfMatrix, orderOfMatrix, 0.0_8  )
     
-    existFile=.false.
-    
     !!Verifica el archivo que contiene los coeficientes para una especie dada
     if ( CONTROL_instance%READ_COEFFICIENTS ) then
-       
-       inquire(FILE = "lowdin.vec", EXIST = existFile )
-       
-    end if
-    
-    if ( existFile ) then
-       
-       call DensityMatrixSCFGuess_read( output, speciesID )
-       
-    else
 
+       wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
+       inquire(FILE = wfnFile, EXIST = existBinnary )
+
+       if ( existBinnary ) then
+
+       call DensityMatrixSCFGuess_read( output, speciesID, existBinnary )
+
+       else
+
+          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
+          inquire(FILE = wfnFile, EXIST = existPlain )
+          
+          if ( existPlain ) then
+
+             call DensityMatrixSCFGuess_read( output, speciesID, existBinnary )
+
+          else
+
+             call DensityMatrixSCFGuess_exception( ERROR, "I did not find any .vec coefficients file", "At HF program, at DensityMatrixSCFGuess_getGuess")
+          
+          end if
+
+       
+       end if
+    
+
+    else
+       
        write(*, '(A13, A6, A28, A10)') &
           "INFO: Usign ", trim( String_getUppercase( densityType ) ), " density guess for species: ", trim(nameOfSpecie)
        
@@ -237,12 +254,13 @@ contains
 
   !>
   !! @brief Genera la matriz de densidad incial a partir de los coeficientes de una especie dada
-  subroutine DensityMatrixSCFGuess_read( densityMatrix, speciesID )
+  subroutine DensityMatrixSCFGuess_read( densityMatrix, speciesID, binnary )
     implicit none
-    
+
     type(Matrix), intent(inout) :: densityMatrix
     integer, intent(in) :: speciesID
-   
+    logical, intent(in) :: binnary
+
     type(Matrix) :: vectors
     character(30) :: nameOfSpecie
     integer :: orderOfMatrix
@@ -253,47 +271,53 @@ contains
     character(50) :: wfnFile
     character(50) :: arguments(20)
     integer :: wfnUnit
-    
-    wfnFile = "lowdin.vec"
+
     wfnUnit = 30
 
-    
+
     orderOfMatrix = MolecularSystem_getTotalnumberOfContractions( speciesID )
     nameOfSpecie = MolecularSystem_instance%species(speciesID)%name
-    
+
     numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
     numberOfMatrixElements = int(orderOfMatrix, 8) ** 2_8
-    
+
     ocupationNumber = MolecularSystem_instance%species(speciesID)%ocupationNumber
-    
-!    vectors = Matrix_getFromFile(orderOfMatrix, orderOfMatrix, &
-!         file=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//".vec", binary = .false.)
 
-       arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-       arguments(1) = "COEFFICIENTS"
-      
-      call Matrix_constructor( vectors, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
+    !    vectors = Matrix_getFromFile(orderOfMatrix, orderOfMatrix, &
+    !         file=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//".vec", binary = .false.)
 
-    if ( CONTROL_instance%READ_COEFFICIENTS_IN_BINARY ) then
-      !! Open file for wavefunction
-      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-  
+    arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+    arguments(1) = "COEFFICIENTS"
+
+    call Matrix_constructor( vectors, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
+
+    if ( binnary ) then
+
+       wfnFile = trim(CONTROL_instance%INPUT_FILE)//"vec"
+
+       !! Open file for wavefunction
+       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
        vectors = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
             columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
- 
-      close(wfnUnit)
+
+       close(wfnUnit)
+
     else 
 
-      !! Open file for wavefunction
-      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-  
+       wfnFile = trim(CONTROL_instance%INPUT_FILE)//"plainvec"
+
+       !! Open file for wavefunction
+       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+
        vectors = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
             columns= int(orderOfMatrix,4), binary=.false., arguments=arguments(1:2))
-      close(wfnUnit)
+       close(wfnUnit)
+
     end if
 
     call matrix_constructor( densitymatrix, int(orderofmatrix,8), int(orderofmatrix,8), 0.0_8 )
-    
+
     do i = 1 , orderOfMatrix
        do j = 1 , orderOfMatrix
           do k = 1 , ocupationNumber
@@ -303,11 +327,13 @@ contains
           end do
        end do
     end do
-    
+
     densityMatrix%values =  MolecularSystem_getEta( speciesID ) * densityMatrix%values
+
+    print *, "Combination coefficients for ", trim(nameOfSpecie), " were read from ", trim(wfnFile)
     
     call Matrix_destructor(vectors)
-    
+
   end subroutine DensityMatrixSCFGuess_read
   
   !>

@@ -218,7 +218,11 @@ if [ $extFile="lowdin" ]; then
 	gawk "/INTERPOTENTIAL/,/END/" $nameFile | grep -v "INTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfInterPots =  %u\n",NR) }
 ' | sed "s/,/./g" >> $nameFile.aux
-	
+
+	gawk "/LJPOTENTIAL/,/END/" $nameFile | grep -v "LJPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	    'END{ printf("\tInputSystem_numberOfLJCenters =  %u\n",NR) }
+' | sed "s/,/./g" >> $nameFile.aux
+
 	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | sed "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfOutputs =  %u\n",NR) }
 ' | sed "s/,/./g" >> $nameFile.aux
@@ -256,6 +260,13 @@ if [ $extFile="lowdin" ]; then
 	}
 	' | sed "s/,/./g" >> $nameFile.aux
 
+	gawk "/LJPOTENTIAL/,/END/" $nameFile | grep -v "LJPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&LJPot\n\tLJPot_particle = \"%s\"\n",$1)
+                printf("\tLJPot_origin = %15.12E %15.12E %15.12E \n/\n",$2,$3,$4)
+	}
+	' | sed "s/,/./g" >> $nameFile.aux
+
 	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | sed "s/=/ = /g" | gawk \
 	    '{
                 printf("\n&Output\n")
@@ -265,6 +276,9 @@ if [ $extFile="lowdin" ]; then
 			}
 			else if($i=="orbital"){
 				printf("\tOutput_orbital = %s\n",$(i+2) )
+			}
+			else if($i=="state"){
+				printf("\tOutput_state = %s\n",$(i+2) )
 			}
 			else if($i=="dimensions"){
 				printf("\tOutput_dimensions = %s\n",$(i+2) )

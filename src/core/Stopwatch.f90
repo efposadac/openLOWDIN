@@ -147,7 +147,7 @@ contains
     lowdin_stopwatch%enlapsetTime =  currentTime - lowdin_stopwatch%currentTime
     lowdin_stopwatch%currentTime = currentTime
 
-    write(*,"(F5.2)", advance="no") lowdin_stopwatch%enlapsetTime
+    write(*,"(F10.3)", advance="no") lowdin_stopwatch%enlapsetTime
 
 
   end subroutine Stopwatch_splitTime

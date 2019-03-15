@@ -819,7 +819,6 @@ contains
                    end do
                 end do
 
-
              if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
                 
                 id3 = 0
@@ -840,10 +839,8 @@ contains
                    end do
                 end do
                 
-             end if
-                                
-             end if
-
+              end if
+            end if
 
           end do
 

@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -128,7 +128,7 @@ contains
 
        call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
     
-		case('RHF-CI')
+    case('RHF-CI')
 
        call system("lowdin-HF.x RHF")
        call system("lowdin-integralsTransformation.x")
@@ -137,14 +137,14 @@ contains
        call system("lowdin-CI.x" //trim(strAuxNumber))
 
     case('RHF-PT')
-			 
+       
        call system("lowdin-HF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
        
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
     
-		case ("RHF-PT-COSMO")
+    case ("RHF-PT-COSMO")
        
        call system("lowdin-cosmo.x")
        call system("lowdin-HF.x RHF")
@@ -279,7 +279,12 @@ contains
   subroutine Solver_RKSRun( )
     implicit none
 !     type(Solver) :: this
+
+    print *, "hola Felix, bienvenido de vuelta"
     
+    !! Run HF program in RHF mode
+    call system("lowdin-HF.x RKS")
+
 !     call RKS_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_dipole( CalculateProperties_instance )
@@ -301,6 +306,9 @@ contains
     implicit none
 !     type(Solver) :: this
     
+    !! Run HF program in RHF mode
+    call system("lowdin-HF.x UKS")
+
 !     call UKS_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_expectedPosition( CalculateProperties_instance )

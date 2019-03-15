@@ -89,6 +89,7 @@ void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
   nbasis = 0;
   max_nprim = 0;
   max_l = 0;
+  
   for (const auto &shell : shells) {
     nbasis += shell.size();
     max_nprim = std::max(shell.nprim(), max_nprim);
@@ -99,7 +100,7 @@ void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
   // Renormalize
   const auto &shell = shells.back();
 
-  // std::cout<<shell<<std::endl;
+  // std::cout << shell << std::endl;
 
   libint2::Engine engine(libint2::Operator::overlap, shell.nprim(), max_l, 0);
   const auto &buf = engine.results();
@@ -970,6 +971,371 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
   return B[0];
 }
 
+void LibintInterface::compute_g12_disk(const char *filename,
+                                       const double *coefficients,
+                                       const double *exponents,
+                                       const int pot_size) {
+
+  const auto nshells = shells.size();
+
+  using libint2::nthreads;
+
+  auto fock_precision = std::numeric_limits<double>::epsilon();
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // Setting CGTG params
+  std::vector<std::pair<double, double>> cgtg_params;
+  cgtg_params.reserve(pot_size);
+
+  for (int i = 0; i < pot_size; ++i) {
+    cgtg_params.push_back({exponents[i], coefficients[i]});
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::cgtg, max_nprim, max_l, 0);
+  // engines[0].set_precision(engine_precision); // shellset-dependentprecision
+  // control will likely break
+  // positive definiteness
+  // stick with this simple recipe
+  engines[0].set_params(cgtg_params);
+
+  // std::cout << "compute_2body_disk:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+  // setting buffers
+  using libint2::QuartetBuffer;
+  std::vector<QuartetBuffer> buffers(nthreads);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    std::string file = std::to_string(thread_id);
+    file += filename;
+
+    std::ofstream outfile;
+    outfile.open(file, std::ios::binary);
+
+    const auto &buf = engines[thread_id].results();
+    auto &engine = engines[thread_id];
+    auto &buffer = buffers[thread_id];
+
+    buffer.p.reserve(s_size);
+    buffer.q.reserve(s_size);
+    buffer.r.reserve(s_size);
+    buffer.s.reserve(s_size);
+    buffer.val.reserve(s_size);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    int counter = 0;
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (const auto &s2 : obs_shellpair_list[s1]) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto s3 = 0; s3 <= s1; ++s3) {
+          auto bf3_first = shell2bf[s3];
+          auto n3 = shells[s3].size();
+
+          const auto s4_max = (s1 == s3) ? s2 : s3;
+          for (const auto &s4 : obs_shellpair_list[s3]) {
+            if (s4 > s4_max)
+              break; // for each s3, s4 are stored in monotonically increasing
+                     // order
+
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto bf4_first = shell2bf[s4];
+            auto n4 = shells[s4].size();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute(shells[s1], shells[s2], shells[s3], shells[s4]);
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            // printf("(%2d %2d| %2d %2d)\n", s1, s2, s3, s4);
+
+            auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
+                                       bf3_first, bf4_first);
+
+            for (intIter.first(); intIter.is_done() == false; intIter.next()) {
+              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+                buffer.p[counter] = intIter.i() + 1;
+                buffer.q[counter] = intIter.j() + 1;
+                buffer.r[counter] = intIter.k() + 1;
+                buffer.s[counter] = intIter.l() + 1;
+                buffer.val[counter] = buf[0][intIter.index()] *
+                                      norma[intIter.i()] * norma[intIter.j()] *
+                                      norma[intIter.k()] * norma[intIter.l()];
+
+                //     printf("counter: %d buffer_size: %d Integral: %lf\n",
+                //     counter, s_size, buf[0][intIter.index()]);
+                //     printf("\t(%2d %2d | %2d %2d) = %20.15f\n",
+                //     buffer.p[counter],
+                //            buffer.q[counter], buffer.r[counter],
+                //            buffer.s[counter], buffer.val[counter]);
+
+                ++num_ints_computed;
+                ++counter;
+              }
+
+              if (counter == s_size) {
+                write_buffer(buffer, s_size, outfile);
+                counter = 0;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    buffer.p[counter] = -1;
+    write_buffer(buffer, s_size, outfile);
+    outfile.close();
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for intra-species G12 integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  std::cout << " Number of unique integrals for species: " << speciesID << " = "
+            << num_ints_computed << std::endl;
+}
+
+void LibintInterface::compute_g12inter_disk(LibintInterface &other,
+                                            const char *filename,
+                                            const double *coefficients,
+                                            const double *exponents,
+                                            const int pot_size) {
+
+  const auto nshells = shells.size();
+  const auto oshells = other.get_shells();
+  const auto onshells = oshells.size();
+
+  using libint2::nthreads;
+
+  auto fock_precision = std::numeric_limits<double>::epsilon();
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto aux = std::max(max_nprim, other.max_nprim);
+  auto max_nprim = aux;
+  auto aux2 = std::max(max_l, other.max_l);
+  auto max_l = aux2;
+
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // Setting CGTG params
+  std::vector<std::pair<double, double>> cgtg_params;
+  cgtg_params.reserve(pot_size);
+
+  for (int i = 0; i < pot_size; ++i) {
+    cgtg_params.push_back({exponents[i], coefficients[i]});
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::cgtg, max_nprim, max_l, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+  engines[0].set_params(cgtg_params);
+
+  // std::cout << "compute_2body_disk:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+  // setting buffers
+  using libint2::QuartetBuffer;
+  std::vector<QuartetBuffer> buffers(nthreads);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+  auto oshell2bf = other.map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    std::string file = std::to_string(thread_id);
+    file += filename;
+
+    std::ofstream outfile;
+    outfile.open(file, std::ios::binary);
+
+    const auto &buf = engines[thread_id].results();
+    auto &engine = engines[thread_id];
+    auto &buffer = buffers[thread_id];
+
+    buffer.p.reserve(s_size);
+    buffer.q.reserve(s_size);
+    buffer.r.reserve(s_size);
+    buffer.s.reserve(s_size);
+    buffer.val.reserve(s_size);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    int counter = 0;
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (auto s2 = s1; s2 != nshells; ++s2) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto os1 = 0l; os1 != onshells; ++os1) {
+          auto obf1_first = oshell2bf[os1];
+          auto on1 = oshells[os1].size();
+
+          for (auto os2 = os1; os2 != onshells; ++os2) {
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto obf2_first = oshell2bf[os2];
+            auto on2 = oshells[os2].size();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute(shells[s1], shells[s2], oshells[os1], oshells[os2]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
+              const auto bf1 = f1 + bf1_first;
+
+              for (auto f2 = 0; f2 != n2; ++f2) {
+                const auto bf2 = f2 + bf2_first;
+
+                for (auto of1 = 0; of1 != on1; ++of1) {
+                  const auto obf1 = of1 + obf1_first;
+
+                  for (auto of2 = 0; of2 != on2; ++of2, ++f1212) {
+                    const auto obf2 = of2 + obf2_first;
+
+                    if (bf1 <= bf2 && obf1 <= obf2) {
+                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                        continue;
+
+                      buffer.p[counter] = bf1 + 1;
+                      buffer.q[counter] = bf2 + 1;
+                      buffer.r[counter] = obf1 + 1;
+                      buffer.s[counter] = obf2 + 1;
+                      buffer.val[counter] =
+                          buf[0][f1212] * get_norma(bf1) * get_norma(bf2) *
+                          other.get_norma(obf1) * other.get_norma(obf2);
+
+                      ++num_ints_computed;
+                      ++counter;
+
+                      if (counter == s_size) {
+                        write_buffer(buffer, s_size, outfile);
+                        counter = 0;
+                      }
+                    }
+                  }
+                }
+              }
+            } // end cartesian loop
+          }
+        }
+      }
+    } // end shells loop
+
+    buffer.p[counter] = -1;
+    write_buffer(buffer, s_size, outfile);
+    outfile.close();
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for inter-species G12 integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  std::cout << " Number of unique integrals for species: " << speciesID << " / "
+            << other.get_speciesID() << " = " << num_ints_computed << std::endl;
+}
+
 /*
 Auxiliary functions
 */
@@ -1271,4 +1637,370 @@ void LibintInterface_compute_coupling_disk(LibintInterface *lint,
                                            const char *filename) {
   // printf("%s\n", "LibintInterface_compute_coupling_disk");
   lint->compute_coupling_disk(*olint, filename);
+}
+
+void libintinterface_compute_g12_disk(LibintInterface *lint,
+                                      const char *filename,
+                                      const double *coefficients,
+                                      const double *exponents,
+                                      const int pot_size) {
+
+  lint->compute_g12_disk(filename, coefficients, exponents, pot_size);
+}
+
+void libintinterface_compute_g12inter_disk(
+    LibintInterface *lint, LibintInterface *olint, const char *filename,
+    const double *coefficients, const double *exponents, const int pot_size) {
+
+  lint->compute_g12inter_disk(*olint, filename, coefficients, exponents,
+                              pot_size);
+}
+
+void libintinterface_buildg12_(int *nd, int *nc, int *nb, int *na, int *max_am,
+                               int *size, lowdin_t *data, double *output) {
+  printf("TEST CALCULATING:\n");
+  Libint_t inteval;
+
+  LIBINT2_PREFIXED_NAME(libint2_init_r12kg12)(&inteval, *max_am, 0);
+
+  LibintInterface_setLibint(&inteval, data);
+
+  inteval.contrdepth = 1;
+  // Calculate integrals
+  LIBINT2_PREFIXED_NAME(libint2_build_r12kg12)[*na][*nb][*nc][*nd](&inteval);
+
+  for (int i = 0; i < *size; ++i) {
+    output[i] = inteval.targets[0][i];
+    // printf("output %d %d %d %d %f \n", *na, *nb, *nc, *nd,
+    //        inteval.targets[0][i]);
+  }
+
+  //   this releases all memory that was allocated for this object
+  // LIBINT2_PREFIXED_NAME( libint2_cleanup_r12kg12)(&inteval);
+}
+
+/*
+Set values for Libint_t
+*/
+void LibintInterface_setLibint(Libint_t *erieval, lowdin_t *data) {
+/** Appear in standard OS RR for ERI and almost all other recurrence relations
+ */
+#if LIBINT2_DEFINED(eri, WP_x)
+  erieval->WP_x[0] = data->WP_x;
+#endif
+#if LIBINT2_DEFINED(eri, WP_y)
+  erieval->WP_y[0] = data->WP_y;
+#endif
+#if LIBINT2_DEFINED(eri, WP_z)
+  erieval->WP_z[0] = data->WP_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, WQ_x)
+  erieval->WQ_x[0] = data->WQ_x;
+#endif
+#if LIBINT2_DEFINED(eri, WQ_y)
+  erieval->WQ_y[0] = data->WQ_y;
+#endif
+#if LIBINT2_DEFINED(eri, WQ_z)
+  erieval->WQ_z[0] = data->WQ_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, PA_x)
+  erieval->PA_x[0] = data->PA_x;
+#endif
+#if LIBINT2_DEFINED(eri, PA_y)
+  erieval->PA_y[0] = data->PA_y;
+#endif
+#if LIBINT2_DEFINED(eri, PA_z)
+  erieval->PA_z[0] = data->PA_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, QC_x)
+  erieval->QC_x[0] = data->QC_x;
+#endif
+#if LIBINT2_DEFINED(eri, QC_y)
+  erieval->QC_y[0] = data->QC_y;
+#endif
+#if LIBINT2_DEFINED(eri, QC_z)
+  erieval->QC_z[0] = data->QC_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, AB_x)
+  erieval->AB_x[0] = data->AB_x;
+#endif
+#if LIBINT2_DEFINED(eri, AB_y)
+  erieval->AB_y[0] = data->AB_y;
+#endif
+#if LIBINT2_DEFINED(eri, AB_z)
+  erieval->AB_z[0] = data->AB_z;
+#endif
+
+#if LIBINT2_DEFINED(eri, CD_x)
+  erieval->CD_x[0] = data->CD_x;
+#endif
+#if LIBINT2_DEFINED(eri, CD_y)
+  erieval->CD_y[0] = data->CD_y;
+#endif
+#if LIBINT2_DEFINED(eri, CD_z)
+  erieval->CD_z[0] = data->CD_z;
+#endif
+
+/** Appear in OS RR for ERIs */
+#if LIBINT2_DEFINED(eri, oo2z)
+  /** One over 2.0*zeta */
+  erieval->oo2z[0] = data->oo2z;
+#endif
+#if LIBINT2_DEFINED(eri, oo2e)
+  /** One over 2.0*eta */
+  erieval->oo2e[0] = data->oo2e;
+#endif
+#if LIBINT2_DEFINED(eri, oo2ze)
+  /** One over 2.0*(zeta+eta) */
+  erieval->oo2ze[0] = data->oo2ze;
+#endif
+#if LIBINT2_DEFINED(eri, roz)
+  /** rho over zeta */
+  erieval->roz[0] = data->roz;
+#endif
+#if LIBINT2_DEFINED(eri, roe)
+  /** rho over eta */
+  erieval->roe[0] = data->roe;
+#endif
+
+/** Exponents */
+#if LIBINT2_DEFINED(eri, zeta_A)
+  erieval->zeta_A[0] = data->zeta_A;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_B)
+  erieval->zeta_B[0] = data->zeta_B;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_C)
+  erieval->zeta_C[0] = data->zeta_C;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_D)
+  erieval->zeta_D[0] = data->zeta_D;
+#endif
+/** Squared exponents */
+#if LIBINT2_DEFINED(eri, zeta_A_2)
+  erieval->zeta_A_2[0] = data->zeta_A_2;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_B_2)
+  erieval->zeta_B_2[0] = data->zeta_B_2;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_C_2)
+  erieval->zeta_C_2[0] = data->zeta_C_2;
+#endif
+#if LIBINT2_DEFINED(eri, zeta_D_2)
+  erieval->zeta_D_2[0] = data->zeta_D_2;
+#endif
+
+// Prefactors for interelecttron transfer relation
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_0_x)
+  erieval->TwoPRepITR_pfac0_0_x[0] = data->TwoPRepITR_pfac0_0_x;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_0_y)
+  erieval->TwoPRepITR_pfac0_0_y[0] = data->TwoPRepITR_pfac0_0_y;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_0_z)
+  erieval->TwoPRepITR_pfac0_0_z[0] = data->TwoPRepITR_pfac0_0_z;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_1_x)
+  erieval->TwoPRepITR_pfac0_1_x[0] = data->TwoPRepITR_pfac0_1_x;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_1_y)
+  erieval->TwoPRepITR_pfac0_1_y[0] = data->TwoPRepITR_pfac0_1_y;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac0_1_z)
+  erieval->TwoPRepITR_pfac0_1_z[0] = data->TwoPRepITR_pfac0_1_z;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac1_0)
+  erieval->TwoPRepITR_pfac1_0[0] = data->TwoPRepITR_pfac1_0;
+#endif
+#if LIBINT2_DEFINED(eri, TwoPRepITR_pfac1_1)
+  erieval->TwoPRepITR_pfac1_1[0] = data->TwoPRepITR_pfac1_1;
+#endif
+
+/** WD2004, Eq. 30, prefactor in front of (a0|k|c0) */
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_0_x)
+  erieval->R12kG12_pfac0_0_x[0] = data->R12kG12_pfac0_0_x;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_0_y)
+  erieval->R12kG12_pfac0_0_y[0] = data->R12kG12_pfac0_0_y;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_0_z)
+  erieval->R12kG12_pfac0_0_z[0] = data->R12kG12_pfac0_0_z;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_1_x)
+  erieval->R12kG12_pfac0_1_x[0] = data->R12kG12_pfac0_1_x;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_1_y)
+  erieval->R12kG12_pfac0_1_y[0] = data->R12kG12_pfac0_1_y;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac0_1_z)
+  erieval->R12kG12_pfac0_1_z[0] = data->R12kG12_pfac0_1_z;
+#endif
+
+/** WD2004, Eq. 30, prefactor in front of (a-1 0|k|c0) */
+#if LIBINT2_DEFINED(eri, R12kG12_pfac1_0)
+  erieval->R12kG12_pfac1_0[0] = data->R12kG12_pfac1_0;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac1_1)
+  erieval->R12kG12_pfac1_1[0] = data->R12kG12_pfac1_1;
+#endif
+
+/** WD2004, Eq. 30, prefactor in front of (a0|k|c-1 0) */
+#if LIBINT2_DEFINED(eri, R12kG12_pfac2)
+  erieval->R12kG12_pfac2[0] = data->R12kG12_pfac2;
+#endif
+
+/** WD2004, Eq. 30, prefactor in front of curly brakets (excludes k) */
+#if LIBINT2_DEFINED(eri, R12kG12_pfac3_0)
+  erieval->R12kG12_pfac3_0[0] = data->R12kG12_pfac3_0;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac3_1)
+  erieval->R12kG12_pfac3_1[0] = data->R12kG12_pfac3_1;
+#endif
+
+// * WD2004, Eq. 30, prefactor in front of (a0|k-2|c0)
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_0_x)
+  erieval->R12kG12_pfac4_0_x[0] = data->R12kG12_pfac4_0_x;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_0_y)
+  erieval->R12kG12_pfac4_0_y[0] = data->R12kG12_pfac4_0_y;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_0_z)
+  erieval->R12kG12_pfac4_0_z[0] = data->R12kG12_pfac4_0_z;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_1_x)
+  erieval->R12kG12_pfac4_1_x[0] = data->R12kG12_pfac4_1_x;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_1_y)
+  erieval->R12kG12_pfac4_1_y[0] = data->R12kG12_pfac4_1_y;
+#endif
+#if LIBINT2_DEFINED(eri, R12kG12_pfac4_1_z)
+  erieval->R12kG12_pfac4_1_z[0] = data->R12kG12_pfac4_1_z;
+#endif
+
+// using dangerous macros from libint2.h
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(0))
+  erieval->LIBINT_T_SS_EREP_SS(0)[0] = data->LIBINT_T_SS_EREP_SS0;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(1))
+  erieval->LIBINT_T_SS_EREP_SS(1)[0] = data->LIBINT_T_SS_EREP_SS1;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(2))
+  erieval->LIBINT_T_SS_EREP_SS(2)[0] = data->LIBINT_T_SS_EREP_SS2;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(3))
+  erieval->LIBINT_T_SS_EREP_SS(3)[0] = data->LIBINT_T_SS_EREP_SS3;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(4))
+  erieval->LIBINT_T_SS_EREP_SS(4)[0] = data->LIBINT_T_SS_EREP_SS4;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(5))
+  erieval->LIBINT_T_SS_EREP_SS(5)[0] = data->LIBINT_T_SS_EREP_SS5;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(6))
+  erieval->LIBINT_T_SS_EREP_SS(6)[0] = data->LIBINT_T_SS_EREP_SS6;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(7))
+  erieval->LIBINT_T_SS_EREP_SS(7)[0] = data->LIBINT_T_SS_EREP_SS7;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(8))
+  erieval->LIBINT_T_SS_EREP_SS(8)[0] = data->LIBINT_T_SS_EREP_SS8;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(9))
+  erieval->LIBINT_T_SS_EREP_SS(9)[0] = data->LIBINT_T_SS_EREP_SS9;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(10))
+  erieval->LIBINT_T_SS_EREP_SS(10)[0] = data->LIBINT_T_SS_EREP_SS10;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(11))
+  erieval->LIBINT_T_SS_EREP_SS(11)[0] = data->LIBINT_T_SS_EREP_SS11;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(12))
+  erieval->LIBINT_T_SS_EREP_SS(12)[0] = data->LIBINT_T_SS_EREP_SS12;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(13))
+  erieval->LIBINT_T_SS_EREP_SS(13)[0] = data->LIBINT_T_SS_EREP_SS13;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(14))
+  erieval->LIBINT_T_SS_EREP_SS(14)[0] = data->LIBINT_T_SS_EREP_SS14;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(15))
+  erieval->LIBINT_T_SS_EREP_SS(15)[0] = data->LIBINT_T_SS_EREP_SS15;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(16))
+  erieval->LIBINT_T_SS_EREP_SS(16)[0] = data->LIBINT_T_SS_EREP_SS16;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(17))
+  erieval->LIBINT_T_SS_EREP_SS(17)[0] = data->LIBINT_T_SS_EREP_SS17;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(18))
+  erieval->LIBINT_T_SS_EREP_SS(18)[0] = data->LIBINT_T_SS_EREP_SS18;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(19))
+  erieval->LIBINT_T_SS_EREP_SS(19)[0] = data->LIBINT_T_SS_EREP_SS19;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_EREP_SS(20))
+  erieval->LIBINT_T_SS_EREP_SS(20)[0] = data->LIBINT_T_SS_EREP_SS20;
+#endif
+
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_K0G12_SS_0)
+  erieval->LIBINT_T_SS_K0G12_SS_0[0] = data->LIBINT_T_SS_K0G12_SS_0;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_K2G12_SS_0)
+  erieval->LIBINT_T_SS_K2G12_SS_0[0] = data->LIBINT_T_SS_K2G12_SS_0;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(0))
+  erieval->LIBINT_T_SS_Km1G12_SS(0)[0] = data->LIBINT_T_SS_Km1G12_SS0;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(1))
+  erieval->LIBINT_T_SS_Km1G12_SS(1)[0] = data->LIBINT_T_SS_Km1G12_SS1;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(2))
+  erieval->LIBINT_T_SS_Km1G12_SS(2)[0] = data->LIBINT_T_SS_Km1G12_SS2;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(3))
+  erieval->LIBINT_T_SS_Km1G12_SS(3)[0] = data->LIBINT_T_SS_Km1G12_SS3;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(4))
+  erieval->LIBINT_T_SS_Km1G12_SS(4)[0] = data->LIBINT_T_SS_Km1G12_SS4;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(5))
+  erieval->LIBINT_T_SS_Km1G12_SS(5)[0] = data->LIBINT_T_SS_Km1G12_SS5;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(6))
+  erieval->LIBINT_T_SS_Km1G12_SS(6)[0] = data->LIBINT_T_SS_Km1G12_SS6;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(7))
+  erieval->LIBINT_T_SS_Km1G12_SS(7)[0] = data->LIBINT_T_SS_Km1G12_SS7;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(8))
+  erieval->LIBINT_T_SS_Km1G12_SS(8)[0] = data->LIBINT_T_SS_Km1G12_SS8;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(9))
+  erieval->LIBINT_T_SS_Km1G12_SS(9)[0] = data->LIBINT_T_SS_Km1G12_SS9;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(10))
+  erieval->LIBINT_T_SS_Km1G12_SS(10)[0] = data->LIBINT_T_SS_Km1G12_SS10;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(11))
+  erieval->LIBINT_T_SS_Km1G12_SS(11)[0] = data->LIBINT_T_SS_Km1G12_SS11;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(12))
+  erieval->LIBINT_T_SS_Km1G12_SS(12)[0] = data->LIBINT_T_SS_Km1G12_SS12;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(13))
+  erieval->LIBINT_T_SS_Km1G12_SS(13)[0] = data->LIBINT_T_SS_Km1G12_SS13;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(14))
+  erieval->LIBINT_T_SS_Km1G12_SS(14)[0] = data->LIBINT_T_SS_Km1G12_SS14;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(15))
+  erieval->LIBINT_T_SS_Km1G12_SS(15)[0] = data->LIBINT_T_SS_Km1G12_SS15;
+#endif
+#if LIBINT2_DEFINED(eri, LIBINT_T_SS_Km1G12_SS(16))
+  erieval->LIBINT_T_SS_Km1G12_SS(16)[0] = data->LIBINT_T_SS_Km1G12_SS16;
+#endif
 }

@@ -60,7 +60,7 @@ program CI
   call ConfigurationInteraction_run()
   call ConfigurationInteraction_show()
   call ConfigurationInteraction_showEigenVectors()
-  !!call ConfigurationInteraction_naturalOrbitals()!! currently unavailable 
+  call ConfigurationInteraction_densityMatrices()
   call ConfigurationInteraction_destructor()
 
   !!stop time

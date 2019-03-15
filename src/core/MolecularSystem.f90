@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -38,6 +38,8 @@ module MolecularSystem_
   use Matrix_
   use Vector_
   use InternalCoordinates_
+  use ExternalPotential_
+  use InterPotential_
   implicit none
   
   type , public :: MolecularSystem
@@ -221,6 +223,10 @@ contains
     if(allocated(MolecularSystem_instance%allParticles)) deallocate(MolecularSystem_instance%allParticles)
     
     call MecanicProperties_destructor(MolecularSystem_instance%mechanicalProp)
+
+    call ExternalPotential_destructor()
+    call InterPotential_destructor()
+
 
   end subroutine MolecularSystem_destroy
 
@@ -466,9 +472,26 @@ contains
     print *,""
     print *," END INFORMATION OF QUANTUM SYSTEM"
     print *,""
- 
 
-    
+
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      print *,""
+      print *," INFORMATION OF EXTERNAL POTENTIALS "
+      call ExternalPotential_show()
+      print *,""
+      print *," END INFORMATION OF EXTERNAL POTENTIALS"
+      print *,""
+    end if
+
+    if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+      print *,""
+      print *," INFORMATION OF INTER-PARTICLE POTENTIALS "
+      call InterPotential_show()
+      print *,""
+      print *," END INFORMATION OF INTER-PARTICLE POTENTIALS"
+      print *,""
+    end if
+ 
   end subroutine MolecularSystem_showParticlesInformation
 
   !>
@@ -590,10 +613,32 @@ contains
     do i = 1, MolecularSystem_instance%numberOfPointCharges
        call Particle_saveToFile(MolecularSystem_instance%pointCharges(i), unit=40)
     end do
-    
+
     !! Saving the total of particles on the system
     write(40,*) MolecularSystem_instance%numberOfParticles
     write(40,*) MolecularSystem_instance%numberOfQuantumParticles
+
+    ! Saving External/Inter-particle potentials information
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      write(40,*) ExternalPotential_instance%ssize 
+      do i = 1, ExternalPotential_instance%ssize 
+        write(40,*) i 
+        write(40,*) ExternalPotential_instance%potentials(i)%name
+        write(40,*) ExternalPotential_instance%potentials(i)%specie 
+      end do
+
+    end if
+
+    if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+      write(40,*) InterPotential_instance%ssize 
+      do i = 1, InterPotential_instance%ssize 
+        write(40,*) i 
+        write(40,*) InterPotential_instance%potentials(i)%name
+        write(40,*) InterPotential_instance%potentials(i)%specie 
+        write(40,*) InterPotential_instance%potentials(i)%otherSpecie 
+      end do
+
+    end if
 
     close(40)
     
@@ -636,35 +681,35 @@ contains
     !!****************************************************************************
     !! Saving info for gepol program
     !!
-	
+  
     call get_command_argument (1,value=title)
-		150 format (4(F10.5))
-		open(unit=41, file="gepol.xyzr",status="replace",form="formatted")
+    150 format (4(F10.5))
+    open(unit=41, file="gepol.xyzr",status="replace",form="formatted")
 
-			do i = 1,MolecularSystem_instance%numberOfQuantumSpecies 	
-				if (MolecularSystem_instance%species(i)%isElectron .eqv. .true.) then
-				write(41,"(I8)") size(MolecularSystem_instance%species(i)%particles)
-       	do j = 1, size(MolecularSystem_instance%species(i)%particles)
-          	write(41,150)&
-		  				MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
-		  				MolecularSystem_instance%species(i)%particles(j)%origin(2)*AMSTRONG, &
-		  				MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
-		  				MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
-       	end do
-				end if
-    	end do
-		close(41)
-		
-		160 format (A,A)
-		open(unit=42, file="gepol.inp",status="replace", form="formatted")
-			write(42,160)"TITL=",trim(title)
-			write(42,160)"COOF=gepol.xyzr"
-			write(42,160)"VECF=vectors.vec"
-			write(42,160)"LPRIN"
-			write(42,160)"NDIV=5"
-			! write(42,160)"ESURF"
-		
-		close(42)
+      do i = 1,MolecularSystem_instance%numberOfQuantumSpecies  
+        if (MolecularSystem_instance%species(i)%isElectron .eqv. .true.) then
+        write(41,"(I8)") size(MolecularSystem_instance%species(i)%particles)
+        do j = 1, size(MolecularSystem_instance%species(i)%particles)
+            write(41,150)&
+              MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(2)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
+        end do
+        end if
+      end do
+    close(41)
+    
+    160 format (A,A)
+    open(unit=42, file="gepol.inp",status="replace", form="formatted")
+      write(42,160)"TITL=",trim(title)
+      write(42,160)"COOF=gepol.xyzr"
+      write(42,160)"VECF=vectors.vec"
+      write(42,160)"LPRIN"
+      write(42,160)"NDIV=5"
+      ! write(42,160)"ESURF"
+    
+    close(42)
     
   end subroutine MolecularSystem_saveToFile
 
@@ -680,8 +725,10 @@ contains
     integer :: counter
     integer :: i, j
     logical :: existFile
-    
-    
+    character(20) :: name
+    character(50) :: species
+    character(50) :: otherSpecies
+
     select case (trim(form))
        
     case("LOWDIN.BAS")
@@ -836,7 +883,6 @@ contains
           read(40,*) MolecularSystem_instance%numberOfParticles
           read(40,*) MolecularSystem_instance%numberOfQuantumParticles
           
-          close(40)
 
           !! Set the particles manager (all pointers)              
           allocate(molecularSystem_instance%allParticles(MolecularSystem_instance%numberOfParticles ))
@@ -859,6 +905,45 @@ contains
           end do
           
           particleManager_instance => molecularSystem_instance%allParticles
+
+          
+          !! Loading External/Inter-particle potentials information
+          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+
+            read(40,*) auxValue
+            call ExternalPotential_constructor(auxValue)
+
+            !! FELIX TODO: create function to get potential ID
+            
+            do j = 1, ExternalPotential_instance%ssize 
+              read(40,*) i 
+              read(40,*) name
+              read(40,*) species
+
+              call ExternalPotential_load(i, name, species)
+
+            end do
+
+          end if
+
+          if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+
+            read(40,*) auxValue 
+            call InterPotential_constructor(auxValue)
+
+            do j = 1, InterPotential_instance%ssize 
+              read(40,*) i 
+              read(40,*) name
+              read(40,*) species
+              read(40,*) otherSpecies
+  
+              call InterPotential_load(i, name, species, otherSpecies)
+
+            end do
+
+          end if
+
+          close(40)
 
        else
           
@@ -1179,18 +1264,16 @@ contains
    function MolecularSystem_getSpecieID( nameOfSpecie ) result(output)
      implicit none
      
-     character(*) nameOfSpecie
+     character(*) :: nameOfSpecie
      integer :: output
      integer i 
      
      output = 0
-     
+
      do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        if( trim(MolecularSystem_instance%species(i)%name) == trim(nameOfSpecie)) then
-           output = i
-        end if
+        if( trim(MolecularSystem_instance%species(i)%name) == trim(nameOfSpecie)) output = i
      end do
-          
+
    end function MolecularSystem_getSpecieID
 
       !> @brief Returns the name of a species
@@ -1211,7 +1294,6 @@ contains
 
    end function MolecularSystem_getSpecieIDFromSymbol
 
-   
    !>
    !! @brief calcula la energia total para una especie especificada
    function MolecularSystem_getPointChargesEnergy() result( output )
