@@ -74,7 +74,7 @@ program lowdin_
  call InputManager_loadGeometry() 
 
  !! Load potentials if any
- !call InputManager_loadPotentials()
+ call InputManager_loadPotentials()
 
  !! Load OUTPUTY block
 ! call InputManager_loadOUTPUT() 
