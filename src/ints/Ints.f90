@@ -103,6 +103,7 @@ Program Ints
      !! Calculate integrals with external potential
      if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
        call IntegralManager_getThreeCenterIntegrals()
+       !call IntegralManager_getThreeCenterIntegralsByProduct()
      end if
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
