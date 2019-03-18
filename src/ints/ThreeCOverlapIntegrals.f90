@@ -153,7 +153,7 @@ contains
           nor2(0:nprim2-1) = contractedGaussianB%primNormalization(1:nprim2,q)
 
           exp3(0:nprim3-1) = contractedGaussianC%orbitalExponents(1:nprim3)
-          nor3(0:nprim3-1) = 1!contractedGaussianC%primNormalization(1:nprim3,r)
+          nor3(0:nprim3-1) = contractedGaussianC%primNormalization(1:nprim3,r)
 
           am1 = 0
           am2 = 0
@@ -167,8 +167,8 @@ contains
                                                          coef1, coef2, coef3, nor1, nor2, nor3, auxIntegral)
 
           auxIntegral = auxIntegral * contractedGaussianA%contNormalization(p) &
-               * contractedGaussianB%contNormalization(q) !&
-               !* contractedGaussianC%contNormalization(r)
+               * contractedGaussianB%contNormalization(q) &
+               * contractedGaussianC%contNormalization(r)
            
           integral(m) = auxIntegral
 

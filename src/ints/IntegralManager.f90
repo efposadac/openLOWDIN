@@ -865,7 +865,7 @@ contains
     implicit none
 
     integer :: f, g, h, i
-    integer :: j, k, l, m
+    integer :: j, k, l, m, r
     integer :: o, p, potID
     integer :: ii, jj, hh
     integer, allocatable :: labels(:)
@@ -880,6 +880,19 @@ contains
     !!Overlap Integrals for all species    
     do f = 1, size(MolecularSystem_instance%species)
 
+       potID = 0
+
+       do i= 1, ExternalPotential_instance%ssize
+         !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
+         ! if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
+         !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
+
+         if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
+           potID=i
+           exit
+         end if
+       end do
+
        write(30) job
        speciesName = MolecularSystem_instance%species(f)%name
        write(30) speciesName
@@ -892,16 +905,6 @@ contains
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
 
        integralsMatrix = 0.0_8
-
-       do i= 1, ExternalPotential_instance%ssize
-         !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
-         ! if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
-         !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
-         if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
-           potID=i
-           exit
-         end if
-       end do
 
        ii = 0
        do g = 1, size(MolecularSystem_instance%species(f)%particles)
@@ -928,16 +931,21 @@ contains
 
 
                    integralValue = 0.0_8
-
                    do p = 1, ExternalPotential_instance%potentials(potID)%numOfComponents
-
                      auxintegralValue = 0.0_8
+
+                      
+                     do r = 1, ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%numcartesianOrbital
+                       ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%primNormalization( &
+                       1:ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%length,r) = 1
+
+                     ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%contNormalization(r) = 1
+                    end do
 
                      !! Calculating integrals for shell
                      call ThreeCOverlapIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
                            MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), &
                            ExternalPotential_instance%potentials(potID)%gaussianComponents(p), auxintegralValue)
-                      print *, "1", auxintegralValue
                     integralValue = integralValue + auxintegralValue
 
                    end do !! potential
@@ -1063,7 +1071,6 @@ contains
                      !call OverlapIntegrals_computeShell ( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
                      !  MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), auxintegralValue )
 
-                      print *, "2", auxintegralValue
                     integralValue = integralValue + auxintegralValue
 
                    end do !! potential

@@ -1,0 +1,49 @@
+! Calculo usando potenciales internos y externos ajustados de un atomo de He
+! Para comparar con los resultados de los potenciales internos y externos
+!
+!         TOTAL_ENERGY =      -2.854269877628
+!         Repulsion energy          =         1.0264773649
+!         ExternalPotential energy  =        -6.7340802413
+!
+! Resultados de un calculo normal - sin usar potenciales
+!        TOTAL_ENERGY =      -2.855160426154
+!        Q/Fixed potential energy  =        -6.7373927626
+!        Repulsion energy          =         1.0269072107
+!
+!
+!
+
+GEOMETRY
+        e-(H) 6-311++G.d.p 0 0 0      addParticles=-14
+        e-(C) 6-311++G.d.p 0 0 1.059
+        e-(N) 6-311++G.d.p 0 0 2.186
+        H     dirac	   0 0 0
+        C     dirac	   0 0 1.059
+        N     dirac        0 0 2.186
+	E+ GRIBAKIN-10S        0  0  0
+	E+ GRIBAKIN-10S        0  0  1.059
+	E+ GRIBAKIN-10S        0  0  2.186 addParticles=-2
+END GEOMETRY
+
+TASKS
+        method = "RHF"
+!	configurationInteractionLevel ="FCI"
+END TASKS
+
+!EXTERPOTENTIAL
+!	E+ GRIBAKIN
+!	E- GRIBAKIN
+!END EXTERPOTENTIAL
+
+CONTROL
+	transformToCenterOfMass=F
+        !CIdiagonalizationMethod="ARPACK"
+        !CIdiagonalizationMethod="JADAMILU"
+	CISizeOfGuessMatrix=1
+	convergenceMethod=1
+	iterationScheme=3
+END CONTROL
+
+OUTPUTS
+	moldenFile
+END OUTPUTS
