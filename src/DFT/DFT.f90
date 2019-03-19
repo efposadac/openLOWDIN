@@ -125,6 +125,9 @@ program DFT
 
         close(unit=densUnit)
 
+        ! print *, "density matrix for", speciesID
+        ! call Matrix_show(densityMatrix(speciesID))
+               
         ! wfnUnit = 300
         ! wfnFile = "lowdin.wfn"
 

@@ -386,11 +386,11 @@ contains
 
           open(10,file=this%fileName,status='replace',action='write')
           write(10,"(A)") "[Molden Format]"
-          if ( CONTROL_instance%UNITS=="ANGS") then
-            write(10,"(A)") "[Atoms] Angs"
-          else 
-            write(10,"(A)") "[Atoms] AU"
-          end if
+          ! if ( CONTROL_instance%UNITS=="ANGS") then
+          !   write(10,"(A)") "[Atoms] Angs"
+          ! else 
+          write(10,"(A)") "[Atoms] AU"
+          ! end if
 
           auxMatrix%values=0.0
           j=0
@@ -437,7 +437,7 @@ contains
   
                   totalNumberOfParticles = totalNumberOfParticles + 1
                   origin=localizationOfCenters%values(k,:)
-                  if ( CONTROL_instance%UNITS=="ANGS") origin = origin * AMSTRONG
+                  ! if ( CONTROL_instance%UNITS=="ANGS") origin = origin * AMSTRONG
                   symbol=labels(k)
                   if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
 #ifdef intel
@@ -551,18 +551,18 @@ contains
 
              occupation=fractionalOccupations(l)%values(j,state)
              
-             write (10,"(A,F7.4)") "Occup= ",occupation
+             write (10,"(A,F7.5)") "Occup= ",occupation
 
              i = 0
              do k=1,size(coefficientsOfCombination%values,dim=1)
                 i = i + 1
-                write(10,"(I4,F15.6)") k,coefficientsOfCombination%values(k,j)
+                write(10,"(I4,A2,F15.10)") k,"  ", coefficientsOfCombination%values(k,j)
              end do
 
               if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
                 if ( CONTROL_instance%MOLDEN_FILE_FORMAT == "MIXED" ) then
                   do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-                    write(10,"(I4,F15.6)") i+n,0.0_8
+                    write(10,"(I4,A2,F15.10)") i+n,"  ", 0.0_8
                   end do
                 end if
               end if

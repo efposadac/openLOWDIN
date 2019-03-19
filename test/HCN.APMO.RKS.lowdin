@@ -28,8 +28,8 @@ CONTROL
 !readCoefficients=.T.
 electronExchangeCorrelationFunctional="B3LYP"
 nuclearElectronCorrelationFunctional="epc17-2"
-activateLevelShifting=.T.
-nonelectronicLevelShifting=0.1
+!activateLevelShifting=.T.
+!nonelectronicLevelShifting=0.1
 !strongEnergyTolerance=1E-6
 ! gridAngularPoints=302
 ! gridRadialPoints=200

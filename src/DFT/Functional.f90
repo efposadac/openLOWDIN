@@ -48,7 +48,10 @@ module Functional_
        Functional_libxcEvaluate, &
        Functional_LDAEvaluate, &
        Functional_EPCEvaluate, &
+       Functional_IKNEvaluate, &
        Functional_MLCSEvaluate, &
+       Functional_MLCSAEvaluate, &
+       Functional_MLCSANEvaluate, &
        Functional_myCSEvaluate, &
        Functional_PSNEvaluate, &
        Functional_lowLimitEvaluate, &
@@ -322,9 +325,15 @@ contains
           end if
        else 
           write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
+          if(this%name .ne. "NONE" .and. CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
+             print *, "q", CONTROL_instance%DUMMY_REAL_A
+             print *, "p", CONTROL_instance%DUMMY_REAL_B
+          end if
+
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3") print *, "Using as correlation length: beta=q*rhoE^(1/3)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE6rhoN6") print *, "Using as correlation length: beta=q*rhoE^(1/6)*rhoN^(1/6)"
 
        end if
-
     end do
 
     print *, ""
@@ -478,9 +487,11 @@ contains
     ! vcE(1:n)=vcE(1:n) -rhoN(1:n)/denominator(1:n)! + (c*rhoE(1:n)*rhoN(1:n)**2 - b/2*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2))/denominator(1:n)**2
     ! vcN(1:n)=vcN(1:n) -rhoE(1:n)/denominator(1:n)! + (c*rhoN(1:n)*rhoE(1:n)**2 - b/2*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2))/denominator(1:n)**2
 
-    vcE(1:n)=vcE(1:n) + (b*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2)-2*a*rhoN(1:n))/denominator(1:n)**2/2
-    vcN(1:n)=vcN(1:n) + (b*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2)-2*a*rhoE(1:n))/denominator(1:n)**2/2
-    
+!    vcE(1:n)= (b*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2)-2*a*rhoN(1:n))/denominator(1:n)**2/2 !vcE(1:n) +
+!    vcN(1:n)= (b*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2)-2*a*rhoE(1:n))/denominator(1:n)**2/2 !vcN(1:n) +
+
+    vcE(1:n)= (rhoE(1:n)*rhoN(1:n)*(c*rhoN(1:n)-b*rhoN(1:n)/(2*sqrt(rhoE(1:n)*rhoN(1:n))))-rhoN(1:n)*denominator)/denominator**2
+    vcN(1:n)= (rhoN(1:n)*rhoE(1:n)*(c*rhoE(1:n)-b*rhoE(1:n)/(2*sqrt(rhoE(1:n)*rhoN(1:n))))-rhoE(1:n)*denominator)/denominator**2
     ! do i = 1, n
     !    if(denominator(i) .lt. 1E-6 .or. rhoE(i) .lt. 1E-6 .or. rhoN(i) .lt. 1E-6) then
     !       ec(i)=0.0
@@ -499,6 +510,74 @@ contains
     
   end subroutine Functional_EPCEvaluate
 
+  subroutine Functional_IKNEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
+    ! Evaluates YUTAKA IMAMURA, HIROYOSHI KIRYU, HIROMI NAKAI Colle Salvetti nuclear electron correlation functional J Comput Chem 29: 735–740, 2008
+    ! Only works for Hydrogen - can be extended
+    ! Felix Moncada, 2019
+    implicit none
+    type(Functional):: this !!type of functional
+    real(8) :: mass !!nuclear mass
+    integer :: n !!nuclear gridSize
+    real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcE(*), vcN(*) !! Potentials - output   
+
+    real(8) :: a1,a2,a3,a4,q
+    real(8) :: beta, numerator, denominator, F, dbetaE, dbetaN, dFdbeta
+    integer :: i, sign
+
+    !!The idea is that the parameters are a functional of the nuclear mass and charge
+    a1=14.48724087490633
+    a2=-19.119574638807872
+    a3=1.2732395447351628
+    a4=-2.256758334191025
+       
+    if(this%name .eq. "correlation:ikn-nsf" ) then
+       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
+          q=CONTROL_instance%DUMMY_REAL_A
+       else
+          q=4.971
+       end if
+    else
+       print *, this%name
+       STOP "The nuclear electron functional chosen is not implemented"
+    end if
+
+    do i = 1, n
+
+       if(rhoE(i) .gt. 1E-6 .and. rhoN(i) .gt. 1E-6 ) then !
+!!!Energy
+          beta=q*rhoE(i)**(1.0/3.0)
+
+          if(beta.gt. 0.1) then
+             ! beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
+             numerator=a1+a2*beta
+             denominator=2*Math_PI*beta**4*exp(a3/beta**2+a4/beta)
+
+             F=numerator/denominator
+
+             ec(i)=rhoE(i)*rhoN(i)*F
+
+!!!Potential
+             dFdbeta=a2/denominator-4*numerator/denominator/beta+(2*a3/beta**3+a4/beta**2)*numerator/denominator
+
+             dbetaE=(1.0/3.0)*q*rhoE(i)**(-2.0/3.0)
+             dbetaN=0.0
+
+             vcE(i)=rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
+             vcN(i)=rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
+
+             ! write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i), ec(i), vcE(i), vcN(i)
+             ! write(*,"(I0.1,5F16.6)") 1000, beta,  F, dGdbeta, dFdbeta, dbetaE
+
+          end if
+       end if
+    end do
+
+    ! STOP
+    
+  end subroutine Functional_IKNEvaluate
+ 
   subroutine Functional_MLCSEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
     ! Evaluates Mejia-de la Lande Colle Salvetti nuclear electron correlation functional
     ! Felix Moncada, 2018
@@ -518,20 +597,22 @@ contains
     !!The idea is that the parameters are a functional of the nuclear mass and charge
     if(this%name .eq. "correlation:mlcs-fit" ) then
 
-       a1=2.0943951023931953 
-       a2=2.8617697241
-       r1=-0.7611297690
-       r2=0.4348016976
-       q=1.2
-       p=0.5
+       a1=2.0943951023931953
+       a2=2.849869774919022
+       r1=0.7607437033951782
+       r2=0.433750315318239
+       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
+          q=CONTROL_instance%DUMMY_REAL_A
+          p=CONTROL_instance%DUMMY_REAL_B
+       else
+          q=1.2
+          p=0.5
+       end if
     else
        print *, this%name
        STOP "The nuclear electron functional chosen is not implemented"
     end if
 
-    !F=(a1*exp(-a2*beta**2)+r1/beta*exp(-r2*(1/beta)) )/beta**2
-
-    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
     do i = 1, n
 
        if(rhoE(i) .gt. 1E-6 .and. rhoN(i) .gt. 1E-6 ) then !
@@ -540,21 +621,22 @@ contains
           ! beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
           attractiveExp=exp(-a2*(beta**2))
           repulsiveExp=exp(-r2/beta)
-          G=a1*attractiveExp+r1/beta*repulsiveExp
-          F=p*G/(beta**2)
-          ec(i)= -rhoE(i)*rhoN(i)*F
+          F=a1*attractiveExp/beta**2-r1*repulsiveExp/beta**3
+          ec(i)= -p*rhoE(i)*rhoN(i)*F
 
-          !!!Potential  
-          dGdbeta=-2*a1*a2*beta*attractiveExp - r1/beta**2*repulsiveExp + r1*r2/beta**3*repulsiveExp
-          dFdbeta=p*(-2*G/beta**3 + dGdbeta/beta**2)
+          !!!Potential
+          dFdbeta= -2*a1*(a2*beta**2+1)*attractiveExp/beta**3 - r1*(r2-3*beta)*repulsiveExp/beta**5
+          
+          !dGdbeta=-2*a1*a2*beta*attractiveExp - r1/beta**2*repulsiveExp + r1*r2/beta**3*repulsiveExp
+          !dFdbeta=p*(-2*G/beta**3 + dGdbeta/beta**2)
           
           ! dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
           ! dbetaN=(1.0/6.0)*q*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
           dbetaE=(1.0/3.0)*q*rhoE(i)**(-2.0/3.0)
           dbetaN=0.0
           
-          vcE(i)=-rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
-          vcN(i)=-rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
+          vcE(i)=-p*rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
+          vcN(i)=-p*rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
           
           ! write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i), ec(i), vcE(i), vcN(i)
           ! write(*,"(I0.1,5F16.6)") 1000, beta,  F, dGdbeta, dFdbeta, dbetaE
@@ -563,24 +645,13 @@ contains
     end do
 
 
-    ! denominator(1:n)=a
-    
-    ! vcE(1:n)=vcE(1:n) -rhoN(1:n)/denominator(1:n)! + (c*rhoE(1:n)*rhoN(1:n)**2 - b/2*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2))/denominator(1:n)**2
-    ! vcN(1:n)=vcN(1:n) -rhoE(1:n)/denominator(1:n)! + (c*rhoN(1:n)*rhoE(1:n)**2 - b/2*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2))/denominator(1:n)**2
-
-    ! vcE(1:n)=vcE(1:n) + (b*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2)-2*a*rhoN(1:n))/denominator(1:n)**2/2
-    ! vcN(1:n)=vcN(1:n) + (b*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2)-2*a*rhoE(1:n))/denominator(1:n)**2/2
-    
-
-
     ! STOP
     
   end subroutine Functional_MLCSEvaluate
 
-  
-  subroutine Functional_myCSEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
-    ! Evaluates Hamess-Schiffer's Colle Salvetti nuclear electron correlation functional
-    ! Felix Moncada, 2017
+  subroutine Functional_MLCSAEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
+    ! Evaluates Mejia-de la Lande Colle Salvetti nuclear electron correlation functional
+    ! Felix Moncada, 2018
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
@@ -589,71 +660,313 @@ contains
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
 
-    real(8) :: a0,a1,a2,a3,a4,a5,a6,q
-    real(8) :: beta, dbetaDE, dbetaDN
-    real(8) :: denominator, ddenominatorDbeta
+    real(8) :: a1,a2,r1,r2,p,q
+    real(8) :: beta, attractiveExp, repulsiveExp, F, G, dbetaE, dbetaN, dFdbeta, dGdbeta
     real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
     integer :: i
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:CS-myfit" ) then
-       q=2.5
-       a0=0.0011335821964296108
-       a1=-0.027186701045457354
-       a2=0.2559301045397849
-       a3=-0.4955389585548209
-       a4=0.3247814704559331
-       a5=-0.05045899525215592
-       a6=0.002906302490376316
+    if(this%name .eq. "correlation:mlcs-a" ) then
+
+       a1=2.0943951023931953
+       a2=2.849869774919022
+       r1=0.0
+       r2=0.433750315318239
+       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
+          q=CONTROL_instance%DUMMY_REAL_A
+          p=CONTROL_instance%DUMMY_REAL_B
+       else
+          q=1.2
+          p=0.5
+       end if
     else
        print *, this%name
        STOP "The nuclear electron functional chosen is not implemented"
     end if
-        
+
     do i = 1, n
-       
-       ! beta=q*(rhoE(i)*rhoN(i))**(1.0/6.0)
-       ! dbetaDE=(1.0/6.0)*q*rhoN(i)**(1.0/6.0)/rhoE(i)**(5.0/6.0)
-       ! dbetaDN=(1.0/6.0)*q*rhoE(i)**(1.0/6.0)/rhoN(i)**(5.0/6.0)
 
-       beta=q*(rhoE(i)**(1.0/3.0)+rhoN(i)**(1.0/3.0))
-       dbetaDE=(1.0/3.0)*q*rhoE(i)**(-2.0/3.0)
-       dbetaDN=(1.0/3.0)*q*rhoN(i)**(-2.0/3.0)
-       
-       denominator=a0+a1*beta+a2*beta**2+a3*beta**3+a4*beta**4+a5*beta**5+a6*beta**6
-       ddenominatorDbeta=a1+2*a2*beta+3*a3*beta**2+4*a4*beta**3+5*a5*beta**4+6*a6*beta**5
-       
-!!!Energy
-       ec(i)= -rhoE(i)*rhoN(i)/denominator
+       if(rhoE(i) .gt. 1E-6 .and. rhoN(i) .gt. 1E-6 ) then !
+          !!!Energy
+          beta=q*rhoE(i)**(1.0/3.0)
+          ! beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
+          attractiveExp=exp(-a2*(beta**2))
+          repulsiveExp=exp(-r2/beta)
+          F=a1*attractiveExp/beta**2-r1*repulsiveExp/beta**3
+          ec(i)= -p*rhoE(i)*rhoN(i)*F
 
-       
-!!!Potential
-       
-       vcE(i)=vcE(i) !- rhoN(i)/denominator*(1-rhoE(i)*dbetaDE*ddenominatorDbeta/denominator)
-       vcN(i)=vcN(i) !- rhoE(i)/denominator*(1-rhoN(i)*dbetaDN*ddenominatorDbeta/denominator)
+          !!!Potential
+          dFdbeta= -2*a1*(a2*beta**2+1)*attractiveExp/beta**3 - r1*(r2-3*beta)*repulsiveExp/beta**5
+          
+          !dGdbeta=-2*a1*a2*beta*attractiveExp - r1/beta**2*repulsiveExp + r1*r2/beta**3*repulsiveExp
+          !dFdbeta=p*(-2*G/beta**3 + dGdbeta/beta**2)
+          
+          ! dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
+          ! dbetaN=(1.0/6.0)*q*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
+          dbetaE=(1.0/3.0)*q*rhoE(i)**(-2.0/3.0)
+          dbetaN=0.0
+          
+          vcE(i)=-p*rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
+          vcN(i)=-p*rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
+          
+          ! write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i), ec(i), vcE(i), vcN(i)
+          ! write(*,"(I0.1,5F16.6)") 1000, beta,  F, dGdbeta, dFdbeta, dbetaE
 
-       ! if(denominator .lt. 1E-6) then
-       !    ec(i)=0.0
-       ! end if
-
-       if(rhoE(i) .lt. 1E-6) then
-          vcE(i)=0.0
        end if
-       
-       ! if(rhoE(i) .lt. denominator) then
-       !    vcN(i)=vcN(i) - rhoE(i)/denominator*(1-rhoN(i)*dbetaDN*ddenominatorDbeta/denominator)
-       ! else
-       !    vcN(i)=vcN(i) - denominator/rhoE(i)*(1-rhoN(i)*dbetaDN*ddenominatorDbeta/denominator)
-       ! end if
-
-       if(rhoN(i) .lt. 1E-6) then
-          vcN(i)=0.0
-       end if
-
-       
-       ! write(*,"(I0.1,7F16.6)") i, rhoN(i), rhoE(i), rhoE(i)/denominator, -(1-rhoN(i)*dbetaDN*ddenominatorDbeta/denominator) ,vcN(i)  
-
     end do
+
+
+    ! STOP
+    
+  end subroutine Functional_MLCSAEvaluate
+
+  subroutine Functional_MLCSANEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
+    ! Evaluates Mejia-de la Lande Colle Salvetti nuclear electron correlation functional
+    ! Felix Moncada, 2018
+    implicit none
+    type(Functional):: this !!type of functional
+    real(8) :: mass !!nuclear mass
+    integer :: n !!nuclear gridSize
+    real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcE(*), vcN(*) !! Potentials - output   
+
+    real(8) :: a1,a2,r1,r2,p,q
+    real(8) :: beta, attractiveExp, repulsiveExp, F, G, dbetaE, dbetaN, dFdbeta, dGdbeta
+    real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
+    integer :: i
+
+    !!The idea is that the parameters are a functional of the nuclear mass and charge
+    if(this%name .eq. "correlation:mlcs-an" ) then
+
+       a1=2.0943951023931953
+       a2=2.849869774919022
+       r1=0.0
+       r2=0.433750315318239
+       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
+          q=CONTROL_instance%DUMMY_REAL_A
+          p=CONTROL_instance%DUMMY_REAL_B
+       else
+          q=1.2
+          p=0.5
+       end if
+    else
+       print *, this%name
+       STOP "The nuclear electron functional chosen is not implemented"
+    end if
+
+    do i = 1, n
+
+       if(rhoE(i) .gt. 1E-6 .and. rhoN(i) .gt. 1E-6 ) then !
+          !!!Energy
+          ! beta=q*rhoE(i)**(1.0/3.0)
+          beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
+          attractiveExp=exp(-a2*(beta**2))
+          repulsiveExp=exp(-r2/beta)
+          F=a1*attractiveExp/beta**2-r1*repulsiveExp/beta**3
+          ec(i)= -p*rhoE(i)*rhoN(i)*F
+
+          !!!Potential
+          dFdbeta= -2*a1*(a2*beta**2+1)*attractiveExp/beta**3 - r1*(r2-3*beta)*repulsiveExp/beta**5
+          
+          !dGdbeta=-2*a1*a2*beta*attractiveExp - r1/beta**2*repulsiveExp + r1*r2/beta**3*repulsiveExp
+          !dFdbeta=p*(-2*G/beta**3 + dGdbeta/beta**2)
+          
+          dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
+          dbetaN=(1.0/6.0)*q*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
+          ! dbetaE=(1.0/3.0)*q*rhoE(i)**(-2.0/3.0)
+          ! dbetaN=0.0
+          
+          ! vcE(i)=-p*rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
+          ! vcN(i)=-p*rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
+          vcE(i)=-p*rhoN(i)*rhoE(i)*(F+dbetaE*dFdbeta)
+          vcN(i)=-p*rhoE(i)*rhoN(i)*(F+dbetaN*dFdbeta)
+          
+          ! write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i), ec(i), vcE(i), vcN(i)
+          ! write(*,"(I0.1,5F16.6)") 1000, beta,  F, dGdbeta, dFdbeta, dbetaE
+
+       end if
+    end do
+
+
+    ! STOP
+    
+  end subroutine Functional_MLCSANEvaluate
+  
+  
+  subroutine Functional_myCSEvaluate( this, mass, npoints, rhoE, rhoN, ec, vcE, vcN )
+    ! Evaluates Hamess-Schiffer's Colle Salvetti nuclear electron correlation functional
+    ! Felix Moncada, 2019
+    implicit none
+    type(Functional):: this !!type of functional
+    real(8) :: mass !!nuclear mass
+    integer :: npoints !!nuclear gridSize
+    real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcE(*), vcN(*) !! Potentials - output   
+
+    real(8) :: a0,a1,a2,a3,a4,a5,a6,a7,a8,az,an,b0,b1,b2,b3,b4,bz,bn,p,q
+    real(8) :: beta, dbetaE, dbetaN, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta
+    integer :: i,n
+
+    !!The idea is that the parameters are a functional of the nuclear mass and charge
+    if(this%name .eq. "correlation:CS-myfit" ) then
+       a0=20.799624419985    
+       a1=-19.251078153683    
+       a2=68.341133121032    
+       a3=-349.312459728153  
+       a4=621.759104204928   
+       a5=0.0
+       a6=0.0
+       a7=0.0
+       a8=0.0
+       az=7.262349396307      
+       an=9.101297095659     
+       b0=3.042892080859     
+       b1=1.606594302396     
+       b2=38.431539423963    
+       b3=-110.273758102273  
+       b4=130.813870751403   
+       bz=4.357404128407      
+       bn=12.297852188465    
+    else if(this%name .eq. "correlation:Imamura-myfit" ) then
+       a0=-1.810905109364
+       a1=-1.167135966502
+       a2=12.330825453317
+       a3=-143.958134459753
+       a4=773.724912824595
+       a5=-2246.847075516435
+       a6=3681.632763571440
+       a7=-3248.547769822670
+       a8=1216.285109989069
+       az=1.736460214413
+       an=3.614606996422
+       b0=3.042974813585
+       b1=2.952784475691
+       b2=30.539736874367
+       b3=-95.876667515705
+       b4=157.531741188944
+       bz=0.195361337190
+       bn=17.465905244385
+       ! a0=-1.810905109364
+       ! a1=-1.052850613233
+       ! a2=10.008633190911
+       ! a3=-128.659319481101
+       ! a4=743.178299971580
+       ! a5=-2257.693608998759
+       ! a6=3731.656228439009
+       ! a7=-3205.916666708522
+       ! a8=1147.270968266223
+       ! az=1.665373819617
+       ! an=3.624419432661
+       ! b0=3.042974813585
+       ! b1=3.248066178957
+       ! b2=26.755007188150
+       ! b3=-82.805230932937
+       ! b4=144.122496204253
+       ! bz=0.306222273912
+       ! bn=21.383069425991
+    else if(this%name .eq. "correlation:Mejia-myfit" ) then
+       a0=-2.094395102394
+       a1=-1.025867935018
+       a2=-0.538148600474
+       a3=11.072663674859
+       a4=-11.728894706789
+       a5=0
+       a6=0
+       a7=0
+       a8=0
+       az=5.485962579901
+       an=6.089408324396
+       b0=1.521487406791
+       b1=0.075813099062
+       b2=-0.153966977767
+       b3=-3.962056400173
+       b4=2.453311545282
+       bz=2.864883246299
+       bn=9.451138253283
+    else if(this%name .eq. "correlation:MejiaA-myfit" ) then
+       a0=-2.094395102393
+       a1=1.919828725183
+       a2=9.666337157333
+       a3=-15.283848155658
+       a4=6.031393373580
+       a5=0
+       a6=0
+       a7=0
+       a8=0
+       az=0.911004697711
+       an=6.773374962808
+       b0=0.760743703395
+       b1=0.055672495857
+       b2=-0.291021401973
+       b3=-0.206323289017
+       b4=0
+       bz=1.807726544299
+       bn=5.580898227664
+    else
+       print *, this%name
+       STOP "The nuclear electron functional chosen is not implemented"
+    end if
+
+    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
+       q=CONTROL_instance%DUMMY_REAL_A
+       p=CONTROL_instance%DUMMY_REAL_B
+    else
+       q=1.0
+       p=1.0
+    end if
+    
+    !$omp parallel & 
+    !$omp& private(i,beta, dbetaE, dbetaN, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta),&
+    !$omp& shared(mass, n, rhoE, rhoN, ec, vcE, vcN)
+    n = omp_get_thread_num() + 1
+    !$omp do schedule (dynamic) 
+    
+    do i = 1, npoints
+       if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3") then
+          beta=q*rhoE(i)**(1.0/3.0)
+          dbetaE=(1.0/3.0)*q*rhoE(i)**(-2.0/3.0)
+          dbetaN=0.0
+       else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE6rhoN6") then
+          beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
+          dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
+          dbetaN=(1.0/6.0)*q*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
+       else
+          beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
+          dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
+          dbetaN=(1.0/6.0)*q*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
+       end if
+
+       if(beta .gt. 0.01 ) then !
+!       if(rhoE(i) .gt. 1E-6 .and. rhoN(i) .gt. 1E-6 ) then !
+          !!!Energy
+          aPoly=a0+a1*beta+a2*beta**2+a3*beta**3+a4*beta**4+a5*beta**5+a6*beta**6+a7*beta**7+a8*beta**8
+          bPoly=b0+b1/beta+b2/beta**2+b3/beta**3+b4/beta**4
+          aExp=exp(-az*beta**an)
+          bExp=(1-exp(-bz*beta**bn))
+          
+          F=aPoly*aExp/beta**2+bPoly*bExp/beta**3
+          ec(i)= -p*rhoE(i)*rhoN(i)*F
+
+          !!!Potential
+          daPolydbeta=a1+2*a2*beta+3*a3*beta**2+4*a4*beta**3+5*a5*beta**4+6*a6*beta**5+7*a7*beta**6+8*a8*beta**7
+          daExpdbeta=-az*an*beta**(an-1)*exp(-az*beta**an)
+          dbPolydbeta=-b1/beta**2-2*b2/beta**3-3*b3/beta**4-4*b4/beta**5
+          dbExpdbeta=bz*bn*beta**(bn-1)*exp(-bz*beta**bn)
+          
+          dFdbeta=-2*aPoly*aExp/beta**3+(aPoly*daExpdbeta+daPolydbeta*aExp)/beta**2-3*bPoly*bExp/beta**4+(bPoly*dbExpdbeta+dbPolydbeta*bExp)/beta**3
+          
+          vcE(i)=-p*rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
+          if(rhoN(i) .gt. 0.01 .or. mass .lt. 10.0) then !This is a cut off to achieve convergence in the SCF cycle
+             vcN(i)=-p*rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
+          end if
+          ! write(*,"(I0.1,6F16.6)") i, beta, dFdbeta, dbetaE, dbetaN, vcE(i), vcN(i)
+
+       end if
+    end do
+    !$omp end do nowait
+    !$omp end parallel
 
   end subroutine Functional_myCSEvaluate
 
@@ -853,7 +1166,7 @@ contains
 
     real(8) factor
 
-    factor = 4.0/3.0
+    factor = 1.0/3.0
     ex(1:n) = (2.0*rho(1:n))**factor
     factor = -(0.75*(3.0/pi())**(1.0/3.0))
     ex(1:n) = factor*ex(1:n)

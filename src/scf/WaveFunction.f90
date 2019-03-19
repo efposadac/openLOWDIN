@@ -415,7 +415,6 @@ contains
                 !!*****************************************************************************
                 !! Adds exchange operator contributions
                 !! 
-                !! FELIX: THIS HAS TO CHANGE TO INCLUDE HYBRID FUNCTIONALS
                 if ( WaveFunction_instance(speciesID)%exactExchangeFraction .gt. 0.0_8 ) then
 
                    if( rr(i) /= ss(i) ) then
@@ -953,6 +952,7 @@ contains
     end if
 
     !!Save this matrix for DFT calculations, because reasons
+
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
        
        densUnit = 78
@@ -987,12 +987,11 @@ contains
 
     !! Recalcula matriz de dos particulas (G) Con la nueva matriz de densidad
 
-    call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecieSelected) )
+    ! call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecieSelected) )
 
-    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-       call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
-    end if
-
+    ! if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+    !    call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+    ! end if
 
     if( .not. allocated(wavefunction_instance(speciesID)%externalPotentialMatrix%values) ) then
 
@@ -1189,7 +1188,7 @@ contains
     do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
 
        nameOfSpecie = MolecularSystem_getNameOfSpecie( speciesID ) 
-       call WaveFunction_buildCouplingMatrix(nameOfSpecie)
+       ! call WaveFunction_buildCouplingMatrix(nameOfSpecie)
 
        output=output+ 0.5*(sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
             * (wavefunction_instance(speciesID)%couplingMatrix%values))) 
