@@ -1,6 +1,7 @@
 #!/bin/bash/
 
 find . -name "*.out" -exec rm -f {} \;
+find . -name "*.vec" -exec rm -f {} \;
 find . -name "*.aux" -exec rm -f {} \;
 find . -name "*.bas" -exec rm -f {} \;
 find . -name "*.sys" -exec rm -f {} \;

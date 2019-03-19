@@ -9568,6 +9568,7 @@ contains
   subroutine PropagatorTheory_thirdOrderCorrection5()
     implicit NONE
     
+    type(Exception) :: ex
     integer :: ia, ja, ka, la ! Indices for occupied orbitals of alpha (A) species
     integer :: ib, jb, kb, lb ! Indices for occupied orbitals of beta (B) species
     integer :: ic, jc, kc, lc ! Indices for occupied orbitals of gamma (C) species
@@ -9616,6 +9617,7 @@ contains
     character(50) :: wfnFile
     character(50) :: arguments(2)
     integer :: wfnUnit
+    integer :: oo,oarray(6), ooarray(6), maxoo
 
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
@@ -9713,6 +9715,124 @@ contains
 
     if (allocated(PropagatorTheory_instance%thirdOrderCorrections)) deallocate(PropagatorTheory_instance%thirdOrderCorrections)
     allocate(PropagatorTheory_instance%thirdOrderCorrections(m))
+
+    ooarray = 0
+
+    do oo = 1, 7
+
+      select case ( CONTROL_instance%PT_P3_METHOD(oo) ) 
+
+      case ("ALL")
+        ooarray(1) = 1
+        ooarray(2) = 2
+        ooarray(3) = 3
+        ooarray(4) = 4
+        ooarray(5) = 5
+        ooarray(6) = 6
+      case ( "P3" )
+        ooarray(1) = 1
+      case ( "EP3" )
+        ooarray(2) = 2
+      case( "OVGF A" )
+        ooarray(2) = 2
+        ooarray(3) = 3
+      case( "OVGF B" )
+        ooarray(2) = 2
+        ooarray(4) = 4
+      case ( "OVGF C" )
+        ooarray(2) = 2
+        ooarray(5) = 5
+      case ( "OVGF" )
+        ooarray(2) = 2
+        ooarray(3) = 3
+        ooarray(4) = 4
+        ooarray(5) = 5
+      case ( "REN-P3" )
+        ooarray(1) = 1
+        ooarray(6) = 6
+      case ( "TROLOLO" )
+        print *, "Trololo"
+        print *, "Eduard Khil"
+        print *, "https://www.youtube.com/watch?v=oavMtUWDBTM"
+        print *, "Lyrics:"
+        print *, "Ahhhh, ya ya yaaah,"
+        print *, "ya ya yah yah ya yaaah."
+        print *, "Oh oh oh oh oooh, oh ya yah,"
+        print *, "ya ya yah yah ya yah."
+        print *, ""
+        print *, "Ye ye ye ye ye, ye ye yeh, ye ye yeh."
+        print *, "Oh oh oh oh oooh."
+        print *, "Ye ye ye ye ye, ye ye yeh, ye ye yeh."
+        print *, "Oh oh oh oh oooh, lololol."
+        print *, "Oh oh oooh oooh, la lah."
+        print *, "Na na na na nah na na nah na na nah na na nah na na nah."
+        print *, "Na na na na nan na na nan, na na nah,"
+        print *, "na na na na nah."
+        print *, ""
+        print *, "Na na na na naaaaah, na na naaaah..."
+        print *, "Na na nah nah na na."
+        print *, "Lololololoooool,"
+        print *, "la la lah."
+        print *, "La la lah lah la lah."
+        print *, ""
+        print *, "Oh oh oh oh oh, oh oh oh, oh oh oh."
+        print *, "Oh oh oh oh oh."
+        print *, "Oh oh oh oh oh, oh oh oh, oh oh oh,"
+        print *, "Lololololol!"
+        print *, ""
+        print *, "Ah-eeeeeee,"
+        print *, "ee-ee-eeeh!"
+        print *, "La la lah lah la lah."
+        print *, "Oh oh oh oh oooh,"
+        print *, "bop a-da da da dah da da dah."
+        print *, "Da da dah dah da dah."
+        print *, ""
+        print *, "Lolololo lol, lololol, lololol."
+        print *, "La la la la lah."
+        print *, "Trololololol, lololol, lololol,"
+        print *, "Oh ha ha ha oh!"
+        print *, "Oh ha ha ha oh!"
+        print *, "Oh ha ha ha oh!"
+        print *, "Oh ha ha ha oh!"
+        print *, ""
+        print *, "Lolololololol,"
+        print *, "lolololololol,"
+        print *, "lolololololol,"
+        print *, "lolololol!"
+        print *, ""
+        print *, "Laah la la lah,"
+        print *, "la la lah lah la lah."
+        print *, "Lololololol, la la lah,"
+        print *, "la la lah lah la lah."
+        print *, ""
+        print *, "Lololololol, lololol, lololol,"
+        print *, "oh oh oh oh oh."
+        print *, "Lololololol, lololol, lololol,"
+        print *, "oh oh oh oh oooooooh!"
+        print *, ""
+
+      case ( "NONE" )
+      case default 
+
+          call Exception_constructor( ex , ERROR )
+          call Exception_setDebugDescription( ex, "Class object PropagatorTheory in PropagatorTheory_thirdOrderCorrection5 function" )
+          call Exception_setDescription( ex, "This correction hasn't been implemented: "//trim(CONTROL_instance%PT_P3_METHOD(oo))) 
+          call Exception_show( ex )     
+
+      end select 
+    end do
+
+    oarray = 0
+    maxoo = 0
+    o = 0
+    do oo = 1, 6
+      if (ooarray(oo) /= 0 ) then
+        o = o + 1
+        oarray(o) = ooarray(oo)
+      end if
+    end do
+    maxoo = o
+
 
     ! Storing transformed integrals !!!! We need a more efficient algorithm to do this
 
@@ -11195,8 +11315,12 @@ contains
           thirdOrderMethods(5)="OVGF C"
           ! o=6 
           thirdOrderMethods(6)="REN-P3"
+
+
           
-          do o = 1 , 6 ! Options for third order and renormalized third order
+          !do o = 1 , 6 ! Options for third order and renormalized third order
+          do oo = 1, maxoo
+             o = oarray(oo)
 
              ! Initial guess             
              koopmans = eigenValuesOfSpeciesA%values(pa)
@@ -11218,7 +11342,7 @@ contains
              threshold=0.001_8/27.211396_8
              ! if (o==1 .or. o==2) threshold=0.00001_8
              
-             ! NR procedure
+             ! NR procedure Hola
 
              write (*,"(T2,A10,A13,A15)") "Iteration ","  New Omega ","    Residual "
              do while ((residual>threshold))

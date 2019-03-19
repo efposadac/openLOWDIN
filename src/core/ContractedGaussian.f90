@@ -693,10 +693,10 @@ contains
                    indexCode(u) = trim(coordCode(3))
                 end do
 
-                do uu = 0, size(indexCode)-1
-                  output(m)(uu+1:uu+1) = indexCode(uu)
-                end do
-                !!output(m) = trim(indexCode(1)(0:this%angularMoment))
+                !!do uu = 0, size(indexCode)-1
+                !!  output(m)(uu+1:uu+1) = indexCode(uu)
+                !!end do
+                output(m) = trim(indexCode(1)(0:this%angularMoment))
 
              end do
           end do

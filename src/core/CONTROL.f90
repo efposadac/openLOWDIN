@@ -164,6 +164,7 @@ module CONTROL_
      integer :: PT_MAX_NUMBER_POLES_SEARCHED
      real(8) :: PT_FACTOR_SS
      real(8) :: PT_FACTOR_OS
+     character(10) :: PT_P3_METHOD(7)
 
 
      !!***************************************************************************
@@ -183,6 +184,8 @@ module CONTROL_
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
+     character(20) :: CI_PRINT_EIGENVECTORS_FORMAT
+     real(8) :: CI_PRINT_THRESHOLD
      integer :: CI_STATES_TO_PRINT
      integer :: CI_ACTIVE_SPACE
      integer :: CI_MAX_NCV
@@ -453,6 +456,7 @@ module CONTROL_
   integer :: LowdinParameters_ptMaxNumberOfPolesSearched
   real(8) :: LowdinParameters_ptFactorSS 
   real(8) :: LowdinParameters_ptFactorOS 
+  character(10) :: LowdinParameters_ptP3Method(7)
 
 
   !!***************************************************************************
@@ -472,6 +476,8 @@ module CONTROL_
   character(20) :: LowdinParameters_configurationInteractionLevel
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
+  character(20) :: LowdinParameters_CIPrintEigenVectorsFormat
+  real(8) :: LowdinParameters_CIPrintThreshold
   integer :: LowdinParameters_CIactiveSpace
   integer :: LowdinParameters_CIstatesToPrint
   integer :: LowdinParameters_CImaxNCV
@@ -741,6 +747,7 @@ module CONTROL_
        LowdinParameters_ptMaxNumberOfPolesSearched,&
        LowdinParameters_ptFactorSS, &
        LowdinParameters_ptFactorOS, &
+       LowdinParameters_ptP3Method, &
 
        
                                 !!***************************************************************************
@@ -772,6 +779,9 @@ module CONTROL_
        LowdinParameters_CIJacobi, &
        LowdinParameters_CIBuildFullMatrix, &
        LowdinParameters_CIMadSpace, &
+       LowdinParameters_CIPrintEigenVectorsFormat, &
+       LowdinParameters_CIPrintThreshold, &
+
 
        !!***************************************************************************
        !! CCSD 
@@ -1054,6 +1064,8 @@ contains
 
     LowdinParameters_ptFactorSS = 0 
     LowdinParameters_ptFactorOS = 0
+    LowdinParameters_ptP3Method = "NONE"
+    LowdinParameters_ptP3Method(1) = "ALL"
 
     !!***************************************************************************
     !! Control print level and units
@@ -1084,6 +1096,9 @@ contains
     LowdinParameters_CIJacobi = .false.
     LowdinParameters_CIBuildFullMatrix = .false. 
     LowdinParameters_CIMadSpace = 5
+    LowdinParameters_CIPrintEigenVectorsFormat = "OCCUPIED"
+    LowdinParameters_CIPrintThreshold = 1E-1
+
 
     !!***************************************************************************
     !! CCSD
@@ -1342,6 +1357,8 @@ contains
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = 10
     CONTROL_instance%PT_FACTOR_SS = 0
     CONTROL_instance%PT_FACTOR_OS = 0 
+    CONTROL_instance%PT_P3_METHOD = "NONE"
+    CONTROL_instance%PT_P3_METHOD(1) = "ALL"
 
     !!***************************************************************************                                              
     !! Control print level and units                                                                                           
@@ -1372,6 +1389,10 @@ contains
     CONTROL_instance%CI_JACOBI = .False.
     CONTROL_instance%CI_BUILD_FULL_MATRIX = .FALSE. 
     CONTROL_instance%CI_MADSPACE = 5
+    CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = "OCCUPIED"
+    CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
+
+
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1671,6 +1692,7 @@ contains
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = LowdinParameters_ptMaxNumberOfPolesSearched
     CONTROL_instance%PT_FACTOR_SS = LowdinParameters_ptFactorSS
     CONTROL_instance%PT_FACTOR_OS = LowdinParameters_ptFactorOS
+    CONTROL_instance%PT_P3_METHOD = LowdinParameters_ptP3Method
 
 
     !!***************************************************************************      
@@ -1702,6 +1724,10 @@ contains
     CONTROL_instance%CI_JACOBI = LowdinParameters_CIJacobi
     CONTROL_instance%CI_BUILD_FULL_MATRIX = LowdinParameters_CIBuildFullMatrix 
     CONTROL_instance%CI_MADSPACE = LowdinParameters_CIMadSpace
+    CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
+    CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
+
+
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1983,6 +2009,7 @@ contains
     LowdinParameters_ptMaxNumberOfPolesSearched = CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED
     LowdinParameters_ptFactorSS = CONTROL_instance%PT_FACTOR_SS 
     LowdinParameters_ptFactorOS = CONTROL_instance%PT_FACTOR_OS 
+    LowdinParameters_ptP3Method =CONTROL_instance%PT_P3_METHOD 
 
 
     !!***************************************************************************      
@@ -2012,6 +2039,8 @@ contains
     LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
     LowdinParameters_CIMadSpace = CONTROL_instance%CI_MADSPACE
 
+    LowdinParameters_CIPrintEigenVectorsFormat = CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT 
+    LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
 
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -2268,6 +2297,7 @@ contains
     otherThis%PT_ORDER = this%PT_ORDER 
     otherThis%PT_FACTOR_SS = this%PT_FACTOR_SS
     otherThis%PT_FACTOR_OS = this%PT_FACTOR_OS
+    otherThis%PT_P3_METHOD = this%PT_P3_METHOD 
 
     !!*****************************************************
     !! Control parametros de formato
@@ -2296,6 +2326,8 @@ contains
     otherThis%CI_JACOBI = this%CI_JACOBI
     otherThis%CI_BUILD_FULL_MATRIX = this%CI_BUILD_FULL_MATRIX
     otherThis%CI_MADSPACE = this%CI_MADSPACE
+    otherThis%CI_PRINT_EIGENVECTORS_FORMAT = this%CI_PRINT_EIGENVECTORS_FORMAT 
+    otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
 
     !!***************************************************************************
     !! CCSD

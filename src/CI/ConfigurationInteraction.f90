@@ -147,6 +147,7 @@ module ConfigurationInteraction_
        ConfigurationInteraction_destructor, &
        ConfigurationInteraction_getTotalEnergy, &
        ConfigurationInteraction_run, &
+       ConfigurationInteraction_showEigenVectors, &
        ConfigurationInteraction_densityMatrices, &
        ConfigurationInteraction_show
 
@@ -994,6 +995,111 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
   end subroutine ConfigurationInteraction_show
 
+  subroutine ConfigurationInteraction_showEigenVectors()
+    implicit none
+
+    integer(8) :: a,b,c
+    integer :: u,v,p
+    integer :: ci
+    integer :: i, j, ii, jj
+    integer :: s, numberOfSpecies, auxnumberOfSpecies
+    integer :: size1, size2
+    real(8) :: timeA, timeB
+    integer(1) :: coupling
+    integer(8) :: numberOfConfigurations
+    real(8) :: CIenergy
+    integer(8), allocatable :: indexConf(:)
+    integer, allocatable :: cilevel(:), auxcilevel(:), dd(:)
+
+
+    if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "NONE" ) return
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfConfigurations = ConfigurationInteraction_instance%numberOfConfigurations 
+
+    allocate ( ConfigurationInteraction_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
+    allocate ( ciLevel ( numberOfSpecies ) )
+    allocate ( indexConf ( numberOfSpecies ) )
+    ciLevel = 0
+    ConfigurationInteraction_instance%allIndexConf = 0
+    indexConf = 0
+
+    !! gather all configurations
+    s = 0
+    c = 0
+    ciLevel = 0
+
+    do ci = 1,  ConfigurationInteraction_instance%sizeCiOrderList 
+
+      cilevel(:) =  ConfigurationInteraction_instance%ciOrderList(  ConfigurationInteraction_instance%auxciOrderList(ci), :)
+      s = 0
+      auxnumberOfSpecies = ConfigurationInteraction_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
+    end do
+    !stop
+
+    deallocate ( ciLevel )
+
+    if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
+    write (*,*) ""
+    write (*, "(T1,A)") "Eigenvectors" 
+    write (*,*) ""
+
+    do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      write (*, "(T1,A,I4,A,F18.10)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
+      write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
+      write (*,*) ""
+      do a = 1, numberOfConfigurations
+        if ( abs(ConfigurationInteraction_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
+          indexConf(:) = ConfigurationInteraction_instance%allIndexConf(:,a) 
+
+          write (*, "(T1,I8,A1)", advance="no") a, " "
+          do i = 1, numberOfSpecies
+            do p = 1, ConfigurationInteraction_instance%numberOfOrbitals%values(i)
+              write (*, "(I1)", advance="no")  ConfigurationInteraction_instance%orbitals(i)%values(p,indexConf(i)) 
+            end do
+            write (*, "(A1)", advance="no")  " "
+          end do
+          write (*, "(F11.8)") ConfigurationInteraction_instance%eigenVectors%values(a,c) 
+        end if
+      end do
+      write (*,*) ""
+    end do
+
+
+    else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
+    write (*,*) ""
+    write (*, "(T1,A)") "Eigenvectors" 
+    write (*,*) ""
+
+    do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      write (*, "(T1,A,I4,A,F18.10)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
+      write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
+      write (*,*) ""
+      do a = 1, numberOfConfigurations
+        if ( abs(ConfigurationInteraction_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
+          indexConf(:) = ConfigurationInteraction_instance%allIndexConf(:,a) 
+
+          write (*, "(T1,I8,A1)", advance="no") a, " "
+          do i = 1, numberOfSpecies
+            do p = 1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i)
+              write (*, "(I3,A1)", advance="no") ConfigurationInteraction_instance%strings(i)%values(p,indexConf(i) ), " "
+            end do
+            write (*, "(A1)", advance="no")  "|"
+          end do
+          write (*, "(A,F11.8)") " ", ConfigurationInteraction_instance%eigenVectors%values(a,c) 
+        end if
+      end do
+      write (*,*) ""
+    end do
+
+    end if
+
+    deallocate ( indexConf )
+    deallocate ( ConfigurationInteraction_instance%allIndexConf )
+
+  end subroutine ConfigurationInteraction_showEigenVectors
+
+
   !FELIX IS HERE
   subroutine ConfigurationInteraction_densityMatrices()
     implicit none
@@ -1756,6 +1862,15 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       ConfigurationInteraction_instance%maxCILevel = 1
 
     case ( "CISD" )
+
+      do i=1, numberOfSpecies
+        ConfigurationInteraction_instance%CILevel(i) = 2
+        if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
+          ConfigurationInteraction_instance%CILevel(i) = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+      ConfigurationInteraction_instance%maxCILevel = 2
+
+    case ( "CISD+" )
 
       do i=1, numberOfSpecies
         ConfigurationInteraction_instance%CILevel(i) = 2

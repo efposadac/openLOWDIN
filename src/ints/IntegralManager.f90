@@ -29,6 +29,7 @@ module IntegralManager_
   use MolecularSystem_
   use ContractedGaussian_
   use OverlapIntegrals_
+  use ThreeCOverlapIntegrals_
   use AttractionIntegrals_
   use MomentIntegrals_
   use KineticIntegrals_
@@ -859,9 +860,131 @@ contains
 
   !> 
   !! @brief Calculate three center integrals and write it on file as a matrix
-  !! @author E. F. Posada, 2013
   !! @version 1.0
   subroutine IntegralManager_getThreeCenterIntegrals()
+    implicit none
+
+    integer :: f, g, h, i
+    integer :: j, k, l, m, r
+    integer :: o, p, potID
+    integer :: ii, jj, hh
+    integer, allocatable :: labels(:)
+    real(8), allocatable :: integralValue(:), auxintegralValue(:)
+    real(8), allocatable :: integralsMatrix(:,:)
+    character(100) :: job, speciesName
+    type (ContractedGaussian) :: auxContractionA, auxContractionB, auxContraction
+    type (ExternalPotential) :: potential
+    
+
+    job = "EXTERNAL_POTENTIAL"
+    !!Overlap Integrals for all species    
+    do f = 1, size(MolecularSystem_instance%species)
+
+       potID = 0
+
+       do i= 1, ExternalPotential_instance%ssize
+         !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
+         ! if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
+         !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
+
+         if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
+           potID=i
+           exit
+         end if
+       end do
+
+       write(30) job
+       speciesName = MolecularSystem_instance%species(f)%name
+       write(30) speciesName
+
+       if(allocated(labels)) deallocate(labels)
+       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+
+       if(allocated(integralsMatrix)) deallocate(integralsMatrix)
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+
+       integralsMatrix = 0.0_8
+
+       ii = 0
+       do g = 1, size(MolecularSystem_instance%species(f)%particles)
+          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+
+             hh = h
+
+             ii = ii + 1
+             jj = ii - 1
+
+             do i = g, size(MolecularSystem_instance%species(f)%particles)
+                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+
+                   jj = jj + 1
+
+                   !! allocating memory Integrals for shell
+                   if(allocated(integralValue)) deallocate(integralValue)
+                   allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+
+                   if(allocated(auxintegralValue)) deallocate(auxintegralValue)
+                   allocate(auxintegralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+
+
+                   integralValue = 0.0_8
+                   do p = 1, ExternalPotential_instance%potentials(potID)%numOfComponents
+                     auxintegralValue = 0.0_8
+
+                      
+                     do r = 1, ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%numcartesianOrbital
+                       ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%primNormalization( &
+                       1:ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%length,r) = 1
+
+                     ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%contNormalization(r) = 1
+                    end do
+
+                     !! Calculating integrals for shell
+                     call ThreeCOverlapIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                           MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), &
+                           ExternalPotential_instance%potentials(potID)%gaussianComponents(p), auxintegralValue)
+                    integralValue = integralValue + auxintegralValue
+
+                   end do !! potential
+                   !! saving integrals on Matrix
+                   m = 0
+                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         m = m + 1
+
+                         integralsMatrix(k, l) = integralValue(m)
+                         integralsMatrix(l, k) = integralsMatrix(k, l)
+
+                      end do
+                   end do
+
+                end do
+                hh = 1
+             end do
+
+          end do
+       end do
+
+       !! Write integrals to file (unit 30)
+       if(CONTROL_instance%LAST_STEP) then
+           write(*,"(A, A ,A,I6)")" Number of 3C Overlap integrals for species ", &
+           trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+       end if
+       write(30) int(size(integralsMatrix),8)
+       write(30) integralsMatrix
+
+    end do !done!    
+
+  end subroutine IntegralManager_getThreeCenterIntegrals
+
+  !> 
+  !! @brief Calculate three center integrals and write it on file as a matrix
+  !! @author E. F. Posada, 2013
+  !! @version 1.0
+  subroutine IntegralManager_getThreeCenterIntegralsByProduct()
     implicit none
 
     integer :: f, g, h, i
@@ -980,7 +1103,10 @@ contains
 
     end do !done!    
 
-  end subroutine IntegralManager_getThreeCenterIntegrals
+  end subroutine IntegralManager_getThreeCenterIntegralsByProduct
+
+  !>
+
 
   !>
   !! @brief Return real labels for integrals
