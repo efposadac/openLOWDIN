@@ -164,6 +164,7 @@ module CONTROL_
      integer :: PT_MAX_NUMBER_POLES_SEARCHED
      real(8) :: PT_FACTOR_SS
      real(8) :: PT_FACTOR_OS
+     character(10) :: PT_P3_METHOD(7)
 
 
      !!***************************************************************************
@@ -454,6 +455,7 @@ module CONTROL_
   integer :: LowdinParameters_ptMaxNumberOfPolesSearched
   real(8) :: LowdinParameters_ptFactorSS 
   real(8) :: LowdinParameters_ptFactorOS 
+  character(10) :: LowdinParameters_ptP3Method(7)
 
 
   !!***************************************************************************
@@ -743,6 +745,7 @@ module CONTROL_
        LowdinParameters_ptMaxNumberOfPolesSearched,&
        LowdinParameters_ptFactorSS, &
        LowdinParameters_ptFactorOS, &
+       LowdinParameters_ptP3Method, &
 
        
                                 !!***************************************************************************
@@ -1058,6 +1061,8 @@ contains
 
     LowdinParameters_ptFactorSS = 0 
     LowdinParameters_ptFactorOS = 0
+    LowdinParameters_ptP3Method = "NONE"
+    LowdinParameters_ptP3Method(1) = "ALL"
 
     !!***************************************************************************
     !! Control print level and units
@@ -1348,6 +1353,8 @@ contains
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = 10
     CONTROL_instance%PT_FACTOR_SS = 0
     CONTROL_instance%PT_FACTOR_OS = 0 
+    CONTROL_instance%PT_P3_METHOD = "NONE"
+    CONTROL_instance%PT_P3_METHOD(1) = "ALL"
 
     !!***************************************************************************                                              
     !! Control print level and units                                                                                           
@@ -1680,6 +1687,7 @@ contains
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = LowdinParameters_ptMaxNumberOfPolesSearched
     CONTROL_instance%PT_FACTOR_SS = LowdinParameters_ptFactorSS
     CONTROL_instance%PT_FACTOR_OS = LowdinParameters_ptFactorOS
+    CONTROL_instance%PT_P3_METHOD = LowdinParameters_ptP3Method
 
 
     !!***************************************************************************      
@@ -1995,6 +2003,7 @@ contains
     LowdinParameters_ptMaxNumberOfPolesSearched = CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED
     LowdinParameters_ptFactorSS = CONTROL_instance%PT_FACTOR_SS 
     LowdinParameters_ptFactorOS = CONTROL_instance%PT_FACTOR_OS 
+    LowdinParameters_ptP3Method =CONTROL_instance%PT_P3_METHOD 
 
 
     !!***************************************************************************      
@@ -2281,6 +2290,7 @@ contains
     otherThis%PT_ORDER = this%PT_ORDER 
     otherThis%PT_FACTOR_SS = this%PT_FACTOR_SS
     otherThis%PT_FACTOR_OS = this%PT_FACTOR_OS
+    otherThis%PT_P3_METHOD = this%PT_P3_METHOD 
 
     !!*****************************************************
     !! Control parametros de formato
