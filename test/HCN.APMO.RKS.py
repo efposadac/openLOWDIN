@@ -45,7 +45,7 @@ else:
     print(testName + str_red(" ... NOT OK"))
     print("Difference RKS energy: " + str(diffTotalEnergy))
     print("Difference ExcCor energy: " + str(diffExchangeCorrelationEnergy))
-    print("Difference E- number: " + str(diffRefNumberOfE))
+    print("Difference NucElCorr energy: " + str(diffNuclearElectronCorrelationEnergy))
     sys.exit(1)
 
 output.close()

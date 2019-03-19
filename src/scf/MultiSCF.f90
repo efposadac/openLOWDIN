@@ -51,6 +51,7 @@ module MultiSCF_
   integer, parameter :: SCHEME_ELECTRONIC_FULLY_CONVERGED_BY_NONELECRONIC_ITERATION = 1
   integer, parameter :: SCHEME_SPECIE_FULLY_CONVERGED_INDIVIDIALLY = 2
   integer, parameter :: SCHEME_SIMULTANEOUS = 3
+  integer, parameter :: SCHEME_SIMULTANEOUS_TRIAL = 4
   !< }
 
   !< For effective Fock matrix for restricted open-shell SCF
@@ -219,6 +220,11 @@ contains
        !! done single - multi
        call MultiSCF_iterateSimultaneous()
 
+    case( SCHEME_SIMULTANEOUS_TRIAL )
+
+       !! done single - multi
+       call MultiSCF_iterateSimultaneousTrial()
+
     case default
        call MultiSCF_iterateElectronicFullyByNonElectronicIteration()
 
@@ -268,6 +274,7 @@ contains
     character(30) :: nameOfElectronicSpecie
     character(30) :: nameOfInitialSpecie
     real(8) :: tolerace
+    integer :: statusSystem
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
@@ -302,8 +309,9 @@ contains
                            (SingleSCF_getNumberOfIterations(iteratorOfElectronicSpecie) <= CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS ) )
 
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie))
-                         
+
                          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+                            statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
                             call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
                          end if
 
@@ -316,9 +324,9 @@ contains
                          end if
 
                          !! At first iteration is not included the coupling operator.
-                         if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
-                            call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
-                         end if
+                         ! if(SingleSCF_getNumberOfIterations( iteratorOfElectronicSpecie ) > 0) then
+                         call WaveFunction_buildCouplingMatrix( trim(nameOfElectronicSpecie) )
+                         ! end if
 
                          !! Build Fock Matrix
                          call WaveFunction_buildFockMatrix( trim(nameOfElectronicSpecie) )
@@ -688,14 +696,14 @@ contains
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     if( numberOfSpecies > 1 ) then
-
+       
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
           !!statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
           call system ("lowdin-DFT.x BUILD_MATRICES")
        end if
-       
-       do i = 1, numberOfSpecies
 
+       do i = 1, numberOfSpecies
+          
           nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
           call SingleSCF_iterate( trim(nameOfSpecie), actualizeDensityMatrix=.false.)
        end do
@@ -742,6 +750,74 @@ contains
     end if
 
   end subroutine MultiSCF_iterateSimultaneous
+
+  subroutine MultiSCF_iterateSimultaneousTrial()
+    implicit none
+
+    integer :: i
+    integer :: numberOfSpecies
+    character(30) :: nameOfSpecie
+    character(30) :: nameOfInitialSpecie
+    real(8) :: startTime, endTime
+    real(8) :: time1,time2
+    logical :: auxValue
+    integer :: statusSystem
+
+    MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+
+    do i = 1, numberOfSpecies
+       nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
+       call SingleSCF_iterate( trim(nameOfSpecie), actualizeDensityMatrix=.false.)
+    end do
+
+    !! Get effective Fock matrix for restricted open-shell SCF
+    ! if( isROHF ) then
+    ! call MultiSCF_instance%mergeFockMatrix()
+    ! end if
+
+    do i=1, numberOfSpecies
+       nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
+       call SingleSCF_actualizeDensityMatrix( trim(nameOfSpecie) )
+    end do
+
+    !! Update two particles, coupling, exchange correlation and Fock matrices
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+    end if
+
+    do i = 1, numberOfSpecies
+       nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
+
+       if (CONTROL_instance%COSMO) then
+          call WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie) )
+          call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
+       end if
+       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+          call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+       end if
+
+       call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie) )
+       call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )       
+
+       call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
+       
+       call WaveFunction_obtainTotalEnergyForSpecie( nameOfSpecie )
+    end do
+
+    call WaveFunction_obtainTotalEnergy(&
+         MultiSCF_instance%totalEnergy, &
+         MultiSCF_instance%totalCouplingEnergy, &
+         MultiSCF_instance%electronicRepulsionEnergy, &
+         MultiSCF_instance%cosmo3Energy)
+
+    call List_push_back( MultiSCF_instance%energyOMNE, MultiSCF_instance%totalEnergy)             
+    MultiSCF_instance%numberOfIterations = MultiSCF_instance%numberOfIterations + 1
+    return
+
+  end subroutine MultiSCF_iterateSimultaneousTrial
+
 
   !>
   !! @brief Realiza la convergencia completa de la unica especie presente
@@ -793,13 +869,7 @@ contains
        end if
 
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-          !!statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
-          call system ("lowdin-DFT.x BUILD_MATRICES")
-       end if
-
-
-
-       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+          statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
           call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
        end if
 

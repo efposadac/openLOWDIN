@@ -224,6 +224,7 @@ module CONTROL_
      character(50) :: ELECTRON_EXCHANGE_FUNCTIONAL
      character(50) :: ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
      character(50) :: NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+     character(50) :: BETA_FUNCTION
      integer :: GRID_RADIAL_POINTS
      integer :: GRID_ANGULAR_POINTS
      integer :: GRID_NUMBER_OF_SHELLS
@@ -516,6 +517,7 @@ module CONTROL_
   character(50) :: LowdinParameters_electronExchangeFunctional
   character(50) :: LowdinParameters_electronExchangeCorrelationFunctional
   character(50) :: LowdinParameters_nuclearElectronCorrelationFunctional
+  character(50) :: LowdinParameters_betaFunction
   integer :: LowdinParameters_gridRadialPoints
   integer :: LowdinParameters_gridAngularPoints
   integer :: LowdinParameters_gridNumberOfShells
@@ -808,6 +810,7 @@ module CONTROL_
        LowdinParameters_electronExchangeFunctional,&
        LowdinParameters_electronExchangeCorrelationFunctional,&
        LowdinParameters_nuclearElectronCorrelationFunctional,&
+       LowdinParameters_betaFunction,&
        LowdinParameters_gridRadialPoints,&
        LowdinParameters_gridAngularPoints,&
        LowdinParameters_gridNumberOfShells,&
@@ -958,14 +961,14 @@ contains
     LowdinParameters_electronicLevelShifting = 0.0
     LowdinParameters_nonelectronicLevelShifting = 0.0
     LowdinParameters_waveFunctionScale = 1000.0
-    LowdinParameters_scfNonelectronicMaxIterations = 10000
-    LowdinParameters_scfElectronicMaxIterations = 20000
-    LowdinParameters_scfMaxIterations = 20000
-    LowdinParameters_scfGlobalMaxIterations = 5000 
+    LowdinParameters_scfNonelectronicMaxIterations = 200
+    LowdinParameters_scfElectronicMaxIterations = 200
+    LowdinParameters_scfMaxIterations = 200
+    LowdinParameters_scfGlobalMaxIterations = 200
     LowdinParameters_listSize = -20
     LowdinParameters_convergenceMethod = 1 !!(0) NONE, (1) DAMPING, (2) DIIS, (3) LEVEL SHIFTING (4) DAMPING/DIIS
     LowdinParameters_diisDimensionality = 10
-    LowdinParameters_iterationScheme = 3 !!(0) NONELECRONIC FULLY / e- (1) ELECTRONIC FULLY (2) CONVERGED INDIVIDIALLY (3) SCHEMESIMULTANEOUS
+    LowdinParameters_iterationScheme = 4 !!(0) NONELECRONIC FULLY / e- (1) ELECTRONIC FULLY (2) CONVERGED INDIVIDIALLY (3) SCHEMESIMULTANEOUS
     LowdinParameters_scfElectronicTypeGuess = "HCORE"
     LowdinParameters_scfNonelectronicTypeGuess = "HCORE"
     LowdinParameters_scfConvergenceCriterium = "ENERGY"
@@ -1125,6 +1128,7 @@ contains
     LowdinParameters_electronExchangeFunctional = "NONE"
     LowdinParameters_electronExchangeCorrelationFunctional = "NONE"
     LowdinParameters_nuclearElectronCorrelationFunctional = "NONE"
+    LowdinParameters_betaFunction = "NONE"
     LowdinParameters_gridRadialPoints=35
     LowdinParameters_gridAngularPoints=110
     LowdinParameters_gridNumberOfShells=5
@@ -1254,14 +1258,14 @@ contains
     CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING = 0.0
     CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING = 0.0
     CONTROL_instance%WAVE_FUNCTION_SCALE = 1000.0
-    CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS = 10000
-    CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS = 20000
-    CONTROL_instance%SCF_MAX_ITERATIONS = 20000
-    CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS = 5000 
+    CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS = 200
+    CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS = 200
+    CONTROL_instance%SCF_MAX_ITERATIONS = 200
+    CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS = 200 
     CONTROL_instance%LISTS_SIZE = -20
     CONTROL_instance%CONVERGENCE_METHOD = 1 !!(0) NONE, (1) DAMPING, (2) DIIS, (3) LEVEL SHIFTING (4) DAMPING/DIIS
     CONTROL_instance%DIIS_DIMENSIONALITY = 10
-    CONTROL_instance%ITERATION_SCHEME = 3 !!(0) NONELECRONIC FULLY / e- (1) ELECTRONIC FULLY (2) CONVERGED INDIVIDIALLY (3) SCHEMESIMULTANEOUS
+    CONTROL_instance%ITERATION_SCHEME = 4 !!(0) NONELECRONIC FULLY / e- (1) ELECTRONIC FULLY (2) CONVERGED INDIVIDIALLY (3) SCHEMESIMULTANEOUS
     CONTROL_instance%SCF_ELECTRONIC_TYPE_GUESS = "HCORE"
     CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS = "HCORE"
     CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "ENERGY"
@@ -1419,6 +1423,7 @@ contains
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%BETA_FUNCTION = "NONE"
     CONTROL_instance%GRID_RADIAL_POINTS= 35
     CONTROL_instance%GRID_ANGULAR_POINTS= 110
     CONTROL_instance%GRID_NUMBER_OF_SHELLS= 5
@@ -1756,6 +1761,7 @@ contains
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = LowdinParameters_electronExchangeFunctional
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = LowdinParameters_electronExchangeCorrelationFunctional
     CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_nuclearElectronCorrelationFunctional
+    CONTROL_instance%BETA_FUNCTION = LowdinParameters_betaFunction
     CONTROL_instance%GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
     CONTROL_instance%GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
     CONTROL_instance%GRID_NUMBER_OF_SHELLS= LowdinParameters_gridNumberOfShells
@@ -2068,6 +2074,7 @@ contains
     LowdinParameters_electronExchangeFunctional = CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
     LowdinParameters_electronExchangeCorrelationFunctional = CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
     LowdinParameters_nuclearElectronCorrelationFunctional = CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+    LowdinParameters_betaFunction = CONTROL_instance%BETA_FUNCTION
     LowdinParameters_gridRadialPoints = CONTROL_instance%GRID_RADIAL_POINTS
     LowdinParameters_gridAngularPoints = CONTROL_instance%GRID_ANGULAR_POINTS
     LowdinParameters_gridNumberOfShells = CONTROL_instance%GRID_NUMBER_OF_SHELLS
@@ -2354,6 +2361,7 @@ contains
     otherThis%ELECTRON_EXCHANGE_FUNCTIONAL = this%ELECTRON_EXCHANGE_FUNCTIONAL 
     otherThis%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = this%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL 
     otherThis%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = this%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL 
+    otherThis%BETA_FUNCTION = this%BETA_FUNCTION
     otherThis%GRID_RADIAL_POINTS=this%GRID_RADIAL_POINTS
     otherThis%GRID_ANGULAR_POINTS=this%GRID_ANGULAR_POINTS
     otherThis%GRID_NUMBER_OF_SHELLS=this%GRID_NUMBER_OF_SHELLS

@@ -328,7 +328,7 @@ contains
        !!
        if (CONTROL_instance%MO_FRACTION_OCCUPATION < 1.0_8 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) then
 
-          startIteration=5
+          startIteration=1
 
           threshold=0.8_8
 
@@ -430,113 +430,113 @@ contains
           call Vector_destructor(deltaVector)           
 
        end if
-       !!**********************************************************************************************
-       !! Orbital exchange for TOM calculation
-       !!
-       if (CONTROL_instance%MO_FRACTION_OCCUPATION < 1.0_8 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) then
+       ! !!**********************************************************************************************
+       ! !! Orbital exchange for TOM calculation
+       ! !!
+       ! if (CONTROL_instance%MO_FRACTION_OCCUPATION < 1.0_8 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) then
 
-          startIteration=5
+       !    startIteration=5
 
-          threshold=0.8_8
+       !    threshold=0.8_8
 
-          call Matrix_copyConstructor(auxOverlapMatrix,WaveFunction_instance(speciesID)%overlapMatrix)
+       !    call Matrix_copyConstructor(auxOverlapMatrix,WaveFunction_instance(speciesID)%overlapMatrix)
 
-          occupatedOrbitals = MolecularSystem_getOcupationNumber( speciesID )
-          total3 = int(occupatedOrbitals,8)
+       !    occupatedOrbitals = MolecularSystem_getOcupationNumber( speciesID )
+       !    total3 = int(occupatedOrbitals,8)
 
-          call Matrix_constructor (matchingMatrix, total3, total3)
+       !    call Matrix_constructor (matchingMatrix, total3, total3)
 
-          matchingMatrix%values = &
-               matmul( matmul( transpose( previousWavefunctionCoefficients%values ) , &
-               auxOverlapMatrix%values), WaveFunction_instance(speciesID)%waveFunctionCoefficients%values )
+       !    matchingMatrix%values = &
+       !         matmul( matmul( transpose( previousWavefunctionCoefficients%values ) , &
+       !         auxOverlapMatrix%values), WaveFunction_instance(speciesID)%waveFunctionCoefficients%values )
 
-          astrayOrbitals=0 !!! number of orbitals that must be reordered
+       !    astrayOrbitals=0 !!! number of orbitals that must be reordered
 
-          do ii= 1, occupatedOrbitals
+       !    do ii= 1, occupatedOrbitals
 
-             !DEBUG
-             ! print *,"Antes ","Orbital: ",ii," ",abs(matchingMatrix%values(ii,ii))," energy ",WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(ii)
+       !       !DEBUG
+       !       ! print *,"Antes ","Orbital: ",ii," ",abs(matchingMatrix%values(ii,ii))," energy ",WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(ii)
 
-             if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
-                astrayOrbitals=astrayOrbitals+1
-             end if
+       !       if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
+       !          astrayOrbitals=astrayOrbitals+1
+       !       end if
 
-          end do
+       !    end do
 
-          !DEBUG
-          ! print *,"Number of astrayOrbitals",astrayOrbitals            
-          ! print *,"Initial MM:"
-          ! call Matrix_show (matchingMatrix)
+       !    !DEBUG
+       !    ! print *,"Number of astrayOrbitals",astrayOrbitals            
+       !    ! print *,"Initial MM:"
+       !    ! call Matrix_show (matchingMatrix)
 
-          call Vector_constructor (deltaVector,astrayOrbitals)
+       !    call Vector_constructor (deltaVector,astrayOrbitals)
 
-          jj=0
-          do ii= 1, occupatedOrbitals
-             if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
-                jj=jj+1
-                deltaVector%values(jj)=ii
-             end if
-          end do
+       !    jj=0
+       !    do ii= 1, occupatedOrbitals
+       !       if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
+       !          jj=jj+1
+       !          deltaVector%values(jj)=ii
+       !       end if
+       !    end do
 
-          prodigals = astrayOrbitals
+       !    prodigals = astrayOrbitals
 
-          if(astrayOrbitals .ge. 1 .and. WaveFunction_instance(speciesID)%numberOfIterations > startIteration) then
-             ! print *, "Switching orbitals..."
+       !    if(astrayOrbitals .ge. 1 .and. WaveFunction_instance(speciesID)%numberOfIterations > startIteration) then
+       !       ! print *, "Switching orbitals..."
 
-             do ii=1,astrayOrbitals
+       !       do ii=1,astrayOrbitals
 
-                call Matrix_copyConstructor( auxiliaryMatrix, WaveFunction_instance(speciesID)%waveFunctionCoefficients )            
-                call Matrix_copyConstructor( matchingMatrix2, matchingMatrix )            
+       !          call Matrix_copyConstructor( auxiliaryMatrix, WaveFunction_instance(speciesID)%waveFunctionCoefficients )            
+       !          call Matrix_copyConstructor( matchingMatrix2, matchingMatrix )            
 
-                search=deltaVector%values(ii)            
-                ! print *,"search: ",search
+       !          search=deltaVector%values(ii)            
+       !          ! print *,"search: ",search
 
-                do jj=1, numberOfContractions
+       !          do jj=1, numberOfContractions
 
-                   !trial=deltaVector%values(jj)
-                   trial=jj
-                   ! print *,"trial: ",trial
+       !             !trial=deltaVector%values(jj)
+       !             trial=jj
+       !             ! print *,"trial: ",trial
 
-                   ! print *,"valor: ",abs(matchingMatrix%values(search,trial))
+       !             ! print *,"valor: ",abs(matchingMatrix%values(search,trial))
 
-                   if ( abs(matchingMatrix%values(search,trial)) > threshold ) then
+       !             if ( abs(matchingMatrix%values(search,trial)) > threshold ) then
 
-                      WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,search)=auxiliaryMatrix%values(:,trial)
-                      WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,trial)=auxiliaryMatrix%values(:,search)
+       !                WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,search)=auxiliaryMatrix%values(:,trial)
+       !                WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,trial)=auxiliaryMatrix%values(:,search)
 
-                      hold=WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(search)
-                      WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(search)=WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(trial)
-                      WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(trial)=hold
+       !                hold=WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(search)
+       !                WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(search)=WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(trial)
+       !                WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(trial)=hold
 
-                      matchingMatrix%values(:,trial)=matchingMatrix2%values(:,search)
-                      matchingMatrix%values(:,search)=matchingMatrix2%values(:,trial)
+       !                matchingMatrix%values(:,trial)=matchingMatrix2%values(:,search)
+       !                matchingMatrix%values(:,search)=matchingMatrix2%values(:,trial)
 
-                      prodigals = prodigals - 1
+       !                prodigals = prodigals - 1
                       
-                      print *, "Switching orbital... ",search," with ",trial, " for ", trim(nameOfSpecie)
+       !                print *, "Switching orbital... ",search," with ",trial, " for ", trim(nameOfSpecie)
 
-                      exit
+       !                exit
 
-                   end if
+       !             end if
 
-                end do
+       !          end do
 
-                ! if (prodigals<2) then
-                !    exit
-                ! end if
+       !          ! if (prodigals<2) then
+       !          !    exit
+       !          ! end if
 
-             end do
+       !       end do
 
-          end if
+       !    end if
 
-          ! print *, "Coefficients after switching for ", speciesID
-          ! call Matrix_show(WaveFunction_instance( speciesID )%waveFunctionCoefficients)
+       !    ! print *, "Coefficients after switching for ", speciesID
+       !    ! call Matrix_show(WaveFunction_instance( speciesID )%waveFunctionCoefficients)
 
           
-          call Matrix_destructor(matchingMatrix)
-          call Vector_destructor(deltaVector)           
+       !    call Matrix_destructor(matchingMatrix)
+       !    call Vector_destructor(deltaVector)           
 
-       end if
+       ! end if
        !!
        !!**********************************************************************************************
 
@@ -766,7 +766,6 @@ contains
 
     !! Determina la desviacion estandar de los elementos de la matriz de densidad
     call Matrix_copyConstructor( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix )
-
 
     call WaveFunction_builtDensityMatrix( nameOfSpecieSelected )
 
