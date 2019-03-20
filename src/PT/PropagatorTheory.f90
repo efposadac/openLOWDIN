@@ -10048,11 +10048,9 @@ contains
                   do ia = 1 , occupationNumberOfSpeciesA
                      do ja = 1 , occupationNumberOfSpeciesA
                         
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, ja, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
                         auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ia, pa, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
                         auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
@@ -10061,18 +10059,14 @@ contains
                            do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, aa, ka, ba, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, numberOfContractionsOfSpeciesA )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ba, ka, aa, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, numberOfContractionsOfSpeciesA )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ja, aa, ka, ba, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ja, ba, ka, aa, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue &
@@ -10093,11 +10087,9 @@ contains
                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                         
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, aa, ba, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
                         auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, ba, aa, pa, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
                         auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8                      
@@ -10106,18 +10098,14 @@ contains
                            do ja = 1 , occupationNumberOfSpeciesA
                               do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, aa, ja, ca, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, numberOfContractionsOfSpeciesA )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ca, ja, aa, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, numberOfContractionsOfSpeciesA )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ba, ja, ca, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ca, ja, ba, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue &
@@ -10138,11 +10126,9 @@ contains
                   do ia = 1 , occupationNumberOfSpeciesA
                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                         
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, aa, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
                         auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ia, pa, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
                         auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
@@ -10151,18 +10137,14 @@ contains
                            do ja = 1 , occupationNumberOfSpeciesA
                               do ka = 1 , occupationNumberOfSpeciesA
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ja, ba, ka, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, numberOfContractionsOfSpeciesA )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ka, ba, ja, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, numberOfContractionsOfSpeciesA )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ja, aa, ka, ba, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ja, ba, ka, aa, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -10176,18 +10158,14 @@ contains
                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                               do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ba, aa, ca, ja, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, numberOfContractionsOfSpeciesA )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ba, ja, ca, aa, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, numberOfContractionsOfSpeciesA )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ba, ja, ca, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ca, ja, ba, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -10230,14 +10208,12 @@ contains
                         
                         if (p>i) then
                            
-                           !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                           auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, jb, i, p )
+                           auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
                            
                         else
   
-                           !auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                           auxIndex = PropagatorTheory_IndexMapAB(ib, jb, pa, pa, p, i )
+                           auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                            auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                         end if
@@ -10248,18 +10224,14 @@ contains
                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, ab, kb, bb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, numberOfContractionsOfSpeciesB )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, bb, kb, ab, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, numberOfContractionsOfSpeciesB )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(jb, ab, kb, bb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(jb, bb, kb, ab, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue &
@@ -10282,14 +10254,12 @@ contains
   
                         if (p>i) then
   
-                           !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                           auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ab, bb, i, p)
+                           auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
                         
                         else
   
-                           !auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                           auxIndex = PropagatorTheory_IndexMapAB(ab, bb, pa, pa, p, i)
+                           auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                            auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                         end if
@@ -10299,18 +10269,14 @@ contains
                            do jb = 1 , occupationNumberOfSpeciesB
                               do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, ab, jb, cb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, numberOfContractionsOfSpeciesB )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, cb, jb, ab, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, numberOfContractionsOfSpeciesB )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, bb, jb, cb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, cb, jb, bb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue &
@@ -10333,14 +10299,12 @@ contains
                         
                         if (p>i) then
                            
-                           !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                           auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, ab, i, p  )
+                           auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
                         
                         else
                            
-                           !auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                           auxIndex = PropagatorTheory_IndexMapAB(ib, ab, pa, pa, p, i )
+                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                            auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                         end if
@@ -10351,18 +10315,14 @@ contains
                            do jb = 1 , occupationNumberOfSpeciesB
                               do kb = 1 , occupationNumberOfSpeciesB
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, jb, bb, kb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, numberOfContractionsOfSpeciesB )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, kb, bb, jb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, numberOfContractionsOfSpeciesB )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(jb, ab, kb, bb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(jb, bb, kb, ab, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
@@ -10376,18 +10336,14 @@ contains
                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                               do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(bb, ab, cb, jb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, numberOfContractionsOfSpeciesB )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(bb, jb, cb, ab, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, numberOfContractionsOfSpeciesB )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, bb, jb, cb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAA(ib, cb, jb, bb, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
@@ -10410,11 +10366,9 @@ contains
                   do ia = 1 , occupationNumberOfSpeciesA
                      do ja = 1 , occupationNumberOfSpeciesA
   
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, ja, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
                         auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ia, pa, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
                         auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
@@ -10425,20 +10379,16 @@ contains
   
                                  if (p>i) then
                                     
-                                    !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ia, aa, ib, ab, i, p )
+                                    auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                     auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-                                    !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ja, aa, ib, ab, i, p )
+                                    auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                     auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
   
                                  else
   
-                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, aa, p, i )
+                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                     auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ja, aa, p, i )
+                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                     auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
   
                                  end if
@@ -10461,11 +10411,9 @@ contains
                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                         
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, aa, ba, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
                         auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-                       ! auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, ba, aa, pa, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
                         auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
@@ -10476,20 +10424,16 @@ contains
   
                                  if (p>i) then                               
                                     
-                                    !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ia, aa, ib, ab, i, p )
+                                    auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                     auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-                                    !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ia, ba, ib, ab, i, p )
+                                    auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                     auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
   
                                  else
   
-                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, aa, p, i )
+                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                     auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, ba, p, i )
+                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                     auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
   
                                  end if
@@ -10512,11 +10456,9 @@ contains
                   do ia = 1 , occupationNumberOfSpeciesA
                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                         
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, aa, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
                         auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
-                        auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ia, pa, i )
+                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
                         auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
@@ -10527,20 +10469,16 @@ contains
   
                                  if (p>i) then                                                              
                                     
-                                    !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ia, ja, ib, ab, i, p )
+                                    auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                     auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-                                    !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ja, aa, ib, ab, i, p )
+                                    auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                     auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
   
                                  else
   
-                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, ja, p, i )
+                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                     auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ja, aa, p, i )
+                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                     auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
   
                                  end if
@@ -10558,20 +10496,16 @@ contains
                                  
                                  if (p>i) then                                                              
   
-                                    !auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                    auxIndex = PropagatorTheory_IndexMapAB(aa, ba, ib, ab, i, p )
+                                    auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                     auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-                                    !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ia, ba, ib, ab, i, p )
+                                    auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                     auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
   
                                  else
   
-                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, aa, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, aa, ba, p, i )
+                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, aa, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                     auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, ba, p, i )
+                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                     auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
   
   
@@ -10623,14 +10557,12 @@ contains
   
                               if (p>i) then                                                              
   
-                                 !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, jb, i, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                  auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
   
                               else
   
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAB(ib, jb, pa, pa, p, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                  auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                               end if
@@ -10642,20 +10574,16 @@ contains
                                     do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
   
                                        if (r>p) then                                                                                                   
-                                          !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ic, ac, p, r )
+                                          auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
                                           auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-                                          !auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                          auxIndex = PropagatorTheory_IndexMapAB(jb, ab, ic, ac, p, r )
+                                          auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
                                           auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
   
                                        else
   
-                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, ab, r, p )
+                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
                                           auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, jb, ab, r, p )
+                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
                                           auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
   
                                        end if
@@ -10680,14 +10608,12 @@ contains
   
                               if (p>i) then
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ab, bb, i, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                  auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
   
                               else
   
-                                 !auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAB(ab, bb, pa, pa, p, i )
+                                 auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                  auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                               end if
@@ -10699,21 +10625,16 @@ contains
                                     do ic = 1 , occupationNumberOfSpeciesC
         
                                        if (r>p) then                                                                                                                                  
-
-                                          !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ic, ac, p, r )
+                                          auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
                                           auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-                                          !auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ib, bb, ic, ac, p, r )
+                                          auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
                                           auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
   
                                        else
   
-                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, ab, r, p )
+                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
                                           auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, bb, r, p )
+                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
                                           auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
   
                                        end if
@@ -10738,14 +10659,12 @@ contains
   
                               if (p>i) then
                                  
-                                 !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
-                                 auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, ab, i, p )
+                                 auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                                  auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
   
                               else
   
-                                 !auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
-                                 auxIndex = PropagatorTheory_IndexMapAB(ib, ab, pa, pa, p, i  )
+                                 auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
                                  auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
                                  
                               end if
@@ -10758,20 +10677,16 @@ contains
   
                                        if (r>p) then
                                                                                   
-                                          !auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ib, jb, ic, ac, p, r )
+                                          auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
                                           auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-                                          !auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                          auxIndex = PropagatorTheory_IndexMapAB(jb, ab, ic, ac, p, r )
+                                          auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
                                           auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
   
                                        else
   
-                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, jb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, jb, r, p )
+                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, jb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
                                           auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, jb, ab, r, p )
+                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
                                           auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
   
                                        end if
@@ -10789,22 +10704,18 @@ contains
   
                                        if (r>p) then
                                           
-                                          !auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ab, bb, ic, ac, p, r )
+                                          auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
                                           auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
                                           
-                                          !auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ib, bb, ic, ac, p, r )
+                                          auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
                                           auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
   
                                        else
                                           
-                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ab, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ab, bb, r, p )
+                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ab, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
                                           auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
                                           
-                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
-                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, bb, r, p )
+                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
                                           auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
                                           
                                        end if
