@@ -175,7 +175,7 @@ contains
         print *,""
 
         do i=1, MollerPlesset_instance%numberOfSpecies
-       write (*,'(T10,A5,A4,A8,ES16.8)') "E(2){", trim(  MolecularSystem_getNameOfSpecie( i ) ),"   } = ", &
+       write (*,'(T10,A5,A8,A8,ES16.8)') "E(2){", trim(  MolecularSystem_getNameOfSpecie( i ) ),"   } = ", &
                MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
         end do
 
@@ -184,7 +184,7 @@ contains
         do i=1, MollerPlesset_instance%numberOfSpecies
        do j=i+1,MollerPlesset_instance%numberOfSpecies
            k=k+1
-           write (*,'(T10,A5,A8,A4,ES16.8)') "E(2){", &
+           write (*,'(T10,A5,A16,A4,ES16.8)') "E(2){", &
                trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
                "} = ", MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(k)
        end do
