@@ -1626,13 +1626,14 @@ contains
        if ( infoProcess /= 0 )  then
 
           call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+          print *, "Info Process: ", infoProcess
 
        end if
 
        do i=1,size(eigenValues%values)
           if( eigenValues%values(i) == Math_NaN ) then
 
-             call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+             call Matrix_exception(WARNING, "Diagonalization failed, Math_NaN", "Class object Matrix in the getEigen() function")
           end if
        end do
 

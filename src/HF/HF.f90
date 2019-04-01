@@ -51,7 +51,7 @@ program HF
   logical :: existFile
   integer :: numberOfSpecies
   integer :: numberOfContractions
-  integer :: speciesID
+  integer :: speciesID, i
   real(8) :: totalEnergy
   real(8) :: totalCouplingEnergy
   real(8) :: totalExchangeCorrelationEnergy
@@ -486,6 +486,18 @@ program HF
      write(*,*) ""
      write(*,*) " END ENERGY COMPONENTS"
      write(*,*) ""
+
+
+     write(*,*) " EIGENVALUES"
+     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+
+        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+
+        do i = 1 , numberOfContractions 
+          print *, WaveFunction_instance(speciesID)%energyofmolecularorbital%values(i)
+        end do
+        print *, ""
+     end do
   end if
 
   !!save virial

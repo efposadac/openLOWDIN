@@ -44,6 +44,7 @@ CONTROL
 	CISizeOfGuessMatrix=1
 	convergenceMethod=1
 	iterationScheme=3
+	SCFblindSpecies="E-"
 	!readCoefficients=true
 	!noSCF=T
 	!debugSCFs=T

@@ -14,15 +14,15 @@
 !
 
 GEOMETRY
-        e-(H) 6-311++G.d.p 0 0 0      addParticles=-14
+        e-(H) 6-311++G.d.p 0 0 0      
         e-(C) 6-311++G.d.p 0 0 1.059
         e-(N) 6-311++G.d.p 0 0 2.186
         H     dirac	   0 0 0
         C     dirac	   0 0 1.059
         N     dirac        0 0 2.186
-	E+ GRIBAKIN-10S        0  0  0
-	E+ GRIBAKIN-10S        0  0  1.059
-	E+ GRIBAKIN-10S        0  0  2.186 addParticles=-2
+	E+ GRIBAKIN-4S        0  0  0
+	E+ GRIBAKIN-4S    0  0  1.059
+	E+ GRIBAKIN-4S        0  0  2.186 addParticles=-2
 END GEOMETRY
 
 TASKS
@@ -36,12 +36,16 @@ END TASKS
 !END EXTERPOTENTIAL
 
 CONTROL
-	transformToCenterOfMass=F
+	!transformToCenterOfMass=F
         !CIdiagonalizationMethod="ARPACK"
         !CIdiagonalizationMethod="JADAMILU"
-	CISizeOfGuessMatrix=1
-	convergenceMethod=1
+	!CISizeOfGuessMatrix=1
+	!convergenceMethod=1
 	iterationScheme=3
+	!scfNonelectronicTypeGuess="ones"	
+	!scfElectronicEnergyTolerance=1E-8	
+	!scfNonelectronicEnergyTolerance=1E-8	
+	!buildTwoParticlesMatrixForOneParticle=T
 END CONTROL
 
 OUTPUTS

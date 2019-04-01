@@ -79,6 +79,7 @@ module CONTROL_
      logical :: ACTIVATE_LEVEL_SHIFTING
      logical :: EXCHANGE_ORBITALS_IN_SCF
      logical :: DEBUG_SCFS
+     character(10) ::  SCF_BLIND_SPECIES
 
      !!***************************************************************************
      !! Hartree-Fock options
@@ -100,6 +101,7 @@ module CONTROL_
      logical :: ELECTRONIC_WAVEFUNCTION_ANALYSIS
      logical :: IS_OPEN_SHELL
      logical :: GET_GRADIENTS
+     logical :: HF_PRINT_EIGENVALUES
 
      !!***************************************************************************
      !! Parameter to control geometry optimization
@@ -370,6 +372,7 @@ module CONTROL_
   logical :: LowdinParameters_activateLevelShifting
   logical :: LowdinParameters_exchangeOrbitalsInSCF
   logical :: LowdinParameters_debugScfs
+  character(10) :: LowdinParameters_scfBlindSpecies
 
   !!*****************************************************
   !! Hartree-Fock Options
@@ -392,6 +395,7 @@ module CONTROL_
   logical :: LowdinParameters_electronicWaveFunctionAnalysis
   logical :: LowdinParameters_isOpenShell
   logical :: LowdinParameters_getGradients
+  logical :: LowdinParameters_HFprintEigenvalues
 
   !!***************************************************************************
   !! Parameter to control geometry optimization
@@ -660,6 +664,7 @@ module CONTROL_
        LowdinParameters_activateLevelShifting,&
        LowdinParameters_exchangeOrbitalsInSCF,&
        LowdinParameters_debugScfs,&
+       LowdinParameters_scfBlindSpecies, &
        
                                 !!*****************************************************
                                 !! Hartree-Fock Options
@@ -682,6 +687,7 @@ module CONTROL_
        LowdinParameters_electronicWaveFunctionAnalysis,&
        LowdinParameters_isOpenShell, &
        LowdinParameters_getGradients, &
+       LowdinParameters_HFprintEigenvalues, &
        
                                 !!***************************************************************************
                                 !! Parameter to control geometry optimization
@@ -976,6 +982,7 @@ contains
     LowdinParameters_activateLevelShifting = .false.
     LowdinParameters_exchangeOrbitalsInSCF = .false.
     LowdinParameters_debugScfs = .false.
+    LowdinParameters_scfBlindSpecies = "NONE"
 
     !!*****************************************************
     !! Hartree-Fock Options
@@ -997,6 +1004,7 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = .false.
     LowdinParameters_isOpenShell = .false.
     LowdinParameters_getGradients = .false.
+    LowdinParameters_HFprintEigenvalues = .false.
 
     !!***************************************************************************
     !! Parameter to control geometry optimization
@@ -1271,6 +1279,7 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = .false.
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = .false.
     CONTROL_instance%DEBUG_SCFS = .false.
+    CONTROL_instance%SCF_BLIND_SPECIES = "NONE"
     ! CONTROL_instance%DEBUG_SCFS = .true.
 
     !!***************************************************************************                                              
@@ -1290,6 +1299,7 @@ contains
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = .false.
     CONTROL_instance%IS_OPEN_SHELL = .false.
     CONTROL_instance%GET_GRADIENTS = .false.
+    CONTROL_instance%HF_PRINT_EIGENVALUES = .false.
 
     !!***************************************************************************                                              
     !! Parameter to control geometry optimization                                                                              
@@ -1604,6 +1614,7 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = LowdinParameters_activateLevelShifting
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = LowdinParameters_exchangeOrbitalsInSCF
     CONTROL_instance%DEBUG_SCFS = LowdinParameters_debugScfs
+    CONTROL_instance%SCF_BLIND_SPECIES = LowdinParameters_scfBlindSpecies
 
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
@@ -1625,6 +1636,7 @@ contains
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = LowdinParameters_electronicWaveFunctionAnalysis
     CONTROL_instance%IS_OPEN_SHELL = LowdinParameters_isOpenShell
     CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients                                                                                                                                                                                          
+    CONTROL_instance%HF_PRINT_EIGENVALUES = LowdinParameters_HFprintEigenvalues
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1912,6 +1924,8 @@ contains
     LowdinParameters_exchangeOrbitalsInSCF = CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF
     LowdinParameters_debugScfs = CONTROL_instance%DEBUG_SCFS
 
+    LowdinParameters_scfBlindSpecies = CONTROL_instance%SCF_BLIND_SPECIES
+
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
     !!                                                                                 
@@ -1932,6 +1946,7 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS
     LowdinParameters_isOpenShell = CONTROL_instance%IS_OPEN_SHELL
     LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
+    LowdinParameters_HFprintEigenvalues = CONTROL_instance%HF_PRINT_EIGENVALUES 
 
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
@@ -2215,6 +2230,7 @@ contains
     otherThis%ACTIVATE_LEVEL_SHIFTING = this%ACTIVATE_LEVEL_SHIFTING 
     otherThis%EXCHANGE_ORBITALS_IN_SCF = this%EXCHANGE_ORBITALS_IN_SCF 
     otherThis%DEBUG_SCFS = this%DEBUG_SCFS 
+    otherThis%SCF_BLIND_SPECIES = this%SCF_BLIND_SPECIES 
     !!***************************************************************************
     !! Parametros para control Hartree-Fock
     !!
@@ -2232,6 +2248,7 @@ contains
     otherThis%ELECTRONIC_WAVEFUNCTION_ANALYSIS = this%ELECTRONIC_WAVEFUNCTION_ANALYSIS 
     otherThis%IS_OPEN_SHELL = this%IS_OPEN_SHELL    
     otherThis%GET_GRADIENTS = this%GET_GRADIENTS    
+    otherThis%HF_PRINT_EIGENVALUES = this%HF_PRINT_EIGENVALUES 
     !!***************************************************************************
     !! Parametros para control de proceso de minimizacion multidimensional
     !!

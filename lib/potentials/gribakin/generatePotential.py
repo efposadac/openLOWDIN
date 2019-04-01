@@ -38,7 +38,7 @@ print aux
 
 aux = ""
 for i in range(0,len(exponents)) :
-    aux = aux + "c"+str(i)+", "
+    print "c"+str(i)+", ",
 print aux
 
 #for i in range(0,len(exponents)) :

@@ -22,30 +22,6 @@ set  xrange[0:50]
 #plot inputdata u 1:2
 plot g(x)
 
-print c0
-print c1
-print c2
-print c3
-print c4
-print c5
-print c6
-print c7
-print c8
-print c9
-print c10
-print c11
-print c12
-print c13
-print c14
-print c15
-print c16
-print c17
-print c18
-print c19
-print c20
-print c21
-print c22
-print c23
-print c24
+print c0,  c1,  c2,  c3,  c4,  c5,  c6,  c7,  c8,  c9,  c10,  c11,  c12,  c13,  c14,  c15,  c16,  c17,  c18,  c19,  c20,  c21,  c22,  c23,  c24
 
 

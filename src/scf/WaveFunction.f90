@@ -54,6 +54,7 @@ module WaveFunction_
      type(Matrix) :: hcoreMatrix
      type(Matrix) :: twoParticlesMatrix
      type(Matrix) :: couplingMatrix
+     type(Matrix), allocatable :: couplingMatrixPerSpecies(:)
      type(Matrix) :: exchangeCorrelationMatrix
      ! type(Matrix) :: interParticleCorrMatrix
      type(Matrix) :: externalPotentialMatrix
@@ -105,7 +106,7 @@ contains
 
     integer, intent(in) :: wfnUnit
 
-    integer :: speciesID, i    
+    integer :: speciesID, i, otherSpeciesID
     integer :: statusSystem    
     integer(8) :: numberOfContractions
     character(50) :: labels(2)
@@ -122,6 +123,9 @@ contains
        labels = ""
        labels(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+
+
+       allocate(WaveFunction_instance(speciesID)%couplingMatrixPerSpecies( MolecularSystem_instance%numberOfQuantumSpecies))
 
 
        !! Parametros Asociados con el SCF
@@ -204,6 +208,12 @@ contains
        call Matrix_constructor( WaveFunction_instance(speciesID)%fockMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( WaveFunction_instance(speciesID)%twoParticlesMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( WaveFunction_instance(speciesID)%couplingMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
+
+
+       do otherSpeciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+         call Matrix_constructor( WaveFunction_instance(speciesID)%couplingMatrixPerSpecies(otherSpeciesID), numberOfContractions, numberOfContractions, 0.0_8 )
+       end do
+
        call Matrix_constructor( WaveFunction_instance(speciesID)%exchangeCorrelationMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
 
        ! call Matrix_constructor( WaveFunction_instance(speciesID)%interParticleCorrMatrix, numberOfContractions, numberOfContractions, 0.0_8 )       
@@ -593,6 +603,9 @@ contains
 
        ssize = size(wavefunction_instance(currentSpecieID)%couplingMatrix%values,dim=1)
        wavefunction_instance(currentSpecieID)%couplingMatrix%values = 0.0_8
+       do j = 1, MolecularSystem_getNumberOfQuantumSpecies()
+         wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(j)%values = 0.0_8
+       end do
 
        if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
 
@@ -660,8 +673,11 @@ contains
                    do i = 1 , ssize
                      do j = i , ssize
                        !$OMP ATOMIC
-                       wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j) = &
-                         wavefunction_instance(currentSpecieID)%couplingMatrix%values(i, j) + auxMatrix(i, j)
+
+                       WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(i,j) = &
+                       WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(i,j) + auxMatrix(i,j)
+                       !wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j) = &
+                       !  wavefunction_instance(currentSpecieID)%couplingMatrix%values(i, j) + auxMatrix(i, j)
                      end do
                    end do
 
@@ -707,8 +723,10 @@ contains
                    do i = 1 , ssize
                      do j = i , ssize
                        !$OMP ATOMIC
-                       wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j) = &
-                         wavefunction_instance(currentSpecieID)%couplingMatrix%values(i, j) + auxMatrix(i, j)
+                       WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(i,j) = &
+                       WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(i,j) + auxMatrix(i,j)
+                       !wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j) = &
+                       !  wavefunction_instance(currentSpecieID)%couplingMatrix%values(i, j) + auxMatrix(i, j)
                      end do
                    end do
 
@@ -738,7 +756,11 @@ contains
                         auxMatrix )
 
                 auxMatrix = auxMatrix * MolecularSystem_getCharge(currentSpecieID ) * MolecularSystem_getCharge( otherSpecieID )
-                wavefunction_instance(currentSpecieID)%couplingMatrix%values = wavefunction_instance(currentSpecieID)%couplingMatrix%values + auxMatrix
+
+                WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values = &
+                WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values + auxMatrix
+
+                !!wavefunction_instance(currentSpecieID)%couplingMatrix%values = wavefunction_instance(currentSpecieID)%couplingMatrix%values + auxMatrix
                 deallocate(auxMatrix)
 
            end if 
@@ -747,14 +769,33 @@ contains
        end if
 
        ! Symmetric
-       do i = 1 , ssize
-          do j = i , ssize
-             wavefunction_instance(currentSpecieID)%couplingMatrix%values(j,i) = wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j)
-          end do
+       do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
+
+         otherSpecieID = speciesIterator
+         !! Restringe suma de terminos repulsivos de la misma especie.
+         if ( otherSpecieID /= currentSpecieID ) then
+
+           do i = 1 , ssize
+             do j = i , ssize
+!             wavefunction_instance(currentSpecieID)%couplingMatrix%values(j,i) = wavefunction_instance(currentSpecieID)%couplingMatrix%values(i,j)
+
+               WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(j,i) = &
+               WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(i,j)
+
+             end do
+           end do
+
+
+           wavefunction_instance(currentSpecieID)%couplingMatrix%values = &
+              wavefunction_instance(currentSpecieID)%couplingMatrix%values + &
+              WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values 
+
+         end if
        end do
 
     end if
 
+    if ( nameOfSpecieSelected == CONTROL_instance%SCF_BLIND_SPECIES ) wavefunction_instance(currentSpecieID)%couplingMatrix%values = 0
     if (  CONTROL_instance%DEBUG_SCFS) then
        write(*,*) "Coupling Matrix: ", trim(nameOfSpecieSelected)
        call Matrix_show( wavefunction_instance(currentSpecieID)%couplingMatrix )
@@ -1165,7 +1206,7 @@ contains
     real(8) :: output
 
     character(30) :: nameOfSpecie
-    ! character(30) :: nameOfOtherSpecie
+    character(30) :: nameOfOtherSpecie
     ! real(8) :: auxValue
     ! real(8) :: auxRepulsion
     ! real(8) :: integral(CONTROL_instance%INTEGRAL_STACK_SIZE)
@@ -1174,7 +1215,8 @@ contains
     ! integer :: numberOfTotalContractions
     ! integer :: numberOfTotalContractionsOfOtherSpecie
     integer :: speciesID
-    ! integer :: otherSpecieID
+    integer :: otherSpeciesID
+    real(8) :: factor
     ! integer :: outFile
     ! integer :: a(CONTROL_instance%INTEGRAL_STACK_SIZE)
     ! integer :: b(CONTROL_instance%INTEGRAL_STACK_SIZE)
@@ -1185,14 +1227,31 @@ contains
     ! integer :: arrayNumber
 
     output = 0.0_8
+    factor = 0.5
 
     do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
 
-       nameOfSpecie = MolecularSystem_getNameOfSpecie( speciesID ) 
-       call WaveFunction_buildCouplingMatrix(nameOfSpecie)
+      nameOfSpecie = MolecularSystem_getNameOfSpecie( speciesID ) 
+      call WaveFunction_buildCouplingMatrix(nameOfSpecie)
 
-       output=output+ 0.5*(sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
-            * (wavefunction_instance(speciesID)%couplingMatrix%values))) 
+      if ( nameOfSpecie == CONTROL_instance%SCF_BLIND_SPECIES ) factor = 0
+
+      do otherSpeciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+
+        if ( otherSpeciesID /= speciesID ) then 
+
+          nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpeciesID ) 
+          if ( nameOfOtherSpecie == CONTROL_instance%SCF_BLIND_SPECIES ) factor = 1
+
+          output = output + factor*(sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
+              * (wavefunction_instance(speciesID)%couplingMatrixPerSpecies(otherSpeciesID)%values))) 
+
+        end if
+      end do
+
+       !!output=output+ 0.5*(sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
+       !!     * (wavefunction_instance(speciesID)%couplingMatrix%values))) 
+
 
        !       do otherSpecieID = speciesID+1, MolecularSystem_getNumberOfQuantumSpecies()
 
