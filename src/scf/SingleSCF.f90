@@ -633,6 +633,25 @@ contains
           end if
        end if
 
+       if ( CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS) then
+          if ( CONTROL_instance%READ_COEFFICIENTS ) then
+             if ( MolecularSystem_instance%species(speciesID)%isElectron ) then
+
+                inquire(FILE = trim(nameOfSpecieSelected)//".vec", EXIST = existFile )
+
+                if ( existFile) then
+
+                   WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(int(numberOfContractions,4), int(numberOfContractions,4), &
+                        file=trim(nameOfSpecie)//".vec", binary = .false.)
+
+                end if
+             end if
+          end if
+       end if
+
+
+
+
 
        !! Exchanging orbitals just for calculation excited states
        if( nameOfSpecie == trim(CONTROL_instance%EXCITE_SPECIE) ) then

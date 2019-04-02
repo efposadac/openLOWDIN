@@ -86,6 +86,7 @@ module CONTROL_
      !!
      character(20) :: FROZEN_PARTICLE(5)
      logical :: FREEZE_NON_ELECTRONIC_ORBITALS
+     logical :: FREEZE_ELECTRONIC_ORBITALS
      logical :: HARTREE_PRODUCT_GUESS
      logical :: READ_COEFFICIENTS
      logical :: WRITE_COEFFICIENTS_IN_BINARY
@@ -379,6 +380,7 @@ module CONTROL_
   !!
   character(20) :: LowdinParameters_frozen(5)
   logical :: LowdinParameters_freezeNonElectronicOrbitals
+  logical :: LowdinParameters_freezeElectronicOrbitals
   logical :: LowdinParameters_hartreeProductGuess
   logical :: LowdinParameters_readCoefficients
   logical :: LowdinParameters_writeCoefficientsInBinary
@@ -671,6 +673,7 @@ module CONTROL_
                                 !!
        LowdinParameters_frozen,&
        LowdinParameters_freezeNonElectronicOrbitals,&
+       LowdinParameters_freezeElectronicOrbitals,&
        LowdinParameters_hartreeProductGuess,&
        LowdinParameters_noSCF,&
        LowdinParameters_readCoefficients,&
@@ -989,6 +992,7 @@ contains
     !!
     LowdinParameters_frozen = "NONE"
     LowdinParameters_freezeNonElectronicOrbitals = .false.
+    LowdinParameters_freezeElectronicOrbitals = .false.
     LowdinParameters_hartreeProductGuess = .false.
     LowdinParameters_readCoefficients = .false.
     LowdinParameters_writeCoefficientsInBinary = .true.
@@ -1287,6 +1291,7 @@ contains
     !!                                                                                                                         
     CONTROL_instance%FROZEN_PARTICLE = "NONE"
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = .false.
+    CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS = .false.
     CONTROL_instance%HARTREE_PRODUCT_GUESS = .false.
     CONTROL_instance%READ_COEFFICIENTS = .false.
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = .true.
@@ -1621,6 +1626,7 @@ contains
     !!                                                                                 
     CONTROL_instance%FROZEN_PARTICLE = LowdinParameters_frozen
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = LowdinParameters_freezeNonElectronicOrbitals
+    CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS = LowdinParameters_freezeElectronicOrbitals
     CONTROL_instance%HARTREE_PRODUCT_GUESS = LowdinParameters_hartreeProductGuess
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
@@ -1931,6 +1937,7 @@ contains
     !!                                                                                 
     LowdinParameters_frozen = CONTROL_instance%FROZEN_PARTICLE
     LowdinParameters_freezeNonElectronicOrbitals = CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS
+    LowdinParameters_freezeElectronicOrbitals = CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS
     LowdinParameters_hartreeProductGuess = CONTROL_instance%HARTREE_PRODUCT_GUESS
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
@@ -2236,6 +2243,7 @@ contains
     !!
     otherThis%FROZEN_PARTICLE = this%FROZEN_PARTICLE 
     otherThis%FREEZE_NON_ELECTRONIC_ORBITALS = this%FREEZE_NON_ELECTRONIC_ORBITALS 
+    otherThis%FREEZE_ELECTRONIC_ORBITALS = this%FREEZE_ELECTRONIC_ORBITALS 
     otherThis%HARTREE_PRODUCT_GUESS = this%HARTREE_PRODUCT_GUESS 
     otherThis%READ_COEFFICIENTS = this%READ_COEFFICIENTS 
     otherThis%WRITE_COEFFICIENTS_IN_BINARY = this%WRITE_COEFFICIENTS_IN_BINARY
