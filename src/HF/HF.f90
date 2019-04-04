@@ -488,16 +488,23 @@ program HF
      write(*,*) ""
 
 
-     write(*,*) " EIGENVALUES"
-     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+     if ( CONTROL_instance%HF_PRINT_EIGENVALUES ) then
+       write(*,*) " EIGENVALUES"
+       write(*,*) ""
+       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
 
-        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+         write (6,"(T2,A12)") trim( MolecularSystem_instance%species(speciesID)%name) 
+         write(*,*) ""
 
-        do i = 1 , numberOfContractions 
-          print *, WaveFunction_instance(speciesID)%energyofmolecularorbital%values(i)
-        end do
-        print *, ""
-     end do
+         numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+
+         do i = 1 , numberOfContractions 
+           write(6,"(T2,I4,F20.10)") i,WaveFunction_instance(speciesID)%energyofmolecularorbital%values(i)
+         end do
+         write(*,*) ""
+       end do
+       write(*,*) "END OF EIGENVALUES"
+    end if
   end if
 
   !!save virial
