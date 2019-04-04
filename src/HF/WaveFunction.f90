@@ -202,14 +202,21 @@ contains
        !!          
        call Matrix_eigen( WaveFunction_instance( speciesID )%overlapMatrix, eigenValues, eigenVectors, SYMMETRIC  )
 
+       !!do i = 1 , numberOfContractions
+       !!   print *, eigenvalues%values(i) 
+       !!end do
+
        do i = 1 , numberOfContractions
-          do j = 1 , numberOfContractions
-
+         do j = 1 , numberOfContractions
+           if ( abs(eigenValues%values(j)) >= CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
              WaveFunction_instance( speciesID )%transformationMatrix%values(i,j) = &
-                  eigenVectors%values(i,j)/sqrt( eigenValues%values(j) )
+                            eigenVectors%values(i,j)/sqrt( eigenvalues%values(j) )
+           else
+             WaveFunction_instance( speciesID )%transformationMatrix%values(i,j) = 0
+           end if
+         end do
+      end do
 
-          end do
-       end do
        !!
        !!****************************************************************
 
@@ -220,13 +227,11 @@ contains
 
           !! Ortogonalizacion canonica
        case (CANONICAL_ORTHOGONALIZATION)
-
           WaveFunction_instance( speciesID )%transformationMatrix%values = &
                WaveFunction_instance( speciesID )%transformationMatrix%values
 
           !!Ortogonalizacion simetrica
        case (SYMMETRIC_ORTHOGONALIZATION)
-
           WaveFunction_instance( speciesID )%transformationMatrix%values  = &
                matmul(WaveFunction_instance( speciesID )%transformationMatrix%values, transpose(eigenVectors%values))
 

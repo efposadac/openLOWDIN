@@ -3,13 +3,14 @@
 ! ================================================================
  $SYSTEM MWORDS=20 $END
  $CONTRL RUNTYP=energy $END
- $CONTRL SCFTYP=RHF ispher=1 $END
- $CONTRL ICHARG=-2  MULT=1 qmttol=1E-8 maxit=200 $END
+ $CONTRL SCFTYP=RHF $END
+ $CONTRL ICHARG=-2  MULT=1 maxit=200 $END
  $scf    dirscf=.f. soscf=.f. diis=.t. ethrsh=1.5  $end
- $NEO    NEOSCF=ronhf basnuc=readin
+ $NEO    NEOSCF=diagzn basnuc=readin
          nucst=1 dirnuc=.f.
-         numult=2 symnuc=.f.
+         numult=2 symnuc=.t.
          NUNIQN=1 IUNIQN(1)=1
+         qmtoln=0
          posneo=.t. posprp=.t.
          NTAUXB=2 IAUXNB(1)=2,3
          $END

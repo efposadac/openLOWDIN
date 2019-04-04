@@ -103,6 +103,7 @@ module CONTROL_
      logical :: IS_OPEN_SHELL
      logical :: GET_GRADIENTS
      logical :: HF_PRINT_EIGENVALUES
+     real(8) :: OVERLAP_EIGEN_THRESHOLD
 
      !!***************************************************************************
      !! Parameter to control geometry optimization
@@ -398,6 +399,7 @@ module CONTROL_
   logical :: LowdinParameters_isOpenShell
   logical :: LowdinParameters_getGradients
   logical :: LowdinParameters_HFprintEigenvalues
+  real(8) :: LowdinParameters_overlapEigenThreshold
 
   !!***************************************************************************
   !! Parameter to control geometry optimization
@@ -691,6 +693,8 @@ module CONTROL_
        LowdinParameters_isOpenShell, &
        LowdinParameters_getGradients, &
        LowdinParameters_HFprintEigenvalues, &
+       LowdinParameters_overlapEigenThreshold, &
+
        
                                 !!***************************************************************************
                                 !! Parameter to control geometry optimization
@@ -1009,6 +1013,7 @@ contains
     LowdinParameters_isOpenShell = .false.
     LowdinParameters_getGradients = .false.
     LowdinParameters_HFprintEigenvalues = .false.
+    LowdinParameters_overlapEigenThreshold = 0.0_8
 
     !!***************************************************************************
     !! Parameter to control geometry optimization
@@ -1305,6 +1310,7 @@ contains
     CONTROL_instance%IS_OPEN_SHELL = .false.
     CONTROL_instance%GET_GRADIENTS = .false.
     CONTROL_instance%HF_PRINT_EIGENVALUES = .false.
+    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = 0.0_8
 
     !!***************************************************************************                                              
     !! Parameter to control geometry optimization                                                                              
@@ -1641,8 +1647,9 @@ contains
     CONTROL_instance%ONLY_ELECTRONIC_EFFECT = LowdinParameters_onlyElectronicEffect
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = LowdinParameters_electronicWaveFunctionAnalysis
     CONTROL_instance%IS_OPEN_SHELL = LowdinParameters_isOpenShell
-    CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients                                                                                                                                                                                          
+    CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients
     CONTROL_instance%HF_PRINT_EIGENVALUES = LowdinParameters_HFprintEigenvalues
+    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = LowdinParameters_overlapEigenThreshold 
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1954,6 +1961,7 @@ contains
     LowdinParameters_isOpenShell = CONTROL_instance%IS_OPEN_SHELL
     LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
     LowdinParameters_HFprintEigenvalues = CONTROL_instance%HF_PRINT_EIGENVALUES 
+    LowdinParameters_overlapEigenThreshold = CONTROL_instance%OVERLAP_EIGEN_THRESHOLD 
 
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
@@ -2257,6 +2265,7 @@ contains
     otherThis%IS_OPEN_SHELL = this%IS_OPEN_SHELL    
     otherThis%GET_GRADIENTS = this%GET_GRADIENTS    
     otherThis%HF_PRINT_EIGENVALUES = this%HF_PRINT_EIGENVALUES 
+    otherThis%OVERLAP_EIGEN_THRESHOLD = this%OVERLAP_EIGEN_THRESHOLD 
     !!***************************************************************************
     !! Parametros para control de proceso de minimizacion multidimensional
     !!

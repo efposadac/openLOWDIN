@@ -20,9 +20,9 @@ GEOMETRY
         H     dirac	   0 0 0
         C     dirac	   0 0 1.059
         N     dirac        0 0 2.186
-	E+ GRIBAKIN-4S        0  0  0
-	E+ GRIBAKIN-4S    0  0  1.059
-	E+ GRIBAKIN-4S        0  0  2.186 addParticles=-2
+	E+ GRIBAKIN-10S10P7D        0  0  0
+	E+ GRIBAKIN-10S10P7D    0  0  1.059
+	E+ GRIBAKIN-10S10P7D        0  0  2.186 addParticles=-2
 END GEOMETRY
 
 TASKS
@@ -41,11 +41,15 @@ CONTROL
         !CIdiagonalizationMethod="JADAMILU"
 	!CISizeOfGuessMatrix=1
 	!convergenceMethod=1
-	iterationScheme=3
-	!scfNonelectronicTypeGuess="ones"	
-	!scfElectronicEnergyTolerance=1E-8	
-	!scfNonelectronicEnergyTolerance=1E-8	
+	iterationScheme=2
+	scfElectronicEnergyTolerance=1E-10	
+	scfNonelectronicEnergyTolerance=1E-10
 	!buildTwoParticlesMatrixForOneParticle=T
+	!scfConvergenceCriterium = "ENERGY" 
+	!nonelectronicDensityMatrixTolerance = 1E-8
+	!totalEnergyTolerance= 1E-10
+	!strongEnergyTolerance=1E-10
+	overlapEigenThreshold=1E-6
 END CONTROL
 
 OUTPUTS

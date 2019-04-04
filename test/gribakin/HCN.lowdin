@@ -20,9 +20,9 @@ GEOMETRY
         H     dirac	   0 0 0
         C     dirac	   0 0 1.059
         N     dirac        0 0 2.186
-	!E+ GRIBAKIN-10S        0  0  0
-	!E+ GRIBAKIN-10S        0  0  1.059
-	!E+ GRIBAKIN-10S        0  0  2.186 addParticles=-2
+	E+ GRIBAKIN-10S        0  0  0
+	E+ GRIBAKIN-10S        0  0  1.059
+	E+ GRIBAKIN-10S        0  0  2.186 addParticles=-3
 END GEOMETRY
 
 TASKS
