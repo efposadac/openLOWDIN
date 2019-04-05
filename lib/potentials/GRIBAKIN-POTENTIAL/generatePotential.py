@@ -1,59 +1,121 @@
 #!/usr/bin/python
 import math
+import sys
+import os
+import subprocess
 
+potentialName = sys.argv[1]
+outFile = open (potentialName,"w")
 
-exponents = (0.001,0.002,0.004,0.008,0.016,0.032,0.064,0.128,0.256,0.512,1,2,3,4,5,6,7,8,9,10,20,30,40,50,100)
 species="E+"
-
-angularMoment = list()
-coefficients = (
-(2.6696408808595E-05,-0.000140147768606,0.000381776112294,-0.00085841057823,0.001529490363248,-0.00339082071481,0.00443723675683,-0.018152729371098,0.010371538305636,-0.22964238857461,0.955767310297558,-6.08374556128221,39.3961799237976,-185.533292384299,603.91565139211,-1337.64485308696,1975.48253893495,-1861.1797239682,1012.85376818444,-242.738047372009,1.12398848696484,-0.500033592466561,0.256669259784608,-0.070567464044561,0.001139816288846),(2.94607039325329E-05,-0.000150257628699,0.000400151889713,-0.000882955754879,0.00155914340955,-0.0034280282253,0.00449115107547,-0.018251573401854,0.010623701957018,-0.230670069032424,0.96301684849903,-6.24320664375467,41.5335884356092,-201.593946353996,676.48252201832,-1543.0049330581,2342.74880447759,-2265.02370906265,1262.62212600718,-309.425855122117,1.67212616994395,-0.810007081228447,0.438693496292361,-0.125141341973716,0.002205019340445),(2.79784125754952E-05,-0.00015666253526,0.000453043354824,-0.001050709510636,0.001940476776882,-0.004171780103119,0.005830919068576,-0.020502027024969,0.014258878721652,-0.237105993092561,0.977011422479577,-6.30737299356856,41.6387136528148,-200.000551904335,663.452911732575,-1495.8597626041,2245.94009480506,-2148.64288853008,1186.00197120894,-287.999661915408,1.46218637139053,-0.685296288025675,0.36373527524976,-0.10235904676445,0.001748134592044))
-
-correction =(2.61162151676912, 8.65816642381082, 6.45144746778109)
- 
+exponents = (0.001,0.002,0.004,0.008,0.016,0.032,0.064,0.128,0.256,0.512,1,2,3,4,5,6,7,8,9,10,20,30,40,50,100)
 
 origin = ((0, 0, 0),(0, 0, 2.001),(0, 0, 4.130))
+polarizabilities =(2.61162151676912, 8.65816642381082, 6.45144746778109)
+cutoff = 0
+maxR = 0
+step = 0
+
+#######
+
+angularMoment = list()
 for i in range(0,len(exponents)) :
     angularMoment.append(0)
-    #coefficients.append(1)
 
-print "O-"+species
-print "#"
-print len(exponents)*3
+auxcoef = ""
+for i in range(0,len(exponents)) :
+    auxcoef = auxcoef + "c"+str(i)+", "
+auxcoef = auxcoef[:-2]
+
+######
+
+outFile.write("O-"+species+"\n")
+outFile.write("#\n")
+outFile.write("%i\n" % (len(exponents)*len(origin)))
+
 ii = 0
-for j in range(0,3):
+for atom in range(0,len(origin)):
+    print origin[atom]
+    realPotentialFileName = potentialName + "."+ str(origin[atom][2]) +".data"
+
+    alpha = polarizabilities[atom]
+    r = origin[atom][2] 
+    realPotentialFile = open (realPotentialFileName, "w")
+
+    for i in xrange(1,25000+1,1):
+        i = i/250.0
+        realPotentialFile.write(str(i) + " "+ str( -1.0*alpha/(2.0*(i-r)**4) * (1 - math.exp(-((i-r)**6)/(2.0**6))) ) + "\n" )
+    realPotentialFile.close()
+
+    auxfunction = "g(x) = "
     for i in range(0,len(exponents)) :
-        print i+ii+1, " ", angularMoment[i]
-        print ( "%.8e %.8e" % (exponents[i], coefficients[j][i]*correction[j]) )
+        auxfunction = auxfunction + "c"+str(i)+"*exp(-"+str(exponents[i])+"*(x-"+str(r)+")**2) + "
+    auxfunction = auxfunction[:-2]
+    #print auxfunction
+
+    gnuplotFileName = potentialName + "."+ str(origin[atom][2]) +".gnu"
+    gnuplotFile = open(gnuplotFileName,"w")
+    gnuplotFile.write("""
+set terminal pdf transparent size 18.3 cm,14.6 cm lw 3 enhanced font "Nimbus,11"
+
+inputdata = '"""+realPotentialFileName+"""'
+
+mean(x)= m
+fit mean(x) inputdata u 1:2 via m
+SST = FIT_WSSR/(FIT_NDF+1)
+r = 4.13
+"""+auxfunction+"""
+fit g(x) inputdata u 1:2 via """+auxcoef+"""
+SSE=FIT_WSSR/(FIT_NDF)
+SSR=SST-SSE
+R2=SSR/SST
+print R2
+set  xrange[0:50]
+outputName = '"""+gnuplotFileName+'.pdf'+"""'
+set output outputName
+
+
+plot g(x)
+print "BEGIN RESULTS"
+print """+auxcoef+"""
+""")
+    gnuplotFile.close()
+
+    os.system("gnuplot "+gnuplotFileName + " &> "+gnuplotFileName+".log")
+
+    gnuplotOutput = open(gnuplotFileName+".log","r")
+    gnuplotOut = gnuplotOutput.readlines()
+
+    coeff = list()
+    coefficients = list()
+
+    for j in range(0,len(gnuplotOut)):
+        line = gnuplotOut[j]
+
+        if "BEGIN RESULTS" in line:
+            coeff = (gnuplotOut[j+1].split())
+
+    gnuplotOutput.close()
+
+    if len(coeff) == 0:
+        print "Fitting error, results not found"
+        continue
+
+    coefficients = [float(k) for k in coeff]
+
+    for i in range(0,len(exponents)) :
+        outFile.write( str(i+ii+1) + " "+ str(angularMoment[i])+"\n" )
+        outFile.write( "%.8f %.8f\n" % (exponents[i], coefficients[i]) )
         aux = ""
         for k in range(0,3):
-            aux = aux + str(origin[j][k]) + " "
-        print aux
+            aux = aux + str(origin[atom][k]) + " "
+        outFile.write( aux + "\n")
     ii = ii + i + 1
-    
-aux = ""
-for i in range(0,len(exponents)) :
-    aux = aux + "c"+str(i)+"*exp(-"+str(exponents[i])+"*(x)**2) + "
-print aux
 
-aux = ""
-for i in range(0,len(exponents)) :
-    print "c"+str(i)+", ",
-print aux
-
-#for i in range(0,len(exponents)) :
-#    print "print c"+str(i)
+outFile.close()
 
 
-alpha = 1.0
-r = 4.130
-outputname = "data-gribakin"+str(r)
-print outputname 
-outputfile = open (outputname, "w")
 
-for i in xrange(1,25000+1,1):
-    i = i/250.0
-    outputfile.write(str(i) + " "+ str( -1.0*alpha/(2.0*(i-r)**4) * (1 - math.exp(-((i-r)**6)/(2.0**6))) ) + "\n" )
-outputfile.close()
+
 
 
