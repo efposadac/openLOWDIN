@@ -88,6 +88,7 @@ Program Ints
      ! !!Calculate overlap integrals
      ! call Libint2Interface_compute1BodyInts(1)
      call IntegralManager_getOverlapIntegrals()
+     !call IntegralManager_getThreeCenterIntegrals()
 
      ! !!Calculate kinetic integrals
      ! call Libint2Interface_compute1BodyInts(2)

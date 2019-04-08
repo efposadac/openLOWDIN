@@ -4,19 +4,17 @@ import sys
 import os
 import subprocess
 
-#Hola
-
 potentialName = sys.argv[1]
 outFile = open (potentialName,"w")
 
 species="E+"
 exponents = (0.001,0.002,0.004,0.008,0.016,0.032,0.064,0.128,0.256,0.512,1,2,3,4,5,6,7,8,9,10,20,30,40,50,100)
 
-origin = ((0, 0, 0),(0, 0, 2.001),(0, 0, 4.130))
-polarizabilities =(2.61162151676912, 8.65816642381082, 6.45144746778109)
-cutoff = 0
-maxR = 0
-step = 0
+origin = ((0, 0, 0),(0, 0, 2.001),(0, 0, 4.130)) # a.u
+polarizabilities =(2.61162151676912, 8.65816642381082, 6.45144746778109) # a.u
+cutoff = 2.00 # a.u
+maxR = 25000 # a.u /250
+step = 1 # a.u /250
 
 #######
 
@@ -44,9 +42,9 @@ for atom in range(0,len(origin)):
     r = origin[atom][2] 
     realPotentialFile = open (realPotentialFileName, "w")
 
-    for i in xrange(1,25000+1,1):
+    for i in xrange(1,maxR+1,step):
         i = i/250.0
-        realPotentialFile.write(str(i) + " "+ str( -1.0*alpha/(2.0*(i-r)**4) * (1 - math.exp(-((i-r)**6)/(2.0**6))) ) + "\n" )
+        realPotentialFile.write(str(i) + " "+ str( -1.0*alpha/(2.0*(i-r)**4) * (1 - math.exp(-((i-r)**6)/(cutoff**6))) ) + "\n" )
     realPotentialFile.close()
 
     auxfunction = "g(x) = "
@@ -55,7 +53,7 @@ for atom in range(0,len(origin)):
     auxfunction = auxfunction[:-2]
     #print auxfunction
 
-    gnuplotFileName = potentialName + "."+ str(origin[atom][2]) +".gnu"
+    gnuplotFileName = potentialName + "."+ str(origin[atom][2]) +".gnp"
     gnuplotFile = open(gnuplotFileName,"w")
     gnuplotFile.write("""
 set terminal pdf transparent size 18.3 cm,14.6 cm lw 3 enhanced font "Nimbus,11"
@@ -107,7 +105,7 @@ print """+auxcoef+"""
 
     for i in range(0,len(exponents)) :
         outFile.write( str(i+ii+1) + " "+ str(angularMoment[i])+"\n" )
-        outFile.write( "%.8f %.8f\n" % (exponents[i], coefficients[i]) )
+        outFile.write( "%.8f %.8e\n" % (exponents[i], coefficients[i]) )
         aux = ""
         for k in range(0,3):
             aux = aux + str(origin[atom][k]) + " "

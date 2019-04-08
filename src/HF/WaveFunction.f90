@@ -154,8 +154,10 @@ contains
     close(34)
 
     !! DEBUG
-    ! print *,"Matriz de overlap: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    ! call Matrix_show(WaveFunction_instance( speciesID )%overlapMatrix)
+    if (  CONTROL_instance%DEBUG_SCFS) then
+     print *,"Matriz de overlap: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+     call Matrix_show(WaveFunction_instance( speciesID )%overlapMatrix)
+    end if
 
   end subroutine WaveFunction_buildOverlapMatrix
 

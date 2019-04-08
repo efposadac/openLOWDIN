@@ -489,7 +489,7 @@ program HF
 
 
      if ( CONTROL_instance%HF_PRINT_EIGENVALUES ) then
-       write(*,*) " EIGENVALUES"
+       write(*,*) "BEGIN EIGENVALUES"
        write(*,*) ""
        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
 

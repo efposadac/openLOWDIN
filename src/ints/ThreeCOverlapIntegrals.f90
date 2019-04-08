@@ -12,44 +12,11 @@
 !!
 !!******************************************************************************
 
-!>@brief Modulo para calculo de integrales de overlap
+!>@brief Modulo para calculo de integrales de overlap de tres centros. 
 !!
-!! Este modulo contiene los algoritmos necesarios para la evaluacian de integrales
-!! de overlap entre pares de funciones gaussianas primitivas (PrimitiveGaussian_),
-!! sin normalizar.
+!! Algorithm taken from the LIBMINTS library in the open-source quantum chemistry software package PSI4.
 !!
-!! \f[ (\bf{a} \mid \bf{b}) = \int_{TE} {{\varphi(\bf{r};{\zeta}_a,
-!! \bf{a,A})}{\varphi(\bf{r};{\zeta}_b,\bf{b,B})}}\,dr \f]
-!!
-!! Donde:
-!!
-!! <table>
-!! <tr> <td> \f$ \zeta \f$ : <td> <dfn> exponente orbital. </dfn>
-!! <tr> <td> <b> r </b> : <td> <dfn> coordenas espaciales de la funcian. </dfn>
-!! <tr> <td> <b> n </b> : <td> <dfn> indice de momento angular. </dfn>
-!! <tr> <td> <b> R </b> : <td> <dfn> origen de la funcion gaussiana cartesiana. </dfn>
-!! </table>
-!!
-!! La integral de traslapamiento entre funciones gaussinas primitivas se calcula
-!! con el matodo recursivo propuesto por Obara-Sayka, el cual transforma las
-!! gaussiana de entrada en una sola mediante la identidad del producto gausiano.
-!! La expresian general para el calculos de las integrales es:
-!!
-!! \f[ ({\bf{a + 1_i}} \parallel {\bf{b}}) = (P_i -A_i) ({\bf{a}} \parallel
-!! {\bf{b}} ) + \frac{1}{2 \zeta} N_i(\bf{a}) ({\bf{a - 1_i}} \parallel
-!! {\bf{b}} ) + \frac{1}{2 \zeta} N_i(\bf{b}) + ({\bf{a}} \parallel {\bf{b-1_i}})\f]
-!!
-!! Los parametros <b> P </b> y \f$ \zeta \f$ de la expresian provienen del producto de dos
-!! funciones gaussianas.
-!!
-!! @author E. F. Posada
-!!
-!! <b> Fecha de creacion : </b> 2010-03-11
-!!
-!! <b> Historial de modificaciones: </b>
-!!   - <tt> 2011-02-11 </tt>: Fernando Posada ( efposadac@unal.edu.co )
-!!        -# Implementa los metodos para el calculo de integrales de traslape para cualquier valor de n
-!!
+
 module ThreeCOverlapIntegrals_
   use Exception_
   use Math_
@@ -68,7 +35,6 @@ contains
 
   !>
   !! @brief Calculates overlap integral between two contractions (shell)
-  !! @author E. F. Posada, efposadac@unal.edu.co
   !! @par History
   !!      -2011.02.04: E.F.Posada: chage for usage on opints
   !! @return  output: overlap integral of a shell (all combinations)
@@ -144,7 +110,7 @@ contains
       do q = 1, contractedGaussianB%numcartesianOrbital
         do r = 1, contractedGaussianC%numcartesianOrbital
 
-          m = m + 1
+          m = m + 1 !!hmmm
            
           exp1(0:nprim1-1) = contractedGaussianA%orbitalExponents(1:nprim1)
           nor1(0:nprim1-1) = contractedGaussianA%primNormalization(1:nprim1,p)
@@ -180,7 +146,6 @@ contains
 
   !>
   !!@brief Evalua integrales overlap para cualquier momento angular
-  !!@author E. F. Posada, 2010
   !!@version 2.0
   !!@return devuelve los valores de integrales de overlap para una capa o individual
   !!@param A, B : origin A and B
@@ -306,7 +271,6 @@ contains
 
   !>
   !!@brief Implementation of recursion proposed by Obara-Saika for overlap integrals.
-  !!@author Edwin Posada, 2010
   !!@return x, y, z : recursion matrixes
   !!@param PA, PB : reduced origin for gaussian A and B
   !!@param gamma : reduced exponent
@@ -322,7 +286,7 @@ contains
     real(8) :: pp
     integer :: i, j, k
 
-    pp = 1/(2*gamma)
+    pp = 1.0/(2.0*gamma)
 
     x(0,0,0) = 1.0_8
     y(0,0,0) = 1.0_8
@@ -334,13 +298,13 @@ contains
     y(1,0,0) = GA(1)
     z(1,0,0) = GA(2)
 
-    x(0,1,0) = GB(0)
-    y(0,1,0) = GB(1)
-    z(0,1,0) = GB(2)
+    x(0,0,1) = GB(0)
+    y(0,0,1) = GB(1)
+    z(0,0,1) = GB(2)
 
-    x(0,0,1) = GC(0)
-    y(0,0,1) = GC(1)
-    z(0,0,1) = GC(2)
+    x(0,1,0) = GC(0)
+    y(0,1,0) = GC(1)
+    z(0,1,0) = GC(2)
 
     !! Begin - Upward recursion in b for a=c=0
 
@@ -360,9 +324,9 @@ contains
        x(0,1,j) = GC(0)*x(0,0,j)
        y(0,1,j) = GC(1)*y(0,0,j)
        z(0,1,j) = GC(2)*z(0,0,j)
-       x(0,1,j) = x(0,1,j+1) + j*pp*x(0,0,j-1)
-       y(0,1,j) = y(0,1,j+1) + j*pp*y(0,0,j-1)
-       z(0,1,j) = z(0,1,j+1) + j*pp*z(0,0,j-1)
+       x(0,1,j) = x(0,1,j) + j*pp*x(0,0,j-1)
+       y(0,1,j) = y(0,1,j) + j*pp*y(0,0,j-1)
+       z(0,1,j) = z(0,1,j) + j*pp*z(0,0,j-1)
     end do
 
     do k=1, angularMoment3 -1
