@@ -1,31 +1,33 @@
 GEOMETRY
-	e-(H)   SHARON-E-6S2P 	0.00	0.00 	0.00 addParticles=1 
-	H	dirac			0.00	0.00 	0.00
-	e+	SHARON-E+6S2P	0.00	0.00	0.00
+	e-(H)   6-31G.D.P             	0.00	0.50 	0.00 addParticles=-1 
+	e-(H)   6-31G.D.P             	0.44	-0.25 	0.00 
+	e-(H)   6-31G.D.P             	-0.44	-0.25 	0.00 
+	H_1	DZSPDN			0.00	0.50 	0.00
+	H	dirac			0.44	-0.25 	0.00
+	H	dirac			-0.44	-0.25 	0.000
 END GEOMETRY
 
 TASKS
 	method = "UHF"
 	configurationInteractionLevel ="FCI"
-	!configurationInteractionLevel ="CISD"
 END TASKS
 
 CONTROL
 	numberOfCIstates=3
 	CIStatesToPrint = 1
-	!CIdiagonalizationMethod = "DSYEVX"
 	CIdiagonalizationMethod = "JADAMILU"
-	!CIdiagonalizationMethod = "ARPACK"
-	!CIPrintEigenVectorsFormat = "NONE"
 	CIPrintEigenVectorsFormat = "OCCUPIED"
 	!CIPrintEigenVectorsFormat = "ORBITALS"
+	overlapEigenThreshold=1E-6	
 	CIPrintThreshold = 5e-2
-	buildTwoParticlesMatrixForOneParticle=T
+	scfNonelectronicEnergyTolerance = 1E-8
+	scfElectronicEnergyTolerance = 1E-8
 END CONTROL
 
 INPUT_CI
 	species="E-ALPHA" core=0 active=0 
 	species="E-BETA" core=0 active=0 
-	species="POSITRON" core=0 active=0 
+	species="H_1" core=0 active=0 
 END INPUT_CI
+
 
