@@ -644,6 +644,7 @@ recursive  function ConfigurationInteraction_buildStringsRecursion2( i, numberOf
     !! Search which combinations of excitations satifies the desired CI level.
     auxnumberOfSpecies = ConfigurationInteraction_buildCIOrderRecursion( s, numberOfSpecies, c, cilevel )
 
+
     !! Print list
     write (6,"(T2,A)") "--------------------------"
     write (6,"(T2,A)") "CI level \ Species"
@@ -706,10 +707,11 @@ recursive  function ConfigurationInteraction_buildCIOrderRecursion( s, numberOfS
     implicit none
 
     integer :: u,v,c
-    integer :: i, j, ii, jj, nn
+    integer :: i, j, ii, jj, nn, k, l
     integer :: s, numberOfSpecies
     integer :: os,is,auxis, auxos
     integer :: cilevel(:)
+    integer :: plusOne(3,3) , plusTwo(4,6)
 
     is = s + 1
     if ( is < numberOfSpecies ) then
@@ -728,12 +730,38 @@ recursive  function ConfigurationInteraction_buildCIOrderRecursion( s, numberOfS
          ConfigurationInteraction_instance%sizeCiOrderList = ConfigurationInteraction_instance%sizeCiOrderList + 1
          ConfigurationInteraction_instance%auxciOrderList(  ConfigurationInteraction_instance%sizeCiOrderList  ) = c
        end if
+
        if ( trim(ConfigurationInteraction_instance%level) == "CISD+" ) then !!special case. 
-         if ( product(cilevel) == 1 .and. sum(cilevel) == ConfigurationInteraction_instance%maxCIlevel + 1) then
+         plusOne(:,1) = (/1,1,1/)
+         plusOne(:,2) = (/2,0,1/)
+         plusOne(:,3) = (/0,2,1/)
+       
+         do k = 1, 3
+           if ( sum(  abs(cilevel(:) - plusOne(:,k)) ) == 0 ) then
            ConfigurationInteraction_instance%sizeCiOrderList = ConfigurationInteraction_instance%sizeCiOrderList + 1
            ConfigurationInteraction_instance%auxciOrderList(  ConfigurationInteraction_instance%sizeCiOrderList  ) = c
-         end if
+           end if
+         end do
+       
        end if
+       
+       if ( trim(ConfigurationInteraction_instance%level) == "CISD+2" ) then !!special case. 
+         plusTwo(:,1) = (/1,1,1,0/)
+         plusTwo(:,2) = (/1,1,0,1/)
+         plusTwo(:,3) = (/2,0,1,0/)
+         plusTwo(:,4) = (/2,0,0,1/)
+         plusTwo(:,5) = (/0,2,1,0/)
+         plusTwo(:,6) = (/0,2,0,1/)
+
+         do k = 1, 6
+           if ( sum(  abs(cilevel(:) - plusTwo(:,k)) ) == 0 ) then
+           ConfigurationInteraction_instance%sizeCiOrderList = ConfigurationInteraction_instance%sizeCiOrderList + 1
+           ConfigurationInteraction_instance%auxciOrderList(  ConfigurationInteraction_instance%sizeCiOrderList  ) = c
+           end if
+         end do
+ 
+       end if
+
       end do
       cilevel(is) = 0
     end if
@@ -2076,6 +2104,18 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
     case ( "CISD+" )
 
+      if ( .not. numberOfSpecies == 3 ) call ConfigurationInteraction_exception( ERROR, "Configuration interactor constructor", "CISD+ is specific for three quantum species")
+
+      do i=1, numberOfSpecies
+        ConfigurationInteraction_instance%CILevel(i) = 2
+        if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
+          ConfigurationInteraction_instance%CILevel(i) = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+      ConfigurationInteraction_instance%maxCILevel = 2
+
+    case ( "CISD+2" )
+
+      if ( .not. numberOfSpecies == 4 ) call ConfigurationInteraction_exception( ERROR, "Configuration interactor constructor", "CISD+2 is specific for three quantum species")
       do i=1, numberOfSpecies
         ConfigurationInteraction_instance%CILevel(i) = 2
         if ( ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
