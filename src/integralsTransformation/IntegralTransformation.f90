@@ -45,6 +45,7 @@ program IntegralsTransformation
   use TransformIntegralsB_
   use TransformIntegralsC_
   use TransformIntegralsD_
+  use TransformIntegralsE_
   use String_
   implicit none
 
@@ -62,6 +63,7 @@ program IntegralsTransformation
   type(TransformIntegralsB) :: transformInstanceB
   type(TransformIntegralsC) :: transformInstanceC
   type(TransformIntegralsD) :: transformInstanceD
+  type(TransformIntegralsE) :: transformInstanceE
   type(Matrix) :: eigenVec
   type(Matrix) :: eigenVecOtherSpecie 
   character(50) :: wfnFile
@@ -88,6 +90,13 @@ program IntegralsTransformation
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
+  write(*,*) ""
+  write(*,*) "BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
+  write(*,*) "========================================"
+  write(*,*) "Selected method: ",CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD 
+  write(*,*) ""
+
+
   select case( CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD )
 
     case ( "A" ) 
@@ -110,16 +119,23 @@ program IntegralsTransformation
       call TransformIntegralsD_show
       call TransformIntegralsD_constructor( transformInstanceD )
 
+    case ( "E" )
+
+      call TransformIntegralsE_show
+      call TransformIntegralsE_constructor( transformInstanceE )
+
   end select
 
   !!*******************************************************************************************
   !! BEGIN
 
-   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
-   rewind(wfnUnit)
-
+  !! get the number of nonzero integrals
 
   numberOfQuantumSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+  open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
+  rewind(wfnUnit)
+
 
     do i=1, numberOfQuantumSpecies
   
@@ -138,7 +154,9 @@ program IntegralsTransformation
         end if
 
           if ( .not.CONTROL_instance%OPTIMIZE .and. transformThisSpecies) then
+              write (*,*) ""
               write (6,"(T2,A)")"Integrals transformation for: "//trim(nameOfSpecies)
+              write (*,*) ""
            end if
 
           !! Reading the coefficients
@@ -185,6 +203,11 @@ program IntegralsTransformation
                 call TransformIntegralsD_atomicToMolecularOfOneSpecie( transformInstanceD, &
                        eigenVec, specieID,  trim(nameOfSpecies))
 
+              case ( "E" )
+
+                call TransformIntegralsE_atomicToMolecularOfOneSpecie(  transformInstanceE, &
+                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
+
             end select
 
           end if
@@ -211,7 +234,9 @@ program IntegralsTransformation
 
                   
                           if ( .not.CONTROL_instance%OPTIMIZE .and. transformTheseSpecies ) then
+                             write (*,*) ""
                              write (6,"(T2,A)") "Inter-species integrals transformation for: "//trim(nameOfSpecies)//"/"//trim(nameOfOtherSpecie)
+                             write (*,*) ""
                           end if
 
                           !! Reading the coefficients
@@ -262,6 +287,12 @@ program IntegralsTransformation
                                  eigenVec, eigenVecOtherSpecie, &
                                  specieID, nameOfSpecies, &
                                  otherSpecieID, nameOfOtherSpecie)
+
+                            case ( "E" )
+                              
+                              call TransformIntegralsE_atomicToMolecularOfTwoSpecies(transformInstanceE, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
 
                             end select
 

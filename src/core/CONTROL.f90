@@ -299,6 +299,7 @@ module CONTROL_
      !! Integrals transformation options
      !!
      character(10) :: INTEGRALS_TRANSFORMATION_METHOD
+     integer :: IT_BUFFERSIZE
 
      !!***************************************************************************
      !! Environment variables
@@ -593,6 +594,7 @@ module CONTROL_
   !! Integrals transformation options
   !!
   character(10) :: LowdinParameters_integralsTransformationMethod
+  integer :: LowdinParameters_ITBuffersize
 
   !!***************************************************************************
   !! Environment variables
@@ -889,6 +891,7 @@ module CONTROL_
                                 !! Integrals transformation options
                                 !!
        LowdinParameters_integralsTransformationMethod, &
+       LowdinParameters_ITBuffersize, &
        
                                 !!***************************************************************************
                                 !! Variables de ambiente al sistema de archivos del programa
@@ -1210,6 +1213,7 @@ contains
     !! Integrals transformation options
     !!
     LowdinParameters_integralsTransformationMethod = "C"
+    LowdinParameters_ITBuffersize = 1024
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
@@ -1506,6 +1510,7 @@ contains
     !! Integrals transformation options
     !!
     CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = "C"
+    CONTROL_instance%IT_BUFFERSIZE = 8192
 
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   
@@ -1851,6 +1856,7 @@ contains
     !! Integrals transformation options
     !!
     CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = LowdinParameters_integralsTransformationMethod
+    CONTROL_instance%IT_BUFFERSIZE = LowdinParameters_ITBuffersize
 
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
@@ -2159,6 +2165,7 @@ contains
     !! Integrals transformation options
     !!
     LowdinParameters_integralsTransformationMethod = CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD 
+    LowdinParameters_ITBuffersize = CONTROL_instance%IT_BUFFERSIZE 
 
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
@@ -2441,6 +2448,7 @@ contains
     !! Integrals transformation options
     !!
     otherThis%INTEGRALS_TRANSFORMATION_METHOD = this%INTEGRALS_TRANSFORMATION_METHOD 
+    otherThis%IT_BUFFERSIZE = this%IT_BUFFERSIZE 
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa

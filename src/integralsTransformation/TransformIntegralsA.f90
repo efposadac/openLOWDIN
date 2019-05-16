@@ -139,10 +139,6 @@ contains
   subroutine TransformIntegralsA_show()
     implicit none
 
-    print *,""
-    print *,"BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
-    print *,"========================================"
-    print *,""
     print *,"--------------------------------------------------"
     print *,"    Algorithm Four-index integral tranformation"
     print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "

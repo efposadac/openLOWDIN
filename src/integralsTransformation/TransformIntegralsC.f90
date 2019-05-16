@@ -111,14 +111,9 @@ contains
   subroutine TransformIntegralsC_show()
     implicit none
 
-    print *,""
-    print *,"BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
-    print *,"========================================"
-    print *,""
     print *,"--------------------------------------------------"
     print *,"   4N^5 Algorithm Four-index integral tranformation"
     print *,"--------------------------------------------------"
-    print *,""
 
   end subroutine TransformIntegralsC_show
 
