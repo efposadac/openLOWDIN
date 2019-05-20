@@ -373,6 +373,9 @@ if [ $extFile="lowdin" ]; then
 	echo "Running on " $OMP_NUM_THREADS "OMP threads" > $nameFile.out
 	echo "Begin job by input: "$nameFile.lowdin, "for user: "$USERNAME " at " `date` > $nameFile.out
 	echo "under operating system" `uname -a` >> $nameFile.out
+	echo "Compilation information" >> $nameFile.out
+	echo "  commit: "$LOWDIN_COMMIT >> $nameFile.out
+	echo "  compilation date: " $LOWDIN_DATE >> $nameFile.out
 	echo "" >> $nameFile.out
 	echo "BEGIN INPUT INFO:" >> $nameFile.out
 	echo "------------------------------------" >> $nameFile.out

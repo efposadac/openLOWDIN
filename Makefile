@@ -23,6 +23,8 @@ install:: bin/lowdin bin/lowdin.x
 	cp -rf $(TOPDIR)/bin/lowdinvars.sh $(TOPDIR)
 	sed -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdinvars.sh
 	sed -i  's|SCRATCH_DIR|$(SCRATCH)|g' $(TOPDIR)/lowdinvars.sh
+	sed -i 's|COMMIT_ID|$(shell cat .git/ORIG_HEAD)|g' $(TOPDIR)/lowdinvars.sh
+	sed -i 's|COMPILATION_DATE|$(shell date)|g' $(TOPDIR)/lowdinvars.sh
 	cp -rf $(TOPDIR)/lowdinvars.sh $(PREFIX)/.lowdin2/
 	cp -rf lib $(PREFIX)/.lowdin2/
 	mkdir -p $(PREFIX)/.lowdin2/bin
