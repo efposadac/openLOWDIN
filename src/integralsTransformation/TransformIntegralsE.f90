@@ -1322,11 +1322,7 @@ contains
     real(8), allocatable :: auxtwoint(:)
     integer(8), allocatable :: twoindex(:)
     real(8), allocatable :: tempC(:)
-    real(8), allocatable :: coeffMatrix(:,:)
-    integer(8), allocatable :: coeffMap(:,:)
-    integer(8), allocatable :: coeffSize(:)
     integer(8) :: nonZeroIntegrals
-    type(matrix) :: densityMatrix
     real(8), allocatable :: tmpArray(:,:)
     !$ real(8) :: timeA(10), timeB(10)
 
