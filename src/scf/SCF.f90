@@ -400,7 +400,8 @@ program SCF
 
   if(CONTROL_instance%LAST_STEP) then
      write(*, *) ""
-     write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*,"(A,F10.3,A4)") "** TOTAL CPU Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time SCF : ", lowdin_stopwatch%elapsetWTime ," (s)"
      write(*, *) ""
   end if
 
