@@ -541,7 +541,8 @@ contains
        !!**********************************************************************************************
 
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
-       if ( CONTROL_instance%NO_SCF .and. CONTROL_instance%READ_COEFFICIENTS) then
+       if ( (CONTROL_instance%NO_SCF .and. CONTROL_instance%READ_COEFFICIENTS) .or. &
+            (SingleSCF_getNumberOfIterations(speciesID) == 0 .and. CONTROL_instance%READ_COEFFICIENTS) ) then
 
           arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
           arguments(1) = "COEFFICIENTS"
@@ -579,8 +580,9 @@ contains
        end if
 
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
-       if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS <= 2 ) then
-         if ( CONTROL_instance%READ_EIGENVALUES ) then
+       if ( (CONTROL_instance%NO_SCF .and. CONTROL_instance%READ_EIGENVALUES) .or. &
+            (SingleSCF_getNumberOfIterations(speciesID) == 0 .and. CONTROL_instance%READ_EIGENVALUES) ) then
+
            inquire(FILE = "lowdin.vec", EXIST = existFile )
 
            if ( existFile) then
@@ -612,7 +614,6 @@ contains
              end if
 
            end if
-         end if
       end if
 
        !! Not implemented yet
