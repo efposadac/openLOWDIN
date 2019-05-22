@@ -1195,8 +1195,6 @@ contains
     !! Total Energy
     totalEnergy = totalEnergy +  totalCouplingEnergy + electronicRepulsionEnergy 
 
-    ! print *,"Total energy = ", totalEnergy
-
   end subroutine WaveFunction_obtainTotalEnergy
 
   !>
@@ -1369,6 +1367,7 @@ contains
     integer :: u
     integer :: m
     real(8), allocatable, target :: auxMatrix(:,:)
+!    real(8), allocatable :: auxMatrix2(:,:)
     ! integer :: arrayNumber
 
     !! OpenMP related variables
@@ -1397,112 +1396,114 @@ contains
              !Restringe la suma a solo electrones
              if(trim(nameOfSpecie)=="E-ALPHA" .and. trim(nameOfOtherSpecie)=="E-BETA") then
 
-              if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
-                
-                !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, auxValue, m, a, b, r, s, integral, u)
+              !!if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
+              !!  
+              !!  !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, auxValue, m, a, b, r, s, integral, u)
 
-                nthreads = OMP_GET_NUM_THREADS()
-                threadid =  OMP_GET_THREAD_NUM()
-                unitid = 40 + threadid
+              !!  nthreads = OMP_GET_NUM_THREADS()
+              !!  threadid =  OMP_GET_THREAD_NUM()
+              !!  unitid = 40 + threadid
 
-                write(fileid,*) threadid
-                fileid = trim(adjustl(fileid))
+              !!  write(fileid,*) threadid
+              !!  fileid = trim(adjustl(fileid))
 
-                !! open file for integrals
-                open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
-                     STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+              !!  !! open file for integrals
+              !!  open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
+              !!       STATUS='OLD', ACCESS='stream', FORM='Unformatted')
 
-                auxValue = 0.0_8
-                m = 0
+              !!  auxValue = 0.0_8
+              !!  m = 0
 
-                readIntegrals : do
+              !!  readIntegrals : do
 
-                   read(unitid, iostat=status) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                        r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                        integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+              !!     read(unitid, iostat=status) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+              !!          r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+              !!          integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-                   if(status == -1 ) then
-                      print*, "end of file! file: ",trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints"
-                      exit readIntegrals
-                   end if
+              !!     if(status == -1 ) then
+              !!        print*, "end of file! file: ",trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints"
+              !!        exit readIntegrals
+              !!     end if
 
-                   do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+              !!     do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
-                      if (a(u) == -1) exit readIntegrals
+              !!        if (a(u) == -1) exit readIntegrals
 
-                      m = m + 1
-                      !print *, integral(u)
+              !!        m = m + 1
+              !!        !print *, integral(u)
 
 
-                      auxValue = auxValue +&
-                           (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
-                           * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
-                           *  integral(u))
+              !!        auxValue = auxValue +&
+              !!             (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
+              !!             * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
+              !!             *  integral(u))
 
-                      if(b(u) /= a(u)) then
+              !!        if(b(u) /= a(u)) then
 
-                         m = m + 1
+              !!           m = m + 1
 
-                         auxValue = auxValue +&
-                              (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
-                              * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
-                              *  integral(u))
-                      end if
+              !!           auxValue = auxValue +&
+              !!                (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
+              !!                * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
+              !!                *  integral(u))
+              !!        end if
 
-                      if(s(u) /= r(u)) then
+              !!        if(s(u) /= r(u)) then
 
-                         m = m + 1
+              !!           m = m + 1
 
-                         auxValue = auxValue +&
-                              (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
-                              * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
-                              *  integral(u))
-                      end if
+              !!           auxValue = auxValue +&
+              !!                (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
+              !!                * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
+              !!                *  integral(u))
+              !!        end if
 
-                      if(b(u) /= a(u) .and. s(u) /= r(u)) then
+              !!        if(b(u) /= a(u) .and. s(u) /= r(u)) then
 
-                         m = m + 1
+              !!           m = m + 1
 
-                         auxValue = auxValue +&
-                              (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
-                              * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
-                              *  integral(u))
-                      end if
+              !!           auxValue = auxValue +&
+              !!                (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
+              !!                * WaveFunction_instance( otherSpecieID)%densityMatrix%values(r(u),s(u)) &
+              !!                *  integral(u))
+              !!        end if
 
-                   end do
+              !!     end do
 
-                end do readIntegrals
+              !!  end do readIntegrals
 
-                auxValue = auxValue *  MolecularSystem_getCharge( speciesID=speciesID ) &
-                     * MolecularSystem_getCharge( speciesID=otherSpecieID )
+              !!  auxValue = auxValue *  MolecularSystem_getCharge( speciesID=speciesID ) &
+              !!       * MolecularSystem_getCharge( speciesID=otherSpecieID )
 
-                !$OMP ATOMIC
-                output = output + auxValue
+              !!  !$OMP ATOMIC
+              !!  output = output + auxValue
 
-                close(unitid)                
+              !!  close(unitid)                
 
-                !$OMP END PARALLEL
-              else !! DIRECT
+              !!  !$OMP END PARALLEL
+              !!else !! DIRECT
 
-                if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-                 call WaveFunction_exception(ERROR, "Direct integrals are not implemented in DFT yet", "trololo")
-                end if
+              !!  if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+              !!   call WaveFunction_exception(ERROR, "Direct integrals are not implemented in DFT yet", "trololo")
+              !!  end if
           
-                call DirectIntegralManager_getDirectAlphaBetaRepulsionIntegrals(&
-                       speciesID, OtherSpecieID, &
-                       trim(CONTROL_instance%INTEGRAL_SCHEME), &
-                       wavefunction_instance(speciesID)%densityMatrix, &
-                       wavefunction_instance(otherSpecieID)%densityMatrix, &
-                       auxMatrix )
+              !!  call DirectIntegralManager_getDirectAlphaBetaRepulsionIntegrals(&
+              !!         speciesID, OtherSpecieID, &
+              !!         trim(CONTROL_instance%INTEGRAL_SCHEME), &
+              !!         wavefunction_instance(speciesID)%densityMatrix, &
+              !!         wavefunction_instance(otherSpecieID)%densityMatrix, &
+              !!         auxMatrix )
 
-                !auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpecieID )
-                output = 0
-                output = output + (sum( (auxMatrix))) 
+              !!
+              !!  auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpecieID )
+              !!  output = output + (sum( (auxMatrix))) 
 
-                !wavefunction_instance(speciesID)%twoParticlesMatrix%values = tmpTwoParticlesMatrix
-                deallocate(auxMatrix)
+              !!  deallocate(auxMatrix)
 
-              end if !! 
+              !!end if !! 
+
+                output = output + (sum( transpose ( wavefunction_instance(speciesID)%densityMatrix%values ) * &
+                                WaveFunction_instance(speciesID)%couplingMatrixPerSpecies(otherSpecieID)%values ))
 
              end if
           end if

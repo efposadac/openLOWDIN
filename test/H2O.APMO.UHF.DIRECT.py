@@ -11,7 +11,8 @@ outputName = testName + ".out"
 # Reference values
 
 refValues = {
-"HF energy" : -75.93125555356
+"HF energy" : -75.93125555356, 
+"e-AlphaBetaRepulsion" : 23.2395577028
 }
 
 testValues = dict(refValues) #copy 
@@ -34,6 +35,10 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
+    if "e-ALPHA/e-BETA Repulsion" in line:
+        testValues["e-AlphaBetaRepulsion"] = float(line.split()[3])
+
+
 
 passTest = True
 
