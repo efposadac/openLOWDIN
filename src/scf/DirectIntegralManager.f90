@@ -89,12 +89,12 @@ contains
        !               densityMatrix, & 
        !               twoParticlesMatrix, factor)
     case("LIBINT")
-       call Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoParticlesMatrix )
+       call Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoParticlesMatrix, factor )
 
        !     ! case("CUDINT")
        !     !    call CudintInterface_computeIntraSpecies(speciesID)
     case default
-       call Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoParticlesMatrix )
+       call Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoParticlesMatrix, factor )
     end select
 
     deallocate(density)
@@ -138,5 +138,46 @@ contains
     deallocate(density)
 
   end subroutine DirectIntegralManager_getDirectInterRepulsionIntegrals
+
+  subroutine DirectIntegralManager_getDirectAlphaBetaRepulsionIntegrals(speciesID, OtherSpeciesID, scheme, &
+       densityMatrix, otherdensityMatrix, coupling )
+    integer :: speciesID
+    integer :: otherSpeciesID
+    character(*) :: scheme
+    type(matrix) :: couplingMatrix
+    type(matrix) :: densityMatrix
+    type(matrix) :: otherdensityMatrix
+    real(8), allocatable, target :: coupling(:,:)
+    real(8), allocatable, target :: density(:,:)
+    real(8), allocatable, target :: otherdensity(:,:)
+    integer :: ssize
+
+    ssize = size(densityMatrix%values, DIM=1)
+    ! print*, "DIRECT, SIZE DENS:", ssize
+    allocate(density(ssize, ssize))
+    density = densityMatrix%values
+
+    ssize = size(otherdensityMatrix%values, DIM=1)
+    ! print*, "DIRECT, SIZE DENS:", ssize
+    allocate(otherdensity(ssize, ssize))
+    otherdensity = otherdensityMatrix%values
+
+
+    select case (trim(String_getUppercase(trim(scheme))))
+
+       !case("RYS")
+       ! Not implemented
+
+    case("LIBINT")
+       call Libint2Interface_compute2BodyAlphaBeta_direct(speciesID, otherSpeciesID, density, otherdensity, coupling)
+    case default
+       call Libint2Interface_compute2BodyAlphaBeta_direct(speciesID, otherSpeciesID, density, otherdensity, coupling)
+    end select
+
+
+    deallocate(density)
+
+  end subroutine DirectIntegralManager_getDirectAlphaBetaRepulsionIntegrals
+
 
 end module DirectIntegralManager_

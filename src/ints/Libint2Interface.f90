@@ -213,12 +213,13 @@ module Libint2Interface_
        type(c_ptr), value :: this
      end subroutine c_LibintInterface_init2BodyInts
 
-     subroutine c_LibintInterface_compute2BodyDirect(this, density, result) bind(C, name="LibintInterface_compute_2body_direct")
+     subroutine c_LibintInterface_compute2BodyDirect(this, density, result, factor) bind(C, name="LibintInterface_compute_2body_direct")
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr), value :: this        
        type(c_ptr), value :: density
        type(c_ptr), value :: result
+       real(c_double)  :: factor
      end subroutine c_LibintInterface_compute2BodyDirect
 
      subroutine c_LibintInterface_compute2BodyDisk(this, filename, density) bind(C, name="LibintInterface_compute_2body_disk")
@@ -237,6 +238,16 @@ module Libint2Interface_
        type(c_ptr), value :: density
        type(c_ptr), value :: result
      end subroutine c_LibintInterface_computeCouplingDirect
+
+     subroutine c_LibintInterface_computeAlphaBetaDirect(this, othis, density, otherdensity, result) bind(C, name="LibintInterface_compute_alphabeta_direct")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: this        
+       type(c_ptr), value :: othis        
+       type(c_ptr), value :: density
+       type(c_ptr), value :: otherdensity
+       type(c_ptr), value :: result
+     end subroutine c_LibintInterface_computeAlphaBetaDirect
 
      subroutine c_LibintInterface_computeCouplingDisk(this, othis, filename) bind(C, name="LibintInterface_compute_coupling_disk")
        use, intrinsic :: iso_c_binding
@@ -398,12 +409,13 @@ contains
 
   !>
   !! Compute  2-body integrals and computes the G matrix
-  subroutine Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoBody)
+  subroutine Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoBody, factor)
     implicit none
 
     integer :: speciesID
     real(8), allocatable, target :: density(:,:)
     real(8), allocatable, target :: twoBody(:,:)
+    real(8) :: factor
 
     type(c_ptr) :: density_ptr
     type(c_ptr) :: twoBody_ptr
@@ -429,7 +441,7 @@ contains
     endif
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
-    call c_LibintInterface_compute2BodyDirect(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr)
+    call c_LibintInterface_compute2BodyDirect(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr, factor)
 
   end subroutine Libint2Interface_compute2BodyIntraspecies_direct
 
@@ -530,6 +542,57 @@ contains
          Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coupling_ptr)
 
   end subroutine Libint2Interface_compute2BodyInterSpecies_direct
+
+  !! Compute  2-body integrals and computes the G matrix
+  subroutine Libint2Interface_compute2BodyAlphaBeta_direct(speciesID, otherSpeciesID, density, otherdensity, coupling)
+
+    implicit none
+
+    integer :: speciesID
+    integer :: otherSpeciesID
+    real(8), allocatable, target :: density(:,:)
+    real(8), allocatable, target :: otherdensity(:,:)
+    real(8), allocatable, target :: coupling(:,:)
+
+    type(c_ptr) :: couplingEnergy_ptr
+    type(c_ptr) :: density_ptr
+    type(c_ptr) :: otherdensity_ptr
+
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    !! Prepare matrix
+    if(allocated(coupling)) deallocate(coupling)
+!    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
+!         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+    allocate(coupling(1,1))
+
+
+    density_ptr = c_loc(density(1,1))
+    otherdensity_ptr = c_loc(otherdensity(1,1))
+    couplingEnergy_ptr = c_loc(coupling(1,1))
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
+    endif
+
+
+    call c_LibintInterface_computeAlphaBetaDirect(&
+         Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, otherdensity_ptr, couplingEnergy_ptr)
+
+  end subroutine Libint2Interface_compute2BodyAlphaBeta_direct
+
+
 
 
   !>

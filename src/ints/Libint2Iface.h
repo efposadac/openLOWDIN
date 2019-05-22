@@ -266,7 +266,7 @@ public:
                      double precision = std::numeric_limits<double>::epsilon());
 
   Matrix compute_2body_direct(
-      const Matrix &D, const Matrix &Schwartz,
+      const Matrix &D, const Matrix &Schwartz, double &factor, 
       double precision = std::numeric_limits<double>::epsilon());
 
   void compute_coupling_disk(
@@ -275,6 +275,10 @@ public:
 
   Matrix compute_coupling_direct(
       LibintInterface &other, const Matrix &D, const bool permuted,
+      double precision = std::numeric_limits<double>::epsilon());
+
+  Matrix compute_alphabeta_direct(
+      LibintInterface &other, const Matrix &D, const Matrix &oD, const bool permuted,
       double precision = std::numeric_limits<double>::epsilon());
 
   void compute_g12_disk(const char *filename,
@@ -324,7 +328,7 @@ void LibintInterface_compute_1body_ints(LibintInterface *lint,
 void LibintInterface_init_2body_ints(LibintInterface *lint);
 
 void LibintInterface_compute_2body_direct(LibintInterface *lint, double *dens,
-                                          double *result);
+                                          double *result, double &factor);
 
 void LibintInterface_compute_2body_disk(LibintInterface *lint,
                                         const char *filename, double *dens);
@@ -332,6 +336,10 @@ void LibintInterface_compute_2body_disk(LibintInterface *lint,
 void LibintInterface_compute_coupling_direct(LibintInterface *lint,
                                              LibintInterface *olint,
                                              double *dens, double *result);
+
+void LibintInterface_compute_alphabeta_direct(LibintInterface *lint,
+                                             LibintInterface *olint,
+                                             double *dens, double *otherdens, double *result);
 
 void LibintInterface_compute_coupling_disk(LibintInterface *lint,
                                            LibintInterface *olint,

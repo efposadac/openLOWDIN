@@ -1368,6 +1368,7 @@ contains
     integer :: s(CONTROL_instance%INTEGRAL_STACK_SIZE)
     integer :: u
     integer :: m
+    real(8), allocatable, target :: auxMatrix(:,:)
     ! integer :: arrayNumber
 
     !! OpenMP related variables
@@ -1395,6 +1396,8 @@ contains
 
              !Restringe la suma a solo electrones
              if(trim(nameOfSpecie)=="E-ALPHA" .and. trim(nameOfOtherSpecie)=="E-BETA") then
+
+              if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
                 
                 !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, auxValue, m, a, b, r, s, integral, u)
 
@@ -1428,6 +1431,8 @@ contains
                       if (a(u) == -1) exit readIntegrals
 
                       m = m + 1
+                      !print *, integral(u)
+
 
                       auxValue = auxValue +&
                            (  wavefunction_instance(speciesID)%densityMatrix%values(b(u),a(u)) &
@@ -1477,6 +1482,27 @@ contains
                 close(unitid)                
 
                 !$OMP END PARALLEL
+              else !! DIRECT
+
+                if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+                 call WaveFunction_exception(ERROR, "Direct integrals are not implemented in DFT yet", "trololo")
+                end if
+          
+                call DirectIntegralManager_getDirectAlphaBetaRepulsionIntegrals(&
+                       speciesID, OtherSpecieID, &
+                       trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                       wavefunction_instance(speciesID)%densityMatrix, &
+                       wavefunction_instance(otherSpecieID)%densityMatrix, &
+                       auxMatrix )
+
+                !auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpecieID )
+                output = 0
+                output = output + (sum( (auxMatrix))) 
+
+                !wavefunction_instance(speciesID)%twoParticlesMatrix%values = tmpTwoParticlesMatrix
+                deallocate(auxMatrix)
+
+              end if !! 
 
              end if
           end if
