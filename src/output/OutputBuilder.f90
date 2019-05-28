@@ -1108,6 +1108,8 @@ contains
      character(50) :: outputID
      character(50) :: orbitalNum
 
+     integer :: speciesID
+     character(50) :: nameOfSpecies
      integer :: i,j
      integer :: numberOfSteps
      type(vector) :: step1
@@ -1124,6 +1126,8 @@ contains
    
      call Vector_Constructor(step1, 3)
      call Vector_Constructor(step2, 3)
+     speciesID = MolecularSystem_getSpecieIDFromSymbol( trim(this%specie) )
+     nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
 
      this%fileName2=""
      numberOfSteps= CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
@@ -1172,7 +1176,7 @@ contains
            coordinate(:)=i*step1%values(:)+j*step2%values(:)+this%point1%values(:)
            select case( this%type )
            case ( "orbitalPlot") 
-              val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+              val=CalculateWaveFunction_getOrbitalValueAt(nameOfSpecies, this%orbital, coordinate )  
            case ( "fukuiPlot") 
 !!              val=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
 !!              val2=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
@@ -1209,7 +1213,9 @@ contains
      character(50) :: outputID
      character(50) :: orbitalNum
 
-     integer :: i
+     integer :: i, speciesID
+     character(50) :: nameOfSpecies
+
      integer :: numberOfSteps
      type(vector) :: step
      real(8) :: val, val2
@@ -1220,6 +1226,8 @@ contains
      character(50) :: y_title
 
      call Vector_Constructor(step, 3)
+     speciesID = MolecularSystem_getSpecieIDFromSymbol( trim(this%specie) )
+     nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
 
      this%fileName2=""
      numberOfSteps= CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
@@ -1258,7 +1266,7 @@ contains
         coordinate(:)=i*step%values(:)+this%point1%values(:)
         select case( this%type )
         case ( "orbitalPlot") 
-           val=CalculateWaveFunction_getOrbitalValueAt( this%specie, this%orbital, coordinate )  
+           val=CalculateWaveFunction_getOrbitalValueAt(nameOfSpecies, this%orbital, coordinate )  
         case ( "fukuiPlot") 
 !!           val=CalculateProperties_getFukuiAt( this%specie, "positive", coordinate )  
 !!           val2=CalculateProperties_getFukuiAt( this%specie, "negative", coordinate )  
