@@ -145,8 +145,8 @@ module LibxcInterface_
     xc_f03_mgga_exc, &
     xc_f03_mgga_exc_vxc, &
     xc_f03_mgga_vxc, &
-    xc_f03_mgga_fxc
-
+    xc_f03_mgga_fxc, &
+    xc_f03_mgga_kxc
 
   integer(c_int), parameter, public :: &
     XC_UNPOLARIZED = 1, & ! Spin unpolarized
@@ -173,7 +173,8 @@ module LibxcInterface_
     XC_FAMILY_LCA = 8, &
     XC_FAMILY_OEP = 16, &
     XC_FAMILY_HYB_GGA = 32, &
-    XC_FAMILY_HYB_MGGA = 64
+    XC_FAMILY_HYB_MGGA = 64, &
+    XC_FAMILY_HYB_LDA = 128
 
   integer(c_int), parameter, public :: &
     XC_FLAGS_HAVE_EXC = 1, &
@@ -222,7 +223,7 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_LDA_C_1D_CSC = 18 ! Casula, Sorella, and Senatore 1D correlation
   integer(c_int), parameter, public :: XC_LDA_X_2D = 19 ! Exchange in 2D
   integer(c_int), parameter, public :: XC_LDA_XC_TETER93 = 20 ! Teter 93 parametrization
-  integer(c_int), parameter, public :: XC_LDA_X_1D = 21 ! Exchange in 1D
+  integer(c_int), parameter, public :: XC_LDA_X_1D_SOFT = 21 ! Exchange in 1D for a soft-Coulomb interaction
   integer(c_int), parameter, public :: XC_LDA_C_ML1 = 22 ! Modified LSD (version 1) of Proynov and Salahub
   integer(c_int), parameter, public :: XC_LDA_C_ML2 = 23 ! Modified LSD (version 2) of Proynov and Salahub
   integer(c_int), parameter, public :: XC_LDA_C_GOMBAS = 24 ! Gombas parametrization
@@ -259,12 +260,16 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_LDA_K_LP96 = 580 ! Liu-Parr kinetic
   integer(c_int), parameter, public :: XC_LDA_XC_BN05 = 588 ! Baer and Neuhauser, gamma=1
   integer(c_int), parameter, public :: XC_LDA_C_PMGB06 = 590 ! Long-range LDA correlation functional
+  integer(c_int), parameter, public :: XC_LDA_XC_TIH = 599 ! Neural network LDA from Tozer et al
+  integer(c_int), parameter, public :: XC_LDA_X_1D_EXPONENTIAL = 600 ! Exchange in 1D for an exponentially screened interaction
+  integer(c_int), parameter, public :: XC_HYB_LDA_XC_LDA0 = 177 ! LDA0: hybrid LDA exchange
+  integer(c_int), parameter, public :: XC_HYB_LDA_XC_CAM_LDA0 = 178 ! CAM version of LDA0
   integer(c_int), parameter, public :: XC_GGA_X_GAM = 32 ! GAM functional from Minnesota
   integer(c_int), parameter, public :: XC_GGA_C_GAM = 33 ! GAM functional from Minnesota
   integer(c_int), parameter, public :: XC_GGA_X_HCTH_A = 34 ! HCTH-A
   integer(c_int), parameter, public :: XC_GGA_X_EV93 = 35 ! Engel and Vosko
   integer(c_int), parameter, public :: XC_GGA_X_BCGP = 38 ! Burke, Cancio, Gould, and Pittalis
-  integer(c_int), parameter, public :: XC_GGA_C_BCGP = 39 ! Burke, Cancio, Gould, and Pittalis
+  integer(c_int), parameter, public :: XC_GGA_C_ACGGA = 39 ! acGGA, asymptotically corrected GGA
   integer(c_int), parameter, public :: XC_GGA_X_LAMBDA_OC2_N = 40 ! lambda_OC2(N) version of PBE
   integer(c_int), parameter, public :: XC_GGA_X_B86_R = 41 ! Revised Becke 86 Xalpha,beta,gamma (with mod. grad. correction)
   integer(c_int), parameter, public :: XC_GGA_X_LAMBDA_CH_N = 44 ! lambda_CH(N) version of PBE
@@ -340,7 +345,7 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_GGA_X_BAYESIAN = 125 ! Bayesian best fit for the enhancement factor
   integer(c_int), parameter, public :: XC_GGA_X_PBE_JSJR = 126 ! JSJR reparametrization by Pedroza, Silva & Capelle
   integer(c_int), parameter, public :: XC_GGA_X_2D_B88 = 127 ! Becke 88 in 2D
-  integer(c_int), parameter, public :: XC_GGA_X_2D_B86 = 128 ! Becke 86 Xalpha,beta,gamma
+  integer(c_int), parameter, public :: XC_GGA_X_2D_B86 = 128 ! Becke 86 Xalpha, beta, gamma
   integer(c_int), parameter, public :: XC_GGA_X_2D_PBE = 129 ! Perdew, Burke & Ernzerhof exchange in 2D
   integer(c_int), parameter, public :: XC_GGA_C_PBE = 130 ! Perdew, Burke & Ernzerhof correlation
   integer(c_int), parameter, public :: XC_GGA_C_LYP = 131 ! Lee, Yang & Parr
@@ -380,10 +385,14 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_GGA_XC_EDF1 = 165 ! Empirical functionals from Adamson, Gill, and Pople
   integer(c_int), parameter, public :: XC_GGA_XC_XLYP = 166 ! XLYP functional
   integer(c_int), parameter, public :: XC_GGA_XC_KT1 = 167 ! Keal and Tozer version 1
+  integer(c_int), parameter, public :: XC_GGA_X_LSPBE = 168 ! PW91-like exchange with simple analytical form
+  integer(c_int), parameter, public :: XC_GGA_X_LSRPBE = 169 ! PW91-like modification of RPBE
   integer(c_int), parameter, public :: XC_GGA_XC_B97_D = 170 ! Grimme functional to be used with C6 vdW term
+  integer(c_int), parameter, public :: XC_GGA_X_OPTB86B_VDW = 171 ! Becke 86 reoptimized for use with vdW functional of Dion et al
   integer(c_int), parameter, public :: XC_GGA_XC_PBE1W = 173 ! Functionals fitted for water
   integer(c_int), parameter, public :: XC_GGA_XC_MPWLYP1W = 174 ! Functionals fitted for water
   integer(c_int), parameter, public :: XC_GGA_XC_PBELYP1W = 175 ! Functionals fitted for water
+  integer(c_int), parameter, public :: XC_GGA_C_ACGGAP = 176 ! Asymptotically corrected GGA +
   integer(c_int), parameter, public :: XC_GGA_X_LBM = 182 ! van Leeuwen & Baerends modified
   integer(c_int), parameter, public :: XC_GGA_X_OL2 = 183 ! Exchange form based on Ou-Yang and Levy v.2
   integer(c_int), parameter, public :: XC_GGA_X_APBE = 184 ! mu fixed from the semiclassical neutral atom
@@ -449,8 +458,8 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_GGA_X_HJS_PBE_SOL = 526 ! HJS screened exchange PBE_SOL version
   integer(c_int), parameter, public :: XC_GGA_X_HJS_B88 = 527 ! HJS screened exchange B88 version
   integer(c_int), parameter, public :: XC_GGA_X_HJS_B97X = 528 ! HJS screened exchange B97x version
-  integer(c_int), parameter, public :: XC_GGA_X_ITYH = 529 ! short-range recipe for exchange GGA functionals
-  integer(c_int), parameter, public :: XC_GGA_X_SFAT = 530 ! short-range recipe for exchange GGA functionals
+  integer(c_int), parameter, public :: XC_GGA_X_ITYH = 529 ! short-range recipe B88 functionals - erf
+  integer(c_int), parameter, public :: XC_GGA_X_SFAT = 530 ! short-range recipe for PBE functional
   integer(c_int), parameter, public :: XC_GGA_X_SG4 = 533 ! Semiclassical GGA at fourth order
   integer(c_int), parameter, public :: XC_GGA_C_SG4 = 534 ! Semiclassical GGA at fourth order
   integer(c_int), parameter, public :: XC_GGA_X_GG99 = 535 ! Gilbert and Gill 1999
@@ -476,6 +485,10 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_GGA_K_PBE3 = 595 ! Three parameter PBE-like expansion
   integer(c_int), parameter, public :: XC_GGA_K_PBE4 = 596 ! Four parameter PBE-like expansion
   integer(c_int), parameter, public :: XC_GGA_K_EXP4 = 597 ! Intermediate form between PBE3 and PBE4
+  integer(c_int), parameter, public :: XC_GGA_X_SFAT_PBE = 601 ! short-range recipe for PBE functional
+  integer(c_int), parameter, public :: XC_GGA_X_FD_LB94 = 604 ! Functional derivative recovered from the stray LB94 potential
+  integer(c_int), parameter, public :: XC_GGA_X_FD_REVLB94 = 605 ! Revised FD_LB94
+  integer(c_int), parameter, public :: XC_GGA_C_ZVPBELOC = 606 ! PBEloc variation with enhanced compatibility with exact exchange
   integer(c_int), parameter, public :: XC_HYB_GGA_X_N12_SX = 81 ! N12-SX functional from Minnesota
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_B97_1p = 266 ! version of B97 by Cohen and Handy
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_PBE_MOL0 = 273 ! PBEmol0
@@ -491,6 +504,7 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_PBEH = 406 ! aka PBE0 or PBE1PBE
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_B97 = 407 ! Becke 97
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_B97_1 = 408 ! Becke 97-1
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_APF = 409 ! APF hybrid density functional
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_B97_2 = 410 ! Becke 97-2
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_X3LYP = 411 ! hybrid by Xu and Goddard
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_B1WC = 412 ! Becke 1-parameter mixture of WC and PBE
@@ -542,11 +556,25 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_HSE12 = 479 ! HSE12 by Moussa, Schultz and Chelikowsky
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_HSE12S = 480 ! Short-range HSE12 by Moussa, Schultz, and Chelikowsky
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_HSE_SOL = 481 ! HSEsol functional by Schimka, Harl, and Kresse
-  integer(c_int), parameter, public :: XC_HYB_GGA_XC_CAM_QTP_01 = 482 ! CAM-QTP(01): CAM-B3LYP retuned using ionization potentials of water
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_CAM_QTP_01 = 482 ! CAM-QTP-01
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_MPW1LYP = 483 ! Becke 1-parameter mixture of mPW91 and LYP
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_MPW1PBE = 484 ! Becke 1-parameter mixture of mPW91 and PBE
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_KMLYP = 485 ! Kang-Musgrave hybrid
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_LC_WPBE_WHS = 486 ! Long-range corrected functional by Weintraub, Henderson and Scuseria
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_LC_WPBEH_WHS = 487 ! Long-range corrected functional by Weintraub, Henderson and Scuseria
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_LC_WPBE08_WHS = 488 ! Long-range corrected functional by Weintraub, Henderson and Scuseria
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_LC_WPBESOL_WHS = 489 ! Long-range corrected functional by Weintraub, Henderson and Scuseria
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_CAM_QTP_00 = 490 ! CAM-QTP-00
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_CAM_QTP_02 = 491 ! CAM-QTP-02
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_LC_QTP = 492 ! LC-QTP
   integer(c_int), parameter, public :: XC_HYB_GGA_XC_B5050LYP = 572 ! Like B3LYP but more exact exchange
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_APBE0 = 607 ! Hybrid based on APBE
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_HAPBE = 608 ! Hybrid based in APBE and zvPBEloc
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_RCAM_B3LYP = 610 ! Similar to CAM-B3LYP, but trying to reduce the many-electron self-interaction
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_WC04 = 611 ! hybrid fitted to carbon NMR shifts
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_WP04 = 612 ! hybrid fitted to proton NMR shifts
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_CAM_PBEH = 681 ! CAM version of PBEH
+  integer(c_int), parameter, public :: XC_HYB_GGA_XC_CAMY_PBEH = 682 ! PBEH with Yukawa screening
   integer(c_int), parameter, public :: XC_MGGA_C_DLDF = 37 ! Dispersionless Density Functional
   integer(c_int), parameter, public :: XC_MGGA_XC_ZLP = 42 ! Zhao, Levy & Parr, Eq. (21)
   integer(c_int), parameter, public :: XC_MGGA_XC_OTPSS_D = 64 ! oTPSS_D functional of Goerigk and Grimme
@@ -557,12 +585,13 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_MGGA_C_M11 = 76 ! M11 correlation functional from Minnesota
   integer(c_int), parameter, public :: XC_MGGA_C_M08_SO = 77 ! M08-SO correlation functional from Minnesota
   integer(c_int), parameter, public :: XC_MGGA_C_M08_HX = 78 ! M08-HX correlation functional from Minnesota
+  integer(c_int), parameter, public :: XC_MGGA_C_REVM11 = 172 ! Revised M11 correlation functional from Minnesota
   integer(c_int), parameter, public :: XC_MGGA_X_LTA = 201 ! Local tau approximation of Ernzerhof & Scuseria
   integer(c_int), parameter, public :: XC_MGGA_X_TPSS = 202 ! Tao, Perdew, Staroverov & Scuseria exchange
   integer(c_int), parameter, public :: XC_MGGA_X_M06_L = 203 ! M06-L exchange functional from Minnesota
   integer(c_int), parameter, public :: XC_MGGA_X_GVT4 = 204 ! GVT4 from Van Voorhis and Scuseria
   integer(c_int), parameter, public :: XC_MGGA_X_TAU_HCTH = 205 ! tau-HCTH from Boese and Handy
-  integer(c_int), parameter, public :: XC_MGGA_X_BR89 = 206 ! Becke-Roussel 89
+  integer(c_int), parameter, public :: XC_MGGA_X_BR89 = 206 ! Becke-Roussel 89, gamma = 0.8
   integer(c_int), parameter, public :: XC_MGGA_X_BJ06 = 207 ! Becke & Johnson correction to Becke-Roussel 89
   integer(c_int), parameter, public :: XC_MGGA_X_TB09 = 208 ! Tran & Blaha correction to Becke & Johnson
   integer(c_int), parameter, public :: XC_MGGA_X_RPP09 = 209 ! Rasanen, Pittalis, and Proetto correction to Becke & Johnson
@@ -570,6 +599,7 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_MGGA_X_2D_PRHG07_PRP10 = 211 ! PRGH07 with PRP10 correction
   integer(c_int), parameter, public :: XC_MGGA_X_REVTPSS = 212 ! revised Tao, Perdew, Staroverov & Scuseria exchange
   integer(c_int), parameter, public :: XC_MGGA_X_PKZB = 213 ! Perdew, Kurth, Zupan, and Blaha
+  integer(c_int), parameter, public :: XC_MGGA_X_BR89_1 = 214 ! Becke-Roussel 89, gamma = 1.0
   integer(c_int), parameter, public :: XC_MGGA_X_MS0 = 221 ! MS exchange of Sun, Xiao, and Ruzsinszky
   integer(c_int), parameter, public :: XC_MGGA_X_MS1 = 222 ! MS1 exchange of Sun, et al
   integer(c_int), parameter, public :: XC_MGGA_X_MS2 = 223 ! MS2 exchange of Sun, et al
@@ -595,6 +625,7 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_MGGA_C_TPSSLOC = 247 ! Semilocal dynamical correlation
   integer(c_int), parameter, public :: XC_MGGA_X_MBEEF = 249 ! mBEEF exchange
   integer(c_int), parameter, public :: XC_MGGA_X_MBEEFVDW = 250 ! mBEEF-vdW exchange
+  integer(c_int), parameter, public :: XC_MGGA_C_TM = 251 ! Tao and Mo 2016 correlation
   integer(c_int), parameter, public :: XC_MGGA_XC_B97M_V = 254 ! Mardirossian and Head-Gordon
   integer(c_int), parameter, public :: XC_MGGA_X_MVS = 257 ! MVS exchange of Sun, Perdew, and Ruzsinszky
   integer(c_int), parameter, public :: XC_MGGA_X_MN15_L = 260 ! MN15-L exhange functional from Minnesota
@@ -612,7 +643,9 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_MGGA_X_MS2BS = 301 ! MS2beta* exchange by Furness and Sun
   integer(c_int), parameter, public :: XC_MGGA_X_MVSB = 302 ! MVSBeta exchange of Furness and Sun
   integer(c_int), parameter, public :: XC_MGGA_X_MVSBS = 303 ! MVSBeta* exchange of Furness and Sun
-  integer(c_int), parameter, public :: XC_MGGA_X_TM = 540 ! Tao and Mo 2016
+  integer(c_int), parameter, public :: XC_MGGA_X_RSCAN = 493 ! Regularized SCAN exchange
+  integer(c_int), parameter, public :: XC_MGGA_C_RSCAN = 494 ! Regularized SCAN correlation
+  integer(c_int), parameter, public :: XC_MGGA_X_TM = 540 ! Tao and Mo 2016 exchange
   integer(c_int), parameter, public :: XC_MGGA_X_VT84 = 541 ! meta-GGA version of VT{8,4} GGA
   integer(c_int), parameter, public :: XC_MGGA_X_SA_TPSS = 542 ! TPSS with correct surface asymptotics
   integer(c_int), parameter, public :: XC_MGGA_K_PC07 = 543 ! Perdew and Constantin 2007
@@ -625,7 +658,10 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_MGGA_C_REVSCAN = 582 ! revised SCAN correlation
   integer(c_int), parameter, public :: XC_MGGA_C_SCAN_VV10 = 584 ! SCAN correlation + VV10 correlation
   integer(c_int), parameter, public :: XC_MGGA_C_REVSCAN_VV10 = 585 ! revised SCAN correlation
-  integer(c_int), parameter, public :: XC_MGGA_X_BR89_EXPLICIT = 586 ! Becke-Roussel 89 with an explicit inversion of x(y)
+  integer(c_int), parameter, public :: XC_MGGA_X_BR89_EXPLICIT = 586 ! Becke-Roussel 89 with an explicit inversion of x(y), gamma = 0.8
+  integer(c_int), parameter, public :: XC_MGGA_X_BR89_EXPLICIT_1 = 602 ! Becke-Roussel 89 with an explicit inversion of x(y), gamma = 1.0
+  integer(c_int), parameter, public :: XC_MGGA_X_REGTPSS = 603 ! Regularized TPSS
+  integer(c_int), parameter, public :: XC_MGGA_X_2D_JS17 = 609 ! JS17 meta-GGA for 2D
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_DLDF = 36 ! Dispersionless Density Functional
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_MS2H = 224 ! MS2 hybrid exchange of Sun, et al
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_MN12_SX = 248 ! MN12-SX hybrid exchange functional from Minnesota
@@ -636,6 +672,7 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_M08_HX = 295 ! M08-HX exchange functional from Minnesota
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_M08_SO = 296 ! M08-SO exchange functional from Minnesota
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_M11 = 297 ! M11 hybrid exchange functional from Minnesota
+  integer(c_int), parameter, public :: XC_HYB_MGGA_X_REVM11 = 304 ! revM11 hybrid exchange functional from Minnesota
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_M05 = 438 ! M05 hybrid exchange functional from Minnesota
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_M05_2X = 439 ! M05-2X hybrid exchange functional from Minnesota
   integer(c_int), parameter, public :: XC_HYB_MGGA_XC_B88B95 = 440 ! Mixture of B88 with BC95 (B1B95)
@@ -662,7 +699,7 @@ module LibxcInterface_
   integer(c_int), parameter, public :: XC_HYB_MGGA_XC_TPSS1KCIS = 569 ! TPSS hybrid with KCIS correlation
   integer(c_int), parameter, public :: XC_HYB_MGGA_X_REVSCAN0 = 583 ! revised SCAN hybrid exchange
   integer(c_int), parameter, public :: XC_HYB_MGGA_XC_B98 = 598 ! Becke 98
-# 171 "./libxc_master.F03" 2
+# 165 "./libxc_master.F03" 2
 
   ! These are old names kept for compatibility
   integer(c_int), parameter, public :: &
@@ -996,15 +1033,24 @@ module LibxcInterface_
   !----------------------------------------------------------------
   interface
     subroutine xc_mgga(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau, &
-      v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, v2rhotau, &
-      v2sigmalapl, v2sigmatau, v2lapltau) bind(c)
+         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau, &
+         v2lapl2, v2lapltau, v2tau2, &
+         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl, &
+         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl, &
+         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau, &
+         v3lapltau2, v3tau3) bind(c)
       import
       type(c_ptr), value :: p
       integer(c_int), value :: np
       real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
       real(c_double), intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
-      real(c_double), intent(out) :: v2rho2(*), v2sigma2(*), v2lapl2(*), v2tau2(*), v2rhosigma(*), v2rholapl(*), &
-                                     v2rhotau(*), v2sigmalapl(*), v2sigmatau(*), v2lapltau(*)
+      real(c_double), intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*), &
+           v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
+      real(c_double), intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
+           v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*), &
+           v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*), &
+           v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*), &
+           v3lapltau2(*), v3tau3(*)
     end subroutine xc_mgga
 
     subroutine xc_mgga_exc(p, np, rho, sigma, lapl, tau, zk) bind(c)
@@ -1032,22 +1078,39 @@ module LibxcInterface_
     end subroutine xc_mgga_vxc
 
     subroutine xc_mgga_fxc(p, np, rho, sigma, lapl, tau, &
-      v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, v2rhotau, &
-      v2sigmalapl, v2sigmatau, v2lapltau) bind(c)
+         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau, &
+         v2lapl2, v2lapltau, v2tau2) bind(c)
       import
       type(c_ptr), value :: p
       integer(c_int), value :: np
       real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double), intent(out) :: v2rho2(*), v2sigma2(*), v2lapl2(*), v2tau2(*), v2rhosigma(*), v2rholapl(*), &
-                                     v2rhotau(*), v2sigmalapl(*), v2sigmatau(*), v2lapltau(*)
+      real(c_double), intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*), &
+           v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
     end subroutine xc_mgga_fxc
+
+    subroutine xc_mgga_kxc(p, np, rho, sigma, lapl, tau, &
+         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl, &
+         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl, &
+         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau, &
+         v3lapltau2, v3tau3) bind(c)
+      import
+      type(c_ptr), value :: p
+      integer(c_int), value :: np
+      real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
+      real(c_double), intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
+           v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*), &
+           v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*), &
+           v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*), &
+           v3lapltau2(*), v3tau3(*)
+    end subroutine xc_mgga_kxc
+
   end interface
 
   contains
 
   !----------------------------------------------------------------
   subroutine xc_f03_version(major, minor, micro)
-    integer, intent(out) :: major, minor, micro
+    integer(c_int), intent(out) :: major, minor, micro
 
     call xc_version(major, minor, micro)
 
@@ -1065,14 +1128,14 @@ module LibxcInterface_
 
 
   !----------------------------------------------------------------
-  integer function xc_f03_func_info_get_number(info) result(number)
+  integer(c_int) function xc_f03_func_info_get_number(info) result(number)
     type(xc_f03_func_info_t), intent(in) :: info
 
     number = xc_func_info_get_number(info%ptr)
 
   end function xc_f03_func_info_get_number
 
-  integer function xc_f03_func_info_get_kind(info) result(kind)
+  integer(c_int) function xc_f03_func_info_get_kind(info) result(kind)
     type(xc_f03_func_info_t), intent(in) :: info
 
     kind = xc_func_info_get_kind(info%ptr)
@@ -1086,14 +1149,14 @@ module LibxcInterface_
 
   end function xc_f03_func_info_get_name
 
-  integer function xc_f03_func_info_get_family(info) result(family)
+  integer(c_int) function xc_f03_func_info_get_family(info) result(family)
     type(xc_f03_func_info_t), intent(in) :: info
 
     family = xc_func_info_get_family(info%ptr)
 
   end function xc_f03_func_info_get_family
 
-  integer function xc_f03_func_info_get_flags(info) result(flags)
+  integer(c_int) function xc_f03_func_info_get_flags(info) result(flags)
     type(xc_f03_func_info_t), intent(in) :: info
 
     flags = xc_func_info_get_flags(info%ptr)
@@ -1102,7 +1165,7 @@ module LibxcInterface_
 
   type(xc_f03_func_reference_t) function xc_f03_func_info_get_references(info, number) result(reference)
     type(xc_f03_func_info_t), intent(in) :: info
-    integer, intent(inout) :: number ! number of the reference. Must be 0 in the first call
+    integer(c_int), intent(inout) :: number ! number of the reference. Must be 0 in the first call
 
     type(c_ptr) :: next_ref
 
@@ -1116,7 +1179,7 @@ module LibxcInterface_
 
   end function xc_f03_func_info_get_references
 
-  integer function xc_f03_func_info_get_n_ext_params(info) result(n_ext_params)
+  integer(c_int) function xc_f03_func_info_get_n_ext_params(info) result(n_ext_params)
     type(xc_f03_func_info_t), intent(in) :: info
 
     n_ext_params = xc_func_info_get_n_ext_params(info%ptr)
@@ -1125,7 +1188,7 @@ module LibxcInterface_
 
   character(len=128) function xc_f03_func_info_get_ext_params_description(info, number) result(description)
     type(xc_f03_func_info_t), intent(in) :: info
-    integer, intent(in) :: number
+    integer(c_int), intent(in) :: number
 
     call c_to_f_string_ptr(xc_func_info_get_ext_params_description(info%ptr, number), description)
 
@@ -1133,7 +1196,7 @@ module LibxcInterface_
 
   real(c_double) function xc_f03_func_info_get_ext_params_default_value(info, number) result(val)
     type(xc_f03_func_info_t), intent(in) :: info
-    integer, intent(in) :: number
+    integer(c_int), intent(in) :: number
 
     val = xc_func_info_get_ext_params_default_value(info%ptr, number)
 
@@ -1163,16 +1226,18 @@ module LibxcInterface_
 
 
   !----------------------------------------------------------------
-  subroutine xc_f03_func_init(p, functional, nspin)
+  subroutine xc_f03_func_init(p, functional, nspin, err)
     type(xc_f03_func_t), intent(inout) :: p
-    integer, intent(in) :: functional
-    integer, intent(in) :: nspin
+    integer(c_int), intent(in) :: functional
+    integer(c_int), intent(in) :: nspin
+    integer(c_int), optional, intent(out) :: err
 
-    integer :: ierr
+    integer(c_int) :: ierr
 
     p%ptr = xc_func_alloc()
     ierr = xc_func_init(p%ptr, functional, nspin)
 
+    if(present(err)) err = ierr
   end subroutine xc_f03_func_init
 
   subroutine xc_f03_func_end(p)
@@ -1191,25 +1256,25 @@ module LibxcInterface_
   end function xc_f03_func_get_info
 
   character(len=128) function xc_f03_functional_get_name(number) result(name)
-    integer, intent(in) :: number
+    integer(c_int), intent(in) :: number
 
     call c_to_f_string_ptr(xc_functional_get_name(number), name)
 
   end function xc_f03_functional_get_name
 
-  integer function xc_f03_functional_get_number(func_string) result(number)
+  integer(c_int) function xc_f03_functional_get_number(func_string) result(number)
     character(len=*), intent(in) :: func_string
 
     number = xc_functional_get_number(f_to_c_string(func_string))
 
   end function xc_f03_functional_get_number
 
-  integer function xc_f03_family_from_id(id, family, number)
-    integer, intent(in) :: id
-    integer, intent(out), optional, target :: family, number
+  integer(c_int) function xc_f03_family_from_id(id, family, number)
+    integer(c_int), intent(in) :: id
+    integer(c_int), intent(out), optional, target :: family, number
 
     type(c_ptr) c_family, c_number
-    integer, pointer :: f_family, f_number
+    integer(c_int), pointer :: f_family, f_number
 
     if (present(family)) then
       f_family => family
@@ -1231,7 +1296,7 @@ module LibxcInterface_
   subroutine xc_f03_available_functional_names(list)
     character(len=*), intent(out) :: list(*)
 
-    integer :: n, i, maxlen
+    integer(c_int) :: n, i, maxlen
     character(kind=c_char), allocatable, target :: names(:,:)
     type(c_ptr), allocatable :: c_list(:)
 
@@ -1276,7 +1341,7 @@ module LibxcInterface_
   !----------------------------------------------------------------
   subroutine xc_f03_lda(p, np, rho, zk, vrho, v2rho2, v3rho3)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*)
     real(c_double), intent(out) :: zk(*), vrho(*), v2rho2(*), v3rho3(*)
 
@@ -1286,7 +1351,7 @@ module LibxcInterface_
 
   subroutine xc_f03_lda_exc(p, np, rho, zk)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*)
     real(c_double), intent(out) :: zk(*)
 
@@ -1296,7 +1361,7 @@ module LibxcInterface_
 
   subroutine xc_f03_lda_exc_vxc(p, np, rho, zk, vrho)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*)
     real(c_double), intent(out) :: zk(*), vrho(*)
 
@@ -1306,7 +1371,7 @@ module LibxcInterface_
 
   subroutine xc_f03_lda_vxc(p, np, rho, vrho)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*)
     real(c_double), intent(out) :: vrho(*)
 
@@ -1316,7 +1381,7 @@ module LibxcInterface_
 
   subroutine xc_f03_lda_fxc(p, np, rho, v2rho2)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*)
     real(c_double), intent(out) :: v2rho2(*)
 
@@ -1326,7 +1391,7 @@ module LibxcInterface_
 
   subroutine xc_f03_lda_kxc(p, np, rho, v3rho3)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*)
     real(c_double), intent(out) :: v3rho3(*)
 
@@ -1340,7 +1405,7 @@ module LibxcInterface_
   subroutine xc_f03_gga(p, np, rho, sigma, zk, vrho, vsigma, &
     v2rho2, v2rhosigma, v2sigma2, v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*)
     real(c_double), intent(out) :: zk(*), vrho(*), vsigma(*)
     real(c_double), intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
@@ -1353,7 +1418,7 @@ module LibxcInterface_
 
   subroutine xc_f03_gga_exc(p, np, rho, sigma, zk)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*)
     real(c_double), intent(out) :: zk(*)
 
@@ -1363,7 +1428,7 @@ module LibxcInterface_
 
   subroutine xc_f03_gga_exc_vxc(p, np, rho, sigma, zk, vrho, vsigma)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*)
     real(c_double), intent(out) :: zk(*), vrho(*), vsigma(*)
 
@@ -1373,7 +1438,7 @@ module LibxcInterface_
 
   subroutine xc_f03_gga_vxc(p, np, rho, sigma, vrho, vsigma)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*)
     real(c_double), intent(out) :: vrho(*), vsigma(*)
 
@@ -1383,7 +1448,7 @@ module LibxcInterface_
 
   subroutine xc_f03_gga_fxc(p, np, rho, sigma, v2rho2, v2rhosigma, v2sigma2)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*)
     real(c_double), intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
 
@@ -1393,7 +1458,7 @@ module LibxcInterface_
 
   subroutine xc_f03_gga_kxc(p, np, rho, sigma, v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*)
     real(c_double), intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
 
@@ -1403,7 +1468,7 @@ module LibxcInterface_
 
   subroutine xc_f03_gga_lb_modified(p, np, rho, grho, r, dedd)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), grho(*)
     real(c_double), intent(in) :: r
     real(c_double), intent(out) :: dedd(*)
@@ -1446,24 +1511,36 @@ module LibxcInterface_
   ! the meta-GGAs
   !----------------------------------------------------------------
   subroutine xc_f03_mgga(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau, &
-    v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, v2rhotau, &
-    v2sigmalapl, v2sigmatau, v2lapltau)
+         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau, &
+         v2lapl2, v2lapltau, v2tau2, &
+         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl, &
+         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl, &
+         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau, &
+         v3lapltau2, v3tau3)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
     real(c_double), intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
-    real(c_double), intent(out) :: v2rho2(*), v2sigma2(*), v2lapl2(*), v2tau2(*), v2rhosigma(*), v2rholapl(*), &
-                                      v2rhotau(*), v2sigmalapl(*), v2sigmatau(*), v2lapltau(*)
+    real(c_double), intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*), &
+         v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
+    real(c_double), intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
+         v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*), &
+         v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*), &
+         v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*), &
+         v3lapltau2(*), v3tau3(*)
 
     call xc_mgga(p%ptr, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau, &
-      v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, v2rhotau, &
-      v2sigmalapl, v2sigmatau, v2lapltau)
-
+         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau, &
+         v2lapl2, v2lapltau, v2tau2, &
+         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl, &
+         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl, &
+         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau, &
+         v3lapltau2, v3tau3)
   end subroutine xc_f03_mgga
 
   subroutine xc_f03_mgga_exc(p, np, rho, sigma, lapl, tau, zk)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
     real(c_double), intent(out) :: zk(*)
 
@@ -1473,7 +1550,7 @@ module LibxcInterface_
 
   subroutine xc_f03_mgga_exc_vxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
     real(c_double), intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
 
@@ -1483,7 +1560,7 @@ module LibxcInterface_
 
   subroutine xc_f03_mgga_vxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
     real(c_double), intent(out) :: vrho(*), vsigma(*), vlapl(*), vtau(*)
 
@@ -1492,19 +1569,40 @@ module LibxcInterface_
   end subroutine xc_f03_mgga_vxc
 
   subroutine xc_f03_mgga_fxc(p, np, rho, sigma, lapl, tau, &
-    v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, v2rhotau, &
-    v2sigmalapl, v2sigmatau, v2lapltau)
+       v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau, &
+       v2lapl2, v2lapltau, v2tau2)
     type(xc_f03_func_t), intent(in) :: p
-    integer, intent(in) :: np
+    integer(c_int), intent(in) :: np
     real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
-    real(c_double), intent(out) :: v2rho2(*), v2sigma2(*), v2lapl2(*), v2tau2(*), v2rhosigma(*), &
-                                      v2rholapl(*), v2rhotau(*), v2sigmalapl(*), v2sigmatau(*), v2lapltau(*)
+    real(c_double), intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*), &
+         v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
 
     call xc_mgga_fxc(p%ptr, np, rho, sigma, lapl, tau, &
-      v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, v2rhotau, &
-      v2sigmalapl, v2sigmatau, v2lapltau)
+      v2rho2, v2rhosigma, v2rholapl, v2rhotau, &
+      v2sigma2, v2sigmalapl, v2sigmatau, v2lapl2, v2lapltau, v2tau2)
 
   end subroutine xc_f03_mgga_fxc
+
+  subroutine xc_f03_mgga_kxc(p, np, rho, sigma, lapl, tau, &
+       v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl, &
+       v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl, &
+       v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau, &
+       v3lapltau2, v3tau3)
+    type(xc_f03_func_t), intent(in) :: p
+    integer(c_int), intent(in) :: np
+    real(c_double), intent(in) :: rho(*), sigma(*), lapl(*), tau(*)
+    real(c_double), intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
+           v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*), &
+           v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*), &
+           v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*), &
+           v3lapltau2(*), v3tau3(*)
+
+    call xc_mgga_kxc(p%ptr, np, rho, sigma, lapl, tau, &
+         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl, &
+         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl, &
+         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau, &
+         v3lapltau2, v3tau3)
+  end subroutine xc_f03_mgga_kxc
 
 
   ! Helper functions to convert between C and Fortran strings
@@ -1559,7 +1657,6 @@ module LibxcInterface_
     end if
 
   end subroutine c_to_f_string_ptr
-
 
   
 end module LibxcInterface_
