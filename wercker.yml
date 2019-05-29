@@ -21,7 +21,7 @@ build:
     # http://devcenter.wercker.com/docs/steps/index.html
   steps:
     - install-packages:
-        packages: wget git build-essential liblapack-dev libblas-dev libgsl0-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev libxc-dev
+        packages: wget git build-essential liblapack-dev libblas-dev libgsl0-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev 
     - script:
         name: setup
         code: |
@@ -59,6 +59,14 @@ build:
           #./configure --prefix=$WORKDIR CPPFLAGS='-I/usr/include/eigen3'
           #make -j 4
           #make install
+          cd ..
+          #build libxc
+          git clone https://gitlab.com/libxc/libxc.git
+          cd libxc
+          autoreconf -i
+          ./configure --enable-shared --prefix=$WORKDIR
+          make 
+          make install
           cd ..
     - script:
         name: build

@@ -3,7 +3,7 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: ubuntu:disco
+image: ubuntu:latest
 
 pipelines:
   default:
@@ -13,7 +13,7 @@ pipelines:
           - node
         script:
           - apt-get update
-          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev libxc-dev libxc5
+          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev 
           - # Define work directories
           - WORKDIR=$PWD/dependencies
           - mkdir $WORKDIR
@@ -48,6 +48,14 @@ pipelines:
           - #./configure --prefix=$WORKDIR CPPFLAGS='-I/usr/include/eigen3'
           - #make -j 4
           - #make install
+          - cd ..
+          - #build libxc
+          - git clone https://gitlab.com/libxc/libxc.git
+          - cd libxc
+          - autoreconf -i
+          - ./configure --enable-shared --prefix=$WORKDIR
+          - make 
+          - make install
           - cd ..
           - export PATH=$PATH:$WORKDIR/bin
           - export C_INCLUDE_PATH=$C_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
