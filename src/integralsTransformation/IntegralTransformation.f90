@@ -65,6 +65,7 @@ program IntegralsTransformation
   type(TransformIntegralsD) :: transformInstanceD
   type(TransformIntegralsE) :: transformInstanceE
   type(Matrix) :: eigenVec
+  type(Matrix) :: densityMatrix
   type(Matrix) :: eigenVecOtherSpecie 
   character(50) :: wfnFile
   character(50) :: arguments(2)
@@ -165,10 +166,13 @@ program IntegralsTransformation
            arguments(2) = MolecularSystem_getNameOfSpecie(i)
   
            arguments(1) = "COEFFICIENTS"
-  
            eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
                 columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-          
+
+           arguments(1) = "DENSITY"
+           densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+ 
           arguments(1) = "ORBITALS"
            call Vector_getFromFile( elementsNum = numberOfContractions, &
                 unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -196,7 +200,7 @@ program IntegralsTransformation
               case ( "C" ) 
 
                 call TransformIntegralsC_atomicToMolecularOfOneSpecie(  transformInstanceC, &
-                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
+                       densityMatrix, eigenVec, specieID, trim(nameOfSpecies) ) 
 
               case ( "D" )
 

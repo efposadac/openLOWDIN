@@ -45,7 +45,7 @@ module CONTROL_
      real(8) :: TV
      real(8) :: INTEGRAL_THRESHOLD
      integer :: INTEGRAL_STACK_SIZE
-     character(20) :: INTEGRAL_DESTINY
+     character(20) :: INTEGRAL_STORAGE
      character(20) :: INTEGRAL_SCHEME
      logical :: SCHWARZ_INEQUALITY
 
@@ -341,7 +341,7 @@ module CONTROL_
   real(8) :: LowdinParameters_tv
   real(8) :: LowdinParameters_integralThreshold
   integer :: LowdinParameters_integralStackSize
-  character(20) :: LowdinParameters_integralDestiny
+  character(20) :: LowdinParameters_integralStorage
   character(20) :: LowdinParameters_integralScheme
   logical :: LowdinParameters_schwarzInequality
 
@@ -636,7 +636,7 @@ module CONTROL_
        LowdinParameters_tv,&
        LowdinParameters_integralThreshold,&
        LowdinParameters_integralStackSize,&
-       LowdinParameters_integralDestiny,&
+       LowdinParameters_integralStorage,&
        LowdinParameters_integralScheme,&
        LowdinParameters_schwarzInequality, &
        
@@ -958,7 +958,7 @@ contains
     LowdinParameters_tv = 1.0E-6
     LowdinParameters_integralThreshold = 1.0E-10
     LowdinParameters_integralStackSize = 30000
-    LowdinParameters_integralDestiny = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
+    LowdinParameters_integralStorage = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
     LowdinParameters_schwarzInequality = .false.
 
@@ -1258,7 +1258,7 @@ contains
     CONTROL_instance%TV = 1.0E-6
     CONTROL_instance%INTEGRAL_THRESHOLD = 1.0E-10
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
-    CONTROL_instance%INTEGRAL_DESTINY = "DISK" !! "DISK" or "DIRECT"
+    CONTROL_instance%INTEGRAL_STORAGE = "DISK" !! "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
     CONTROL_instance%SCHWARZ_INEQUALITY = .false.
 
@@ -1596,7 +1596,7 @@ contains
     CONTROL_instance%TV = LowdinParameters_tv
     CONTROL_instance%INTEGRAL_THRESHOLD = LowdinParameters_integralThreshold
     CONTROL_instance%INTEGRAL_STACK_SIZE = LowdinParameters_integralStackSize
-    CONTROL_instance%INTEGRAL_DESTINY = LowdinParameters_integralDestiny
+    CONTROL_instance%INTEGRAL_STORAGE = LowdinParameters_integralStorage
     CONTROL_instance%INTEGRAL_SCHEME =  LowdinParameters_integralScheme
     CONTROL_instance%SCHWARZ_INEQUALITY = LowdinParameters_schwarzInequality
 
@@ -1908,7 +1908,7 @@ contains
     LowdinParameters_tv = CONTROL_instance%TV
     LowdinParameters_integralThreshold = CONTROL_instance%INTEGRAL_THRESHOLD
     LowdinParameters_integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
-    LowdinParameters_integralDestiny = CONTROL_instance%INTEGRAL_DESTINY
+    LowdinParameters_integralStorage = CONTROL_instance%INTEGRAL_STORAGE
     LowdinParameters_integralScheme = CONTROL_instance%INTEGRAL_SCHEME
     LowdinParameters_schwarzInequality = CONTROL_instance%SCHWARZ_INEQUALITY
 
@@ -2216,7 +2216,7 @@ contains
     !!
     otherThis%TV = this%TV 
     otherThis%INTEGRAL_THRESHOLD = this%INTEGRAL_THRESHOLD 
-    otherThis%INTEGRAL_DESTINY = this%INTEGRAL_DESTINY 
+    otherThis%INTEGRAL_STORAGE = this%INTEGRAL_STORAGE 
     otherThis%INTEGRAL_SCHEME = this%INTEGRAL_SCHEME
     otherThis%INTEGRAL_STACK_SIZE = this%INTEGRAL_STACK_SIZE 
     otherThis%SCHWARZ_INEQUALITY = this%SCHWARZ_INEQUALITY
@@ -2675,7 +2675,7 @@ contains
 
     if(CONTROL_instance%METHOD/="MM") then
        write (*,"(T10,A,I5)") "SCHEME OF ITERATION: ",CONTROL_instance%ITERATION_SCHEME
-       write (*,"(T10,A)") "INTEGRAL DESTINY: "//trim(CONTROL_instance%INTEGRAL_DESTINY)
+       write (*,"(T10,A)") "INTEGRAL STORAGE: "//trim(CONTROL_instance%INTEGRAL_STORAGE)
        write (*,"(T10,A,I5)") "STACK SIZE FOR ERIS : ", CONTROL_instance%INTEGRAL_STACK_SIZE
 
        select case(CONTROL_instance%CONVERGENCE_METHOD)

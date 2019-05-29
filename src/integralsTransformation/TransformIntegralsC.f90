@@ -38,6 +38,7 @@ module TransformIntegralsC_
   use Matrix_
   use IndexMap_
   use Exception_
+  use DirectIntegralManager_
   use omp_lib
   implicit none
 
@@ -128,13 +129,13 @@ contains
   !! @brief Transforma integrales de repulsion atomicas entre particulas de la misma especie
   !!    a integrales moleculares.
   !<
-  subroutine TransformIntegralsC_atomicToMolecularOfOneSpecie( this, coefficientsOfAtomicOrbitals, &
-       molecularIntegrals, specieID, nameOfSpecie  )
+  subroutine TransformIntegralsC_atomicToMolecularOfOneSpecie( this, densityMatrix, coefficientsOfAtomicOrbitals, &
+       speciesID, nameOfSpecie  )
     implicit none
     type(TransformIntegralsC) :: this
+    type(Matrix) :: densityMatrix
     type(Matrix) :: coefficientsOfAtomicOrbitals
-    type(Matrix) :: molecularIntegrals
-    integer :: specieID
+    integer :: speciesID
     character(*) :: nameOfSpecie
     integer :: integralStackSize
 
@@ -146,7 +147,7 @@ contains
     real(8) , allocatable :: twoParticlesIntegrals(:)
     real(8)  auxTransformedTwoParticlesIntegral
 
-    real(8), allocatable :: auxtempA(:,:,:)
+    real(8), allocatable, target :: auxtempA(:,:,:)
     real(8), allocatable :: tempA(:,:,:)
     real(8), allocatable :: tempB(:,:)
     real(8), allocatable :: tempC(:)
@@ -174,14 +175,16 @@ contains
     integer :: unitid
     integer(8) :: filesize
 
+    if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
+
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
     this%prefixOfFile =""//trim(nameOfSpecie)
     this%fileForCoefficients =""//trim(nameOfSpecie)//"mo.values"
 
-    this%specieID = specieID
+    this%specieID = speciesID
 
-    call TransformIntegralsC_checkMOIntegralType(specieID, this)
+    call TransformIntegralsC_checkMOIntegralType(speciesID, this)
 
     this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
     ssize = this%numberOfContractions
@@ -257,7 +260,6 @@ contains
           else 
             index2 = ioff(pq) + rs
           end if
-
           twoParticlesIntegrals(index2) = shellIntegrals(i)
       end do
     end do 
@@ -277,6 +279,7 @@ contains
         index2 = ioff(pq) + rs
       end if
 
+      !    print *, pp(i), qq(i), rr(i), ss(i), shellIntegrals(i)
       twoParticlesIntegrals(index2) = shellIntegrals(i)
 
     end do 
@@ -303,11 +306,11 @@ contains
     allocate (tempA ( ssize, ssize, ssize ) )
     tempA = 0
 
-    if ( allocated (auxtempA)) deallocate (auxtempA )
-    allocate (auxtempA ( this%numberOfContractions , &
-         this%numberOfContractions, &
-         this%numberOfContractions ) )
-    auxtempA = 0
+    !if ( allocated (auxtempA)) deallocate (auxtempA )
+    !allocate (auxtempA ( this%numberOfContractions , &
+    !     this%numberOfContractions, &
+    !     this%numberOfContractions ) )
+    !auxtempA = 0
 
 
     auxIntegrals = 0.0_8
@@ -334,6 +337,7 @@ contains
        n = p
        tempA = 0
        auxTransformedTwoParticlesIntegral = 0
+       ! print *, "ppppp"
 
        !! First quarter
        do mu = 1, this%numberOfContractions
@@ -357,17 +361,31 @@ contains
                    else 
                      index2 = ioff(ij) + kl
                    end if
-                
+                     
+                   !print *, mu, j,k,l,tempA(l,k,j), twoParticlesIntegrals(index2),coefficientsOfAtomicOrbitals%values( mu, p ) 
+
                    tempA(l,k,j) = tempA(l,k,j) + twoParticlesIntegrals(index2)*coefficientsOfAtomicOrbitals%values( mu, p ) 
                    tempA(k,l,j) = tempA(l,k,j) 
                 end do
              end do
           end do
 
-          !tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
+         !tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
           !     auxtempA(:,:,:)
 
        end do
+
+
+          !print *, "tempA"
+          !do j = 1, ssize
+          !  do k = 1, ssize
+          !    do l = 1, ssize
+          !      print *, j,k,l,tempA(j,k,l)
+          !    end do 
+          !  end do 
+          !end do 
+
+ 
 
        do q = p, this%q_u
           u = q
@@ -457,6 +475,216 @@ contains
     close(CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE)
 
     write (*,"(T4,A36,I12)") "Non-zero transformed integrals: ", mm
+
+    !!!!!!!!!!!!!!!!!!!!!!!!
+    else !! DIRECT
+
+    integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
+
+    this%prefixOfFile =""//trim(nameOfSpecie)
+    this%fileForCoefficients =""//trim(nameOfSpecie)//"mo.values"
+
+    this%specieID = speciesID
+
+    call TransformIntegralsC_checkMOIntegralType(speciesID, this)
+
+    this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
+    ssize = this%numberOfContractions
+
+    !call TransformIntegralsE_setmem( ssize, twoParticlesIntegrals )
+    !call TransformIntegralsC_setSizeOfIndexArray( ssize, twoParticlesIntegrals)
+    !!call TransformIntegralsC_setSizeOfIntegralsArray( ssize, twoParticlesIntegrals)
+
+    ssize2 = (ssize * (ssize + 1))/2 
+
+    allocate (xy ( ssize , ssize ) )
+    allocate (ioff ( ssize2 ) )
+
+    xy = 0
+    ioff = 0
+
+    m = 0
+    do p = 1,  ssize
+      do q = p,  ssize
+        m = m + 1
+        xy(p,q) = m        
+        xy(q,p) = m        
+      end do
+    end do
+
+    ioff(1) = 0
+    do pq = 2, ssize2 
+      ioff(pq) = ioff(pq-1) + ssize2 - pq + 1 
+    end do
+
+    !! First half-transformation
+!$  timeA(2) = omp_get_wtime()
+
+    allocate (tempB ( ssize, ssize ) )
+    tempB = 0
+
+    if ( allocated (tempC)) deallocate (tempC )
+    allocate (tempC ( ssize ) )
+
+    tempC = 0
+
+    !if ( allocated (tempA)) deallocate (tempA )
+    !allocate (tempA ( ssize, ssize, ssize ) )
+    !tempA = 0
+
+    auxIntegrals = 0.0_8
+    pp = 0
+    qq = 0
+    rr = 0
+    ss = 0
+
+    open(unit=CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE, file=trim(this%prefixOfFile)//"moint.dat", &
+         status='replace',access='sequential', form='unformatted' )
+
+    m = 0
+    mm = 0
+
+    !call omp_set_num_threads(omp_get_max_threads())
+    !print *, "fortran", coefficientsOfAtomicOrbitals%values(1,2)
+    !print *, "fortran", coefficientsOfAtomicOrbitals%values(2,1)
+
+    !! begin transformation
+    mm = 0
+    do p = this%p_l, this%p_u
+       n = p
+       !tempA = 0
+       auxTransformedTwoParticlesIntegral = 0
+
+       !! First quarter
+       !do mu = 1, this%numberOfContractions
+
+          !if ( abs(coefficientsOfAtomicOrbitals%values( mu, p )) < 1E-10 ) cycle
+          !! auxtemp is the twoparticlesintegrals reduced to a three dimensional array
+          !call TransformIntegralsC_buildArrayA( twoParticlesIntegrals, mu, &
+          !     this%numberOfContractions, int(ssize2,4), auxtempA )
+          !print *, "ppppppppp"
+
+          call DirectIntegralManager_getDirectIntraRepulsionIntegrals(&
+               speciesID, &
+               trim(CONTROL_instance%INTEGRAL_SCHEME), &
+               densityMatrix, & 
+               coefficientsOfAtomicOrbitals, &
+               auxtempA, p-1 )
+
+          !do j = 1, ssize
+          !   !ij = int(IndexMap_tensorR2ToVectorB( int(mu,8), int(j,8), int(ssize,8)), 4)
+          !   ij = xy(j,mu)
+          !   kl = 0
+          !   do k = 1, ssize
+          !      do l = k, ssize
+          !         kl = kl + 1
+          !                  !auxIndex = IndexMap_tensorR4ToVectorB(int(i,8),int(j,8),int(k,8),int(l,8),int(ssize,8))
+          !         !index2 =(IndexMap_tensorR2ToVectorB( int(ij,8), int(kl,8), int(ssize2,8)))
+          !         if ( ij >= kl ) then 
+          !           index2 = ioff(kl) + ij
+          !         else 
+          !           index2 = ioff(ij) + kl
+          !         end if
+          !      
+          !         tempA(l,k,j) = tempA(l,k,j) + twoParticlesIntegrals(index2)*coefficientsOfAtomicOrbitals%values( mu, p ) 
+          !         tempA(k,l,j) = tempA(l,k,j) 
+          !      end do
+          !   end do
+          !end do
+          !print *,  "========"
+          !print *, "tempA"
+          !do j = 1, ssize
+          !  do k = 1, ssize
+          !    do l = 1, ssize
+          !      print *, j,k,l,auxtempA(j,k,l)
+          !    end do 
+          !  end do 
+          !end do 
+          !tempA(:,:,:) = tempA(:,:,:) + coefficientsOfAtomicOrbitals%values( mu, p ) * & 
+          !     auxtempA(:,:,:)
+
+       !end do
+
+       do q = p, this%q_u
+          u = q
+          tempB = 0
+
+          if ( q < this%q_l ) cycle
+          !! second quarter
+          do nu = 1, this%numberOfContractions
+             !if ( abs(coefficientsOfAtomicOrbitals%values( nu, q )) < 1E-10 ) cycle
+             tempB(:,:) = tempB(:,:) + coefficientsOfAtomicOrbitals%values( nu, q )* &
+                  auxtempA(:,:,nu)
+          end do
+
+          do r = n, this%r_u
+
+             tempC = 0
+
+             !if ( r <  this%r_l  ) cycle
+
+             !! third quarter
+             do lambda = 1, this%numberOfContractions
+                !if ( abs(coefficientsOfAtomicOrbitals%values( lambda, r )) < 1E-10 ) cycle
+                tempC(:) = tempC(:) + coefficientsOfAtomicOrbitals%values( lambda, r )* &
+                     !tempB(lambda,:)
+                     tempB(:,lambda)
+             end do
+
+             do s = u, this%s_u
+                auxTransformedTwoParticlesIntegral = 0
+
+                if ( s < this%s_l ) cycle
+                !! fourth quarter
+                do sigma = 1, this%numberOfContractions
+                   auxTransformedTwoParticlesIntegral = auxTransformedTwoParticlesIntegral + &
+                        coefficientsOfAtomicOrbitals%values( sigma, s )* &
+                        tempC(sigma)
+
+                end do
+
+                if ( abs(auxTransformedTwoParticlesIntegral ) > 1E-10 ) then
+                  m = m + 1
+                  auxIntegrals(m) = auxTransformedTwoParticlesIntegral
+                  pp(m) = p
+                  qq(m) = q
+                  rr(m) = r
+                  ss(m) = s
+        
+                  if (m == integralStackSize ) then
+                    write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) pp, qq, rr, ss, auxIntegrals
+                    mm = mm + m
+                    m = 0
+                    auxIntegrals = 0
+                    pp = 0
+                    qq = 0
+                    rr = 0
+                    ss = 0
+                  end if
+                end if
+
+             end do
+             u = r + 1
+          end do
+       end do
+    end do
+
+    mm = mm + m 
+    m = m + 1
+    pp(m) = -1_8
+
+    write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) pp, qq, rr, ss, auxIntegrals
+
+!    close (unittmp)
+!    deallocate (twoParticlesIntegrals)
+
+!$  timeB(2) = omp_get_wtime()
+!$  write(*,"(T4,A36,E10.3)") "Integral transformation time(s): ", timeB(2) -timeA(2) 
+    close(CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE)
+
+    write (*,"(T4,A36,I12)") "Non-zero transformed integrals: ", mm
+
+    end if
     
   end subroutine TransformIntegralsC_atomicToMolecularOfOneSpecie
 

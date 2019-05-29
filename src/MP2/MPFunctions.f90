@@ -325,6 +325,7 @@ end if
    integer :: i
    integer :: j
    integer :: m
+   integer :: is
    integer :: specieID
    integer :: otherSpecieID
    integer :: electronsID
@@ -350,6 +351,19 @@ end if
    character(50) :: wfnFile
    character(50) :: arguments(2)
    integer :: wfnUnit
+
+   integer :: i1, i2, nVirtualOrbitals
+   integer :: ii(CONTROL_instance%INTEGRAL_STACK_SIZE)
+   integer :: jj(CONTROL_instance%INTEGRAL_STACK_SIZE)
+   integer :: aa(CONTROL_instance%INTEGRAL_STACK_SIZE)
+   integer :: bb(CONTROL_instance%INTEGRAL_STACK_SIZE)
+   real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
+   integer :: integralStackSize
+   character(255) :: prefixOfFile
+   integer :: unidOfOutputForIntegrals
+   real(8), allocatable :: intArray(:,:,:)
+   integer :: errorValue
+
    !! TypeOfIntegrals 
    integer, parameter :: ONE_SPECIE     = 0
    integer, parameter :: TWO_SPECIES      = 1
@@ -370,22 +384,22 @@ end if
    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
    rewind(wfnUnit)
 
-   do i=1, MollerPlesset_instance%numberOfSpecies
+   do is=1, MollerPlesset_instance%numberOfSpecies
 
       
       MollerPlesset_instance%frozenCoreBoundary = 1
 
-      if ( i == electronsID )  MollerPlesset_instance%frozenCoreBoundary = &
+      if ( is == electronsID )  MollerPlesset_instance%frozenCoreBoundary = &
            CONTROL_instance%MP_FROZEN_CORE_BOUNDARY
       
-      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( is ) )
       
       independentEnergyCorrection = 0.0_8
       
       if( trim(nameOfSpecie)=="E-" .or. .not.CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION ) then
          
-         numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
-         arguments(2) = MolecularSystem_getNameOfSpecie(i)
+         numberOfContractions = MolecularSystem_getTotalNumberOfContractions(is)
+         arguments(2) = MolecularSystem_getNameOfSpecie(is)
 
          arguments(1) = "COEFFICIENTS"
          eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -398,97 +412,202 @@ end if
          
          
          specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
-         ocupationNumber = MolecularSystem_getOcupationNumber( i )
-         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
-         lambda = MolecularSystem_instance%species(i)%lambda
+         ocupationNumber = MolecularSystem_getOcupationNumber( is )
+         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( is )
+         lambda = MolecularSystem_instance%species(is)%lambda
          
          !! Read transformed integrals from file
 
-         call ReadTransformedIntegrals_readOneSpecies( specieID, auxMatrix)
+         !!if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
 
-!         call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer,&
-!              eigenVec, auxMatrix, specieID, trim(nameOfSpecie) )
+           call ReadTransformedIntegrals_readOneSpecies( specieID, auxMatrix)
 
-                !!**************************************************************************
-                !!  Calcula la correccion de segundo orden a la energia
-                !!****
-                do a=MollerPlesset_instance%frozenCoreBoundary, ocupationNumber
-                        do b=MollerPlesset_instance%frozenCoreBoundary,ocupationNumber
-                                do r=ocupationNumber+1, numberOfContractions
-                                        do s=r, numberOfContractions
-                                                auxIndex = IndexMap_tensorR4ToVectorB(int(a,8),int(r,8),int(b,8),int(s,8), &
-                                                             int(numberOfContractions,8) )
+!           call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer,&
+!                eigenVec, auxMatrix, specieID, trim(nameOfSpecie) )
 
-                                                auxVal_A= auxMatrix%values(auxIndex, 1)
+                  !!**************************************************************************
+                  !!  Calcula la correccion de segundo orden a la energia
+                  !!****
+           do a=MollerPlesset_instance%frozenCoreBoundary, ocupationNumber
+             do b=MollerPlesset_instance%frozenCoreBoundary,ocupationNumber
+               do r=ocupationNumber+1, numberOfContractions
+                 do s=r, numberOfContractions
+                   auxIndex = IndexMap_tensorR4ToVectorB(int(a,8),int(r,8),int(b,8),int(s,8), &
+                                                        int(numberOfContractions,8) )
 
-                                                if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
+                   auxVal_A= auxMatrix%values(auxIndex, 1)
 
-                                                        if ( s>r ) then
+                   if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
 
-                                                                if (a==b) then
+                     if ( s>r ) then
 
-                                                                        if( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+                       if (a==b) then
 
-                                                                                independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A**2.0  &
-                                                                                * ( lambda  -  1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
-                                                                                - eigenValues%values(r) - eigenValues%values(s) )
+                         if( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
 
-                                                                        end if
+                           independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A**2.0  &
+                                                        * ( lambda  -  1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                        - eigenValues%values(r) - eigenValues%values(s) )
 
-                                                                else
+                         end if
 
-                                                                        auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
-                                                                        auxVal_B= auxMatrix%values(auxIndex, 1)
+                       else
 
-                                                                        independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A  &
-                                                                        * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(a) + eigenValues%values(b) &
-                                                                        - eigenValues%values(r) - eigenValues%values(s) )
+                         auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
+                         auxVal_B= auxMatrix%values(auxIndex, 1)
 
-                                                                end if
+                         independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A  &
+                                                     * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                     - eigenValues%values(r) - eigenValues%values(s) )
 
-                                                        else if ( a==b .and. r==s ) then
+                       end if
 
-                                                                if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+                     else if ( a==b .and. r==s ) then
 
-                                                                        independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0_8  &
-                                                                                * ( lambda - 1.0_8 ) / ( 2.0_8*( eigenValues%values(a)-eigenValues%values(r)))
+                       if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
 
-                                                                end if
+                         independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0_8  &
+                                                      * ( lambda - 1.0_8 ) / ( 2.0_8*( eigenValues%values(a)-eigenValues%values(r)))
 
-                                                        else
-
-                                                                if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-                                                                        independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0  &
-                                                                                * ( lambda  - 1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
-                                                                                - eigenValues%values(r) - eigenValues%values(s) )
-                                                                end if
-
-                                                        end if
-                                                end if
+                       end if
 
 
-                                        end do
-                                end do
-                        end do
-                end do
-        end if
+                     else
 
-    MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = independentEnergyCorrection &
+                       if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+                         independentEnergyCorrection = independentEnergyCorrection + auxVal_A**2.0  &
+                                                      * ( lambda  - 1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
+                                                      - eigenValues%values(r) - eigenValues%values(s) )
+                       end if
+
+                     end if
+                   end if
+
+                 end do
+               end do
+             end do
+           end do
+
+         !!else !! DIRECT
+
+         !!  integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
+         !!  prefixOfFile =""//trim(nameOfSpecie)
+         !!  unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+         !!  nVirtualOrbitals = numberOfContractions - ocupationNumber 
+
+         !!  allocate (intArray(numberOfContractions, numberOfContractions, numberOfContractions))
+         !!  intArray = 0
+         !!  i1 = 1 !! replace to frozen core
+
+         !!  !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+         !!  open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
+         !!    status='old',access='sequential', form='unformatted' )
+
+         !!  readIntegralsC : do
+         !!    read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) ii, aa, jj, bb, shellIntegrals
+         !!    do p = 1, integralStackSize
+
+
+         !!       if ( ii(p) /= i1 ) then
+         !!        ! print *, i1
+         !!         i = i1
+         !!         i1 = ii(p)
+         !!         do j = i,ocupationNumber
+         !!           do a = ocupationNumber+1, numberOfContractions
+         !!             do b = a, numberOfContractions
+
+        
+         !!     !!auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), int(numberOfContractions,8 ))
+         !!     !!matrixContainer%values( auxIndex, 1 ) = auxIntegrals(i)
+         !!            auxVal_A = intArray(j,a,b)
+
+         !!            if ( b > a ) then
+
+         !!              if ( i == j ) then
+
+         !!                if( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+
+         !!                  independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A**2.0  &
+         !!                                               * ( lambda  -  1.0_8 ) / ( eigenValues%values(i) + eigenValues%values(j) &
+         !!                                               - eigenValues%values(a) - eigenValues%values(b) )
+
+         !!                end if
+
+         !!              else
+
+         !!                !auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
+         !!                !auxVal_B= auxMatrix%values(auxIndex, 1)
+         !!                auxVal_B = intArray(j,b,a)
+
+         !!                independentEnergyCorrection = independentEnergyCorrection + 2.0_8 * auxVal_A  &
+         !!                                            * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(i) + eigenValues%values(j) &
+         !!                                            - eigenValues%values(a) - eigenValues%values(b) )
+
+         !!              end if
+
+         !!            else if ( i == j .and. a == b ) then
+
+         !!              if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+
+         !!                independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0_8  &
+         !!                                             * ( lambda - 1.0_8 ) / ( 2.0_8*( eigenValues%values(i)-eigenValues%values(a)))
+
+         !!              end if
+
+         !!            else
+
+         !!              if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+         !!                independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0  &
+         !!                                             * ( lambda  - 1.0_8 ) / ( eigenValues%values(i) + eigenValues%values(j) &
+         !!                                             - eigenValues%values(a) - eigenValues%values(b) )
+         !!              end if
+
+         !!            end if
+
+         !!          end do
+         !!        end do
+         !!      end do
+
+         !!      intArray = 0
+
+         !!    end if
+
+         !!     if ( ii(p) == -1_8 ) exit readIntegralsC
+         !!       ! print *, "===", ii(p), jj(p),aa(p),bb(p), shellIntegrals(p)
+         !!       if ( ii(p) == i1 ) then
+         !!         intArray(jj(p),aa(p),bb(p))  = shellIntegrals(p)
+         !!         !|intArray(jj(p),bb(p),aa(p))  = shellIntegrals(p)
+
+         !!       end if
+
+         !!    end do
+
+         !!  end do readIntegralsC
+
+         !!close(unidOfOutputForIntegrals)
+
+         !!  deallocate(intArray)
+
+
+         !!end if !!direct
+
+       end if
+
+    MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = independentEnergyCorrection &
       * ( ( MolecularSystem_getCharge( specieID ) )**4.0_8 )
 
-                if ( nameOfSpecie == "E-ALPHA" .or. nameOfSpecie == "E-BETA" ) then
+    if ( nameOfSpecie == "E-ALPHA" .or. nameOfSpecie == "E-BETA" ) then
 
-                        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = &
-                        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) / &
-                        ( 2.0 )
+      MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = &
+        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) / ( 2.0 )
 
-                else 
-                        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) = &
-                        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i) / &
-                        ( MolecularSystem_getParticlesFraction ( specieID ) * 2.0 )
-                end if
+    else 
+
+      MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = &
+        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) / &
+        ( MolecularSystem_getParticlesFraction ( specieID ) * 2.0 )
+    end if
         
-
 
     call Matrix_destructor(auxMatrix)
     !!
@@ -497,17 +616,17 @@ end if
   end do
 
 
-!! Suma las correcciones de energia para especies independientes
-MollerPlesset_instance%secondOrderCorrection = sum( MollerPlesset_instance%energyCorrectionOfSecondOrder%values )
+  !! Suma las correcciones de energia para especies independientes
+  MollerPlesset_instance%secondOrderCorrection = sum( MollerPlesset_instance%energyCorrectionOfSecondOrder%values )
 
-!!
-!!*******************************************************************************************
+  !!
+  !!*******************************************************************************************
 
 
-!!*******************************************************************************************
-!! Calculo de correcion se segundo orden para interaccion entre particulas de especie diferente
-!!
-if ( MollerPlesset_instance%numberOfSpecies > 1 ) then
+  !!*******************************************************************************************
+  !! Calculo de correcion se segundo orden para interaccion entre particulas de especie diferente
+  !!
+  if ( MollerPlesset_instance%numberOfSpecies > 1 ) then
 
    couplingEnergyCorrection = 0.0_8
    m=0

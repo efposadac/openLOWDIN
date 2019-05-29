@@ -340,7 +340,7 @@ contains
        if ( WaveFunction_instance(speciesID)%exactExchangeFraction .gt. 0.0_8 ) &
             factor = MolecularSystem_getFactorOfInterchangeIntegrals( speciesID)*WaveFunction_instance(speciesID)%exactExchangeFraction
 
-       if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
+       if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
 
 
           !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, rr, ss, shellIntegrals, i, coulomb, exchange, tmpArray)
@@ -607,7 +607,7 @@ contains
          wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(j)%values = 0.0_8
        end do
 
-       if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
+       if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
 
           !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, a, b, r, s, integral, u, i, j, coulomb, auxMatrix, speciesIterator), &
           !$OMP& private(otherSpecieID, nameofOtherSpecie, otherNumberOfContractions)
@@ -1396,7 +1396,7 @@ contains
              !Restringe la suma a solo electrones
              if(trim(nameOfSpecie)=="E-ALPHA" .and. trim(nameOfOtherSpecie)=="E-BETA") then
 
-              !!if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_DESTINY)) == "DIRECT" ) then
+              !!if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
               !!  
               !!  !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, auxValue, m, a, b, r, s, integral, u)
 

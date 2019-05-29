@@ -222,6 +222,16 @@ module Libint2Interface_
        real(c_double)  :: factor
      end subroutine c_LibintInterface_compute2BodyDirect
 
+     subroutine c_LibintInterface_compute2BodyDirectIT(this, density, coefficients, result, p) bind(C, name="LibintInterface_compute_2body_directIT")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: this        
+       type(c_ptr), value :: density
+       type(c_ptr), value :: coefficients
+       type(c_ptr), value :: result
+       integer(c_int)  :: p
+     end subroutine c_LibintInterface_compute2BodyDirectIT
+
      subroutine c_LibintInterface_compute2BodyDisk(this, filename, density) bind(C, name="LibintInterface_compute_2body_disk")
        use, intrinsic :: iso_c_binding
        implicit none
@@ -444,6 +454,49 @@ contains
     call c_LibintInterface_compute2BodyDirect(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr, factor)
 
   end subroutine Libint2Interface_compute2BodyIntraspecies_direct
+
+  !>
+  !! Compute  2-body integrals and computes the A matrix
+  subroutine Libint2Interface_compute2BodyIntraspecies_direct_IT(speciesID, density, coefficients, matrixA, p)
+    implicit none
+
+    integer :: speciesID
+    real(8), allocatable, target :: density(:,:)
+    real(8), allocatable, target :: coefficients(:,:)
+    real(8), allocatable, target :: matrixA(:,:,:)
+    integer :: p
+
+    type(c_ptr) :: density_ptr
+    type(c_ptr) :: coefficients_ptr
+    type(c_ptr) :: matrixA_ptr
+
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    ! Prepare matrix
+    if(allocated(matrixA)) deallocate(matrixA)
+    allocate(matrixA(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
+         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
+         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+    matrixA = 0
+
+    matrixA_ptr = c_loc(matrixA(1,1,1))
+    coefficients_ptr = c_loc(coefficients(1,1))
+    density_ptr = c_loc(density(1,1))
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
+    call c_LibintInterface_compute2BodyDirectIT(Libint2Instance(speciesID)%this, density_ptr, coefficients_ptr, matrixA_ptr, p)
+
+  end subroutine Libint2Interface_compute2BodyIntraspecies_direct_IT
 
   !>
   !! Compute 2-body integrals and store them on disk

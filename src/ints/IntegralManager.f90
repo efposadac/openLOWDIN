@@ -789,7 +789,7 @@ contains
     speciesID = MolecularSystem_getSpecieID(trim(nameOfSpecies))
     numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
 
-    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
+    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE )) == "DIRECT") return 
 
     !! Calculate integrals (stored on disk)           
     select case (trim(String_getUppercase(trim(scheme))))
@@ -827,7 +827,7 @@ contains
     integer :: i, j
     integer :: auxCounter = 0
 
-    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY )) == "DIRECT") return 
+    if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE )) == "DIRECT") return 
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies

@@ -13,7 +13,7 @@ TASKS
 END TASKS
 
 CONTROL
-	integralDestiny = "DIRECT"
+	integralStorage = "DIRECT"
 END CONTROL
 
 

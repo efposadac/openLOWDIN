@@ -269,6 +269,10 @@ public:
       const Matrix &D, const Matrix &Schwartz, double &factor, 
       double precision = std::numeric_limits<double>::epsilon());
 
+  void compute_2body_directIT(
+      const Matrix &D, const Matrix &C, const Matrix &Schwartz, int &p, double *A,
+      double precision = std::numeric_limits<double>::epsilon());
+
   void compute_coupling_disk(
       LibintInterface &other, const char *filename,
       double precision = std::numeric_limits<double>::epsilon());
@@ -329,6 +333,9 @@ void LibintInterface_init_2body_ints(LibintInterface *lint);
 
 void LibintInterface_compute_2body_direct(LibintInterface *lint, double *dens,
                                           double *result, double &factor);
+
+void LibintInterface_compute_2body_directIT(LibintInterface *lint, double *dens, double *coeff,
+                                          double *result, int &p);
 
 void LibintInterface_compute_2body_disk(LibintInterface *lint,
                                         const char *filename, double *dens);

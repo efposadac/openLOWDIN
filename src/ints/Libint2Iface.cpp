@@ -348,6 +348,7 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
             auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
                                        bf3_first, bf4_first);
 
+
             for (intIter.first(); intIter.is_done() == false; intIter.next()) {
               if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
                 buffer.p[counter] = intIter.i() + 1;
@@ -599,6 +600,299 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
   Matrix GG = 0.25 * (G[0] + G[0].transpose());
   return GG;
 }
+
+void LibintInterface::compute_2body_directIT(const Matrix &D, const Matrix &C,
+                                             const Matrix &Schwartz,
+					     int &p, 
+					     double *A,
+                                             double precision) {
+  const auto n = nbasis;
+  const auto nshells = shells.size();
+
+  using libint2::nthreads;
+
+	// allocate a 3D temporary array GG
+  double*** GG = new double**[n];
+  for ( int i = 0; i < n; i++)
+  {
+		GG[i] = new double*[n];
+  		for ( int j = 0; j < n; j++) 
+				GG[i][j] = new double[n];
+  }
+	// initialize GG
+  for ( int i = 0; i < n; i++ )
+	{
+  	for ( int j = 0; j < n; j++ )
+		{
+  		for ( int k = 0; k < n; k++ )
+			{
+				GG[i][j][k] = 0;
+			}
+		}
+	}
+
+  //printf("%e\n", C(0,1));
+  //printf("ppp %i\n", p);
+
+  std::vector<Matrix> G(nthreads, Matrix::Zero(n, n));
+  bool do_schwartz_screen = is_electron;
+  if (is_electron) {
+    do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  }
+
+  Matrix D_shblk_norm; // matrix of infty-norms of shell blocks
+  if (do_schwartz_screen) {
+    D_shblk_norm = compute_shellblock_norm(D);
+  }
+
+  auto fock_precision = precision;
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision = 0.0;
+  if (do_schwartz_screen) {
+    engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
+                                std::numeric_limits<double>::epsilon()) /
+                       max_nprim4;
+  } else {
+    engine_precision =
+        std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+        max_nprim4;
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::coulomb, max_nprim, max_l, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+
+  // std::cout << "compute_2body_direct:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() <<
+  // std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+  std::atomic<size_t> num_ints_computed{0};
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  int m = 0;
+  auto shell2bf = map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    auto &g = G[thread_id];
+    const auto &buf = engines[thread_id].results();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (const auto &s2 : obs_shellpair_list[s1]) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        const auto Dnorm12 = do_schwartz_screen ? D_shblk_norm(s1, s2) : 0.;
+
+        for (auto s3 = 0; s3 <= s1; ++s3) {
+          auto bf3_first = shell2bf[s3];
+          auto n3 = shells[s3].size();
+
+          const auto Dnorm123 =
+              do_schwartz_screen
+                  ? std::max(D_shblk_norm(s1, s3),
+                             std::max(D_shblk_norm(s2, s3), Dnorm12))
+                  : 0.;
+
+          const auto s4_max = (s1 == s3) ? s2 : s3;
+          for (const auto &s4 : obs_shellpair_list[s3]) {
+            if (s4 > s4_max)
+              break; // for each s3, s4 are stored in monotonically increasing
+                     // order
+
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            const auto Dnorm1234 =
+                do_schwartz_screen
+                    ? std::max(
+                          D_shblk_norm(s1, s4),
+                          std::max(D_shblk_norm(s2, s4),
+                                   std::max(D_shblk_norm(s3, s4), Dnorm123)))
+                    : 0.;
+
+            if (do_schwartz_screen &&
+                Dnorm1234 * Schwartz(s1, s2) * Schwartz(s3, s4) <
+                    fock_precision)
+              continue;
+
+            auto bf4_first = shell2bf[s4];
+            auto n4 = shells[s4].size();
+
+            num_ints_computed += n1 * n2 * n3 * n4;
+
+            // compute the permutational degeneracy (i.e. # of equivalents) of
+            // the given shell set
+            //auto s12_deg = (s1 == s2) ? 1.0 : 2.0;
+            //auto s34_deg = (s3 == s4) ? 1.0 : 2.0;
+            //auto s12_34_deg = (s1 == s3) ? (s2 == s4 ? 1.0 : 2.0) : 2.0;
+            //auto s1234_deg = s12_deg * s34_deg * s12_34_deg;
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute2<libint2::Operator::coulomb, libint2::BraKet::xx_xx,
+                            0>(shells[s1], shells[s2], shells[s3], shells[s4]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
+                                       bf3_first, bf4_first);
+
+            for (intIter.first(); intIter.is_done() == false; intIter.next()) {
+              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+                auto bf1 = intIter.i() ;
+                auto bf2 = intIter.j() ;
+                auto bf3 = intIter.k() ;
+                auto bf4 = intIter.l() ;
+                const auto value_scal_by_deg = buf[0][intIter.index()] *
+                                      norma[intIter.i()] * norma[intIter.j()] *
+                                      norma[intIter.k()] * norma[intIter.l()];
+
+								#pragma omp critical
+								{
+          	  	  if (bf3 < bf4)
+									{
+	          		  	//printf ("A1 1234 %i %i %i %i %f %f %f\n", bf1+1, bf2+1,bf3+1,bf4+1,GG[bf2][bf3][bf4],value_scal_by_deg, C(p, bf1));
+	            			GG[bf2][bf3][bf4] = GG[bf2][bf3][bf4] + value_scal_by_deg * C(p, bf1);
+	            		} else {
+	          			  //printf ("A2 1234 %i %i %i %i %f %f %f\n", bf1+1, bf2+1,bf4+1,bf3+1,GG[bf2][bf4][bf3],value_scal_by_deg, C(p, bf1));
+	            	    GG[bf2][bf4][bf3] = GG[bf2][bf4][bf3] + value_scal_by_deg * C(p, bf1);
+		    					}
+
+              	  if (bf1 != bf2)
+									{
+	            	  	if (bf3 < bf4)	
+										{
+	           					//printf ("B1 2134 %i %i %i %i %f %f %f\n", bf2+1, bf1+1,bf3+1,bf4+1,GG[bf1][bf3][bf4],value_scal_by_deg, C(p, bf2));
+	            	      GG[bf1][bf3][bf4] = GG[bf1][bf3][bf4] + value_scal_by_deg * C(p, bf2);
+										} else {
+	           					//printf ("B2 2134 %i %i %i %i %f %f %f\n", bf2+1, bf1+1,bf4+1,bf3+1,GG[bf1][bf4][bf3],value_scal_by_deg, C(p, bf2));
+	            	      GG[bf1][bf4][bf3] = GG[bf1][bf4][bf3] + value_scal_by_deg * C(p, bf2);
+		        				}
+ 
+	            		}
+              	  if (bf1 != bf3 || bf2 != bf4 )
+									{
+
+	            	    if (bf1 < bf2)
+										{
+	            	      //printf ("C1 3412 %i %i %i %i %f %f %f\n", bf3+1, bf4+1,bf1+1,bf2+1,GG[bf4][bf1][bf2],value_scal_by_deg, C(p, bf3));
+	            		  	GG[bf4][bf1][bf2] = GG[bf4][bf1][bf2] + value_scal_by_deg * C(p, bf3);
+										} else {
+	            	      // printf ("C2 3412 %i %i %i %i %f %f %f\n", bf3+1, bf4+1,bf2+1,bf1+1,GG[bf4][bf2][bf1],value_scal_by_deg, C(p, bf3));
+	          		   	  GG[bf4][bf2][bf1] = GG[bf4][bf2][bf1] + value_scal_by_deg * C(p, bf3);
+										}
+
+										if (bf3 != bf4)
+										{
+		          				if (bf1 < bf2)
+											{
+	            	      	//printf ("D1 4312 %i %i %i %i %f %f %f\n", bf4+1, bf3+1,bf1+1,bf2+1,GG[bf3][bf1][bf2],value_scal_by_deg, C(p, bf4));
+		          	  			GG[bf3][bf1][bf2] = GG[bf3][bf1][bf2] + value_scal_by_deg * C(p, bf4);
+			  							} else {
+	            	      	//printf ("D2 4312 %i %i %i %i %f %f %f\n", bf4+1, bf3+1,bf2+1,bf1+1,GG[bf3][bf2][bf1],value_scal_by_deg, C(p, bf4));
+	            		  		GG[bf3][bf2][bf1] = GG[bf3][bf2][bf1] + value_scal_by_deg * C(p, bf4);
+			  							}
+										}
+	            		}
+
+								} //end critical
+	         		} //end if >10
+	       		} //end for
+
+          }
+        }
+      }
+    }
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+ 
+	// symmetrize
+  for ( int i = 0; i < n; i++ )
+  {
+  	for ( int j = 0; j < n; j++ )
+    {
+  		for ( int k = j; k < n; k++ )
+      {
+      	GG[i][k][j] = GG[i][j][k] ;
+      }
+    }
+  }
+  
+  m = 0;
+
+  for ( int i = 0; i < n; i++ )
+  {
+  	for ( int j = 0; j < n; j++ )
+    {
+  		for ( int k = 0; k < n; k++ )
+      {
+      	A[m] = GG[i][j][k] ;
+        //printf ("%i %i %i %2.8f\n", i+1,j+1,k+1,A[m] );
+        m = m + 1 ;
+      }
+    }
+  }
+
+  // accumulate contributions from all threads
+  for (size_t i = 1; i != nthreads; ++i) {
+    G[0] += G[i];
+  }
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for intras-pecies integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  // std::cout << " Number of unique integrals for species: " << speciesID << "
+  // = "
+  //           << num_ints_computed << std::endl;
+  // symmetrize the result and return
+  //Matrix GG = 0.25 * (G[0] + G[0].transpose());
+  //return GG;
+}
+
 
 void LibintInterface::compute_coupling_disk(LibintInterface &other,
                                             const char *filename,
@@ -1795,6 +2089,31 @@ void LibintInterface_compute_2body_direct(LibintInterface *lint, double *dens,
     result[i] = G.array()(i);
   }
 }
+
+void LibintInterface_compute_2body_directIT(LibintInterface *lint, double *dens, double *coeff,
+                                          double *result, int &p) {
+  // printf("%s\n", "LibintInterface_compute_2body_direct");
+  auto n = lint->get_nbasis();
+  Matrix D(n, n);
+  Matrix C(n, n);
+
+  for (int i = 0; i < C.size(); ++i) {
+    C.array()(i) = coeff[i];
+  }
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  auto K = compute_schwartz_ints<>(lint->get_shells());
+  //auto G = lint->compute_2body_directIT(C, K, p);
+  lint->compute_2body_directIT(D, C, K, p, result);
+
+  //for (int i = 0; i < G.size(); ++i) {
+  //  result[i] = G.array()(i);
+  //}
+}
+
+
 
 void LibintInterface_compute_2body_disk(LibintInterface *lint,
                                         const char *filename, double *dens) {

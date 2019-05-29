@@ -34,7 +34,6 @@
 module TransformIntegralsA_
   use MolecularSystem_
   use InputManager_
-  use IntegralManager_
   use ParticleManager_
   use Matrix_
   use IndexMap_

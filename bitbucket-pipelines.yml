@@ -3,7 +3,7 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: ubuntu
+image: ubuntu:disco
 
 pipelines:
   default:
@@ -13,7 +13,7 @@ pipelines:
           - node
         script:
           - apt-get update
-          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev libxc-dev libxc4
+          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev libxc-dev libxc5
           - # Define work directories
           - WORKDIR=$PWD/dependencies
           - mkdir $WORKDIR

@@ -148,7 +148,7 @@ Program Ints
         write(*, "(A)") " "
         write(*, "(A)") " TWO-BODY INTEGRAL SETUP: "
         write(*, "(A)") "------------------------- "
-        write(*, "(A, A6)") " Storage: ", trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY ))
+        write(*, "(A, A6)") " Storage: ", trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE ))
         write(*, '(A, A6)') " Scheme: ", trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME)))
         write(*, '(A, I6)') " Stack size: ", CONTROL_instance%INTEGRAL_STACK_SIZE
         write(*, "(A)") " "
