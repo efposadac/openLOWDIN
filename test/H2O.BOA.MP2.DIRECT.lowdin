@@ -24,6 +24,7 @@ END TASKS
 
 CONTROL
 	integralStorage="direct"
+	integralStackSize = 1024
 END CONTROL
 !OUTPUTS
 !	wfnFile	

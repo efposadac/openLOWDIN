@@ -54,7 +54,7 @@ pipelines:
           - cd libxc
           - autoreconf -i
           - ./configure --enable-shared --prefix=$WORKDIR
-          - make 
+          - make -j 4
           - make install
           - cd ..
           - export PATH=$PATH:$WORKDIR/bin
