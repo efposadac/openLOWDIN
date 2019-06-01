@@ -1274,7 +1274,8 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
          !$omp parallel & 
-         !$omp& private(i,j,indexConfA,indexConfB, species, s, numberOfOccupiedOrbitals, k, coupling, stringAinB, orbital, orbitalA, orbitalB, AA, BB, a, b, factor, n, cilevelA, ss, ssize, cilevel, ci, u, uu, jj, bj),&
+         !$omp& firstprivate (stringAinB,indexConfA,indexConfB, jj) &
+         !$omp& private(i,j, species, s, numberOfOccupiedOrbitals, k, coupling, orbital, orbitalA, orbitalB, AA, BB, a, b, factor, n, cilevelA, ss, ssize, cilevel, ci, u, uu, bj),&
          !$omp& shared(ConfigurationInteraction_instance, auxDensMatrix )
          n = omp_get_thread_num() + 1
          !$omp do schedule (dynamic) 
@@ -1317,6 +1318,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
                do ss = 1, numberOfSpecies 
                  stringAinB(ss)%values = 0
                  do k = 1, ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(ss)
+
                    stringAinB(ss)%values(k) = ConfigurationInteraction_instance%orbitals(ss)%values( &
                                              ConfigurationInteraction_instance%strings(ss)%values(k,  ConfigurationInteraction_instance%allIndexConf(ss,1)), indexConfA(ss))
                  end do

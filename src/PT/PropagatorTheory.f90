@@ -9733,13 +9733,13 @@ contains
         ooarray(1) = 1
       case ( "EP3" )
         ooarray(2) = 2
-      case( "OVGF A" )
+      case( "OVGF-A" )
         ooarray(2) = 2
         ooarray(3) = 3
-      case( "OVGF B" )
+      case( "OVGF-B" )
         ooarray(2) = 2
         ooarray(4) = 4
-      case ( "OVGF C" )
+      case ( "OVGF-C" )
         ooarray(2) = 2
         ooarray(5) = 5
       case ( "OVGF" )
@@ -11310,11 +11310,11 @@ contains
           ! o=2 EP3
           thirdOrderMethods(2)="EP3"
           ! o=3 OVGF version A
-          thirdOrderMethods(3)="OVGF A"
+          thirdOrderMethods(3)="OVGF-A"
           ! o=4 OVGF version B
-          thirdOrderMethods(4)="OVGF B"
+          thirdOrderMethods(4)="OVGF-B"
           ! o=5 OVGF version C
-          thirdOrderMethods(5)="OVGF C"
+          thirdOrderMethods(5)="OVGF-C"
           ! o=6 
           thirdOrderMethods(6)="REN-P3"
 

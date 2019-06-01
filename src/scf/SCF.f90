@@ -89,7 +89,8 @@ program SCF
      end if
 
      if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-        statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+        !!statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+        call system ("lowdin-DFT.x BUILD_MATRICES")
      end if
      
      do i = 1, numberOfSpecies
@@ -245,7 +246,8 @@ program SCF
   if ( (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") .and. &
        ( CONTROL_instance%FINAL_GRID_ANGULAR_POINTS*CONTROL_instance%FINAL_GRID_RADIAL_POINTS  .gt. &
        CONTROL_instance%GRID_ANGULAR_POINTS*CONTROL_instance%GRID_RADIAL_POINTS ) ) then
-     statusSystem = system ("lowdin-DFT.x FINAL_GRID")
+     !!statusSystem = system ("lowdin-DFT.x FINAL_GRID")
+     call system ("lowdin-DFT.x FINAL_GRID")
      do speciesID = 1, numberOfSpecies
         call WaveFunction_buildExchangeCorrelationMatrix( trim(MolecularSystem_getNameOfSpecie(speciesID)) )
      end do

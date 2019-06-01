@@ -405,6 +405,7 @@ contains
              if(scan(symbol,"[") /=0) symbol=symbol(scan(symbol,"[")+1:scan(symbol,"]")-1)
 
              !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
+             if ( CONTROL_instance%UNITS=="ANGS") origin = origin * AMSTRONG
 
              totalNumberOfParticles = totalNumberOfParticles + 1
 #ifdef intel

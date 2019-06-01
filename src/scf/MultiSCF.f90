@@ -690,7 +690,8 @@ contains
     if( numberOfSpecies > 1 ) then
 
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-          statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+          !!statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+          call system ("lowdin-DFT.x BUILD_MATRICES")
        end if
        
        do i = 1, numberOfSpecies
@@ -792,7 +793,8 @@ contains
        end if
 
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-          statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+          !!statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+          call system ("lowdin-DFT.x BUILD_MATRICES")
        end if
 
 

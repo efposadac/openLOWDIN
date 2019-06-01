@@ -127,7 +127,7 @@ else
         CC="icc"
         CU="nvcc -arch=sm_20"
         CFLAGS="-g -O2 -D intel "
-        CPPFLAGS="-g -O2 -D intel -std=c++11 -lc++"
+        CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "
     else
         CXX=g++
         CC=gcc
@@ -219,7 +219,7 @@ else
     fi
     
     if [ "$FC" = "ifort" ] ; then
-        STDCPP_LIBS="-lstdc++ -lc++"
+        STDCPP_LIBS="-lstdc++ "
     else
         STDCPP_LIBS="-lstdc++"
     fi

@@ -274,7 +274,8 @@ contains
     !!Initialize DFT: Calculate Grids and build functionals
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
 
-       statusSystem = system ("lowdin-DFT.x INITIALIZE")
+       !!statusSystem = system ("lowdin-DFT.x INITIALIZE")
+       call system ("lowdin-DFT.x INITIALIZE")
 
        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
           dftUnit = 77
