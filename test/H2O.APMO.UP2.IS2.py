@@ -18,8 +18,6 @@ refValues = {
 "Orb6alpha_P2" : [3.4416,1E-4],
 "Orb1H1a_P2" : [-16.9153,1E-4],
 "Orb2H1a_P2" : [-50.7107,1E-4],
-"Orb1H1b_P2" : [-16.9153,1E-4],
-"Orb2H1b_P2" : [-50.7107,1E-4]
 }
 
 testValues = dict(refValues) #copy 

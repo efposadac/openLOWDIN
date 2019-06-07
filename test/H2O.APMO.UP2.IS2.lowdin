@@ -18,8 +18,8 @@ GEOMETRY
 	e-[H]   6-311G     0.000000      0.754175      0.528381
 	e-[H]   6-311G     0.000000     -0.754174      0.528382
 	O        dirac     0.000000      0.000000     -0.066575
-	H_1      dirac     0.000000      0.754175      0.528381	
-	H_1      dirac     0.000000     -0.754174      0.528382  
+	H-a_1      Nakai-7-sp     0.000000      0.754175      0.528381	
+	H-b_1      Nakai-7-sp    0.000000     -0.754174      0.528382  
 END GEOMETRY
 
 TASKS
@@ -28,10 +28,7 @@ TASKS
 END TASKS
 
 CONTROL
-!	ionizeSpecie="E-ALPHA"
-!	ionizeMO=2
-!	ptJustOneOrbital=T
-!	ptTransitionOperator=T
+	IonizeSpecie="E-ALPHA" "E-BETA" "H-A_1"
 END CONTROL
 
 

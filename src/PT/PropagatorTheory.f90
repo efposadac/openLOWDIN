@@ -523,10 +523,14 @@ contains
           PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
           PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
           n = 1
-       else if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
-          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
-          n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
+       !else if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+          !PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
+          !PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
+          !n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
+       else if ( CONTROL_instance%IONIZE_MO /= 0) then
+          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
+          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+          n = 1
        else
           PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
           PropagatorTheory_instance%occupationBoundary = occupationNumberOfSpeciesA
@@ -692,9 +696,9 @@ contains
                             
                             id2 = id2 + 1
                             
-                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, numberOfContractionsOfSpeciesA )
+                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, numberOfContractionsOfSpeciesA )
                             auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-                            auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, numberOfContractionsOfSpeciesA )
+                            auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, aa, numberOfContractionsOfSpeciesA )
                             auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
                             
                             selfEnergy2hp(j)%values(1,id2) = occupationsOfSpeciesA%values(ia)*occupationsOfSpeciesA%values(ja)*&
@@ -775,6 +779,7 @@ contains
                    do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
                       do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
                          
+
                          auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                          auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
                          
@@ -797,7 +802,7 @@ contains
                          
                          id2 = id2 + 1
                          
-                         auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                         auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
                          auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
                          
                          selfEnergy2hp(j)%values(1,id2) = occupationsOfSpeciesA%values(ia)*&

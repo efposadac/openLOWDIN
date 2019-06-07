@@ -322,6 +322,7 @@ contains
     integer(8) :: numberOfIntegrals
     integer(8) :: auxIndex
     real(8),dimension(791) :: integralValue
+    integer :: occupation, otherOccupation
     integer :: iter
     integer :: errorValue
     integer :: bufferA
@@ -335,6 +336,7 @@ contains
     integer :: numberOfContractions, bias
     character(10) :: nameOfSpecie
     character(10) :: nameOfOtherSpecie
+    character(10) :: order
     character(255) :: prefixOfFile
     integer :: unidOfOutputForIntegrals
 
@@ -583,7 +585,26 @@ contains
         rr = 0
         ss = 0
 
-       if ( otherSpecieID > SpecieID ) then
+        occupation = MolecularSystem_getOcupationNumber( specieID )
+        otheroccupation = MolecularSystem_getOcupationNumber( otherSpecieID )
+
+        order = ""
+
+        if ( otheroccupation > occupation ) then
+          order = "AB"
+        else if ( otheroccupation < occupation ) then
+          order = "BA"
+        else 
+          if ( otherSpecieID > SpecieID ) then
+            order = "AB"
+          else 
+            order = "BA"
+          end if
+        end if
+
+       !if ( otherSpecieID > SpecieID ) then
+       select case (order)
+       case ("AB")
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID) &
                + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
           bias = MolecularSystem_getTotalNumberOfContractions(specieID)
@@ -596,6 +617,7 @@ contains
 
           nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
           nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+
           prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
 
           unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
@@ -613,35 +635,28 @@ contains
 
           matrixContainer%values = 0.0_8
 
-          !!do
-          !!   read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) p, q, r, s, auxIntegralValue
-
-          !!   if ( p <= 0 ) exit
-
-          !!   auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(bias,8),  &
-          !!        int(numberOfContractions - bias,8)  )
-          !!   matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
-
-          !!end do
 
        readIntegralsC : do
           read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) pp, qq, rr, ss, auxIntegrals
           do i = 1, integralStackSize
             if ( pp(i) == -1_8 ) exit readIntegralsC
 
-            !auxIndex = IndexMap_tensorR2ToVectorB( auxpq(i), auxrs(i), ssize )
-            !auxIndex = ssize2b * ( auxpq(i) - 1) + auxrs(i)
-             auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), int(bias,8),  &
-                  int(numberOfContractions - bias,8)  )
+
+             auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), &
+                  int(bias,8), int(numberOfContractions - bias,8) )
+
 
             matrixContainer%values( auxIndex, 1 ) = auxIntegrals(i)
+
           end do
 
        end do readIntegralsC
 
           close(unidOfOutputForIntegrals)
 
-       else 
+       case ("BA")
+
+ 
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID) &
                + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
           bias = MolecularSystem_getTotalNumberOfContractions(specieID)
@@ -656,6 +671,7 @@ contains
 
           nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
           nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+
           prefixOfFile =""//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
 
           unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
@@ -673,37 +689,30 @@ contains
 
           matrixContainer%values = 0.0_8
 
-!          do
-!             read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) r, s, p, q, auxIntegralValue
-!
-!             if ( p <= 0 ) exit
-!
-!             auxIndex = IndexMap_tensorR4ToVectorB( int(p,8), int(q,8), int(r,8), int(s,8), int(bias,8),  &
-!                  int(numberOfContractions - bias,8)  )
-!             matrixContainer%values( auxIndex, 1 ) = auxIntegralValue
-!
-!          end do
-
-
        readIntegralsC2 : do
           read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) rr, ss, pp, qq, auxIntegrals
           do i = 1, integralStackSize
             if ( rr(i) == -1_8 ) exit readIntegralsC2
 
-            !auxIndex = IndexMap_tensorR2ToVectorB( auxpq(i), auxrs(i), ssize )
-!            auxIndex = ssize2b * ( auxpq(i) - 1) + auxrs(i)
-             auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), int(bias,8),  &
-                  int(numberOfContractions - bias,8)  )
+
+             !auxIndex = IndexMap_tensorR4ToVectorB( int(rr(i),8), int(ss(i),8), int(pp(i),8), int(qq(i),8), &
+             !     int(bias,8), int(numberOfContractions - bias,8) )
+
+
+             auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), &
+                  int(bias,8), int(numberOfContractions - bias,8) )
+
 
             !auxIndex = ssize2a * ( auxrs(i) - 1) + auxpq(i)
             matrixContainer%values( auxIndex, 1 ) = auxIntegrals(i)
+
           end do
 
        end do readIntegralsC2
 
       close(unidOfOutputForIntegrals)
 
-     end if
+      end select
 
     case ( "D" ) 
 

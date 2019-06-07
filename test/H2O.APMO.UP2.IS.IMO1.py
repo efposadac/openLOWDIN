@@ -11,8 +11,8 @@ outputName = testName + ".out"
 # Reference values
 
 refValues = {
-"HF energy" : [-7.816179517446,1E-8],
-"Orb2alpha_P2" : [-7.6516,1E-4]
+"HF energy" : [-75.930658814297,1E-8],
+"Orb1H1a_P2" : [-16.9153,1E-4],
 }
 
 testValues = dict(refValues) #copy 
@@ -35,10 +35,10 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "Results for spin-orbital: 2 of species: E-ALPHA" in line:
+    if "Results for spin-orbital: 1 of species: H-A_1" in line:
         for j in range(i,len(outputRead)): 
             if "Optimized second order pole:" in outputRead[j] :
-                testValues["Orb2alpha_P2"] = float(outputRead[j].split()[4])
+                testValues["Orb1H1a_P2"] = float(outputRead[j].split()[4])
                 break
 
 passTest = True

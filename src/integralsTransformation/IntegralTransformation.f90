@@ -54,6 +54,7 @@ program IntegralsTransformation
   integer :: specieID, otherSpecieID
   integer :: numberOfContractions
   integer :: numberOfContractionsOfOtherSpecie
+  integer :: occupation, otherOccupation
   character(10) :: nameOfSpecies
   character(10) :: nameOfOtherSpecie
   type(Vector) :: eigenValues
@@ -163,6 +164,7 @@ program IntegralsTransformation
           !! Reading the coefficients
   
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
+           occupation = MolecularSystem_getOcupationNumber( i )
            arguments(2) = MolecularSystem_getNameOfSpecie(i)
   
            arguments(1) = "COEFFICIENTS"
@@ -246,6 +248,8 @@ program IntegralsTransformation
                           !! Reading the coefficients
   
                           numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
+                          otherOccupation = MolecularSystem_getOcupationNumber( j )
+
   
                           arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
   
@@ -281,9 +285,19 @@ program IntegralsTransformation
 
                               case ( "C" ) 
 
-                              call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
+                              if ( occupation <= otherOccupation ) then
+
+                                call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
                                  eigenVec, eigenVecOtherSpecie, &
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+
+                              else 
+
+                                 call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
+                                   eigenVecOtherSpecie, eigenVec, &
+                                   auxMatrix, otherSpecieID, nameOfOtherSpecie,  specieID, nameOfSpecies )
+
+                              end if
 
                             case ( "D" )
                               

@@ -11,8 +11,11 @@ outputName = testName + ".out"
 # Reference values
 
 refValues = {
-"HF energy" : [-7.816179517446,1E-8],
-"Orb2alpha_P2" : [-7.6516,1E-4]
+"HF energy" : [-76.008843007653,1E-8],
+"Orb5alpha_P2" : [-10.9103,1E-4],
+"Orb6alpha_P2" : [3.5274,1E-4],
+"Orb5beta_P2" : [-10.9103,1E-4],
+"Orb6beta_P2" : [3.5274,1E-4]
 }
 
 testValues = dict(refValues) #copy 
@@ -35,10 +38,25 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "Results for spin-orbital: 2 of species: E-ALPHA" in line:
+    if "Results for spin-orbital: 5 of species: E-ALPHA" in line:
         for j in range(i,len(outputRead)): 
             if "Optimized second order pole:" in outputRead[j] :
-                testValues["Orb2alpha_P2"] = float(outputRead[j].split()[4])
+                testValues["Orb5alpha_P2"] = float(outputRead[j].split()[4])
+                break
+    if "Results for spin-orbital: 6 of species: E-ALPHA" in line:
+        for j in range(i,len(outputRead)): 
+            if "Optimized second order pole:" in outputRead[j] :
+                testValues["Orb6alpha_P2"] = float(outputRead[j].split()[4])
+                break
+    if "Results for spin-orbital: 5 of species: E-BETA" in line:
+        for j in range(i,len(outputRead)): 
+            if "Optimized second order pole:" in outputRead[j] :
+                testValues["Orb5beta_P2"] = float(outputRead[j].split()[4])
+                break
+    if "Results for spin-orbital: 6 of species: E-BETA" in line:
+        for j in range(i,len(outputRead)): 
+            if "Optimized second order pole:" in outputRead[j] :
+                testValues["Orb6beta_P2"] = float(outputRead[j].split()[4])
                 break
 
 passTest = True

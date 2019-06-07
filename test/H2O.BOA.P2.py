@@ -4,16 +4,22 @@ import os
 import sys
 from colorstring import *
 
-testName = "H2O.BOA.P2"
+testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
 # Reference values
 
-refTotalEnergy = -76.008843007735
-refOrb5_P2 = -10.9105
-refOrb6_P2 = 3.5273
+refValues = {
+"HF energy" : [-76.008843007735,1E-8],
+"Orb5alpha_P2" : [-10.9105,1E-4],
+"Orb6alpha_P2" : [3.5273,1E-4]
+}
 
+testValues = dict(refValues) #copy 
+for value in testValues: #reset
+    testValues[value] = 0 #reset
+    
 # Run calculation
 
 status = os.system("lowdin2 -i " + inputName)
@@ -26,35 +32,37 @@ output = open(outputName, "r")
 outputRead = output.readlines()
 
 # Values
-
-orbital5 = False
-orbital6 = False
-
-for line in outputRead:
+for i in range(0,len(outputRead)):
+    line = outputRead[i]
     if "TOTAL ENERGY =" in line:
-        totalEnergy = float(line.split()[3])
+        testValues["HF energy"] = float(line.split()[3])
     if "Results for spin-orbital: 5 of species: E-" in line:
-        orbital5 = True
-    if "Optimized second order pole:" in line and orbital5 == True:
-        Orb5_P2 = float(line.split()[4])
-        orbital5 = False
+        for j in range(i,len(outputRead)): 
+            if "Optimized second order pole:" in outputRead[j] :
+                testValues["Orb5alpha_P2"] = float(outputRead[j].split()[4])
+                break
     if "Results for spin-orbital: 6 of species: E-" in line:
-        orbital6 = True
-    if "Optimized second order pole:" in line and orbital6 == True:
-        Orb6_P2 = float(line.split()[4])
-        orbital6 = True
+        for j in range(i,len(outputRead)): 
+            if "Optimized second order pole:" in outputRead[j] :
+                testValues["Orb6alpha_P2"] = float(outputRead[j].split()[4])
+                break
 
-diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffOrb5_P2 = abs(refOrb5_P2 - Orb5_P2)
-diffOrb6_P2 = abs(refOrb6_P2 - Orb6_P2)
 
-if (diffTotalEnergy <= 1E-10 and diffOrb5_P2 == 0 and diffOrb6_P2 == 0):
+
+passTest = True
+
+for value in refValues:
+    diffValue = abs(refValues[value][0] - testValues[value]) 
+    if ( diffValue <= refValues[value][1] ):
+        passTest = passTest * True
+    else :
+        passTest = passTest * False
+        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
+
+if passTest :
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
-    print("Difference HF: " + str(diffTotalEnergy))
-    print("Difference orbital 5 P2: " + str(diffOrb5_P2))
-    print("Difference orbital 6 P2: " + str(diffOrb6_P2))
     sys.exit(1)
 
 output.close()
