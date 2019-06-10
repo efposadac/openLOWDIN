@@ -32,7 +32,8 @@ module DirectIntegralManager_
   implicit none
 
   public :: &
-       DirectIntegralManager_getDirectIntraRepulsionIntegrals
+       DirectIntegralManager_getDirectIntraRepulsionIntegrals, &
+       DirectIntegralManager_getDirectInterRepulsionIntegrals
 
 contains
 
@@ -92,15 +93,22 @@ contains
   !! @par History
   !!    
   subroutine DirectIntegralManager_getDirectInterRepulsionIntegrals(speciesID, OtherSpeciesID, scheme, &
-       densityMatrix, couplingMatrix )
+       densityMatrix, coeffMatrix, couplingMatrix, p )
     integer :: speciesID
     integer :: otherSpeciesID
     character(*) :: scheme
     type(matrix) :: densityMatrix
-    real(8), allocatable, target :: couplingMatrix(:,:)
+    type(matrix) :: coeffMatrix
+    real(8), allocatable, target :: couplingMatrix(:,:,:)
 
+    real(8), allocatable, target :: coefficients(:,:)
     real(8), allocatable, target :: density(:,:)
     integer :: ssize
+    integer :: p
+
+    ssize = size(coeffMatrix%values, DIM=1)
+    allocate(coefficients(ssize, ssize))
+    coefficients = coeffMatrix%values
 
     ssize = size(densityMatrix%values, DIM=1)
     ! print*, "DIRECT, SIZE DENS:", ssize
@@ -113,9 +121,9 @@ contains
        ! Not implemented
 
     case("LIBINT")
-       call Libint2Interface_compute2BodyInterspecies_direct(speciesID, otherSpeciesID, density, couplingMatrix)
+       call Libint2Interface_compute2BodyInterspecies_direct_IT(speciesID, otherSpeciesID, density, coefficients, couplingMatrix, p)
     case default
-       call Libint2Interface_compute2BodyInterspecies_direct(speciesID, otherSpeciesID, density, couplingMatrix)
+       call Libint2Interface_compute2BodyInterspecies_direct_IT(speciesID, otherSpeciesID, density, coefficients, couplingMatrix, p)
     end select
 
 

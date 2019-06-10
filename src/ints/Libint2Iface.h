@@ -281,6 +281,10 @@ public:
       LibintInterface &other, const Matrix &D, const bool permuted,
       double precision = std::numeric_limits<double>::epsilon());
 
+  void compute_coupling_directIT(
+      LibintInterface &other, const Matrix &D, const Matrix &C, int &p, double *A, const bool permuted,
+      double precision = std::numeric_limits<double>::epsilon());
+
   Matrix compute_alphabeta_direct(
       LibintInterface &other, const Matrix &D, const Matrix &oD, const bool permuted,
       double precision = std::numeric_limits<double>::epsilon());
@@ -343,6 +347,10 @@ void LibintInterface_compute_2body_disk(LibintInterface *lint,
 void LibintInterface_compute_coupling_direct(LibintInterface *lint,
                                              LibintInterface *olint,
                                              double *dens, double *result);
+
+void LibintInterface_compute_coupling_directIT(LibintInterface *lint,
+                                             LibintInterface *olint,
+                                             double *dens, double *coeff, double *result, int &p);
 
 void LibintInterface_compute_alphabeta_direct(LibintInterface *lint,
                                              LibintInterface *olint,

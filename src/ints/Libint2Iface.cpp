@@ -1266,6 +1266,327 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
   return B[0];
 }
 
+void LibintInterface::compute_coupling_directIT(LibintInterface &other,
+                                                const Matrix &D, const Matrix &C, 
+																								int &p, double *A, 
+                                                const bool permuted,
+                                                double precision) {
+  const auto n = permuted ? other.get_nbasis() : get_nbasis();
+  const auto on = permuted ? get_nbasis() : other.get_nbasis()  ;
+
+	//if ( permuted ) {
+	//	printf ("permuted\n");
+	//}
+	//printf ("second n: %i on: %i \n", n, on);
+  //printf ("p index: %i \n", p);
+
+  const auto nshells = shells.size();
+  const auto oshells = other.get_shells();
+  const auto onshells = oshells.size();
+
+  using libint2::nthreads;
+
+	// allocate a 3D temporary array GG
+
+  int nn1 = 0;
+  int nn2 = 0;
+  int nn3 = 0;
+
+  if ( permuted ) {
+    nn1 = n;
+    nn2 = on;
+    nn3 = on;
+  } else {
+    nn1 = n;
+    nn2 = on;
+    nn3 = on;
+  }
+
+	//printf ("%i %i %i\n",nn1,nn2,nn3);
+  double*** GG = new double**[nn1];
+  for ( int i = 0; i < nn1; i++)
+  {
+		GG[i] = new double*[nn2];
+  		for ( int j = 0; j < nn2; j++) 
+				GG[i][j] = new double[nn3];
+  }
+	// initialize GG
+  for ( int i = 0; i < nn1; i++ )
+	{
+  	for ( int j = 0; j < nn2; j++ )
+		{
+  		for ( int k = 0; k < nn3; k++ )
+			{
+				GG[i][j][k] = 0;
+			}
+		}
+	}
+
+  std::vector<Matrix> B(nthreads, Matrix::Zero(n, n));
+
+  auto fock_precision = precision;
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto nprim_max = std::max(max_nprim, other.max_nprim);
+  auto l_max = std::max(max_l, other.max_l);
+
+  auto max_nprim4 = nprim_max * nprim_max * nprim_max * nprim_max;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::coulomb, nprim_max, l_max, 0);
+  engine_precision = 1.0e-40;
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+
+  // std::cout << "compute_coupling_direct:precision = " << precision <<
+  // std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() <<
+  // std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+  auto oshell2bf = other.map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    const auto &buf = engines[thread_id].results();
+    auto &b = B[thread_id];
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (auto s2 = s1; s2 != nshells; ++s2) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto os1 = 0l; os1 != onshells; ++os1) {
+          auto obf1_first = oshell2bf[os1];
+          auto on1 = oshells[os1].size();
+
+          for (auto os2 = os1; os2 != onshells; ++os2) {
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto obf2_first = oshell2bf[os2];
+            auto on2 = oshells[os2].size();
+
+// printf("(%ld %ld | %ld %ld) \n", s1, s2, os1, os2);
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute2<libint2::Operator::coulomb, libint2::BraKet::xx_xx,
+                            0>(shells[s1], shells[s2], oshells[os1],
+                               oshells[os2]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
+              const auto bf1 = f1 + bf1_first;
+
+              for (auto f2 = 0; f2 != n2; ++f2) {
+                const auto bf2 = f2 + bf2_first;
+
+                for (auto of1 = 0; of1 != on1; ++of1) {
+                  const auto obf1 = of1 + obf1_first;
+
+                  for (auto of2 = 0; of2 != on2; ++of2, ++f1212) {
+                    const auto obf2 = of2 + obf2_first;
+
+                    if (bf1 <= bf2 && obf1 <= obf2) {
+                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                        continue;
+
+                      ++num_ints_computed;
+
+                      // printf("(%ld %ld | %ld %ld) %lf \n", bf1, bf2, obf1,
+                      // obf2, buf[0][f1212] *
+                      //                  get_norma(bf1) * get_norma(bf2) *
+                      //                  other.get_norma(obf1) *
+                      //                  other.get_norma(obf2));
+
+                      ///if (permuted) {
+                      ///  auto coulomb = D(bf1, bf2) * buf[0][f1212] *
+                      ///                 get_norma(bf1) * get_norma(bf2) *
+                      ///                 other.get_norma(obf1) *
+                      ///                 other.get_norma(obf2);
+
+                      ///  b(obf2, obf1) += coulomb;
+                      ///  if (bf1 != bf2)
+                      ///    b(obf2, obf1) += coulomb;
+                      ///} else {
+                      ///  auto coulomb = D(obf1, obf2) * buf[0][f1212] *
+                      ///                 get_norma(bf1) * get_norma(bf2) *
+                      ///                 other.get_norma(obf1) *
+                      ///                 other.get_norma(obf2);
+
+                      ///  // printf("%lf\n", coulomb);
+                      ///  b(bf2, bf1) += coulomb;
+                      ///  if (obf1 != obf2)
+                      ///    b(bf2, bf1) += coulomb;
+											///}
+
+                      auto coulomb = buf[0][f1212] *
+                                     get_norma(bf1) * get_norma(bf2) *
+                                     other.get_norma(obf1) *
+                                     other.get_norma(obf2);
+
+											//printf ("%i %i %i %i %f\n", bf1, bf2, obf1, obf2, coulomb);
+
+								      #pragma omp critical
+								      {
+                      	if (permuted) {
+          	  	          if (bf1 < bf2)
+								      	  {
+	            	      	  	GG[obf2][bf1][bf2] = GG[obf2][bf1][bf2] + coulomb * C(p, obf1);
+	            	      	  } else {
+	          		      	    //printf ("A2 1234 %i %i %i %i %f %f %f\n", obf1+1, obf2+1,bf2+1,bf1+1,GG[obf2][bf2][bf1],coulomb, C(p, obf1));
+	            	            GG[obf2][bf2][bf1] = GG[obf2][bf2][bf1] + coulomb * C(p, obf1);
+		    				      	  }
+
+              	          if (obf1 != obf2)
+								      	  {
+	            	          	if (bf1 < bf2)	
+								      	  	{
+	           		      	  		//printf ("B1 2134 %i %i %i %i %f %f %f\n", obf2+1, obf1+1,bf1+1,bf2+1,GG[obf1][bf1][bf2],coulomb, C(p, obf2));
+	            	              GG[obf1][bf1][bf2] = GG[obf1][bf1][bf2] + coulomb * C(p, obf2);
+								      	  	} else {
+	           		      	  		//printf ("B2 2134 %i %i %i %i %f %f %f\n", obf2+1, obf1+1,bf2+1,bf1+1,GG[obf1][bf2][bf1],coulomb, C(p, obf2));
+	            	              GG[obf1][bf2][bf1] = GG[obf1][bf2][bf1] + coulomb * C(p, obf2);
+		        		      	  	}
+ 
+	            	      	  }
+
+								      	} else {
+
+          	  	          if (obf1 < obf2)
+								      	  {
+	          		          	//printf ("A1 1234 %i %i %i %i %f %f %f\n", bf1+1, bf2+1,obf1+1,obf2+1,GG[bf2][obf1][obf2],coulomb, C(p, bf1));
+	            	      	  	GG[bf2][obf1][obf2] = GG[bf2][obf1][obf2] + coulomb * C(p, bf1);
+	            	      	  } else {
+	          		      	    //printf ("A2 1234 %i %i %i %i %f %f %f\n", bf1+1, bf2+1,obf2+1,obf1+1,GG[bf2][obf2][obf1],coulomb, C(p, bf1));
+	            	            GG[bf2][obf2][obf1] = GG[bf2][obf2][obf1] + coulomb * C(p, bf1);
+		    				      	  }
+
+              	          if (bf1 != bf2)
+								      	  {
+	            	          	if (obf1 < obf2)	
+								      	  	{
+	           		      	  		//printf ("B1 2134 %i %i %i %i %f %f %f\n", bf2+1, bf1+1,obf1+1,obf2+1,GG[bf1][obf1][obf2],coulomb, C(p, bf2));
+	            	              GG[bf1][obf1][obf2] = GG[bf1][obf1][obf2] + coulomb * C(p, bf2);
+								      	  	} else {
+	           		      	  		//printf ("B2 2134 %i %i %i %i %f %f %f\n", bf2+1, bf1+1,obf2+1,obf1+1,GG[bf1][obf2][obf1],coulomb, C(p, bf2));
+	            	              GG[bf1][obf2][obf1] = GG[bf1][obf2][obf1] + coulomb * C(p, bf2);
+		        		      	  	}
+ 
+	            	      	  }
+								      
+								      	}
+
+								      } //end critical
+
+
+                    } // end if
+                  }
+                }
+              }
+            } // end cartesian loop
+
+          }
+        }
+      }
+    } // end shells loop
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+	// symmetrize
+  for ( int i = 0; i < nn1; i++ )
+  {
+  	for ( int j = 0; j < nn2; j++ )
+    {
+  		for ( int k = j; k < nn3; k++ )
+      {
+      	GG[i][k][j] = GG[i][j][k] ;
+      }
+    }
+  }
+  
+  int m = 0;
+  m = 0;
+
+  for ( int i = 0; i < nn1; i++ )
+  {
+  	for ( int j = 0; j < nn2; j++ )
+    {
+  		for ( int k = 0; k < nn3; k++ )
+      {
+      	A[m] = GG[i][j][k] ;
+        //printf ("%i %i %i %2.8f\n", i+1,j+1,k+1,A[m] );
+        m = m + 1 ;
+      }
+    }
+  }
+
+  // accumulate contributions from all threads
+  for (size_t i = 1; i != nthreads; ++i) {
+    B[0] += B[i];
+  }
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for inter-species integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  // std::cout << " Number of unique integrals for species: " << speciesID << "
+  // / "
+  //           << other.get_speciesID() << " = " << num_ints_computed <<
+  //           std::endl;
+
+  //return B[0];
+}
+
+
+
 Matrix LibintInterface::compute_alphabeta_direct(LibintInterface &other,
                                                 const Matrix &D,
                                                 const Matrix &oD,
@@ -2154,6 +2475,40 @@ void LibintInterface_compute_coupling_direct(LibintInterface *lint,
     result[i] = B.array()(i);
   }
 }
+
+void LibintInterface_compute_coupling_directIT(LibintInterface *lint,
+                                             LibintInterface *olint,
+                                             double *dens, double *coeff, double *results, int &p) {
+  // printf("%s\n", "LibintInterface_compute_coupling_direct");
+  auto sid = lint->get_speciesID();
+  auto osid = olint->get_speciesID();
+
+  auto permuted = sid > osid;
+
+  auto n = lint->get_nbasis();
+  auto on = olint->get_nbasis();
+
+	//printf ("s: %i os: %i \n", sid, osid);
+	//printf ("first n: %i on: %i \n", n, on);
+  Matrix D(n, n);
+  Matrix C(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+  for (int i = 0; i < C.size(); ++i) {
+    C.array()(i) = coeff[i];
+  }
+ 
+  permuted ? olint->compute_coupling_directIT(*lint, D, C, p, results, permuted)
+                    : lint->compute_coupling_directIT(*olint, D, C, p, results, permuted);
+
+  //for (int i = 0; i < B.size(); ++i) {
+  //  result[i] = B.array()(i);
+  //}
+}
+
+
 
 void LibintInterface_compute_alphabeta_direct(LibintInterface *lint,
                                              LibintInterface *olint,

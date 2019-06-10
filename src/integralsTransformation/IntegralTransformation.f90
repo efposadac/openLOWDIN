@@ -67,6 +67,7 @@ program IntegralsTransformation
   type(TransformIntegralsE) :: transformInstanceE
   type(Matrix) :: eigenVec
   type(Matrix) :: densityMatrix
+  type(Matrix) :: otherdensityMatrix
   type(Matrix) :: eigenVecOtherSpecie 
   character(50) :: wfnFile
   character(50) :: arguments(2)
@@ -263,6 +264,11 @@ program IntegralsTransformation
                                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                                output = eigenValuesOfOtherSpecie )     
 
+                          arguments(1) = "DENSITY"
+                          otherdensityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
+                          columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+ 
+
                           otherSpecieID = j
   
                           !! Transforms integrals for two species
@@ -288,13 +294,13 @@ program IntegralsTransformation
                               if ( occupation <= otherOccupation ) then
 
                                 call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
-                                 eigenVec, eigenVecOtherSpecie, &
+                                 densityMatrix, eigenVec, eigenVecOtherSpecie, &
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
 
                               else 
 
                                  call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
-                                   eigenVecOtherSpecie, eigenVec, &
+                                   otherdensityMatrix, eigenVecOtherSpecie, eigenVec, &
                                    auxMatrix, otherSpecieID, nameOfOtherSpecie,  specieID, nameOfSpecies )
 
                               end if

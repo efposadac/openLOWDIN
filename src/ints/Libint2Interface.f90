@@ -249,6 +249,17 @@ module Libint2Interface_
        type(c_ptr), value :: result
      end subroutine c_LibintInterface_computeCouplingDirect
 
+     subroutine c_LibintInterface_computeCouplingDirectIT(this, othis, density, coefficients, result, p) bind(C, name="LibintInterface_compute_coupling_directIT")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: this        
+       type(c_ptr), value :: othis        
+       type(c_ptr), value :: density
+       type(c_ptr), value :: coefficients
+       type(c_ptr), value :: result
+       integer(c_int)  :: p
+     end subroutine c_LibintInterface_computeCouplingDirectIT
+
      subroutine c_LibintInterface_computeAlphaBetaDirect(this, othis, density, otherdensity, result) bind(C, name="LibintInterface_compute_alphabeta_direct")
        use, intrinsic :: iso_c_binding
        implicit none
@@ -595,6 +606,55 @@ contains
          Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coupling_ptr)
 
   end subroutine Libint2Interface_compute2BodyInterSpecies_direct
+
+  subroutine Libint2Interface_compute2BodyInterspecies_direct_IT(speciesID, otherSpeciesID, density, coefficients, coupling, p)
+    implicit none
+
+    integer :: speciesID
+    integer :: otherSpeciesID
+    real(8), allocatable, target :: density(:,:)
+    real(8), allocatable, target :: coefficients(:,:)
+    real(8), allocatable, target :: coupling(:,:,:)
+    integer :: p
+
+    type(c_ptr) :: density_ptr
+    type(c_ptr) :: coefficients_ptr
+    type(c_ptr) :: coupling_ptr
+
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    ! Prepare matrix
+    if(allocated(coupling)) deallocate(coupling)
+    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(specieID = otherSpeciesID), &
+         MolecularSystem_getTotalNumberOfContractions(specieID = otherSpeciesID), &
+         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+
+    coupling_ptr = c_loc(coupling(1,1,1))
+    coefficients_ptr = c_loc(coefficients(1,1))
+    density_ptr = c_loc(density(1,1))
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
+    endif
+
+
+    call c_LibintInterface_computeCouplingDirectIT(&
+         Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coefficients_ptr, coupling_ptr, p)
+
+  end subroutine Libint2Interface_compute2BodyInterspecies_direct_IT
+
+
 
   !! Compute  2-body integrals and computes the G matrix
   subroutine Libint2Interface_compute2BodyAlphaBeta_direct(speciesID, otherSpeciesID, density, otherdensity, coupling)
