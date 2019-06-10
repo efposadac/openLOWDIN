@@ -325,7 +325,7 @@ end if
    integer :: i
    integer :: j
    integer :: m
-   integer :: is
+   integer :: is, js
    integer :: specieID
    integer :: otherSpecieID
    integer :: electronsID
@@ -334,11 +334,13 @@ end if
    integer :: numberOfContractions
    integer :: numberOfContractionsOfOtherSpecie
    integer(8) :: auxIndex
+    character(10) :: order
    character(10) :: nameOfSpecie
    character(10) :: nameOfOtherSpecie
    type(Vector) :: eigenValues
    type(Vector) :: eigenValuesOfOtherSpecie
    type(Matrix) :: auxMatrix
+   integer :: occupation, otherOccupation
 !   type(TransformIntegrals) :: repulsionTransformer
    real(8) :: lambda
    real(8) :: lambdaOfOtherSpecie
@@ -362,6 +364,7 @@ end if
    character(255) :: prefixOfFile
    integer :: unidOfOutputForIntegrals
    real(8), allocatable :: intArray(:,:,:)
+   real(8) :: auxIntegral
    integer :: errorValue
 
    !! TypeOfIntegrals 
@@ -664,10 +667,10 @@ end if
    couplingEnergyCorrection = 0.0_8
    m=0
 
-   do i = 1 , MollerPlesset_instance%numberOfSpecies
+   do is = 1 , MollerPlesset_instance%numberOfSpecies
 
-     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
-     arguments(2) = trim(MolecularSystem_getNameOfSpecie(i))
+     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(is)
+     arguments(2) = trim(MolecularSystem_getNameOfSpecie(is))
 
      arguments(1) = "COEFFICIENTS"
      eigenVec = &
@@ -679,19 +682,19 @@ end if
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = eigenValues )     
 
-     nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+     nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( is ) )
      specieID =MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecie) )
-     ocupationNumber = MolecularSystem_getOcupationNumber( i )
-     numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
-     lambda = MolecularSystem_getEta( i )
+     ocupationNumber = MolecularSystem_getOcupationNumber( is )
+     numberOfContractions = MolecularSystem_getTotalNumberOfContractions( is )
+     lambda = MolecularSystem_getEta( is )
 
-     do j = i + 1 , MollerPlesset_instance%numberOfSpecies
+     do js = is + 1 , MollerPlesset_instance%numberOfSpecies
         m = m + 1
 
 
-        numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
+        numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( js )
 
-        arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+        arguments(2) = trim(MolecularSystem_getNameOfSpecie(js))
 
         arguments(1) = "COEFFICIENTS"
         eigenVecOtherSpecie = &
@@ -704,17 +707,19 @@ end if
              output = eigenValuesOfOtherSpecie )     
 
 
-        nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
+        nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( js ) )
         otherSpecieID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
-        ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( j )
+        ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( js )
 
-        lambdaOfOtherSpecie = MolecularSystem_instance%species(j)%lambda
+        lambdaOfOtherSpecie = MolecularSystem_instance%species(js)%lambda
         couplingEnergyCorrection = 0.0_8
 
 !        if ( .not.CONTROL_instance%OPTIMIZE ) then
 !           write (6,"(T10,A)") "INTER-SPECIES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)//"/"//trim(nameOfOtherSpecie)
 !           print *,""
 !        end if
+
+         if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
 
          !! Read transformed integrals from file
         call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, auxMatrix)
@@ -742,6 +747,117 @@ end if
               end do
            end do
         end do
+
+        else !! DIRECT
+         !! Read transformed integrals from file
+        !!call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, auxMatrix)
+
+        !!auxMatrix%values = auxMatrix%values * MolecularSystem_getCharge( specieID ) &
+        !!     * MolecularSystem_getCharge( otherSpecieID )
+        shellIntegrals = 0.0_8
+        aa = 0
+        bb = 0
+        ii = 0
+        jj = 0
+
+        occupation = MolecularSystem_getOcupationNumber( specieID )
+        otheroccupation = MolecularSystem_getOcupationNumber( otherSpecieID )
+
+        order = ""
+
+        if ( otheroccupation > occupation ) then
+          order = "AB"
+        else if ( otheroccupation < occupation ) then
+          order = "BA"
+        else 
+          if ( otherSpecieID > SpecieID ) then
+            order = "AB"
+          else 
+            order = "BA"
+          end if
+        end if
+
+       !if ( otherSpecieID > SpecieID ) then
+       select case (order)
+       case ("AB")
+
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+
+          prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+
+          unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+
+          !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+          open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
+               status='old',access='sequential', form='unformatted' )
+
+       readIntegralsC3 : do
+          read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) ii, aa, jj, bb, shellIntegrals
+          do p = 1, integralStackSize
+            if ( ii(p) == -1_8 ) exit readIntegralsC3
+
+              i = ii(p)
+              a = aa(p)
+              j = jj(p)
+              b = bb(p)
+
+              auxIntegral = shellIntegrals(p) * MolecularSystem_getCharge( specieID ) &
+             * MolecularSystem_getCharge( otherSpecieID )
+
+
+              couplingEnergyCorrection = couplingEnergyCorrection +  &
+                         ( ( auxIntegral )**2.0_8 ) &
+                         / (eigenValues%values(i) + eigenValuesOfOtherSpecie%values(j) &
+                         -eigenValues%values(a)-eigenValuesOfOtherSpecie%values(b) )
+
+          end do
+
+       end do readIntegralsC3
+
+      close(unidOfOutputForIntegrals)
+
+       case ("BA")
+
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+
+          prefixOfFile =""//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
+
+          unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+
+          !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+          open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
+               status='old',access='sequential', form='unformatted' )
+
+       readIntegralsC4 : do
+          read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) jj, bb, ii, aa, shellIntegrals
+          do p = 1, integralStackSize
+            if ( jj(p) == -1_8 ) exit readIntegralsC4
+
+              i = ii(p)
+              a = aa(p)
+              j = jj(p)
+              b = bb(p)
+
+              auxIntegral = shellIntegrals(p)* MolecularSystem_getCharge( specieID ) &
+             * MolecularSystem_getCharge( otherSpecieID )
+
+
+              couplingEnergyCorrection = couplingEnergyCorrection +  &
+                         ( ( auxIntegral )**2.0_8 ) &
+                         / (eigenValues%values(i) + eigenValuesOfOtherSpecie%values(j) &
+                         -eigenValues%values(a)-eigenValuesOfOtherSpecie%values(b) )
+
+          end do
+
+       end do readIntegralsC4
+
+      close(unidOfOutputForIntegrals)
+
+      end select
+
+      end if
 
         MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(m)= &
              ( lambda * lambdaOfOtherSpecie * couplingEnergyCorrection )  
