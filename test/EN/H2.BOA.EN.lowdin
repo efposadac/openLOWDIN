@@ -1,0 +1,25 @@
+
+GEOMETRY
+	!e-[H]   3-21G   0.000000    	0.0000000      0.0000000
+	!e-[H]   3-21G    0.000000     0.0000000      0.74144
+	e-[H]   sto-3G   0.000000    	0.0000000      0.0000000
+	e-[H]   sto-3G    0.000000     0.0000000      0.74144
+	!H-a_1   Nakai-7-spd-mp2-en     0.000000  0.0000  0.0000 
+	!H-b_1   Nakai-7-spd-mp2-en    0.000000   0.0000  0.74144
+	H-a_1  dirac     0.000000  0.0000  0.0000 
+	H-b_1  dirac    0.000000   0.0000  0.74144
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+	!mollerPlessetCorrection = 2
+	epsteinNesbetCorrection = 2
+END TASKS
+
+CONTROL
+	integralsTransformationMethod = "C"
+	moldenFileFormat = "MIXED"
+	overlapEigenThreshold = 1E-6	
+	!buildTwoParticlesMatrixForOneParticle = T
+END CONTROL
+

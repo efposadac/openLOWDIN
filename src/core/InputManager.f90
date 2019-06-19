@@ -43,6 +43,7 @@ module InputManager_
      !!Task
      character(50) :: method
      integer :: mollerPlessetCorrection
+     integer :: epsteinNesbetCorrection
      character(20) :: configurationInteractionLevel
      integer :: propagatorTheoryCorrection
      logical :: optimizeGeometry
@@ -180,6 +181,7 @@ contains
     character(50):: InputTasks_method
     character(20):: InputTasks_configurationInteractionLevel
     integer:: InputTasks_mollerPlessetCorrection
+    integer:: InputTasks_epsteinNesbetCorrection
     integer:: InputTasks_propagatorTheoryCorrection
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
@@ -190,6 +192,7 @@ contains
          InputTasks_method, &
          InputTasks_configurationInteractionLevel, &
          InputTasks_mollerPlessetCorrection, &
+         InputTasks_epsteinNesbetCorrection, &
          InputTasks_propagatorTheoryCorrection, &
          InputTasks_optimizeGeometry, &
          InputTasks_TDHF, &
@@ -199,6 +202,7 @@ contains
     !! Setting defaults    
     InputTasks_method = "NONE"
     InputTasks_mollerPlessetCorrection = 0
+    InputTasks_epsteinNesbetCorrection = 0
     InputTasks_configurationInteractionLevel = "NONE"
     InputTasks_propagatorTheoryCorrection = 0
     InputTasks_optimizeGeometry = .false.
@@ -218,6 +222,7 @@ contains
     !! all uppercase! Mandatory for ALL character variables
     Input_instance%method = trim(String_getUppercase(trim(InputTasks_method)))
     Input_instance%mollerPlessetCorrection = InputTasks_mollerPlessetCorrection
+    Input_instance%epsteinNesbetCorrection = InputTasks_epsteinNesbetCorrection 
     Input_instance%configurationInteractionLevel = trim(String_getUppercase(trim(InputTasks_configurationInteractionLevel)))
     Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
@@ -240,11 +245,16 @@ contains
     !! Setting some parameters-object variables
     CONTROL_instance%METHOD = trim(input_instance%method)
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = input_instance%mollerPlessetCorrection
+    CONTROL_instance%EPSTEIN_NESBET_CORRECTION = input_instance%epsteinNesbetCorrection
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = input_instance%configurationInteractionLevel
     CONTROL_instance%PT_ORDER = input_instance%propagatorTheoryCorrection
 
     if ( input_instance%mollerPlessetCorrection /= 0 ) then
        CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-MP2"
+    end if
+
+    if ( input_instance%epsteinNesbetCorrection /= 0 ) then
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-EN2"
     end if
         
     if ( input_instance%configurationInteractionLevel /= "NONE" ) then

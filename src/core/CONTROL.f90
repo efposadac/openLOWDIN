@@ -138,11 +138,13 @@ module CONTROL_
      real(8) :: DIHEDRAL_ANGLE_THRESHOLD
 
      !!***************************************************************************
-     !! Parameter to control MPn theory
+     !! Parameter to control MBP theory
      !!
      integer :: MOLLER_PLESSET_CORRECTION
      integer :: MP_FROZEN_CORE_BOUNDARY
      logical :: MP_ONLY_ELECTRONIC_CORRECTION
+
+     integer :: EPSTEIN_NESBET_CORRECTION
 
      !!***************************************************************************
      !! Parameter to control cosmo  
@@ -435,11 +437,12 @@ module CONTROL_
   real(8) :: LowdinParameters_dihedralAngleThreshold
 
   !!***************************************************************************
-  !! Parameter to control MPn theory
+  !! Parameter to control MBPn theory
   !!
   integer :: LowdinParameters_mpCorrection
   integer :: LowdinParameters_mpFrozenCoreBoundary
   logical :: LowdinParameters_mpOnlyElectronicCorrection
+  integer :: LowdinParameters_epsteinNesbetCorrection 
 
   !!***************************************************************************
   !! Parameter to control cosmo theory
@@ -731,11 +734,12 @@ module CONTROL_
        LowdinParameters_dihedralAngleThreshold,&
        
                                 !!***************************************************************************
-                                !! Parameter to control MPn theory
+                                !! Parameter to control MBPn theory
                                 !!
        LowdinParameters_mpCorrection,&
        LowdinParameters_mpFrozenCoreBoundary,&
        LowdinParameters_mpOnlyElectronicCorrection,&
+       LowdinParameters_epsteinNesbetCorrection, &
        
                                 !!***************************************************************************
                                 !! Parameter to control cosmo theory
@@ -1051,11 +1055,12 @@ contains
     LowdinParameters_dihedralAngleThreshold = 170.0_8
 
     !!***************************************************************************
-    !! Parameter to control MPn theory
+    !! Parameter to control MBPn theory
     !!
     LowdinParameters_mpCorrection = 1
     LowdinParameters_mpFrozenCoreBoundary = 1
     LowdinParameters_mpOnlyElectronicCorrection = .false.
+    LowdinParameters_epsteinNesbetCorrection = 1
 
     !!***************************************************************************
     !! Parameter to control cosmo theory
@@ -1349,11 +1354,13 @@ contains
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = 180.0_8
 
     !!***************************************************************************                                              
-    !! Parameter to control MPn theory                                                                                         
+    !! Parameter to control MBPn theory                                                                                         
     !!                                                                                                                         
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = 1
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = 1
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = .false.
+
+    CONTROL_instance%EPSTEIN_NESBET_CORRECTION = 1
 
     !!***************************************************************************                                              
     !! Parameter to control cosmo method                                                                                         
@@ -1688,11 +1695,12 @@ contains
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = LowdinParameters_dihedralAngleThreshold
 
     !!***************************************************************************      
-    !! Parameter to control MPn theory                                                 
+    !! Parameter to control MBPn theory                                                 
     !!                                                                                 
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = LowdinParameters_mpCorrection
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = LowdinParameters_mpFrozenCoreBoundary
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = LowdinParameters_mpOnlyElectronicCorrection
+    CONTROL_instance%EPSTEIN_NESBET_CORRECTION = LowdinParameters_epsteinNesbetCorrection
 
     !!***************************************************************************      
     !! Parameter to control cosmo method                                               
@@ -2010,12 +2018,12 @@ contains
     LowdinParameters_dihedralAngleThreshold = CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD
 
     !!***************************************************************************      
-    !! Parameter to control MPn theory                                                 
+    !! Parameter to control MBPn theory                                                 
     !!                                                                                 
     LowdinParameters_mpCorrection = CONTROL_instance%MOLLER_PLESSET_CORRECTION
     LowdinParameters_mpFrozenCoreBoundary = CONTROL_instance%MP_FROZEN_CORE_BOUNDARY
     LowdinParameters_mpOnlyElectronicCorrection = CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION
-
+    LowdinParameters_epsteinNesbetCorrection = CONTROL_instance%EPSTEIN_NESBET_CORRECTION 
     !!***************************************************************************      
     !! Parameter to control cosmo method                                                 
     !!                                                                                 
@@ -2308,6 +2316,7 @@ contains
     otherThis%MOLLER_PLESSET_CORRECTION = this%MOLLER_PLESSET_CORRECTION 
     otherThis%MP_FROZEN_CORE_BOUNDARY = this%MP_FROZEN_CORE_BOUNDARY 
     otherThis%MP_ONLY_ELECTRONIC_CORRECTION = this%MP_ONLY_ELECTRONIC_CORRECTION 
+    otherThis%EPSTEIN_NESBET_CORRECTION = this%EPSTEIN_NESBET_CORRECTION
     !!*****************************************************
     !! Control de parametros de metodo cosmo
     !!
@@ -2535,6 +2544,14 @@ contains
        write (*,"(T10,A,I5)") "MOLLER PLESSET CORRECTION:  ",CONTROL_instance%MOLLER_PLESSET_CORRECTION
 
     end if
+
+    if(CONTROL_instance%EPSTEIN_NESBET_CORRECTION>=2) then
+
+       write (*,"(T10,A,I5)") "EPSTEIN NESBET CORRECTION:  ",CONTROL_instance%EPSTEIN_NESBET_CORRECTION
+
+    end if
+
+
 
     if(CONTROL_instance%COSMO) then
 

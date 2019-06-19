@@ -69,7 +69,8 @@ interval = int(numberOfFunctionsS)
 for i in range(1,interval+1) :
 
 	counter = counter +1
-	alpha = alphaS*(3**(i-1))
+	alpha = alphaS*(3.162**(i))
+	#alpha = alphaS*(3.162**(i-1))
 	out.write (str(counter)+" 0 1\n")
 	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
 
@@ -77,7 +78,8 @@ interval = int(numberOfFunctionsP)
 for i in range(1,interval+1) :
 
 	counter = counter +1
-	alpha = alphaP*(3**(i-1))
+	alpha = alphaP*(3.162**(i))
+	#alpha = alphaP*(3.162**(i-1))
 	out.write (str(counter)+" 1 1\n")
 	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
 
@@ -85,7 +87,8 @@ interval = int(numberOfFunctionsD)
 for i in range(1,interval+1) :
 
 	counter = counter +1
-	alpha = alphaD*(3**(i-1))
+	alpha = alphaD*(3.162**(i))
+	#alpha = alphaD*(3.162**(i-1))
 	out.write (str(counter)+" 2 1\n")
 	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
 

@@ -32,12 +32,13 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-program MollerPlesset
+program MBPT
   use CONTROL_
   use MolecularSystem_
   use Exception_
   use Vector_
   use MPFunctions_
+  use ENFunctions_
   implicit none
 
   character(50) :: job
@@ -55,11 +56,19 @@ program MollerPlesset
 
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION > 1 ) then
+    call MollerPlesset_constructor( CONTROL_instance%MOLLER_PLESSET_CORRECTION )
+    call MollerPlesset_run()
+    call MollerPlesset_show()
+    call MollerPlesset_destructor()
+  end if
 
-  call MollerPlesset_constructor( CONTROL_instance%MOLLER_PLESSET_CORRECTION )
-  call MollerPlesset_run()
-  call MollerPlesset_show()
-  call MollerPlesset_destructor()
+  if ( CONTROL_instance%EPSTEIN_NESBET_CORRECTION > 1 ) then
+    call EpsteinNesbet_constructor( CONTROL_instance%EPSTEIN_NESBET_CORRECTION )
+    call EpsteinNesbet_run()
+    call EpsteinNesbet_show()
+    call EpsteinNesbet_destructor()
+  end if
 
   !!stop time
   call Stopwatch_stop(lowdin_stopwatch)
@@ -71,4 +80,4 @@ program MollerPlesset
   close(30)
 
 
-end program MollerPlesset
+end program MBPT
