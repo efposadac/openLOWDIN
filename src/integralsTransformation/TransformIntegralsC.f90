@@ -1084,7 +1084,7 @@ contains
                 auxTransformedTwoParticlesIntegral = 0
 
                 !if ( s < this%s_lowerOrbital ) cycle
-                if ( q < p .and. symmetric ) cycle
+                if ( s < r .and. symmetric ) cycle
                 !! fourth quarter
                 do sigma = 1, this%otherNumberOfContractions
                    auxTransformedTwoParticlesIntegral = auxTransformedTwoParticlesIntegral + &
@@ -1285,7 +1285,7 @@ contains
                 auxTransformedTwoParticlesIntegral = 0
 
                 !if ( s < this%s_lowerOrbital ) cycle
-                if ( q < p .and. symmetric ) cycle
+                if ( s < r .and. symmetric ) cycle
                 !! fourth quarter
                 do sigma = 1, this%otherNumberOfContractions
                    auxTransformedTwoParticlesIntegral = auxTransformedTwoParticlesIntegral + &

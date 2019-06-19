@@ -1918,17 +1918,71 @@ contains
     !! only the (ip|aq) integrals will be transformed
     if ( CONTROL_instance%PT_ORDER == 2  ) then
     
-      this%p_l = 1
-      this%p_u = totalOccupation 
-      this%q_l = 1
-      this%q_u = totalNumberOfContractions
+      if ( CONTROL_instance%IONIZE_MO == 0 ) then
+          !! all
+          this%q_l = 1!totalOccupation     !! HOMO 
+          this%q_u = totalOccupation + 1 !! LUMO
+          this%p_l = 1
+          this%p_u = totalNumberOfContractions
 
-      this%r_l = totalOccupation + 1
-      this%r_u = totalNumberOfContractions
-      this%s_l = 1
-      this%s_u = totalNumberOfContractions
+          this%s_l = 1
+          this%s_u = totalOccupation 
+          this%r_l = totalOccupation + 1
+          this%r_u = totalNumberOfContractions
+
+          !! half symmetric
+          !this%p_l = 1 
+          !this%p_u = totalOccupation + 1
+          !this%q_l = 1
+          !this%q_u = totalNumberOfContractions
+
+          !this%r_l = 1
+          !this%r_u = totalOccupation 
+          !this%s_l = totalOccupation + 1
+          !this%s_u = totalNumberOfContractions
+
+          !! fully symmetric
+          !this%q_l = 1 
+          !this%q_u = totaloccupation  
+          !this%p_l = 1
+          !this%p_u = totalNumberOfContractions
+
+          !this%s_l = 1
+          !this%s_u = totalNumberOfContractions
+          !this%r_l =  1
+          !this%r_u = totalNumberOfContractions
+
+      else
+
+        if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
+          this%q_l = CONTROL_instance%IONIZE_MO  
+          this%q_u = CONTROL_instance%IONIZE_MO 
+          this%p_l = 1
+          this%p_u = totalNumberOfContractions
+
+          this%s_l = 1
+          this%s_u = totalOccupation !totalNumberOfContractions
+          !this%s_u = totalOccupation !totalNumberOfContractions
+          this%r_l = 1
+          this%r_u = totalNumberOfContractions
+
+        else 
+
+          this%q_l = CONTROL_instance%IONIZE_MO  
+          this%q_u = CONTROL_instance%IONIZE_MO 
+          this%p_l = 1
+          this%p_u = totalNumberOfContractions
+
+          this%s_l = 1
+          this%s_u = totalOccupation 
+          this%r_l = totalOccupation + 1
+          this%r_u = totalNumberOfContractions
+
+        end if
+      end if
 
     end if
+
 
   end subroutine TransformIntegralsE_checkMOIntegralType
 
@@ -1939,12 +1993,15 @@ contains
     type(TransformIntegralsE) :: this
     integer :: totalOccupation, otherTotalOccupation
     integer :: totalNumberOfContractions, otherTotalNumberOfContractions
+    logical :: ionizeA, ionizeB
+    integer :: s
+    character(10) :: nameOfSpecies
+    character(10) :: nameOfOtherSpecies
 
     totalOccupation = MolecularSystem_getOcupationNumber( speciesID )
     totalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions ( speciesID )
     otherTotalOccupation = MolecularSystem_getOcupationNumber( otherSpeciesID )
     otherTotalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions ( otherSpeciesID )
-
 
     !! All orbitals. Default
     this%p_l = 1
@@ -1959,7 +2016,6 @@ contains
 
     !! only the (ia|jb) integrals will be transformed
     if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2  ) then
-
        this%p_l = totalOccupation + 1
        this%p_u = totalNumberOfContractions
        this%q_l = 1
@@ -1968,53 +2024,146 @@ contains
        this%r_u = otherTotalNumberOfContractions
        this%s_l = 1
        this%s_u = otherTotalOccupation
-
     end if
 
     !! only the (ip|IP) integrals will be transformed.
-    if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_MO /= 0 .and. CONTROL_instance%IONIZE_MO <= otherTotalOccupation ) then
-    
-      this%p_l = 1
-      this%p_u = totalOccupation!totalNumberOfContractions
-      this%q_l = 1 
-      this%q_u = totalNumberOfContractions
+    if ( CONTROL_instance%PT_ORDER == 2 ) then
+
+       this%q_l = 1
+       this%q_u = totalOccupation + 1 !! occ + lumo (default)
+       this%p_l = 1
+       this%p_u = totalNumberOfContractions
+       this%s_l = 1
+       this%s_u = otherTotalOccupation + 1 !!occ + lumo
+       this%r_l = 1
+       this%r_u = otherTotalNumberOfContractions
+
+      if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+
+        ionizeA = .false.
+        ionizeB = .false.
+
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+
+         do s = 1, size(CONTROL_instance%IONIZE_SPECIE )
+           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+             ionizeA = .true. 
+           end if
+           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+             ionizeB = .true. 
+           end if
+         end do
+
+        if ( CONTROL_instance%IONIZE_MO == 0 ) then
+
+          if ( ionizeA .and. ionizeB ) then
+
+            this%q_l = 1
+            this%q_u = totalOccupation + 1 !! occ + lumo (default)
+            this%p_l = 1
+            this%p_u = totalNumberOfContractions
+            this%s_l = 1
+            this%s_u = otherTotalOccupation + 1 !!occ + lumo
+            this%r_l = 1
+            this%r_u = otherTotalNumberOfContractions
+
+          else if ( ionizeA .and. .not. ionizeB ) then
+        
+            this%q_l = 1
+            this%q_u = totalOccupation + 1 !! occ + lumo (default)
+            this%p_l = 1
+            this%p_u = totalNumberOfContractions
   
-      this%r_l = 1
-      this%r_u = otherTotalOccupation! otherTotalNumberOfContractions
-      this%s_l = 1
-      this%s_u = otherTotalNumberOfContractions
+            this%s_l = 1
+            this%s_u = othertotaloccupation 
+            this%r_l = othertotaloccupation + 1
+            this%r_u = otherTotalNumberOfContractions
 
-    end if
+          else if ( .not. ionizeA .and. ionizeB ) then
 
-    !! only the (ip|IP) integrals will be transformed.
-    if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_MO /= 0 .and. CONTROL_instance%IONIZE_MO > otherTotalOccupation ) then
-    
-      this%p_l = 1 
-      this%p_u = totalNumberOfContractions
-      this%q_l = totalOccupation + 1
-      this%q_u = totalNumberOfContractions
+            this%q_l = 1
+            this%q_u = totalOccupation
+            this%p_l = totalOccupation + 1
+            this%p_u = totalNumberOfContractions
+            this%s_l = 1
+            this%s_u = otherTotalOccupation + 1
+            this%r_l = 1
+            this%r_u = otherTotalNumberOfContractions
+
+          end if
+
+        else if ( CONTROL_instance%IONIZE_MO /= 0 ) then !!occ and vir..
+
+          if ( ionizeA .and. ionizeB ) then
+            if ( CONTROL_instance%IONIZE_MO <= totalOccupation .and. CONTROL_instance%IONIZE_MO <= othertotalOccupation ) then
+              this%q_l = 1
+              this%q_u = totalOccupation
+              this%p_l = 1
+              this%p_u = totalNumberOfContractions
+              this%s_l = 1
+              this%s_u = otherTotalOccupation
+              this%r_l = 1
+              this%r_u = otherTotalNumberOfContractions
+
+            else if ( CONTROL_instance%IONIZE_MO > totalOccupation .and. CONTROL_instance%IONIZE_MO > othertotalOccupation ) then
+
+              this%q_l = 1
+              this%q_u = totalNumberOfContractions!CONTROL_instance%IONIZE_MO 
+              this%p_l = 1
+              this%p_u = totalNumberOfContractions
+              this%s_l = 1
+              this%s_u = otherTotalNumberOfContractions!CONTROL_instance%IONIZE_MO 
+              this%r_l = 1
+              this%r_u = otherTotalNumberOfContractions
+
+            end if
+
+          else if ( ionizeA .and. .not. ionizeB ) then
+        
+            this%q_l = CONTROL_instance%IONIZE_MO
+            this%q_u = CONTROL_instance%IONIZE_MO
+
+
+        if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
+            this%q_l = 1
+            this%q_u = totalNumberOfContractions
+        end if
+            this%p_l = 1
+            this%p_u = totalNumberOfContractions
   
-      this%r_l = 1
-      this%r_u = otherTotalNumberOfContractions
-      this%s_l = otherTotalOccupation + 1
-      this%s_u = otherTotalNumberOfContractions
+            this%s_l = 1
+            this%s_u = othertotaloccupation 
+            this%r_l = othertotaloccupation + 1
+            this%r_u = otherTotalNumberOfContractions
+
+          else if ( .not. ionizeA .and. ionizeB ) then
+
+            this%q_l = 1
+            this%q_u = totalOccupation
+            this%p_l = totalOccupation + 1
+            this%p_u = totalNumberOfContractions
+
+            !this%s_l = CONTROL_instance%IONIZE_MO !...
+            !this%s_u = CONTROL_instance%IONIZE_MO !...
+            this%s_l = 1
+            this%s_u = otherTotalNumberOfContractions
+
+            this%r_l = 1
+            this%r_u = otherTotalNumberOfContractions
+
+          end if
+
+
+
+        end if
+
+          !if ( CONTROL_instance%IONIZE_MO /= 0 ) then
+      end if
 
     end if
 
-    !! only the (ip|IP) integrals will be transformed.
-!!    if ( CONTROL_instance%PT_ORDER == 2 .and. speciesID == 1 .and. CONTROL_instance%IONIZE_MO /= 0 .and. CONTROL_instance%IONIZE_MO <= otherTotalOccupation) then
-!!    
-!!      this%p_l = 1
-!!      this%p_u = totalOccupation!totalNumberOfContractions
-!!      this%q_l = 1 
-!!      this%q_u = totalNumberOfContractions
-!!  
-!!      this%r_l = 1
-!!      this%r_u = otherTotalOccupation! otherTotalNumberOfContractions
-!!      this%s_l = otherTotalOccupation + 1
-!!      this%s_u = otherTotalNumberOfContractions
-!!
-!!    end if
+
 
   end subroutine TransformIntegralsE_checkInterMOIntegralType
 
