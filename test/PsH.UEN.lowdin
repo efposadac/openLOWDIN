@@ -1,0 +1,15 @@
+GEOMETRY
+	e-(H)   AUG-CC-PVTZ 	0.00	0.00 	0.00 addParticles=1 
+	H	dirac			0.00	0.00 	0.00
+	e+	E+AUG-CC-PVTZ	0.00	0.00	0.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	epsteinNesbetCorrection = 2
+END TASKS
+
+CONTROL
+	!buildTwoParticlesMatrixForOneParticle=T
+END CONTROL
+

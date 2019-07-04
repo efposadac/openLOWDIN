@@ -583,37 +583,42 @@ contains
        if ( (CONTROL_instance%NO_SCF .and. CONTROL_instance%READ_EIGENVALUES) .or. &
             (SingleSCF_getNumberOfIterations(speciesID) == 0 .and. CONTROL_instance%READ_EIGENVALUES) ) then
 
-           inquire(FILE = "lowdin.vec", EXIST = existFile )
+          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(1) = "ORBITALS"
 
-           if ( existFile) then
+          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
+          inquire(FILE = wfnFile, EXIST = existFile )
 
-             arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-             arguments(1) = "ORBITALS"
-
-             if ( CONTROL_instance%READ_EIGENVALUES_IN_BINARY ) then
-
-               !! Open file for wavefunction
-               open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+          if ( existFile) then
+             open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
 
                 call Vector_getFromFile(unit=wfnUnit, &
                           output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
                           elementsNum= int(numberOfContractions,4), binary=.true., & 
                           arguments=arguments(1:2))
 
-               close(wfnUnit)
-             else 
-               !! Open file for wavefunction
-               open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+             close(wfnUnit)
+
+          else 
+             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
+             inquire(FILE = wfnFile, EXIST = existFile )
+
+             if ( existFile) then
+                open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
                 call Vector_getFromFile(unit=wfnUnit, &
                           output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
                           elementsNum= int(numberOfContractions,4), binary=.false., & 
                           arguments=arguments(1:2))
-               close(wfnUnit)
 
+                close(wfnUnit)
+
+             else
+                call  SingleSCF_exception( ERROR, "I did not find any .vec coefficients file", "At SCF program, at SingleSCF_Iterate")
              end if
 
-           end if
+          end if
+
       end if
 
        !! Not implemented yet
