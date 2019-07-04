@@ -52,6 +52,7 @@ pipelines:
           - #build libxc
           - git clone https://gitlab.com/libxc/libxc.git
           - cd libxc
+          - git checkout 724fe21518a34433dee327ec2232ff26b8d1142e
           - autoreconf -i
           - ./configure --enable-shared --prefix=$WORKDIR
           - make -j 4
