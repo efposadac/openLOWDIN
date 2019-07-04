@@ -113,7 +113,7 @@ contains
     write(unit,'(<size(this%orbitalExponents)>F)') this%orbitalExponents
     write(unit,'(<size(this%contractionCoefficients)>F)') this%contractionCoefficients
     write(unit,'(<size(this%contNormalization)>F)') this%contNormalization
-    write(unit,'(<size(this%primNormalization)>F)') this%primNormalization
+    write(unit,'(<size(this%primNormalization)>E)') this%primNormalization
 #else
     write(unit,*) this%orbitalExponents
     write(unit,*) this%contractionCoefficients

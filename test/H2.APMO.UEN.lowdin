@@ -1,0 +1,20 @@
+
+GEOMETRY
+	e-[H]   cc-pvtz   0.000000    	0.0000000      0.0000000
+	e-[H]   cc-pvtz  0.000000     0.0000000      0.74144
+	H-a_1   NAKAI-3-SPD     0.000000  0.0000  0.0000 
+	H-b_1   NAKAI-3-SPD    0.000000   0.0000  0.74144
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	epsteinNesbetCorrection = 2
+END TASKS
+
+CONTROL
+	integralsTransformationMethod = "C"
+	overlapEigenThreshold = 1E-6	
+	scfnonelectronicenergytolerance=1E-10
+	scfelectronicenergytolerance=1E-10
+END CONTROL
+

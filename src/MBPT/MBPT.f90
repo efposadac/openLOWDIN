@@ -74,8 +74,8 @@ program MBPT
   call Stopwatch_stop(lowdin_stopwatch)
   
   write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL CPU Time HF-MP2 : ", lowdin_stopwatch%enlapsetTime ," (s)"
-  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time HF-MP2 : ", lowdin_stopwatch%elapsetWTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL CPU Time HF-MBPT : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time HF-MBPT : ", lowdin_stopwatch%elapsetWTime ," (s)"
   write(*, *) ""
   close(30)
 
