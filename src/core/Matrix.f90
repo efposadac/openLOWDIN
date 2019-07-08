@@ -68,6 +68,11 @@ module Matrix_
      logical :: isInstanced
   end type Matrix
 
+  type, public :: IMatrix8
+     integer(8), allocatable :: values(:,:)
+     logical :: isInstanced
+  end type IMatrix8
+
   type, public :: IMatrix
      integer, allocatable :: values(:,:)
      logical :: isInstanced
@@ -177,6 +182,7 @@ module Matrix_
        Matrix_Fortran_orthogonalizeLastVector, &
        Matrix_eigenProperties, &
        diagonalize_matrix, & ! Copiada de Parakata
+       Matrix_constructorInteger8, &
        Matrix_constructorInteger, &
        Matrix_constructorInteger1
 
@@ -206,6 +212,29 @@ contains
     this%isInstanced = .true.
 
   end subroutine Matrix_constructor
+
+  !>
+  !! @brief Constructor
+  !! Constructor por omision
+  subroutine Matrix_constructorInteger8( this, dim1, dim2, value)
+    implicit none
+    type(IMatrix8), intent(inout) :: this
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
+    integer(8), optional, intent(in) :: value
+
+    integer(8) :: valueTmp
+    this%isInstanced = .true.
+    valueTmp = 0.0_8
+    if( present(value) ) valueTmp = value
+
+    if (allocated(this%values)) deallocate(this%values)
+    allocate( this%values( dim1, dim2 ) )
+
+    this%values = valueTmp
+    this%isInstanced = .true.
+
+  end subroutine Matrix_constructorInteger8
 
   !>
   !! @brief Constructor
