@@ -786,7 +786,9 @@ contains
              end do
            end do
 
-
+           nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpecieID )          
+           if ( nameOfOtherSpecie == CONTROL_instance%SCF_GHOST_SPECIES ) &
+              WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values = 0
            wavefunction_instance(currentSpecieID)%couplingMatrix%values = &
               wavefunction_instance(currentSpecieID)%couplingMatrix%values + &
               WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values 
@@ -796,7 +798,6 @@ contains
 
     end if
 
-    if ( nameOfSpecieSelected == CONTROL_instance%SCF_BLIND_SPECIES ) wavefunction_instance(currentSpecieID)%couplingMatrix%values = 0
     if (  CONTROL_instance%DEBUG_SCFS) then
        write(*,*) "Coupling Matrix: ", trim(nameOfSpecieSelected)
        call Matrix_show( wavefunction_instance(currentSpecieID)%couplingMatrix )
@@ -1233,14 +1234,14 @@ contains
       nameOfSpecie = MolecularSystem_getNameOfSpecie( speciesID ) 
       call WaveFunction_buildCouplingMatrix(nameOfSpecie)
 
-      if ( nameOfSpecie == CONTROL_instance%SCF_BLIND_SPECIES ) factor = 0
+      if ( nameOfSpecie == CONTROL_instance%SCF_GHOST_SPECIES ) factor = 1.0
 
       do otherSpeciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
 
         if ( otherSpeciesID /= speciesID ) then 
 
           nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpeciesID ) 
-          if ( nameOfOtherSpecie == CONTROL_instance%SCF_BLIND_SPECIES ) factor = 1
+          !if ( nameOfOtherSpecie == CONTROL_instance%SCF_GHOST_SPECIES  ) factor = 0
 
           output = output + factor*(sum(  transpose(wavefunction_instance(speciesID)%densityMatrix%values) &
               * (wavefunction_instance(speciesID)%couplingMatrixPerSpecies(otherSpeciesID)%values))) 

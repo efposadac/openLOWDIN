@@ -79,7 +79,7 @@ module CONTROL_
      logical :: ACTIVATE_LEVEL_SHIFTING
      logical :: EXCHANGE_ORBITALS_IN_SCF
      logical :: DEBUG_SCFS
-     character(10) ::  SCF_BLIND_SPECIES
+     character(10) ::  SCF_GHOST_SPECIES
 
      !!***************************************************************************
      !! Hartree-Fock options
@@ -377,7 +377,7 @@ module CONTROL_
   logical :: LowdinParameters_activateLevelShifting
   logical :: LowdinParameters_exchangeOrbitalsInSCF
   logical :: LowdinParameters_debugScfs
-  character(10) :: LowdinParameters_scfBlindSpecies
+  character(10) :: LowdinParameters_scfGhostSpecies
 
   !!*****************************************************
   !! Hartree-Fock Options
@@ -673,7 +673,7 @@ module CONTROL_
        LowdinParameters_activateLevelShifting,&
        LowdinParameters_exchangeOrbitalsInSCF,&
        LowdinParameters_debugScfs,&
-       LowdinParameters_scfBlindSpecies, &
+       LowdinParameters_scfGhostSpecies, &
        
                                 !!*****************************************************
                                 !! Hartree-Fock Options
@@ -996,7 +996,7 @@ contains
     LowdinParameters_activateLevelShifting = .false.
     LowdinParameters_exchangeOrbitalsInSCF = .false.
     LowdinParameters_debugScfs = .false.
-    LowdinParameters_scfBlindSpecies = "NONE"
+    LowdinParameters_scfGhostSpecies = "NONE"
 
     !!*****************************************************
     !! Hartree-Fock Options
@@ -1297,7 +1297,7 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = .false.
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = .false.
     CONTROL_instance%DEBUG_SCFS = .false.
-    CONTROL_instance%SCF_BLIND_SPECIES = "NONE"
+    CONTROL_instance%SCF_GHOST_SPECIES = "NONE"
     ! CONTROL_instance%DEBUG_SCFS = .true.
 
     !!***************************************************************************                                              
@@ -1637,7 +1637,7 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = LowdinParameters_activateLevelShifting
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = LowdinParameters_exchangeOrbitalsInSCF
     CONTROL_instance%DEBUG_SCFS = LowdinParameters_debugScfs
-    CONTROL_instance%SCF_BLIND_SPECIES = LowdinParameters_scfBlindSpecies
+    CONTROL_instance%SCF_GHOST_SPECIES = LowdinParameters_scfGhostSpecies
 
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
@@ -1951,7 +1951,7 @@ contains
     LowdinParameters_exchangeOrbitalsInSCF = CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF
     LowdinParameters_debugScfs = CONTROL_instance%DEBUG_SCFS
 
-    LowdinParameters_scfBlindSpecies = CONTROL_instance%SCF_BLIND_SPECIES
+    LowdinParameters_scfGhostSpecies = CONTROL_instance%SCF_GHOST_SPECIES
 
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
@@ -2260,7 +2260,7 @@ contains
     otherThis%ACTIVATE_LEVEL_SHIFTING = this%ACTIVATE_LEVEL_SHIFTING 
     otherThis%EXCHANGE_ORBITALS_IN_SCF = this%EXCHANGE_ORBITALS_IN_SCF 
     otherThis%DEBUG_SCFS = this%DEBUG_SCFS 
-    otherThis%SCF_BLIND_SPECIES = this%SCF_BLIND_SPECIES 
+    otherThis%SCF_GHOST_SPECIES = this%SCF_GHOST_SPECIES 
     !!***************************************************************************
     !! Parametros para control Hartree-Fock
     !!
