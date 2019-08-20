@@ -7,12 +7,14 @@ import subprocess
 potentialName = sys.argv[1]
 outFile = open (potentialName,"w")
 
-angstromToBohr = 1.88973
 
 # "input"...
 species="E+"
-origin = ((0.000, 0.000, 0.000),(0.000, 0.000, 2.001),(0.000, 0.000, 4.130)) # a.u
-polarizabilities =(0.387, 1.283, 0.956) # angstrom
+origin = [(0.000, 0.000, 0.000)] # a.u
+polarizabilities = [24.330] # angstrom Li
+
+angstromToBohr = 1.88973
+#angstromToBohr = 1
 
 # parameters
 
@@ -73,19 +75,18 @@ inputdata = '"""+realPotentialFileName+"""'
 mean(x)= m
 fit mean(x) inputdata u 1:2 via m
 SST = FIT_WSSR/(FIT_NDF+1)
-r = 4.13
 """+auxfunction+"""
 fit g(x) inputdata u 1:2 via """+auxcoef+"""
 SSE=FIT_WSSR/(FIT_NDF)
 SSR=SST-SSE
 R2=SSR/SST
 print R2
-set  xrange[0:50]
+set  xrange[0:100]
 outputName = '"""+gnuplotFileName+'.pdf'+"""'
 set output outputName
 
 
-plot g(x)
+plot g(x), inputdata u 1:2
 print "BEGIN RESULTS"
 print """+auxcoef+"""
 """)

@@ -50,7 +50,7 @@ fi
 if [  $printOut = "T" ]; then
 	test.x $test | tee  $test.out
 else
-      	test.x $test > $test.out
+      	test.x $test 2> $test.out
 fi
 
 echo "done"
@@ -395,9 +395,9 @@ if [ $extFile="lowdin" ]; then
 	cd $LOWDIN_SCRATCH/$nameFile
 	
 	if [  $printOut = "T" ]; then
-	    lowdin$version $nameFile.aux | tee -a $nameFile.out 
+	    lowdin$version $nameFile.aux |& tee -a $nameFile.out 
 	else
-	    lowdin$version $nameFile.aux >>   $nameFile.out
+	    lowdin$version $nameFile.aux >> $nameFile.out 2> >(tee -a $nameFile.out >&2)
 	fi
 	
 	ls -lh * >> $nameFile.out

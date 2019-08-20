@@ -1,3 +1,4 @@
+
 GEOMETRY
         e-(H) 6-311++G.d.p 0 0 0
         e-(C) 6-311++G.d.p 0 0 1.059
@@ -5,21 +6,28 @@ GEOMETRY
         H     dirac	   0 0 0
         C     dirac	   0 0 1.059
         N     dirac        0 0 2.186
-	E+ GRIBAKIN-10S        0  0  0.00
-	E+ GRIBAKIN-10S        0  0  1.059
-	E+ GRIBAKIN-10S        0  0  2.186 addParticles=-2
+	E+ GRIBAKIN-10S4P2D        0  0  0.00
+	E+ GRIBAKIN-10S4P2D        0  0  1.059
+	E+ GRIBAKIN-10S4P2D       0  0  2.186 addParticles=-2
 END GEOMETRY
 
 TASKS
-        method = "RHF"
+        method = "UHF"
 END TASKS
+
+EXTERPOTENTIAL
+	E-ALPHA GRIBAKIN0
+	E-BETA GRIBAKIN0
+	E+ GRIBAKIN.2.00
+END EXTERPOTENTIAL
 
 CONTROL
 	convergenceMethod=1
 	iterationScheme=3
+	overlapEigenThreshold=1E-6
+	!SCFblindSpecies="E-" "NONE"
 	SCFGhostSpecies="POSITRON"
 	HFprintEigenvalues=T
-	overlapEigenThreshold=1E-6
 	scfNonelectronicEnergyTolerance = 1E-8
 	scfElectronicEnergyTolerance = 1E-8	
 END CONTROL
