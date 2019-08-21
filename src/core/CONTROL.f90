@@ -104,6 +104,7 @@ module CONTROL_
      logical :: GET_GRADIENTS
      logical :: HF_PRINT_EIGENVALUES
      real(8) :: OVERLAP_EIGEN_THRESHOLD
+     real(8) :: ELECTRIC_FIELD(3)
 
      !!***************************************************************************
      !! Parameter to control geometry optimization
@@ -403,6 +404,7 @@ module CONTROL_
   logical :: LowdinParameters_getGradients
   logical :: LowdinParameters_HFprintEigenvalues
   real(8) :: LowdinParameters_overlapEigenThreshold
+  real(8) :: LowdinParameters_electricField(3)
 
   !!***************************************************************************
   !! Parameter to control geometry optimization
@@ -699,6 +701,7 @@ module CONTROL_
        LowdinParameters_getGradients, &
        LowdinParameters_HFprintEigenvalues, &
        LowdinParameters_overlapEigenThreshold, &
+       LowdinParameters_electricField, &
 
        
                                 !!***************************************************************************
@@ -1021,6 +1024,7 @@ contains
     LowdinParameters_getGradients = .false.
     LowdinParameters_HFprintEigenvalues = .false.
     LowdinParameters_overlapEigenThreshold = 0.0_8
+    LowdinParameters_electricField(:) = 0.0_8
 
     !!***************************************************************************
     !! Parameter to control geometry optimization
@@ -1320,7 +1324,7 @@ contains
     CONTROL_instance%GET_GRADIENTS = .false.
     CONTROL_instance%HF_PRINT_EIGENVALUES = .false.
     CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = 0.0_8
-
+    CONTROL_instance%ELECTRIC_FIELD(:) = 0.0_8
     !!***************************************************************************                                              
     !! Parameter to control geometry optimization                                                                              
     !!                                                                                                                         
@@ -1662,6 +1666,8 @@ contains
     CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients
     CONTROL_instance%HF_PRINT_EIGENVALUES = LowdinParameters_HFprintEigenvalues
     CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = LowdinParameters_overlapEigenThreshold 
+
+    CONTROL_instance%ELECTRIC_FIELD = LowdinParameters_electricField
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1976,7 +1982,7 @@ contains
     LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
     LowdinParameters_HFprintEigenvalues = CONTROL_instance%HF_PRINT_EIGENVALUES 
     LowdinParameters_overlapEigenThreshold = CONTROL_instance%OVERLAP_EIGEN_THRESHOLD 
-
+    LowdinParameters_electricField = CONTROL_instance%ELECTRIC_FIELD 
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -2281,6 +2287,7 @@ contains
     otherThis%GET_GRADIENTS = this%GET_GRADIENTS    
     otherThis%HF_PRINT_EIGENVALUES = this%HF_PRINT_EIGENVALUES 
     otherThis%OVERLAP_EIGEN_THRESHOLD = this%OVERLAP_EIGEN_THRESHOLD 
+    otherThis%ELECTRIC_FIELD = this%ELECTRIC_FIELD 
     !!***************************************************************************
     !! Parametros para control de proceso de minimizacion multidimensional
     !!

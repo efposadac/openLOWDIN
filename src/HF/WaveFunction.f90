@@ -66,6 +66,7 @@ module WaveFunction_
      type(Matrix) :: cosmo2
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
+     type(Matrix) :: electricField(3)
      real(8) :: cosmoCharge
      !!**************************************************************
 
@@ -369,8 +370,6 @@ contains
     ! print *,"Matriz de interaccion n-quantum: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
     ! call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
 
-    close(34)    
-
     !! Build Hcore Matrix
     if ( .not.allocated(WaveFunction_instance( speciesID )%HcoreMatrix%values ) ) then
 
@@ -380,8 +379,34 @@ contains
     end if
 
     WaveFunction_instance(speciesID)%HCoreMatrix%values = &
-         WaveFunction_instance(speciesID)%kineticMatrix%values + &
-         WaveFunction_instance(speciesID)%puntualInteractionMatrix%values !+ &
+        WaveFunction_instance(speciesID)%kineticMatrix%values + &
+        WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
+
+    !! Add electric field F_i < \mu | e_i | \nu >
+    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+      write (*,"(T2,A15,3F12.8)") "ELECTRIC FIELD:", CONTROL_instance%ELECTRIC_FIELD
+
+      arguments(1) = "MOMENTX"
+      WaveFunction_instance(speciesID)%electricField(1) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                           columns=totalNumberOfContractions, &
+                                                            unit=unit, binary=.true., arguments=arguments)    
+      arguments(1) = "MOMENTY"
+      WaveFunction_instance(speciesID)%electricField(2) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
+                                                            columns=totalNumberOfContractions, &
+                                                            unit=unit, binary=.true., arguments=arguments)    
+      arguments(1) = "MOMENTZ"
+      WaveFunction_instance(speciesID)%electricField(3) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                            columns=totalNumberOfContractions, &
+                                                            unit=unit, binary=.true., arguments=arguments)    
+
+      WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+        WaveFunction_instance(speciesID)%HCoreMatrix%values + &
+        (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(speciesID)%electricField(1)%values + &
+         CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(speciesID)%electricField(2)%values + &
+         CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(speciesID)%electricField(3)%values )
+    end if
+
+    close(34)    
          !WaveFunction_instance(speciesID)%externalPotentialMatrix%values 
 
     !! DEBUG
