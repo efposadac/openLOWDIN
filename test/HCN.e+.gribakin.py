@@ -51,7 +51,7 @@ passTest = True
 
 for value in refValues:
     diffValue = abs(refValues[value] - testValues[value]) 
-    if ( diffValue <= 5E-8 ):
+    if ( diffValue <= 1E-7 ):
         passTest = passTest * True
     else :
         passTest = passTest * False
