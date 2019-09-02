@@ -361,7 +361,7 @@ contains
          unit=unit, binary=.true., arguments=arguments)    
 
     !! Incluiding charge effect
-    auxCharge = MolecularSystem_getCharge( speciesID )
+    auxcharge = MolecularSystem_getCharge( speciesID )
 
     WaveFunction_instance( speciesID )%puntualInteractionMatrix%values = &
          WaveFunction_instance( speciesID )%puntualInteractionMatrix%values * (-auxCharge)
@@ -401,6 +401,7 @@ contains
 
       WaveFunction_instance(speciesID)%HCoreMatrix%values = &
         WaveFunction_instance(speciesID)%HCoreMatrix%values + &
+                auxcharge * &
         (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(speciesID)%electricField(1)%values + &
          CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(speciesID)%electricField(2)%values + &
          CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(speciesID)%electricField(3)%values )

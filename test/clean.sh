@@ -17,3 +17,4 @@ find . -name "*.gnp" -exec rm -f {} \;
 find . -name "*.vec" -exec rm -f {} \;
 find . -name "*.ci" -exec rm -f {} \;
 find . -name "*.pyc" -exec rm -f {} \;
+find . -name "*.ints" -exec rm -f {} \;
