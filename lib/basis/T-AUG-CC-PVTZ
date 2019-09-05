@@ -1,0 +1,95 @@
+  d-aug-cc-pVTZ  EMSL  Basis Set Exchange Library   7/22/12 8:44 PM 
+ Elements                             References 
+ H     : T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989). 
+ He    : D.E. Woon and T.H. Dunning, Jr. J. Chem. Phys. 100, 2975 (1994). 
+ Li - Ne: T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989). 
+ Na - Mg: D.E. Woon and T.H. Dunning, Jr.  (to be published) 
+ Al - Ar: D.E. Woon and T.H. Dunning, Jr.  J. Chem. Phys. 98, 1358 (1993). 
+ Ca     : J. Koput and K.A. Peterson, J. Phys. Chem. A, 106, 9595 (2002). 
+ Sc - Zn: N.B. Balabanov and K.A. Peterson, J. Chem. Phys, 123, 064107 (2005) 
+ Ga - Kr: A.K. Wilson, D.E. Woon, K.A. Peterson, T.H. Dunning, Jr., J. Chem. Phys., 110, 7667 (1999) 
+  
+ Elements                             References 
+ H    :  T.H. Dunning, Jr. J. Chem. Phys. 90, 1007 (1989). 
+ He   :  D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 100, 2975 (1994). 
+ B - F:  R.A. Kendall, T.H. Dunning, Jr. and R.J. Harrison, J. Chem. Phys. 96, 
+ 6796 (1992). 
+ Al - Cl: D.E. Woon and T.H. Dunning, Jr. J. Chem. Phys. 98, 1358 (1993). 
+ Sc - Zn: N.B. Balabanov and K.A. Peterson, J. Chem. Phys, 123, 064107 (2005) 
+  
+ Elements                             References 
+ H - He:  D.E. Woon and T.H. Dunning, Jr., J. Chem. Phys. 100, 2975 (1994). 
+  B - F: 
+ Al - Cl:  
+    
+O-HYDROGEN H (D-AUG-CC-PVTZ) BASIS TYPE: 1
+# 
+15
+1 0 3
+33.87000000 0.00606800
+5.09500000 0.04530800
+1.15900000 0.20282200
+2 0 1
+0.32580000 1.00000000
+3 0 1
+0.10270000 1.00000000
+4 0 1
+0.02526000 1.00000000
+5 0 1
+0.00621000 1.00000000
+6 1 1
+1.40700000 1.00000000
+7 1 1
+0.38800000 1.00000000
+8 1 1
+0.10200000 1.00000000
+9 1 1
+0.02680000 1.00000000
+10 2 1
+1.05700000 1.00000000
+11 2 1
+0.24700000 1.00000000
+12 2 1
+0.05770000 1.00000000
+13 0 1
+0.00152668 1.00000000
+14 1 1
+0.00704156 1.00000000
+15 2 1
+0.01347890 1.00000000
+
+O-POSITRON E+ (D-AUG-CC-PVTZ) BASIS TYPE: 1
+# 
+15
+1 0 3
+33.87000000 0.00606800
+5.09500000 0.04530800
+1.15900000 0.20282200
+2 0 1
+0.32580000 1.00000000
+3 0 1
+0.10270000 1.00000000
+4 0 1
+0.02526000 1.00000000
+5 0 1
+0.00621000 1.00000000
+6 1 1
+1.40700000 1.00000000
+7 1 1
+0.38800000 1.00000000
+8 1 1
+0.10200000 1.00000000
+9 1 1
+0.02680000 1.00000000
+10 2 1
+1.05700000 1.00000000
+11 2 1
+0.24700000 1.00000000
+12 2 1
+0.05770000 1.00000000
+13 0 1
+0.00152668 1.00000000
+14 1 1
+0.00704156 1.00000000
+15 2 1
+0.01347890 1.00000000
