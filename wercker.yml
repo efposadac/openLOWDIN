@@ -33,8 +33,9 @@ build:
           cd $WORKDIR
           #wget https://www.dropbox.com/s/f34pbzmvcoms000/libint2.0-beta-codeship.tgz # minimal G12, fPIC, old distro
           #wget https://www.dropbox.com/s/0e6ov2fxo7pdafb/libint2.0-beta-full.tgz # full G12, no fPIC, new distro
-          wget https://www.dropbox.com/s/tzmqzt3n0trpayf/libint2.0-beta.tgz # minimal G12, fPIC, new distro
-          tar xzvf libint2.0-beta.tgz
+          #wget https://www.dropbox.com/s/tzmqzt3n0trpayf/libint2.0-beta.tgz # minimal G12, fPIC, new distro
+          wget https://www.dropbox.com/s/195ymylrns04a2a/libint-master-SEP052019.tgz # minimal (default am), G12, fPIC, new distro, gcc 9.1.0, Linux Kernel 5.2.9
+          tar xzvf libint-master-SEP052019.tgz
           cd -
           # Build libint
           git clone https://github.com/evaleev/libint.git
