@@ -8,6 +8,7 @@ efposadac@unal.edu.co
 */
 
 #include "Libint2Iface.h"
+#include <libint2/util/small_vector.h>
 
 /*
 LibintInterface class implementation
@@ -77,14 +78,23 @@ void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
   libint2::svector<double> exponents(nprim);
   libint2::svector<double> coefficients(nprim);
 
-  exponents.assign(alpha, alpha + nprim);
-  coefficients.assign(coeff, coeff + nprim);
+  // exponents.assign(alpha, alpha + nprim);
+  // coefficients.assign(coeff, coeff + nprim);
 
-  shells.push_back({{exponents},
-                    {
-                        {l, false, {coefficients}},
-                    },
-                    {{origin[0], origin[1], origin[2]}}});
+  for(auto a=0; a<nprim; ++a) {
+    exponents[a]=alpha[a];
+    coefficients[a]=coeff[a];
+  }
+  
+  shells.push_back(
+		   libint2::Shell{ //
+		     exponents,
+		     {
+		       {l, false, coefficients}
+		     },
+		     {{origin[0], origin[1], origin[2]}}
+		   }
+		   );
 
   nbasis = 0;
   max_nprim = 0;
