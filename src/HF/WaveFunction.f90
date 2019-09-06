@@ -493,6 +493,20 @@ contains
     implicit none
 
     integer :: specieID
+    real(8) :: auxCharge
+
+    auxcharge = MolecularSystem_getCharge( specieID )
+
+    !! Remove the electric field matrix to calculate the energy components
+    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+      WaveFunction_instance(specieID)%HCoreMatrix%values = &
+        WaveFunction_instance(specieID)%HCoreMatrix%values - &
+                auxcharge * &
+        (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(1)%values + &
+         CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(2)%values + &
+         CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(3)%values )
+    end if
+
 
     !! Calcula la energia de repulsion
     WaveFunction_instance( specieID )%repulsionEnergy = 0.5_8 * &
@@ -568,6 +582,18 @@ contains
 
 
     end if
+
+    !! Put back the electric field matrix to the Hcore matrix
+    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+      WaveFunction_instance(specieID)%HCoreMatrix%values = &
+        WaveFunction_instance(specieID)%HCoreMatrix%values + &
+                auxcharge * &
+        (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(1)%values + &
+         CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(2)%values + &
+         CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(3)%values )
+    end if
+
+
 
 
     ! print *, "__________________ ENERGY COMPONENTS _______________________"

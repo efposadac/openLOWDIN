@@ -13,12 +13,18 @@ import signal
 
 basisName = sys.argv[1]
 
-alphaS = float(sys.argv[2])
-alphaP = float(sys.argv[3])
-alphaD = float(sys.argv[4])
-numberOfFunctionsS = int(sys.argv[5])
-numberOfFunctionsP = int(sys.argv[6])
-numberOfFunctionsD = int(sys.argv[7])
+aS = float(sys.argv[2])
+aP = float(sys.argv[3])
+aD = float(sys.argv[4])
+aF = float(sys.argv[5])
+aG = float(sys.argv[6])
+aH = float(sys.argv[7])
+nS = int(sys.argv[8])
+nP = int(sys.argv[9])
+nD = int(sys.argv[10])
+nF = int(sys.argv[11])
+nG = int(sys.argv[12])
+nH = int(sys.argv[13])
 
 out = open (basisName,"w")
 
@@ -32,11 +38,13 @@ angularMomentDic = {
 'D':'2',
 'F':'3',
 'G':'4',
+'H':'5',
 's':'0',
 'p':'1',
 'd':'2',
 'f':'3',
-'g':'4'
+'g':'4',
+'h':'5'
 }
 
 
@@ -59,38 +67,96 @@ angularMomentDic = {
 # MethodName in TASK
 #:::::::::::::::::::::::::::::::::::
 
-out.write ('O-POSITRON E+ ('+basisName+') BASIS TYPE: 2\n')	
-out.write ('#\n')
-out.write (str(numberOfFunctionsS+numberOfFunctionsP+numberOfFunctionsD)+"\n")
+headerSpecies = list()
+headerSpecies.append('O-HYDROGEN H ('+basisName+') BASIS TYPE: 1\n')
+headerSpecies.append('O-EALONE EA- ('+basisName+') BASIS TYPE: 1\n')
+headerSpecies.append('O-POSITRON E+ ('+basisName+') BASIS TYPE: 1\n')	
+
+coreBasisSet = ("""1 0 3
+33.87000000 0.00606800
+5.09500000 0.04530800
+1.15900000 0.20282200
+2 0 1
+0.32580000 1.00000000
+3 0 1
+0.10270000 1.00000000
+4 1 1
+1.40700000 1.00000000
+5 1 1
+0.38800000 1.00000000
+6 2 1
+1.05700000 1.00000000
+""")
+
 coeficiente = 1.0000000
 
-counter = 0
-interval = int(numberOfFunctionsS)
-for i in range(1,interval+1) :
+for species in range(0,len(headerSpecies)) :
 
-	counter = counter +1
-	alpha = alphaS*(3.162**(i))
-	#alpha = alphaS*(3.162**(i-1))
-	out.write (str(counter)+" 0 1\n")
-	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
+    out.write (headerSpecies[species])	
+    out.write ('#\n')
+    out.write (str(nS+nP+nD+nF+nG+nH+6)+"\n")
+    out.write (coreBasisSet)
+    
+    counter = 6
+    interval = int(nS)
+    for i in range(0,interval+0) :
+    
+    	counter = counter +1
+    	alpha = aS*(3.162**(-i))
+    	#alpha = aS*(3.162**(i-1))
+    	out.write (str(counter)+" 0 1\n")
+    	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
+    
+    interval = int(nP)
+    for i in range(0,interval+0) :
+    
+    	counter = counter +1
+    	alpha = aP*(3.162**(-i))
+    	#alpha = aP*(3.162**(i-1))
+    	out.write (str(counter)+" 1 1\n")
+    	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
+    
+    interval = int(nD)
+    for i in range(0,interval+0) :
+    
+    	counter = counter +1
+    	alpha = aD*(3.162**(-i))
+    	#alpha = aD*(3.162**(i-1))
+    	out.write (str(counter)+" 2 1\n")
+    	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
+    
+    interval = int(nF)
+    for i in range(0,interval+0) :
+    
+    	counter = counter +1
+    	alpha = aF*(3.162**(-i))
+    	#alpha = aD*(3.162**(i-1))
+    	out.write (str(counter)+" 3 1\n")
+    	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
+    
+    interval = int(nG)
+    for i in range(0,interval+0) :
+    
+    	counter = counter +1
+    	alpha = aG*(3.162**(-i))
+    	#alpha = aD*(3.162**(i-1))
+    	out.write (str(counter)+" 4 1\n")
+    	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
+    
+    interval = int(nH)
+    for i in range(0,interval+0) :
+    
+    	counter = counter +1
+    	alpha = aH*(3.162**(-i))
+    	#alpha = aD*(3.162**(i-1))
+    	out.write (str(counter)+" 5 1\n")
+    	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
 
-interval = int(numberOfFunctionsP)
-for i in range(1,interval+1) :
+    out.write ('\n')
 
-	counter = counter +1
-	alpha = alphaP*(3.162**(i))
-	#alpha = alphaP*(3.162**(i-1))
-	out.write (str(counter)+" 1 1\n")
-	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
 
-interval = int(numberOfFunctionsD)
-for i in range(1,interval+1) :
 
-	counter = counter +1
-	alpha = alphaD*(3.162**(i))
-	#alpha = alphaD*(3.162**(i-1))
-	out.write (str(counter)+" 2 1\n")
-	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
+
 
 #:::::::::::::::::::::::::::::::::::
 # Cerrando los archivos	
