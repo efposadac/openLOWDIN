@@ -1960,7 +1960,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       write (*,*) "Building diagonal..."
       call ConfigurationInteraction_buildDiagonal()
 
-      write (*,*) "Building initial hamiltonian..."
+      write (*,*) "Building Hamiltonian..."
       call ConfigurationInteraction_buildHamiltonianMatrix()
 
       call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
@@ -1996,7 +1996,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       write (*,*) "Building diagonal..."
       call ConfigurationInteraction_buildDiagonal()
 
-      write (*,*) "Building initial hamiltonian..."
+      write (*,*) "Building Hamiltonian..."
       call ConfigurationInteraction_buildHamiltonianMatrix()
 
       call Matrix_constructor (ConfigurationInteraction_instance%eigenVectors, &
@@ -2792,6 +2792,9 @@ recursive  function ConfigurationInteraction_getIndexesRecursion(s, numberOfSpec
 
     !$ timeA = omp_get_wtime()
     initialCIMatrixSize = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX 
+    if ( ConfigurationInteraction_instance%numberOfConfigurations <  CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX ) then
+      CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = ConfigurationInteraction_instance%numberOfConfigurations !! assign to an internal variable
+    end if
 
     call Vector_constructorInteger8 ( ConfigurationInteraction_instance%auxIndexCIMatrix, &
                               ConfigurationInteraction_instance%numberOfConfigurations, 0_8 ) !hmm
@@ -4945,7 +4948,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
      !NINIT = 0 !    no initial approximate eigenvectors
      NINIT = NEIG !    initial approximate eigenvectors
      MADSPACE = maxsp !    desired size of the search space
-     ITER = 100*NEIG !    maximum number of iteration steps
+     ITER = 1000*NEIG !    maximum number of iteration steps
      TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
 
      NDX1 = 0

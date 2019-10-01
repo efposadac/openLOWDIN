@@ -413,21 +413,21 @@ contains
     print *,"DIPOLE: (DEBYE)"
     print *,"------"
     print *,""
-    write (6,"(T19,4A9)") "<Dx>","<Dy>", "<Dz>"," |D|"
+    write (6,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
 
     do i=1, numberOfSpecies
        dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecie(this, i)*2.54174619
        totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (6,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
+       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
     end do
 
     dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()*2.54174619
     totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
-    write (6,"(T5,A15,3F9.4)") "Point charges: ", dipole(numberOfSpecies+1,:)
+    write (6,"(T5,A15,3F13.8)") "Point charges: ", dipole(numberOfSpecies+1,:)
 
     write (6,"(T22,A28)") "___________________________________"
 
-    write (6,"(T5,A15,3F9.4, F9.4)") "Total ", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
+    write (6,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
 
     print *,""
     print *,"END ELECTROSTATIC MOMENTS"
