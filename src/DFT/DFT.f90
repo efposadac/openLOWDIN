@@ -440,6 +440,9 @@ program DFT
         labels(1) = "EXCHANGE-CORRELATION-MATRIX"
         call Matrix_writeToFile( exchangeCorrelationMatrix(speciesID), unit=excUnit, binary=.true., arguments = labels(1:2) )
 
+        ! write (*,"(A50, A10)") "Final Exchange correlation matrix for:", Grid_instance(speciesID)%nameOfSpecies
+        ! call Matrix_show(exchangeCorrelationMatrix(speciesID))
+        
         close(unit=excUnit)
 
      end do
