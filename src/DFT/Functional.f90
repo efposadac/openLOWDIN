@@ -53,6 +53,7 @@ module Functional_
        Functional_MLCSAEvaluate, &
        Functional_MLCSANEvaluate, &
        Functional_myCSEvaluate, &
+       Functional_expCSEvaluate, &
        Functional_PSNEvaluate, &
        Functional_lowLimitEvaluate, &
        padevwn, &
@@ -325,14 +326,16 @@ contains
           end if
        else 
           write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
-          if(this%name .ne. "NONE" .and. CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
+          if(this%name .ne. "NONE" .and. CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
              print *, "q", CONTROL_instance%DUMMY_REAL_A
              print *, "p", CONTROL_instance%DUMMY_REAL_B
+             print *, "r", CONTROL_instance%DUMMY_REAL_C
           end if
 
           if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3") print *, "Using as correlation length: beta=q*rhoE^(1/3)"
           if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE6rhoN6") print *, "Using as correlation length: beta=q*rhoE^(1/6)*rhoN^(1/6)"
-
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN") print *, "Using as correlation length: beta=1/(q*rhoE^(-1/3)+r*rhoN^(-1))"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3As") print *, "Using as correlation length: beta=qe*rhoE^(1/3)+qn*rhoN^(1/3)"
        end if
     end do
 
@@ -805,7 +808,8 @@ contains
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
 
-    real(8) :: a0,a1,a2,a3,a4,a5,a6,a7,a8,az,an,b0,b1,b2,b3,b4,bz,bn,p,q
+    real(8) :: a0,a1,a2,a3,a4,a5,a6,a7,a8,az,an,b0,b1,b2,b3,b4,bz,bn,p,q,r
+    real(8) :: ke,kn    
     real(8) :: beta, dbetaE, dbetaN, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta
     integer :: i,n
 
@@ -912,9 +916,11 @@ contains
     if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
        q=CONTROL_instance%DUMMY_REAL_A
        p=CONTROL_instance%DUMMY_REAL_B
+       r=CONTROL_instance%DUMMY_REAL_C
     else
        q=1.0
        p=1.0
+       r=1.0
     end if
     
     !$omp parallel & 
@@ -932,6 +938,16 @@ contains
           beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
           dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
           dbetaN=(1.0/6.0)*q*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
+       else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3As") then
+          ke=3*(3.0/(4.0*Math_PI))**(4.0/3.0)
+          kn=8.0/3.0*sqrt(2.0/3.0)
+          beta=q/(1/(ke*rhoE(i)**(1.0/3.0))+1/(kn*rhoN(i)**(1.0/3.0)))
+          dbetaE=q/(3*ke*rhoE(i)**(4.0/3.0)*(1/(ke*rhoE(i)**(1.0/3.0))+1/(kn*rhoN(i)**(1.0/3.0)))**2.0)
+          dbetaN=q/(3*kn*rhoN(i)**(4.0/3.0)*(1/(ke*rhoE(i)**(1.0/3.0))+1/(kn*rhoN(i)**(1.0/3.0)))**2.0)
+       else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN") then
+          beta=1/(q*rhoE(i)**(-1.0/3.0)+r*rhoN(i)**(-1.0))
+          dbetaE=q/(3*rhoE(i)**(4.0/3.0)*(q*rhoE(i)**(-1.0/3.0)+r*rhoN(i)**(-1.0))**2.0)
+          dbetaN=r/(rhoN(i)**(2.0)*(q*rhoE(i)**(-1.0/3.0)+r*rhoN(i)**(-1.0))**2.0)
        else
           beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
           dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
@@ -970,7 +986,105 @@ contains
 
   end subroutine Functional_myCSEvaluate
 
-  
+
+    subroutine Functional_expCSEvaluate( this, mass, npoints, rhoE, rhoN, ec, vcE, vcN )
+    ! Evaluates my Exponential Jastrow factor functional
+    ! Felix Moncada, 2019
+    implicit none
+    type(Functional):: this !!type of functional
+    real(8) :: mass !!nuclear mass
+    integer :: npoints !!nuclear gridSize
+    real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcE(*), vcN(*) !! Potentials - output   
+
+    real(8) :: a0,a1,a2,a3,a4,b0,b1,b2,b3,b4,p,qe,qn
+    real(8) :: beta, dbetaE, dbetaN, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta
+    integer :: i,n
+
+    !!The idea is that the parameters are a functional of the nuclear mass and charge
+    if(this%name .eq. "correlation:expCS-A" ) then
+       a0=4.5840
+       a1=37.810
+       a2=126.39
+       a3=330.10
+       a4=1.0
+       b0=1.0
+       b1=10.225
+       b2=39.661
+       b3=216.79
+       b4=0.65725
+    else
+       print *, this%name
+       STOP "The nuclear electron functional chosen is not implemented"
+    end if
+
+    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
+       qe=CONTROL_instance%DUMMY_REAL_A
+       qn=CONTROL_instance%DUMMY_REAL_B
+       p=CONTROL_instance%DUMMY_REAL_C
+    else
+       qe=1.122
+       qn=0.9709
+       p=1.0
+    end if
+    
+    !$omp parallel & 
+    !$omp& private(i,beta, dbetaE, dbetaN, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta),&
+    !$omp& shared(mass, n, rhoE, rhoN, ec, vcE, vcN)
+    n = omp_get_thread_num() + 1
+    !$omp do schedule (dynamic) 
+    
+    do i = 1, npoints
+       if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3") then
+          beta=qe*rhoE(i)**(1.0/3.0)
+          dbetaE=(1.0/3.0)*qe*rhoE(i)**(-2.0/3.0)
+          dbetaN=0.0
+       else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE6rhoN6") then
+          beta=(qe+qn)*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
+          dbetaE=(1.0/6.0)*(qe+qn)*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
+          dbetaN=(1.0/6.0)*(qe+qn)*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
+       else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3As") then
+          beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)
+          dbetaE=1.0/3.0*qe*rhoE(i)**(-2.0/3.0)
+          dbetaN=1.0/3.0*qn*rhoN(i)**(-2.0/3.0)
+       else
+          beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)
+          dbetaE=1.0/3.0*qe*rhoE(i)**(-2.0/3.0)
+          dbetaN=1.0/3.0*qn*rhoN(i)**(-2.0/3.0)
+       end if
+
+       ! if(beta .gt. 1E-6 ) then !
+       if( rhoE(i) .gt. 1E-6 .and. rhoN(i) .gt. 1E-6 ) then !
+          !!!Energy
+          aPoly=a0+a1*beta+a2*beta**2+a3*beta**3+a4*beta**4
+          bPoly=b0*beta**3+b1*beta**4+b2*beta**5+b3*beta**6+b4*beta**7
+          F=aPoly/bPoly
+
+          ec(i)= -p*rhoE(i)*rhoN(i)*F
+
+          ! write(*,"(I0.1,3F16.6)") i, beta, F, ec(i)
+
+!!!Potential
+          daPolydbeta=a1+2*a2*beta+3*a3*beta**2+4*a4*beta**3
+          dbPolydbeta=3*b0*beta**2+4*b1*beta**3+5*b2*beta**4+6*b3*beta**5+7*b4*beta**6
+
+          dFdbeta=(daPolydbeta*bPoly-aPoly*dbPolydbeta)/bPoly**2
+          
+          vcE(i)=-p*rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
+          vcN(i)=-p*rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
+          ! write(*,"(I0.1,6F16.6)") i, beta, dFdbeta, dbetaE, dbetaN, vcE(i), vcN(i)
+          ! write(*,"(I0.1,5F16.6)") i, aPoly, bPoly, daPolydbeta, dbPolydbeta, dFdbeta
+
+       end if
+    end do
+    !$omp end do nowait
+    !$omp end parallel
+
+
+  end subroutine Functional_expCSEvaluate
+
+
   subroutine Functional_PSNEvaluate( this, mass, n, rhoE, rhoP, ec, vcE, vcP )
     ! Evaluates Hamess-Schiffer's Colle Salvetti nuclear electron correlation functional
     ! Felix Moncada, 2017
