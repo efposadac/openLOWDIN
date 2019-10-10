@@ -506,11 +506,15 @@ contains
 
           call Functional_libxcEvaluate(Functionals(index), gridSize, Grid_instance(speciesID)%density%values, sigma%values, energyDensity%values , potentialInGrid%values, sigmaPotentialInGrid%values )
 
+          ! print *, "sigma"
+          ! call Vector_Show(sigma)
+          call Vector_Destructor(sigma)
+
           do i=1, gridSize
              exchangeCorrelationEnergy=exchangeCorrelationEnergy+energyDensity%values(i)*Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4) 
           end do
 
-          ! print *, "electronicEXC RKS", exchangeCorrelationEnergy
+          ! print *, "electronicEXC RKS", exchangeCorrelationEnerg
 
        else
 
@@ -555,16 +559,19 @@ contains
 
           end do
 
-          ! print *, "density"
-          ! call Vector_show(densityAB)
-
-          ! print *, "sigma"
-          ! call Vector_show(sigmaAB)
-
           index=Functional_getIndex(speciesID)
 
           call Functional_libxcEvaluate(Functionals(index), gridSize, densityAB%values, sigmaAB%values, energyDensity%values , potentialAB%values, sigmaPotentialAB%values )
 
+          print *, "density", densityAB%values(1), densityAB%values(2*gridSize)
+          call Vector_show(densityAB)
+          call Vector_Destructor(densityAB)
+
+          ! print *, "sigma"
+          ! call Vector_show(sigmaAB)
+          call Vector_Destructor(sigmaAB)
+
+          
           do i=1, gridSize
              potentialInGrid%values(i)=potentialInGrid%values(i)+potentialAB%values(2*i-1)
              
@@ -580,7 +587,9 @@ contains
           end do
 
           ! print *, "electronicEXC UKS", exchangeCorrelationEnergy, otherExchangeCorrelationEnergy
-
+          call Vector_Destructor(potentialAB)         
+          call Vector_Destructor(sigmaPotentialAB)         
+          
        else
           index=Functional_getIndex(speciesID)
 
@@ -685,7 +694,7 @@ contains
                energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
 
           case default
-             print *, trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+             ! print *, trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
              STOP "The nuclear electron functional chosen is not implemented"
 
           end select
@@ -853,7 +862,6 @@ contains
 
 
     call Vector_Destructor(energyDensity)
-    call Vector_Destructor(sigma)
 
     ! do i=1, gridSize
     !    print *, densityInGrid%values(i), exchange%values(i), correlationA%values(i)

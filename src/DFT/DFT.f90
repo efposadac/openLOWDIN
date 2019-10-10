@@ -358,7 +358,7 @@ program DFT
   end do
   
 
-     print *, ""
+  !    print *, ""
      
      ! Calculate energy density and potential for one species
      do speciesID = 1 , numberOfSpecies
@@ -387,7 +387,7 @@ program DFT
 
     
      ! Calculate energy density and potential for two species
-     do speciesID = 1 , numberOfSpecies
+     do speciesID = 1 , numberOfSpecies-1
         nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
         do otherSpeciesID = speciesID+1 , numberOfSpecies
            nameOfOtherSpecies=MolecularSystem_getNameOfSpecie(otherSpeciesID)
@@ -419,33 +419,33 @@ program DFT
         end do
      end do
 
-     print *, ""
+  !    print *, ""
      
-     write (*,"(A50, F12.8)") "Exchange correlation energy with the final grid: ", sum(exchangeCorrelationEnergy)
+  !    write (*,"(A50, F12.8)") "Exchange correlation energy with the final grid: ", sum(exchangeCorrelationEnergy)
 
      
      ! Write results to file
-     do speciesID = 1 , numberOfSpecies
+     ! do speciesID = 1 , numberOfSpecies
 
-        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
+     !    numberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
 
-        excUnit = 79
-        excFile = trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".excmatrix"
-        open(unit = excUnit, file=trim(excFile), status="replace", form="unformatted")
+     !    excUnit = 79
+     !    excFile = trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".excmatrix"
+     !    open(unit = excUnit, file=trim(excFile), status="replace", form="unformatted")
 
-        labels(2) = Grid_instance(speciesID)%nameOfSpecies
-        labels(1) = "EXCHANGE-CORRELATION-ENERGY"
-        call Vector_writeToFile(unit=excUnit, binary=.true., value=exchangeCorrelationEnergy(speciesID), arguments= labels )
+     !    labels(2) = Grid_instance(speciesID)%nameOfSpecies
+     !    labels(1) = "EXCHANGE-CORRELATION-ENERGY"
+     !    call Vector_writeToFile(unit=excUnit, binary=.true., value=exchangeCorrelationEnergy(speciesID), arguments= labels )
 
-        labels(1) = "EXCHANGE-CORRELATION-MATRIX"
-        call Matrix_writeToFile( exchangeCorrelationMatrix(speciesID), unit=excUnit, binary=.true., arguments = labels(1:2) )
+        ! labels(1) = "EXCHANGE-CORRELATION-MATRIX"
+        ! call Matrix_writeToFile( exchangeCorrelationMatrix(speciesID), unit=excUnit, binary=.true., arguments = labels(1:2) )
 
         ! write (*,"(A50, A10)") "Final Exchange correlation matrix for:", Grid_instance(speciesID)%nameOfSpecies
         ! call Matrix_show(exchangeCorrelationMatrix(speciesID))
         
-        close(unit=excUnit)
+     !    close(unit=excUnit)
 
-     end do
+     ! end do
 
 !!*********************************************************************************************************************************
 !!*********************************************************************************************************************************
