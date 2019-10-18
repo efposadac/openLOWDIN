@@ -94,6 +94,10 @@ Program Ints
      ! call Libint2Interface_compute1BodyInts(2)
      call IntegralManager_getKineticIntegrals()
 
+     if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
+       call IntegralManager_getFirstDerivativeIntegrals()
+     end if
+
      ! !!Calculate attraction integrals
      ! call Libint2Interface_compute1BodyInts(3)
      call IntegralManager_getAttractionIntegrals()

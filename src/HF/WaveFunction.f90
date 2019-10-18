@@ -280,7 +280,8 @@ contains
     real(8) :: auxCharge
     integer :: numberOfContractions
     integer :: totalNumberOfContractions
-    character(10) :: arguments(2)
+    character(40) :: arguments(2)
+    type(matrix) :: auxmatrix
 
     !! Open file
     unit = 34
@@ -351,8 +352,10 @@ contains
     end if
 
     !! DEBUG
-    !!   print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    !!    call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
+    if (  CONTROL_instance%DEBUG_SCFS) then
+       print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+        call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
+    end if
 
     !! Load N-Q- Attraction  Matrix
     arguments(1) = "ATTRACTION"

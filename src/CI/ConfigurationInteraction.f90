@@ -78,8 +78,8 @@ module ConfigurationInteraction_
      type(vector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
      type(matrix), allocatable :: fourCenterIntegrals(:,:)
      type(matrix), allocatable :: twoCenterIntegrals(:)
-     type(imatrix), allocatable :: twoIndexArray(:)
-     type(imatrix), allocatable :: fourIndexArray(:)
+     type(imatrix8), allocatable :: twoIndexArray(:)
+     type(imatrix8), allocatable :: fourIndexArray(:)
      type(imatrix), allocatable :: strings(:) !! species, conf, occupations
      type(imatrix1), allocatable :: orbitals(:) !! species, conf, occupations
      integer, allocatable :: sumstrings(:) !! species
@@ -2220,7 +2220,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     integer :: factor, factor2, auxOcc, AA, BB
     logical(1) :: equalA, equalB
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
-    integer :: auxIndex1, auxIndex2, auxIndex
+    integer(8) :: auxIndex1, auxIndex2, auxIndex
     integer :: diffOrb(2), otherdiffOrb(2) !! to avoid confusions
     real(8) :: auxCIenergy
 
@@ -2357,7 +2357,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     integer :: ii
     integer :: kk,z
     integer :: factor, AA(2), BB(2)
-    integer :: auxIndex
+    integer(8) :: auxIndex
     integer :: diffOrbA(2), diffOrbB(2)  !! to avoid confusions
     real(8) :: auxCIenergy
 
@@ -3838,7 +3838,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     integer :: factor
     integer(2) :: numberOfDiffOrbitals
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
-    integer :: auxIndex1, auxIndex2, auxIndex
+    integer(8) :: auxIndex1, auxIndex2, auxIndex
     real(8) :: auxCIenergy
 
     auxCIenergy = 0.0_8
@@ -3909,7 +3909,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     integer :: l,k,z,kk,ll
     integer :: factor
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
-    integer :: auxIndex1, auxIndex2, auxIndex
+    integer(8) :: auxIndex1, auxIndex2, auxIndex
     integer :: diffOrb(2), otherdiffOrb(2) !! to avoid confusions
     real(8) :: auxCIenergy
     integer :: auxOcc
@@ -4032,7 +4032,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     integer :: l,k,z,kk,ll
     integer :: factor
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
-    integer :: auxIndex1, auxIndex2, auxIndex
+    integer(8) :: auxIndex1, auxIndex2, auxIndex
     integer :: diffOrb(4), otherdiffOrb(4) !! to avoid confusions
     real(8) :: auxCIenergy
     integer :: auxOcc
@@ -4150,7 +4150,8 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     implicit none
 
     integer :: numberOfSpecies
-    integer :: i,j,m,n,mu,nu,a,b,c
+    integer :: i,j,m,n,mu,nu,a,b
+    integer(8) :: c
     integer :: specieID
     integer :: otherSpecieID
     character(10) :: nameOfSpecie
@@ -4289,12 +4290,12 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
         end do
       end do
 
-      call Matrix_constructorInteger(ConfigurationInteraction_instance%twoIndexArray(i), &
-                          int( numberOfContractions,8), int( numberOfContractions,8) , 0 )
+      call Matrix_constructorInteger8(ConfigurationInteraction_instance%twoIndexArray(i), &
+                          int( numberOfContractions,8), int( numberOfContractions,8) , 0_8 )
 
       c = 0
       do a=1,numberOfContractions
-        do b=a, numberOfContractions
+        do b = a, numberOfContractions
           c = c + 1
           ConfigurationInteraction_instance%twoIndexArray(i)%values(a,b) = c !IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
           ConfigurationInteraction_instance%twoIndexArray(i)%values(b,a) = ConfigurationInteraction_instance%twoIndexArray(i)%values(a,b)
@@ -4305,8 +4306,8 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
       ssize1 = MolecularSystem_getTotalNumberOfContractions( i )
       ssize1 = ( ssize1 * ( ssize1 + 1 ) ) / 2
 
-      call Matrix_constructorInteger(ConfigurationInteraction_instance%fourIndexArray(i), &
-                          int( ssize1,8), int( ssize1,8) , 0 )
+      call Matrix_constructorInteger8(ConfigurationInteraction_instance%fourIndexArray(i), &
+                          int( ssize1,8), int( ssize1,8) , 0_8 )
       c = 0
       do a = 1, ssize1
         do b = a, ssize1

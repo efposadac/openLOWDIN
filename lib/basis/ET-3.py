@@ -88,22 +88,25 @@ coreBasisSet = ("""1 0 3
 1.05700000 1.00000000
 """)
 
+coreBasisSet = ""
+
 coeficiente = 1.0000000
+nCore = 0
 
 for species in range(0,len(headerSpecies)) :
 
     out.write (headerSpecies[species])	
     out.write ('#\n')
-    out.write (str(nS+nP+nD+nF+nG+nH+6)+"\n")
+    out.write (str(nS+nP+nD+nF+nG+nH+nCore)+"\n")
     out.write (coreBasisSet)
     
-    counter = 6
+    counter = nCore
     interval = int(nS)
     for i in range(0,interval+0) :
     
     	counter = counter +1
-    	alpha = aS*(3.162**(-i))
-    	#alpha = aS*(3.162**(i-1))
+    	alpha = aS*(3.16227766**(-i))
+    	#alpha = aS*(3.16227766**(i-1))
     	out.write (str(counter)+" 0 1\n")
     	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
     
@@ -111,8 +114,8 @@ for species in range(0,len(headerSpecies)) :
     for i in range(0,interval+0) :
     
     	counter = counter +1
-    	alpha = aP*(3.162**(-i))
-    	#alpha = aP*(3.162**(i-1))
+    	alpha = aP*(3.16227766**(-i))
+    	#alpha = aP*(3.16227766**(i-1))
     	out.write (str(counter)+" 1 1\n")
     	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
     
@@ -120,8 +123,8 @@ for species in range(0,len(headerSpecies)) :
     for i in range(0,interval+0) :
     
     	counter = counter +1
-    	alpha = aD*(3.162**(-i))
-    	#alpha = aD*(3.162**(i-1))
+    	alpha = aD*(3.16227766**(-i))
+    	#alpha = aD*(3.16227766**(i-1))
     	out.write (str(counter)+" 2 1\n")
     	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
     
@@ -129,8 +132,8 @@ for species in range(0,len(headerSpecies)) :
     for i in range(0,interval+0) :
     
     	counter = counter +1
-    	alpha = aF*(3.162**(-i))
-    	#alpha = aD*(3.162**(i-1))
+    	alpha = aF*(3.16227766**(-i))
+    	#alpha = aD*(3.16227766**(i-1))
     	out.write (str(counter)+" 3 1\n")
     	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
     
@@ -138,8 +141,8 @@ for species in range(0,len(headerSpecies)) :
     for i in range(0,interval+0) :
     
     	counter = counter +1
-    	alpha = aG*(3.162**(-i))
-    	#alpha = aD*(3.162**(i-1))
+    	alpha = aG*(3.16227766**(-i))
+    	#alpha = aD*(3.16227766**(i-1))
     	out.write (str(counter)+" 4 1\n")
     	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
     
@@ -147,8 +150,8 @@ for species in range(0,len(headerSpecies)) :
     for i in range(0,interval+0) :
     
     	counter = counter +1
-    	alpha = aH*(3.162**(-i))
-    	#alpha = aD*(3.162**(i-1))
+    	alpha = aH*(3.16227766**(-i))
+    	#alpha = aD*(3.16227766**(i-1))
     	out.write (str(counter)+" 5 1\n")
     	out.write ("%.8f %.8f\n" % (alpha, coeficiente ) )
 

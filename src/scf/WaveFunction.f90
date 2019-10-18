@@ -573,7 +573,7 @@ contains
     integer :: otherSpecieID
     integer :: speciesIterator
     integer :: ssize
-    integer :: i, j, u
+    integer :: i, j, u, v
     real(8), allocatable, target :: auxMatrix(:,:)
     real(8) :: coulomb
 
@@ -589,6 +589,11 @@ contains
     integer :: threadid
     integer :: unitid
     integer :: status
+
+    character(50) :: integralsFile
+    integer :: integralsUnit
+    type(Matrix) :: firstDerivMatrixA, firstDerivMatrixB, rhomatrix
+    character(40) :: arguments(2)
 
     nameOfSpecieSelected = "E-"    
 
@@ -785,10 +790,145 @@ contains
 
              end do
            end do
+         end if
+       end do
 
+      !! Two particles translational free term
+      if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
+       !! Open file
+       integralsUnit = 34
+       integralsFile = "lowdin.opints"
+       open(unit = integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
+
+       !! Load Kinetic Matrix
+       arguments(1) = "FIRSTDX"    
+       arguments(2) = trim(MolecularSystem_getNameOfSpecie(currentSpecieID ))
+
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(currentSpecieID)
+
+       firstDerivMatrixA = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments)
+
+       !print *, "first deriv matrix", currentSpecieID
+       !call Matrix_show (firstDerivMatrixA)
+
+       ssize = size(wavefunction_instance(currentSpecieID)%couplingMatrix%values,dim=1)
+
+       do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
+
+         otherSpecieID = speciesIterator
+         if ( otherSpecieID /= currentSpecieID ) then
+
+           arguments(2) = trim(MolecularSystem_getNameOfSpecie(otherSpecieID ))
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+           firstDerivMatrixB = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+
+           !print *, "rho "
+           !call Matrix_show (wavefunction_instance(otherSpecieID)%densityMatrix )
+
+           !call Matrix_constructor (rhomatrix, int (numberOfContractions,8) , int(numberOfContractions,8) , 0.0_8 )
+           !rhomatrix%values = wavefunction_instance(otherSpecieID)%densityMatrix%values * firstDerivMatrixB%values / ParticleManager_getTotalMass() 
+           !rhomatrix%values = firstDerivMatrixA%values * firstDerivMatrixB%values 
+
+           !print *, "rho derivB"
+           !call Matrix_show( rhomatrix )
+
+           !print *, "before"
+           !call Matrix_show (wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID))
+
+           do u = 1, ssize
+             do v = 1, ssize
+                 wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(u,v) = &
+                   wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(u,v) +  &
+                    firstDerivMatrixA%values(u,v) * sum( wavefunction_instance(otherSpecieID)%densityMatrix%values  * firstDerivMatrixB%values) / ParticleManager_getTotalMass() 
+             end do
+           end do
+           !print *, "after"
+           !call Matrix_show (wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID))
+
+         end if
+
+       end do
+
+       !! Load Kinetic Matrix
+       arguments(1) = "FIRSTDY"    
+       arguments(2) = trim(MolecularSystem_getNameOfSpecie(currentSpecieID ))
+
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(currentSpecieID)
+
+       firstDerivMatrixA = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments)
+
+       ssize = size(wavefunction_instance(currentSpecieID)%couplingMatrix%values,dim=1)
+
+       do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
+
+         otherSpecieID = speciesIterator
+         if ( otherSpecieID /= currentSpecieID ) then
+
+           arguments(2) = trim(MolecularSystem_getNameOfSpecie(otherSpecieID ))
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+           firstDerivMatrixB = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+
+           do u = 1, ssize
+             do v = 1, ssize
+                 wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(u,v) = &
+                   wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(u,v) +  &
+                    firstDerivMatrixA%values(u,v) * sum( wavefunction_instance(otherSpecieID)%densityMatrix%values  * firstDerivMatrixB%values) / ParticleManager_getTotalMass() 
+             end do
+           end do
+
+         end if
+
+       end do
+
+       !! Load Kinetic Matrix
+       arguments(1) = "FIRSTDZ"    
+       arguments(2) = trim(MolecularSystem_getNameOfSpecie(currentSpecieID ))
+
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(currentSpecieID)
+
+       firstDerivMatrixA = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments)
+
+       ssize = size(wavefunction_instance(currentSpecieID)%couplingMatrix%values,dim=1)
+
+       do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
+
+         otherSpecieID = speciesIterator
+         if ( otherSpecieID /= currentSpecieID ) then
+
+           arguments(2) = trim(MolecularSystem_getNameOfSpecie(otherSpecieID ))
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+           firstDerivMatrixB = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+           do u = 1, ssize
+             do v = 1, ssize
+                 wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(u,v) = &
+                   wavefunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values(u,v) +  &
+                    firstDerivMatrixA%values(u,v) * sum( wavefunction_instance(otherSpecieID)%densityMatrix%values  * firstDerivMatrixB%values) / ParticleManager_getTotalMass() 
+                    !print *, firstDerivMatrixA%values(u,v) * sum( wavefunction_instance(otherSpecieID)%densityMatrix%values  * firstDerivMatrixB%values) / ParticleManager_getTotalMass() 
+             end do
+           end do
+         end if
+
+       end do
+
+      close (integralsUnit)
+
+      end if ! ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) 
+      
+
+       !! save matrix
+       do speciesIterator = initialSpeciesIteratorSelected, MolecularSystem_getNumberOfQuantumSpecies()
+         otherSpecieID = speciesIterator
+         if ( otherSpecieID /= currentSpecieID ) then
            nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpecieID )          
            if ( nameOfOtherSpecie == CONTROL_instance%SCF_GHOST_SPECIES ) &
               WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values = 0
+
            wavefunction_instance(currentSpecieID)%couplingMatrix%values = &
               wavefunction_instance(currentSpecieID)%couplingMatrix%values + &
               WaveFunction_instance(currentSpecieID)%couplingMatrixPerSpecies(otherSpecieID)%values 
@@ -802,6 +942,8 @@ contains
        write(*,*) "Coupling Matrix: ", trim(nameOfSpecieSelected)
        call Matrix_show( wavefunction_instance(currentSpecieID)%couplingMatrix )
     end if
+
+
 
  end subroutine WaveFunction_buildCouplingMatrix
 

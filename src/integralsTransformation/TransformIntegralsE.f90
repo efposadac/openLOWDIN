@@ -1356,6 +1356,12 @@ contains
     integer :: unittmp2
     integer(8) :: filesize
 
+
+    character(50) :: integralsFile
+    integer :: integralsUnit
+    type(Matrix) :: firstDerivMatrixA(3), firstDerivMatrixB(3), rhomatrix
+    character(40) :: arguments(2)
+
     ! Reads the number of cores
 
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
@@ -1486,6 +1492,44 @@ contains
 
 !$  timeA(1) = omp_get_wtime()
  
+    integralsUnit = 34
+    integralsFile = "lowdin.opints"
+    open(unit = integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
+
+      !! Load Kinetic Matrix
+    if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
+      arguments(1) = "FIRSTDX"    
+      arguments(2) = trim(MolecularSystem_getNameOfSpecie(specieID ))
+
+      firstDerivMatrixA(1) = Matrix_getFromFile(rows=int(ssizea,4), columns=int(ssizea,4), &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+
+      arguments(2) = trim(MolecularSystem_getNameOfSpecie(otherspecieID ))
+      firstDerivMatrixB(1) = Matrix_getFromFile(rows=int(ssizeb,4), columns=int(ssizeb,4), &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+
+      arguments(1) = "FIRSTDY"    
+      arguments(2) = trim(MolecularSystem_getNameOfSpecie(specieID ))
+
+      firstDerivMatrixA(2) = Matrix_getFromFile(rows=int(ssizea,4), columns=int(ssizea,4), &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+
+      arguments(2) = trim(MolecularSystem_getNameOfSpecie(otherspecieID ))
+      firstDerivMatrixB(2) = Matrix_getFromFile(rows=int(ssizeb,4), columns=int(ssizeb,4), &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+
+      arguments(1) = "FIRSTDZ"    
+      arguments(2) = trim(MolecularSystem_getNameOfSpecie(specieID ))
+
+      firstDerivMatrixA(3) = Matrix_getFromFile(rows=int(ssizea,4), columns=int(ssizea,4), &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+
+      arguments(2) = trim(MolecularSystem_getNameOfSpecie(otherspecieID ))
+      firstDerivMatrixB(3) = Matrix_getFromFile(rows=int(ssizeb,4), columns=int(ssizeb,4), &
+              unit=integralsUnit, binary=.true., arguments=arguments)
+      close (integralsUnit)
+      print *, "Warning: remember to load the integrals!"
+    end if 
 
     !! Read integrals
 
@@ -1527,8 +1571,14 @@ contains
           !end if
 
           index2 = (rs-1)*ssize2a + pq
-          twoParticlesIntegrals(index2) = shellIntegrals(i)
+      twoParticlesIntegrals(index2) = shellIntegrals(i) !- & 
+            !((firstDerivMatrixA(1)%values(pp(i),qq(i)) * firstDerivMatrixB(1)%values(rr(i),ss(i)) / 1836.0)  + &
+            !(firstDerivMatrixA(2)%values(pp(i),qq(i)) * firstDerivMatrixB(2)%values(rr(i),ss(i))  / 1836.0)  + &
+            !(firstDerivMatrixA(3)%values(pp(i),qq(i)) * firstDerivMatrixB(3)%values(rr(i),ss(i))  / 1836.0)  )
 
+        !print *, ((firstDerivMatrixA(1)%values(pp(i),qq(i)) * firstDerivMatrixB(1)%values(rr(i),ss(i)) / 2.0)  + &
+        !    (firstDerivMatrixA(2)%values(pp(i),qq(i)) * firstDerivMatrixB(2)%values(rr(i),ss(i)) / 2.0)  + &
+        !    (firstDerivMatrixA(3)%values(pp(i),qq(i)) * firstDerivMatrixB(3)%values(rr(i),ss(i)) / 2.0)  )
       end do
     end do 
 
@@ -1547,7 +1597,16 @@ contains
       !  index2 = ioff(pq) + rs
       !end if
       index2 = (rs-1)*ssize2a + pq
-      twoParticlesIntegrals(index2) = shellIntegrals(i)
+      !twoParticlesIntegrals(index2) = shellIntegrals(i)
+      twoParticlesIntegrals(index2) = shellIntegrals(i) !- &
+            !((firstDerivMatrixA(1)%values(pp(i),qq(i)) * firstDerivMatrixB(1)%values(rr(i),ss(i)) / 1836.0)  + &
+            !(firstDerivMatrixA(2)%values(pp(i),qq(i)) * firstDerivMatrixB(2)%values(rr(i),ss(i))  / 1836.0)  + &
+            !(firstDerivMatrixA(3)%values(pp(i),qq(i)) * firstDerivMatrixB(3)%values(rr(i),ss(i))  / 1836.0)  )
+
+        !print *, ((firstDerivMatrixA(1)%values(pp(i),qq(i)) * firstDerivMatrixB(1)%values(rr(i),ss(i)) / 2.0)  + &
+        !    (firstDerivMatrixA(2)%values(pp(i),qq(i)) * firstDerivMatrixB(2)%values(rr(i),ss(i)) / 2.0)  + &
+        !    (firstDerivMatrixA(3)%values(pp(i),qq(i)) * firstDerivMatrixB(3)%values(rr(i),ss(i)) / 2.0)  )
+ 
 
     end do 
 

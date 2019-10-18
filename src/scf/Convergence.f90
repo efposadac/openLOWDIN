@@ -292,7 +292,9 @@ contains
       end if
       
    end if
-   
+
+   this%speciesID = 0
+
    if( present(overlapMatrix) .and. present(coefficientMatrix) .and. ( this%methodType == 3 )) then
       
       call Matrix_copyConstructor(this%overlapMatrix, overlapMatrix)
@@ -506,7 +508,7 @@ contains
       this%initialFockMatrix%values = this%initialFockMatrix%values &
            + dampingFactor * ( this%newFockMatrixPtr%values &
            - this%initialFockMatrix%values )
-      
+      !!write (*,*) "Damping Factor for species", this%speciesID, " : ", dampingFactor
       !! Modifica la matrix de Fock con una matriz amortiguada
       !! Modificacion del damping factor para prueba
       !                                         dampingFactor=0.1_8

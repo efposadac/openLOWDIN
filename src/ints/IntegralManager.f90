@@ -33,6 +33,7 @@ module IntegralManager_
   use AttractionIntegrals_
   use MomentIntegrals_
   use KineticIntegrals_
+  use FirstDerivativeIntegrals_
   use Libint2Interface_
   ! use CudintInterface_
   use RysQuadrature_
@@ -47,6 +48,7 @@ module IntegralManager_
   public :: &
        IntegralManager_getOverlapIntegrals, &
        IntegralManager_getKineticIntegrals, &
+       IntegralManager_getFirstDerivativeIntegrals, &
        IntegralManager_getAttractionIntegrals, &
        IntegralManager_getMomentIntegrals, &
        IntegralManager_getInterRepulsionIntegrals, &
@@ -281,6 +283,233 @@ contains
 
   end subroutine IntegralManager_getKineticIntegrals
 
+  subroutine IntegralManager_getFirstDerivativeIntegrals()
+    implicit none
+
+    integer :: f, g, h, i
+    integer :: j, k, l, m
+    integer :: ii, jj, hh
+    integer, allocatable :: labels(:)
+    real(8), allocatable :: integralValue(:)
+    real(8), allocatable :: integralsMatrix(:,:)
+    character(100) :: job
+    integer :: ijob
+
+    job = "FIRSTDX"
+    ijob = 0 
+
+    !!First derivative Integrals for all species
+    do f = 1, size(MolecularSystem_instance%species)
+
+       write(30) job
+       write(30) MolecularSystem_instance%species(f)%name
+
+       if(allocated(labels)) deallocate(labels)
+       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+
+       if(allocated(integralsMatrix)) deallocate(integralsMatrix)
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       integralsMatrix = 0.0_8
+
+       ii = 0
+       do g = 1, size(MolecularSystem_instance%species(f)%particles)
+          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+
+             hh = h
+
+             ii = ii + 1
+             jj = ii - 1
+
+             do i = g, size(MolecularSystem_instance%species(f)%particles)
+                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+
+                   jj = jj + 1
+
+                   !! allocating memory Integrals for shell
+                   if(allocated(integralValue)) deallocate(integralValue)
+                   allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+
+                   !!Calculating integrals for shell
+                   call FirstDerivativeIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), integralValue, ijob)
+
+                   !!saving integrals on Matrix
+                   m = 0
+                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         m = m + 1
+                         integralsMatrix(k, l) = integralValue(m)
+                         integralsMatrix(l, k) = integralsMatrix(k, l)
+
+                      end do
+                   end do
+
+                end do
+                hh = 1
+             end do
+
+          end do
+       end do
+
+       write(*,"(A, A ,A,I6)")" Number of First derivative dx integrals for species ", &
+                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+
+       !!Write integrals to file (unit 30)
+       if(CONTROL_instance%LAST_STEP) then
+          ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
+          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+       end if
+       write(30) int(size(integralsMatrix),8)
+       write(30) integralsMatrix
+
+    end do !done! 
+
+    job = "FIRSTDY"
+    ijob = 1
+
+    !!First derivative Integrals for all species
+    do f = 1, size(MolecularSystem_instance%species)
+
+       write(30) job
+       write(30) MolecularSystem_instance%species(f)%name
+
+       if(allocated(labels)) deallocate(labels)
+       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+
+       if(allocated(integralsMatrix)) deallocate(integralsMatrix)
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       integralsMatrix = 0.0_8
+
+       ii = 0
+       do g = 1, size(MolecularSystem_instance%species(f)%particles)
+          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+
+             hh = h
+
+             ii = ii + 1
+             jj = ii - 1
+
+             do i = g, size(MolecularSystem_instance%species(f)%particles)
+                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+
+                   jj = jj + 1
+
+                   !! allocating memory Integrals for shell
+                   if(allocated(integralValue)) deallocate(integralValue)
+                   allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+
+                   !!Calculating integrals for shell
+                   call FirstDerivativeIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), integralValue, ijob)
+
+                   !!saving integrals on Matrix
+                   m = 0
+                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         m = m + 1
+                         integralsMatrix(k, l) = integralValue(m)
+                         integralsMatrix(l, k) = integralsMatrix(k, l)
+
+                      end do
+                   end do
+
+                end do
+                hh = 1
+             end do
+
+          end do
+       end do
+
+       write(*,"(A, A ,A,I6)")" Number of First derivative dy integrals for species ", &
+                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+
+       !!Write integrals to file (unit 30)
+       if(CONTROL_instance%LAST_STEP) then
+          ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
+          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+       end if
+       write(30) int(size(integralsMatrix),8)
+       write(30) integralsMatrix
+
+    end do !done! 
+
+    job = "FIRSTDZ"
+    ijob = 2 
+
+    !!First derivative Integrals for all species
+    do f = 1, size(MolecularSystem_instance%species)
+
+       write(30) job
+       write(30) MolecularSystem_instance%species(f)%name
+
+       if(allocated(labels)) deallocate(labels)
+       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+
+       if(allocated(integralsMatrix)) deallocate(integralsMatrix)
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       integralsMatrix = 0.0_8
+
+       ii = 0
+       do g = 1, size(MolecularSystem_instance%species(f)%particles)
+          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+
+             hh = h
+
+             ii = ii + 1
+             jj = ii - 1
+
+             do i = g, size(MolecularSystem_instance%species(f)%particles)
+                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+
+                   jj = jj + 1
+
+                   !! allocating memory Integrals for shell
+                   if(allocated(integralValue)) deallocate(integralValue)
+                   allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+
+                   !!Calculating integrals for shell
+                   call FirstDerivativeIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), integralValue, ijob)
+
+                   !!saving integrals on Matrix
+                   m = 0
+                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         m = m + 1
+                         integralsMatrix(k, l) = integralValue(m)
+                         integralsMatrix(l, k) = integralsMatrix(k, l)
+
+                      end do
+                   end do
+
+                end do
+                hh = 1
+             end do
+
+          end do
+       end do
+
+       write(*,"(A, A ,A,I6)")" Number of First derivative dz integrals for species ", &
+                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+
+       !!Write integrals to file (unit 30)
+       if(CONTROL_instance%LAST_STEP) then
+          ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
+          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+       end if
+       write(30) int(size(integralsMatrix),8)
+       write(30) integralsMatrix
+
+    end do !done! 
+
+  end subroutine IntegralManager_getFirstDerivativeIntegrals
+
 
   !> 
   !! @brief Calculate point charge - quantum particle attraction integrals
@@ -294,7 +523,7 @@ contains
 
     integer :: f, g, h, i, c
     integer :: j, k, l, m
-    integer :: ii, jj, hh
+    integer :: ii, jj, hh, ff
     integer :: numberOfPointCharges
     integer :: numberOfClasicalCharges
     ! integer :: numberOfSurfaceSegments
@@ -495,7 +724,6 @@ contains
           write(40) MolecularSystem_instance%species(f)%name
 
           call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals(f),f,f,labels)
-
           !clasical vs quantum
 
 
@@ -552,6 +780,10 @@ contains
 
           write(30) job
           write(30) MolecularSystem_instance%species(f)%name
+
+         !do ff = 0, numberOfPointCharges - 1
+         !   point(ff)%charge = - MolecularSystem_instance%pointCharges(ff+1)%charge * MolecularSystem_getCharge( f )
+         !end do
 
           if(allocated(labels)) deallocate(labels)
           allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
