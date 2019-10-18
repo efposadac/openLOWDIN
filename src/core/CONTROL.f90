@@ -26,18 +26,10 @@ module CONTROL_
      !!***************************************************************************
      !! Dummy variables, just for debugging. 
      !!
-     real(8) :: DUMMY_REAL_A
-     real(8) :: DUMMY_REAL_B
-     real(8) :: DUMMY_REAL_C
-     integer :: DUMMY_INTEGER_A
-     integer :: DUMMY_INTEGER_B
-     integer :: DUMMY_INTEGER_C
-     logical :: DUMMY_LOGICAL_A
-     logical :: DUMMY_LOGICAL_B
-     logical :: DUMMY_LOGICAL_C
-     character(50) :: DUMMY_CHARACTER_A
-     character(50) :: DUMMY_CHARACTER_B
-     character(50) :: DUMMY_CHARACTER_C
+     real(8) :: DUMMY_REAL(10)
+     integer :: DUMMY_INTEGER(10)
+     logical :: DUMMY_LOGICAL(10)
+     character(50) :: DUMMY_CHARACTER(10)
 
      !!***************************************************************************
      !! Parameter to control Integrals library
@@ -48,6 +40,7 @@ module CONTROL_
      character(20) :: INTEGRAL_STORAGE
      character(20) :: INTEGRAL_SCHEME
      logical :: SCHWARZ_INEQUALITY
+     real(8) :: HARMONIC_CONSTANT
 
      !!***************************************************************************
      !! Parameter to control SCF program
@@ -325,18 +318,10 @@ module CONTROL_
   !!***************************************************************************
   !! Dummy variables, just for debugging. 
   !!
-  real(8) :: LowdinParameters_dummyRealA
-  real(8) :: LowdinParameters_dummyRealB
-  real(8) :: LowdinParameters_dummyRealC
-  integer :: LowdinParameters_dummyIntegerA
-  integer :: LowdinParameters_dummyIntegerB
-  integer :: LowdinParameters_dummyIntegerC
-  logical :: LowdinParameters_dummyLogicalA
-  logical :: LowdinParameters_dummyLogicalB
-  logical :: LowdinParameters_dummyLogicalC
-  character(50) :: LowdinParameters_dummyCharacterA
-  character(50) :: LowdinParameters_dummyCharacterB
-  character(50) :: LowdinParameters_dummyCharacterC
+  real(8) :: LowdinParameters_dummyReal(10)
+  integer :: LowdinParameters_dummyInteger(10)
+  logical :: LowdinParameters_dummyLogical(10)
+  character(50) :: LowdinParameters_dummyCharacter(10)
 
   !!***************************************************************************
   !! Parameter to control Integrals library
@@ -347,6 +332,7 @@ module CONTROL_
   character(20) :: LowdinParameters_integralStorage
   character(20) :: LowdinParameters_integralScheme
   logical :: LowdinParameters_schwarzInequality
+  real(8) :: LowdinParameters_harmonicConstant
 
   !!***************************************************************************
   !! Parameter to control SCF program
@@ -621,18 +607,10 @@ module CONTROL_
     !!***************************************************************************
     !! Dummy variables, just for debugging. 
     !!
-    LowdinParameters_dummyRealA,&
-    LowdinParameters_dummyRealB,&
-    LowdinParameters_dummyRealC,&
-    LowdinParameters_dummyIntegerA,&
-    LowdinParameters_dummyIntegerB,&
-    LowdinParameters_dummyIntegerC,&
-    LowdinParameters_dummyLogicalA,&
-    LowdinParameters_dummyLogicalB,&
-    LowdinParameters_dummyLogicalC,&
-    LowdinParameters_dummyCharacterA,&
-    LowdinParameters_dummyCharacterB,&
-    LowdinParameters_dummyCharacterC,&
+    LowdinParameters_dummyReal,&
+    LowdinParameters_dummyInteger,&
+    LowdinParameters_dummyLogical,&
+    LowdinParameters_dummyCharacter,&
 
 
                                 !!***************************************************************************
@@ -644,6 +622,7 @@ module CONTROL_
        LowdinParameters_integralStorage,&
        LowdinParameters_integralScheme,&
        LowdinParameters_schwarzInequality, &
+       LowdinParameters_harmonicConstant, &
        
                                 !!***************************************************************************
                                 !! Parameter to control SCF program
@@ -946,18 +925,10 @@ contains
     !!***************************************************************************
     !! Dummy variables, just for debugging. 
     !!
-    LowdinParameters_dummyRealA = 0.0_8
-    LowdinParameters_dummyRealB = 0.0_8
-    LowdinParameters_dummyRealC = 0.0_8
-    LowdinParameters_dummyIntegerA = 0
-    LowdinParameters_dummyIntegerB = 0
-    LowdinParameters_dummyIntegerC = 0
-    LowdinParameters_dummyLogicalA = .false.
-    LowdinParameters_dummyLogicalB = .false.
-    LowdinParameters_dummyLogicalC = .false.
-    LowdinParameters_dummyCharacterA = ""
-    LowdinParameters_dummyCharacterB = ""
-    LowdinParameters_dummyCharacterC = ""
+    LowdinParameters_dummyReal(:) = 0.0_8
+    LowdinParameters_dummyInteger(:) = 0
+    LowdinParameters_dummyLogical(:) = .false.
+    LowdinParameters_dummyCharacter(:) = ""
 
     !!***************************************************************************
     !! Parameter to control Integrals library
@@ -968,6 +939,7 @@ contains
     LowdinParameters_integralStorage = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
     LowdinParameters_schwarzInequality = .false.
+    LowdinParameters_harmonicConstant = 0.0_8
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -1248,18 +1220,10 @@ contains
     !!***************************************************************************
     !! Dummy variables, just for debugging. 
     !!
-    CONTROL_instance%DUMMY_REAL_A = 0 
-    CONTROL_instance%DUMMY_REAL_B = 0
-    CONTROL_instance%DUMMY_REAL_C = 0
-    CONTROL_instance%DUMMY_INTEGER_A = 0
-    CONTROL_instance%DUMMY_INTEGER_B = 0
-    CONTROL_instance%DUMMY_INTEGER_C = 0
-    CONTROL_instance%DUMMY_LOGICAL_A = .false.
-    CONTROL_instance%DUMMY_LOGICAL_B = .false. 
-    CONTROL_instance%DUMMY_LOGICAL_C = .false.
-    CONTROL_instance%DUMMY_CHARACTER_A = ""
-    CONTROL_instance%DUMMY_CHARACTER_B = ""
-    CONTROL_instance%DUMMY_CHARACTER_C = ""
+    CONTROL_instance%DUMMY_REAL(:) = 0 
+    CONTROL_instance%DUMMY_INTEGER(:) = 0
+    CONTROL_instance%DUMMY_LOGICAL(:) = .false.
+    CONTROL_instance%DUMMY_CHARACTER(:) = ""
 
     !!***************************************************************************    
     !! Parameter to control Integrals library                       
@@ -1270,6 +1234,7 @@ contains
     CONTROL_instance%INTEGRAL_STORAGE = "DISK" !! "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
     CONTROL_instance%SCHWARZ_INEQUALITY = .false.
+    CONTROL_instance%HARMONIC_CONSTANT = 0.0_8
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -1587,18 +1552,10 @@ contains
     !!***************************************************************************
     !! Dummy variables, just for debugging. 
     !!
-    CONTROL_instance%DUMMY_REAL_A = LowdinParameters_dummyRealA
-    CONTROL_instance%DUMMY_REAL_B = LowdinParameters_dummyRealB
-    CONTROL_instance%DUMMY_REAL_C = LowdinParameters_dummyRealC
-    CONTROL_instance%DUMMY_INTEGER_A = LowdinParameters_dummyIntegerA
-    CONTROL_instance%DUMMY_INTEGER_B = LowdinParameters_dummyIntegerB
-    CONTROL_instance%DUMMY_INTEGER_C = LowdinParameters_dummyIntegerC
-    CONTROL_instance%DUMMY_LOGICAL_A = LowdinParameters_dummyLogicalA
-    CONTROL_instance%DUMMY_LOGICAL_B = LowdinParameters_dummyLogicalB
-    CONTROL_instance%DUMMY_LOGICAL_C = LowdinParameters_dummyLogicalC
-    CONTROL_instance%DUMMY_CHARACTER_A = LowdinParameters_dummyCharacterA
-    CONTROL_instance%DUMMY_CHARACTER_B = LowdinParameters_dummyCharacterB
-    CONTROL_instance%DUMMY_CHARACTER_C = LowdinParameters_dummyCharacterC
+    CONTROL_instance%DUMMY_REAL(:) = LowdinParameters_dummyReal(:)
+    CONTROL_instance%DUMMY_INTEGER(:) = LowdinParameters_dummyInteger(:)
+    CONTROL_instance%DUMMY_LOGICAL(:) = LowdinParameters_dummyLogical(:)
+    CONTROL_instance%DUMMY_CHARACTER(:) = LowdinParameters_dummyCharacter(:)
 
 
     !!***************************************************************************      
@@ -1610,6 +1567,8 @@ contains
     CONTROL_instance%INTEGRAL_STORAGE = LowdinParameters_integralStorage
     CONTROL_instance%INTEGRAL_SCHEME =  LowdinParameters_integralScheme
     CONTROL_instance%SCHWARZ_INEQUALITY = LowdinParameters_schwarzInequality
+    CONTROL_instance%HARMONIC_CONSTANT = LowdinParameters_harmonicConstant
+
 
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
@@ -1903,18 +1862,10 @@ contains
     !!***************************************************************************
     !! Dummy variables, just for debugging. 
     !!
-    LowdinParameters_dummyRealA = CONTROL_instance%DUMMY_REAL_A  
-    LowdinParameters_dummyRealB = CONTROL_instance%DUMMY_REAL_B  
-    LowdinParameters_dummyRealC = CONTROL_instance%DUMMY_REAL_C  
-    LowdinParameters_dummyIntegerA = CONTROL_instance%DUMMY_INTEGER_A  
-    LowdinParameters_dummyIntegerB = CONTROL_instance%DUMMY_INTEGER_B  
-    LowdinParameters_dummyIntegerC = CONTROL_instance%DUMMY_INTEGER_C  
-    LowdinParameters_dummyLogicalA = CONTROL_instance%DUMMY_LOGICAL_A  
-    LowdinParameters_dummyLogicalB = CONTROL_instance%DUMMY_LOGICAL_B  
-    LowdinParameters_dummyLogicalC = CONTROL_instance%DUMMY_LOGICAL_C  
-    LowdinParameters_dummyCharacterA = CONTROL_instance%DUMMY_CHARACTER_A  
-    LowdinParameters_dummyCharacterB = CONTROL_instance%DUMMY_CHARACTER_B  
-    LowdinParameters_dummyCharacterC = CONTROL_instance%DUMMY_CHARACTER_C  
+    LowdinParameters_dummyReal(:) = CONTROL_instance%DUMMY_REAL(:) 
+    LowdinParameters_dummyInteger(:) = CONTROL_instance%DUMMY_INTEGER(:)
+    LowdinParameters_dummyLogical(:) = CONTROL_instance%DUMMY_LOGICAL(:)  
+    LowdinParameters_dummyCharacter(:) = CONTROL_instance%DUMMY_CHARACTER(:)
 
     !!***************************************************************************      
     !! Parameter to control Integrals library                                          
@@ -1925,6 +1876,7 @@ contains
     LowdinParameters_integralStorage = CONTROL_instance%INTEGRAL_STORAGE
     LowdinParameters_integralScheme = CONTROL_instance%INTEGRAL_SCHEME
     LowdinParameters_schwarzInequality = CONTROL_instance%SCHWARZ_INEQUALITY
+    LowdinParameters_harmonicConstant = CONTROL_instance%HARMONIC_CONSTANT 
 
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
@@ -2212,18 +2164,10 @@ contains
     !!***************************************************************************
     !! Dummy variables, just for debugging. 
     !!
-    otherThis%DUMMY_REAL_A = this%DUMMY_REAL_A
-    otherThis%DUMMY_REAL_B = this%DUMMY_REAL_B
-    otherThis%DUMMY_REAL_C = this%DUMMY_REAL_C
-    otherThis%DUMMY_INTEGER_A = this%DUMMY_INTEGER_A
-    otherThis%DUMMY_INTEGER_B = this%DUMMY_INTEGER_B
-    otherThis%DUMMY_INTEGER_C = this%DUMMY_INTEGER_C
-    otherThis%DUMMY_LOGICAL_A = this%DUMMY_LOGICAL_A
-    otherThis%DUMMY_LOGICAL_B = this%DUMMY_LOGICAL_B
-    otherThis%DUMMY_LOGICAL_C = this%DUMMY_LOGICAL_C
-    otherThis%DUMMY_CHARACTER_A = this%DUMMY_CHARACTER_A
-    otherThis%DUMMY_CHARACTER_B = this%DUMMY_CHARACTER_B
-    otherThis%DUMMY_CHARACTER_C = this%DUMMY_CHARACTER_C
+    otherThis%DUMMY_REAL(:) = this%DUMMY_REAL(:)
+    otherThis%DUMMY_INTEGER(:) = this%DUMMY_INTEGER(:)
+    otherThis%DUMMY_LOGICAL(:) = this%DUMMY_LOGICAL(:)
+    otherThis%DUMMY_CHARACTER(:) = this%DUMMY_CHARACTER(:)
 
     !!*****************************************************
     !! Variables para control de integrales
@@ -2234,6 +2178,7 @@ contains
     otherThis%INTEGRAL_SCHEME = this%INTEGRAL_SCHEME
     otherThis%INTEGRAL_STACK_SIZE = this%INTEGRAL_STACK_SIZE 
     otherThis%SCHWARZ_INEQUALITY = this%SCHWARZ_INEQUALITY
+    otherThis%HARMONIC_CONSTANT = this%HARMONIC_CONSTANT 
 
     !!***************************************************************************
     !! Parametros para control de proceso de minizacion de energia mediante

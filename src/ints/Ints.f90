@@ -98,6 +98,10 @@ Program Ints
        call IntegralManager_getFirstDerivativeIntegrals()
      end if
 
+     if ( CONTROL_instance%HARMONIC_CONSTANT /= 0.0_8 ) then 
+       call IntegralManager_getHarmonicIntegrals()
+     end if
+
      ! !!Calculate attraction integrals
      ! call Libint2Interface_compute1BodyInts(3)
      call IntegralManager_getAttractionIntegrals()

@@ -67,6 +67,7 @@ module WaveFunction_
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
      type(Matrix) :: electricField(3)
+     type(Matrix) :: harmonic
      real(8) :: cosmoCharge
      !!**************************************************************
 
@@ -409,6 +410,21 @@ contains
          CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(speciesID)%electricField(2)%values + &
          CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(speciesID)%electricField(3)%values )
     end if
+
+     if ( CONTROL_instance%HARMONIC_CONSTANT /= 0.0_8 ) then 
+
+      write (*,"(T2,A15,3F12.8)") "HARMONIC CONSTANT:", CONTROL_instance%HARMONIC_CONSTANT
+
+      arguments(1) = "HARMONIC"
+      WaveFunction_instance(speciesID)%harmonic = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                            columns=totalNumberOfContractions, &
+                                                            unit=unit, binary=.true., arguments=arguments)   
+
+      WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+        WaveFunction_instance(speciesID)%HCoreMatrix%values + &
+        CONTROL_instance%HARMONIC_CONSTANT *WaveFunction_instance(speciesID)%harmonic%values
+
+     end if
 
     close(34)    
          !WaveFunction_instance(speciesID)%externalPotentialMatrix%values 
