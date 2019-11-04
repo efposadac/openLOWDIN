@@ -138,7 +138,7 @@ contains
 
     allocate(this%overlapMatrix(numberOfSpecies))
     allocate(this%densityMatrix(numberOfSpecies))
-    allocate(this%momentMatrices(numberOfSpecies,3))
+    allocate(this%momentMatrices(numberOfSpecies,9))
 
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
     open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted") 
@@ -201,6 +201,32 @@ contains
        this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
             unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
+       !! Load moment Matrices
+       arguments(1) = "MOMENTXX"    
+       this%momentMatrices(speciesID,4) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+       arguments(1) = "MOMENTYY"    
+       this%momentMatrices(speciesID,5) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+       arguments(1) = "MOMENTZZ"    
+       this%momentMatrices(speciesID,6) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+       !! Load moment Matrices
+       arguments(1) = "MOMENTXY"    
+       this%momentMatrices(speciesID,7) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+       arguments(1) = "MOMENTXZ"    
+       this%momentMatrices(speciesID,8) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+       arguments(1) = "MOMENTYZ"    
+       this%momentMatrices(speciesID,9) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
     end do
 
   end subroutine CalculateProperties_constructor
@@ -221,6 +247,12 @@ contains
        call Matrix_destructor(this%momentMatrices(speciesID,1) )
        call Matrix_destructor(this%momentMatrices(speciesID,2) )
        call Matrix_destructor(this%momentMatrices(speciesID,3) )
+       call Matrix_destructor(this%momentMatrices(speciesID,4) )
+       call Matrix_destructor(this%momentMatrices(speciesID,5) )
+       call Matrix_destructor(this%momentMatrices(speciesID,6) )
+       call Matrix_destructor(this%momentMatrices(speciesID,7) )
+       call Matrix_destructor(this%momentMatrices(speciesID,8) )
+       call Matrix_destructor(this%momentMatrices(speciesID,9) )
     end do
 
     deallocate(this%overlapMatrix)
@@ -399,12 +431,14 @@ contains
 
     integer :: i, numberOfSpecies
     real(8), allocatable :: dipole(:,:)
+    real(8), allocatable :: quadrupole(:,:)
     real(8) :: totalDipole(3)
 
     totalDipole=0.0_8
     numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
 
     allocate(dipole(numberOfSpecies+1,3))
+    allocate(quadrupole(numberOfSpecies+1,6))
 
     print *,""
     print *," ELECTROSTATIC MOMENTS:"
@@ -429,11 +463,34 @@ contains
 
     write (6,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
 
+
+    print *,""
+    print *,"QUADRUPOLE: (DEBYE ANGS)"
+    print *,"------"
+    print *,""
+    write (6,"(T19,6A13)") "<xx>","<yy>", "<zz>", "<xy>","<xz>","<yz>"
+
+    do i=1, numberOfSpecies
+       quadrupole(i,:)=CalculateProperties_getQuadrupoleOfQuantumSpecie(this, i)*2.54174619*0.52917720859
+       !totalDipole(:)=totalDipole(:)+dipole(i,:)
+       write (6,"(T5,A15,6F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), quadrupole(i,:)
+    end do
+
+    quadrupole(numberOfSpecies+1,:)=CalculateProperties_getQuadrupoleOfPuntualCharges()*2.54174619*0.52917720859
+    !totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
+    write (6,"(T5,A15,6F13.8)") "Point charges: ", quadrupole(numberOfSpecies+1,:)
+
+    write (6,"(T22,A28)") "___________________________________"
+
+    !write (6,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
+
+
     print *,""
     print *,"END ELECTROSTATIC MOMENTS"
     print *,""
 
     deallocate(dipole)
+    deallocate(quadrupole)
 
   end subroutine CalculateProperties_showContributionsToElectrostaticMoment
 
@@ -456,25 +513,67 @@ contains
   end function CalculateProperties_getDipoleOfPuntualCharges
 
 
-  !<
-  !! @brief Calcula el aporte al dipolo debido a particulas no fijas
-  !>
-  function CalculateProperties_getDipoleOfQuantumSpecie( this, i ) result( output )
+  ! !<
+  ! !! @brief Calcula el aporte al dipolo de las cargas puntuales presentes
+  ! !>
+  function CalculateProperties_getQuadrupoleOfPuntualCharges() result( output )
     implicit none
-    type(CalculateProperties) :: this
-    integer :: i !specieID
+    real(8) :: output(6)
+    integer :: i
+
+    output = 0.0_8
+
+    
+    do i=1, size( MolecularSystem_instance%pointCharges )      
+       output(1) = output(1) + MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%charge
+       output(2) = output(2) + MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%charge
+       output(3) = output(3) + MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%charge
+       output(4) = output(4) + MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%charge
+       output(5) = output(5) + MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%charge
+       output(6) = output(6) + MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%charge
+    end do
+
+    
+  end function CalculateProperties_getQuadrupoleOfPuntualCharges
+
+
+  !<
+  !! @brief calcula el aporte al dipolo debido a particulas no fijas
+  !>
+  function calculateproperties_getdipoleofquantumspecie( this, i ) result( output )
+    implicit none
+    type(calculateproperties) :: this
+    integer :: i !specieid
     real(8) :: output(3)
 
-    output(1) =sum( this%densityMatrix(i)%values * this%momentMatrices(i,1)%values )
-    output(2) =sum( this%densityMatrix(i)%values * this%momentMatrices(i,2)%values )
-    output(3) =sum( this%densityMatrix(i)%values * this%momentMatrices(i,3)%values )
+    output(1) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,1)%values )
+    output(2) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,2)%values )
+    output(3) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,3)%values )
 
-    output = output * MolecularSystem_getCharge( i )
+    output = output * molecularsystem_getcharge( i )
 
-  end function CalculateProperties_getDipoleOfQuantumSpecie
+  end function calculateproperties_getdipoleofquantumspecie
 
 
+  !<
+  !! @brief calcula el aporte al dipolo debido a particulas no fijas
+  !>
+  function calculateproperties_getquadrupoleofquantumspecie( this, i ) result( output )
+    implicit none
+    type(calculateproperties) :: this
+    integer :: i !specieid
+    real(8) :: output(6)
 
+    output(1) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,4)%values )
+    output(2) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,5)%values )
+    output(3) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,6)%values )
+    output(4) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,7)%values )
+    output(5) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,8)%values )
+    output(6) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,9)%values )
+
+    output = output * molecularsystem_getcharge( i )
+
+  end function calculateproperties_getquadrupoleofquantumspecie
 
 
 

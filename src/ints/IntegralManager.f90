@@ -978,12 +978,12 @@ contains
     real(8), allocatable :: integralValue(:)
     real(8), allocatable :: integralBuffer(:)
     real(8), allocatable :: integralsMatrix(:,:)
-    character(10) :: coordinate(3)
+    character(10) :: coordinate(9)
     character(100) :: job
 
     job = "MOMENT"
 
-    coordinate = ["X", "Y", "Z"]
+    coordinate = ["X ", "Y ", "Z ","XX","YY","ZZ","XY","XZ","YZ"]
 
     !!Moment Integrals for all species
     do f = 1, size(MolecularSystem_instance%species)
@@ -999,7 +999,7 @@ contains
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
 
-       do component = 1, 3 !! components x, y, z
+       do component = 1, 9 !! components x, y, z
 
           write(30) trim(job)//trim(coordinate(component))
           write(30) MolecularSystem_instance%species(f)%name
