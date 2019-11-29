@@ -66,7 +66,7 @@ module WaveFunction_
      type(Matrix) :: cosmo2
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
-     type(Matrix) :: electricField(3)
+     type(Matrix) :: electricField(9)
      type(Matrix) :: harmonic
      real(8) :: cosmoCharge
      !!**************************************************************
@@ -387,28 +387,80 @@ contains
         WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
 
     !! Add electric field F_i < \mu | e_i | \nu >
-    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+!    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+    if ( CONTROL_instance%MULTIPOLE_ORDER /= 0 ) then
+
+      write (*,"(T2,A15,I2)") "MULTIPOLE ORDER R**X: ", CONTROL_instance%MULTIPOLE_ORDER
       write (*,"(T2,A15,3F12.8)") "ELECTRIC FIELD:", CONTROL_instance%ELECTRIC_FIELD
 
-      arguments(1) = "MOMENTX"
-      WaveFunction_instance(speciesID)%electricField(1) = Matrix_getFromFile(rows=totalNumberOfContractions, &
-                                                           columns=totalNumberOfContractions, &
-                                                            unit=unit, binary=.true., arguments=arguments)    
-      arguments(1) = "MOMENTY"
-      WaveFunction_instance(speciesID)%electricField(2) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
-                                                            columns=totalNumberOfContractions, &
-                                                            unit=unit, binary=.true., arguments=arguments)    
-      arguments(1) = "MOMENTZ"
-      WaveFunction_instance(speciesID)%electricField(3) = Matrix_getFromFile(rows=totalNumberOfContractions, &
-                                                            columns=totalNumberOfContractions, &
-                                                            unit=unit, binary=.true., arguments=arguments)    
+      select case ( CONTROL_instance%MULTIPOLE_ORDER )
 
-      WaveFunction_instance(speciesID)%HCoreMatrix%values = &
-        WaveFunction_instance(speciesID)%HCoreMatrix%values + &
-                auxcharge * &
-        (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(speciesID)%electricField(1)%values + &
-         CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(speciesID)%electricField(2)%values + &
-         CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(speciesID)%electricField(3)%values )
+      case (1)
+
+        arguments(1) = "MOMENTX0"
+        WaveFunction_instance(speciesID)%electricField(1) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                             columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTY0"
+        WaveFunction_instance(speciesID)%electricField(2) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTZ0"
+        WaveFunction_instance(speciesID)%electricField(3) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+  
+        WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+          WaveFunction_instance(speciesID)%HCoreMatrix%values + &
+                  auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(speciesID)%electricField(1)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(speciesID)%electricField(2)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(speciesID)%electricField(3)%values )
+
+      case (2)
+
+        arguments(1) = "MOMENTXX"
+        WaveFunction_instance(speciesID)%electricField(4) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                             columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTYY"
+        WaveFunction_instance(speciesID)%electricField(5) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTZZ"
+        WaveFunction_instance(speciesID)%electricField(6) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+  
+        arguments(1) = "MOMENTXY"
+        WaveFunction_instance(speciesID)%electricField(7) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                             columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTXZ"
+        WaveFunction_instance(speciesID)%electricField(8) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTYZ"
+        WaveFunction_instance(speciesID)%electricField(9) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+  
+  
+        WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+          WaveFunction_instance(speciesID)%HCoreMatrix%values + &
+                  (1.0/3.0)*auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(speciesID)%electricField(4)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(speciesID)%electricField(5)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(speciesID)%electricField(6)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(4)*WaveFunction_instance(speciesID)%electricField(7)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(5)*WaveFunction_instance(speciesID)%electricField(8)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(6)*WaveFunction_instance(speciesID)%electricField(9)%values )
+
+      case default 
+
+        call WaveFunction_exception ( ERROR, "WaveFunction_HCoreMatrix", "Multipole order not implemented")
+
+      end select
     end if
 
      if ( CONTROL_instance%HARMONIC_CONSTANT /= 0.0_8 ) then 
@@ -422,7 +474,7 @@ contains
 
       WaveFunction_instance(speciesID)%HCoreMatrix%values = &
         WaveFunction_instance(speciesID)%HCoreMatrix%values + &
-        CONTROL_instance%HARMONIC_CONSTANT *WaveFunction_instance(speciesID)%harmonic%values
+        CONTROL_instance%HARMONIC_CONSTANT * WaveFunction_instance(speciesID)%harmonic%values
 
      end if
 
@@ -517,14 +569,35 @@ contains
     auxcharge = MolecularSystem_getCharge( specieID )
 
     !! Remove the electric field matrix to calculate the energy components
-    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
-      WaveFunction_instance(specieID)%HCoreMatrix%values = &
-        WaveFunction_instance(specieID)%HCoreMatrix%values - &
-                auxcharge * &
-        (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(1)%values + &
-         CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(2)%values + &
-         CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(3)%values )
+    if ( CONTROL_instance%MULTIPOLE_ORDER /= 0 ) then
+
+      select case ( CONTROL_instance%MULTIPOLE_ORDER )
+
+      case(1)
+        WaveFunction_instance(specieID)%HCoreMatrix%values = &
+          WaveFunction_instance(specieID)%HCoreMatrix%values - &
+                  auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(1)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(2)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(3)%values )
+
+      case(2)
+
+        WaveFunction_instance(specieID)%HCoreMatrix%values = &
+          WaveFunction_instance(specieID)%HCoreMatrix%values - &
+                  (1.0/3.0)*auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(4)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(5)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(6)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(4)*WaveFunction_instance(specieID)%electricField(7)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(5)*WaveFunction_instance(specieID)%electricField(8)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(6)*WaveFunction_instance(specieID)%electricField(9)%values )
+
+      end select
+
     end if
+
+
 
 
     !! Calcula la energia de repulsion
@@ -603,13 +676,32 @@ contains
     end if
 
     !! Put back the electric field matrix to the Hcore matrix
-    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
-      WaveFunction_instance(specieID)%HCoreMatrix%values = &
-        WaveFunction_instance(specieID)%HCoreMatrix%values + &
-                auxcharge * &
-        (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(1)%values + &
-         CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(2)%values + &
-         CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(3)%values )
+    if ( CONTROL_instance%MULTIPOLE_ORDER /= 0 ) then
+
+      select case ( CONTROL_instance%MULTIPOLE_ORDER )
+
+      case(1)
+        WaveFunction_instance(specieID)%HCoreMatrix%values = &
+          WaveFunction_instance(specieID)%HCoreMatrix%values + &
+                  auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(1)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(2)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(3)%values )
+
+      case(2)
+
+        WaveFunction_instance(specieID)%HCoreMatrix%values = &
+          WaveFunction_instance(specieID)%HCoreMatrix%values + &
+                  (1.0/3.0)*auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(4)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(5)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(6)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(4)*WaveFunction_instance(specieID)%electricField(7)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(5)*WaveFunction_instance(specieID)%electricField(8)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(6)*WaveFunction_instance(specieID)%electricField(9)%values )
+
+      end select
+
     end if
 
 

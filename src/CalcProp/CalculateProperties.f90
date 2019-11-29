@@ -189,15 +189,15 @@ contains
             columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
        !! Load moment Matrices
-       arguments(1) = "MOMENTX"    
+       arguments(1) = "MOMENTX0"    
        this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
             unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       arguments(1) = "MOMENTY"    
+       arguments(1) = "MOMENTY0"    
        this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
             unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       arguments(1) = "MOMENTZ"    
+       arguments(1) = "MOMENTZ0"    
        this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
             unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
@@ -433,8 +433,10 @@ contains
     real(8), allocatable :: dipole(:,:)
     real(8), allocatable :: quadrupole(:,:)
     real(8) :: totalDipole(3)
+    real(8) :: totalQuadrupole(6)
 
     totalDipole=0.0_8
+    totalQuadrupole=0.0_8
     numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
 
     allocate(dipole(numberOfSpecies+1,3))
@@ -472,13 +474,15 @@ contains
 
     do i=1, numberOfSpecies
        quadrupole(i,:)=CalculateProperties_getQuadrupoleOfQuantumSpecie(this, i)*2.54174619*0.52917720859
-       !totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (6,"(T5,A15,6F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), quadrupole(i,:)
+       totalQuadrupole(:)=totalQuadrupole(:)+quadrupole(i,:)
+       write (6,"(T5,A15,6F14.8)") trim(MolecularSystem_getNameOfSpecie( i )), quadrupole(i,:)
     end do
 
     quadrupole(numberOfSpecies+1,:)=CalculateProperties_getQuadrupoleOfPuntualCharges()*2.54174619*0.52917720859
-    !totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
-    write (6,"(T5,A15,6F13.8)") "Point charges: ", quadrupole(numberOfSpecies+1,:)
+    totalquadrupole(:)=totalquadrupole(:)+quadrupole(numberOfSpecies+1,:)
+    write (6,"(T5,A15,6F14.8)") "Point charges: ", quadrupole(numberOfSpecies+1,:)
+
+    write (6,"(T2,A18,6F14.8)") "Total Quadrupole:", totalQuadrupole(:) 
 
     write (6,"(T22,A28)") "___________________________________"
 

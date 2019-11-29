@@ -983,7 +983,7 @@ contains
 
     job = "MOMENT"
 
-    coordinate = ["X ", "Y ", "Z ","XX","YY","ZZ","XY","XZ","YZ"]
+    coordinate = ["X0", "Y0", "Z0","XX","YY","ZZ","XY","XZ","YZ"]
 
     !!Moment Integrals for all species
     do f = 1, size(MolecularSystem_instance%species)
