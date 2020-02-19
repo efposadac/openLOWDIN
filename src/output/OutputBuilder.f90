@@ -794,9 +794,8 @@ contains
     character(19) , allocatable :: labelsOfContractions(:)
     integer :: counter, auxcounter
     character(6) :: nickname
-    character(4) :: shellCode
     character(2) :: space
-    integer :: i0, j0, maxl
+    integer :: i0, j0, maxl, shellCode
     integer :: totalNumberOfParticles, n
     real(8) :: puntualInteractionEnergy
 
@@ -810,9 +809,23 @@ contains
     this%fileName = trim(CONTROL_instance%INPUT_FILE)//"casino"
     open(29,file=this%fileName,status='replace',action='write')
 
-    if ( MolecularSystem_getNumberOfQuantumSpecies() > 2 ) then 
-      call OutputBuilder_exception(ERROR, "The maximum number of quantum species cannot be greater than two", "OutputBuilder_casinoFile" )
-    end if
+    select case ( MolecularSystem_getNumberOfQuantumSpecies() ) 
+      case (1) 
+        numberOfContractionsA = MolecularSystem_getTotalNumberOfContractions(1)
+        numberOfContractionsB = 0
+        numberOfShellsA = MolecularSystem_getNumberOfContractions(1)
+        numberOfShellsB = 0
+
+      case (2) 
+        numberOfContractionsA = MolecularSystem_getTotalNumberOfContractions(1)
+        numberOfContractionsB = MolecularSystem_getTotalNumberOfContractions(2)
+        numberOfShellsA = MolecularSystem_getNumberOfContractions(1)
+        numberOfShellsB = MolecularSystem_getNumberOfContractions(2)
+      case default
+        call OutputBuilder_exception(ERROR, "The maximum number of quantum species cannot be greater than two", "OutputBuilder_casinoFile" )
+    end select
+
+    totalShells = numberOfShellsA + numberOfShellsB
 
     superSize = 0
     maxl = 0
@@ -827,11 +840,6 @@ contains
       end do 
     end do 
 
-    numberOfContractionsA = MolecularSystem_getTotalNumberOfContractions(1)
-    numberOfContractionsB = MolecularSystem_getTotalNumberOfContractions(2)
-    numberOfShellsA = MolecularSystem_getNumberOfContractions(1)
-    numberOfShellsB = MolecularSystem_getNumberOfContractions(2)
-    totalShells = numberOfShellsA + numberOfShellsB
 
     !! Basic info
     write (29,*) " Title"
@@ -874,12 +882,35 @@ contains
       end do 
     end do 
     write (29,*) "Atomic numbers for each atom:" 
+    m = 0
+    do l = 1,MolecularSystem_getNumberOfQuantumSpecies()
+      do g = 1,  size(MolecularSystem_instance%species(l)%particles)
+        m = m + 1 
+        if (mod(m,8)==0) then
+          write (29,"(I10)") int(MolecularSystem_instance%species(l)%particles(g)%charge)
+        else
+          write (29,"(I10)",advance="no") int(MolecularSystem_instance%species(l)%particles(g)%charge)
+        end if
+      end do 
+    end do 
+    if (.not. mod(m,8)==0)  write (29,"(A)", advance='yes') " "
     !write (29,*) "_ii_ _ii_"
-    write (29,"(2I10)") 1,0
+    !write (29,"(2I10)") 1,0
     write (29,*) "Valence charges for each atom:" !! what?
-    write (29,*) " 1.0000000000000E+00 0.0000000000000E+00"
+    !write (29,*) " 1.0000000000000E+00 0.0000000000000E+00"
+    m = 0
+    do l = 1,MolecularSystem_getNumberOfQuantumSpecies()
+      do g = 1,  size(MolecularSystem_instance%species(l)%particles)
+        m = m + 1 
+        if (mod(m,4)==0) then
+          write (29,"(ES20.13)") MolecularSystem_instance%species(l)%particles(g)%charge
+        else
+          write (29,"(ES20.13)",advance="no") MolecularSystem_instance%species(l)%particles(g)%charge
+        end if
+      end do 
+    end do 
+    if (.not. mod(m,8)==0)  write (29,"(A)", advance='yes') " "
     write (29,*) ""
-
     !! Basis set
 
     write (29,*) "BASIS SET"
@@ -904,10 +935,14 @@ contains
       do g = 1,  size(MolecularSystem_instance%species(l)%particles)
         do h = 1, size(MolecularSystem_instance%species(l)%particles(g)%basis%contraction)
           m = m + 1 
+          shellCode = 0
+          if ( MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%angularMoment == 0 ) shellCode = 1
+          if ( MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%angularMoment > 0 ) shellCode = 2
+
           if (mod(m,8)==0) then
-            write (29,"(I10)") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%angularMoment + 1
+            write (29,"(I10)") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%angularMoment + shellCode
           else
-            write (29,"(I10)",advance="no") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%angularMoment + 1
+            write (29,"(I10)",advance="no") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%angularMoment + shellCode
           end if
         end do
       end do 
@@ -955,14 +990,24 @@ contains
       do g = 1,  size(MolecularSystem_instance%species(l)%particles)
         do h = 1, size(MolecularSystem_instance%species(l)%particles(g)%basis%contraction)
           do i = 1, MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%length
-            do j = 1, MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%numCartesianOrbital
+!            do j = 1, MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%numCartesianOrbital
+!              m = m + 1 
+!              if (mod(m,4)==0) then
+!                write (29,"(ES20.13)") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%primNormalization(i,j)
+!              else
+!                write (29,"(ES20.13)",advance="no") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%primNormalization(i,j)
+!              end if
+!            end do
+
+!            do j = 1, MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%numCartesianOrbital
               m = m + 1 
               if (mod(m,4)==0) then
-                write (29,"(ES20.13)") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%primNormalization(i,j)
+                write (29,"(ES20.13)") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%primNormalization(i,1)
               else
-                write (29,"(ES20.13)",advance="no") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%primNormalization(i,j)
+                write (29,"(ES20.13)",advance="no") MolecularSystem_instance%species(l)%particles(g)%basis%contraction(h)%primNormalization(i,1)
               end if
-            end do
+!            end do
+
           end do
         end do
       end do 
@@ -1078,9 +1123,6 @@ contains
     end do
 
     !! write it twice... why?
-
-    numberOfContractionsA = MolecularSystem_getTotalNumberOfContractions(1)
-    numberOfContractionsB = MolecularSystem_getTotalNumberOfContractions(2)
 
     do i = numberOfContractionsB + 1, superSize
       j =1
