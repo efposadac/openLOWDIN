@@ -467,7 +467,7 @@ contains
 
 
     print *,""
-    print *,"QUADRUPOLE: (DEBYE ANGS)"
+    print *,"QUADRUPOLE NON-TRACELESS: (DEBYE ANGS)"
     print *,"------"
     print *,""
     write (6,"(T19,6A13)") "<xx>","<yy>", "<zz>", "<xy>","<xz>","<yz>"
