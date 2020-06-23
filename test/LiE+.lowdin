@@ -1,0 +1,35 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test CISD
+%  Electronic Hartree Fock
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de Li'
+
+GEOMETRY
+e-(Li)  AUG-CC-PVQZ	0.000	0.000	0.000 multiplicity=2
+E+      PSX-QZ  0.0     0.0     0.0
+Li    	dirac	0.000	0.000	0.0000 
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="FCI"
+END TASKS
+
+CONTROL
+	!numberOfCores=1
+	scfelectronicenergytolerance=1E-8
+        !CIdiagonalizationMethod="DSYEVX"
+        !CIdiagonalizationMethod="ARPACK"
+        CIdiagonalizationMethod="JADAMILU"
+	!CISaveEigenvector = true
+	!CILoadEigenvector = true
+END CONTROL
+
+
+INPUT_CI
+	species="E-ALPHA" core=0 active=0 
+	species="E-BETA" core=0 active=0 
+	species="POSITRON" core=0 active=0 
+END INPUT_CI
+

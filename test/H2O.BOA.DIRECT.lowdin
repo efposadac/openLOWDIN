@@ -1,4 +1,4 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  Test RHF
 %  H2O Single Point
 %  Electronic Hartree Fock
@@ -10,8 +10,8 @@ SYSTEM_DESCRIPTION='Molecula de H2O'
 
 GEOMETRY
 	e-[O]   6-311G     0.000000      0.000000     -0.066575 
-	e-[H]   6-311G     0.000000      0.754175      0.528381
-	e-[H]   6-311G     0.000000     -0.754174      0.528382 
+	e-[H]   6-311G    0.000000      0.754175      0.528381 
+	e-[H]   6-311G    0.000000     -0.754174      0.528382 
 	O        dirac     0.000000      0.000000     -0.066575
 	H_1      dirac     0.000000      0.754175      0.528381	
 	H_1      dirac     0.000000     -0.754174      0.528382  
@@ -19,13 +19,14 @@ END GEOMETRY
 
 TASKS
 	method = "RHF"
+!	mollerPlessetCorrection = 2
 END TASKS
 
 CONTROL
-	integralDestiny="direct"
+	integralStorage="direct"
 END CONTROL
-OUTPUTS
-	wfnFile	
-	NBO47File
-	wfxFile
-END OUTPUTS
+!OUTPUTS
+!	wfnFile	
+!	NBO47File
+!	wfxFile
+!END OUTPUTS

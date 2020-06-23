@@ -22,11 +22,11 @@
 
 module CalculateProperties_
   use MolecularSystem_
+  use ParticleManager_
   use Matrix_
   use Vector_
   use Units_
   use Exception_
-  use WaveFunction_
   use ContractedGaussian_
   implicit none
 
@@ -113,9 +113,11 @@ contains
   !<
   !! @brief Constructor para la clase
   !>
-  subroutine CalculateProperties_constructor( this )
+  subroutine CalculateProperties_constructor( this, fileName )
     implicit none
     type(CalculateProperties) :: this
+    character(*) :: fileName
+
     character(50) :: wfnFile
     integer :: wfnUnit
     character(50) :: arguments(20)
@@ -129,7 +131,7 @@ contains
     integralsFile = "lowdin.opints"
     integralsUnit = 30
 
-    wfnFile = "lowdin.wfn"
+    wfnFile = trim(fileName)//".wfn"
     wfnUnit = 20
 
     !! Open file for wavefunction
@@ -235,15 +237,17 @@ contains
     type (CalculateProperties) :: this ! por medio de este this accedo a todo lo que este en la estructura o type
     ! calculate properties 
 
-    real(8) :: total
+    real(8) :: total, atomSum
     character(10) :: specieName
-    integer :: specieID
-
+    integer :: speciesID, i, j, k, l
+    type(Vector) :: populations
+    
     !Felix: Vamos a hacer el analisis de poblaciones para todas las especies
 
-    do specieID = 1, MolecularSystem_getNumberOfQuantumSpecies()
-       specieName = trim(MolecularSystem_getNameOfSpecie( specieID ))
-
+    do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+       specieName = trim(MolecularSystem_getNameOfSpecie( speciesID ))
+       populations = CalculateProperties_getPopulation(this, "MULLIKEN", speciesID, total)
+       
        !!Obtiene Poblaciones de Mulliken
        print *,""
        print *," POPULATION ANALYSES: "
@@ -252,29 +256,57 @@ contains
        print *, " Mulliken Population: for ", specieName
        print *,"---------------------"
        print *,""
-       call Vector_show( CalculateProperties_getPopulation(this, "MULLIKEN", specieID, total), &
-            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
-
+       call Vector_show( populations, &
+            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( speciesID ) )
        write (6,"(T25,A10)") "__________"
-       write (6,"(T10,A15,F10.6)") "Total = ", total
+       write (6,"(T10,A14,F10.6)") "Total = ", total
+       print *,""
+       print *, " Atomic Mulliken Population: for ", specieName
+       l=0
+       do i=1, size(MolecularSystem_instance%species(speciesID)%particles)
+          atomSum=0
+          do j=1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
+             do k=1, MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
+                l=l+1
+                atomSum=atomSum+populations%values(l)
+             end do
+          end do
+          write(*,"(T13,A11,F10.6)") ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner), atomSum
+       end do
+       
        print *,""
        print *,"...end of Mulliken Population"
        print *,""
+
+       populations = CalculateProperties_getPopulation(this, "LOWDIN", speciesID, total)
        print *, " Lowdin Population: for ", specieName
        print *,"---------------------"
        print *,""
-       call Vector_show( CalculateProperties_getPopulation( this, "LOWDIN", specieID, total),&
-            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
+       call Vector_show( populations,&
+            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( speciesID ) )
        write (6,"(T25,A10)") "__________"
-       write (6,"(T10,A15,F10.6)") "Total = ", total
+       write (6,"(T10,A14,F10.6)") "Total = ", total
        print *,""
+       print *, " Atomic Lowdin Population: for ", specieName
+       l=0
+       do i=1, size(MolecularSystem_instance%species(speciesID)%particles)
+          atomSum=0
+          do j=1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
+             do k=1, MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
+                l=l+1
+                atomSum=atomSum+populations%values(l)
+             end do
+          end do
+          write(*,"(T13,A11,F10.6)") ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner), atomSum
+       end do
+
        print *,"...end of Lowdin Population"
        print *,""
        print *,"END POPULATION ANALYSES "
        print *,""
     end do
 
-    ! specieID=1
+    ! speciesID=1
     !! Antes: Recorre las especies buscando electrones
 
     ! search_specie: do i = 1, MolecularSystem_getNumberOfQuantumSpecies()
@@ -284,7 +316,7 @@ contains
     !   if( scan(trim(specieName),"E")==1 ) then
     !     if( scan(trim(specieName),"-")>1 ) then
     !       showPopulations=.true.
-    !       specieID=i
+    !       speciesID=i
     !       exit search_specie
     !     end if
     !   else
@@ -413,21 +445,21 @@ contains
     print *,"DIPOLE: (DEBYE)"
     print *,"------"
     print *,""
-    write (6,"(T19,4A9)") "<Dx>","<Dy>", "<Dz>"," |D|"
+    write (6,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
 
     do i=1, numberOfSpecies
        dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecie(this, i)*2.54174619
        totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (6,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
+       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
     end do
 
     dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()*2.54174619
     totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
-    write (6,"(T5,A15,3F9.4)") "Point charges: ", dipole(numberOfSpecies+1,:)
+    write (6,"(T5,A15,3F13.8)") "Point charges: ", dipole(numberOfSpecies+1,:)
 
     write (6,"(T22,A28)") "___________________________________"
 
-    write (6,"(T5,A15,3F9.4, F9.4)") "Total ", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
+    write (6,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
 
     print *,""
     print *,"END ELECTROSTATIC MOMENTS"

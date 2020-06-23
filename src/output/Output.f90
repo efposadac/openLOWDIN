@@ -47,7 +47,8 @@ program Output_
   job = ""
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
-  read(job,"(I10)"), numberOfOutputs
+
+  print*, "si entre a output con", job
 
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
@@ -55,27 +56,44 @@ program Output_
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-  call InputOutput_constructor( numberOfOutputs )
-  call InputOutput_load( )
+  if(job.eq."FCHK") then
+     
+     print *, "trololo"
+     numberOfOutputs=1
+     allocate(outputs(numberOfOutputs) )
 
-  allocate(outputs(numberOfOutputs) )
+     call OutputBuilder_constructor( outputs(1), 1, &
+          "fchkFile")
+     
+     call OutputBuilder_buildOutput(outputs(1))
+     call OutputBuilder_show(outputs(1))
+     
+  else
+     read(job,"(I10)") numberOfOutputs
+
+       call InputOutput_constructor( numberOfOutputs )
+       call InputOutput_load( )
+
+       allocate(outputs(numberOfOutputs) )
   
-  do i=1, numberOfOutputs
-     call OutputBuilder_constructor( outputs(i), i, &
-          InputOutput_Instance(i)%type, &
-          InputOutput_Instance(i)%specie, & 
-          InputOutput_Instance(i)%state, &
-          InputOutput_Instance(i)%orbital, &
-          InputOutput_Instance(i)%dimensions, &
-          InputOutput_Instance(i)%cubeSize, &
-          InputOutput_Instance(i)%point1, & 
-          InputOutput_Instance(i)%point2, &
-          InputOutput_Instance(i)%point3  )
+       do i=1, numberOfOutputs
+          call OutputBuilder_constructor( outputs(i), i, &
+               InputOutput_Instance(i)%type, &
+               InputOutput_Instance(i)%specie, & 
+               InputOutput_Instance(i)%state, &
+               InputOutput_Instance(i)%orbital, &
+               InputOutput_Instance(i)%dimensions, &
+               InputOutput_Instance(i)%cubeSize, &
+               InputOutput_Instance(i)%point1, & 
+               InputOutput_Instance(i)%point2, &
+               InputOutput_Instance(i)%point3  )
 
-     call OutputBuilder_buildOutput(outputs(i))
-     call OutputBuilder_show(outputs(i))
+          call OutputBuilder_buildOutput(outputs(i))
+          call OutputBuilder_show(outputs(i))
 
-  end do
+       end do
+
+  end if
 
   
 

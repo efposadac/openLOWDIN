@@ -275,6 +275,10 @@ contains
     character(30) :: nameOfInitialSpecie
     real(8) :: tolerace
     integer :: statusSystem
+    integer :: densUnit
+    character(50) :: densFile
+    character(30) :: labels(2)
+    integer :: speciesID
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
@@ -311,8 +315,21 @@ contains
                          call WaveFunction_buildTwoParticlesMatrix( trim(nameOfElectronicSpecie))
 
                          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-                            statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+
+                            !!Save density matrices to file for DFT calculations
+                            densUnit = 78
+                            densFile = trim(CONTROL_instance%INPUT_FILE)//"densmatrix"
+                            open(unit = densUnit, file=trim(densFile), status="replace", form="unformatted")
+                            labels(1) = "DENSITY-MATRIX"
+                            do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+                               labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+                               call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=densUnit, binary=.true., arguments = labels )
+                            end do
+                            close (densUnit)
+
+                            statusSystem = system ("lowdin-DFT.x BUILD_MATRICES "//trim(densFile))
                             call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+
                          end if
 
                          
@@ -430,6 +447,9 @@ contains
     character(30) :: nameOfElectronicSpecie
     character(30) :: nameOfInitialSpecie
     real(8) :: tolerace
+    integer :: densUnit
+    character(50) :: densFile
+    character(30) :: labels(2)
 
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
@@ -691,6 +711,10 @@ contains
     real(8) :: time1,time2
     logical :: auxValue
     integer :: statusSystem
+    integer :: speciesID
+    integer :: densUnit
+    character(50) :: densFile
+    character(30) :: labels(2)
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
@@ -698,7 +722,18 @@ contains
     if( numberOfSpecies > 1 ) then
        
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-          statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+          !!Save density matrices to file for DFT calculations
+          densUnit = 78
+          densFile = trim(CONTROL_instance%INPUT_FILE)//"densmatrix"
+          open(unit = densUnit, file=trim(densFile), status="replace", form="unformatted")
+          labels(1) = "DENSITY-MATRIX"
+          do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+             labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+             call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=densUnit, binary=.true., arguments = labels )
+          end do
+          close (densUnit)
+          !!statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+          call system ("lowdin-DFT.x BUILD_MATRICES "//trim(densFile))
        end if
 
        do i = 1, numberOfSpecies
@@ -761,6 +796,10 @@ contains
     real(8) :: time1,time2
     logical :: auxValue
     integer :: statusSystem
+    integer :: speciesID
+    integer :: densUnit
+    character(50) :: densFile
+    character(30) :: labels(2)
 
     MultiSCF_instance%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
@@ -783,7 +822,17 @@ contains
 
     !! Update two particles, coupling, exchange correlation and Fock matrices
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-       statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+       !!Save density matrices to file for DFT calculations
+       densUnit = 78
+       densFile = trim(CONTROL_instance%INPUT_FILE)//"densmatrix"
+       open(unit = densUnit, file=trim(densFile), status="replace", form="unformatted")
+       labels(1) = "DENSITY-MATRIX"
+       do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+          labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=densUnit, binary=.true., arguments = labels )
+       end do
+       close (densUnit)
+       statusSystem = system ("lowdin-DFT.x BUILD_MATRICES "//trim(densFile))
     end if
 
     do i = 1, numberOfSpecies
@@ -830,6 +879,9 @@ contains
     real(8) :: diisError
     character :: typeConvergence
     integer :: statusSystem
+    integer :: densUnit
+    character(50) :: densFile
+    character(30) :: labels(2)
     
     nameOfSpecie = MolecularSystem_getNameOfSpecie(speciesID)
 
@@ -868,7 +920,17 @@ contains
        end if
 
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-          statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+          !!Save density matrices to file for DFT calculations
+          densUnit = 78
+          densFile = trim(CONTROL_instance%INPUT_FILE)//"densmatrix"
+          open(unit = densUnit, file=trim(densFile), status="replace", form="unformatted")
+          labels(1) = "DENSITY-MATRIX"
+          do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+             labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+             call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=densUnit, binary=.true., arguments = labels )
+          end do
+          close (densUnit)
+          statusSystem = system ("lowdin-DFT.x BUILD_MATRICES "//trim(densFile))
           call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
        end if
 

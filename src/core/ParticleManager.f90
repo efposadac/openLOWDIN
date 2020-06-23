@@ -90,7 +90,8 @@ module ParticleManager_
        ParticleManager_getOrigin, &
        ParticleManager_setOrigin, &
        ParticleManager_setParticlesPositions, &
-       ParticleManager_setOwner
+       ParticleManager_setOwner 
+       
   !        ParticleManager_puntualParticlesEnergy,&
   !        ParticleManager_changeOriginOfSystem, &
   !        ParticleManager_searchSpecie

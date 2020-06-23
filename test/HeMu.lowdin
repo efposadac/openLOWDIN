@@ -1,0 +1,17 @@
+GEOMETRY
+	e-(H)   AUG-CC-PV5Z			0.00	0.00 	0.00 multiplicity=2 addParticles=0
+	U-	HEMU	0.00	0.00	0.00
+	He	dirac			0.00	0.00 	0.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+END TASKS
+
+CONTROL
+	readCoefficients=T
+	!iterationScheme = 3
+END CONTROL
+
+
+

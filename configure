@@ -44,7 +44,7 @@ CXX="g++"
 CC="gcc"
 CFLAGS="-g -O2 -fopenmp -D gfortran"
 CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11 "
-FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran"
+FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran"
 GSL_LIBS="-lgsl -lgslcblas"
 LAPACK_LIBS="-lblas -llapack -larpack"
 STDCPP_LIBS="-lstdc++"
@@ -127,7 +127,7 @@ else
         CC="icc"
         CU="nvcc -arch=sm_20"
         CFLAGS="-g -O2 -D intel "
-        CPPFLAGS="-g -O2 -D intel -std=c++11 -lc++"
+        CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "
     else
         CXX=g++
         CC=gcc
@@ -136,7 +136,7 @@ else
         CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11"
     fi
 
-    echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) fcheck=all [$FLAGS]"
+    echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level [$FLAGS]"
     read FFLAGS
 
     if [ "$FFLAGS" = "" ] ; then
@@ -185,17 +185,21 @@ else
     	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
     	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
         fi
-
+    fi
     if [ "$FLAGS" = "4" ] ; then
         if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
         else
-    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -fcheck=all -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-O2 -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -ffree-line-length-0 -ffpe-trap=zero,overflow,underflow -finit-real=nan -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -fcheck=all -g -D gfortran $addflagsCuda"
         fi
     fi
 
-
-
+    if [ "$FLAGS" = "5" ] ; then
+        if [ "$FC" = "ifort" ] ; then
+    	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+        else
+    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+        fi
     fi
 
     ###############################################################################
@@ -215,7 +219,7 @@ else
     fi
     
     if [ "$FC" = "ifort" ] ; then
-        STDCPP_LIBS="-lstdc++ -lc++"
+        STDCPP_LIBS="-lstdc++ "
     else
         STDCPP_LIBS="-lstdc++"
     fi
@@ -266,7 +270,7 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="core ints HF DFT scf integralsTransformation MP2 PT CalcProp aduw gepol cosmo output CI MM molden2aim jadamilu"
+SUBDIRS="core ints DFT scf integralsTransformation MBPT PT CalcProp aduw gepol cosmo output CI MM molden2aim jadamilu"
 
 for DIR in $SRCDIR ; do
     cd $DIR

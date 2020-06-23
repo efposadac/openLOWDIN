@@ -47,27 +47,29 @@ program CalcProp_
   use Matrix_
   use Vector_
   use Units_
-  use WaveFunction_
   use ContractedGaussian_
   use CalculateProperties_ ! module name
   implicit none
 
   type(CalculateProperties) :: CalculateProperties_instance
 
-  character(50) :: job
-
-  job = ""
-  call get_command_argument(1,value=job)  
-  job = trim(String_getUppercase(job))
+  character(50) :: fileName
 
 
+  fileName = ""
+  call get_command_argument(1,value=fileName)  
+
+  if(fileName .eq. "") fileName="lowdin"
+
+  print *, "entre a calc prop con ", fileName
+  
   !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
+  call MolecularSystem_loadFromFile( "LOWDIN.DAT", fileName )
 
   !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  call MolecularSystem_loadFromFile( "LOWDIN.SYS", fileName )
 
-  call CalculateProperties_constructor (CalculateProperties_instance) !modificar
+  call CalculateProperties_constructor (CalculateProperties_instance, fileName) !modificar
 
   !! Calculate properties subroutines
   call CalculateProperties_showPopulationAnalyses(CalculateProperties_instance)

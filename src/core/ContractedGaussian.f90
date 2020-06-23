@@ -64,6 +64,7 @@ module ContractedGaussian_
      integer :: angularMoment
      integer :: numCartesianOrbital
      integer :: owner
+     integer :: subSystem
      real(8) :: origin(3)
      real(8) , allocatable :: orbitalExponents(:)
      real(8) , allocatable :: contractionCoefficients(:)
@@ -107,13 +108,14 @@ contains
     write(unit,*) this%angularMoment
     write(unit,*) this%numCartesianOrbital
     write(unit,*) this%owner
+    write(unit,*) this%subSystem
     write(unit,*) this%origin
 
 #ifdef intel
     write(unit,'(<size(this%orbitalExponents)>F)') this%orbitalExponents
     write(unit,'(<size(this%contractionCoefficients)>F)') this%contractionCoefficients
     write(unit,'(<size(this%contNormalization)>F)') this%contNormalization
-    write(unit,'(<size(this%primNormalization)>F)') this%primNormalization
+    write(unit,'(<size(this%primNormalization)>E)') this%primNormalization
 #else
     write(unit,*) this%orbitalExponents
     write(unit,*) this%contractionCoefficients
@@ -138,6 +140,7 @@ contains
     read(unit,*) this%angularMoment
     read(unit,*) this%numCartesianOrbital
     read(unit,*) this%owner
+    read(unit,*) this%subSystem
     read(unit,*) this%origin
 
     allocate(this%orbitalExponents(this%length))
@@ -159,7 +162,7 @@ contains
   !! @param this contracted gaussian
   !! @author E. F. Posada, 2013
   subroutine ContractedGaussian_constructor( this , orbitalsExponents , &
-       contractionCoefficients , origin , angularMoment, owner, ssize, noNormalize )
+       contractionCoefficients , origin , angularMoment, owner, subSystem, ssize, noNormalize )
 
     implicit none
     
@@ -169,6 +172,7 @@ contains
     real(8), optional , intent(in) :: origin(3)
     integer(4),optional, intent(in) :: angularMoment
     integer, optional, intent(in) :: owner
+    integer, optional, intent(in) :: subSystem
     integer, optional :: ssize
     logical, optional, intent(in) :: noNormalize
 
@@ -178,6 +182,7 @@ contains
     this%angularMoment = 0
     this%numCartesianOrbital = 0
     this%owner = 0
+    this%subSystem = 1
     this%origin = 0
 
     if ( present(ssize) .and. .not. present(orbitalsExponents) .and. .not. present (contractionCoefficients) ) then
@@ -217,6 +222,7 @@ contains
     if ( present ( origin ) ) this%origin = origin
     if ( present ( angularMoment ) ) this%angularMoment = angularMoment
     if ( present ( owner ) ) this%owner = owner
+    if ( present ( subSystem ) ) this%subSystem = subSystem
 
     
     !! Calculates the number of cartesian orbitals, by dimensionality
@@ -262,6 +268,7 @@ contains
     this%angularMoment = otherThis%angularMoment 
     this%numCartesianOrbital = otherThis%numCartesianOrbital 
     this%owner = otherThis%owner 
+    this%subSystem = otherThis%subSystem
     this%origin = otherThis%origin
 
     if ( allocated ( this%orbitalExponents ) ) deallocate (this%orbitalExponents)
@@ -840,6 +847,7 @@ contains
 !!          output%primitives(k)%owner =  &
 !!               this%primitives(i)%owner
           output%owner = this%owner
+          output%subSystem = this%subSystem
 
 !!          output%contractionCoefficients(k)=this%contractionCoefficients(i)* &
 !!               anotherthis%contractionCoefficients(j) * auxValue
@@ -855,6 +863,7 @@ contains
     output%contNormalization = this%contNormalization !!?
     output%primNormalization = this%primNormalization !! check
     output%owner= anotherthis%owner !! ?
+    output%subSystem= anotherthis%subSystem !! ?
     !call ContractedGaussian_showInCompactForm( output )
 
   end subroutine ContractedGaussian_product

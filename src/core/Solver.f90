@@ -103,34 +103,42 @@ contains
               
     case("RHF")
 
-       call system("lowdin-HF.x RHF")
+       call system("lowdin-SCF.x RHF")
        
     case ("RHF-COSMO")
        
        call system("lowdin-cosmo.x")
-       call system("lowdin-HF.x RHF")
+       call system("lowdin-SCF.x RHF")
        ! write(*,*) CONTROL_instance%METHOD
        
     case('RHF-MP2')
 
-       call system("lowdin-HF.x RHF")
+       call system("lowdin-SCF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
 
-       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+
+    case('RHF-EN2')
+
+       call system("lowdin-SCF.x RHF")
+
+       call system("lowdin-integralsTransformation.x")
+
+       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
 
     case ("RHF-MP2-COSMO")
        
        call system("lowdin-cosmo.x")
-       call system("lowdin-HF.x RHF")
+       call system("lowdin-SCF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
 
-       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
     
     case('RHF-CI')
 
-       call system("lowdin-HF.x RHF")
+       call system("lowdin-SCF.x RHF")
        call system("lowdin-integralsTransformation.x")
 
        write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
@@ -138,7 +146,7 @@ contains
 
     case('RHF-PT')
        
-       call system("lowdin-HF.x RHF")
+       call system("lowdin-SCF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
        
@@ -147,7 +155,7 @@ contains
     case ("RHF-PT-COSMO")
        
        call system("lowdin-cosmo.x")
-       call system("lowdin-HF.x RHF")
+       call system("lowdin-SCF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
 
@@ -229,26 +237,33 @@ contains
     case("UHF")
 
        !! Run HF program in RHF mode
-       call system("lowdin-HF.x RHF")
+       call system("lowdin-SCF.x RHF")
 
        
     case('UHF-CI')
 
-       call system("lowdin-HF.x UHF")
+       call system("lowdin-SCF.x UHF")
        call system("lowdin-integralsTransformation.x")
 
        write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
        call system("lowdin-CI.x" //trim(strAuxNumber))
 
     case('UHF-MP2')
-       call system("lowdin-HF.x UHF")
+       call system("lowdin-SCF.x UHF")
        !call system("lowdin-MOERI.x UHF")
        !rfm call system("lowdin-EPT.x UHF")
        call system("lowdin-integralsTransformation.x")
-       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+
+    case('UHF-EN2')
+       call system("lowdin-SCF.x UHF")
+       !call system("lowdin-MOERI.x UHF")
+       !rfm call system("lowdin-EPT.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
        
     case('UHF-PT')
-       call system("lowdin-HF.x UHF")
+       call system("lowdin-SCF.x UHF")
        !call system("lowdin-MOERI.x UHF")
        !rfm call system("lowdin-EPT.x UHF")
        call system("lowdin-integralsTransformation.x")
@@ -283,7 +298,7 @@ contains
     print *, "hola Felix, bienvenido de vuelta"
     
     !! Run HF program in RHF mode
-    call system("lowdin-HF.x RKS")
+    call system("lowdin-SCF.x RKS")
 
 !     call RKS_run()
 !     if ( this%withProperties ) then
@@ -307,7 +322,7 @@ contains
 !     type(Solver) :: this
     
     !! Run HF program in RHF mode
-    call system("lowdin-HF.x UKS")
+    call system("lowdin-SCF.x UKS")
 
 !     call UKS_run()
 !     if ( this%withProperties ) then

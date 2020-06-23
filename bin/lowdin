@@ -50,7 +50,7 @@ fi
 if [  $printOut = "T" ]; then
 	test.x $test | tee  $test.out
 else
-      	test.x $test > $test.out
+      	test.x $test 2> $test.out
 fi
 
 echo "done"
@@ -342,6 +342,7 @@ if [ $extFile="lowdin" ]; then
 	fi
 	
 	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.fchk $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
@@ -373,6 +374,9 @@ if [ $extFile="lowdin" ]; then
 	echo "Running on " $OMP_NUM_THREADS "OMP threads" > $nameFile.out
 	echo "Begin job by input: "$nameFile.lowdin, "for user: "$USERNAME " at " `date` > $nameFile.out
 	echo "under operating system" `uname -a` >> $nameFile.out
+	echo "Compilation information" >> $nameFile.out
+	echo "  commit: "$LOWDIN_COMMIT >> $nameFile.out
+	echo "  compilation date: " $LOWDIN_DATE >> $nameFile.out
 	echo "" >> $nameFile.out
 	echo "BEGIN INPUT INFO:" >> $nameFile.out
 	echo "------------------------------------" >> $nameFile.out
@@ -392,9 +396,9 @@ if [ $extFile="lowdin" ]; then
 	cd $LOWDIN_SCRATCH/$nameFile
 	
 	if [  $printOut = "T" ]; then
-	    lowdin$version $nameFile.aux | tee -a $nameFile.out 
+	    lowdin$version $nameFile.aux |& tee -a $nameFile.out 
 	else
-	    lowdin$version $nameFile.aux >>   $nameFile.out
+	    lowdin$version $nameFile.aux >> $nameFile.out 2> >(tee -a $nameFile.out >&2)
 	fi
 	
 	ls -lh * >> $nameFile.out
@@ -419,6 +423,7 @@ if [ $extFile="lowdin" ]; then
 	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
 	mv $LOWDIN_SCRATCH/$nameFile/*.molden $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.fchk $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfn $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfx $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2

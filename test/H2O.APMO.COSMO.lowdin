@@ -12,5 +12,5 @@ TASKS
 	cosmo=T
 END TASKS
 CONTROL
-	iterationScheme=3
+!	iterationScheme=3
 END CONTROL

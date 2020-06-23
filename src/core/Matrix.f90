@@ -68,6 +68,11 @@ module Matrix_
      logical :: isInstanced
   end type Matrix
 
+  type, public :: IMatrix8
+     integer(8), allocatable :: values(:,:)
+     logical :: isInstanced
+  end type IMatrix8
+
   type, public :: IMatrix
      integer, allocatable :: values(:,:)
      logical :: isInstanced
@@ -177,6 +182,7 @@ module Matrix_
        Matrix_Fortran_orthogonalizeLastVector, &
        Matrix_eigenProperties, &
        diagonalize_matrix, & ! Copiada de Parakata
+       Matrix_constructorInteger8, &
        Matrix_constructorInteger, &
        Matrix_constructorInteger1
 
@@ -206,6 +212,29 @@ contains
     this%isInstanced = .true.
 
   end subroutine Matrix_constructor
+
+  !>
+  !! @brief Constructor
+  !! Constructor por omision
+  subroutine Matrix_constructorInteger8( this, dim1, dim2, value)
+    implicit none
+    type(IMatrix8), intent(inout) :: this
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
+    integer(8), optional, intent(in) :: value
+
+    integer(8) :: valueTmp
+    this%isInstanced = .true.
+    valueTmp = 0.0_8
+    if( present(value) ) valueTmp = value
+
+    if (allocated(this%values)) deallocate(this%values)
+    allocate( this%values( dim1, dim2 ) )
+
+    this%values = valueTmp
+    this%isInstanced = .true.
+
+  end subroutine Matrix_constructorInteger8
 
   !>
   !! @brief Constructor
@@ -453,7 +482,7 @@ contains
        if( present( columnKeys ) ) then
 
           if( tmpFlags == WITH_COLUMN_KEYS .or. tmpFlags == WITH_BOTH_KEYS ) then
-             write (6,"(21X,"//trim(colNum)//"A15)") ( columnKeys(i), i = lowerLimit, upperLimit )
+             write (6,"(25X,"//trim(colNum)//"A15)") ( columnKeys(i), i = lowerLimit, upperLimit )
           end if
 
        else
@@ -471,7 +500,7 @@ contains
        if( present( rowKeys ) ) then
 
           if( tmpFlags == WITH_ROW_KEYS .or. tmpFlags == WITH_BOTH_KEYS ) then
-             write (6,"(A18,"//trim(colNum)//"F15.6)") ( rowKeys(i), ( this%values(i,j), j=lowerLimit,upperLimit ), i = 1, rows )
+             write (6,"(A22,"//trim(colNum)//"F15.6)") ( rowKeys(i), ( this%values(i,j), j=lowerLimit,upperLimit ), i = 1, rows )
           else
              write (6,"(5X,"//trim(colNum)//"F15.6)") ( ( this%values(i,j), j=lowerLimit,upperLimit ), i = 1, rows )
           end if
@@ -936,7 +965,7 @@ contains
     output => this%values
 
   end function Matrix_getPtr
-
+ 
   !>
   !! @brief  Intercambia las filas i y j
   !! @todo Falta implementar
@@ -1626,13 +1655,14 @@ contains
        if ( infoProcess /= 0 )  then
 
           call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+          print *, "Info Process: ", infoProcess
 
        end if
 
        do i=1,size(eigenValues%values)
           if( eigenValues%values(i) == Math_NaN ) then
 
-             call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+             call Matrix_exception(WARNING, "Diagonalization failed, Math_NaN", "Class object Matrix in the getEigen() function")
           end if
        end do
 

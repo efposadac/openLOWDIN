@@ -37,6 +37,7 @@ module SingleSCF_
   use Convergence_
   use WaveFunction_
   use MolecularSystem_
+  use OrbitalLocalizer_
   implicit none
 
   !< enum Matrix_type {
@@ -159,10 +160,10 @@ contains
   !! @param nameOfSpecie nombre de la especie seleccionada.
   !! @warning Se debe garantizar la actualizacion de la matriz de densidad  y calculos de esta derivados
   !! cuando se emplee este metodo con el parametro actualizeDensityMatrix=.false.
-  subroutine SingleSCF_iterate( nameOfSpecie, actualizeDensityMatrix )
+  subroutine SingleSCF_iterate( nameOfSpecies, actualizeDensityMatrix )
     implicit none
 
-    character(*), optional :: nameOfSpecie
+    character(*), optional :: nameOfSpecies
     logical,optional :: actualizeDensityMatrix
 
     type(Matrix) :: fockMatrixTransformed
@@ -171,17 +172,17 @@ contains
     type(Vector) :: deltaVector 
     type(Matrix) :: auxOverlapMatrix
 
-    character(30) :: nameOfSpecieSelected
+    character(30) :: nameOfSpeciesSelected
     integer(8) :: total3
     integer(8) :: numberOfContractions
     real(8) :: threshold, hold
-    real(8) :: levelShiftingFactor, deltaEnergy    
+    real(8) :: levelShiftingFactor, deltaEnergy, normCheck    
     integer :: speciesID
     integer :: ocupados, occupatedOrbitals, prodigals
     integer :: totales
     integer :: search, trial
     integer :: ii, jj, astrayOrbitals, startIteration
-    integer :: i
+    integer :: i,j, mu, nu, index
     logical :: existFile
     logical :: internalActualizeDensityMatrix 
 
@@ -192,8 +193,8 @@ contains
 !    wfnFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
     wfnUnit = 30
 
-    nameOfSpecieSelected = "E-"
-    if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
+    nameOfSpeciesSelected = "E-"
+    if ( present( nameOfSpecies ) )  nameOfSpeciesSelected= trim( nameOfSpecies )
 
     internalActualizeDensityMatrix = .true.
 
@@ -201,7 +202,7 @@ contains
        internalActualizeDensityMatrix =  actualizeDensityMatrix
     end if
 
-    speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
+    speciesID = MolecularSystem_getSpecieID( trim(nameOfSpeciesSelected ) )
 
     numberOfContractions = MolecularSystem_getTotalnumberOfContractions( speciesID )
 
@@ -210,17 +211,17 @@ contains
     !!
     if ( .not. WaveFunction_instance(speciesID)%wasBuiltFockMatrix ) then
 
-       ! call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc )
-       ! call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )       
+       ! call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecies), nproc )
+       ! call WaveFunction_buildCouplingMatrix( trim(nameOfSpecies) )       
 
 
        if (CONTROL_instance%COSMO) then
-          call WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie) )
-          call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
+          call WaveFunction_buildCosmo2Matrix( trim(nameOfSpecies) )
+          call WaveFunction_buildCosmoCoupling( trim(nameOfSpecies) )
        end if
 
 
-       call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
+       call WaveFunction_buildFockMatrix( trim(nameOfSpecies) )
 
        WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .true.
 
@@ -261,7 +262,7 @@ contains
              
              ! if( levelShiftingFactor .gt. 0.0_8 .and. deltaEnergy .lt. 1E-6 ) then
              !    levelShiftingFactor = 0.0_8
-             !    print *, "turned off level shifting for ",  trim(nameOfSpecie) 
+             !    print *, "turned off level shifting for ",  trim(nameOfSpecies) 
              ! end if
           end if
           
@@ -297,25 +298,61 @@ contains
        !! End of Level Shifting Convergence Routine       
        !!**********************************************************************************************
 
-       ! print *, "Coefficients before for ", speciesID
-       ! call Matrix_show(WaveFunction_instance( speciesID )%waveFunctionCoefficients)
-       
        !!**********************************************************************************************
        !! Iteration begins
        !!
-       fockMatrixTransformed%values = &
-            matmul( matmul( transpose( WaveFunction_instance(speciesID)%transformationMatrix%values ) , &
-            fockMatrixTransformed%values), WaveFunction_instance(speciesID)%transformationMatrix%values )
+          fockMatrixTransformed%values = &
+               matmul( matmul( transpose( WaveFunction_instance(speciesID)%transformationMatrix%values ) , &
+               fockMatrixTransformed%values), WaveFunction_instance(speciesID)%transformationMatrix%values )
 
-       !! Calcula valores y vectores propios de matriz de Fock transformada.
-       call Matrix_eigen( fockMatrixTransformed, WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
-            WaveFunction_instance(speciesID)%waveFunctionCoefficients, SYMMETRIC )
+          !! Calcula valores y vectores propios de matriz de Fock transformada.
+          call Matrix_eigen( fockMatrixTransformed, WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
+               WaveFunction_instance(speciesID)%waveFunctionCoefficients, SYMMETRIC )
 
-       !! Calcula los  vectores propios para matriz de Fock       
-       WaveFunction_instance(speciesID)%waveFunctionCoefficients%values = &
-            matmul( WaveFunction_instance(speciesID)%transformationMatrix%values, &
-            WaveFunction_instance(speciesID)%waveFunctionCoefficients%values )
-       !!
+          !! Calcula los  vectores propios para matriz de Fock       
+          WaveFunction_instance(speciesID)%waveFunctionCoefficients%values = &
+               matmul( WaveFunction_instance(speciesID)%transformationMatrix%values, &
+               WaveFunction_instance(speciesID)%waveFunctionCoefficients%values )
+
+       ! print *, "Coefficients before for ", speciesID
+       ! call Matrix_show(WaveFunction_instance( speciesID )%waveFunctionCoefficients)
+       
+       !! Filtra los orbitales eliminados por el umbral de solapamiento
+       ! print *, "threshold", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
+       i=0
+       do index = 1 , numberOfContractions
+          i=i+1
+          normCheck=0.0
+          if ( abs(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)) .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
+             do mu = 1 , numberOfContractions
+                do nu = 1 , numberOfContractions
+                   normCheck=normCheck+WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(mu,i)*&
+                        WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(nu,i)*&
+                        WaveFunction_instance(speciesID)%overlapMatrix%values(mu,nu)
+                end do
+             end do
+             ! print *, "eigenvalue", i, WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i), "normCheck", normCheck
+
+             if ( normCheck .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD) then
+                ! Shift orbital coefficients to the end of the matrix and Make energy a very large number
+                do j = i , numberOfContractions-1
+                   WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(j)=WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(j+1)
+                   WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,j) = WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,j+1)
+                end do
+                WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(numberOfContractions)=1/CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
+                WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(:,numberOfContractions)=0.0
+                i=i-1
+             end if
+
+          end if
+       end do
+       !! Remove level shifting from virtual eigenvalues
+       if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
+          do i= ocupados + 1, totales
+             WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i) = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i) -levelShiftingFactor
+          end do
+       end if
+      !!
        !! Interation ends
        !!**********************************************************************************************
 
@@ -406,7 +443,7 @@ contains
 
                       prodigals = prodigals - 1
                       
-                      print *, "Switching orbital... ",search," with ",trial, " for ", trim(nameOfSpecie)
+                      print *, "Switching orbital... ",search," with ",trial, " for ", trim(nameOfSpecies)
 
                       exit
 
@@ -513,7 +550,7 @@ contains
 
        !                prodigals = prodigals - 1
                       
-       !                print *, "Switching orbital... ",search," with ",trial, " for ", trim(nameOfSpecie)
+       !                print *, "Switching orbital... ",search," with ",trial, " for ", trim(nameOfSpecies)
 
        !                exit
 
@@ -541,79 +578,69 @@ contains
        !!**********************************************************************************************
 
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
-       if ( CONTROL_instance%NO_SCF .and. CONTROL_instance%READ_COEFFICIENTS) then
+       if ( CONTROL_instance%NO_SCF )  then !.or. SingleSCF_getNumberOfIterations(speciesID) == 0 
 
-          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-          arguments(1) = "COEFFICIENTS"
+          if (CONTROL_instance%READ_FCHK) then
 
-          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
-          inquire(FILE = wfnFile, EXIST = existFile )
+             call Matrix_constructor (auxiliaryMatrix, numberOfContractions, numberOfContractions)
+             call MolecularSystem_readFchk( WaveFunction_instance(speciesID)%waveFunctionCoefficients, auxiliaryMatrix, nameOfSpecies )
+             call Matrix_destructor(auxiliaryMatrix)
+             
+          else if (CONTROL_instance%READ_COEFFICIENTS) then
+             arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+             arguments(1) = "COEFFICIENTS"
 
-          if ( existFile) then
-             open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-
-             WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-                  rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
-                  arguments=arguments(1:2))
-
-             close(wfnUnit)
-
-          else 
-             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
+             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
              inquire(FILE = wfnFile, EXIST = existFile )
 
              if ( existFile) then
-                open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+                open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
 
                 WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-                     rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
+                     rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
                      arguments=arguments(1:2))
 
                 close(wfnUnit)
 
-             else
-                call  SingleSCF_exception( ERROR, "I did not find any .vec coefficients file", "At SCF program, at SingleSCF_Iterate")
+             else 
+                wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
+                inquire(FILE = wfnFile, EXIST = existFile )
+
+                if ( existFile) then
+                   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+                   WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
+                        rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
+                        arguments=arguments(1:2))
+
+                   close(wfnUnit)
+
+                else
+                   call  SingleSCF_exception( ERROR, "I did not find any .vec coefficients file", "At SCF program, at SingleSCF_Iterate")
+                end if
+
              end if
+
+          else
+             call  SingleSCF_exception( ERROR, "I did not find any coefficients file for the noSCF procedure", "At SCF program, at SingleSCF_Iterate")
 
           end if
+          !! Calculate orbital energies from density matrix contributions
+
+          WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values=0.0
+          !molecular orbital energy
+          do i=1, numberOfContractions
+             do mu=1, numberOfContractions
+                do nu=1, numberOfContractions
+                   WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)=&
+                        WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)+&
+                        WaveFunction_instance(speciesID)%fockMatrix%values(mu,nu)*&
+                        WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(mu,i)*&
+                        WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(nu,i)
+                end do
+             end do
+          end do          
        end if
-
-       !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
-       if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS <= 2 ) then
-         if ( CONTROL_instance%READ_EIGENVALUES ) then
-           inquire(FILE = "lowdin.vec", EXIST = existFile )
-
-           if ( existFile) then
-
-             arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-             arguments(1) = "ORBITALS"
-
-             if ( CONTROL_instance%READ_EIGENVALUES_IN_BINARY ) then
-
-               !! Open file for wavefunction
-               open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-
-                call Vector_getFromFile(unit=wfnUnit, &
-                          output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
-                          elementsNum= int(numberOfContractions,4), binary=.true., & 
-                          arguments=arguments(1:2))
-
-               close(wfnUnit)
-             else 
-               !! Open file for wavefunction
-               open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-
-                call Vector_getFromFile(unit=wfnUnit, &
-                          output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
-                          elementsNum= int(numberOfContractions,4), binary=.false., & 
-                          arguments=arguments(1:2))
-               close(wfnUnit)
-
-             end if
-
-           end if
-         end if
-      end if
 
        !! Not implemented yet
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
@@ -621,12 +648,28 @@ contains
           if ( CONTROL_instance%READ_COEFFICIENTS ) then
              if ( .not. MolecularSystem_instance%species(speciesID)%isElectron ) then
 
-                inquire(FILE = trim(nameOfSpecieSelected)//".vec", EXIST = existFile )
+                inquire(FILE = trim(nameOfSpeciesSelected)//".vec", EXIST = existFile )
 
                 if ( existFile) then
 
                    WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(int(numberOfContractions,4), int(numberOfContractions,4), &
-                        file=trim(nameOfSpecie)//".vec", binary = .false.)
+                        file=trim(nameOfSpecies)//".vec", binary = .false.)
+
+                end if
+             end if
+          end if
+       end if
+
+       if ( CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS) then
+          if ( CONTROL_instance%READ_COEFFICIENTS ) then
+             if ( MolecularSystem_instance%species(speciesID)%isElectron ) then
+
+                inquire(FILE = trim(nameOfSpeciesSelected)//".vec", EXIST = existFile )
+
+                if ( existFile) then
+
+                   WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(int(numberOfContractions,4), int(numberOfContractions,4), &
+                        file=trim(nameOfSpecies)//".vec", binary = .false.)
 
                 end if
              end if
@@ -634,8 +677,11 @@ contains
        end if
 
 
+
+
+
        !! Exchanging orbitals just for calculation excited states
-       if( nameOfSpecie == trim(CONTROL_instance%EXCITE_SPECIE) ) then
+       if( nameOfSpecies == trim(CONTROL_instance%EXCITE_SPECIE) ) then
 
           call Matrix_constructor (auxiliaryMatrix, numberOfContractions, numberOfContractions)
           call Matrix_copyConstructor( auxiliaryMatrix, WaveFunction_instance(speciesID)%waveFunctionCoefficients )
@@ -652,12 +698,12 @@ contains
 
           !! Determina la desviacion estandar de los elementos de la matriz de densidad
           call Matrix_copyConstructor( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix )
-          call WaveFunction_builtDensityMatrix( trim(nameOfSpecieSelected) )
+          call WaveFunction_builtDensityMatrix( trim(nameOfSpeciesSelected) )
           call List_push_back( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements, &
                Matrix_standardDeviation( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix ) )
 
           !! Calcula energia total para la especie especificada
-          call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpecieSelected) )
+          call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpeciesSelected) )
           call List_push_back( WaveFunction_instance(speciesID)%energySCF, WaveFunction_instance(speciesID)%totalEnergyForSpecie )
           call List_push_back( WaveFunction_instance(speciesID)%diisError, Convergence_getDiisError( WaveFunction_instance(speciesID)%convergenceMethod) )
 
@@ -672,10 +718,10 @@ contains
        !! Warning:
        !! This part has not been tested
 
-       call WaveFunction_builtDensityMatrix(trim(nameOfSpecieSelected) )
+       call WaveFunction_builtDensityMatrix(trim(nameOfSpeciesSelected) )
 
        !! Calcula energia total para la especie especificada
-       call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpecieSelected) )
+       call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpeciesSelected) )
 
        call List_push_back( WaveFunction_instance(speciesID)%energySCF, WaveFunction_instance(speciesID)%totalEnergyForSpecie )
 

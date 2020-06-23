@@ -73,6 +73,7 @@ module OutputBuilder_
        OutputBuilder_destructor, &
        OutputBuilder_show, &
        OutputBuilder_writeMoldenFile, &
+       OutputBuilder_writeFchkFile, &
        OutputBuilder_VecGamessFile, &
        OutputBuilder_writeEigenvalues,&
        OutputBuilder_generateAIMFiles, &
@@ -104,28 +105,29 @@ contains
   !!
   !! @param this
   subroutine OutputBuilder_constructor(this, ID, type ,specie, state, orbital, dimensions, cubeSize, point1, point2, point3  )
-    character(*) :: type
-    integer :: ID
-    character(*) :: specie
-    integer :: state
-    integer :: orbital
-    integer :: dimensions
-    real(8) :: cubeSize
-    type(Vector) :: point1
-    type(Vector) :: point2
-    type(Vector) :: point3
     type(OutputBuilder) :: this
+    integer :: ID
+    character(*) :: type
+    character(*),optional :: specie
+    integer,optional :: state
+    integer,optional :: orbital
+    integer,optional :: dimensions
+    real(8),optional :: cubeSize
+    type(Vector),optional :: point1
+    type(Vector),optional :: point2
+    type(Vector),optional :: point3
 
     this%type=type
+    print *, "this%type", this%type
     this%outputID=ID
-    this%specie=trim(String_getUppercase(specie))
-    this%state=state 
-    this%orbital=orbital
-    this%dimensions=dimensions
-    this%cubeSize=cubeSize
-    call Vector_copyConstructor(this%point1, point1)
-    call Vector_copyConstructor(this%point2, point2)
-    call Vector_copyConstructor(this%point3, point3)
+    if( present(specie)) this%specie=trim(String_getUppercase(specie))
+    if( present(state)) this%state=state 
+    if( present(orbital)) this%orbital=orbital
+    if( present(dimensions)) this%dimensions=dimensions
+    if( present(cubeSize)) this%cubeSize=cubeSize
+    if( present(point1)) call Vector_copyConstructor(this%point1, point1)
+    if( present(point2)) call Vector_copyConstructor(this%point2, point2)
+    if( present(point3)) call Vector_copyConstructor(this%point3, point3)
 
   end subroutine OutputBuilder_constructor
 
@@ -227,6 +229,10 @@ contains
      case ("EigenGamessFile")
         call OutputBuilder_writeEigenvalues (this)
 
+     case ("fchkFile")
+        print *, "trololoo"
+        call OutputBuilder_writeFchkFile (this)
+        
      case ( "wfnFile") 
         call OutputBuilder_writeMoldenFile (this)
         call OutputBuilder_generateAIMFiles (this)
@@ -303,7 +309,6 @@ contains
     character(50) :: wfnFile, occupationsFile, fileName
     integer :: numberOfContractions
     character(50) :: arguments(20)
-    character(19) , allocatable :: labelsOfContractions(:)
     integer :: counter, auxcounter
     character(6) :: nickname
     character(4) :: shellCode
@@ -386,11 +391,11 @@ contains
 
           open(10,file=this%fileName,status='replace',action='write')
           write(10,"(A)") "[Molden Format]"
-          ! if ( CONTROL_instance%UNITS=="ANGS") then
-          !   write(10,"(A)") "[Atoms] Angs"
-          ! else 
-          write(10,"(A)") "[Atoms] AU"
-          ! end if
+          if ( CONTROL_instance%UNITS=="ANGS") then
+             write(10,"(A)") "[Atoms] Angs"
+          else 
+             write(10,"(A)") "[Atoms] AU"
+          end if
 
           auxMatrix%values=0.0
           j=0
@@ -405,6 +410,7 @@ contains
              if(scan(symbol,"[") /=0) symbol=symbol(scan(symbol,"[")+1:scan(symbol,"]")-1)
 
              !                 if ( CONTROL_instance%UNITS=="ANGSTROMS") origin = origin * AMSTRONG
+             if ( CONTROL_instance%UNITS=="ANGS") origin = origin * AMSTRONG
 
              totalNumberOfParticles = totalNumberOfParticles + 1
 #ifdef intel
@@ -497,53 +503,8 @@ contains
                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                output = energyOfMolecularOrbital )
 
-          !! Build a vector of labels of contractions
-          if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
-          allocate(labelsOfContractions(numberOfContractions))
-
-          labelsOfContractions =  MolecularSystem_getlabelsofcontractions(l)
-
-          !! Swap some columns according to the molden format
-          do k=1,size(coefficientsOfCombination%values,dim=1)
-             !! Take the shellcode
-             read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
-
-             !! Reorder the D functions
-             !! counter:  1,  2,  3,  4,  5,  6
-             !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
-             !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
-             !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
-             !!  2-4, 3-5, 5-6
-
-             if ( shellcode == "Dxx" ) then 
-                auxcounter = counter
-                !! Swap XY and YY
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
-                !! Swap XZ and ZZ
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
-                !! Swap YZ and XZ'
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
-             end if
-
-             !! Reorder the F functions
-             !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
-             !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
-             !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
-
-             if ( shellcode == "Fxxx" ) then 
-                auxcounter = counter
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
-                call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
-
-             end if
-
-          end do
-
-          !Aqui termina de modificar laura
+          call MolecularSystem_changeOrbitalOrder(coefficientsOfcombination,l,"LOWDIN","MOLDEN")
+          
           do j=1,size(energyOfMolecularOrbital%values)
              write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital%values(j)
 
@@ -621,156 +582,95 @@ contains
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
-!! Open file for wavefunction                                                                                     
-        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+    !! Open file for wavefunction                                                                                     
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-        do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+    do l=1,MolecularSystem_getNumberOfQuantumSpecies()
 
-           auxString=MolecularSystem_getNameOfSpecie( l )
+       auxString=MolecularSystem_getNameOfSpecie( l )
 
-           this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".vec"
+       this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".vec"
 
-           open(29,file=this%fileName,status='replace',action='write')
-           
-           specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
-           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
-           arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
- 
-           arguments(1) = "COEFFICIENTS"
-           coefficientsOfcombination = &
-                Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+       open(29,file=this%fileName,status='replace',action='write')
 
-           !! Build a vector of labels of contractions
-     if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
-           allocate(labelsOfContractions(numberOfContractions))
+       specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
+       arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
 
-           labelsOfContractions =  MolecularSystem_getlabelsofcontractions( specieID )
+       arguments(1) = "COEFFICIENTS"
+       coefficientsOfcombination = &
+            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-           !! Swap some columns according to the molden format
-           do k=1,size(coefficientsOfCombination%values,dim=1)
-    !! Take the shellcode
-                read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+       !! Build a vector of labels of contractions
+       call MolecularSystem_changeOrbitalOrder(coefficientsOfcombination,l,"LOWDIN","GAMESS")
 
-    !! Reorder the D functions
-                !! counter:  1,  2,  3,  4,  5,  6
-                !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
-                !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
-                !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
-                !!  2-4, 3-5, 5-6
+       do i =1, numberOfContractions
+          j =1
+          !if (mod(numberOfContractions,2)) then
+          if (mod(numberOfContractions,2) == 1 ) then
+!!!Se activa cuando el numberOfContractions es impar                                  
+             write (29,"(I2,I3)",advance='no') mod(i,100),j
+             do m=1,numberOfContractions
 
-    if ( shellcode == "Dxx" ) then 
-        auxcounter = counter
-        !! Swap XY and YY
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
-        !! Swap XZ and ZZ
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
-        !! Swap YZ and XZ'
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
-                end if
-
-    !! Reorder the F functions
-                !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
-                !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
-                !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
-                !! Gamess:  XXX, YYY, ZZZ, XXY, XXZ, XYY, YYZ, XZZ, YZZ, XYZ
-                
-              if ( shellcode == "Fxxx" ) then 
-        auxcounter = counter
-                    call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
-                  call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+4)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+6)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
-                end if
-
-      end do
-
-
-     
-     do i =1, numberOfContractions
-                j =1
-     !if (mod(numberOfContractions,2)) then
-     if (mod(numberOfContractions,2) == 1 ) then
- !!!Se activa cuando el numberOfContractions es impar                                  
-                write (29,"(I2,I3)",advance='no') mod(i,100),j
-                do m=1,numberOfContractions
-
-                   if (mod(m,5)==0) then
-                      write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
-                      j=j+1
-                      if (m<numberOfContractions) then
-                         write (29,"(I2,I3)",advance='no') mod(i,100),j
-                      end if
-                   else
-                      write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
+                if (mod(m,5)==0) then
+                   write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
+                   j=j+1
+                   if (m<numberOfContractions) then
+                      write (29,"(I2,I3)",advance='no') mod(i,100),j
                    end if
-                end do
-                !write (29, "(A)", advance='yes')" "
-                if (m<numberOfContractions) then
-                    write (29,"(A)", advance='no')" "
-                    !write (29,"(A)")" "
+                else
+                   write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
                 end if
-
-     else
- ! !!!Se activa cuando el numberOfContractions es par                                  
-                       write (29,"(I2,I3)",advance='no') mod(i,100),j
-                do m=1,numberOfContractions
-
-                   if (mod(m,5)==0) then
-                      write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
-                      j=j+1
-                      if (m<numberOfContractions) then
-                         write (29,"(I2,I3)",advance='no') mod(i,100),j
-                      end if
-                   else
-                      write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
-                   end if
-                end do
-                 !write (29, "(A)", advance='yes')" "
-                if (m<numberOfContractions) then
-                      write (29,"(A)", advance='no')" "
-                    !write (29,"(A)")" "
-                end if
-
-    end if
-             
-                if (.not. mod(m-1,5)==0)write (29,"(A)", advance='yes')" "
              end do
+             !write (29, "(A)", advance='yes')" "
+             if (m<numberOfContractions) then
+                write (29,"(A)", advance='no')" "
+                !write (29,"(A)")" "
+             end if
 
-           close(29)
-        end do
+          else
+             ! !!!Se activa cuando el numberOfContractions es par                                  
+             write (29,"(I2,I3)",advance='no') mod(i,100),j
+             do m=1,numberOfContractions
 
-        
-!        call Matrix_destructor( localizationOfCenters )
-!        call Matrix_destructor( auxMatrix )
-!        deallocate(labels)
+                if (mod(m,5)==0) then
+                   write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
+                   j=j+1
+                   if (m<numberOfContractions) then
+                      write (29,"(I2,I3)",advance='no') mod(i,100),j
+                   end if
+                else
+                   write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
+                end if
+             end do
+             !write (29, "(A)", advance='yes')" "
+             if (m<numberOfContractions) then
+                write (29,"(A)", advance='no')" "
+                !write (29,"(A)")" "
+             end if
 
-!     end if
+          end if
 
-      call OutputBuilder_exception(WARNING, "The order of the coefficients only works until F orbitals", "OutputBuilder_VecGamessFile" )
-        
+          if (.not. mod(m-1,5)==0)write (29,"(A)", advance='yes')" "
+       end do
+
+       close(29)
+    end do
+
+
+    !        call Matrix_destructor( localizationOfCenters )
+    !        call Matrix_destructor( auxMatrix )
+    !        deallocate(labels)
+
+    !     end if
+
+    call OutputBuilder_exception(WARNING, "The order of the coefficients only works until F orbitals", "OutputBuilder_VecGamessFile" )
+
   end subroutine OutputBuilder_VecGamessFile
 
 !!!!!!!!!!END GAMESS .VEC FILE LAURA
 
-
-
-
-
-
-
-
-
-
-
-
-  
   !!Escribe los valores propios en el archivo eigenvalues.dat para que puedan ser leidos por GAMESS   Laura
 
    subroutine OutputBuilder_writeEigenvalues(this)
@@ -847,7 +747,7 @@ contains
                 output = energyOfMolecularOrbital )
 
            do j=1,size(energyOfMolecularOrbital%values)
-              write (129,"(F15.12)") ,energyOfMolecularOrbital%values(j)
+              write (129,"(F15.12)") energyOfMolecularOrbital%values(j)
            end do
             close(129)
          end do
@@ -860,6 +760,359 @@ contains
   end  subroutine OutputBuilder_writeEigenvalues
  
 
+   subroutine OutputBuilder_writeFchkFile(this)
+    implicit none
+    type(OutputBuilder) :: this
+    type(MolecularSystem) :: MolecularSystemInstance
+
+    integer :: h,i,j,k,l,n,m
+    integer :: numberOfSpecies
+    integer :: state,numberOfStates
+    character(50) :: auxString
+    real(8) :: origin(3)
+    real(8), allocatable :: charges(:)
+    type(Matrix) :: localizationOfCenters
+    type(Matrix) :: auxMatrix
+    type(Vector) :: energyOfMolecularOrbital
+    type(Matrix) :: coefficientsOfcombination
+    type(Matrix),allocatable :: fractionalOccupations(:)
+    character(10),allocatable :: labels(:)
+
+    integer :: wfnUnit, occupationsUnit
+    character(50) :: wfnFile, occupationsFile, fileName
+    integer :: numberOfBetaElectrons
+    integer :: numberOfPrimitives
+    integer :: numberOfContractions
+    integer :: numberOfShells
+    integer :: numberOfAtoms
+    integer :: numberOfAtomShells
+    integer :: numberOfShellPrimitives
+    type(matrix) :: densityMatrix
+    real(8) :: densityElement
+    character(50) :: nameOfSpecies
+    character(40) :: header
+    character(50) :: arguments(20)
+    logical :: existFile
+
+    print *, "trololooooooo"
+    
+    this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim("species")//".fchk"
+
+    localizationOfCenters=ParticleManager_getCartesianMatrixOfCentersOfOptimization()
+    auxMatrix=localizationOfCenters
+    allocate( labels( size(auxMatrix%values,dim=1) ) )
+    allocate( charges( size(auxMatrix%values,dim=1) ) )
+    labels=ParticleManager_getLabelsOfCentersOfOptimization()
+    charges=ParticleManager_getChargesOfCentersOfOptimization()
+    numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
+
+       
+    !! Check if there are CI fractional occupations or build the occupations vector
+    ! allocate(fractionalOccupations(numberOfSpecies))
+
+    ! occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+    ! inquire(FILE = occupationsFile, EXIST = existFile )
+
+    ! if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
+
+    !    print *, "              We are printing the fchk files for the CI states!"
+       
+    !    numberOfStates=CONTROL_instance%CI_STATES_TO_PRINT
+    !    occupationsUnit = 29
+
+    !    open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+    !    do l=1,numberOfSpecies
+    !       arguments(1) = "OCCUPATIONS"
+    !       arguments(2) = MolecularSystem_getNameOfSpecie( l )
+    !       fractionalOccupations(l)= Matrix_getFromFile(unit=occupationsUnit,&
+    !            rows=int(MolecularSystem_getTotalNumberOfContractions(l),4),&
+    !            columns=int(numberOfStates,4),&
+    !            arguments=arguments(1:2))
+    !    end do
+    !    close(occupationsUnit)     
+    ! else
+    !    numberOfStates=1
+    !    do l=1,numberOfSpecies
+    !       call Matrix_constructor( fractionalOccupations(l), int(MolecularSystem_getTotalNumberOfContractions(l),8), int(numberOfStates,8), 0.0_8)
+    !       do i=1, MolecularSystem_getOcupationNumber(l)
+    !          fractionalOccupations(l)%values(i,1)=1.0_8 * MolecularSystem_getLambda(l)
+    !       end do
+    !    end do
+    ! end if
+    
+
+    !! Open file for wavefunction                                                                                     
+    wfnFile = "lowdin.wfn"
+    wfnUnit = 20
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+    ! do state=1,numberOfStates
+    do l=1,numberOfSpecies
+       nameOfSpecies=MolecularSystem_getNameOfSpecie(l)
+       ! if (state .eq. 1) then
+       !    auxString=nameOfSpecies
+       ! else
+       !    write(auxString, "(I8)")  state
+       !    auxString=trim(nameOfSpecies)//"-"//trim( adjustl(auxString))
+       ! end if
+
+       ! this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".fchk"
+       this%fileName=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk"
+
+       numberOfAtoms=size(MolecularSystem_instance%species(l)%particles)
+       numberOfShells=MolecularSystem_getNumberOfContractions(l)
+       numberOfContractions=MolecularSystem_getTotalNumberOfContractions(l)
+
+       arguments(2) = MolecularSystem_getNameOfSpecie(l)
+       arguments(1) = "COEFFICIENTS"
+       coefficientsOfcombination = &
+            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+       arguments(1) = "ORBITALS"
+       call Vector_getFromFile( elementsNum = numberOfContractions, &
+            unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
+            output = energyOfMolecularOrbital )
+
+       call Matrix_constructor(densityMatrix, int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
+
+       open(10,file=this%fileName,status='replace',action='write')
+
+       write(10,"(A)") this%fileName
+
+       write(10,"(A10,A30,A30)") "SP", trim(CONTROL_instance%METHOD), trim(MolecularSystem_instance%species(l)%particles(1)%basis%name)
+
+       if(trim(nameOfSpecies) .eq. "E-") then
+          header="Number of electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", MolecularSystem_getOcupationNumber(l)*2
+          header="Number of alpha electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", MolecularSystem_getOcupationNumber(l)
+          header="Number of beta electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", MolecularSystem_getOcupationNumber(l)
+
+       else if (trim(nameOfSpecies) .eq. "E-ALPHA") then
+          numberOfBetaElectrons=MolecularSystem_getOcupationNumber( MolecularSystem_getSpecieIDFromSymbol("E-BETA") )
+          header="Number of electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", MolecularSystem_getOcupationNumber(l)+numberOfBetaElectrons
+          header="Number of alpha electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", MolecularSystem_getOcupationNumber(l)
+          header="Number of beta electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", numberOfBetaElectrons
+
+       else if (trim(nameOfSpecies) .eq. "E-BETA") then
+          cycle !E-BETA coefficients are written at the same time as alpha
+       else !!I'm assuming high spin
+          header="Number of electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", MolecularSystem_getOcupationNumber(l)
+          header="Number of alpha electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", MolecularSystem_getOcupationNumber(l)
+          header="Number of beta electrons"
+          write(10,"(A40,3X,A1,5X,I12)") header, "I", 0
+       end if
+
+       header="Number of atoms"
+       write(10,"(A40,3X,A1,5X,I12)") header, "I", numberOfAtoms
+
+       header="Number of basis functions"
+       write(10,"(A40,3X,A1,5X,I12)") header, "I", numberOfContractions
+!!! Falta restar los orbitales removidos 
+       header="Number of independent functions"
+       write(10,"(A40,3X,A1,5X,I12)") header, "I", numberOfContractions
+
+       header="Atomic numbers"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header, "I", "N=", numberOfAtoms
+       do j=1, numberOfAtoms
+          if(mod(j,6).eq.0 .or. j.eq.numberOfAtoms ) then
+             write(10,"(I12)") MolecularSystem_instance%species(l)%particles(j)%internalSize
+          else
+             write(10,"(I12)", advance="no") MolecularSystem_instance%species(l)%particles(j)%internalSize
+          end if
+       end do
+
+       header="Current cartesian coordinates"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header, "R", "N=", numberOfAtoms*3
+       k=0
+       do j=1, numberOfAtoms
+          origin = MolecularSystem_instance%species(l)%particles(j)%origin 
+          do i=1,3
+             k=k+1
+             if(mod(k,5).eq.0 .or. (j.eq.numberOfAtoms .and. i.eq.3)) then
+                write(10,"(ES16.8)") origin(i)
+             else
+                write(10,"(ES16.8)", advance="no") origin(i)
+             end if
+          end do
+       end do
+
+       header="Shell types"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header, "I", "N=", numberOfShells
+       k=0
+       do j=1, numberOfAtoms
+          numberOfAtomShells=size(MolecularSystem_instance%species(l)%particles(j)%basis%contraction(:))
+          do i=1, numberOfAtomShells 
+             k=k+1
+             if(mod(k,6).eq.0 .or. (j.eq.numberOfAtoms .and. i.eq.numberOfAtomShells)) then
+                write(10,"(6I12)") MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%angularMoment
+             else
+                write(10,"(6I12)", advance="no") MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%angularMoment
+             end if
+          end do
+       end do
+
+       header="Shell to atom map"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header, "I", "N=", numberOfShells
+       k=0
+       do j=1, numberOfAtoms
+          numberOfAtomShells=size(MolecularSystem_instance%species(l)%particles(j)%basis%contraction(:))
+          do i=1, numberOfAtomShells 
+             k=k+1
+             if(mod(k,6).eq.0 .or.(j.eq.numberOfAtoms .and. i.eq.numberOfAtomShells)) then
+                write(10,"(6I12)") j
+             else
+                write(10,"(6I12)", advance="no") j
+             end if
+          end do
+       end do
+
+       header="Coordinates of each shell"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header, "R", "N=", numberOfShells*3
+       k=0
+       do j=1, numberOfAtoms
+          origin = MolecularSystem_instance%species(l)%particles(j)%origin 
+          numberOfAtomShells=size(MolecularSystem_instance%species(l)%particles(j)%basis%contraction(:))
+          do i=1, numberOfAtomShells 
+             do h=1, 3
+                k=k+1
+                if(mod(k,5).eq.0 .or.(j.eq.numberOfAtoms .and. i.eq.numberOfAtomShells .and. h.eq.3)) then
+                   write(10,"(ES16.8)") origin(h)
+                else
+                   write(10,"(ES16.8)", advance="no") origin(h)
+                end if
+             end do
+          end do
+       end do
+
+       numberOfPrimitives=0
+       header="Number of primitives per shell"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header, "I", "N=", numberOfShells
+       k=0
+       do j=1, numberOfAtoms
+          numberOfAtomShells=size(MolecularSystem_instance%species(l)%particles(j)%basis%contraction(:))
+          do i=1, numberOfAtomShells
+             numberOfShellPrimitives=MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%length
+             numberOfPrimitives=numberOfPrimitives+numberOfShellPrimitives
+             k=k+1
+             if(mod(k,6).eq.0 .or.(j.eq.numberOfAtoms .and. i.eq.numberOfAtomShells)) then
+                write(10,"(6I12)") numberOfShellPrimitives
+             else
+                write(10,"(6I12)", advance="no") numberOfShellPrimitives
+             end if
+          end do
+       end do
+
+       header="Primitive exponents"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header, "R", "N=", numberOfPrimitives
+       k=0
+       do j=1, numberOfAtoms
+          numberOfAtomShells=size(MolecularSystem_instance%species(l)%particles(j)%basis%contraction(:))
+          do i=1, numberOfAtomShells 
+             numberOfShellPrimitives=MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%length
+             do h=1, numberOfShellPrimitives
+                k=k+1
+                if(mod(k,5).eq.0 .or.(j.eq.numberOfAtoms .and. i.eq.numberOfAtomShells .and. h.eq. numberOfShellPrimitives)) then
+                   write(10,"(ES16.8)") MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%orbitalExponents(h)
+                else
+                   write(10,"(ES16.8)", advance="no") MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%orbitalExponents(h)
+                end if
+             end do
+          end do
+       end do
+
+       header="Contraction coefficients"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header, "R", "N=", numberOfPrimitives
+       k=0
+       do j=1, numberOfAtoms
+          numberOfAtomShells=size(MolecularSystem_instance%species(l)%particles(j)%basis%contraction(:))
+          do i=1, numberOfAtomShells 
+             numberOfShellPrimitives=MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%length
+             do h=1, numberOfShellPrimitives
+                k=k+1
+                if(mod(k,5).eq.0 .or.(j.eq.numberOfAtoms .and. i.eq.numberOfAtomShells .and. h.eq. numberOfShellPrimitives)) then
+                   write(10,"(ES16.8)") MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%contractionCoefficients(h)
+                else
+                   write(10,"(ES16.8)", advance="no") MolecularSystem_instance%species(l)%particles(j)%basis%contraction(i)%contractionCoefficients(h)
+                end if
+             end do
+          end do
+       end do
+
+       header="Alpha Orbital Energies"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header , "R", "N=", numberOfContractions
+       k=0
+       do j=1, numberOfContractions
+          k=k+1
+          if(mod(k,5).eq.0 .or.(j.eq.numberOfContractions)) then
+             write(10,"(ES16.8)") energyOfMolecularOrbital%values(j)
+          else
+             write(10,"(ES16.8)", advance="no") energyOfMolecularOrbital%values(j)
+          end if
+       end do
+
+       call MolecularSystem_changeOrbitalOrder( coefficientsOfCombination, l, "LOWDIN", "MOLDEN" )
+
+       header="Alpha MO coefficients"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header , "R", "N=", numberOfContractions**2
+       k=0
+
+       do j=1, numberOfContractions
+          do i=1, numberOfContractions
+             k=k+1
+             if(mod(k,5).eq.0 .or.(j.eq.numberOfContractions .and. i.eq.numberOfContractions)) then
+                write(10,"(ES16.8)") coefficientsOfCombination%values(i,j)
+             else
+                write(10,"(ES16.8)", advance="no") coefficientsOfCombination%values(i,j)
+             end if
+          end do
+       end do
+
+       !Build density matrix with the new order
+       do i=1, numberOfContractions
+          do j=1, numberOfContractions
+             do k=1, MolecularSystem_getOcupationNumber(l)
+                densityMatrix%values(i,j) =  &
+                     densityMatrix%values( i,j ) + &
+                     coefficientsOfCombination%values(i,k)*coefficientsOfCombination%values(j,k)*MolecularSystem_getEta(l)
+             end do
+          end do
+       end do
+
+
+       header="Total SCF Density"
+       write(10,"(A40,3X,A1,3X,A2,I12)") header , "R", "N=", numberOfContractions*(numberOfContractions+1)/2
+       k=0
+       do j=1, numberOfContractions
+          do i=1, j
+             k=k+1
+             if(i.eq.j)then
+                densityElement=densityMatrix%values(i,i)
+             else
+                densityElement=densityMatrix%values(i,j)
+             end if
+
+             if(mod(k,5).eq.0 .or.(j.eq.numberOfContractions .and. i.eq.j)) then
+                write(10,"(ES16.8)") densityElement
+             else
+                write(10,"(ES16.8)", advance="no") densityElement
+             end if
+          end do
+       end do
+
+
+    end do
+    ! end do
+  end subroutine OutputBuilder_writeFchkFile
+
+ 
   
   !**
   ! @brief Call the molden2aim library to generate the wfn, wfx or NBO47 files from a molden file.
@@ -1511,7 +1764,7 @@ contains
               coordinate(:)=this%point1%values(:)+i*step1%values(:)+j*step2%values(:)
               val=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )  
 
-              write (10,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val 
+              write (10,"(T10,F20.8,F20.8,E20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val 
               if (val > maxValue) maxValue = val
               if (val < minValue) minValue = val
               ! print *, coordinate, val
@@ -1532,7 +1785,7 @@ contains
            coordinate(:)=this%point1%values(:)+i*step1%values(:)
            val=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )  
 
-           write (10,"(T10,F20.8,F20.8)") i*Vector_norm(step1),val 
+           write (10,"(T10,F20.8,E20.8)") i*Vector_norm(step1),val 
               ! print *, coordinate, val
         end do
 
@@ -1782,7 +2035,6 @@ contains
      call system("gnuplot "//trim(fileName)//".gnp")
 
    end subroutine OutputBuilder_make3DGraph
-
 
 ! set xtics -3,2,3 nomirror tc lt 0
 ! set ytics -3,2,3 nomirror tc lt 0

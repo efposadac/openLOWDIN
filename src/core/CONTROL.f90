@@ -45,7 +45,7 @@ module CONTROL_
      real(8) :: TV
      real(8) :: INTEGRAL_THRESHOLD
      integer :: INTEGRAL_STACK_SIZE
-     character(20) :: INTEGRAL_DESTINY
+     character(20) :: INTEGRAL_STORAGE
      character(20) :: INTEGRAL_SCHEME
      logical :: SCHWARZ_INEQUALITY
 
@@ -78,15 +78,19 @@ module CONTROL_
      logical :: DIIS_ERROR_IN_DAMPING
      logical :: ACTIVATE_LEVEL_SHIFTING
      logical :: EXCHANGE_ORBITALS_IN_SCF
+     logical :: LOCALIZE_ORBITALS
      logical :: DEBUG_SCFS
+     character(10) ::  SCF_GHOST_SPECIES
 
      !!***************************************************************************
      !! Hartree-Fock options
      !!
      character(20) :: FROZEN_PARTICLE(5)
      logical :: FREEZE_NON_ELECTRONIC_ORBITALS
+     logical :: FREEZE_ELECTRONIC_ORBITALS
      logical :: HARTREE_PRODUCT_GUESS
      logical :: READ_COEFFICIENTS
+     logical :: READ_FCHK
      logical :: WRITE_COEFFICIENTS_IN_BINARY
      logical :: READ_EIGENVALUES
      logical :: READ_EIGENVALUES_IN_BINARY
@@ -100,6 +104,9 @@ module CONTROL_
      logical :: ELECTRONIC_WAVEFUNCTION_ANALYSIS
      logical :: IS_OPEN_SHELL
      logical :: GET_GRADIENTS
+     logical :: HF_PRINT_EIGENVALUES
+     real(8) :: OVERLAP_EIGEN_THRESHOLD
+     real(8) :: ELECTRIC_FIELD(3)
 
      !!***************************************************************************
      !! Parameter to control geometry optimization
@@ -134,11 +141,13 @@ module CONTROL_
      real(8) :: DIHEDRAL_ANGLE_THRESHOLD
 
      !!***************************************************************************
-     !! Parameter to control MPn theory
+     !! Parameter to control MBP theory
      !!
      integer :: MOLLER_PLESSET_CORRECTION
      integer :: MP_FROZEN_CORE_BOUNDARY
      logical :: MP_ONLY_ELECTRONIC_CORRECTION
+
+     integer :: EPSTEIN_NESBET_CORRECTION
 
      !!***************************************************************************
      !! Parameter to control cosmo  
@@ -236,7 +245,10 @@ module CONTROL_
      logical :: AUXILIARY_DENSITY
      logical :: STORE_THREE_CENTER_ELECTRON_INTEGRALS
      logical :: CALL_LIBXC
-
+     real(8) :: NUCLEAR_ELECTRON_DENSITY_THRESHOLD
+     real(8) :: BETA_PARAMETER_A
+     real(8) :: BETA_PARAMETER_B
+     real(8) :: BETA_PARAMETER_C
      !!*****************************************************
      !! External Potential Options
      !!
@@ -296,6 +308,7 @@ module CONTROL_
      !! Integrals transformation options
      !!
      character(10) :: INTEGRALS_TRANSFORMATION_METHOD
+     integer :: IT_BUFFERSIZE
 
      !!***************************************************************************
      !! Environment variables
@@ -337,7 +350,7 @@ module CONTROL_
   real(8) :: LowdinParameters_tv
   real(8) :: LowdinParameters_integralThreshold
   integer :: LowdinParameters_integralStackSize
-  character(20) :: LowdinParameters_integralDestiny
+  character(20) :: LowdinParameters_integralStorage
   character(20) :: LowdinParameters_integralScheme
   logical :: LowdinParameters_schwarzInequality
 
@@ -370,15 +383,19 @@ module CONTROL_
   logical :: LowdinParameters_diisErrorInDamping
   logical :: LowdinParameters_activateLevelShifting
   logical :: LowdinParameters_exchangeOrbitalsInSCF
+  logical :: LowdinParameters_localizeOrbitals
   logical :: LowdinParameters_debugScfs
+  character(10) :: LowdinParameters_scfGhostSpecies
 
   !!*****************************************************
   !! Hartree-Fock Options
   !!
   character(20) :: LowdinParameters_frozen(5)
   logical :: LowdinParameters_freezeNonElectronicOrbitals
+  logical :: LowdinParameters_freezeElectronicOrbitals
   logical :: LowdinParameters_hartreeProductGuess
   logical :: LowdinParameters_readCoefficients
+  logical :: LowdinParameters_readFchk
   logical :: LowdinParameters_writeCoefficientsInBinary
   logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_readEigenvalues
@@ -393,6 +410,9 @@ module CONTROL_
   logical :: LowdinParameters_electronicWaveFunctionAnalysis
   logical :: LowdinParameters_isOpenShell
   logical :: LowdinParameters_getGradients
+  logical :: LowdinParameters_HFprintEigenvalues
+  real(8) :: LowdinParameters_overlapEigenThreshold
+  real(8) :: LowdinParameters_electricField(3)
 
   !!***************************************************************************
   !! Parameter to control geometry optimization
@@ -427,11 +447,12 @@ module CONTROL_
   real(8) :: LowdinParameters_dihedralAngleThreshold
 
   !!***************************************************************************
-  !! Parameter to control MPn theory
+  !! Parameter to control MBPn theory
   !!
   integer :: LowdinParameters_mpCorrection
   integer :: LowdinParameters_mpFrozenCoreBoundary
   logical :: LowdinParameters_mpOnlyElectronicCorrection
+  integer :: LowdinParameters_epsteinNesbetCorrection 
 
   !!***************************************************************************
   !! Parameter to control cosmo theory
@@ -528,6 +549,11 @@ module CONTROL_
   logical :: LowdinParameters_auxiliaryDensity
   logical :: LowdinParameters_storeThreeCenterElectronIntegrals
   logical :: LowdinParameters_callLibxc
+  real(8) :: LowdinParameters_nuclearElectronDensityThreshold
+  real(8) :: LowdinParameters_betaParameterA
+  real(8) :: LowdinParameters_betaParameterB
+  real(8) :: LowdinParameters_betaParameterC
+
 
   !!*****************************************************
   !! External Potential Options
@@ -587,6 +613,7 @@ module CONTROL_
   !! Integrals transformation options
   !!
   character(10) :: LowdinParameters_integralsTransformationMethod
+  integer :: LowdinParameters_ITBuffersize
 
   !!***************************************************************************
   !! Environment variables
@@ -628,7 +655,7 @@ module CONTROL_
        LowdinParameters_tv,&
        LowdinParameters_integralThreshold,&
        LowdinParameters_integralStackSize,&
-       LowdinParameters_integralDestiny,&
+       LowdinParameters_integralStorage,&
        LowdinParameters_integralScheme,&
        LowdinParameters_schwarzInequality, &
        
@@ -661,16 +688,20 @@ module CONTROL_
        LowdinParameters_diisErrorInDamping,&
        LowdinParameters_activateLevelShifting,&
        LowdinParameters_exchangeOrbitalsInSCF,&
+       LowdinParameters_localizeOrbitals,&
        LowdinParameters_debugScfs,&
+       LowdinParameters_scfGhostSpecies, &
        
                                 !!*****************************************************
                                 !! Hartree-Fock Options
                                 !!
        LowdinParameters_frozen,&
        LowdinParameters_freezeNonElectronicOrbitals,&
+       LowdinParameters_freezeElectronicOrbitals,&
        LowdinParameters_hartreeProductGuess,&
        LowdinParameters_noSCF,&
        LowdinParameters_readCoefficients,&
+       LowdinParameters_readFchk,&
        LowdinParameters_readCoefficientsInBinary, &
        LowdinParameters_writeCoefficientsInBinary, &
        LowdinParameters_readEigenvalues,&
@@ -684,6 +715,10 @@ module CONTROL_
        LowdinParameters_electronicWaveFunctionAnalysis,&
        LowdinParameters_isOpenShell, &
        LowdinParameters_getGradients, &
+       LowdinParameters_HFprintEigenvalues, &
+       LowdinParameters_overlapEigenThreshold, &
+       LowdinParameters_electricField, &
+
        
                                 !!***************************************************************************
                                 !! Parameter to control geometry optimization
@@ -718,11 +753,12 @@ module CONTROL_
        LowdinParameters_dihedralAngleThreshold,&
        
                                 !!***************************************************************************
-                                !! Parameter to control MPn theory
+                                !! Parameter to control MBPn theory
                                 !!
        LowdinParameters_mpCorrection,&
        LowdinParameters_mpFrozenCoreBoundary,&
        LowdinParameters_mpOnlyElectronicCorrection,&
+       LowdinParameters_epsteinNesbetCorrection, &
        
                                 !!***************************************************************************
                                 !! Parameter to control cosmo theory
@@ -820,6 +856,11 @@ module CONTROL_
        LowdinParameters_auxiliaryDensity,&
        LowdinParameters_storeThreeCenterElectronIntegrals,&
        LowdinParameters_callLibxc,&
+       LowdinParameters_nuclearElectronDensityThreshold,&
+       LowdinParameters_betaParameterA,&
+       LowdinParameters_betaParameterB,&
+       LowdinParameters_betaParameterC,&
+
        
                                 !!*****************************************************
                                 !! External Potential Options
@@ -879,6 +920,7 @@ module CONTROL_
                                 !! Integrals transformation options
                                 !!
        LowdinParameters_integralsTransformationMethod, &
+       LowdinParameters_ITBuffersize, &
        
                                 !!***************************************************************************
                                 !! Variables de ambiente al sistema de archivos del programa
@@ -945,7 +987,7 @@ contains
     LowdinParameters_tv = 1.0E-6
     LowdinParameters_integralThreshold = 1.0E-10
     LowdinParameters_integralStackSize = 30000
-    LowdinParameters_integralDestiny = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
+    LowdinParameters_integralStorage = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
     LowdinParameters_schwarzInequality = .false.
 
@@ -978,15 +1020,19 @@ contains
     LowdinParameters_diisErrorInDamping = .false.
     LowdinParameters_activateLevelShifting = .false.
     LowdinParameters_exchangeOrbitalsInSCF = .false.
+    LowdinParameters_localizeOrbitals = .false.
     LowdinParameters_debugScfs = .false.
+    LowdinParameters_scfGhostSpecies = "NONE"
 
     !!*****************************************************
     !! Hartree-Fock Options
     !!
     LowdinParameters_frozen = "NONE"
     LowdinParameters_freezeNonElectronicOrbitals = .false.
+    LowdinParameters_freezeElectronicOrbitals = .false.
     LowdinParameters_hartreeProductGuess = .false.
     LowdinParameters_readCoefficients = .false.
+    LowdinParameters_readFchk = .false.
     LowdinParameters_writeCoefficientsInBinary = .true.
     LowdinParameters_readEigenvalues = .false.
     LowdinParameters_readEigenvaluesInBinary = .true.
@@ -1000,6 +1046,9 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = .false.
     LowdinParameters_isOpenShell = .false.
     LowdinParameters_getGradients = .false.
+    LowdinParameters_HFprintEigenvalues = .false.
+    LowdinParameters_overlapEigenThreshold = 1.0E-8_8
+    LowdinParameters_electricField(:) = 0.0_8
 
     !!***************************************************************************
     !! Parameter to control geometry optimization
@@ -1034,11 +1083,12 @@ contains
     LowdinParameters_dihedralAngleThreshold = 170.0_8
 
     !!***************************************************************************
-    !! Parameter to control MPn theory
+    !! Parameter to control MBPn theory
     !!
     LowdinParameters_mpCorrection = 1
     LowdinParameters_mpFrozenCoreBoundary = 1
     LowdinParameters_mpOnlyElectronicCorrection = .false.
+    LowdinParameters_epsteinNesbetCorrection = 1
 
     !!***************************************************************************
     !! Parameter to control cosmo theory
@@ -1137,6 +1187,10 @@ contains
     LowdinParameters_auxiliaryDensity = .false.
     LowdinParameters_storeThreeCenterElectronIntegrals = .true.
     LowdinParameters_callLibxc = .true.
+    LowdinParameters_nuclearElectronDensityThreshold = 1E-10
+    LowdinParameters_betaParameterA = 0.0
+    LowdinParameters_betaParameterB = 0.0
+    LowdinParameters_betaParameterC = 0.0
 
     !!*****************************************************
     !! External Potential Options
@@ -1197,6 +1251,7 @@ contains
     !! Integrals transformation options
     !!
     LowdinParameters_integralsTransformationMethod = "C"
+    LowdinParameters_ITBuffersize = 1024
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
@@ -1241,7 +1296,7 @@ contains
     CONTROL_instance%TV = 1.0E-6
     CONTROL_instance%INTEGRAL_THRESHOLD = 1.0E-10
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
-    CONTROL_instance%INTEGRAL_DESTINY = "DISK" !! "DISK" or "DIRECT"
+    CONTROL_instance%INTEGRAL_STORAGE = "DISK" !! "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
     CONTROL_instance%SCHWARZ_INEQUALITY = .false.
 
@@ -1274,7 +1329,9 @@ contains
     CONTROL_instance%DIIS_ERROR_IN_DAMPING = .false.
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = .false.
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = .false.
+    CONTROL_instance%LOCALIZE_ORBITALS = .false.
     CONTROL_instance%DEBUG_SCFS = .false.
+    CONTROL_instance%SCF_GHOST_SPECIES = "NONE"
     ! CONTROL_instance%DEBUG_SCFS = .true.
 
     !!***************************************************************************                                              
@@ -1282,8 +1339,10 @@ contains
     !!                                                                                                                         
     CONTROL_instance%FROZEN_PARTICLE = "NONE"
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = .false.
+    CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS = .false.
     CONTROL_instance%HARTREE_PRODUCT_GUESS = .false.
     CONTROL_instance%READ_COEFFICIENTS = .false.
+    CONTROL_instance%READ_FCHK=.false.
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%NO_SCF = .false.
     CONTROL_instance%FINITE_MASS_CORRECTION = .false.
@@ -1294,7 +1353,9 @@ contains
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = .false.
     CONTROL_instance%IS_OPEN_SHELL = .false.
     CONTROL_instance%GET_GRADIENTS = .false.
-
+    CONTROL_instance%HF_PRINT_EIGENVALUES = .false.
+    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = 1.0E-8_8
+    CONTROL_instance%ELECTRIC_FIELD(:) = 0.0_8
     !!***************************************************************************                                              
     !! Parameter to control geometry optimization                                                                              
     !!                                                                                                                         
@@ -1328,11 +1389,13 @@ contains
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = 180.0_8
 
     !!***************************************************************************                                              
-    !! Parameter to control MPn theory                                                                                         
+    !! Parameter to control MBPn theory                                                                                         
     !!                                                                                                                         
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = 1
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = 1
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = .false.
+
+    CONTROL_instance%EPSTEIN_NESBET_CORRECTION = 1
 
     !!***************************************************************************                                              
     !! Parameter to control cosmo method                                                                                         
@@ -1431,6 +1494,11 @@ contains
     CONTROL_instance%AUXILIARY_DENSITY = .false.
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = .true.
     CONTROL_instance%CALL_LIBXC = .true.
+    CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD = 1E-10
+    CONTROL_instance%BETA_PARAMETER_A=0.0
+    CONTROL_instance%BETA_PARAMETER_B=0.0
+    CONTROL_instance%BETA_PARAMETER_C=0.0
+
 
     !!*****************************************************                                                                    
     !! External Potential Options                                                                                              
@@ -1490,6 +1558,7 @@ contains
     !! Integrals transformation options
     !!
     CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = "C"
+    CONTROL_instance%IT_BUFFERSIZE = 8192
 
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   
@@ -1575,7 +1644,7 @@ contains
     CONTROL_instance%TV = LowdinParameters_tv
     CONTROL_instance%INTEGRAL_THRESHOLD = LowdinParameters_integralThreshold
     CONTROL_instance%INTEGRAL_STACK_SIZE = LowdinParameters_integralStackSize
-    CONTROL_instance%INTEGRAL_DESTINY = LowdinParameters_integralDestiny
+    CONTROL_instance%INTEGRAL_STORAGE = LowdinParameters_integralStorage
     CONTROL_instance%INTEGRAL_SCHEME =  LowdinParameters_integralScheme
     CONTROL_instance%SCHWARZ_INEQUALITY = LowdinParameters_schwarzInequality
 
@@ -1608,15 +1677,19 @@ contains
     CONTROL_instance%DIIS_ERROR_IN_DAMPING = LowdinParameters_diisErrorInDamping
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = LowdinParameters_activateLevelShifting
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = LowdinParameters_exchangeOrbitalsInSCF
+    CONTROL_instance%LOCALIZE_ORBITALS = LowdinParameters_localizeOrbitals
     CONTROL_instance%DEBUG_SCFS = LowdinParameters_debugScfs
+    CONTROL_instance%SCF_GHOST_SPECIES = LowdinParameters_scfGhostSpecies
 
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
     !!                                                                                 
     CONTROL_instance%FROZEN_PARTICLE = LowdinParameters_frozen
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = LowdinParameters_freezeNonElectronicOrbitals
+    CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS = LowdinParameters_freezeElectronicOrbitals
     CONTROL_instance%HARTREE_PRODUCT_GUESS = LowdinParameters_hartreeProductGuess
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
+    CONTROL_instance%READ_FCHK = LowdinParameters_readFchk
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
     CONTROL_instance%READ_EIGENVALUES = LowdinParameters_readEigenvalues
     CONTROL_instance%READ_EIGENVALUES_IN_BINARY =  LowdinParameters_readEigenvaluesInBinary
@@ -1629,7 +1702,11 @@ contains
     CONTROL_instance%ONLY_ELECTRONIC_EFFECT = LowdinParameters_onlyElectronicEffect
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = LowdinParameters_electronicWaveFunctionAnalysis
     CONTROL_instance%IS_OPEN_SHELL = LowdinParameters_isOpenShell
-    CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients                                                                                                                                                                                          
+    CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients
+    CONTROL_instance%HF_PRINT_EIGENVALUES = LowdinParameters_HFprintEigenvalues
+    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = LowdinParameters_overlapEigenThreshold 
+
+    CONTROL_instance%ELECTRIC_FIELD = LowdinParameters_electricField
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1663,11 +1740,12 @@ contains
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = LowdinParameters_dihedralAngleThreshold
 
     !!***************************************************************************      
-    !! Parameter to control MPn theory                                                 
+    !! Parameter to control MBPn theory                                                 
     !!                                                                                 
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = LowdinParameters_mpCorrection
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = LowdinParameters_mpFrozenCoreBoundary
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = LowdinParameters_mpOnlyElectronicCorrection
+    CONTROL_instance%EPSTEIN_NESBET_CORRECTION = LowdinParameters_epsteinNesbetCorrection
 
     !!***************************************************************************      
     !! Parameter to control cosmo method                                               
@@ -1773,7 +1851,10 @@ contains
     CONTROL_instance%AUXILIARY_DENSITY = LowdinParameters_auxiliaryDensity
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = LowdinParameters_storeThreeCenterElectronIntegrals
     CONTROL_instance%CALL_LIBXC = LowdinParameters_callLibxc
-
+    CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD = LowdinParameters_nuclearElectronDensityThreshold
+    CONTROL_instance%BETA_PARAMETER_A = LowdinParameters_betaParameterA
+    CONTROL_instance%BETA_PARAMETER_B = LowdinParameters_betaParameterB
+    CONTROL_instance%BETA_PARAMETER_C = LowdinParameters_betaParameterC
     !!*****************************************************                            
     !! External Potential Options                                                      
     !!                                                                                 
@@ -1832,6 +1913,7 @@ contains
     !! Integrals transformation options
     !!
     CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = LowdinParameters_integralsTransformationMethod
+    CONTROL_instance%IT_BUFFERSIZE = LowdinParameters_ITBuffersize
 
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
@@ -1883,7 +1965,7 @@ contains
     LowdinParameters_tv = CONTROL_instance%TV
     LowdinParameters_integralThreshold = CONTROL_instance%INTEGRAL_THRESHOLD
     LowdinParameters_integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
-    LowdinParameters_integralDestiny = CONTROL_instance%INTEGRAL_DESTINY
+    LowdinParameters_integralStorage = CONTROL_instance%INTEGRAL_STORAGE
     LowdinParameters_integralScheme = CONTROL_instance%INTEGRAL_SCHEME
     LowdinParameters_schwarzInequality = CONTROL_instance%SCHWARZ_INEQUALITY
 
@@ -1916,15 +1998,20 @@ contains
     LowdinParameters_diisErrorInDamping = CONTROL_instance%DIIS_ERROR_IN_DAMPING
     LowdinParameters_activateLevelShifting = CONTROL_instance%ACTIVATE_LEVEL_SHIFTING
     LowdinParameters_exchangeOrbitalsInSCF = CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF
+    LowdinParameters_localizeOrbitals = CONTROL_instance%LOCALIZE_ORBITALS 
     LowdinParameters_debugScfs = CONTROL_instance%DEBUG_SCFS
+
+    LowdinParameters_scfGhostSpecies = CONTROL_instance%SCF_GHOST_SPECIES
 
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
     !!                                                                                 
     LowdinParameters_frozen = CONTROL_instance%FROZEN_PARTICLE
     LowdinParameters_freezeNonElectronicOrbitals = CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS
+    LowdinParameters_freezeElectronicOrbitals = CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS
     LowdinParameters_hartreeProductGuess = CONTROL_instance%HARTREE_PRODUCT_GUESS
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
+    LowdinParameters_readFchk = CONTROL_instance%READ_FCHK
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
     LowdinParameters_readEigenvalues = CONTROL_instance%READ_EIGENVALUES
     LowdinParameters_readEigenvaluesInBinary = CONTROL_instance%READ_EIGENVALUES_IN_BINARY
@@ -1938,7 +2025,9 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS
     LowdinParameters_isOpenShell = CONTROL_instance%IS_OPEN_SHELL
     LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
-
+    LowdinParameters_HFprintEigenvalues = CONTROL_instance%HF_PRINT_EIGENVALUES 
+    LowdinParameters_overlapEigenThreshold = CONTROL_instance%OVERLAP_EIGEN_THRESHOLD 
+    LowdinParameters_electricField = CONTROL_instance%ELECTRIC_FIELD 
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1980,12 +2069,12 @@ contains
     LowdinParameters_dihedralAngleThreshold = CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD
 
     !!***************************************************************************      
-    !! Parameter to control MPn theory                                                 
+    !! Parameter to control MBPn theory                                                 
     !!                                                                                 
     LowdinParameters_mpCorrection = CONTROL_instance%MOLLER_PLESSET_CORRECTION
     LowdinParameters_mpFrozenCoreBoundary = CONTROL_instance%MP_FROZEN_CORE_BOUNDARY
     LowdinParameters_mpOnlyElectronicCorrection = CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION
-
+    LowdinParameters_epsteinNesbetCorrection = CONTROL_instance%EPSTEIN_NESBET_CORRECTION 
     !!***************************************************************************      
     !! Parameter to control cosmo method                                                 
     !!                                                                                 
@@ -2079,7 +2168,12 @@ contains
     LowdinParameters_auxiliaryDensity = CONTROL_instance%AUXILIARY_DENSITY
     LowdinParameters_storeThreeCenterElectronIntegrals = CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS
     LowdinParameters_callLibxc = CONTROL_instance%CALL_LIBXC
+    LowdinParameters_nuclearElectronDensityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD
+    LowdinParameters_betaParameterA=CONTROL_instance%BETA_PARAMETER_A 
+    LowdinParameters_betaParameterB=CONTROL_instance%BETA_PARAMETER_B
+    LowdinParameters_betaParameterC=CONTROL_instance%BETA_PARAMETER_C
 
+    
     !!*****************************************************                            
     !! External Potential Options                                                      
     !!                                                                                 
@@ -2136,6 +2230,7 @@ contains
     !! Integrals transformation options
     !!
     LowdinParameters_integralsTransformationMethod = CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD 
+    LowdinParameters_ITBuffersize = CONTROL_instance%IT_BUFFERSIZE 
 
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
@@ -2186,7 +2281,7 @@ contains
     !!
     otherThis%TV = this%TV 
     otherThis%INTEGRAL_THRESHOLD = this%INTEGRAL_THRESHOLD 
-    otherThis%INTEGRAL_DESTINY = this%INTEGRAL_DESTINY 
+    otherThis%INTEGRAL_STORAGE = this%INTEGRAL_STORAGE 
     otherThis%INTEGRAL_SCHEME = this%INTEGRAL_SCHEME
     otherThis%INTEGRAL_STACK_SIZE = this%INTEGRAL_STACK_SIZE 
     otherThis%SCHWARZ_INEQUALITY = this%SCHWARZ_INEQUALITY
@@ -2221,14 +2316,18 @@ contains
     otherThis%DIIS_ERROR_IN_DAMPING = this%DIIS_ERROR_IN_DAMPING 
     otherThis%ACTIVATE_LEVEL_SHIFTING = this%ACTIVATE_LEVEL_SHIFTING 
     otherThis%EXCHANGE_ORBITALS_IN_SCF = this%EXCHANGE_ORBITALS_IN_SCF 
+    otherThis%LOCALIZE_ORBITALS = this%LOCALIZE_ORBITALS
     otherThis%DEBUG_SCFS = this%DEBUG_SCFS 
+    otherThis%SCF_GHOST_SPECIES = this%SCF_GHOST_SPECIES 
     !!***************************************************************************
     !! Parametros para control Hartree-Fock
     !!
     otherThis%FROZEN_PARTICLE = this%FROZEN_PARTICLE 
     otherThis%FREEZE_NON_ELECTRONIC_ORBITALS = this%FREEZE_NON_ELECTRONIC_ORBITALS 
+    otherThis%FREEZE_ELECTRONIC_ORBITALS = this%FREEZE_ELECTRONIC_ORBITALS 
     otherThis%HARTREE_PRODUCT_GUESS = this%HARTREE_PRODUCT_GUESS 
     otherThis%READ_COEFFICIENTS = this%READ_COEFFICIENTS 
+    otherThis%READ_FCHK = this%READ_FCHK 
     otherThis%WRITE_COEFFICIENTS_IN_BINARY = this%WRITE_COEFFICIENTS_IN_BINARY
     otherThis%NO_SCF = this%NO_SCF 
     otherThis%FINITE_MASS_CORRECTION = this%FINITE_MASS_CORRECTION 
@@ -2239,6 +2338,9 @@ contains
     otherThis%ELECTRONIC_WAVEFUNCTION_ANALYSIS = this%ELECTRONIC_WAVEFUNCTION_ANALYSIS 
     otherThis%IS_OPEN_SHELL = this%IS_OPEN_SHELL    
     otherThis%GET_GRADIENTS = this%GET_GRADIENTS    
+    otherThis%HF_PRINT_EIGENVALUES = this%HF_PRINT_EIGENVALUES 
+    otherThis%OVERLAP_EIGEN_THRESHOLD = this%OVERLAP_EIGEN_THRESHOLD 
+    otherThis%ELECTRIC_FIELD = this%ELECTRIC_FIELD 
     !!***************************************************************************
     !! Parametros para control de proceso de minimizacion multidimensional
     !!
@@ -2274,6 +2376,7 @@ contains
     otherThis%MOLLER_PLESSET_CORRECTION = this%MOLLER_PLESSET_CORRECTION 
     otherThis%MP_FROZEN_CORE_BOUNDARY = this%MP_FROZEN_CORE_BOUNDARY 
     otherThis%MP_ONLY_ELECTRONIC_CORRECTION = this%MP_ONLY_ELECTRONIC_CORRECTION 
+    otherThis%EPSTEIN_NESBET_CORRECTION = this%EPSTEIN_NESBET_CORRECTION
     !!*****************************************************
     !! Control de parametros de metodo cosmo
     !!
@@ -2415,6 +2518,7 @@ contains
     !! Integrals transformation options
     !!
     otherThis%INTEGRALS_TRANSFORMATION_METHOD = this%INTEGRALS_TRANSFORMATION_METHOD 
+    otherThis%IT_BUFFERSIZE = this%IT_BUFFERSIZE 
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
@@ -2501,6 +2605,14 @@ contains
        write (*,"(T10,A,I5)") "MOLLER PLESSET CORRECTION:  ",CONTROL_instance%MOLLER_PLESSET_CORRECTION
 
     end if
+
+    if(CONTROL_instance%EPSTEIN_NESBET_CORRECTION>=2) then
+
+       write (*,"(T10,A,I5)") "EPSTEIN NESBET CORRECTION:  ",CONTROL_instance%EPSTEIN_NESBET_CORRECTION
+
+    end if
+
+
 
     if(CONTROL_instance%COSMO) then
 
@@ -2641,7 +2753,7 @@ contains
 
     if(CONTROL_instance%METHOD/="MM") then
        write (*,"(T10,A,I5)") "SCHEME OF ITERATION: ",CONTROL_instance%ITERATION_SCHEME
-       write (*,"(T10,A)") "INTEGRAL DESTINY: "//trim(CONTROL_instance%INTEGRAL_DESTINY)
+       write (*,"(T10,A)") "INTEGRAL STORAGE: "//trim(CONTROL_instance%INTEGRAL_STORAGE)
        write (*,"(T10,A,I5)") "STACK SIZE FOR ERIS : ", CONTROL_instance%INTEGRAL_STACK_SIZE
 
        select case(CONTROL_instance%CONVERGENCE_METHOD)

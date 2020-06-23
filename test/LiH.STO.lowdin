@@ -1,0 +1,32 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test RKS
+%  LiH Single Point
+%  Electronic BLYP
+%  Basis sets used:
+%      CC-PVTZ e-
+%  Results
+%      TEST ENERGY = close to -8.072145588372
+%      ExchangeCorrelation energy= close to -2.21707300
+% End Results
+%      Author: Felix Moncada - QCC-UNAL/2018
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de H2'
+
+GEOMETRY
+e-(Li) STO-3G  0.0000  0.00000 0
+e-(H)  STO-3G 0.0000  0.00000 1.6
+Li   dirac  0.0000  0.00000 0
+H_1  dirac 0.0000  0.00000 1.6
+END GEOMETRY
+
+TASKS
+method = "RKS"
+END TASKS
+
+CONTROL
+electronExchangeCorrelationFunctional="LDA"
+END CONTROL
+
+
+

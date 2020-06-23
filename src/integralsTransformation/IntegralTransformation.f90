@@ -45,6 +45,7 @@ program IntegralsTransformation
   use TransformIntegralsB_
   use TransformIntegralsC_
   use TransformIntegralsD_
+  use TransformIntegralsE_
   use String_
   implicit none
 
@@ -53,6 +54,7 @@ program IntegralsTransformation
   integer :: specieID, otherSpecieID
   integer :: numberOfContractions
   integer :: numberOfContractionsOfOtherSpecie
+  integer :: occupation, otherOccupation
   character(10) :: nameOfSpecies
   character(10) :: nameOfOtherSpecie
   type(Vector) :: eigenValues
@@ -62,7 +64,10 @@ program IntegralsTransformation
   type(TransformIntegralsB) :: transformInstanceB
   type(TransformIntegralsC) :: transformInstanceC
   type(TransformIntegralsD) :: transformInstanceD
+  type(TransformIntegralsE) :: transformInstanceE
   type(Matrix) :: eigenVec
+  type(Matrix) :: densityMatrix
+  type(Matrix) :: otherdensityMatrix
   type(Matrix) :: eigenVecOtherSpecie 
   character(50) :: wfnFile
   character(50) :: arguments(2)
@@ -72,7 +77,18 @@ program IntegralsTransformation
   logical :: transformTheseSpecies
   real(8) :: timeA, timeB
 
-  wfnFile = "lowdin.wfn"
+  !!Load CONTROL Parameters
+  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
+  
+  if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+     wfnFile = "lowdin.wfn"
+     !!Load the system in lowdin.sys format
+     call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  else
+     wfnFile = "lowdin-subsystemA.wfn"
+     !!Load the system in lowdin.sys format
+     call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
+  end if
   wfnUnit = 20
 
   job = ""  
@@ -82,11 +98,13 @@ program IntegralsTransformation
   !!Start time
   timeA = omp_get_wtime()
 
-  !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
-  !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  write(*,*) ""
+  write(*,*) "BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
+  write(*,*) "========================================"
+  write(*,*) "Selected method: ",CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD 
+  write(*,*) ""
+
 
   select case( CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD )
 
@@ -110,16 +128,23 @@ program IntegralsTransformation
       call TransformIntegralsD_show
       call TransformIntegralsD_constructor( transformInstanceD )
 
+    case ( "E" )
+
+      call TransformIntegralsE_show
+      call TransformIntegralsE_constructor( transformInstanceE )
+
   end select
 
   !!*******************************************************************************************
   !! BEGIN
 
-   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
-   rewind(wfnUnit)
-
+  !! get the number of nonzero integrals
 
   numberOfQuantumSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+  open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
+  rewind(wfnUnit)
+
 
     do i=1, numberOfQuantumSpecies
   
@@ -138,19 +163,25 @@ program IntegralsTransformation
         end if
 
           if ( .not.CONTROL_instance%OPTIMIZE .and. transformThisSpecies) then
+              write (*,*) ""
               write (6,"(T2,A)")"Integrals transformation for: "//trim(nameOfSpecies)
+              write (*,*) ""
            end if
 
           !! Reading the coefficients
   
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
+           occupation = MolecularSystem_getOcupationNumber( i )
            arguments(2) = MolecularSystem_getNameOfSpecie(i)
   
            arguments(1) = "COEFFICIENTS"
-  
            eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
                 columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-          
+
+           arguments(1) = "DENSITY"
+           densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+ 
           arguments(1) = "ORBITALS"
            call Vector_getFromFile( elementsNum = numberOfContractions, &
                 unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -178,12 +209,17 @@ program IntegralsTransformation
               case ( "C" ) 
 
                 call TransformIntegralsC_atomicToMolecularOfOneSpecie(  transformInstanceC, &
-                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
+                       densityMatrix, eigenVec, specieID, trim(nameOfSpecies) ) 
 
               case ( "D" )
 
                 call TransformIntegralsD_atomicToMolecularOfOneSpecie( transformInstanceD, &
                        eigenVec, specieID,  trim(nameOfSpecies))
+
+              case ( "E" )
+
+                call TransformIntegralsE_atomicToMolecularOfOneSpecie(  transformInstanceE, &
+                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
 
             end select
 
@@ -211,12 +247,16 @@ program IntegralsTransformation
 
                   
                           if ( .not.CONTROL_instance%OPTIMIZE .and. transformTheseSpecies ) then
+                             write (*,*) ""
                              write (6,"(T2,A)") "Inter-species integrals transformation for: "//trim(nameOfSpecies)//"/"//trim(nameOfOtherSpecie)
+                             write (*,*) ""
                           end if
 
                           !! Reading the coefficients
   
                           numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
+                          otherOccupation = MolecularSystem_getOcupationNumber( j )
+
   
                           arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
   
@@ -229,6 +269,11 @@ program IntegralsTransformation
                           call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
                                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                                output = eigenValuesOfOtherSpecie )     
+
+                          arguments(1) = "DENSITY"
+                          otherdensityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
+                          columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+ 
 
                           otherSpecieID = j
   
@@ -252,9 +297,19 @@ program IntegralsTransformation
 
                               case ( "C" ) 
 
-                              call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
-                                 eigenVec, eigenVecOtherSpecie, &
+                              if ( occupation <= otherOccupation ) then
+
+                                call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
+                                 densityMatrix, eigenVec, eigenVecOtherSpecie, &
                                  auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+
+                              else 
+
+                                 call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
+                                   otherdensityMatrix, eigenVecOtherSpecie, eigenVec, &
+                                   auxMatrix, otherSpecieID, nameOfOtherSpecie,  specieID, nameOfSpecies )
+
+                              end if
 
                             case ( "D" )
                               
@@ -262,6 +317,12 @@ program IntegralsTransformation
                                  eigenVec, eigenVecOtherSpecie, &
                                  specieID, nameOfSpecies, &
                                  otherSpecieID, nameOfOtherSpecie)
+
+                            case ( "E" )
+                              
+                              call TransformIntegralsE_atomicToMolecularOfTwoSpecies(transformInstanceE, &
+                                 eigenVec, eigenVecOtherSpecie, &
+                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
 
                             end select
 

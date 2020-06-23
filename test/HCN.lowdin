@@ -1,0 +1,20 @@
+GEOMETRY
+        e-(H) 6-311++G.d.p 0 0 0      
+        e-(C) 6-311++G.d.p 0 0 1.059
+        e-(N) 6-311++G.d.p 0 0 2.186
+        H     dirac	   0 0 0
+        C     dirac	   0 0 1.059
+        N     dirac        0 0 2.186
+END GEOMETRY
+
+TASKS
+        method = "RHF"
+END TASKS
+
+CONTROL
+	convergenceMethod=1
+	iterationScheme=3
+	overlapEigenThreshold=1E-6
+	scfNonelectronicEnergyTolerance = 1E-8
+	scfElectronicEnergyTolerance = 1E-8
+END CONTROL

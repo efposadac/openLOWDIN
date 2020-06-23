@@ -1,0 +1,15 @@
+GEOMETRY
+	e-(He)   CC-PVQZ			0.00	0.00 	0.00 
+	He	dirac			0.00	0.00 	0.00
+END GEOMETRY
+
+TASKS
+	method = "RKS"
+END TASKS
+
+
+CONTROL
+electronExchangeCorrelationFunctional="LDA"
+END CONTROL
+
+

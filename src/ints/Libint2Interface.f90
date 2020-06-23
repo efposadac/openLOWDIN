@@ -213,13 +213,24 @@ module Libint2Interface_
        type(c_ptr), value :: this
      end subroutine c_LibintInterface_init2BodyInts
 
-     subroutine c_LibintInterface_compute2BodyDirect(this, density, result) bind(C, name="LibintInterface_compute_2body_direct")
+     subroutine c_LibintInterface_compute2BodyDirect(this, density, result, factor) bind(C, name="LibintInterface_compute_2body_direct")
        use, intrinsic :: iso_c_binding
        implicit none
        type(c_ptr), value :: this        
        type(c_ptr), value :: density
        type(c_ptr), value :: result
+       real(c_double)  :: factor
      end subroutine c_LibintInterface_compute2BodyDirect
+
+     subroutine c_LibintInterface_compute2BodyDirectIT(this, density, coefficients, result, p) bind(C, name="LibintInterface_compute_2body_directIT")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: this        
+       type(c_ptr), value :: density
+       type(c_ptr), value :: coefficients
+       type(c_ptr), value :: result
+       integer(c_int)  :: p
+     end subroutine c_LibintInterface_compute2BodyDirectIT
 
      subroutine c_LibintInterface_compute2BodyDisk(this, filename, density) bind(C, name="LibintInterface_compute_2body_disk")
        use, intrinsic :: iso_c_binding
@@ -237,6 +248,27 @@ module Libint2Interface_
        type(c_ptr), value :: density
        type(c_ptr), value :: result
      end subroutine c_LibintInterface_computeCouplingDirect
+
+     subroutine c_LibintInterface_computeCouplingDirectIT(this, othis, density, coefficients, result, p) bind(C, name="LibintInterface_compute_coupling_directIT")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: this        
+       type(c_ptr), value :: othis        
+       type(c_ptr), value :: density
+       type(c_ptr), value :: coefficients
+       type(c_ptr), value :: result
+       integer(c_int)  :: p
+     end subroutine c_LibintInterface_computeCouplingDirectIT
+
+     subroutine c_LibintInterface_computeAlphaBetaDirect(this, othis, density, otherdensity, result) bind(C, name="LibintInterface_compute_alphabeta_direct")
+       use, intrinsic :: iso_c_binding
+       implicit none
+       type(c_ptr), value :: this        
+       type(c_ptr), value :: othis        
+       type(c_ptr), value :: density
+       type(c_ptr), value :: otherdensity
+       type(c_ptr), value :: result
+     end subroutine c_LibintInterface_computeAlphaBetaDirect
 
      subroutine c_LibintInterface_computeCouplingDisk(this, othis, filename) bind(C, name="LibintInterface_compute_coupling_disk")
        use, intrinsic :: iso_c_binding
@@ -398,12 +430,13 @@ contains
 
   !>
   !! Compute  2-body integrals and computes the G matrix
-  subroutine Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoBody)
+  subroutine Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoBody, factor)
     implicit none
 
     integer :: speciesID
     real(8), allocatable, target :: density(:,:)
     real(8), allocatable, target :: twoBody(:,:)
+    real(8) :: factor
 
     type(c_ptr) :: density_ptr
     type(c_ptr) :: twoBody_ptr
@@ -429,9 +462,52 @@ contains
     endif
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
-    call c_LibintInterface_compute2BodyDirect(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr)
+    call c_LibintInterface_compute2BodyDirect(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr, factor)
 
   end subroutine Libint2Interface_compute2BodyIntraspecies_direct
+
+  !>
+  !! Compute  2-body integrals and computes the A matrix
+  subroutine Libint2Interface_compute2BodyIntraspecies_direct_IT(speciesID, density, coefficients, matrixA, p)
+    implicit none
+
+    integer :: speciesID
+    real(8), allocatable, target :: density(:,:)
+    real(8), allocatable, target :: coefficients(:,:)
+    real(8), allocatable, target :: matrixA(:,:,:)
+    integer :: p
+
+    type(c_ptr) :: density_ptr
+    type(c_ptr) :: coefficients_ptr
+    type(c_ptr) :: matrixA_ptr
+
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    ! Prepare matrix
+    if(allocated(matrixA)) deallocate(matrixA)
+    allocate(matrixA(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
+         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
+         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+    matrixA = 0
+
+    matrixA_ptr = c_loc(matrixA(1,1,1))
+    coefficients_ptr = c_loc(coefficients(1,1))
+    density_ptr = c_loc(density(1,1))
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
+    call c_LibintInterface_compute2BodyDirectIT(Libint2Instance(speciesID)%this, density_ptr, coefficients_ptr, matrixA_ptr, p)
+
+  end subroutine Libint2Interface_compute2BodyIntraspecies_direct_IT
 
   !>
   !! Compute 2-body integrals and store them on disk
@@ -530,6 +606,106 @@ contains
          Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coupling_ptr)
 
   end subroutine Libint2Interface_compute2BodyInterSpecies_direct
+
+  subroutine Libint2Interface_compute2BodyInterspecies_direct_IT(speciesID, otherSpeciesID, density, coefficients, coupling, p)
+    implicit none
+
+    integer :: speciesID
+    integer :: otherSpeciesID
+    real(8), allocatable, target :: density(:,:)
+    real(8), allocatable, target :: coefficients(:,:)
+    real(8), allocatable, target :: coupling(:,:,:)
+    integer :: p
+
+    type(c_ptr) :: density_ptr
+    type(c_ptr) :: coefficients_ptr
+    type(c_ptr) :: coupling_ptr
+
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    ! Prepare matrix
+    if(allocated(coupling)) deallocate(coupling)
+    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(specieID = otherSpeciesID), &
+         MolecularSystem_getTotalNumberOfContractions(specieID = otherSpeciesID), &
+         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+
+    coupling_ptr = c_loc(coupling(1,1,1))
+    coefficients_ptr = c_loc(coefficients(1,1))
+    density_ptr = c_loc(density(1,1))
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
+    endif
+
+
+    call c_LibintInterface_computeCouplingDirectIT(&
+         Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coefficients_ptr, coupling_ptr, p)
+
+  end subroutine Libint2Interface_compute2BodyInterspecies_direct_IT
+
+
+
+  !! Compute  2-body integrals and computes the G matrix
+  subroutine Libint2Interface_compute2BodyAlphaBeta_direct(speciesID, otherSpeciesID, density, otherdensity, coupling)
+
+    implicit none
+
+    integer :: speciesID
+    integer :: otherSpeciesID
+    real(8), allocatable, target :: density(:,:)
+    real(8), allocatable, target :: otherdensity(:,:)
+    real(8), allocatable, target :: coupling(:,:)
+
+    type(c_ptr) :: couplingEnergy_ptr
+    type(c_ptr) :: density_ptr
+    type(c_ptr) :: otherdensity_ptr
+
+    integer :: nspecies
+
+    nspecies = size(MolecularSystem_instance%species)
+
+    if (.not. allocated(Libint2Instance)) then
+       allocate(Libint2Instance(nspecies))  
+    endif
+
+    !! Prepare matrix
+    if(allocated(coupling)) deallocate(coupling)
+!    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
+!         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+    allocate(coupling(1,1))
+
+
+    density_ptr = c_loc(density(1,1))
+    otherdensity_ptr = c_loc(otherdensity(1,1))
+    couplingEnergy_ptr = c_loc(coupling(1,1))
+
+    ! Initialize libint objects
+    if (.not. Libint2Instance(speciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+    endif
+
+    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
+       call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
+    endif
+
+
+    call c_LibintInterface_computeAlphaBetaDirect(&
+         Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, otherdensity_ptr, couplingEnergy_ptr)
+
+  end subroutine Libint2Interface_compute2BodyAlphaBeta_direct
+
+
 
 
   !>

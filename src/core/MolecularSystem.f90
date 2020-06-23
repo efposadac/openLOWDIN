@@ -91,13 +91,15 @@ module MolecularSystem_
        MolecularSystem_getKappa, &
        MolecularSystem_getMultiplicity, &
        MolecularSystem_getParticlesFraction, &
-       MolecularSystem_getFactorOfInterchangeIntegrals, &
+       MolecularSystem_getFactorOfExchangeIntegrals, &
        MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getSpecieID, &
        MolecularSystem_getSpecieIDFromSymbol, &
        MolecularSystem_getPointChargesEnergy, &
        MolecularSystem_getMMPointChargesEnergy, &
-       MolecularSystem_getlabelsofcontractions
+       MolecularSystem_getlabelsofcontractions, &
+       MolecularSystem_changeOrbitalOrder, &
+       MolecularSystem_readFchk
   
   !>Singleton
   type(MolecularSystem), public, target :: MolecularSystem_instance
@@ -572,18 +574,23 @@ contains
   !>
   !! @brief Saves all system information.
   !! @author E. F. Posada, 2013
-  subroutine MolecularSystem_saveToFile()
+  subroutine MolecularSystem_saveToFile( targetFile )
     implicit none
+    character(*), optional :: targetFile
+    character(50) :: fileName
     
     integer i, j, k
     character(100) :: title
-    
+
+    fileName="lowdin"
+    if ( present( targetFile ) ) fileName=trim(targetFile)
+
     !!****************************************************************************
     !! CONTROL parameters on file.
     !!
     
     !! open file
-    open(unit=40, file="lowdin.dat", status="replace", form="formatted")
+    open(unit=40, file=trim(fileName)//".dat", status="replace", form="formatted")
     
     !!save all options
     call CONTROL_save(40)
@@ -594,7 +601,7 @@ contains
     !!
 
     !!Open file
-    open(unit=40, file="lowdin.sys", status="replace", form="formatted")
+    open(unit=40, file=trim(fileName)//".sys", status="replace", form="formatted")
     
     !! Saving general information.
     write(40,*) MolecularSystem_instance%name
@@ -647,7 +654,7 @@ contains
     !!
     
     !!open file
-    open(unit=40, file="lowdin.bas", status="replace", form="formatted")
+    open(unit=40, file=trim(fileName)//".bas", status="replace", form="formatted")
     
     write(40,*) MolecularSystem_instance%numberOfQuantumSpecies    
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
@@ -716,10 +723,12 @@ contains
   !>
   !! @brief loads all system information from file
   !! @author E. F. Posada, 2013
-  subroutine MolecularSystem_loadFromFile( form )
+  subroutine MolecularSystem_loadFromFile( form, targetFile )
     implicit none
     
     character(*) :: form
+    character(*), optional :: targetFile
+    character(50) :: fileName
 
     integer :: auxValue
     integer :: counter
@@ -728,6 +737,9 @@ contains
     character(20) :: name
     character(50) :: species
     character(50) :: otherSpecies
+
+    fileName="lowdin"
+    if ( present( targetFile ) ) fileName=trim(targetFile)
 
     select case (trim(form))
        
@@ -739,14 +751,14 @@ contains
        
        !!open file
        existFile = .false.
-       inquire(file="lowdin.bas", exist=existFile)
+       inquire(file=trim(fileName)//".bas", exist=existFile)
        
        if(existFile) then
 
           !! Destroy the molecular system if any
           call MolecularSystem_destroy()
 
-          open(unit=40, file="lowdin.bas", status="old", form="formatted")
+          open(unit=40, file=trim(fileName)//".bas", status="old", form="formatted")
           
           read(40,*) MolecularSystem_instance%numberOfQuantumSpecies
           allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
@@ -822,11 +834,11 @@ contains
        
        !! open file
        existFile = .false.
-       inquire(file="lowdin.dat", exist=existFile)
+       inquire(file=trim(fileName)//".dat", exist=existFile)
        
        if(existFile) then
           
-          open(unit=40, file="lowdin.dat", status="old", form="formatted")
+          open(unit=40, file=trim(fileName)//".dat", status="old", form="formatted")
           
           call CONTROL_start()
           call CONTROL_load(unit = 40)
@@ -850,11 +862,11 @@ contains
     
        !! open file
        existFile = .false.
-       inquire(file="lowdin.sys", exist=existFile)
+       inquire(file=trim(fileName)//".sys", exist=existFile)
        
        if(existFile) then
           !!Open file
-          open(unit=40, file="lowdin.sys", status="old", form="formatted")
+          open(unit=40, file=trim(fileName)//".sys", status="old", form="formatted")
           
           !! read general information.
           read(40,*) MolecularSystem_instance%name
@@ -1235,7 +1247,7 @@ contains
    !> @brief Returns the Factor Of Interchange Integrals
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getFactorOfInterchangeIntegrals( speciesID ) result( output )
+   function MolecularSystem_getFactorOfExchangeIntegrals( speciesID ) result( output )
      implicit none
      integer :: speciesID
      
@@ -1243,7 +1255,7 @@ contains
      
      output = MolecularSystem_instance%species(speciesID)%kappa / MolecularSystem_instance%species(speciesID)%eta
      
-   end function MolecularSystem_getFactorOfInterchangeIntegrals
+   end function MolecularSystem_getFactorOfExchangeIntegrals
 
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
@@ -1392,6 +1404,292 @@ contains
      
    end function MolecularSystem_getlabelsofcontractions
 
+   !>
+  !! @brief  Change from Lowdin order to Molden/Gaussian or Gamess order
+  !! 
+  subroutine MolecularSystem_changeOrbitalOrder( coefficientsOfCombination, speciesID, actualFormat, desiredFormat )
+    implicit none
+    type(Matrix), intent(inout) :: coefficientsOfCombination
+    integer, intent(in) :: speciesID
+    character(*), intent(in) :: actualFormat
+    character(*), intent(in) :: desiredFormat
+    character(19) , allocatable :: labelsOfContractions(:)
+    integer :: numberOfContractions
+    character(6) :: nickname
+    character(4) :: shellCode
+    character(2) :: space
+    integer :: k, counter, auxcounter
+
+    numberOfContractions=size(coefficientsOfCombination%values,dim=1)
+    !! Build a vector of labels of contractions
+    if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+    allocate(labelsOfContractions(numberOfContractions))
+
+    labelsOfContractions =  MolecularSystem_getlabelsofcontractions(speciesID)
+
+    if( (actualFormat.eq."LOWDIN" .and. desiredFormat.eq."MOLDEN") ) then
+       !! Swap some columns according to the molden format
+       do k=1,numberOfContractions
+          !! Take the shellcode
+          read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+
+          !! Reorder the D functions
+          !! counter:  1,  2,  3,  4,  5,  6
+          !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+          !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+          !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+          !!  2-4, 3-5, 5-6
+
+          if ( shellcode == "Dxx" ) then 
+             auxcounter = counter
+             !! Swap XY and YY
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+             !! Swap XZ and ZZ
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+             !! Swap YZ and XZ'
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+          end if
+
+          !! Reorder the F functions
+          !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+          !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+          !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+
+          if ( shellcode == "Fxxx" ) then 
+             auxcounter = counter
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+
+          end if
+
+       end do
+
+    else if( ( actualFormat.eq."LOWDIN" .and. desiredFormat.eq."GAMESS") ) then
+       !! Swap some columns according to the Gamess format
+       do k=1,numberOfContractions
+          !! Take the shellcode
+          read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+
+          !! Reorder the D functions
+          !! counter:  1,  2,  3,  4,  5,  6
+          !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+          !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+          !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+          !!  2-4, 3-5, 5-6
+
+          if ( shellcode == "Dxx" ) then 
+             auxcounter = counter
+             !! Swap XY and YY
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+             !! Swap XZ and ZZ
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+             !! Swap YZ and XZ'
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+          end if
+
+              !! Reorder the F functions
+              !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+              !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+              !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+              !! Gamess:  XXX, YYY, ZZZ, XXY, XXZ, XYY, YYZ, XZZ, YZZ, XYZ
+
+              if ( shellcode == "Fxxx" ) then 
+                 auxcounter = counter
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+4)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+6)
+                 call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+              end if
+
+           end do
+
+        else if( (actualFormat.eq."LOWDIN" .and. desiredFormat.eq."MOLDEN") .or. ( actualFormat.eq."MOLDEN" .and. desiredFormat.eq."LOWDIN") ) then
+       !! Swap some columns according to the molden format
+       do k=1,numberOfContractions
+          !! Take the shellcode
+          read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+
+          !! Reorder the D functions
+          !! counter:  1,  2,  3,  4,  5,  6
+          !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+          !! Lowdin:  XX, XY, XZ, YY, ZZ, YZ
+          !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+          !!  2-4, 3-5, 5-6
+
+          if ( shellcode == "Dxx" ) then 
+             auxcounter = counter
+             !! Swap YY and XY
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+             !! Swap ZZ and XZ
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+4)
+             !! Swap ZZ and YZ'
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+          end if
+
+          !! Reorder the F functions
+          !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+          !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+          !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+
+          if ( shellcode == "Fxxx" ) then 
+             auxcounter = counter
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+4)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)             
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+9)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+6)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+             call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+          end if
+
+       end do
+
+        else
+
+           call MolecularSystem_exception(ERROR, "The desired format change from "//actualFormat//" to "//desiredFormat//"has not been implemented","MolecularSystem module at changeOrbitalOrder function.")
+
+        end if
+        
+      end subroutine MolecularSystem_changeOrbitalOrder
+
+   
+
+  !>
+  !! @brief Lee la matriz de densidad y los orbitales de un archivo fchk tipo Gaussian
+  subroutine MolecularSystem_readFchk( coefficients, densityMatrix, nameOfSpecies )
+    implicit none
+
+    type(Matrix), intent(inout) :: coefficients
+    type(Matrix), intent(inout) :: densityMatrix
+    character(*) :: nameOfSpecies
+
+    integer :: speciesID
+    character(50) :: fileName
+    integer :: numberOfContractions
+    integer :: i, j, k
+    character(100) :: info
+    character(40) :: object
+    character(4) :: type
+    character(6) :: array
+    integer :: size
+    integer :: fchkUnit, io
+    integer :: auxInteger(6)
+    integer, allocatable :: integerArray(:)
+    real(8) :: auxReal(5)
+    real(8), allocatable :: realArray(:)
+    logical :: existFchk, existLocalFchk 
+
+    speciesID=MolecularSystem_getSpecieID(nameOfSpecies)
+    numberOfContractions=MolecularSystem_getTotalnumberOfContractions( speciesID )
+    fileName=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.fchk"
+    inquire(FILE = fileName, EXIST = existLocalFchk )
+    if (.not. existLocalFchk) fileName=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk"
+    inquire(FILE = fileName, EXIST = existFchk )
+    if ( .not. existFCHK ) call MolecularSystem_exception( ERROR, "I did not find any .fchk coefficients file", "At MolecularSystem_readFchk")
+    
+    print *, "fileName ", fileName
+
+    fchkUnit = 50
+
+    open(unit=fchkUnit, file=filename, status="old", form="formatted", access='sequential', action='read')
+
+    !The first two lines don't matter
+    read(fchkUnit,"(A100)",iostat=io) info
+    print *, "reading CHKF file from ", info
+    read(fchkUnit,"(A100)",iostat=io) info
+    print *, "job info ", info
+
+    !Read line by line, the first 40 characters determine what's being read
+    do 
+       read(fchkUnit,"(A40,A4,A6,I14)",iostat=io) object,type,array,size
+       if (io.ne.0) exit
+       ! print *, object,type,array,size
+       if( trim(adjustl(array)).eq."N=" .and. trim(adjustl(type)).eq."I") then
+          ! print *, "voy a leer el arreglo ", object , " de enteros de ", size, "en lineas ", ceiling( size/6.0 )
+          allocate(integerArray(size))
+          k=0
+          do i=1, ceiling( size/6.0 )
+             read(fchkUnit,"(6I12)") auxInteger(1:6)
+             do j=1,6
+                k=k+1
+                if(k.gt.size)exit
+                integerArray(k)=auxInteger(j)
+             end do
+          end do
+          ! print *, integerArray   
+          deallocate(integerArray)
+
+       else if( trim(adjustl(array)).eq."N=" .and. trim(adjustl(type)).eq."R") then
+          ! print *, "voy a leer el arreglo ", object , " de reales", size, "en lineas ", ceiling( size/5.0 )
+          allocate(realArray(size))
+          k=0
+          do i=1, ceiling( size/5.0 )
+             read(fchkUnit,"(5E16.8)") auxReal(1:5)
+             do j=1,5
+                k=k+1
+                if(k.gt.size)exit
+                realArray(k)=auxReal(j)
+             end do
+          end do
+          ! if(trim(adjustl(object)).eq."Total SCF Density") then
+          !    k=0
+          !    do i=1, numberOfContractions
+          !       do j=1,i
+          !          k=k+1
+          !          densityMatrix%values(i,j)=realArray(k)
+          !          densityMatrix%values(j,i)=realArray(k)
+          !       end do
+          !    end do
+          !    print *, "density matrix read"
+          !    call Matrix_show(densityMatrix)
+          ! end if
+          if(trim(adjustl(object)).eq."Alpha MO coefficients") then
+             k=0
+             do i=1, numberOfContractions
+                do j=1, numberOfContractions
+                   k=k+1
+                   coefficients%values(j,i)=realArray(k)
+                end do
+             end do
+          end if
+          ! print *, realArray   
+          deallocate(realArray)
+       end if
+    end do
+
+    call MolecularSystem_changeOrbitalOrder( coefficients, speciesID, "MOLDEN", "LOWDIN" )
+    ! print *, "coefficients read"
+    ! call Matrix_show(coefficients)
+
+    !Build density matrix with the new order
+    densityMatrix%values=0.0
+    do i=1, numberOfContractions
+       do j=1, numberOfContractions
+          do k=1, MolecularSystem_getOcupationNumber(speciesID)
+             densityMatrix%values(i,j) =  &
+                  densityMatrix%values( i,j ) + &
+                  coefficients%values(i,k)*coefficients%values(j,k)*MolecularSystem_getEta(speciesID)
+          end do
+       end do
+    end do
+    ! print *, "density matrix from orbitals read"
+    ! call Matrix_show(densityMatrix)
+
+    
+    close(fchkUnit)
+    
+  end subroutine MolecularSystem_readFchk
+
+   
    !>
    !! @brief  Maneja excepciones de la clase
    subroutine MolecularSystem_exception( typeMessage, description, debugDescription)

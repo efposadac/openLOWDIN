@@ -30,16 +30,16 @@ module Grid_
      character(30) :: nameOfSpecies
      integer :: totalSize
      type(Matrix) :: points !! x,y,z,weight
-     type(Matrix) :: orbitals
-     type(Matrix) :: orbitalsGradient(3) !!x,y,z per orbital
+     type(Matrix), allocatable :: orbitalsWithGradient(:) !!x,y,z per orbital
      type(Vector) :: potential
-     type(Vector) :: sigmaPotential
+     type(Vector) :: gradientPotential(3)
      type(Vector) :: density
      type(Vector) :: densityGradient(3)
 
   end type Grid
 
   type(Grid), public, allocatable :: Grid_instance(:)
+  type(Grid), public, allocatable :: GridsCommonPoints(:,:)
 
   public :: &
        Grid_constructor, &
@@ -71,7 +71,7 @@ contains
     integer, allocatable :: atomicGridSize(:)
 
     this%nameOfSpecies=trim(MolecularSystem_getNameOfSpecie(speciesID))
-
+    
     if (trim(type) .eq. "INITIAL") then
        radialSize=CONTROL_instance%GRID_RADIAL_POINTS
        angularSize=CONTROL_instance%GRID_ANGULAR_POINTS
@@ -158,7 +158,7 @@ contains
        end do
     end do
 
-    !We are screening points with weight lower than 1E-14
+    !We are screening points with weight lower than 1E-16
     this%totalSize=0
     call Grid_weightCutoff( molecularGrid, molecularGridSize, this%points, this%totalSize )
 
@@ -166,10 +166,9 @@ contains
     ! call Matrix_show(this%points)
 
 
-    print *, "Screening delocalized orbital(<1E-6) and weight(<1E-14) points ..."
-    print *, "Final molecular grid size: ", Grid_instance(speciesID)%totalSize ," points"
-
-    ! print *, labels
+    print *, "Screening delocalized orbital(<1E-10) and weight(<1E-16) points ..."
+    print *, "Final molecular grid size for: ", trim(this%nameOfSpecies), Grid_instance(speciesID)%totalSize ," points"
+    print *, " "
 
     call Matrix_destructor( atomicGrid)
     call Matrix_destructor( molecularGrid)
@@ -227,7 +226,7 @@ contains
     ! We assume that it is an s-function for simplicity
 
     normC=(2*minExp/Math_PI)**(3/4)
-    orbitalCutoff=1E-6
+    orbitalCutoff=1E-10
     radialCutoff=sqrt(1/minExp*log(normC/orbitalCutoff))
 
     relevantPoints=0
@@ -253,7 +252,7 @@ contains
     integer :: point, rpoint
 
     !Should be a control parameter
-    weightCutoff=1E-14
+    weightCutoff=1E-16
     
     finalGridSize=0
     do point = 1, molecularGridSize

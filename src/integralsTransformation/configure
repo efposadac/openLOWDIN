@@ -16,12 +16,14 @@ include \$(TOPDIR)/CONFIG
 TARGET=lowdin-integralsTransformation.x
 LDR=\$(FC)
 CUDA=\$(CUBAFLAGS)
-INC=-I\$(TOPDIR)src/core/ -I\$(TOPDIR)src/ints/
-LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a
+INC=-I\$(TOPDIR)src/core/ 
+INCI=-I\$(TOPDIR)src/ints/
+LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Iterators.o
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS) -lm 
 HELIOSFLAGS=\$(CPPFLAGS) -D_OPENMP  -Ofast -std=c++11   -finline-functions -g  -ffast-math  -w
 
+EOF
 OBJECTS=$(for file in $SRCMOD 
           do
             echo -e "${file%.*}.o \c"
@@ -33,7 +35,6 @@ OBJECTS2=$(for file in $SRCMOD2
             echo -e "${file%.*}.o \c"
           done
           ) 
-EOF
 if [ "$CUDA" = "yes" ] ; then
     echo -e "\n\$(TARGET) : \$(OBJECTS) \$(OBJECTS2)" >> makefile
     echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(OBJECTS2) \$(LDPATH) \$(LIBS)" >> makefile
@@ -44,11 +45,51 @@ else
     echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
 fi
 
-SRCMOD=$(ls [!_]*.f90)
 #Fortran
+
+SRCMOD=$(ls [!_]*.f90)
+TOPDIR=../..
+INCIPATH=$TOPDIR/src/ints/
+INCI=$INCIPATH/*.f90
+INCI2=$INCIPATH/*.cpp
+
 for file in $SRCMOD 
 do
-  echo -e "${file%.*}.o:\t${file} \c" >> makefile
+   for ifile in $INCI 
+   do
+      ifilename=$(echo `basename "$ifile"`)
+      auxifile="${ifilename%.*}"
+      inci=$(grep "use "\\$auxifile $file)
+      if [[ -n $inci ]]
+      then
+        #echo -e "$INCIPATH$auxifile.o \c" >> makefile
+        OBJECTS=$OBJECTS$INCIPATH$auxifile.o" "  
+      fi
+   done
+   for ifile in $INCI2 
+   do
+      ifilename=$(echo `basename "$ifile"`)
+      auxifile="${ifilename%.*}"
+      inci=$(grep "\!# use "\\$auxifile $file)
+      if [[ -n $inci ]]
+      then
+        #echo -e "$INCIPATH$auxifile.o \c" >> makefile
+        OBJECTS=$OBJECTS$INCIPATH$auxifile.o" "  
+      fi
+   done
+done
+
+echo -e "OBJECTS=$OBJECTS" >> makefile
+
+echo -e "\n\$(TARGET) : \$(OBJECTS)" >> makefile
+echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(LDPATH) \$(LIBS)" >> makefile
+echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
+
+#
+
+for file in $SRCMOD 
+do
+   echo -e "${file%.f90}.o:\t${file} \c" >> makefile
    for ifile in $INC
    do
       inc=$(grep $ifile $file)
@@ -57,7 +98,6 @@ do
         echo -e "$ifile \c" >> makefile
       fi
    done
-
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
    do
      name=$(echo $mod)
@@ -70,8 +110,10 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC)  \$(FLAGS) ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(FLAGS) ${file}\n" >> makefile
 done
+#
+
 #c++ sources
 SRCMOD=$(ls [!_]*.cpp)
 for file in $SRCMOD 

@@ -511,7 +511,7 @@ contains
       !! Modificacion del damping factor para prueba
       !                                         dampingFactor=0.1_8
       this%newFockMatrixPtr%values = this%initialFockMatrix%values
-      
+
       this%initialDensityMatrix%values = this%initialDensityMatrix%values &
            + dampingFactor * ( this%newDensityMatrixPtr%values &
            - this%initialDensityMatrix%values )

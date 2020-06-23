@@ -182,7 +182,7 @@ program lowdin_
  !!
  !!******************************************************************************
 
-  statusSystem = system ("lowdin-CalcProp.x")
+  ! statusSystem = system ("lowdin-CalcProp.x")
 
   if ( CONTROL_instance%IS_THERE_OUTPUT ) then
     write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
@@ -197,13 +197,14 @@ program lowdin_
  !!Shows time information 
  call Stopwatch_stop(lowdin_stopwatch)
  write(*, *)
+ write(*,"(A,F10.3,A4)") "  TOTAL CPU Time: ", lowdin_stopwatch%enlapsetTime ," (s)"
+ write(*,"(A,F10.3,A4)") " TOTAL Wall Time: ", lowdin_stopwatch%elapsetWTime ," (s)"
  write(6,"(A16,i3,A1,i3,A1,i3,A1,i4,A2)") &
       "Elapsed Time: ", &
       lowdin_stopwatch%endTime(5),"h", &
       lowdin_stopwatch%endTime(6),"m", &
       lowdin_stopwatch%endTime(7),"s", &
       lowdin_stopwatch%endTime(8),"ms"
-
  
  write (6,"(A, A)") "LOWDIN execution terminated normally at : ", trim( Stopwatch_getCurretData( lowdin_stopwatch ) )
  call Stopwatch_destructor( lowdin_stopwatch )

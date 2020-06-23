@@ -20,6 +20,7 @@ CONTROL
 	CIPrintEigenVectorsFormat = "OCCUPIED"
 	!CIPrintEigenVectorsFormat = "ORBITALS"
 	CIPrintThreshold = 5e-2
+	buildTwoParticlesMatrixForOneParticle=T
 END CONTROL
 
 INPUT_CI
