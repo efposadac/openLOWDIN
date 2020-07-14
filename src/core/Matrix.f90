@@ -631,7 +631,7 @@ contains
   !>
   !! @brief Obtiene una matriz del lugar especificado
   !! @warning The arguments options are only available with unit option
-  function Matrix_getFromFile(rows, columns, unit, file, binary, arguments) result( output )
+  function Matrix_getFromFile(rows, columns, unit, file, binary, arguments, failContinue) result( output )
     implicit none
     integer, intent(in) :: rows
     integer, intent(in) :: columns
@@ -639,9 +639,11 @@ contains
     character(*), optional :: file
     logical, optional :: binary
     character(*), optional :: arguments(:)
+    logical, optional :: failContinue
 
     type(Matrix) :: output
 
+    integer :: failAction
     character(5000) :: line
     character(20) :: auxSize
     real(8), allocatable :: values(:)
@@ -658,7 +660,12 @@ contains
     bbinary = .false.
     if(present(binary)) bbinary = binary
 
-    
+    if(present(failContinue)) then
+       failAction=WARNING
+    else
+       failAction=ERROR
+    end if
+
     if(bbinary) then
        
        !! it is assumed that if you want to load a file for unit parameter, that file must be connected to unit "unit".
@@ -680,9 +687,9 @@ contains
                    read(unit, iostat = status) line (1:len_trim(arguments(1)))
                 
                    if(status == -1) then
-                      
-                      call Matrix_exception( ERROR, "End of file!",&
+                      call Matrix_exception( failAction, "End of file!",&
                            "Class object Matrix in the getfromFile() function "//trim(arguments(1))//" "//trim(arguments(2)) )
+                      return
                    end if
                    
                    if(trim(line) == trim(arguments(1))) then
@@ -751,15 +758,16 @@ contains
 
              else
                 
-                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(file)//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
-                
+                return
              end if
              
           else
-             call Matrix_exception( ERROR, "Unit file no connected!",&
+             call Matrix_exception( failAction, "Unit file no connected!",&
                   "Class object Matrix  in the getFromFile() function" )
-             
+             return
+
           end if
           
        else if ( present(file) ) then
@@ -797,15 +805,17 @@ contains
                 
                 close(4)
                 
-                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(file)//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
-                
+                return
+
              end if
              
           else
-             call Matrix_exception( ERROR, "The file "//trim(file)//" don't exist ",&
+             call Matrix_exception( failAction, "The file "//trim(file)//" don't exist ",&
                   "Class object Matrix  in the getFromFile() function" )
-             
+             return
+                                   
           end if
        end if
        
@@ -830,8 +840,10 @@ contains
                 
                    if(status == -1) then
                       
-                      call Matrix_exception( ERROR, "End of file!",&
+                      call Matrix_exception( failAction, "End of file!",&
                            "Class object Matrix in the getfromFile() function" )
+                      return
+
                    end if
                    
                    if(trim(line) == trim(arguments(1))) then
@@ -897,14 +909,18 @@ contains
 
             else
                 
-                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(file)//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
+                return
+
                 
              end if
              
           else
-             call Matrix_exception( ERROR, "Unit file no connected!",&
+             call Matrix_exception( failAction, "Unit file no connected!",&
                   "Class object Matrix  in the getFromFile() function" )
+             return
+
              
           end if
 
@@ -926,8 +942,10 @@ contains
                 
                 close(4)
                 
-                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(file)//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function" )
+                return
+
                 
              else
                 
@@ -940,8 +958,10 @@ contains
              
           else
              
-             call Matrix_exception( ERROR, "The file "//trim(file)//" don't exist ",&
+             call Matrix_exception( failAction, "The file "//trim(file)//" don't exist ",&
                   "Class object Matrix  in the getFromFile() function" )
+             return
+
              
           end if
           

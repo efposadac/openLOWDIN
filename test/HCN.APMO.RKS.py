@@ -29,10 +29,10 @@ outputRead = output.readlines()
 for line in outputRead:
     if "TOTAL ENERGY =" in line:
         totalEnergy = float(line.split()[3])
-    if "Exchange correlation energy with the final grid" in line:
-        exchangeCorrelationEnergy = float(line.split()[7])
-    if "E-/H_1 Correlation contribution:" in line:
-        nuclearElectronCorrelationEnergy = float(line.split()[3])
+    if "Total Exchange Correlation energy" in line:
+        exchangeCorrelationEnergy = float(line.split()[5])
+    if "E-/H_1 Corr. energy" in line:
+        nuclearElectronCorrelationEnergy = float(line.split()[4])
 
 
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)

@@ -20,8 +20,7 @@ CONTROL
 	!CIPrintEigenVectorsFormat = "ORBITALS"
 	overlapEigenThreshold=1E-6	
 	CIPrintThreshold = 5e-2
-	scfNonelectronicEnergyTolerance = 1E-8
-	scfElectronicEnergyTolerance = 1E-8
+	totalEnergyTolerance = 1E-8
 END CONTROL
 
 INPUT_CI

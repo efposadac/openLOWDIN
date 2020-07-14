@@ -138,52 +138,82 @@ contains
     integer :: i,newID
     integer :: stat
     integer :: numberOfSpeciesInCIinput
+    character(50) :: wfnFile,labels(2)
+    integer :: wfnUnit
+    real(8) :: removedOrbitals
 
     if ( allocated(InputCI_Instance) ) then
-    rewind(4)
+       rewind(4)
 
-    do i=1, numberOfSpeciesInCIinput
-       InputCI_species=""
-       InputCI_core=0
-       InputCI_active=0
-       InputCI_excitation=0
+       do i=1, numberOfSpeciesInCIinput
+          InputCI_species=""
+          InputCI_core=0
+          InputCI_active=0
+          InputCI_excitation=0
 
-       read(4,NML=InputCINamelist, iostat=stat)
+          read(4,NML=InputCINamelist, iostat=stat)
 
-       if(stat > 0 ) then
+          if(stat > 0 ) then
 
-          call InputCI_exception( ERROR, "Class object InputCI in the load function", &
-               "check the INPUT_CI block in your input file")
-       end if
-       newID = MolecularSystem_getSpecieID (InputCI_species)
+             call InputCI_exception( ERROR, "Class object InputCI in the load function", &
+                  "check the INPUT_CI block in your input file")
+          else
+             if(trim(InputCI_species) .ne. "" ) then
+             
+                newID = MolecularSystem_getSpecieID (InputCI_species)
 
-       if ( newID == 0 ) then
-           call InputCI_exception( ERROR, "Class object InputCI in the load function", &
-               "check the name of the species in the INPUT_CI block of your input file")
-       end if
+                if ( newID .ne. 0 ) then
+                   InputCI_Instance(newID)%species = trim(InputCI_species)
+                   InputCI_Instance(newID)%coreOrbitals = InputCI_core
+                   InputCI_Instance(newID)%activeOrbitals = InputCI_active
+                   InputCI_Instance(newID)%excitationType = InputCI_excitation
+                   
+                else
+                   call InputCI_exception( ERROR, "Class object InputCI in the load function", &
+                     "check the name of the species in the INPUT_CI block of your input file")
+                end if
+             else
+                InputCI_Instance(i)%species = MolecularSystem_getNameOfSpecie(i)          
+                InputCI_excitation=0
+                if( CONTROL_instance%MP_FROZEN_CORE_BOUNDARY .ne. 0 &
+                     .and. (trim(InputCI_Instance(i)%species) .eq. "E-" .or. trim(InputCI_Instance(i)%species) .eq. "E-ALPHA" .or. trim(InputCI_Instance(i)%species) .eq. "E-BETA")) &
+                     InputCI_Instance(i)%coreOrbitals=CONTROL_instance%MP_FROZEN_CORE_BOUNDARY
 
+                !! Check for orbitals removed in the SCF
+                if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+                   wfnFile = "lowdin.wfn"
+                else
+                   wfnFile = "lowdin-subsystemA.wfn"
+                end if
+                wfnUnit = 20
+                open(unit = wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-       InputCI_Instance(newID)%species = trim(InputCI_species)
-       InputCI_Instance(newID)%coreOrbitals = InputCI_core
-       InputCI_Instance(newID)%activeOrbitals = InputCI_active
-       InputCI_Instance(newID)%excitationType = InputCI_excitation
+                labels(2) = InputCI_Instance(i)%species
+                labels(1) = "REMOVED-ORBITALS"
+                call Vector_getFromFile(unit=wfnUnit, binary=.true., value=removedOrbitals, arguments=labels)
+                close(wfnUnit)
 
-    end do
+                if(removedOrbitals .ne. 0.0) InputCI_Instance(i)%activeOrbitals = MolecularSystem_getTotalNumberOfContractions(i)- int(removedOrbitals) 
+                
+             end if
+          end if
+       end do
+       close(4)
 
-!      call OutputManager_constructor( OutputManager_instance, &
-!                                                         InputCI_Instance%type, &
-!                                                         InputCI_Instance%specie, & 
-!                                                         InputCI_Instance%orbital, &
-!                                                         InputCI_Instance%dimensions, &
-!                                                         InputCI_Instance%cubeSize, &
-!                                                         InputCI_Instance%point1, & 
-!                                                         InputCI_Instance%point2, &
-!                                                         InputCI_Instance%point3  )
-!                        
+       !      call OutputManager_constructor( OutputManager_instance, &
+       !                                                         InputCI_Instance%type, &
+       !                                                         InputCI_Instance%specie, & 
+       !                                                         InputCI_Instance%orbital, &
+       !                                                         InputCI_Instance%dimensions, &
+       !                                                         InputCI_Instance%cubeSize, &
+       !                                                         InputCI_Instance%point1, & 
+       !                                                         InputCI_Instance%point2, &
+       !                                                         InputCI_Instance%point3  )
+       !                        
     else
 
-      call InputCI_exception( ERROR, "Class object InputCI in the load function", &
-                          "The Input_Parsing module wasn't instanced")
+       call InputCI_exception( ERROR, "Class object InputCI in the load function", &
+            "The Input_Parsing module wasn't instanced")
     end if
 
   end subroutine InputCI_load

@@ -25,6 +25,7 @@ module PropagatorTheory_
 	use IFPORT
 #endif
 	use MolecularSystem_
+        use InputCI_
 !	use IntegralManager_
 !	use GenericInterface_
 !        use PInterface_ 
@@ -62,12 +63,12 @@ module PropagatorTheory_
 		type(Matrix) :: energyCorrectionsOfSecondOrder
 		type(Matrix),allocatable :: secondOrderCorrections(:)
 		type(Matrix),allocatable :: thirdOrderCorrections(:)
-		type(Matrix) :: energyCorrections
-    type(IMatrix8), allocatable :: xy(:)
-    type(IVector8), allocatable :: ioff(:)
-    integer(8), allocatable :: ssize2(:)
+                type(Matrix) :: energyCorrections
+                type(IMatrix8), allocatable :: xy(:)
+                type(IVector8), allocatable :: ioff(:)
+                integer(8), allocatable :: ssize2(:)
 		logical :: isInstanced
-    logical :: externalSCS
+                logical :: externalSCS
 
 	end type PropagatorTheory
 
@@ -295,7 +296,7 @@ contains
 
              nameOfSpecies=trim(MolecularSystem_getNameOfSpecie( q ))
 
-             write (6,"(T10,A8,A10)") "SPECIE: ",nameOfSpecies
+             write (6,"(T10,A8,A10)") "SPECIES: ",nameOfSpecies
 
              if (nameOfSpecies=="E-ALPHA".or.nameOfSpecies=="E-BETA") then
                 
@@ -458,8 +459,8 @@ contains
     integer :: occupationNumberOfSpeciesA, virtualNumberOfSpeciesA
     integer :: occupationNumberOfSpeciesB, virtualNumberOfSpeciesB
     integer :: occupationNumberOfSpeciesC, virtualNumberOfSpeciesC
-    integer :: numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB
-    integer :: numberOfContractionsOfSpeciesC
+    integer :: activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB
+    integer :: activeOrbitalsOfSpeciesC
     integer(8) :: vectorSize1, vectorSize2, vectorSize3 !!! Sizes for diagrams
     integer(8) :: auxIndex
     integer(4) :: errorNum
@@ -485,7 +486,12 @@ contains
     character(50) :: arguments(2)
     integer :: wfnUnit
 
-    wfnFile = "lowdin.wfn"
+    if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+       wfnFile = "lowdin.wfn"
+    else
+       wfnFile = "lowdin-subsystemA.wfn"
+    end if
+
     wfnUnit = 20
 
    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
@@ -588,9 +594,12 @@ contains
        chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
        occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
-       numberOfContractionsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
+
+       activeOrbitalsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i ) 
+       if ( InputCI_Instance(i)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesA = InputCI_Instance(i)%activeOrbitals
+
        lambdaOfSpeciesA = MolecularSystem_getLambda( i )
-       virtualNumberOfSpeciesA = numberOfContractionsOfSpeciesA - occupationNumberOfSpeciesA
+       virtualNumberOfSpeciesA = activeOrbitalsOfSpeciesA - occupationNumberOfSpeciesA
 
        !!! Defining the number of orbitals !!! Insert a parameter for the else option
 
@@ -608,7 +617,11 @@ contains
           n = 1
        else
           PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-          PropagatorTheory_instance%occupationBoundary = occupationNumberOfSpeciesA
+          if(occupationNumberOfSpeciesA .eq. 0) then
+             PropagatorTheory_instance%occupationBoundary = 1
+          else
+             PropagatorTheory_instance%occupationBoundary = occupationNumberOfSpeciesA
+          end if
           n = 2
        end if
 
@@ -640,18 +653,19 @@ contains
 
         arguments(1) = "ORBITALS"
 
-        call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesA, &
+        call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( i ), &
                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                output =  eigenValuesOfSpeciesA )     
        
        do p = 1 , PropagatorTheory_instance%numberOfSpecies
           
-             numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
+             activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
+             if ( InputCI_Instance(p)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(p)%activeOrbitals
 
              arguments(2) = trim(MolecularSystem_getNameOfSpecie(p))
 
              arguments(1) = "ORBITALS"
-             call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesB, &
+             call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( p ), &
                      unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                      output =  eigenValuesOfSpeciesB  )    
 
@@ -662,7 +676,7 @@ contains
 
           !! Read transformed integrals from file
              call ReadTransformedIntegrals_readOneSpecies( p, auxMatrix2(p) )
-
+             
              auxMatrix2(p)%values = auxMatrix2(p)%values * MolecularSystem_getCharge( p ) &
                   * MolecularSystem_getCharge( p )
              
@@ -704,12 +718,13 @@ contains
           
           do j = 1 , PropagatorTheory_instance%numberOfSpecies             
 
-             numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+             activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+             if ( InputCI_Instance(j)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(j)%activeOrbitals
 
              arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
 
              arguments(1) = "ORBITALS"
-             call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesB, &
+             call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                      unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                      output =  eigenValuesOfSpeciesB  )     
 
@@ -742,16 +757,16 @@ contains
                 ! factor 2ph
                 
                 do ia = 1 , occupationNumberOfSpeciesA
-                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                          
-                         !!auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, numberOfContractionsOfSpeciesA )
+                         !!auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, activeOrbitalsOfSpeciesA )
                          auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ia, ba, i )
                          auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-                         !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, numberOfContractionsOfSpeciesA )
+                         !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, activeOrbitalsOfSpeciesA )
                          auxIndex = PropagatorTheory_IndexMapAA(pa, ba, ia, aa, i )
                          auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
-                        
+                         
                          id1 = id1 + 1
      
                          selfEnergy2ph(j)%values(1,id1) = auxValue_A*(lambdaOfSpeciesA*auxValue_A - auxValue_B)
@@ -767,16 +782,16 @@ contains
 
                    ! factor 2hp
 
-                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                       do ia = 1 , occupationNumberOfSpeciesA
                          do ja = 1 , occupationNumberOfSpeciesA
                             
                             id2 = id2 + 1
                             
-                            !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, numberOfContractionsOfSpeciesA )
+                            !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, activeOrbitalsOfSpeciesA )
                             auxIndex = PropagatorTheory_IndexMapAA(pa, ia, ja, aa, i )
                             auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-                            !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, aa, numberOfContractionsOfSpeciesA )
+                            !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, aa, activeOrbitalsOfSpeciesA )
                             auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ia, aa, i )
                             auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
                             
@@ -804,15 +819,15 @@ contains
 
                    id3 = 0
 
-                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                       do ia = 1 , occupationNumberOfSpeciesA
                          
                          id3 = id3 + 1
                          
-                         !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
+                         !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, activeOrbitalsOfSpeciesA )
                          auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, aa, i )
                          auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-                         !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
+                         !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, activeOrbitalsOfSpeciesA )
                          auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ia, pa, i )
                          auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
                           
@@ -834,7 +849,7 @@ contains
 !                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                 occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
                 lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-                virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+                virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
                 call Vector_constructor(occupationsOfSpeciesB,occupationNumberOfSpeciesB,1.0_8)
 
@@ -857,11 +872,11 @@ contains
                 ! diagram A
                 
                 do ib = 1 , occupationNumberOfSpeciesB
-                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                          
 
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                         !print *, "A", auxIndex
                          auxIndex = PropagatorTheory_IndexMapAB(pa, aa, ib, ab, i, j )
                          auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
@@ -879,13 +894,13 @@ contains
                 
                 ! diagram B
                 
-                do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                    do ia = 1 , occupationNumberOfSpeciesA
                       do ib = 1 , occupationNumberOfSpeciesB
                          
                          id2 = id2 + 1
                          
-                        !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                          auxIndex = PropagatorTheory_IndexMapAB(pa, ia, ib, ab, i, j )
                          auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
                          
@@ -912,12 +927,12 @@ contains
                 
                 id3 = 0
                 
-                do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                    do ib = 1 , occupationNumberOfSpeciesB
                       
                       id3 = id3 + 1
                       
-                      !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                      !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                       auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, ab, i, j )
                       auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
                       
@@ -1210,8 +1225,8 @@ contains
 !    integer :: occupationNumberOfSpeciesA, virtualNumberOfSpeciesA
 !    integer :: occupationNumberOfSpeciesB, virtualNumberOfSpeciesB
 !    integer :: occupationNumberOfSpeciesC, virtualNumberOfSpeciesC
-!    integer :: numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB
-!    integer :: numberOfContractionsOfSpeciesC
+!    integer :: activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB
+!    integer :: activeOrbitalsOfSpeciesC
 !    integer(8) :: vectorSize1, vectorSize2 !!! Sizes for diagrams
 !    integer(8) :: auxIndex
 !    integer(4) :: errorNum
@@ -1283,9 +1298,9 @@ contains
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
-!       numberOfContractionsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
+!       activeOrbitalsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
 !       lambdaOfSpeciesA = MolecularSystem_getLambda( i )
-!       virtualNumberOfSpeciesA = numberOfContractionsOfSpeciesA - occupationNumberOfSpeciesA
+!       virtualNumberOfSpeciesA = activeOrbitalsOfSpeciesA - occupationNumberOfSpeciesA
 !
 !       ! paso
 !
@@ -1369,12 +1384,12 @@ contains
 !                ! factor 2ph
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, activeOrbitalsOfSpeciesA )
 !                         auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, activeOrbitalsOfSpeciesA )
 !                         auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
 !                         
 !                         id1 = id1 + 1
@@ -1391,13 +1406,13 @@ contains
 !                            do ja = 1, occupationNumberOfSpeciesA
 !                               do ka = 1, occupationNumberOfSpeciesA
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, activeOrbitalsOfSpeciesA )
 !                                  auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, activeOrbitalsOfSpeciesA )
 !                                  auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                                  auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                                  auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -1407,29 +1422,29 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               do ja = 1, occupationNumberOfSpeciesA
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                                  auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                                  auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, activeOrbitalsOfSpeciesA )
 !                                  auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, activeOrbitalsOfSpeciesA )
 !                                  auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
 !                                       /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ja) &
 !                                       - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesA%values(ca) )
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, activeOrbitalsOfSpeciesA )
 !                                  auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, activeOrbitalsOfSpeciesA )
 !                                  auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, activeOrbitalsOfSpeciesA )
 !                                  auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, activeOrbitalsOfSpeciesA )
 !                                  auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -1447,25 +1462,25 @@ contains
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                  numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                  activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                  lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                  virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                  virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                  
 !                                  do ib = 1 , occupationNumberOfSpeciesB
-!                                     do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                     do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                        
 !                                        valueOfW = valueOfW + 1.0_8*(auxValue_A*auxValue_B)&
 !                                             /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesB%values(ib) &
 !                                             - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesB%values(ab) )
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                        
 !                                        valueOfW = valueOfW - 1.0_8*(auxValue_A*auxValue_B)&
@@ -1491,15 +1506,15 @@ contains
 !
 !                   ! factor 2hp
 !                   
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            
 !                            id2 = id2 + 1
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, numberOfContractionsOfSpeciesA )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, activeOrbitalsOfSpeciesA )
 !                            auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, numberOfContractionsOfSpeciesA )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, activeOrbitalsOfSpeciesA )
 !                            auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
 !                            
 !                            selfEnergy2hp(j)%values(1,id2) = auxValue_A - auxValue_B
@@ -1509,16 +1524,16 @@ contains
 !
 !                            valueOfW = 0.0_8
 !
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                               do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                               do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, activeOrbitalsOfSpeciesA )
 !                                  auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, activeOrbitalsOfSpeciesA )
 !                                  auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, activeOrbitalsOfSpeciesA )
 !                                  auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, activeOrbitalsOfSpeciesA )
 !                                  auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -1528,29 +1543,29 @@ contains
 !                               end do
 !                            end do
 !
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               do ka = 1, occupationNumberOfSpeciesA
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, activeOrbitalsOfSpeciesA )
 !                                  auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, activeOrbitalsOfSpeciesA )
 !                                  auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, activeOrbitalsOfSpeciesA )
 !                                  auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, activeOrbitalsOfSpeciesA )
 !                                  auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !
 !                                  valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
 !                                       /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesA%values(ka) &
 !                                       - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesA%values(ba) )
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, activeOrbitalsOfSpeciesA )
 !                                  auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, activeOrbitalsOfSpeciesA )
 !                                  auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, activeOrbitalsOfSpeciesA )
 !                                  auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, activeOrbitalsOfSpeciesA )
 !                                  auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -1568,25 +1583,25 @@ contains
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                  numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                  activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                  lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                  virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                  virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !
 !                                  do ib = 1 , occupationNumberOfSpeciesB
-!                                     do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                     do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !
 !                                        valueOfW = valueOfW + 1.0_8*(auxValue_A*auxValue_B)&
 !                                             /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesB%values(ib) &
 !                                             - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesB%values(ab) )
 !                                                                                
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !
 !                                        valueOfW = valueOfW - 1.0_8*(auxValue_A*auxValue_B)&
@@ -1614,9 +1629,9 @@ contains
 !                chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !
 !                ! paso
 !
@@ -1640,10 +1655,10 @@ contains
 !                ! diagram A
 !                
 !                do ib = 1 , occupationNumberOfSpeciesB
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                         auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                         
 !                         id1 = id1 + 1
@@ -1661,10 +1676,10 @@ contains
 !                               do jb = 1, occupationNumberOfSpeciesB
 !                                  
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, jb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW + (auxValue_A * auxValue_B)&
@@ -1674,14 +1689,14 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib,  bb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_A * auxValue_B)&
@@ -1691,15 +1706,15 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A = auxMatrix2(i)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B = auxMatrix2(i)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -1710,14 +1725,14 @@ contains
 !                            end do
 !                            
 !                            do jb = 1 , occupationNumberOfSpeciesB
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A= auxMatrix%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, ab, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, ab, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, jb, bb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW + (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -1737,13 +1752,13 @@ contains
 !                
 !                ! diagram B
 !                
-!                do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                   do ia = 1 , occupationNumberOfSpeciesA
 !                      do ib = 1 , occupationNumberOfSpeciesB
 !                         
 !                         id2 = id2 + 1
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                         auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                         
 !                         selfEnergy2hp(j)%values(1,id2) = auxValue_A
@@ -1753,12 +1768,12 @@ contains
 !                         
 !                         valueOfW = 0.0_8
 !
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + (auxValue_A * auxValue_B)&
@@ -1768,12 +1783,12 @@ contains
 !                            end do
 !                         end do
 !
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do jb = 1 , occupationNumberOfSpeciesB
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_A * auxValue_B)&
@@ -1783,14 +1798,14 @@ contains
 !                            end do
 !                         end do
 !
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, activeOrbitalsOfSpeciesA )
 !                               auxValue_A = auxMatrix2(i)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B = auxMatrix2(i)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -1801,13 +1816,13 @@ contains
 !                         end do
 !
 !                         do jb = 1 , occupationNumberOfSpeciesB
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -1855,8 +1870,8 @@ contains
 !                   id2=0
 !                   
 !                   do ia = 1 , occupationNumberOfSpeciesA
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            
 !                            id1 = id1 + 1
 !                            
@@ -1877,7 +1892,7 @@ contains
 !                      
 !                      ! factor 2hp
 !                      
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !                               
@@ -1904,9 +1919,9 @@ contains
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                   lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !
 !                   id1 = 0
 !                   id2 = 0
@@ -1914,8 +1929,8 @@ contains
 !                   ! diagram A
 !                   
 !                   do ib = 1 , occupationNumberOfSpeciesB
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
 !                            id1 = id1 + 1
 !
@@ -1934,7 +1949,7 @@ contains
 !                   
 !                   ! diagram B
 !                   
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ib = 1 , occupationNumberOfSpeciesB
 !                            
@@ -2011,8 +2026,8 @@ contains
 !                   id2=0
 !                   
 !                   do ia = 1 , occupationNumberOfSpeciesA
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            
 !                            id1 = id1 + 1
 !                            
@@ -2021,16 +2036,16 @@ contains
 !
 !                            if (.not.paso1) then
 !                               
-!                               do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                  do da = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                  do da = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -2044,15 +2059,15 @@ contains
 !                               end do
 !                               
 !                               do ja = 1 , occupationNumberOfSpeciesA
-!                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                  
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -2062,13 +2077,13 @@ contains
 !                                     valueOfU = valueOfU + a2/c
 !                                     valueOfdU = valueOfdU - a2/(c**2.0_8)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -2089,16 +2104,16 @@ contains
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                     numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                     activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                     lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                     virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                     virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                     
 !                                     do ib = 1 , occupationNumberOfSpeciesB
-!                                        do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                        do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                           
 !                                           a2 = auxValue_A*auxValue_B
@@ -2108,9 +2123,9 @@ contains
 !                                           valueOfU = valueOfU + 2.0_8*a2/c
 !                                           valueofdU = valueOfdU - 2.0_8*a2/(c**2.0_8)
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                           
 !                                           a2 = auxValue_A*auxValue_B
@@ -2148,7 +2163,7 @@ contains
 !                      
 !                      ! factor 2hp
 !                      
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !                               
@@ -2160,13 +2175,13 @@ contains
 !                               do ka = 1 , occupationNumberOfSpeciesA
 !                                  do la = 1 , occupationNumberOfSpeciesA
 !
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !
 !                                     a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -2180,15 +2195,15 @@ contains
 !                               end do
 !
 !                               do ka = 1 , occupationNumberOfSpeciesA
-!                                  do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !
 !                                     a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -2198,13 +2213,13 @@ contains
 !                                     valueOfU = valueOfU - a2/c
 !                                     valueOfdU = valueOfdU + a2/(c**2.0_8)
 !
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !
 !                                     a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -2225,16 +2240,16 @@ contains
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                     numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                     activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                     lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                     virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                     virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                     
 !                                     do ib = 1 , occupationNumberOfSpeciesB
-!                                        do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                        do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                           
 !                                           a2 = auxValue_A*auxValue_B
@@ -2244,9 +2259,9 @@ contains
 !                                           valueOfU = valueOfU + 2.0_8*a2/c
 !                                           valueofdU = valueOfdU - 2.0_8*a2/(c**2.0_8)
 ! 
-!                                          auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                           
 !                                           a2 = auxValue_A*auxValue_B
@@ -2286,9 +2301,9 @@ contains
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                   lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !
 !                   paso2=(nameOfSpeciesA=="e-ALPHA".and.nameOfSpeciesB=="e-BETA").or.&
 !                        (nameOfSpeciesA=="e-BETA".and.nameOfSpeciesB=="e-ALPHA")
@@ -2304,8 +2319,8 @@ contains
 !                   ! diagram A
 !                   
 !                   do ib = 1 , occupationNumberOfSpeciesB
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
 !                            id1 = id1 + 1
 !
@@ -2316,14 +2331,14 @@ contains
 !                               
 !                               do jb = 1 , occupationNumberOfSpeciesB
 !                                  
-!                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C= auxMatrix%values(auxIndex, 1)
 !
 !                                     a2 = (auxValue_A)*(auxValue_B - auxValue_C)
@@ -2336,15 +2351,15 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !
-!                                     auxIndex = IndexMap_tensorR4ToVector(aa, aa, ab, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(aa, aa, ab, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = auxValue_A*auxValue_B
@@ -2359,12 +2374,12 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                  do jb = 1 , occupationNumberOfSpeciesB
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = auxValue_A*auxValue_B
@@ -2396,7 +2411,7 @@ contains
 !                   
 !                   ! diagram B
 !                   
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ib = 1 , occupationNumberOfSpeciesB
 !                            
@@ -2407,14 +2422,14 @@ contains
 !
 !                            do jb = 1 , occupationNumberOfSpeciesB
 !
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                                                    
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                  auxValue_C= auxMatrix%values(auxIndex, 1)
 !                               
 !                                  a2 = (auxValue_A)*(auxValue_B - auxValue_C)
@@ -2430,9 +2445,9 @@ contains
 !                            do jb = 1 , occupationNumberOfSpeciesB
 !                               do ja = 1 , occupationNumberOfSpeciesA
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  a2 = auxValue_A*auxValue_B
@@ -2445,12 +2460,12 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ja = 1 , occupationNumberOfSpeciesA
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  a2 = auxValue_A*auxValue_B
@@ -2491,9 +2506,9 @@ contains
 !                         chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                         eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                         occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
-!                         numberOfContractionsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
+!                         activeOrbitalsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
 !                         lambdaOfSpeciesC = MolecularSystem_getLambda( k )
-!                         virtualNumberOfSpeciesC = numberOfContractionsOfSpeciesC - occupationNumberOfSpeciesC
+!                         virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 !                         
 !!                         call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                              MolecularSystem_getEigenVectors(j), MolecularSystem_getEigenVectors(k), &
@@ -2502,8 +2517,8 @@ contains
 !                         auxMatrix3%values = auxMatrix3%values * (chargeOfSpeciesB*chargeOfSpeciesC)
 !                         
 !                         do ib = 1 , occupationNumberOfSpeciesB
-!                            do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                               do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                               do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                                  id1 = id1 + 1
 !
@@ -2511,11 +2526,11 @@ contains
 !                                  valueOfdU=0.0_8
 !
 !                                  do ic = 1 , occupationNumberOfSpeciesC
-!                                     do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                     do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                               
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                        auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                        auxValue_B = auxMatrix3%values(auxIndex, 1)
 !                                        
 !                                        a2 = auxValue_A*auxValue_B
@@ -2543,7 +2558,7 @@ contains
 !                            end do
 !                         end do
 !
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            do ia = 1 , occupationNumberOfSpeciesA
 !                               do ib = 1 , occupationNumberOfSpeciesB
 !                                  
@@ -2553,11 +2568,11 @@ contains
 !                                  valueOfdU=0.0_8
 !
 !                                  do ic = 1 , occupationNumberOfSpeciesC
-!                                     do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                     do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                        auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                        auxValue_B = auxMatrix3%values(auxIndex, 1)
 !                                        
 !                                        a2 = auxValue_A*auxValue_B
@@ -2648,8 +2663,8 @@ contains
 !    integer :: occupationNumberOfSpeciesA, virtualNumberOfSpeciesA
 !    integer :: occupationNumberOfSpeciesB, virtualNumberOfSpeciesB
 !    integer :: occupationNumberOfSpeciesC, virtualNumberOfSpeciesC
-!    integer :: numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB
-!    integer :: numberOfContractionsOfSpeciesC
+!    integer :: activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB
+!    integer :: activeOrbitalsOfSpeciesC
 !    integer(8) :: vectorSize1, vectorSize2 !!! Sizes for diagrams
 !    integer(8) :: auxIndex
 !    integer(4) :: errorNum
@@ -2726,9 +2741,9 @@ contains
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
-!       numberOfContractionsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
+!       activeOrbitalsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
 !       lambdaOfSpeciesA = MolecularSystem_getLambda( i )
-!       virtualNumberOfSpeciesA = numberOfContractionsOfSpeciesA - occupationNumberOfSpeciesA
+!       virtualNumberOfSpeciesA = activeOrbitalsOfSpeciesA - occupationNumberOfSpeciesA
 !       
 !       ! paso
 !       
@@ -2786,8 +2801,8 @@ contains
 !          ! second order densities 1 (for alpha)
 !          print *,"entro a densities 1"
 !          
-!          call Matrix_constructor(secondOrderDensities(i), int(numberOfContractionsOfSpeciesA,8),&
-!               int(numberOfContractionsOfSpeciesA,8) , 0.0_8)
+!          call Matrix_constructor(secondOrderDensities(i), int(activeOrbitalsOfSpeciesA,8),&
+!               int(activeOrbitalsOfSpeciesA,8) , 0.0_8)
 !          
 !          do p = 1 , PropagatorTheory_instance%numberOfSpecies
 !             
@@ -2797,17 +2812,17 @@ contains
 !                   do ja = 1 , occupationNumberOfSpeciesA
 !                      
 !                      do ka = 1 , occupationNumberOfSpeciesA
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p)%values(auxIndex, 1)
 !                               
 !                               secondOrderDensities(i)%values(ia,ja) = secondOrderDensities(i)%values(ia,ja) &
@@ -2820,18 +2835,18 @@ contains
 !                         end do
 !                      end do
 !                      
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p)%values(auxIndex, 1)
 !                               
 !                               secondOrderDensities(i)%values(aa,ba) = secondOrderDensities(i)%values(aa,ba) &
@@ -2848,22 +2863,22 @@ contains
 !                end do
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            do ka = 1 , occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -2874,17 +2889,17 @@ contains
 !                      end do
 !                       
 !                      do ja = 1 , occupationNumberOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -2906,20 +2921,20 @@ contains
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
-!                numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
+!                activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
 !                lambdaOfSpeciesB = MolecularSystem_getLambda( p )
-!                virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
 !                   do ja = 1 , occupationNumberOfSpeciesA
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p)%values(auxIndex, 1)
 !                               
 !                               secondOrderDensities(i)%values(ia,ja) = secondOrderDensities(i)%values(ia,ja) &
@@ -2935,16 +2950,16 @@ contains
 !                   end do
 !                end do
 !                
-!                do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                   do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                   do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ib = 1 , occupationNumberOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p)%values(auxIndex, 1)
 !                               
 !                               secondOrderDensities(i)%values(aa,ba) = secondOrderDensities(i)%values(aa,ba) &
@@ -2961,17 +2976,17 @@ contains
 !                end do
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            do ib = 1 , occupationNumberOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue - (auxValue_A*auxValue_B)/( eigenValuesOfSpeciesA%values(ja)&
@@ -2982,12 +2997,12 @@ contains
 !                      end do
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue + (auxValue_A*auxValue_B)/( eigenValuesOfSpeciesA%values(ia)&
@@ -3043,12 +3058,12 @@ contains
 !                ! factor 2ph
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, activeOrbitalsOfSpeciesA )
 !                         auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, activeOrbitalsOfSpeciesA )
 !                         auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
 !                         
 !                         id1 = id1 + 1
@@ -3063,13 +3078,13 @@ contains
 !                         do ja = 1, occupationNumberOfSpeciesA
 !                            do ka = 1, occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -3079,29 +3094,29 @@ contains
 !                            end do
 !                         end do
 !                         
-!                         do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ja = 1, occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
 !                                    /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ja) &
 !                                    - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesA%values(ca) )
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -3119,25 +3134,25 @@ contains
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                  numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                  activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                  lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                  virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                  virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                  
 !                                  do ib = 1 , occupationNumberOfSpeciesB
-!                                     do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                     do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                        
 !                                        valueOfW = valueOfW + (auxValue_A*auxValue_B)&
 !                                             /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesB%values(ib) &
 !                                             - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesB%values(ab) )
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                        
 !                                        valueOfW = valueOfW - (auxValue_A*auxValue_B)&
@@ -3161,15 +3176,15 @@ contains
 !                      
 !                      ! factor 2hp
 !                      
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !                               
 !                               id2 = id2 + 1
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               selfEnergy2hp(j)%values(1,id2) = auxValue_A - auxValue_B
@@ -3179,16 +3194,16 @@ contains
 !                               
 !                               valueOfW = 0.0_8
 !                               
-!                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -3198,29 +3213,29 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                  do ka = 1, occupationNumberOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
 !                                          /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesA%values(ka) &
 !                                          - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesA%values(ba) )
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -3238,25 +3253,25 @@ contains
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                     numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                     activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                     lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                     virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                     virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                     
 !                                     do ib = 1 , occupationNumberOfSpeciesB
-!                                        do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                        do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                           
 !                                           valueOfW = valueOfW + (auxValue_A*auxValue_B)&
 !                                                /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesB%values(ib) &
 !                                                - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesB%values(ab) )
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                           
 !                                           valueOfW = valueOfW - (auxValue_A*auxValue_B)&
@@ -3284,9 +3299,9 @@ contains
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                   lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                   
 !                   ! paso
 !                   
@@ -3306,24 +3321,24 @@ contains
 !                      print *,"entro a densities 2"
 !                      ! Second order densities 2
 !                      
-!                      call Matrix_constructor(secondOrderDensities(j), int(numberOfContractionsOfSpeciesB,8),&
-!                           int(numberOfContractionsOfSpeciesB,8) , 0.0_8)
+!                      call Matrix_constructor(secondOrderDensities(j), int(activeOrbitalsOfSpeciesB,8),&
+!                           int(activeOrbitalsOfSpeciesB,8) , 0.0_8)
 !                      
 !                      do ia = 1 , occupationNumberOfSpeciesB
 !                         do ja = 1 , occupationNumberOfSpeciesB
 !                            
 !                            do ka = 1 , occupationNumberOfSpeciesB
-!                               do aa = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ba = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do aa = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ba = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix%values(auxIndex, 1)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesB )
 !                                     auxValue_D= auxMatrix%values(auxIndex, 1)
 !                                     
 !                                     secondOrderDensities(j)%values(ia,ja) = secondOrderDensities(j)%values(ia,ja) &
@@ -3337,12 +3352,12 @@ contains
 !                            end do
 !                            
 !                            do ib = 1 , occupationNumberOfSpeciesA
-!                               do aa = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ab = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do aa = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ab = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     secondOrderDensities(j)%values(ia,ja) = secondOrderDensities(j)%values(ia,ja) &
@@ -3358,21 +3373,21 @@ contains
 !                         end do
 !                      end do
 !                      
-!                      do aa = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                         do ba = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                         do ba = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
 !                            do ia = 1 , occupationNumberOfSpeciesB
 !                               do ja = 1 , occupationNumberOfSpeciesB
-!                                  do ca = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                  do ca = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix%values(auxIndex, 1)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesB )
 !                                     auxValue_D= auxMatrix%values(auxIndex, 1)
 !                                     
 !                                     secondOrderDensities(j)%values(aa,ba) = secondOrderDensities(j)%values(aa,ba) &
@@ -3385,13 +3400,13 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do ab = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               do ia = 1 , occupationNumberOfSpeciesB
 !                                  do ib = 1 , occupationNumberOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     secondOrderDensities(j)%values(aa,ba) = secondOrderDensities(j)%values(aa,ba) &
@@ -3408,22 +3423,22 @@ contains
 !                      end do
 !                      
 !                      do ia = 1 , occupationNumberOfSpeciesB
-!                         do aa = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do aa = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
 !                            partialValue = 0.0_8
 !                            
-!                            do ba = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do ba = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ja = 1 , occupationNumberOfSpeciesB
 !                                  do ka = 1 , occupationNumberOfSpeciesB
 !                                       
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix%values(auxIndex, 1)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesB )
 !                                     auxValue_D= auxMatrix%values(auxIndex, 1)
 !                                     
 !                                     partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(ja)&
@@ -3433,13 +3448,13 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do ab = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               do ja = 1 , occupationNumberOfSpeciesB
 !                                  do ib = 1 , occupationNumberOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     partialValue = partialValue - 2.0_8*(auxValue_A*auxValue_B)/( eigenValuesOfSpeciesB%values(ja)&
@@ -3450,17 +3465,17 @@ contains
 !                            end do
 !                            
 !                            do ja = 1 , occupationNumberOfSpeciesB
-!                               do ba = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ca = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do ba = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ca = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix%values(auxIndex, 1)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesB )
 !                                     auxValue_D= auxMatrix%values(auxIndex, 1)
 !                                     
 !                                     partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(ja)&
@@ -3471,12 +3486,12 @@ contains
 !                            end do
 !                            
 !                            do ib = 1 , occupationNumberOfSpeciesA
-!                               do ba = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ab = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ba = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ab = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ba, aa, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ba, aa, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     partialValue = partialValue + 2.0_8*(auxValue_A*auxValue_B)/( eigenValuesOfSpeciesB%values(ia)&
@@ -3505,10 +3520,10 @@ contains
 !                   ! diagram A
 !                   
 !                   do ib = 1 , occupationNumberOfSpeciesB
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                            auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                            
 !                            id1 = id1 + 1
@@ -3524,10 +3539,10 @@ contains
 !                               do jb = 1, occupationNumberOfSpeciesB
 !                                  
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, jb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW + (auxValue_A * auxValue_B)&
@@ -3537,14 +3552,14 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib,  bb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_A * auxValue_B)&
@@ -3554,15 +3569,15 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A = auxMatrix2(i)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B = auxMatrix2(i)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -3573,14 +3588,14 @@ contains
 !                            end do
 !                            
 !                            do jb = 1 , occupationNumberOfSpeciesB
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A= auxMatrix%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, ab, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, ab, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, jb, bb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW + (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -3598,13 +3613,13 @@ contains
 !                   
 !                   ! diagram B
 !                   
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ib = 1 , occupationNumberOfSpeciesB
 !                            
 !                            id2 = id2 + 1
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                            auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                            
 !                            selfEnergy2hp(j)%values(1,id2) = auxValue_A
@@ -3614,12 +3629,12 @@ contains
 !                            
 !                            valueOfW = 0.0_8
 !
-!                            do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                  
 !                               valueOfW = valueOfW + (auxValue_A * auxValue_B)&
@@ -3629,12 +3644,12 @@ contains
 !                            end do
 !                         end do
 !                         
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do jb = 1 , occupationNumberOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_A * auxValue_B)&
@@ -3644,14 +3659,14 @@ contains
 !                            end do
 !                         end do
 !
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, activeOrbitalsOfSpeciesA )
 !                               auxValue_A = auxMatrix2(i)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B = auxMatrix2(i)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -3662,13 +3677,13 @@ contains
 !                         end do
 !
 !                         do jb = 1 , occupationNumberOfSpeciesB
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -3715,8 +3730,8 @@ contains
 !                   id2=0
 !                   
 !                   do ia = 1 , occupationNumberOfSpeciesA
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            
 !                            id1 = id1 + 1
 !                            
@@ -3734,7 +3749,7 @@ contains
 !                      
 !                      ! factor 2hp
 !                      
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !                               
@@ -3758,9 +3773,9 @@ contains
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                   lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !
 !                   id1 = 0
 !                   id2 = 0
@@ -3768,8 +3783,8 @@ contains
 !                   ! diagram A
 !                   
 !                   do ib = 1 , occupationNumberOfSpeciesB
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
 !                            id1 = id1 + 1
 !
@@ -3785,7 +3800,7 @@ contains
 !                   
 !                   ! diagram B
 !                   
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ib = 1 , occupationNumberOfSpeciesB
 !                            
@@ -3896,13 +3911,13 @@ contains
 !
 !                      ! if (o==1 .and. ni==2) then
 !                         
-!                      !    do ra = 1, numberOfContractionsOfSpeciesA
-!                      !       do sa = 1, numberOfContractionsOfSpeciesA
+!                      !    do ra = 1, activeOrbitalsOfSpeciesA
+!                      !       do sa = 1, activeOrbitalsOfSpeciesA
 !                               
-!                      !          auxIndex = IndexMap_tensorR4ToVector(pa, pa, ra, sa, numberOfContractionsOfSpeciesA )
+!                      !          auxIndex = IndexMap_tensorR4ToVector(pa, pa, ra, sa, activeOrbitalsOfSpeciesA )
 !                      !          auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !
-!                      !          auxIndex = IndexMap_tensorR4ToVector(pa, sa, ra, pa, numberOfContractionsOfSpeciesA )
+!                      !          auxIndex = IndexMap_tensorR4ToVector(pa, sa, ra, pa, activeOrbitalsOfSpeciesA )
 !                      !          auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                      !          constantSelfEnergy = constantSelfEnergy + (auxValue_A-auxValue_B)*secondOrderDensities(j)%values(ra,sa)
@@ -3920,8 +3935,8 @@ contains
 !                      subdU = 0.0_8
 !                      
 !                      do ia = 1 , occupationNumberOfSpeciesA
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
 !                               id1 = id1 + 1
 !                               
@@ -3930,16 +3945,16 @@ contains
 !
 !                               if ( (.not.paso1).or.(o/=1)) then
 !                                  
-!                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                     do da = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                     do da = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -3953,15 +3968,15 @@ contains
 !                                  end do
 !                                  
 !                                  do ja = 1 , occupationNumberOfSpeciesA
-!                                     do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                     do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -3971,13 +3986,13 @@ contains
 !                                        valueOfU = valueOfU + a2/c
 !                                        valueOfdU = valueOfdU - a2/(c**2.0_8)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -3998,16 +4013,16 @@ contains
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                        numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                        activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                        lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                        virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                        virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                        
 !                                        do ib = 1 , occupationNumberOfSpeciesB
-!                                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                              
 !                                              a2 = auxValue_A*auxValue_B
@@ -4017,9 +4032,9 @@ contains
 !                                              valueOfU = valueOfU + 2.0_8*a2/c
 !                                              valueofdU = valueOfdU - 2.0_8*a2/(c**2.0_8)
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                              
 !                                              a2 = auxValue_A*auxValue_B
@@ -4075,7 +4090,7 @@ contains
 !                         subdW = 0.0_8
 !                         subdU = 0.0_8
 !                         
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ia = 1 , occupationNumberOfSpeciesA
 !                               do ja = 1 , occupationNumberOfSpeciesA
 !                                  
@@ -4087,13 +4102,13 @@ contains
 !                                  do ka = 1 , occupationNumberOfSpeciesA
 !                                     do la = 1 , occupationNumberOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -4107,15 +4122,15 @@ contains
 !                                  end do
 !                                  
 !                                  do ka = 1 , occupationNumberOfSpeciesA
-!                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -4125,13 +4140,13 @@ contains
 !                                        valueOfU = valueOfU - a2/c
 !                                        valueOfdU = valueOfdU + a2/(c**2.0_8)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -4152,16 +4167,16 @@ contains
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                        numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                        activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                        lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                        virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                        virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                        
 !                                        do ib = 1 , occupationNumberOfSpeciesB
-!                                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                              
 !                                              a2 = auxValue_A*auxValue_B
@@ -4171,9 +4186,9 @@ contains
 !                                              valueOfU = valueOfU + 2.0_8*a2/c
 !                                              valueofdU = valueOfdU - 2.0_8*a2/(c**2.0_8)
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(k)%values(auxIndex, 1)
 !                                              
 !                                              a2 = auxValue_A*auxValue_B
@@ -4221,9 +4236,9 @@ contains
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                      numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                      activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                      lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                      virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                      virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                      
 !                      paso2=(nameOfSpeciesA=="e-ALPHA".and.nameOfSpeciesB=="e-BETA").or.&
 !                           (nameOfSpeciesA=="e-BETA".and.nameOfSpeciesB=="e-ALPHA")
@@ -4238,10 +4253,10 @@ contains
 !                      
 !                      if (o==1 .and. ni==2) then
 !
-!                         do rb = 1, numberOfContractionsOfSpeciesB
-!                            do sb = 1, numberOfContractionsOfSpeciesB
+!                         do rb = 1, activeOrbitalsOfSpeciesB
+!                            do sb = 1, activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, pa, rb, sb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, pa, rb, sb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                               
 !                               constantSelfEnergy = constantSelfEnergy + auxValue_A*secondOrderDensities(j)%values(rb,sb)
@@ -4261,8 +4276,8 @@ contains
 !                      subdU = 0.0_8
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
 !                               id1 = id1 + 1
 !                               
@@ -4273,14 +4288,14 @@ contains
 !                                  
 !                                  do jb = 1 , occupationNumberOfSpeciesB
 !                                     
-!                                     do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                     do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B= auxMatrix%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                        auxValue_C= auxMatrix%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A)*(auxValue_B - auxValue_C)
@@ -4293,15 +4308,15 @@ contains
 !                                     end do
 !                                  end do
 !                                  
-!                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, aa, ab, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, aa, ab, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_C = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = auxValue_A*auxValue_B
@@ -4314,12 +4329,12 @@ contains
 !                                     end do
 !                                  end do
 !                                  
-!                                  do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     do jb = 1 , occupationNumberOfSpeciesB
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = auxValue_A*auxValue_B
@@ -4370,7 +4385,7 @@ contains
 !                      subdW = 0.0_8
 !                      subdU = 0.0_8
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ib = 1 , occupationNumberOfSpeciesB
 !                               
@@ -4381,14 +4396,14 @@ contains
 !                               
 !                               do jb = 1 , occupationNumberOfSpeciesB
 !                                  
-!                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C= auxMatrix%values(auxIndex, 1)
 !                                     
 !                                     a2 = (auxValue_A)*(auxValue_B - auxValue_C)
@@ -4404,9 +4419,9 @@ contains
 !                               do jb = 1 , occupationNumberOfSpeciesB
 !                                  do ja = 1 , occupationNumberOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = auxValue_A*auxValue_B
@@ -4419,12 +4434,12 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  do ja = 1 , occupationNumberOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = auxValue_A*auxValue_B
@@ -4474,9 +4489,9 @@ contains
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
-!                            numberOfContractionsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
+!                            activeOrbitalsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
 !                            lambdaOfSpeciesC = MolecularSystem_getLambda( k )
-!                            virtualNumberOfSpeciesC = numberOfContractionsOfSpeciesC - occupationNumberOfSpeciesC
+!                            virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 !                            
 !!                           call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                                 MolecularSystem_getEigenVectors(j), MolecularSystem_getEigenVectors(k), &
@@ -4494,12 +4509,12 @@ contains
 !                                  do ja = 1 , occupationNumberOfSpeciesB
 !                                     
 !                                     do ib = 1 , occupationNumberOfSpeciesC
-!                                        do aa = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                           do ab = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                        do aa = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                           do ab = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_A= auxMatrix3%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_B= auxMatrix3%values(auxIndex, 1)
 !                                              
 !                                              secondOrderDensities(j)%values(ia,ja) = secondOrderDensities(j)%values(ia,ja) &
@@ -4515,16 +4530,16 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do aa = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ba = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do aa = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ba = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
-!                                     do ab = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                     do ab = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                        do ia = 1 , occupationNumberOfSpeciesB
 !                                           do ib = 1 , occupationNumberOfSpeciesC
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_A= auxMatrix3%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_B= auxMatrix3%values(auxIndex, 1)
 !                                              
 !                                              secondOrderDensities(j)%values(aa,ba) = secondOrderDensities(j)%values(aa,ba) &
@@ -4541,17 +4556,17 @@ contains
 !                               end do
 !                               
 !                               do ia = 1 , occupationNumberOfSpeciesB
-!                                  do aa = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                  do aa = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
 !                                     partialValue = 0.0_8
 !                                     
-!                                     do ab = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                     do ab = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                        do ja = 1 , occupationNumberOfSpeciesB
 !                                           do ib = 1 , occupationNumberOfSpeciesC
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_A= auxMatrix3%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_B= auxMatrix3%values(auxIndex, 1)
 !                                              
 !                                              partialValue = partialValue - (auxValue_A*auxValue_B)/( eigenValuesOfSpeciesB%values(ja)&
@@ -4562,12 +4577,12 @@ contains
 !                                     end do
 !                                     
 !                                     do ib = 1 , occupationNumberOfSpeciesC
-!                                        do ba = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                           do ab = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                        do ba = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                           do ab = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(ba, aa, ib, ab, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ba, aa, ib, ab, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_A= auxMatrix3%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_B= auxMatrix3%values(auxIndex, 1)
 !                                              
 !                                              partialValue = partialValue + (auxValue_A*auxValue_B)/( eigenValuesOfSpeciesB%values(ia)&
@@ -4591,8 +4606,8 @@ contains
 !                            subdU=0.0_8                            
 !                            
 !                            do ib = 1 , occupationNumberOfSpeciesB
-!                               do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                  do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                  do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
 !                                     id1 = id1 + 1
 !                                     
@@ -4600,11 +4615,11 @@ contains
 !                                     valueOfdU=0.0_8
 !                                     
 !                                     do ic = 1 , occupationNumberOfSpeciesC
-!                                        do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                        do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                           auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                           auxValue_B = auxMatrix3%values(auxIndex, 1)
 !                                           
 !                                           a2 = auxValue_A*auxValue_B
@@ -4637,7 +4652,7 @@ contains
 !                            subU=0.0_8
 !                            subdU=0.0_8
 !                            
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  do ib = 1 , occupationNumberOfSpeciesB
 !                                     
@@ -4647,11 +4662,11 @@ contains
 !                                     valueOfdU=0.0_8
 !                                     
 !                                     do ic = 1 , occupationNumberOfSpeciesC
-!                                        do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                        do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                           auxValue_A = auxMatrix2(k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                           auxValue_B = auxMatrix3%values(auxIndex, 1)
 !                                           
 !                                           a2 = auxValue_A*auxValue_B
@@ -4800,8 +4815,8 @@ contains
 !    integer :: occupationNumberOfSpeciesA, virtualNumberOfSpeciesA
 !    integer :: occupationNumberOfSpeciesB, virtualNumberOfSpeciesB
 !    integer :: occupationNumberOfSpeciesC, virtualNumberOfSpeciesC
-!    integer :: numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB
-!    integer :: numberOfContractionsOfSpeciesC
+!    integer :: activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB
+!    integer :: activeOrbitalsOfSpeciesC
 !    integer(8) :: vectorSize1, vectorSize2 !!! Sizes for diagrams
 !    integer(8) :: auxIndex
 !    integer(4) :: errorNum
@@ -4913,9 +4928,9 @@ contains
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
-!       numberOfContractionsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
+!       activeOrbitalsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
 !       lambdaOfSpeciesA = MolecularSystem_getLambda( i )
-!       virtualNumberOfSpeciesA = numberOfContractionsOfSpeciesA - occupationNumberOfSpeciesA
+!       virtualNumberOfSpeciesA = activeOrbitalsOfSpeciesA - occupationNumberOfSpeciesA
 !       
 !       ! paso
 !       
@@ -4964,25 +4979,25 @@ contains
 !                do ia = 1 , occupationNumberOfSpeciesA
 !                   do ja = 1 , occupationNumberOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
 !                      do ka = 1 , occupationNumberOfSpeciesA
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -5000,28 +5015,28 @@ contains
 !                   end do
 !                end do
 !                
-!                do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                   do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                   do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8                      
 !                      
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ja = 1 , occupationNumberOfSpeciesA
-!                            do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -5040,27 +5055,27 @@ contains
 !                end do
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            do ka = 1 , occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -5071,17 +5086,17 @@ contains
 !                      end do
 !                      
 !                      do ja = 1 , occupationNumberOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -5107,32 +5122,32 @@ contains
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
-!                numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
+!                activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
 !                lambdaOfSpeciesB = MolecularSystem_getLambda( p )
-!                virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                
 !                ! alpha-beta-beta 
 !
 !                do ib = 1 , occupationNumberOfSpeciesB
 !                   do jb = 1 , occupationNumberOfSpeciesB
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                      auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
 !                      do kb = 1 , occupationNumberOfSpeciesB
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -5150,26 +5165,26 @@ contains
 !                   end do
 !                end do
 !                
-!                do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                   do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                   do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                      auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8                      
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
 !                         do jb = 1 , occupationNumberOfSpeciesB
-!                            do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do cb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, activeOrbitalsOfSpeciesB )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -5188,25 +5203,25 @@ contains
 !                end do
 !                
 !                do ib = 1 , occupationNumberOfSpeciesB
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                      auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do jb = 1 , occupationNumberOfSpeciesB
 !                            do kb = 1 , occupationNumberOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
@@ -5217,17 +5232,17 @@ contains
 !                      end do
 !                      
 !                      do jb = 1 , occupationNumberOfSpeciesB
-!                         do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                            do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                            do cb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, activeOrbitalsOfSpeciesB )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
@@ -5250,20 +5265,20 @@ contains
 !                do ia = 1 , occupationNumberOfSpeciesA
 !                   do ja = 1 , occupationNumberOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -5281,23 +5296,23 @@ contains
 !                   end do
 !                end do
 !                
-!                do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                   do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                   do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ib = 1 , occupationNumberOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -5316,22 +5331,22 @@ contains
 !                end do
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            do ib =  1 , occupationNumberOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue - (auxValue_A*auxValue_B)/( eigenValuesOfSpeciesA%values(ja)&
@@ -5342,12 +5357,12 @@ contains
 !                      end do
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue + (auxValue_A*auxValue_B)/( eigenValuesOfSpeciesA%values(ia)&
@@ -5381,25 +5396,25 @@ contains
 !                      chargeOfSpeciesC = MolecularSystem_getCharge( r )
 !!                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
 !                      occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
-!                      numberOfContractionsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( r )
+!                      activeOrbitalsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( r )
 !                      lambdaOfSpeciesC = MolecularSystem_getLambda( r )
-!                      virtualNumberOfSpeciesC = numberOfContractionsOfSpeciesC - occupationNumberOfSpeciesC
+!                      virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
 !                         do jb = 1 , occupationNumberOfSpeciesB
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                            
 !                            partialValue = 0.0_8
 !                            
 !                            do ic = 1 , occupationNumberOfSpeciesC
-!                               do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                               do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                     auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                     auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                     auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
 !                                     
 !                                     partialValue = partialValue &
@@ -5417,21 +5432,21 @@ contains
 !                         end do
 !                      end do
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                         do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                         do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                            
 !                            partialValue = 0.0_8
 !                            
-!                            do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                            do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                               do ib = 1 , occupationNumberOfSpeciesB
 !                                  do ic = 1 , occupationNumberOfSpeciesC
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                     auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                     auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
 !                                     
 !                                     partialValue = partialValue &
@@ -5450,20 +5465,20 @@ contains
 !                      end do
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                            
 !                            partialValue = 0.0_8
 !                            
-!                            do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                            do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                               do jb = 1 , occupationNumberOfSpeciesB
 !                                  do ic =  1 , occupationNumberOfSpeciesC
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                     auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                     auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                     auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
 !                                     
 !                                     partialValue = partialValue - (auxValue_A*auxValue_B)/( eigenValuesOfSpeciesB%values(jb)&
@@ -5474,13 +5489,13 @@ contains
 !                            end do
 !                            
 !                            do ic = 1 , occupationNumberOfSpeciesC
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                     auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                     auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
 !                                     
 !                                     partialValue = partialValue + (auxValue_A*auxValue_B)/( eigenValuesOfSpeciesB%values(ib)&
@@ -5530,12 +5545,12 @@ contains
 !                ! factor 2ph
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, activeOrbitalsOfSpeciesA )
 !                         auxValue_A= auxMatrix2(i,j)%values(auxIndex, 1)
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, activeOrbitalsOfSpeciesA )
 !                         auxValue_B= auxMatrix2(i,j)%values(auxIndex, 1)
 !                         
 !                         id1 = id1 + 1
@@ -5550,13 +5565,13 @@ contains
 !                         do ja = 1, occupationNumberOfSpeciesA
 !                            do ka = 1, occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -5566,29 +5581,29 @@ contains
 !                            end do
 !                         end do
 !                         
-!                         do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ja = 1, occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
 !                                    /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ja) &
 !                                    - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesA%values(ca) )
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -5606,25 +5621,25 @@ contains
 !                               chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                               eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                               occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                               numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                               activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                               lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                               virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                               virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                               
 !                               do ib = 1 , occupationNumberOfSpeciesB
-!                                  do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                  do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW + (auxValue_A*auxValue_B)&
 !                                          /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesB%values(ib) &
 !                                          - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesB%values(ab) )
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW - (auxValue_A*auxValue_B)&
@@ -5648,15 +5663,15 @@ contains
 !                   
 !                   ! factor 2hp
 !                   
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            
 !                            id2 = id2 + 1
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, numberOfContractionsOfSpeciesA )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, activeOrbitalsOfSpeciesA )
 !                            auxValue_A= auxMatrix2(i,j)%values(auxIndex, 1)
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, numberOfContractionsOfSpeciesA )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, activeOrbitalsOfSpeciesA )
 !                            auxValue_B= auxMatrix2(i,j)%values(auxIndex, 1)
 !                            
 !                            selfEnergy2hp(j)%values(1,id2) = auxValue_A - auxValue_B
@@ -5666,16 +5681,16 @@ contains
 !                               
 !                               valueOfW = 0.0_8
 !                               
-!                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -5685,29 +5700,29 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                  do ka = 1, occupationNumberOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
 !                                          /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesA%values(ka) &
 !                                          - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesA%values(ba) )
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -5725,25 +5740,25 @@ contains
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                     numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                     activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                     lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                     virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                     virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                     
 !                                     do ib = 1 , occupationNumberOfSpeciesB
-!                                        do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                        do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                           
 !                                           valueOfW = valueOfW + (auxValue_A*auxValue_B)&
 !                                                /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesB%values(ib) &
 !                                                - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesB%values(ab) )
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                           
 !                                           valueOfW = valueOfW - (auxValue_A*auxValue_B)&
@@ -5771,9 +5786,9 @@ contains
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                   lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                   
 !                   ! paso
 !                   
@@ -5792,10 +5807,10 @@ contains
 !                   ! diagram A
 !                   
 !                   do ib = 1 , occupationNumberOfSpeciesB
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                            auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                            
 !                            id1 = id1 + 1
@@ -5811,10 +5826,10 @@ contains
 !                               do jb = 1, occupationNumberOfSpeciesB
 !                                  
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, jb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW + (auxValue_A * auxValue_B)&
@@ -5824,14 +5839,14 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib,  bb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_A * auxValue_B)&
@@ -5841,15 +5856,15 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A = auxMatrix2(i,i)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B = auxMatrix2(i,i)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -5860,14 +5875,14 @@ contains
 !                            end do
 !                            
 !                            do jb = 1 , occupationNumberOfSpeciesB
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(jb, ab, ib, bb, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(jb, ab, ib, bb, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A= auxMatrix2(j,j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, jb, bb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  
 !                                  valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -5885,13 +5900,13 @@ contains
 !                   
 !                   ! diagram B
 !                   
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ib = 1 , occupationNumberOfSpeciesB
 !                            
 !                            id2 = id2 + 1
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                            auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                            
 !                            selfEnergy2hp(j)%values(1,id2) = auxValue_A
@@ -5901,12 +5916,12 @@ contains
 !                            
 !                            valueOfW = 0.0_8
 !
-!                            do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  
 !                               valueOfW = valueOfW + (auxValue_A * auxValue_B)&
@@ -5916,12 +5931,12 @@ contains
 !                            end do
 !                         end do
 !                         
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do jb = 1 , occupationNumberOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_A * auxValue_B)&
@@ -5931,14 +5946,14 @@ contains
 !                            end do
 !                         end do
 !
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, activeOrbitalsOfSpeciesA )
 !                               auxValue_A = auxMatrix2(i,i)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B = auxMatrix2(i,i)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -5949,13 +5964,13 @@ contains
 !                         end do
 !
 !                         do jb = 1 , occupationNumberOfSpeciesB
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(j,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -6002,8 +6017,8 @@ contains
 !                   id2=0
 !                   
 !                   do ia = 1 , occupationNumberOfSpeciesA
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            
 !                            id1 = id1 + 1
 !                            
@@ -6021,7 +6036,7 @@ contains
 !                      
 !                      ! factor 2hp
 !                      
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !                               
@@ -6045,9 +6060,9 @@ contains
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                   lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !
 !                   id1 = 0
 !                   id2 = 0
@@ -6055,8 +6070,8 @@ contains
 !                   ! diagram A
 !                   
 !                   do ib = 1 , occupationNumberOfSpeciesB
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
 !                            id1 = id1 + 1
 !
@@ -6072,7 +6087,7 @@ contains
 !                   
 !                   ! diagram B
 !                   
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ib = 1 , occupationNumberOfSpeciesB
 !                            
@@ -6190,8 +6205,8 @@ contains
 !                      ! 2ph terms
 !
 !                      do ia = 1 , occupationNumberOfSpeciesA
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
 !                               id1 = id1 + 1
 !                               
@@ -6200,16 +6215,16 @@ contains
 !
 !                               if ( (.not.paso1).or.(o/=1)) then
 !                                  
-!                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                     do da = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                     do da = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -6223,15 +6238,15 @@ contains
 !                                  end do
 !                                  
 !                                  do ja = 1 , occupationNumberOfSpeciesA
-!                                     do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                     do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -6241,13 +6256,13 @@ contains
 !                                        valueOfU = valueOfU + a2/c
 !                                        valueOfdU = valueOfdU - a2/(c**2.0_8)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -6268,16 +6283,16 @@ contains
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                        numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                        activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                        lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                        virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                        virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                        
 !                                        do ib = 1 , occupationNumberOfSpeciesB
-!                                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                              
 !                                              a2 = auxValue_A*auxValue_B
@@ -6287,9 +6302,9 @@ contains
 !                                              valueOfU = valueOfU - 2.0_8*a2/c
 !                                              valueofdU = valueOfdU + 2.0_8*a2/(c**2.0_8)
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                              
 !                                              a2 = auxValue_A*auxValue_B
@@ -6346,7 +6361,7 @@ contains
 !                         subdW = 0.0_8
 !                         subdU = 0.0_8
 !                         
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ia = 1 , occupationNumberOfSpeciesA
 !                               do ja = 1 , occupationNumberOfSpeciesA
 !                                  
@@ -6358,13 +6373,13 @@ contains
 !                                  do ka = 1 , occupationNumberOfSpeciesA
 !                                     do la = 1 , occupationNumberOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -6378,15 +6393,15 @@ contains
 !                                  end do
 !                                  
 !                                  do ka = 1 , occupationNumberOfSpeciesA
-!                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -6396,13 +6411,13 @@ contains
 !                                        valueOfU = valueOfU - a2/c
 !                                        valueOfdU = valueOfdU + a2/(c**2.0_8)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -6423,16 +6438,16 @@ contains
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                                        numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                                        activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                                        lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                                        virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                                        virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                                        
 !                                        do ib = 1 , occupationNumberOfSpeciesB
-!                                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                              
 !                                              a2 = auxValue_A*auxValue_B
@@ -6442,9 +6457,9 @@ contains
 !                                              valueOfU = valueOfU + 2.0_8*a2/c
 !                                              valueofdU = valueOfdU - 2.0_8*a2/(c**2.0_8)
 !                                              
-!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                              auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                              auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                              
 !                                              a2 = auxValue_A*auxValue_B
@@ -6493,9 +6508,9 @@ contains
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                      numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                      activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                      lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                      virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                      virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                      
 !                      paso2=(nameOfSpeciesA=="e-ALPHA".and.nameOfSpeciesB=="e-BETA").or.&
 !                           (nameOfSpeciesA=="e-BETA".and.nameOfSpeciesB=="e-ALPHA")
@@ -6513,8 +6528,8 @@ contains
 !                      subdU = 0.0_8
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
 !                               id1 = id1 + 1
 !                               
@@ -6525,14 +6540,14 @@ contains
 !                                  
 !                                  do jb = 1 , occupationNumberOfSpeciesB
 !                                     
-!                                     do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                     do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, ab, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, ab, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, bb, jb, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, bb, jb, activeOrbitalsOfSpeciesB )
 !                                        auxValue_C= auxMatrix2(j,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A)*(auxValue_B - auxValue_C)
@@ -6545,12 +6560,12 @@ contains
 !                                     end do
 !                                  end do
 !                                  
-!                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                                                                
 !                                        a2 = auxValue_A*auxValue_B
@@ -6563,12 +6578,12 @@ contains
 !                                     end do
 !                                  end do
 !                                  
-!                                  do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     do jb = 1 , occupationNumberOfSpeciesB
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = auxValue_A*auxValue_B
@@ -6619,7 +6634,7 @@ contains
 !                      subdW = 0.0_8
 !                      subdU = 0.0_8
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ib = 1 , occupationNumberOfSpeciesB
 !                               
@@ -6630,14 +6645,14 @@ contains
 !                               
 !                               do jb = 1 , occupationNumberOfSpeciesB
 !                                  
-!                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C= auxMatrix2(j,j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = (auxValue_A)*(auxValue_B - auxValue_C)
@@ -6653,9 +6668,9 @@ contains
 !                               do jb = 1 , occupationNumberOfSpeciesB
 !                                  do ja = 1 , occupationNumberOfSpeciesA
 !                                      
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = auxValue_A*auxValue_B
@@ -6668,12 +6683,12 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  do ja = 1 , occupationNumberOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = auxValue_A*auxValue_B
@@ -6723,16 +6738,16 @@ contains
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
-!                            numberOfContractionsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
+!                            activeOrbitalsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
 !                            lambdaOfSpeciesC = MolecularSystem_getLambda( k )
-!                            virtualNumberOfSpeciesC = numberOfContractionsOfSpeciesC - occupationNumberOfSpeciesC
+!                            virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 !                                                        
 !                            subU=0.0_8
 !                            subdU=0.0_8                            
 !                            
 !                            do ib = 1 , occupationNumberOfSpeciesB
-!                               do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                  do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                  do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
 !                                     id1 = id1 + 1
 !                                     
@@ -6740,11 +6755,11 @@ contains
 !                                     valueOfdU=0.0_8
 !                                     
 !                                     do ic = 1 , occupationNumberOfSpeciesC
-!                                        do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                        do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                           auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                           auxValue_B = auxMatrix2(j,k)%values(auxIndex, 1)
 !                                           
 !                                           a2 = auxValue_A*auxValue_B
@@ -6776,7 +6791,7 @@ contains
 !                            subU=0.0_8
 !                            subdU=0.0_8
 !                            
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  do ib = 1 , occupationNumberOfSpeciesB
 !                                     
@@ -6786,11 +6801,11 @@ contains
 !                                     valueOfdU=0.0_8
 !                                     
 !                                     do ic = 1 , occupationNumberOfSpeciesC
-!                                        do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                        do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                           
-!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                           auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                           auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
-!                                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                           auxValue_B = auxMatrix2(j,k)%values(auxIndex, 1)
 !                                           
 !                                           a2 = auxValue_A*auxValue_B
@@ -6948,8 +6963,8 @@ contains
 !    integer :: occupationNumberOfSpeciesA, virtualNumberOfSpeciesA
 !    integer :: occupationNumberOfSpeciesB, virtualNumberOfSpeciesB
 !    integer :: occupationNumberOfSpeciesC, virtualNumberOfSpeciesC
-!    integer :: numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB
-!    integer :: numberOfContractionsOfSpeciesC
+!    integer :: activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB
+!    integer :: activeOrbitalsOfSpeciesC
 !    integer(8) :: vectorSize1, vectorSize2 !!! Sizes for diagrams
 !    integer(8) :: auxIndex, electrons(2)
 !    integer(4) :: errorNum
@@ -7103,9 +7118,9 @@ contains
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
-!       numberOfContractionsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
+!       activeOrbitalsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
 !       lambdaOfSpeciesA = MolecularSystem_getLambda( i )
-!       virtualNumberOfSpeciesA = numberOfContractionsOfSpeciesA - occupationNumberOfSpeciesA
+!       virtualNumberOfSpeciesA = activeOrbitalsOfSpeciesA - occupationNumberOfSpeciesA
 !       
 !       ! paso
 !       
@@ -7154,25 +7169,25 @@ contains
 !                do ia = 1 , occupationNumberOfSpeciesA
 !                   do ja = 1 , occupationNumberOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
 !                      do ka = 1 , occupationNumberOfSpeciesA
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -7190,28 +7205,28 @@ contains
 !                   end do
 !                end do
 !                
-!                do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                   do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                   do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8                      
 !                      
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ja = 1 , occupationNumberOfSpeciesA
-!                            do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -7230,27 +7245,27 @@ contains
 !                end do
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            do ka = 1 , occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -7261,17 +7276,17 @@ contains
 !                      end do
 !                      
 !                      do ja = 1 , occupationNumberOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -7297,9 +7312,9 @@ contains
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
-!                numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
+!                activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
 !                lambdaOfSpeciesB = MolecularSystem_getLambda( p )
-!                virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                
 !                ! alpha-beta-beta 
 !
@@ -7308,12 +7323,12 @@ contains
 !                      
 !                      if (p>i) then
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                         auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                         
 !                      else
 !
-!                         auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                         auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !                      end if
@@ -7321,17 +7336,17 @@ contains
 !                      partialValue = 0.0_8
 !                      
 !                      do kb = 1 , occupationNumberOfSpeciesB
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -7349,17 +7364,17 @@ contains
 !                   end do
 !                end do
 !                
-!                do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                   do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                   do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                      if (p>i) then
 !
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                         auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                      
 !                      else
 !
-!                         auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                         auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !                      end if
@@ -7367,16 +7382,16 @@ contains
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
 !                         do jb = 1 , occupationNumberOfSpeciesB
-!                            do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do cb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, activeOrbitalsOfSpeciesB )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue &
@@ -7395,34 +7410,34 @@ contains
 !                end do
 !                
 !                do ib = 1 , occupationNumberOfSpeciesB
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      
 !                      if (p>i) then
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                         auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !                      
 !                      else
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                         auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !                      end if
 !
 !                      partialValue = 0.0_8
 !                      
-!                      do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do jb = 1 , occupationNumberOfSpeciesB
 !                            do kb = 1 , occupationNumberOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
@@ -7433,17 +7448,17 @@ contains
 !                      end do
 !                      
 !                      do jb = 1 , occupationNumberOfSpeciesB
-!                         do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                            do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                            do cb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, activeOrbitalsOfSpeciesB )
 !                               auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, activeOrbitalsOfSpeciesB )
 !                               auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
 !                               
 !                               partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
@@ -7466,29 +7481,29 @@ contains
 !                do ia = 1 , occupationNumberOfSpeciesA
 !                   do ja = 1 , occupationNumberOfSpeciesA
 !
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                               if (p>i) then
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
 !
 !                               else
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !                               end if
@@ -7508,32 +7523,32 @@ contains
 !                   end do
 !                end do
 !                
-!                do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                   do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                   do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ib = 1 , occupationNumberOfSpeciesB
 !
 !                               if (p>i) then                               
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
 !
 !                               else
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !                               end if
@@ -7554,31 +7569,31 @@ contains
 !                end do
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, activeOrbitalsOfSpeciesA )
 !                      auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-!                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
+!                      auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, activeOrbitalsOfSpeciesA )
 !                      auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
 !                      
 !                      partialValue = 0.0_8
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            do ib =  1 , occupationNumberOfSpeciesB
 !
 !                               if (p>i) then                                                              
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
 !
 !                               else
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !                               end if
@@ -7591,21 +7606,21 @@ contains
 !                      end do
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
 !                               if (p>i) then                                                              
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
 !
 !                               else
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, aa, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, aa, ba, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !
@@ -7642,21 +7657,21 @@ contains
 !                      chargeOfSpeciesC = MolecularSystem_getCharge( r )
 !!                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
 !                      occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
-!                      numberOfContractionsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( r )
+!                      activeOrbitalsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( r )
 !                      lambdaOfSpeciesC = MolecularSystem_getLambda( r )
-!                      virtualNumberOfSpeciesC = numberOfContractionsOfSpeciesC - occupationNumberOfSpeciesC
+!                      virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
 !                         do jb = 1 , occupationNumberOfSpeciesB
 !
 !                            if (p>i) then                                                              
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !
 !                            else
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !                            end if
@@ -7664,20 +7679,20 @@ contains
 !                            partialValue = 0.0_8
 !                            
 !                            do ic = 1 , occupationNumberOfSpeciesC
-!                               do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                               do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !
 !                                     if (r>p) then                                                                                                   
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
 !
 !                                     else
 !
-!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
 !
 !                                     end if
@@ -7697,38 +7712,38 @@ contains
 !                         end do
 !                      end do
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                         do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                         do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                            if (p>i) then
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !
 !                            else
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
 !
 !                            end if
 !
 !                               partialValue = 0.0_8
 !                            
-!                            do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                            do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                               do ib = 1 , occupationNumberOfSpeciesB
 !                                  do ic = 1 , occupationNumberOfSpeciesC
 !      
 !                                     if (r>p) then                                                                                                                                  
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
 !
 !                                     else
 !
-!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
 !
 !                                     end if
@@ -7749,38 +7764,38 @@ contains
 !                      end do
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                            if (p>i) then
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
 !
 !                            else
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
 !                               
 !                            end if
 !
 !                            partialValue = 0.0_8
 !                            
-!                            do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                            do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                               do jb = 1 , occupationNumberOfSpeciesB
 !                                  do ic =  1 , occupationNumberOfSpeciesC
 !
 !                                     if (r>p) then
 !                                                                                
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
 !
 !                                     else
 !
-!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, jb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, jb, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
 !
 !                                     end if
@@ -7793,23 +7808,23 @@ contains
 !                            end do
 !                            
 !                            do ic = 1 , occupationNumberOfSpeciesC
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                  do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                  do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !
 !                                     if (r>p) then
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                        auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                        auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
 !
 !                                     else
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ab, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ab, bb, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
 !                                        
 !                                     end if
@@ -7861,12 +7876,12 @@ contains
 !                ! factor 2ph
 !                
 !                do ia = 1 , occupationNumberOfSpeciesA
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, activeOrbitalsOfSpeciesA )
 !                         auxValue_A= auxMatrix2(i,j)%values(auxIndex, 1)
-!                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, numberOfContractionsOfSpeciesA )
+!                         auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, activeOrbitalsOfSpeciesA )
 !                         auxValue_B= auxMatrix2(i,j)%values(auxIndex, 1)
 !                         
 !                         id1 = id1 + 1
@@ -7881,13 +7896,13 @@ contains
 !                         do ja = 1, occupationNumberOfSpeciesA
 !                            do ka = 1, occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -7897,29 +7912,29 @@ contains
 !                            end do
 !                         end do
 !                         
-!                         do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ja = 1, occupationNumberOfSpeciesA
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
 !                                    /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ja) &
 !                                    - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesA%values(ca) )
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, activeOrbitalsOfSpeciesA )
 !                               auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, activeOrbitalsOfSpeciesA )
 !                               auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, activeOrbitalsOfSpeciesA )
 !                               auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                               
 !                               valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -7939,15 +7954,15 @@ contains
 !                   
 !                   ! factor 2hp
 !                   
-!                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ja = 1 , occupationNumberOfSpeciesA
 !                            
 !                            id2 = id2 + 1
 !                            
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, numberOfContractionsOfSpeciesA )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, activeOrbitalsOfSpeciesA )
 !                            auxValue_A= auxMatrix2(i,j)%values(auxIndex, 1)
-!                            auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, numberOfContractionsOfSpeciesA )
+!                            auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, activeOrbitalsOfSpeciesA )
 !                            auxValue_B= auxMatrix2(i,j)%values(auxIndex, 1)
 !                            
 !                            selfEnergy2hp(j)%values(1,id2) = auxValue_A - auxValue_B
@@ -7957,16 +7972,16 @@ contains
 !                               
 !                               valueOfW = 0.0_8
 !                               
-!                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW + 0.5_8*(auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -7976,29 +7991,29 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                  do ka = 1, occupationNumberOfSpeciesA
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW + (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
 !                                          /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesA%values(ka) &
 !                                          - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesA%values(ba) )
 !                                     
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, activeOrbitalsOfSpeciesA )
 !                                     auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, activeOrbitalsOfSpeciesA )
 !                                     auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, numberOfContractionsOfSpeciesA )
+!                                     auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, activeOrbitalsOfSpeciesA )
 !                                     auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     
 !                                     valueOfW = valueOfW - (auxValue_C - auxValue_D)*(auxValue_E - auxValue_F)&
@@ -8022,9 +8037,9 @@ contains
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                   lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                   
 !                   ! paso
 !                   
@@ -8043,17 +8058,17 @@ contains
 !                   ! diagram A
 !                   
 !                   do ib = 1 , occupationNumberOfSpeciesB
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                            if (j>i) then
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                            else
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                               auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                               
 !                            end if
@@ -8073,19 +8088,19 @@ contains
 !                                  if (j>i) then                                  
 !
 !                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, jb, &
-!                                          numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
-!                                          numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                  else
 !
 !                                     auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, ia, &
-!                                          numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                          activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                     auxIndex = IndexMap_tensorR4ToVector(jb, ab, ia, aa, &
-!                                          numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                          activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                                  end if
@@ -8097,25 +8112,25 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !
 !                                  if (j>i) then                                                                    
 !                                     
 !                                     auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, ab, &
-!                                          numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib,  bb, &
-!                                          numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                  else
 !
 !                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, pa, ia, &
-!                                          numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                          activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                     auxIndex = IndexMap_tensorR4ToVector(ib, bb, ia, aa, &
-!                                          numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                          activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                                  end if
@@ -8127,20 +8142,20 @@ contains
 !                               end do
 !                            end do
 !                            
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               do ia = 1 , occupationNumberOfSpeciesA                                  
 !
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A = auxMatrix2(i,i)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, numberOfContractionsOfSpeciesA )
+!                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B = auxMatrix2(i,i)%values(auxIndex, 1)
 !                                  if (j>i) then
 !                                     auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, &
-!                                          numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  else
 !                                     auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, &
-!                                          numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                          activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                  end if
 !                                  valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -8151,19 +8166,19 @@ contains
 !                            end do
 !                            
 !                            do jb = 1 , occupationNumberOfSpeciesB
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  
-!                                  auxIndex = IndexMap_tensorR4ToVector(jb, ab, ib, bb, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(jb, ab, ib, bb, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A= auxMatrix2(j,j)%values(auxIndex, 1)
-!                                  auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                  auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
 !                                  if (j>i) then
 !                                     auxIndex = IndexMap_tensorR4ToVector(pa, aa, jb, bb, &
-!                                          numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  else
 !                                     auxIndex = IndexMap_tensorR4ToVector(jb, bb, pa, aa, &
-!                                          numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                          activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                     auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                  end if
 !                                  valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -8181,7 +8196,7 @@ contains
 !                   
 !                   ! diagram B
 !                   
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ib = 1 , occupationNumberOfSpeciesB
 !                            
@@ -8190,13 +8205,13 @@ contains
 !                            if (j>i) then                                                                    
 !
 !                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, &
-!                                    numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                    activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                            else
 !
 !                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ia, &
-!                                    numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                    activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                               auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                            end if
@@ -8208,24 +8223,24 @@ contains
 !                            
 !                            valueOfW = 0.0_8
 !
-!                            do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                                  if (j>i) then                                                                                                                                           
 !                                     auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, &
-!                                          numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                     auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, &
-!                                          numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                          activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                  else
 !
 !                                     auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, aa, &
-!                                          numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                          activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                     auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                     auxIndex = IndexMap_tensorR4ToVector(ib, bb, ia, aa, &
-!                                          numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                          activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                     auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                                  end if
@@ -8237,24 +8252,24 @@ contains
 !                            end do
 !                         end do
 !                         
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do jb = 1 , occupationNumberOfSpeciesB
 !                               
 !                               if (j>i) then                                                                                                                                           
 !                                  auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                               else
 !
 !                                  auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, aa, &
-!                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                       activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                  auxIndex = IndexMap_tensorR4ToVector(jb, ab, ia, aa, &
-!                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                       activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                               end if
@@ -8266,20 +8281,20 @@ contains
 !                            end do
 !                         end do
 !
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, activeOrbitalsOfSpeciesA )
 !                               auxValue_A = auxMatrix2(i,i)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, numberOfContractionsOfSpeciesA )
+!                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, activeOrbitalsOfSpeciesA )
 !                               auxValue_B = auxMatrix2(i,i)%values(auxIndex, 1)
 !                               if (j>i) then
 !                                  auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, &
-!                                       numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                       activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                  auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
 !                               else
 !                                  auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, &
-!                                       numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                       activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                  auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
 !                               end if
 !                               valueOfW = valueOfW - (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -8290,19 +8305,19 @@ contains
 !                         end do
 !
 !                         do jb = 1 , occupationNumberOfSpeciesB
-!                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, activeOrbitalsOfSpeciesB )
 !                               auxValue_A= auxMatrix2(j,j)%values(auxIndex, 1)
-!                               auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, numberOfContractionsOfSpeciesB )
+!                               auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, activeOrbitalsOfSpeciesB )
 !                               auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
 !                               if (j>i) then
 !                               auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb,&
-!                                    numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                    activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                               auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
 !                               else
 !                               auxIndex = IndexMap_tensorR4ToVector(jb, bb, pa, ia,&
-!                                    numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                    activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                               auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
 !                               end if
 !                               valueOfW = valueOfW + (auxValue_A - auxValue_B)*(auxValue_C)&
@@ -8349,8 +8364,8 @@ contains
 !                   id2=0
 !                   
 !                   do ia = 1 , occupationNumberOfSpeciesA
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            
 !                            id1 = id1 + 1
 !                            
@@ -8368,7 +8383,7 @@ contains
 !                      
 !                      ! factor 2hp
 !                      
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ja = 1 , occupationNumberOfSpeciesA
 !                               
@@ -8392,9 +8407,9 @@ contains
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                   lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !
 !                   id1 = 0
 !                   id2 = 0
@@ -8402,8 +8417,8 @@ contains
 !                   ! diagram A
 !                   
 !                   do ib = 1 , occupationNumberOfSpeciesB
-!                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                            
 !                            id1 = id1 + 1
 !
@@ -8419,7 +8434,7 @@ contains
 !                   
 !                   ! diagram B
 !                   
-!                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                      do ia = 1 , occupationNumberOfSpeciesA
 !                         do ib = 1 , occupationNumberOfSpeciesB
 !                            
@@ -8539,8 +8554,8 @@ contains
 !                      ! 2ph terms a-a-a
 !
 !                      do ia = 1 , occupationNumberOfSpeciesA
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                               
 !                               id1 = id1 + 1
 !
@@ -8549,16 +8564,16 @@ contains
 !
 !                               if ( (.not.paso1).or.(o/=1)) then
 !                                  
-!                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                     do da = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                     do da = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -8572,15 +8587,15 @@ contains
 !                                  end do
 !                                  
 !                                  do ja = 1 , occupationNumberOfSpeciesA
-!                                     do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                     do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -8590,13 +8605,13 @@ contains
 !                                        valueOfU = valueOfU + a2/c
 !                                        valueOfdU = valueOfdU - a2/(c**2.0_8)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -8648,7 +8663,7 @@ contains
 !                         subdW = 0.0_8
 !                         subdU = 0.0_8
 !                         
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                            do ia = 1 , occupationNumberOfSpeciesA
 !                               do ja = 1 , occupationNumberOfSpeciesA
 !                                  
@@ -8660,13 +8675,13 @@ contains
 !                                  do ka = 1 , occupationNumberOfSpeciesA
 !                                     do la = 1 , occupationNumberOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -8680,15 +8695,15 @@ contains
 !                                  end do
 !                                  
 !                                  do ka = 1 , occupationNumberOfSpeciesA
-!                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -8698,13 +8713,13 @@ contains
 !                                        valueOfU = valueOfU - a2/c
 !                                        valueOfdU = valueOfdU + a2/(c**2.0_8)
 !                                        
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, activeOrbitalsOfSpeciesA )
 !                                        auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+!                                        auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, activeOrbitalsOfSpeciesA )
 !                                        auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A - auxValue_B)*(auxValue_C - auxValue_D)
@@ -8755,9 +8770,9 @@ contains
 !                            chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-!                            numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+!                            activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
 !                            lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-!                            virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                            virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                            
 !                            ! 2ph a-a-b
 !
@@ -8771,8 +8786,8 @@ contains
 !                               subdW = 0.0_8
 !                            
 !                               do ia = 1 , occupationNumberOfSpeciesA
-!                                  do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
 !                                        id1 = id1 + 1
 !
@@ -8781,24 +8796,24 @@ contains
 !                                        valueOfW = 0.0_8
 !                                                                                
 !                                        do ib = 1 , occupationNumberOfSpeciesB
-!                                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                                              if (k>i) then
 !                                                 
 !                                                 auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib,&
-!                                                      numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                      activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib,&
-!                                                      numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                      activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !
 !                                              else
 !
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ba,&
-!                                                      numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                      activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, aa, &
-!                                                      numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                      activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
 !
 !                                              end if
@@ -8816,19 +8831,19 @@ contains
 !                                              if (k>i) then
 !                                                 
 !                                                 auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, &
-!                                                      numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                      activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, &
-!                                                      numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                      activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !
 !                                              else
 !
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, aa, &
-!                                                      numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                      activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, ba, &
-!                                                      numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                      activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
 !
 !                                              end if
@@ -8878,7 +8893,7 @@ contains
 !                               subW = 0.0_8
 !                               subdW = 0.0_8
 !                               
-!                               do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                               do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                  do ia = 1 , occupationNumberOfSpeciesA
 !                                     do ja = 1 , occupationNumberOfSpeciesA
 !                                        
@@ -8889,24 +8904,24 @@ contains
 !                                        valueOfW = 0.0_8
 !                                        
 !                                        do ib = 1 , occupationNumberOfSpeciesB
-!                                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                                              if (k>i) then
 !                                                 
 !                                                 auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, &
-!                                                      numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                      activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, &
-!                                                      numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                      activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                                 
 !                                              else
 !
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ja, &
-!                                                      numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                      activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, aa, &
-!                                                      numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                      activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
 !
 !                                              end if
@@ -8924,19 +8939,19 @@ contains
 !                                              if (k>i) then                                              
 !                                                 
 !                                                 auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, &
-!                                                      numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                      activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                                 auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, &
-!                                                      numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                      activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                                 auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                                 
 !                                              else
 !
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ia, &
-!                                                      numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                      activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                                 auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
 !                                                 auxIndex = IndexMap_tensorR4ToVector(ab, ib, ja, aa, &
-!                                                      numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                      activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                                 auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
 !
 !                                              end if
@@ -8989,9 +9004,9 @@ contains
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-!                      numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+!                      activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
 !                      lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-!                      virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+!                      virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 !                      
 !                      paso2=(nameOfSpeciesA=="e-ALPHA".and.nameOfSpeciesB=="e-BETA").or.&
 !                           (nameOfSpeciesA=="e-BETA".and.nameOfSpeciesB=="e-ALPHA")
@@ -9009,8 +9024,8 @@ contains
 !                      subdU = 0.0_8
 !                      
 !                      do ib = 1 , occupationNumberOfSpeciesB
-!                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               
 !                               id1 = id1 + 1
 !                               
@@ -9021,25 +9036,25 @@ contains
 !                                  
 !                                  do jb = 1 , occupationNumberOfSpeciesB
 !                                     
-!                                     do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                     do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                                        if (j>i) then
 !                                           
 !                                           auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, &
-!                                                numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                        else
 !
 !                                           auxIndex = IndexMap_tensorR4ToVector(bb, jb, pa, aa, &
-!                                                numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                                        end if
 !
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, ab, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, ab, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
-!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, bb, jb, numberOfContractionsOfSpeciesB )
+!                                        auxIndex = IndexMap_tensorR4ToVector(ib, ab, bb, jb, activeOrbitalsOfSpeciesB )
 !                                        auxValue_C= auxMatrix2(j,j)%values(auxIndex, 1)
 !                                        
 !                                        a2 = (auxValue_A)*(auxValue_B - auxValue_C)
@@ -9052,25 +9067,25 @@ contains
 !                                     end do
 !                                  end do
 !                                  
-!                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-!                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+!                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                        
 !                                        if (j>i) then
 !                                           
 !                                           auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, &
-!                                                numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                           auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, &
-!                                                numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                        else
 !
 !                                           auxIndex = IndexMap_tensorR4ToVector(bb, ab, ba, aa, &
-!                                                numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                           auxIndex = IndexMap_tensorR4ToVector(ib, bb, pa, ba, &
-!                                                numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                           auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                                        end if
@@ -9085,25 +9100,25 @@ contains
 !                                     end do
 !                                  end do
 !                                  
-!                                  do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+!                                  do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
 !                                     do jb = 1 , occupationNumberOfSpeciesB
 !
 !                                        if (j>i) then                                        
 !                                           
 !                                           auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, &
-!                                                numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                           auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, &
-!                                                numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                                activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                           auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                        else
 !
 !                                           auxIndex = IndexMap_tensorR4ToVector(ib, jb, aa, ba, &
-!                                                numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                           auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                           auxIndex = IndexMap_tensorR4ToVector(jb, ab, pa, ba, &
-!                                                numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                                activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                           auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                                        end if
@@ -9155,7 +9170,7 @@ contains
 !                      subdW = 0.0_8
 !                      subdU = 0.0_8
 !                      
-!                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                         do ia = 1 , occupationNumberOfSpeciesA
 !                            do ib = 1 , occupationNumberOfSpeciesB
 !                               
@@ -9166,25 +9181,25 @@ contains
 !                               
 !                               do jb = 1 , occupationNumberOfSpeciesB
 !                                  
-!                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !
 !                                     if (j>i) then
 !                                        
 !                                        auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb,&
-!                                             numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                             activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                     else
 !
 !                                        auxIndex = IndexMap_tensorR4ToVector(bb, jb, pa, ia, &
-!                                             numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                             activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                        
 !                                     end if
 !
-!                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, activeOrbitalsOfSpeciesB )
 !                                     auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
-!                                     auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, numberOfContractionsOfSpeciesB )
+!                                     auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, activeOrbitalsOfSpeciesB )
 !                                     auxValue_C= auxMatrix2(j,j)%values(auxIndex, 1)
 !                                     
 !                                     a2 = (auxValue_A)*(auxValue_B - auxValue_C)
@@ -9203,19 +9218,19 @@ contains
 !                                     if (j>i) then
 !                                        
 !                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb,&
-!                                             numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                             activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb,&
-!                                             numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                             activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                     else
 !
 !                                        auxIndex = IndexMap_tensorR4ToVector(ib, jb, ia, ja, &
-!                                             numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                             activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                        auxIndex = IndexMap_tensorR4ToVector(ab, jb, pa, ja,&
-!                                             numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                             activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                                     end if
@@ -9230,25 +9245,25 @@ contains
 !                                  end do
 !                               end do
 !                               
-!                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                  do ja = 1 , occupationNumberOfSpeciesA
 !
 !                                     if (j>i) then                                     
 !                                        
 !                                        auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab,&
-!                                             numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                             activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 !                                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib,&
-!                                             numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+!                                             activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
 !                                        auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 !
 !                                     else
 !
 !                                        auxIndex = IndexMap_tensorR4ToVector(bb, ab, ia, ja,&
-!                                             numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                             activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                        auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 !                                        auxIndex = IndexMap_tensorR4ToVector(bb, ib, pa, ja,&
-!                                             numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+!                                             activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
 !                                        auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 !
 !                                     end if
@@ -9299,9 +9314,9 @@ contains
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
-!                            numberOfContractionsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
+!                            activeOrbitalsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
 !                            lambdaOfSpeciesC = MolecularSystem_getLambda( k )
-!                            virtualNumberOfSpeciesC = numberOfContractionsOfSpeciesC - occupationNumberOfSpeciesC
+!                            virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 !                            
 !                            paso3=(nameOfSpeciesB=="e-ALPHA".and.nameOfSpeciesC=="e-BETA").or.&
 !                                 (nameOfSpeciesB=="e-BETA".and.nameOfSpeciesC=="e-ALPHA")
@@ -9310,8 +9325,8 @@ contains
 !                            subdU=0.0_8                            
 !                            
 !                            do ib = 1 , occupationNumberOfSpeciesB
-!                               do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-!                                  do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                               do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+!                                  do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                                     
 !                                     id1 = id1 + 1
 !                                     
@@ -9319,24 +9334,24 @@ contains
 !                                     valueOfdU=0.0_8
 !                                     
 !                                     do ic = 1 , occupationNumberOfSpeciesC
-!                                        do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                        do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                           
 !                                           if (k>i) then
 !                                              auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac,&
-!                                                   numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                                   activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)                                              
 !                                           else
 !                                              auxIndex = IndexMap_tensorR4ToVector(ic, ac, pa, aa,&
-!                                                   numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesA )
+!                                                   activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesA )
 !                                              auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
 !                                           end if
 !                                           if (k>j) then
 !                                              auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac,&
-!                                                   numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                                   activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_B = auxMatrix2(j,k)%values(auxIndex, 1)
 !                                           else
 !                                              auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab,&
-!                                                   numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                                   activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(k,j)%values(auxIndex, 1)
 !                                           end if
 !                                              
@@ -9377,7 +9392,7 @@ contains
 !                            subU=0.0_8
 !                            subdU=0.0_8
 !                            
-!                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+!                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 !                               do ia = 1 , occupationNumberOfSpeciesA
 !                                  do ib = 1 , occupationNumberOfSpeciesB
 !                                     
@@ -9387,24 +9402,24 @@ contains
 !                                     valueOfdU=0.0_8
 !                                     
 !                                     do ic = 1 , occupationNumberOfSpeciesC
-!                                        do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+!                                        do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
 !                                           
 !                                           if (k>i) then
 !                                              auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac,&
-!                                                   numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+!                                                   activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
 !                                              auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
 !                                           else
 !                                              auxIndex = IndexMap_tensorR4ToVector(ic, ac, pa, ia,&
-!                                                   numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesA )
+!                                                   activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesA )
 !                                              auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
 !                                           end if
 !                                           if (k>j) then
 !                                              auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac,&
-!                                                   numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+!                                                   activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
 !                                              auxValue_B = auxMatrix2(j,k)%values(auxIndex, 1)
 !                                           else
 !                                              auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab,&
-!                                                   numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+!                                                   activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
 !                                              auxValue_B = auxMatrix2(k,j)%values(auxIndex, 1)
 !                                           end if
 !
@@ -9677,8 +9692,8 @@ contains
     integer :: occupationNumberOfSpeciesA, virtualNumberOfSpeciesA
     integer :: occupationNumberOfSpeciesB, virtualNumberOfSpeciesB
     integer :: occupationNumberOfSpeciesC, virtualNumberOfSpeciesC
-    integer :: numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB
-    integer :: numberOfContractionsOfSpeciesC
+    integer :: activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB
+    integer :: activeOrbitalsOfSpeciesC
     integer(8) :: vectorSize1, vectorSize2 !!! Sizes for diagrams
     integer(8) :: auxIndex, electrons(2)
     integer(4) :: errorNum
@@ -9709,7 +9724,11 @@ contains
     integer :: wfnUnit
     integer :: oo,oarray(6), ooarray(6), maxoo
 
-    wfnFile = "lowdin.wfn"
+    if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+       wfnFile = "lowdin.wfn"
+    else
+       wfnFile = "lowdin-subsystemA.wfn"
+    end if
     wfnUnit = 20
 
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
@@ -9990,14 +10009,15 @@ contains
        chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !JC       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
        occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
-       numberOfContractionsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i )
+       activeOrbitalsOfSpeciesA = MolecularSystem_getTotalNumberOfContractions( i ) 
+       if ( InputCI_Instance(i)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesA = InputCI_Instance(i)%activeOrbitals
        lambdaOfSpeciesA = MolecularSystem_getLambda( i )
-       virtualNumberOfSpeciesA = numberOfContractionsOfSpeciesA - occupationNumberOfSpeciesA
+       virtualNumberOfSpeciesA = activeOrbitalsOfSpeciesA - occupationNumberOfSpeciesA
 
        arguments(2) = trim(MolecularSystem_getNameOfSpecie(i))
 
        arguments(1) = "ORBITALS"
-       call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesA, &
+       call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( i ), &
                  unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                  output =  eigenValuesOfSpeciesA  )    
 
@@ -10017,7 +10037,11 @@ contains
           n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
        else
           PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-          PropagatorTheory_instance%occupationBoundary = occupationNumberOfSpeciesA
+          if(occupationNumberOfSpeciesA .eq. 0) then
+             PropagatorTheory_instance%occupationBoundary = 1
+          else
+             PropagatorTheory_instance%occupationBoundary = occupationNumberOfSpeciesA
+          end if
           n = 2
        end if
 
@@ -10048,25 +10072,32 @@ contains
                   do ia = 1 , occupationNumberOfSpeciesA
                      do ja = 1 , occupationNumberOfSpeciesA
                         
-                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, ja, i )
                         auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ia, pa, i )
                         auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
                         
                         do ka = 1 , occupationNumberOfSpeciesA
-                           do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                              do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                           do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                              do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ka, ba, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, aa, ka, ba, i )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ka, aa, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ba, ka, aa, i )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ja, aa, ka, ba, i )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ja, ba, ka, aa, i )
+
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue &
@@ -10084,28 +10115,36 @@ contains
                      end do
                   end do
                   
-                  do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                  do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                         
-                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, aa, ba, i )
                         auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, ba, aa, pa, i )
+
                         auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8                      
                         
                         do ia = 1 , occupationNumberOfSpeciesA
                            do ja = 1 , occupationNumberOfSpeciesA
-                              do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                              do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ja, ca, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, aa, ja, ca, i )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, aa, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ca, ja, aa, i )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ba, ja, ca, i )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ca, ja, ba, i )
+
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue &
@@ -10124,27 +10163,35 @@ contains
                   end do
                   
                   do ia = 1 , occupationNumberOfSpeciesA
-                     do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                     do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                         
-                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, aa, i )
                         auxValue_E= auxMatrix2(p,p)%values(auxIndex, 1)
-                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ia, pa, i )
+
                         auxValue_F= auxMatrix2(p,p)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
                         
-                        do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                        do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                            do ja = 1 , occupationNumberOfSpeciesA
                               do ka = 1 , occupationNumberOfSpeciesA
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ba, ka, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ja, ba, ka, i )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ka, ba, ja, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ka, ba, ja, i )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ja, aa, ka, ba, i )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ja, ba, ka, aa, i )
+
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -10155,17 +10202,22 @@ contains
                         end do
                         
                         do ja = 1 , occupationNumberOfSpeciesA
-                           do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                              do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                           do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                              do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ba, aa, ca, ja, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ba, aa, ca, ja, i )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, aa, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ba, ja, ca, aa, i )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ja, ca, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ba, ja, ca, i )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ia, ca, ja, ba, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ia, ca, ja, ba, i )
+
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesA%values(ja)&
@@ -10191,13 +10243,14 @@ contains
                   chargeOfSpeciesB = MolecularSystem_getCharge( p )
   !JC                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
-                  numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
+                  activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
+                  if ( InputCI_Instance(p)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(p)%activeOrbitals
                   lambdaOfSpeciesB = MolecularSystem_getLambda( p )
-                  virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+                  virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
   
                   arguments(2) = trim(MolecularSystem_getNameOfSpecie(p))
                   arguments(1) = "ORBITALS"
-                  call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesB, &
+                  call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( p ), &
                        unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                        output =  eigenValuesOfSpeciesB  )     
   
@@ -10208,12 +10261,16 @@ contains
                         
                         if (p>i) then
                            
-                           auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                           !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                           auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, jb, i, p )
+
                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
                            
                         else
   
-                           auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                           !auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                           auxIndex = PropagatorTheory_IndexMapAB(ib, jb, pa, pa, p, i )
+
                            auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                         end if
@@ -10221,17 +10278,22 @@ contains
                         partialValue = 0.0_8
                         
                         do kb = 1 , occupationNumberOfSpeciesB
-                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-                              do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+                              do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, ab, kb, bb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, ab, kb, bb, p )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, bb, kb, ab, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, bb, kb, ab, p )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(jb, ab, kb, bb, p )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(jb, bb, kb, ab, p )
+
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue &
@@ -10249,17 +10311,21 @@ contains
                      end do
                   end do
                   
-                  do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-                     do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                  do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+                     do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
   
                         if (p>i) then
   
-                           auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                           !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                           auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ab, bb, i, p)
+
                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
                         
                         else
   
-                           auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                           !auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                           auxIndex = PropagatorTheory_IndexMapAB(ab, bb, pa, pa, p, i)
+
                            auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                         end if
@@ -10267,16 +10333,21 @@ contains
                         
                         do ib = 1 , occupationNumberOfSpeciesB
                            do jb = 1 , occupationNumberOfSpeciesB
-                              do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                              do cb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, ab, jb, cb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, ab, jb, cb, p )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, ab, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, cb, jb, ab, p )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, bb, jb, cb, p )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, cb, jb, bb, p )
+
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue &
@@ -10295,34 +10366,43 @@ contains
                   end do
                   
                   do ib = 1 , occupationNumberOfSpeciesB
-                     do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                     do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                         
                         if (p>i) then
                            
-                           auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                           !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                           auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, ab, i, p  )
+
                            auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
                         
                         else
                            
-                           auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                           !auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                           auxIndex = PropagatorTheory_IndexMapAB(ib, ab, pa, pa, p, i )
+
                            auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                         end if
   
                         partialValue = 0.0_8
                         
-                        do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                        do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                            do jb = 1 , occupationNumberOfSpeciesB
                               do kb = 1 , occupationNumberOfSpeciesB
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, kb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, jb, bb, kb, p )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, kb, bb, jb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, kb, bb, jb, p )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(jb, ab, kb, bb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(jb, ab, kb, bb, p )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(jb, bb, kb, ab, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(jb, bb, kb, ab, p )
+
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue - (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
@@ -10333,17 +10413,22 @@ contains
                         end do
                         
                         do jb = 1 , occupationNumberOfSpeciesB
-                           do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-                              do cb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                           do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+                              do cb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(bb, ab, cb, jb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(bb, ab, cb, jb, p )
                                  auxValue_A= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(bb, jb, cb, ab, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(bb, jb, cb, ab, p )
                                  auxValue_B= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, bb, jb, cb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, bb, jb, cb, p )
                                  auxValue_C= auxMatrix2(p,p)%values(auxIndex, 1)
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, cb, jb, bb, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAA(ib, cb, jb, bb, p )
+
                                  auxValue_D= auxMatrix2(p,p)%values(auxIndex, 1)
                                  
                                  partialValue = partialValue + (auxValue_A-auxValue_B)*(auxValue_C-auxValue_D)/( eigenValuesOfSpeciesB%values(jb)&
@@ -10366,29 +10451,38 @@ contains
                   do ia = 1 , occupationNumberOfSpeciesA
                      do ja = 1 , occupationNumberOfSpeciesA
   
-                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, ja, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, ja, i )
                         auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-                        auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, pa, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ia, pa, i )
+
                         auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
   
                         do ib = 1 , occupationNumberOfSpeciesB
-                           do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                              do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                           do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                              do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
   
                                  if (p>i) then
                                     
-                                    auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ia, aa, ib, ab, i, p )
                                     auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-                                    auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ja, aa, ib, ab, i, p )
+
                                     auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
   
                                  else
   
-                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, aa, p, i )
                                     auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ja, aa, p, i )
+
                                     auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
   
                                  end if
@@ -10408,32 +10502,41 @@ contains
                      end do
                   end do
                   
-                  do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                  do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                         
-                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, aa, ba, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, aa, ba, i )
                         auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-                        auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, numberOfContractionsOfSpeciesA )
+                       ! auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, pa, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, ba, aa, pa, i )
+
                         auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
                         
-                        do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                        do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                            do ia = 1 , occupationNumberOfSpeciesA
                               do ib = 1 , occupationNumberOfSpeciesB
   
                                  if (p>i) then                               
                                     
-                                    auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ia, aa, ib, ab, i, p )
                                     auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-                                    auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ia, ba, ib, ab, i, p )
+
                                     auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
   
                                  else
   
-                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, aa, p, i )
                                     auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, ba, p, i )
+
                                     auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
   
                                  end if
@@ -10454,31 +10557,40 @@ contains
                   end do
                   
                   do ia = 1 , occupationNumberOfSpeciesA
-                     do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                     do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                         
-                        auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ia, aa, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, pa, ia, aa, i )
                         auxValue_E= auxMatrix2(i,i)%values(auxIndex, 1)
-                        auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, numberOfContractionsOfSpeciesA )
+                        !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, pa, activeOrbitalsOfSpeciesA )
+                        auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ia, pa, i )
+
                         auxValue_F= auxMatrix2(i,i)%values(auxIndex, 1)
                         
                         partialValue = 0.0_8
                         
-                        do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                        do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                            do ja = 1 , occupationNumberOfSpeciesA
                               do ib =  1 , occupationNumberOfSpeciesB
   
                                  if (p>i) then                                                              
                                     
-                                    auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ia, ja, ib, ab, i, p )
                                     auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-                                    auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ja, aa, ib, ab, i, p )
+
                                     auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
   
                                  else
   
-                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ja, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, ja, p, i )
                                     auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ja, aa, p, i )
+
                                     auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
   
                                  end if
@@ -10491,21 +10603,27 @@ contains
                         end do
                         
                         do ib = 1 , occupationNumberOfSpeciesB
-                           do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                              do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                           do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                              do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                  
                                  if (p>i) then                                                              
   
-                                    auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                    !auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                    auxIndex = PropagatorTheory_IndexMapAB(aa, ba, ib, ab, i, p )
                                     auxValue_A= auxMatrix2(i,p)%values(auxIndex, 1)
-                                    auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ia, ba, ib, ab, i, p )
+
                                     auxValue_B= auxMatrix2(i,p)%values(auxIndex, 1)
   
                                  else
   
-                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, aa, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, aa, ba, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, aa, ba, p, i )
                                     auxValue_A= auxMatrix2(p,i)%values(auxIndex, 1)
-                                    auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                    !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                    auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, ba, p, i )
+
                                     auxValue_B= auxMatrix2(p,i)%values(auxIndex, 1)
   
   
@@ -10542,13 +10660,14 @@ contains
                         chargeOfSpeciesC = MolecularSystem_getCharge( r )
   !                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
                         occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
-                        numberOfContractionsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( r )
+                        activeOrbitalsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( r )
+                        if ( InputCI_Instance(r)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesC = InputCI_Instance(r)%activeOrbitals
                         lambdaOfSpeciesC = MolecularSystem_getLambda( r )
-                        virtualNumberOfSpeciesC = numberOfContractionsOfSpeciesC - occupationNumberOfSpeciesC
+                        virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
   
                         arguments(2) = trim(MolecularSystem_getNameOfSpecie(r))
                         arguments(1) = "ORBITALS"
-                        call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesC, &
+                        call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( r ), &
                              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                              output =  eigenValuesOfSpeciesC  )     
                         
@@ -10557,12 +10676,16 @@ contains
   
                               if (p>i) then                                                              
   
-                                 auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, jb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, jb, i, p )
+
                                  auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
   
                               else
   
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAB(ib, jb, pa, pa, p, i )
+
                                  auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                               end if
@@ -10570,20 +10693,26 @@ contains
                               partialValue = 0.0_8
                               
                               do ic = 1 , occupationNumberOfSpeciesC
-                                 do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-                                    do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+                                 do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+                                    do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
   
                                        if (r>p) then                                                                                                   
-                                          auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ic, ac, p, r )
                                           auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-                                          auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                          !auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
+                                          auxIndex = PropagatorTheory_IndexMapAB(jb, ab, ic, ac, p, r )
+
                                           auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
   
                                        else
   
-                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, ab, r, p )
                                           auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, jb, ab, r, p )
+
                                           auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
   
                                        end if
@@ -10603,38 +10732,49 @@ contains
                            end do
                         end do
                         
-                        do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-                           do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                        do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+                           do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
   
                               if (p>i) then
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ab, bb, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ab, bb, i, p )
+
                                  auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
   
                               else
   
-                                 auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAB(ab, bb, pa, pa, p, i )
+
                                  auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
   
                               end if
   
                                  partialValue = 0.0_8
                               
-                              do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+                              do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
                                  do ib = 1 , occupationNumberOfSpeciesB
                                     do ic = 1 , occupationNumberOfSpeciesC
         
                                        if (r>p) then                                                                                                                                  
-                                          auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+
+                                          !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ic, ac, p, r )
                                           auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-                                          auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ib, bb, ic, ac, p, r )
+
                                           auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
   
                                        else
   
-                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, ab, r, p )
                                           auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, bb, r, p )
+
                                           auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
   
                                        end if
@@ -10655,38 +10795,48 @@ contains
                         end do
                         
                         do ib = 1 , occupationNumberOfSpeciesB
-                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
   
                               if (p>i) then
                                  
-                                 auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                 !auxIndex = IndexMap_tensorR4ToVector(pa, pa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
+                                 auxIndex = PropagatorTheory_IndexMapAB(pa, pa, ib, ab, i, p )
+
                                  auxValue_E= auxMatrix2(i,p)%values(auxIndex, 1)
   
                               else
   
-                                 auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                 !auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, pa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
+                                 auxIndex = PropagatorTheory_IndexMapAB(ib, ab, pa, pa, p, i  )
+
                                  auxValue_E= auxMatrix2(p,i)%values(auxIndex, 1)
                                  
                               end if
   
                               partialValue = 0.0_8
                               
-                              do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+                              do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
                                  do jb = 1 , occupationNumberOfSpeciesB
                                     do ic =  1 , occupationNumberOfSpeciesC
   
                                        if (r>p) then
                                                                                   
-                                          auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ib, jb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ib, jb, ic, ac, p, r )
                                           auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
-                                          auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                          !auxIndex = IndexMap_tensorR4ToVector(jb, ab, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
+                                          auxIndex = PropagatorTheory_IndexMapAB(jb, ab, ic, ac, p, r )
+
                                           auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
   
                                        else
   
-                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, jb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, jb, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, jb, r, p )
                                           auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
-                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, jb, ab, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, jb, ab, r, p )
+
                                           auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
   
                                        end if
@@ -10699,23 +10849,29 @@ contains
                               end do
                               
                               do ic = 1 , occupationNumberOfSpeciesC
-                                 do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-                                    do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+                                 do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+                                    do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
   
                                        if (r>p) then
                                           
-                                          auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ab, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ab, bb, ic, ac, p, r )
                                           auxValue_A= auxMatrix2(p,r)%values(auxIndex, 1)
                                           
-                                          auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ib, bb, ic, ac, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ib, bb, ic, ac, p, r )
+
                                           auxValue_B= auxMatrix2(p,r)%values(auxIndex, 1)
   
                                        else
                                           
-                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ab, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ab, bb, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ab, bb, r, p )
                                           auxValue_A= auxMatrix2(r,p)%values(auxIndex, 1)
                                           
-                                          auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                          !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, bb, activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
+                                          auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, bb, r, p )
+
                                           auxValue_B= auxMatrix2(r,p)%values(auxIndex, 1)
                                           
                                        end if
@@ -10768,13 +10924,13 @@ contains
                 ! factor 2ph
                 
                 do ia = 1 , occupationNumberOfSpeciesA
-                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                      do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                      do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                          
-                         !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, numberOfContractionsOfSpeciesA )
+                         !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, activeOrbitalsOfSpeciesA )
                          auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ia, ba, i )
                          auxValue_A= auxMatrix2(i,j)%values(auxIndex, 1)
-                         !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, numberOfContractionsOfSpeciesA )
+                         !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, activeOrbitalsOfSpeciesA )
                          auxIndex = PropagatorTheory_IndexMapAA(pa, ba, ia, aa, i )
                          auxValue_B= auxMatrix2(i,j)%values(auxIndex, 1)
                          
@@ -10790,16 +10946,16 @@ contains
                          do ja = 1, occupationNumberOfSpeciesA
                             do ka = 1, occupationNumberOfSpeciesA
                                
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ia, ka, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ia, ka, i )
                                auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, ka, ia, ja, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(pa, ka, ia, ja, i )
                                auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ka, ba, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(ja, aa, ka, ba, i )
                                auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(ja, ba, ka, aa, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(ja, ba, ka, aa, i )
                                auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
                                
@@ -10810,19 +10966,19 @@ contains
                             end do
                          end do
                          
-                         do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                         do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                             do ja = 1, occupationNumberOfSpeciesA
                                
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, aa, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ca, aa, i )
                                auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ca, ja, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ca, ja, i )
                                auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(ja, ba, ia, ca, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(ja, ba, ia, ca, i )
                                auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, ba, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(ja, ca, ia, ba, i )
                                auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
                                
@@ -10830,16 +10986,16 @@ contains
                                     /( eigenValuesOfSpeciesA%values(ia) + eigenValuesOfSpeciesA%values(ja) &
                                     - eigenValuesOfSpeciesA%values(ba) - eigenValuesOfSpeciesA%values(ca) )
                                
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ca, ba, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ca, ba, i )
                                auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ca, ja, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(pa, ba, ca, ja, i )
                                auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ia, ca, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(ja, aa, ia, ca, i )
                                auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(ja, ca, ia, aa, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(ja, ca, ia, aa, i )
                                auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
                                
@@ -10860,16 +11016,16 @@ contains
                    
                    ! factor 2hp
                    
-                   do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                   do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                       do ia = 1 , occupationNumberOfSpeciesA
                          do ja = 1 , occupationNumberOfSpeciesA
                             
                             id2 = id2 + 1
                             
-                            !auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, numberOfContractionsOfSpeciesA )
+                            !auxIndex = IndexMap_tensorR4ToVector(pa, ia, aa, ja, activeOrbitalsOfSpeciesA )
                             auxIndex = PropagatorTheory_IndexMapAA(pa, ia, aa, ja, i )
                             auxValue_A= auxMatrix2(i,j)%values(auxIndex, 1)
-                            !auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, numberOfContractionsOfSpeciesA )
+                            !auxIndex = IndexMap_tensorR4ToVector(pa, ja, aa, ia, activeOrbitalsOfSpeciesA )
                             auxIndex = PropagatorTheory_IndexMapAA(pa, ja, aa, ia, i )
                             auxValue_B= auxMatrix2(i,j)%values(auxIndex, 1)
                             
@@ -10880,19 +11036,19 @@ contains
                                
                                valueOfW = 0.0_8
                                
-                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                      
-                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ba, aa, ca, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(pa, ba, aa, ca, i )
                                      auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ca, aa, ba, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(pa, ca, aa, ba, i )
                                      auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ia, ca, ja, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(ba, ia, ca, ja, i )
                                      auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ja, ca, ia, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(ba, ja, ca, ia, i )
                                      auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
                                      
@@ -10903,19 +11059,19 @@ contains
                                   end do
                                end do
                                
-                               do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                               do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                   do ka = 1, occupationNumberOfSpeciesA
                                      
-                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ia, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(pa, ba, ka, ia, i )
                                      auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ka, ba, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(pa, ia, ka, ba, i )
                                      auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ja, aa, ka, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(ba, ja, aa, ka, i )
                                      auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ja, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(ba, ka, aa, ja, i )
                                      auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
                                      
@@ -10923,16 +11079,16 @@ contains
                                           /( eigenValuesOfSpeciesA%values(ja) + eigenValuesOfSpeciesA%values(ka) &
                                           - eigenValuesOfSpeciesA%values(aa) - eigenValuesOfSpeciesA%values(ba) )
                                      
-                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ka, ja, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(pa, ba, ka, ja, i )
                                      auxValue_C= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ka, ba, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ka, ba, i )
                                      auxValue_D= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ia, aa, ka, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(ba, ia, aa, ka, i )
                                      auxValue_E= auxMatrix2(i,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, numberOfContractionsOfSpeciesA )
+                                     !auxIndex = IndexMap_tensorR4ToVector(ba, ka, aa, ia, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAA(ba, ka, aa, ia, i )
                                      auxValue_F= auxMatrix2(i,j)%values(auxIndex, 1)
                                      
@@ -10957,13 +11113,14 @@ contains
                    chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                    occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+                   if ( InputCI_Instance(j)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(j)%activeOrbitals
                    lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
                    arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
                    arguments(1) = "ORBITALS"
-                   call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesB, &
+                   call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                          unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                          output =  eigenValuesOfSpeciesB  )
                    
@@ -10984,18 +11141,18 @@ contains
                    ! diagram A
                    
                    do ib = 1 , occupationNumberOfSpeciesB
-                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 
                             if (j>i) then
                                
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                auxIndex = PropagatorTheory_IndexMapAB(pa, aa, ib, ab, i, j )
                                auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 
                             else
                                
-                               !auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, aa, numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(ib, ab, pa, aa, activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAB(ib, ab, pa, aa, j, i )
                                auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                
@@ -11016,22 +11173,22 @@ contains
                                   if (j>i) then                                  
 
                                      !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, jb, &
-                                          !numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                          !activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAB(pa, ia, ib, jb, i, j )
                                      auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
                                      !auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
-                                          !numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                          !activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAB(ia, aa, jb, ab, i, j )
                                      auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                   else
 
                                      !auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, ia, &
-                                          !numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                          !activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAB(ib, jb, pa, ia, j, i )
                                      auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                      !auxIndex = IndexMap_tensorR4ToVector(jb, ab, ia, aa, &
-                                          !numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                          !activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAB(jb, ab, ia, aa, j, i )
                                      auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -11044,28 +11201,28 @@ contains
                                end do
                             end do
                             
-                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                do ia = 1 , occupationNumberOfSpeciesA
 
                                   if (j>i) then                                                                    
                                      
                                      !auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, ab, &
-                                     !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                     !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAB(pa, ia, bb, ab, i, j )
                                      auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
                                      !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib,  bb, &
-                                     !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                     !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAB(ia, aa, ib,  bb, i, j )
                                      auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                   else
 
                                      !auxIndex = IndexMap_tensorR4ToVector(bb, ab, pa, ia, &
-                                     !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                     !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAB(bb, ab, pa, ia, j, i )
                                      auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                      !auxIndex = IndexMap_tensorR4ToVector(ib, bb, ia, aa, &
-                                     !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                     !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAB(ib, bb, ia, aa, j, i )
                                      auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -11078,23 +11235,23 @@ contains
                                end do
                             end do
                             
-                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                do ia = 1 , occupationNumberOfSpeciesA                                  
 
-                                  !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, numberOfContractionsOfSpeciesA )
+                                  !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, aa, activeOrbitalsOfSpeciesA )
                                   auxIndex = PropagatorTheory_IndexMapAA(pa, ia, ba, aa, i )
                                   auxValue_A = auxMatrix2(i,i)%values(auxIndex, 1)
-                                  !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, numberOfContractionsOfSpeciesA )
+                                  !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ba, ia, activeOrbitalsOfSpeciesA )
                                   auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ba, ia, i )
                                   auxValue_B = auxMatrix2(i,i)%values(auxIndex, 1)
                                   if (j>i) then
                                      !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ib, ab, &
-                                     !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                     !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAB(ia, ba, ib, ab, i, j )
                                      auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
                                   else
                                      !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ia, ba, &
-                                     !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                     !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ia, ba, j, i )
                                      auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
                                   end if
@@ -11106,22 +11263,22 @@ contains
                             end do
                             
                             do jb = 1 , occupationNumberOfSpeciesB
-                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                   
-                                  !auxIndex = IndexMap_tensorR4ToVector(jb, ab, ib, bb, numberOfContractionsOfSpeciesB )
+                                  !auxIndex = IndexMap_tensorR4ToVector(jb, ab, ib, bb, activeOrbitalsOfSpeciesB )
                                   auxIndex = PropagatorTheory_IndexMapAA(jb, ab, ib, bb, j )
                                   auxValue_A= auxMatrix2(j,j)%values(auxIndex, 1)
-                                  !auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, numberOfContractionsOfSpeciesB )
+                                  !auxIndex = IndexMap_tensorR4ToVector(jb, bb, ib, ab, activeOrbitalsOfSpeciesB )
                                   auxIndex = PropagatorTheory_IndexMapAA(jb, bb, ib, ab, j )
                                   auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
                                   if (j>i) then
                                      !auxIndex = IndexMap_tensorR4ToVector(pa, aa, jb, bb, &
-                                     !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                     !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAB(pa, aa, jb, bb, i, j)
                                      auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
                                   else
                                      !auxIndex = IndexMap_tensorR4ToVector(jb, bb, pa, aa, &
-                                     !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                     !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAB(jb, bb, pa, aa, j, i)
                                      auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
                                   end if
@@ -11140,7 +11297,7 @@ contains
                    
                    ! diagram B
                    
-                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                       do ia = 1 , occupationNumberOfSpeciesA
                          do ib = 1 , occupationNumberOfSpeciesB
                             
@@ -11149,14 +11306,14 @@ contains
                             if (j>i) then                                                                    
 
                                !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, &
-                               !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                               !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                auxIndex = PropagatorTheory_IndexMapAB(pa, ia, ab, ib, i, j)
                                auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 
                             else
 
                                !auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ia, &
-                               !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                               !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAB(ab, ib, pa, ia, j, i)
                                auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -11169,27 +11326,27 @@ contains
                             
                             valueOfW = 0.0_8
 
-                            do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                            do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 
                                   if (j>i) then                                                                                                                                           
                                      !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, bb, &
-                                     !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                     !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAB(pa, aa, ab, bb, i, j)
                                      auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
                                      !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ib, bb, &
-                                     !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                     !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAB(ia, aa, ib, bb, i, j)
                                      auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                   else
 
                                      !auxIndex = IndexMap_tensorR4ToVector(ab, bb, pa, aa, &
-                                     !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                     !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAB(ab, bb, pa, aa, j, i)
                                      auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                      !auxIndex = IndexMap_tensorR4ToVector(ib, bb, ia, aa, &
-                                     !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                     !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                      auxIndex = PropagatorTheory_IndexMapAB(ib, bb, ia, aa, j, i)
                                      auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -11202,27 +11359,27 @@ contains
                             end do
                          end do
                          
-                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                             do jb = 1 , occupationNumberOfSpeciesB
                                
                                if (j>i) then                                                                                                                                           
                                   !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, jb, &
-                                  !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                  !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                   auxIndex = PropagatorTheory_IndexMapAB(pa, aa, ib, jb, i, j )
                                   auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
                                   !auxIndex = IndexMap_tensorR4ToVector(ia, aa, jb, ab, &
-                                  !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                  !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                   auxIndex = PropagatorTheory_IndexMapAB(ia, aa, jb, ab, i, j )
                                   auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                else
 
                                   !auxIndex = IndexMap_tensorR4ToVector(ib, jb, pa, aa, &
-                                  !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                  !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                   auxIndex = PropagatorTheory_IndexMapAB(ib, jb, pa, aa, j, i )
                                   auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                   !auxIndex = IndexMap_tensorR4ToVector(jb, ab, ia, aa, &
-                                  !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                  !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                   auxIndex = PropagatorTheory_IndexMapAB(jb, ab, ia, aa, j, i )
                                   auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -11235,23 +11392,23 @@ contains
                             end do
                          end do
 
-                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                             do ja = 1 , occupationNumberOfSpeciesA
 
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ia, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ja, ia, i )
                                auxValue_A = auxMatrix2(i,i)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, numberOfContractionsOfSpeciesA )
+                               !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ja, aa, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAA(pa, ia, ja, aa, i )
                                auxValue_B = auxMatrix2(i,i)%values(auxIndex, 1)
                                if (j>i) then
                                   !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ib, ab, &
-                                  !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                  !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                   auxIndex = PropagatorTheory_IndexMapAB(ja, aa, ib, ab, i, j )
                                   auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
                                else
                                   !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ja, aa, &
-                                  !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                  !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                   auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ja, aa, j, i )
                                   auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
                                end if
@@ -11263,22 +11420,22 @@ contains
                          end do
 
                          do jb = 1 , occupationNumberOfSpeciesB
-                            do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                            do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                
-                               !auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, numberOfContractionsOfSpeciesB )
+                               !auxIndex = IndexMap_tensorR4ToVector(ab, ib, bb, jb, activeOrbitalsOfSpeciesB )
                                auxIndex = PropagatorTheory_IndexMapAA(ab, ib, bb, jb, j )
                                auxValue_A= auxMatrix2(j,j)%values(auxIndex, 1)
-                               !auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, numberOfContractionsOfSpeciesB )
+                               !auxIndex = IndexMap_tensorR4ToVector(ab, jb, bb, ib, activeOrbitalsOfSpeciesB )
                                auxIndex = PropagatorTheory_IndexMapAA(ab, jb, bb, ib, j )
                                auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
                                if (j>i) then
                                !auxIndex = IndexMap_tensorR4ToVector(pa, ia, jb, bb,&
-                               !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                               !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                auxIndex = PropagatorTheory_IndexMapAB(pa, ia, jb, bb, i, j )
                                auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
                                else
                                !auxIndex = IndexMap_tensorR4ToVector(jb, bb, pa, ia,&
-                               !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                               !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                auxIndex = PropagatorTheory_IndexMapAB(jb, bb, pa, ia, j, i )
                                auxValue_C = auxMatrix2(j,i)%values(auxIndex, 1)
                                end if
@@ -11328,8 +11485,8 @@ contains
                    id2=0
                    
                    do ia = 1 , occupationNumberOfSpeciesA
-                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                         do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                         do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                             
                             id1 = id1 + 1
                             
@@ -11347,7 +11504,7 @@ contains
                       
                       ! factor 2hp
                       
-                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                          do ia = 1 , occupationNumberOfSpeciesA
                             do ja = 1 , occupationNumberOfSpeciesA
                                
@@ -11371,13 +11528,14 @@ contains
                    chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                    occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-                   numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+                   activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+                   if ( InputCI_Instance(j)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(j)%activeOrbitals
                    lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-                   virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
                    arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
                    arguments(1) = "ORBITALS"
-                   call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesB, &
+                   call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                         unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                         output =  eigenValuesOfSpeciesB  )     
 
@@ -11387,8 +11545,8 @@ contains
                    ! diagram A
                    
                    do ib = 1 , occupationNumberOfSpeciesB
-                      do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                         do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                      do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                         do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                             
                             id1 = id1 + 1
 
@@ -11404,7 +11562,7 @@ contains
                    
                    ! diagram B
                    
-                   do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                   do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                       do ia = 1 , occupationNumberOfSpeciesA
                          do ib = 1 , occupationNumberOfSpeciesB
                             
@@ -11539,8 +11697,8 @@ contains
 
                       id1=0
                       do ia = 1 , occupationNumberOfSpeciesA
-                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                
                                id1 = id1 + 1
 
@@ -11549,19 +11707,19 @@ contains
 
                                !if ( (.not.paso1).or.(o/=1.and.o/=6) ) then
                                   
-                                  do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                                     do da = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                                  do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                                     do da = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                         
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ca, ia, da, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ca, ia, da, i )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, da, ia, ca, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, da, ia, ca, i )
                                         auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ca, aa, da, ba, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(ca, aa, da, ba, i )
                                         auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ca, ba, da, aa, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(ca, ba, da, aa, i )
                                         auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
                                         
@@ -11576,18 +11734,18 @@ contains
                                   end do
                                   
                                   do ja = 1 , occupationNumberOfSpeciesA
-                                     do ca = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                                     do ca = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                         
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ja, ca, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ba, ja, ca, i )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, ba, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ca, ja, ba, i )
                                         auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, aa, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(ia, ja, ca, aa, i )
                                         auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ca, ja, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(ia, aa, ca, ja, i )
                                         auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
                                         
@@ -11598,16 +11756,16 @@ contains
                                         valueOfU = valueOfU + a2/c
                                         valueOfdU = valueOfdU - a2/(c**2.0_8)
                                         
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ja, ca, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ja, ca, i )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ca, ja, aa, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ca, ja, aa, i )
                                         auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ca, ba, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(ia, ja, ca, ba, i )
                                         auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ca, ja, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(ia, ba, ca, ja, i )
                                         auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
                                         
@@ -11644,8 +11802,8 @@ contains
   
                       id1=0
                       do ia = 1 , occupationNumberOfSpeciesA
-                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                            do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                            do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                
                                id1 = id1 + 1
 
@@ -11691,7 +11849,7 @@ contains
                          subdW = 0.0_8
                          subdU = 0.0_8
                          
-                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                             do ia = 1 , occupationNumberOfSpeciesA
                                do ja = 1 , occupationNumberOfSpeciesA
                                   
@@ -11703,16 +11861,16 @@ contains
                                   do ka = 1 , occupationNumberOfSpeciesA
                                      do la = 1 , occupationNumberOfSpeciesA
                                         
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ka, aa, la, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ka, aa, la, i )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, la, aa, ka, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, la, aa, ka, i )
                                         auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ka, ia, la, ja, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(ka, ia, la, ja, i )
                                         auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ka, ja, la, ia, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(ka, ja, la, ia, i )
                                         auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
                                         
@@ -11727,18 +11885,18 @@ contains
                                   end do
                                   
                                   do ka = 1 , occupationNumberOfSpeciesA
-                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                         
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ba, ka, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ja, ba, ka, i )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ja, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ka, ba, ja, i )
                                         auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ia, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(aa, ba, ka, ia, i )
                                         auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(aa, ia, ka, ba, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(aa, ia, ka, ba, i )
                                         auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
                                         
@@ -11749,16 +11907,16 @@ contains
                                         valueOfU = valueOfU - a2/c
                                         valueOfdU = valueOfdU + a2/(c**2.0_8)
                                         
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ba, ka, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ia, ba, ka, i )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(pa, ka, ba, ia, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(pa, ka, ba, ia, i )
                                         auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(aa, ba, ka, ja, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(aa, ba, ka, ja, i )
                                         auxValue_C = auxMatrix2(i,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, numberOfContractionsOfSpeciesA )
+                                        !auxIndex = IndexMap_tensorR4ToVector(aa, ja, ka, ba, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAA(aa, ja, ka, ba, i )
                                         auxValue_D = auxMatrix2(i,j)%values(auxIndex, 1)
                                         
@@ -11810,13 +11968,14 @@ contains
                             chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !                            eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
                             occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
-                            numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+                            activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( k )
+                            if ( InputCI_Instance(k)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(k)%activeOrbitals
                             lambdaOfSpeciesB = MolecularSystem_getLambda( k )
-                            virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+                            virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
                             arguments(2) = trim(MolecularSystem_getNameOfSpecie(k))
                             arguments(1) = "ORBITALS"
-                            call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesB, &
+                            call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( k ), &
                                      unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                                      output =  eigenValuesOfSpeciesB  )     
 
@@ -11832,8 +11991,8 @@ contains
                                subdW = 0.0_8
                             
                                do ia = 1 , occupationNumberOfSpeciesA
-                                  do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                                  do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                         
                                         id1 = id1 + 1
 
@@ -11842,24 +12001,24 @@ contains
                                         valueOfW = 0.0_8
                                                                                 
                                         do ib = 1 , occupationNumberOfSpeciesB
-                                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 
                                               if (k>i) then
                                                  !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ab, ib,&
-                                                 !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                                 !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                                  auxIndex = PropagatorTheory_IndexMapAB(pa, ba, ab, ib, i, k )
                                                  auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
                                                  !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib,&
-                                                 !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                                 !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ia, aa, ab, ib, i, k )
                                                  auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
                                               else
                                                  !auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ba,&
-                                                 !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                                 !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ab, ib, pa, ba, k, i )
                                                  auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
                                                  !auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, aa, &
-                                                 !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                                 !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ab, ib, ia, aa, k, i )
                                                  auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
                                               end if
@@ -11876,20 +12035,20 @@ contains
                                               
                                               if (k>i) then
                                                  !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ab, ib, &
-                                                 !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                                 !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                                  auxIndex = PropagatorTheory_IndexMapAB(pa, aa, ab, ib, i, k )
                                                  auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
                                                  !auxIndex = IndexMap_tensorR4ToVector(ia, ba, ab, ib, &
-                                                 !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                                 !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ia, ba, ab, ib, i, k )
                                                  auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
                                               else
                                                  !auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, aa, &
-                                                 !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                                 !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ab, ib, pa, aa, k, i )
                                                  auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
                                                  !auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, ba, &
-                                                 !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                                 !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ab, ib, ia, ba, k, i )
                                                  auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
                                               end if
@@ -11942,7 +12101,7 @@ contains
                                subW = 0.0_8
                                subdW = 0.0_8
                                
-                               do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                               do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                   do ia = 1 , occupationNumberOfSpeciesA
                                      do ja = 1 , occupationNumberOfSpeciesA
                                         
@@ -11953,27 +12112,27 @@ contains
                                         valueOfW = 0.0_8
                                         
                                         do ib = 1 , occupationNumberOfSpeciesB
-                                           do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                                           do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 
                                               if (k>i) then
                                                  
                                                  !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, ib, &
-                                                 !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                                 !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                                  auxIndex = PropagatorTheory_IndexMapAB(pa, ja, ab, ib, i, k )
                                                  auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
                                                  !auxIndex = IndexMap_tensorR4ToVector(ia, aa, ab, ib, &
-                                                 !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                                 !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ia, aa, ab, ib, i, k)
                                                  auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
                                                  
                                               else
 
                                                  !auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ja, &
-                                                 !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                                 !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ab, ib, pa, ja, k, i )
                                                  auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
                                                  !auxIndex = IndexMap_tensorR4ToVector(ab, ib, ia, aa, &
-                                                 !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                                 !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ab, ib, ia, aa, k, i )
                                                  auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
 
@@ -11992,22 +12151,22 @@ contains
                                               if (k>i) then                                              
                                                  
                                                  !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ab, ib, &
-                                                 !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                                 !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                                  auxIndex = PropagatorTheory_IndexMapAB(pa, ia, ab, ib, i, k )
                                                  auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
                                                  !auxIndex = IndexMap_tensorR4ToVector(ja, aa, ab, ib, &
-                                                 !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                                 !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ja, aa, ab, ib, i, k )
                                                  auxValue_B = auxMatrix2(i,k)%values(auxIndex, 1)
                                                  
                                               else
 
                                                  !auxIndex = IndexMap_tensorR4ToVector(ab, ib, pa, ia, &
-                                                 !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                                 !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ab, ib, pa, ia, k, i )
                                                  auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
                                                  !auxIndex = IndexMap_tensorR4ToVector(ab, ib, ja, aa, &
-                                                 !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                                 !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                                  auxIndex = PropagatorTheory_IndexMapAB(ab, ib, ja, aa, k, i )
                                                  auxValue_B = auxMatrix2(k,i)%values(auxIndex, 1)
 
@@ -12064,13 +12223,14 @@ contains
                       chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                       occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
-                      numberOfContractionsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+                      activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
+                      if ( InputCI_Instance(j)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(j)%activeOrbitals
                       lambdaOfSpeciesB = MolecularSystem_getLambda( j )
-                      virtualNumberOfSpeciesB = numberOfContractionsOfSpeciesB - occupationNumberOfSpeciesB
+                      virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
                       arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
                       arguments(1) = "ORBITALS"
-                      call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesB, &
+                      call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                            unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                            output =  eigenValuesOfSpeciesB  )   
                       
@@ -12093,8 +12253,8 @@ contains
                       if ( (.not.paso2).or.(o/=1.and.o/=6) ) then
                       id1 = 0
                       do ib = 1 , occupationNumberOfSpeciesB
-                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                
                                id1 = id1 + 1
                                
@@ -12105,28 +12265,28 @@ contains
                                   
                                   do jb = 1 , occupationNumberOfSpeciesB
                                      
-                                     do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                                     do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 
                                         if (j>i) then
                                            
                                            !auxIndex = IndexMap_tensorR4ToVector(pa, aa, bb, jb, &
-                                           !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                           !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                            auxIndex = PropagatorTheory_IndexMapAB(pa, aa, bb, jb, i, j )
                                            auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                         else
 
                                            !auxIndex = IndexMap_tensorR4ToVector(bb, jb, pa, aa, &
-                                           !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                           !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                            auxIndex = PropagatorTheory_IndexMapAB(bb, jb, pa, aa, j, i )
                                            auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
 
                                         end if
 
-                                        !auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, ab, numberOfContractionsOfSpeciesB )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ib, jb, bb, ab, activeOrbitalsOfSpeciesB )
                                         auxIndex = PropagatorTheory_IndexMapAA(ib, jb, bb, ab, j )
                                         auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
-                                        !auxIndex = IndexMap_tensorR4ToVector(ib, ab, bb, jb, numberOfContractionsOfSpeciesB )
+                                        !auxIndex = IndexMap_tensorR4ToVector(ib, ab, bb, jb, activeOrbitalsOfSpeciesB )
                                         auxIndex = PropagatorTheory_IndexMapAA(ib, ab, bb, jb, j )
                                         auxValue_C= auxMatrix2(j,j)%values(auxIndex, 1)
                                         
@@ -12140,28 +12300,28 @@ contains
                                      end do
                                   end do
                                   
-                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
-                                     do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
+                                     do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                         
                                         if (j>i) then
                                            
                                            !auxIndex = IndexMap_tensorR4ToVector(ba, aa, bb, ab, &
-                                           !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                           !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                            auxIndex = PropagatorTheory_IndexMapAB(ba, aa, bb, ab, i, j )
                                            auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
                                            !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ib, bb, &
-                                           !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                           !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                            auxIndex = PropagatorTheory_IndexMapAB(pa, ba, ib, bb, i, j )
                                            auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                         else
 
                                            !auxIndex = IndexMap_tensorR4ToVector(bb, ab, ba, aa, &
-                                           !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                           !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                            auxIndex = PropagatorTheory_IndexMapAB(bb, ab, ba, aa, j, i )
                                            auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                            !auxIndex = IndexMap_tensorR4ToVector(ib, bb, pa, ba, &
-                                           !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                           !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                            auxIndex = PropagatorTheory_IndexMapAB(ib, bb, pa, ba, j, i )
                                            auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -12177,28 +12337,28 @@ contains
                                      end do
                                   end do
                                   
-                                  do ba = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
+                                  do ba = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                                      do jb = 1 , occupationNumberOfSpeciesB
 
                                         if (j>i) then                                        
                                            
                                            !auxIndex = IndexMap_tensorR4ToVector(aa, ba, ib, jb, &
-                                           !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                           !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                            auxIndex = PropagatorTheory_IndexMapAB(aa, ba, ib, jb, i, j )
                                            auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
                                            !auxIndex = IndexMap_tensorR4ToVector(pa, ba, jb, ab, &
-                                           !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                           !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                            auxIndex = PropagatorTheory_IndexMapAB(pa, ba, jb, ab, i, j )
                                            auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                         else
 
                                            !auxIndex = IndexMap_tensorR4ToVector(ib, jb, aa, ba, &
-                                           !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                           !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                            auxIndex = PropagatorTheory_IndexMapAB(ib, jb, aa, ba, j, i )
                                            auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                            !auxIndex = IndexMap_tensorR4ToVector(jb, ab, pa, ba, &
-                                           !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                           !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                            auxIndex = PropagatorTheory_IndexMapAB(jb, ab, pa, ba, j, i )
                                            auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -12237,8 +12397,8 @@ contains
                       !if ( (paso2) .or. (ooarray(1) ==1) ) then
                       id1 = 0
                       do ib = 1 , occupationNumberOfSpeciesB
-                         do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                         do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                
                                id1 = id1 + 1
 
@@ -12281,7 +12441,7 @@ contains
                       subdW = 0.0_8
                       subdU = 0.0_8
                       
-                      do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                      do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                          do ia = 1 , occupationNumberOfSpeciesA
                             do ib = 1 , occupationNumberOfSpeciesB
                                
@@ -12292,28 +12452,28 @@ contains
                                
                                do jb = 1 , occupationNumberOfSpeciesB
                                   
-                                  do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                                  do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
 
                                      if (j>i) then
                                         
                                         !auxIndex = IndexMap_tensorR4ToVector(pa, ia, bb, jb,&
-                                        !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                        !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                         auxIndex = PropagatorTheory_IndexMapAB(pa, ia, bb, jb, i, j )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                      else
 
                                         !auxIndex = IndexMap_tensorR4ToVector(bb, jb, pa, ia, &
-                                        !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                        !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAB(bb, jb, pa, ia, j, i )
                                         auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                         
                                      end if
 
-                                     !auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, numberOfContractionsOfSpeciesB )
+                                     !auxIndex = IndexMap_tensorR4ToVector(bb, ab, ib, jb, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAA(bb, ab, ib, jb, j )
                                      auxValue_B= auxMatrix2(j,j)%values(auxIndex, 1)
-                                     !auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, numberOfContractionsOfSpeciesB )
+                                     !auxIndex = IndexMap_tensorR4ToVector(bb, jb, ib, ab, activeOrbitalsOfSpeciesB )
                                      auxIndex = PropagatorTheory_IndexMapAA(bb, jb, ib, ab, j )
                                      auxValue_C= auxMatrix2(j,j)%values(auxIndex, 1)
                                      
@@ -12333,22 +12493,22 @@ contains
                                      if (j>i) then
                                         
                                         !auxIndex = IndexMap_tensorR4ToVector(ia, ja, ib, jb,&
-                                        !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                        !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                         auxIndex = PropagatorTheory_IndexMapAB(ia, ja, ib, jb, i, j )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
                                         !auxIndex = IndexMap_tensorR4ToVector(pa, ja, ab, jb,&
-                                        !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                        !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                         auxIndex = PropagatorTheory_IndexMapAB(pa, ja, ab, jb, i, j )
                                         auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                      else
 
                                         !auxIndex = IndexMap_tensorR4ToVector(ib, jb, ia, ja, &
-                                        !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                        !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAB(ib, jb, ia, ja, j, i )
                                         auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                         !auxIndex = IndexMap_tensorR4ToVector(ab, jb, pa, ja,&
-                                        !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                        !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAB(ab, jb, pa, ja, j, i )
                                         auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -12364,28 +12524,28 @@ contains
                                   end do
                                end do
                                
-                               do bb = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                               do bb = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                   do ja = 1 , occupationNumberOfSpeciesA
 
                                      if (j>i) then                                     
                                         
                                         !auxIndex = IndexMap_tensorR4ToVector(ia, ja, bb, ab,&
-                                        !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                        !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                         auxIndex = PropagatorTheory_IndexMapAB(ia, ja, bb, ab, i, j )
                                         auxValue_A = auxMatrix2(i,j)%values(auxIndex, 1)
                                         !auxIndex = IndexMap_tensorR4ToVector(pa, ja, bb, ib,&
-                                        !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesB )
+                                        !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                                         auxIndex = PropagatorTheory_IndexMapAB(pa, ja, bb, ib, i, j )
                                         auxValue_B = auxMatrix2(i,j)%values(auxIndex, 1)
 
                                      else
 
                                         !auxIndex = IndexMap_tensorR4ToVector(bb, ab, ia, ja,&
-                                        !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                        !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAB(bb, ab, ia, ja, j, i )
                                         auxValue_A = auxMatrix2(j,i)%values(auxIndex, 1)
                                         !auxIndex = IndexMap_tensorR4ToVector(bb, ib, pa, ja,&
-                                        !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesA )
+                                        !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesA )
                                         auxIndex = PropagatorTheory_IndexMapAB(bb, ib, pa, ja, j, i )
                                         auxValue_B = auxMatrix2(j,i)%values(auxIndex, 1)
 
@@ -12437,13 +12597,14 @@ contains
                             chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
                             occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
-                            numberOfContractionsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
+                            activeOrbitalsOfSpeciesC = MolecularSystem_getTotalNumberOfContractions( k )
+                            if ( InputCI_Instance(k)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesC = InputCI_Instance(k)%activeOrbitals
                             lambdaOfSpeciesC = MolecularSystem_getLambda( k )
-                            virtualNumberOfSpeciesC = numberOfContractionsOfSpeciesC - occupationNumberOfSpeciesC
+                            virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 
                             arguments(2) = trim(MolecularSystem_getNameOfSpecie(k))
                             arguments(1) = "ORBITALS"
-                            call Vector_getFromFile( elementsNum = numberOfContractionsOfSpeciesC, &
+                            call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( k ), &
                                     unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                                     output =  eigenValuesOfSpeciesC  )    
                             
@@ -12454,8 +12615,8 @@ contains
                             subdU=0.0_8                            
                             
                             do ib = 1 , occupationNumberOfSpeciesB
-                               do aa = occupationNumberOfSpeciesA+1 , numberOfContractionsOfSpeciesA
-                                  do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                               do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
+                                  do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                      
                                      id1 = id1 + 1
                                      
@@ -12463,27 +12624,27 @@ contains
                                      valueOfdU=0.0_8
                                      
                                      do ic = 1 , occupationNumberOfSpeciesC
-                                        do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+                                        do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
                                            
                                            if (k>i) then
                                               !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ic, ac,&
-                                              !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+                                              !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
                                               auxIndex = PropagatorTheory_IndexMapAB(pa, aa, ic, ac, i, k )
                                               auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)                                              
                                            else
                                               !auxIndex = IndexMap_tensorR4ToVector(ic, ac, pa, aa,&
-                                              !     numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesA )
+                                              !     activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesA )
                                               auxIndex = PropagatorTheory_IndexMapAB(ic, ac, pa, aa, k, i )
                                               auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
                                            end if
                                            if (k>j) then
                                               !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac,&
-                                              !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                              !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
                                               auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ic, ac, j, k )
                                               auxValue_B = auxMatrix2(j,k)%values(auxIndex, 1)
                                            else
                                               !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab,&
-                                              !     numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                              !     activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
                                               auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, ab, k , j)
                                               auxValue_B = auxMatrix2(k,j)%values(auxIndex, 1)
                                            end if
@@ -12525,7 +12686,7 @@ contains
                             subU=0.0_8
                             subdU=0.0_8
                             
-                            do ab = occupationNumberOfSpeciesB+1 , numberOfContractionsOfSpeciesB
+                            do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                                do ia = 1 , occupationNumberOfSpeciesA
                                   do ib = 1 , occupationNumberOfSpeciesB
                                      
@@ -12535,27 +12696,27 @@ contains
                                      valueOfdU=0.0_8
                                      
                                      do ic = 1 , occupationNumberOfSpeciesC
-                                        do ac = occupationNumberOfSpeciesC+1 , numberOfContractionsOfSpeciesC
+                                        do ac = occupationNumberOfSpeciesC+1 , activeOrbitalsOfSpeciesC
                                            
                                            if (k>i) then
                                               !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ic, ac,&
-                                              !     numberOfContractionsOfSpeciesA, numberOfContractionsOfSpeciesC )
+                                              !     activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesC )
                                               auxIndex = PropagatorTheory_IndexMapAB(pa, ia, ic, ac, i, k )
                                               auxValue_A = auxMatrix2(i,k)%values(auxIndex, 1)
                                            else
                                               !auxIndex = IndexMap_tensorR4ToVector(ic, ac, pa, ia,&
-                                              !     numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesA )
+                                              !     activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesA )
                                               auxIndex = PropagatorTheory_IndexMapAB(ic, ac, pa, ia, k, i )
                                               auxValue_A = auxMatrix2(k,i)%values(auxIndex, 1)
                                            end if
                                            if (k>j) then
                                               !auxIndex = IndexMap_tensorR4ToVector(ib, ab, ic, ac,&
-                                              !     numberOfContractionsOfSpeciesB, numberOfContractionsOfSpeciesC )
+                                              !     activeOrbitalsOfSpeciesB, activeOrbitalsOfSpeciesC )
                                               auxIndex = PropagatorTheory_IndexMapAB(ib, ab, ic, ac, j, k )
                                               auxValue_B = auxMatrix2(j,k)%values(auxIndex, 1)
                                            else
                                               !auxIndex = IndexMap_tensorR4ToVector(ic, ac, ib, ab,&
-                                              !     numberOfContractionsOfSpeciesC, numberOfContractionsOfSpeciesB )
+                                              !     activeOrbitalsOfSpeciesC, activeOrbitalsOfSpeciesB )
                                               auxIndex = PropagatorTheory_IndexMapAB(ic, ac, ib, ab, k, j )
                                               auxValue_B = auxMatrix2(k,j)%values(auxIndex, 1)
                                            end if

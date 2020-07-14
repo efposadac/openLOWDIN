@@ -48,6 +48,8 @@ module TransformIntegralsD_
      integer :: r_lowerOrbital, r_upperOrbital
      integer :: s_lowerOrbital, s_upperOrbital
 
+     logical :: partialTransformMP2
+
   end type TransformIntegralsD
 
   interface
@@ -111,13 +113,17 @@ contains
   !>
   !! @brief Contructor de la clase
   !<
-  subroutine TransformIntegralsD_constructor(this)
+  subroutine TransformIntegralsD_constructor(this,partial)
     implicit none
     type(TransformIntegralsD) :: this
-
+    character(*) :: partial
+    
     this%unidOfOutputForCoefficients = CONTROL_instance%UNIT_FOR_MOLECULAR_ORBITALS_FILE
     this%unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
     this%fileForIntegrals = trim(CONTROL_INSTANCE%INPUT_FILE)//".ints"
+
+    this%partialTransformMP2=.false.
+    if (trim(partial)=="MP2") this%partialTransformMP2=.true.
 
   end subroutine TransformIntegralsD_constructor
 
@@ -609,7 +615,7 @@ contains
 
 
     !! only the (ia|jb) integrals will be transformed
-    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2  ) then
+    if ( this%partialTransformMP2 ) then
 
        this%p_lowerOrbital = 0
        this%p_upperOrbital = totalOccupation - 1
@@ -664,7 +670,7 @@ contains
 
 
     !! only the (ia|jb) integrals will be transformed
-    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2  ) then
+    if ( this%partialTransformMP2  ) then
 
        this%p_lowerOrbital = 1
        this%p_upperOrbital = totalOccupation

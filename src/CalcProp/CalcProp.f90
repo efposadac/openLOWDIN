@@ -61,6 +61,11 @@ program CalcProp_
   job = trim(String_getUppercase(job))
 
 
+  fileName = ""
+  call get_command_argument(1,value=fileName)  
+
+  if(fileName .eq. "") fileName="lowdin"
+  
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 

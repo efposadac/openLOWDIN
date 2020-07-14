@@ -26,6 +26,7 @@ END TASKS
 
 CONTROL
 electronExchangeCorrelationFunctional="BLYP"
+debugSCFS=.F.
 END CONTROL
 
 

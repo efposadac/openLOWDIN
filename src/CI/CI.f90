@@ -42,7 +42,6 @@ program CI
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
   read(job,"(I10)") numberOfSpeciesInCI
-
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
   call Stopwatch_start(lowdin_stopwatch)
@@ -50,12 +49,20 @@ program CI
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
-  !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+     !!Load the system in lowdin.sys format
+     call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  else
+     !!Load the system in lowdin.sys format
+     call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
+  end if
 
   call InputCI_constructor( )
-  call InputCI_load( numberOfSpeciesInCI )
-
+  if(numberOfSpeciesInCI .ne. 0) then
+     call InputCI_load( numberOfSpeciesInCI )
+  else
+     call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
+  end if
   call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
   call ConfigurationInteraction_run()
   call ConfigurationInteraction_show()

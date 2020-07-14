@@ -272,7 +272,7 @@ if [ $extFile="lowdin" ]; then
                 printf("\n&Output\n")
 		for(i=1;i<=NF;i++){
 			if($i=="specie"){
-				printf("\tOutput_specie = %s\n",$(i+2) )
+				printf("\tOutput_species = %s\n",$(i+2) )
 			}
 			else if($i=="orbital"){
 				printf("\tOutput_orbital = %s\n",$(i+2) )

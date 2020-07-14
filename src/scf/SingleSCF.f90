@@ -55,7 +55,6 @@ module SingleSCF_
        SingleSCF_iterate, &
        SingleSCF_restart, &
        SingleSCF_reset, &
-       SingleSCF_actualizeDensityMatrix, &
        SingleSCF_testEnergyChange, &
        SingleSCF_testDensityMatrixChange
 
@@ -136,8 +135,8 @@ contains
     integer :: speciesID
     real(8) :: output
 
-    call List_end( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements )
-    output= List_current( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements )
+    call List_end( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements )
+    output= List_current( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements )
 
   end function SingleSCF_getStandardDeviationOfDensityMatrix
 
@@ -159,11 +158,10 @@ contains
   !! @param nameOfSpecie nombre de la especie seleccionada.
   !! @warning Se debe garantizar la actualizacion de la matriz de densidad  y calculos de esta derivados
   !! cuando se emplee este metodo con el parametro actualizeDensityMatrix=.false.
-  subroutine SingleSCF_iterate( nameOfSpecie, actualizeDensityMatrix )
+  subroutine SingleSCF_iterate( nameOfSpecies )
     implicit none
 
-    character(*), optional :: nameOfSpecie
-    logical,optional :: actualizeDensityMatrix
+    character(*), optional :: nameOfSpecies
 
     type(Matrix) :: fockMatrixTransformed
     type(Matrix) :: auxiliaryMatrix
@@ -183,7 +181,6 @@ contains
     integer :: ii, jj, astrayOrbitals, startIteration
     integer :: i
     logical :: existFile
-    logical :: internalActualizeDensityMatrix 
 
     character(50) :: wfnFile
     character(50) :: arguments(20)
@@ -195,37 +192,31 @@ contains
     nameOfSpecieSelected = "E-"
     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
-    internalActualizeDensityMatrix = .true.
-
-    if ( present(  actualizeDensityMatrix ) ) then
-       internalActualizeDensityMatrix =  actualizeDensityMatrix
-    end if
-
-    speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
+    speciesID = MolecularSystem_getSpecieID( trim(nameOfSpeciesSelected ) )
 
     numberOfContractions = MolecularSystem_getTotalnumberOfContractions( speciesID )
 
     !!**********************************************************************************************
     !! If fock matrix has not been created! creates the fock matrix
     !!
-    if ( .not. WaveFunction_instance(speciesID)%wasBuiltFockMatrix ) then
+    ! if ( .not. WaveFunction_instance(speciesID)%wasBuiltFockMatrix ) then
 
        ! call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), nproc )
        ! call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie) )       
 
 
-       if (CONTROL_instance%COSMO) then
-          call WaveFunction_buildCosmo2Matrix( trim(nameOfSpecie) )
-          call WaveFunction_buildCosmoCoupling( trim(nameOfSpecie) )
-       end if
+       ! if (CONTROL_instance%COSMO) then
+       !    call WaveFunction_buildCosmo2Matrix( trim(nameOfSpecies) )
+       !    call WaveFunction_buildCosmoCoupling( trim(nameOfSpecies) )
+       ! end if
 
 
-       call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
+    !    call WaveFunction_buildFockMatrix( trim(nameOfSpecies) )
 
-       WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .true.
+    !    WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .true.
 
 
-    end if
+    ! end if
     !!
     !!**********************************************************************************************
 
@@ -247,7 +238,6 @@ contains
              levelShiftingFactor=CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
           end if
 
-          !The level shifting should be turned off when we are close to convergence, should be a parameter in CONTROL 
           if ( WaveFunction_instance(speciesID)%numberOfIterations .gt. 1 ) then
              !! Obtiene el valor de energia de la ultima iteracion
              call List_end( WaveFunction_instance(speciesID)%energySCF )
@@ -259,10 +249,6 @@ contains
              !! Obtiene el cambio de energia en las ultimas dos iteraciones
              deltaEnergy = abs(deltaEnergy - List_current( WaveFunction_instance(speciesID)%energySCF ))
              
-             ! if( levelShiftingFactor .gt. 0.0_8 .and. deltaEnergy .lt. 1E-6 ) then
-             !    levelShiftingFactor = 0.0_8
-             !    print *, "turned off level shifting for ",  trim(nameOfSpecie) 
-             ! end if
           end if
           
           fockMatrixTransformed%values = &
@@ -547,8 +533,14 @@ contains
           arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
           arguments(1) = "COEFFICIENTS"
 
-          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
-          inquire(FILE = wfnFile, EXIST = existFile )
+             call Matrix_constructor (auxiliaryMatrix, numberOfContractions, numberOfContractions)
+             call MolecularSystem_readFchk( trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk", &
+                  WaveFunction_instance(speciesID)%waveFunctionCoefficients, auxiliaryMatrix, nameOfSpecies )
+             call Matrix_destructor(auxiliaryMatrix)
+             
+          else if (CONTROL_instance%READ_COEFFICIENTS) then
+             arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+             arguments(1) = "COEFFICIENTS"
 
           if ( existFile) then
              open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
@@ -673,20 +665,6 @@ contains
 
        end if
 
-       if (  internalActualizeDensityMatrix ) then
-
-          !! Determina la desviacion estandar de los elementos de la matriz de densidad
-          call Matrix_copyConstructor( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix )
-          call WaveFunction_builtDensityMatrix( trim(nameOfSpecieSelected) )
-          call List_push_back( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements, &
-               Matrix_standardDeviation( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix ) )
-
-          !! Calcula energia total para la especie especificada
-          call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpecieSelected) )
-          call List_push_back( WaveFunction_instance(speciesID)%energySCF, WaveFunction_instance(speciesID)%totalEnergyForSpecie )
-          call List_push_back( WaveFunction_instance(speciesID)%diisError, Convergence_getDiisError( WaveFunction_instance(speciesID)%convergenceMethod) )
-
-       end if
        
        !! Actualiza el contador para el numero de iteraciones SCF de la especie actual
        WaveFunction_instance(speciesID)%numberOfIterations =  WaveFunction_instance(speciesID)%numberOfIterations + 1
@@ -697,7 +675,7 @@ contains
        !! Warning:
        !! This part has not been tested
 
-       call WaveFunction_builtDensityMatrix(trim(nameOfSpecieSelected) )
+       call WaveFunction_buildDensityMatrix(trim(nameOfSpeciesSelected) )
 
        !! Calcula energia total para la especie especificada
        call WaveFunction_obtainTotalEnergyForSpecie( trim(nameOfSpecieSelected) )
@@ -706,7 +684,7 @@ contains
 
     end if
 
-    WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .false.
+    ! WaveFunction_instance(speciesID)%wasBuiltFockMatrix = .false.
 
   end subroutine SingleSCF_iterate
   
@@ -721,7 +699,7 @@ contains
     WaveFunction_instance(speciesID)%numberOfIterations = 0
 
     call List_clear( WaveFunction_instance(speciesID)%energySCF )
-    call List_clear( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements )
+    call List_clear( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements )
     call List_clear( WaveFunction_instance(speciesID)%diisError )
     call Convergence_reset()
 
@@ -735,11 +713,10 @@ contains
     integer :: speciesID
 
     WaveFunction_instance(speciesID)%numberOfIterations = 0
-    WaveFunction_instance(speciesID)%wasBuiltFockMatrix =.false.
 
     call List_clear( WaveFunction_instance(speciesID)%energySCF )
     call List_clear( WaveFunction_instance(speciesID)%diisError )
-    call List_clear( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements )
+    call List_clear( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements )
 
     call Convergence_destructor( WaveFunction_instance(speciesID)%convergenceMethod )
     call Convergence_constructor(WaveFunction_instance(speciesID)%convergenceMethod, &
@@ -752,34 +729,34 @@ contains
 
   !>
   !! @brief Updates density matrix after one SCF iteration
-  subroutine SingleSCF_actualizeDensityMatrix( nameOfSpecie )
-    implicit none
-    character(*), optional :: nameOfSpecie
+  ! subroutine SingleSCF_actualizeDensityMatrix( nameOfSpecie )
+  !   implicit none
+  !   character(*), optional :: nameOfSpecie
 
-    integer :: speciesID
-    character(30) :: nameOfSpecieSelected
+  !   integer :: speciesID
+  !   character(30) :: nameOfSpecieSelected
 
-    nameOfSpecieSelected = "E-"
-    if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
+  !   nameOfSpecieSelected = "E-"
+  !   if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
 
-    speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
+  !   speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
 
-    !! Determina la desviacion estandar de los elementos de la matriz de densidad
-    call Matrix_copyConstructor( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix )
+  !   !! Determina la desviacion estandar de los elementos de la matriz de densidad
+  !   call Matrix_copyConstructor( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix )
 
-    call WaveFunction_builtDensityMatrix( nameOfSpecieSelected )
+  !   call WaveFunction_builtDensityMatrix( nameOfSpecieSelected )
 
-    call List_push_back( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements, &
-         Matrix_standardDeviation( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix) )
+  !   call List_push_back( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements, &
+  !        Matrix_standardDeviation( WaveFunction_instance(speciesID)%beforeDensityMatrix, WaveFunction_instance(speciesID)%densityMatrix) )
 
-    !! Calcula energia total para la especie especificada
-    call WaveFunction_obtainTotalEnergyForSpecie( nameOfSpecieSelected )
+  !   !! Calcula energia total para la especie especificada
+  !   call WaveFunction_obtainTotalEnergyForSpecie( nameOfSpecieSelected )
 
-    call List_push_back( WaveFunction_instance(speciesID)%energySCF, WaveFunction_instance(speciesID)%totalEnergyForSpecie )
+  !   call List_push_back( WaveFunction_instance(speciesID)%energySCF, WaveFunction_instance(speciesID)%totalEnergyForSpecie )
 
-    call List_push_back( WaveFunction_instance(speciesID)%diisError, Convergence_getDiisError( WaveFunction_instance(speciesID)%convergenceMethod) )
+  !   call List_push_back( WaveFunction_instance(speciesID)%diisError, Convergence_getDiisError( WaveFunction_instance(speciesID)%convergenceMethod) )
 
-  end subroutine SingleSCF_actualizeDensityMatrix
+  ! end subroutine SingleSCF_actualizeDensityMatrix
 
   !>
   !! @brief Prueba si la energia del la ultima iteracion a sufrido un cambio por debajo de cierta tolerancia
@@ -872,8 +849,8 @@ contains
        if ( SingleSCF_getNumberOfIterations( speciesID ) > 1 ) then
 
           !! Obtiene la desviacion de la ultima iteracion
-          call List_end( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements )
-          deltaDensityMatrix= List_current( WaveFunction_instance(speciesID)%standartDesviationOfDensityMatrixElements )
+          call List_end( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements )
+          deltaDensityMatrix= List_current( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements )
 
           if( abs( deltaDensityMatrix -CONTROL_instance%DOUBLE_ZERO_THRESHOLD) > tolerace ) then
 

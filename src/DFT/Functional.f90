@@ -307,10 +307,10 @@ contains
              if( this%correlationName .ne. "NONE" ) then
 
                 write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","exchange:", xc_f03_func_info_get_name(this%info1)
-                print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
+                ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
 
                 write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","correlation:", xc_f03_func_info_get_name(this%info2)
-                print *, "family", xc_f03_func_info_get_family(this%info2), "shell", this%shell
+                ! print *, "family", xc_f03_func_info_get_family(this%info2), "shell", this%shell
 
              else
 
