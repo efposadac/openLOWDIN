@@ -57,7 +57,7 @@ module Particle_
      logical :: fixComponent(3)		!< Indica cual coordenada sera un parametro. (is fixed)
      logical :: isCenterOfOptimization	!< Especifica si la particula sera centro de optimizacion -Atributo requerido por conveniencia-
      integer :: multiplicity
-     integer :: subSystem               !< Which subsystem the particle belongs to
+     integer :: subsystem               !< Which subsystem the particle belongs to
      integer :: id			!< Indice de particula dentro del sistema
      integer :: internalSize		!< Numero de particulas si se trata de una particula estructurada
      integer :: owner			!< asocia un indice a la particula que la indentifica como un centro de referencia.
@@ -77,7 +77,7 @@ contains
   !!      -Adapted for open shell systems, 2011. E. F. Posada
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
-  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, subSystem, spin, id, charge, mass )
+  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, subsystem, spin, id, charge, mass )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
@@ -87,7 +87,7 @@ contains
     real(8), intent(in), optional :: origin(3)
     real(8), intent(in), optional :: multiplicity
     integer, intent(in), optional :: addParticles
-    integer, intent(in), optional :: subSystem
+    integer, intent(in), optional :: subsystem
     integer, intent(in) :: id
     real(8), intent(in), optional :: charge
     real(8), intent(in), optional :: mass
@@ -128,7 +128,7 @@ contains
     if   ( present(addParticles) ) auxAdditionOfParticles= addParticles
 
     auxSubSystem=0
-    if   ( present(subSystem) ) auxSubSystem= subSystem
+    if   ( present(subsystem) ) auxSubSystem= subsystem
     
     !! Initialize some variables
     isDummy = .false.
@@ -192,7 +192,7 @@ contains
                elementSymbol=trim(elementSymbol), &
                isDummy= isDummy, &
                owner=id, &
-               subSystem=auxSubSystem, &
+               subsystem=auxSubSystem, &
                nickname=trim(element%symbol) )
           
           !! Setting remaining variables...
@@ -278,7 +278,7 @@ contains
                elementSymbol = trim(elementSymbol), &
                isDummy = isDummy, &
                owner = id, &
-               subSystem=auxSubSystem, &
+               subsystem=auxSubSystem, &
                massNumber = int(element%massicNumber),&
                nickname = trim(name))
 
@@ -335,7 +335,7 @@ contains
                   name=trim(elementSymbol), &
                   origin=auxOrigin, &
                   owner=id, &
-                  subSystem=auxSubSystem, &
+                  subsystem=auxSubSystem, &
                   nickname=trim(element%symbol))
 
              call Particle_setComponentFixed(this, varsToFix )
@@ -381,7 +381,7 @@ contains
                   name=trim(elementSymbol), &
                   origin=auxOrigin, &
                   owner=id, &
-                  subSystem=auxSubSystem, &
+                  subsystem=auxSubSystem, &
                   charge=auxCharge, &
                   nickname=trim(element%symbol))
 
@@ -431,7 +431,7 @@ contains
             basisSetName = trim(baseName), &
             elementSymbol = trim(elementSymbol), &
             isDummy = isDummy, &
-            subSystem=auxSubSystem, &
+            subsystem=auxSubSystem, &
             owner = id, &
             nickname = trim(eparticle%symbol))
        
@@ -467,7 +467,7 @@ contains
                isQuantum=.false., &
                name=trim(name), &
                origin=auxOrigin, &
-               subSystem=auxSubSystem, &
+               subsystem=auxSubSystem, &
                owner=id, &
                nickname=trim(eparticle%symbol))
 
@@ -495,7 +495,7 @@ contains
                name=trim(name), &
                origin=auxOrigin, &
                charge=auxCharge, &
-               subSystem=auxSubSystem, &
+               subsystem=auxSubSystem, &
                owner=id, &
                nickname=trim(eparticle%symbol))
 
@@ -530,7 +530,7 @@ contains
   !! @author S. A. Gonzalez (before known as Particle_constructor)
   subroutine Particle_build( this, name, symbol, basisSetName, elementSymbol, nickname, &
        origin, mass, charge, totalCharge, spin, &
-       owner, subSystem, massNumber, isQuantum, isDummy)
+       owner, subsystem, massNumber, isQuantum, isDummy)
 
     implicit none
     
@@ -546,7 +546,7 @@ contains
     real(8), optional, intent(in) :: totalCharge
     real(8), optional, intent(in) :: spin
     integer, optional, intent(in) :: owner
-    integer, optional, intent(in) :: subSystem               !< Which subsystem the particle belongs to
+    integer, optional, intent(in) :: subsystem               !< Which subsystem the particle belongs to
     integer, optional, intent(in) :: massNumber
     logical, optional, intent(in) :: isQuantum
     logical, optional, intent(in) :: isDummy
@@ -569,7 +569,7 @@ contains
     this%spin = PhysicalConstants_SPIN_ELECTRON
     this%fixComponent =.false.
     this%owner = 0
-    this%subSystem = 1
+    this%subsystem = 0
     this%isDummy = .false.
     this%internalSize = 0
     this%isCenterOfOptimization = .true.
@@ -590,7 +590,7 @@ contains
     if ( present(name) ) this%name=trim(name)
     if ( present(symbol) ) this%symbol=trim(symbol)
     if ( present(owner) ) this%owner=owner
-    if ( present(subSystem) ) this%subSystem=subSystem
+    if ( present(subsystem) ) this%subsystem=subsystem
     if ( present(basisSetName) ) this%basisSetName = trim(basisSetName)
     if ( present(nickname) ) this%nickname=trim(nickname)
     this%id = this%owner
@@ -619,7 +619,7 @@ contains
        if(this%isDummy) this%isCenterOfOptimization = .false.
 
        this%basis%contraction(:)%owner=this%owner
-       this%basis%contraction(:)%subSystem=this%subSystem
+       this%basis%contraction(:)%subsystem=this%subsystem
        
     end if
         
@@ -762,6 +762,7 @@ contains
     write(unit,*) this%internalSize
     write(unit,*) this%owner
     write(unit,*) this%basisSetSize
+    write(unit,*) this%subsystem
     
     if ( allocated(this%childs) ) then
        childs = .true.
@@ -816,6 +817,7 @@ contains
     read(unit,*) this%internalSize
     read(unit,*) this%owner
     read(unit,*) this%basisSetSize
+    read(unit,*) this%subsystem
     read(unit,*) childs
     
     if (childs ) then

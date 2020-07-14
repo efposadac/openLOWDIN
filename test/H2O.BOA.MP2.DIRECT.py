@@ -35,8 +35,8 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "E(MP2)=" in line:
-        testValues["MP2 energy"] = float(line.split()[1])
+    if "E(MP2) =" in line:
+        testValues["MP2 energy"] = float(line.split()[2])
 
 passTest = True
 

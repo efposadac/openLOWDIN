@@ -20,7 +20,6 @@ CONTROL
 	SCFGhostSpecies="POSITRON"
 	HFprintEigenvalues=T
 	overlapEigenThreshold=1E-6
-	scfNonelectronicEnergyTolerance = 1E-8
-	scfElectronicEnergyTolerance = 1E-8	
+	totalEnergyTolerance = 1E-8
 END CONTROL
 

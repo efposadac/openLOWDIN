@@ -35,8 +35,8 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "e-ALPHA/e-BETA Repulsion" in line:
-        testValues["e-AlphaBetaRepulsion"] = float(line.split()[3])
+    if "E-ALPHA/E-BETA Hartree energy" in line:
+        testValues["e-AlphaBetaRepulsion"] = float(line.split()[4])
 
 
 

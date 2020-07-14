@@ -28,7 +28,6 @@ CONTROL
 	!SCFblindSpecies="E-" "NONE"
 	SCFGhostSpecies="POSITRON"
 	HFprintEigenvalues=T
-	scfNonelectronicEnergyTolerance = 1E-8
-	scfElectronicEnergyTolerance = 1E-8	
+	totalEnergyTolerance = 1E-8
 END CONTROL
 

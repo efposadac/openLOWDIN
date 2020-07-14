@@ -180,7 +180,13 @@ contains
     integer :: numberOfContractions
     character(50) :: arguments(2)
 
-    wfnFile = "lowdin.wfn"
+    if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+       wfnFile = "lowdin.wfn"
+       !!Load the system in lowdin.sys format
+    else
+       wfnFile = "lowdin-subsystemA.wfn"
+       !!Load the system in lowdin.sys format
+    end if
     wfnUnit = 20
 
     !! Open file for wavefunction
@@ -1215,7 +1221,11 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       allocate( coefficients(numberOfSpecies), atomicDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
                ciDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), auxDensMatrix(numberOfSpecies,ConfigurationInteraction_instance%nproc) )
 
-      wfnFile = "lowdin.wfn"
+      if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+         wfnFile = "lowdin.wfn"
+      else
+         wfnFile = "lowdin-subsystemA.wfn"
+      end if
       wfnUnit = 20
       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
@@ -1514,7 +1524,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
      unit = 29
        
      file = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-     open(unit = unit, file=trim(file), status="new", form="formatted")
+     open(unit = unit, file=trim(file), status="replace", form="formatted")
        
      !! Building the CI reduced density matrix in the atomic orbital representation       
      do species=1, numberOfSpecies
@@ -1626,6 +1636,12 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
           arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
              
           call Matrix_writeToFile ( atomicDensityMatrix(species,state), unit , arguments=arguments(1:2) )
+
+          write(auxstring,*) state
+          arguments(2) = speciesName
+          arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
+
+          call Vector_writeToFile(densityEigenValues, unit, arguments=arguments(1:2) )
 
          !! it's the same
          !!auxdensityEigenVectors%values = 0
@@ -1939,7 +1955,6 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       write(*,*) " large sparse symmetric matrices, "
       write(*,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
       write(*,*) "============================================================="
-
 
       call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
            int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
@@ -2263,7 +2278,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
     auxIndex1= ConfigurationInteraction_instance%twoIndexArray(ii)%values( diffOrb(1), diffOrb(2))
     ConfigurationInteraction_instance%couplingMatrixOrbOne(ii,n)%values(b) = auxIndex1
-
+    
     do ll=1, ConfigurationInteraction_instance%occupationNumber( ii ) !! the same orbitals pair are excluded by the exchange
 
       l = ConfigurationInteraction_instance%strings(ii)%values(ll,b) !! or a
@@ -2394,7 +2409,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
                   diffOrbA(2),diffOrbB(2)) )
 
     auxCIenergy = ConfigurationInteraction_instance%fourCenterIntegrals(ii,ii)%values(auxIndex, 1)
-
+    
     auxIndex = ConfigurationInteraction_instance%fourIndexArray(ii)%values( &
                  ConfigurationInteraction_instance%twoIndexArray(ii)%values(&
                    diffOrbA(1),diffOrbB(2)),&
@@ -3986,7 +4001,6 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
             auxCIenergy = auxCIenergy + &
                         ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
 
-
             auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(diffOrb(1),l), &
                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(l,diffOrb(2)) ) 
@@ -4010,7 +4024,8 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
                 auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
 
                 auxCIenergy = auxCIenergy + &
-                      ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1) 
+                     ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
+
               end do
             end if
           end do
@@ -4177,7 +4192,18 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
     allocate(ConfigurationInteraction_instance%twoIndexArray(numberOfSpecies))
     allocate(ConfigurationInteraction_instance%fourIndexArray(numberOfSpecies))
+ 
+    if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+       wfnFile = "lowdin.wfn"
+       !!Load the system in lowdin.sys format
+    else
+       wfnFile = "lowdin-subsystemA.wfn"
+       !!Load the system in lowdin.sys format
+    end if
+    wfnUnit = 20
 
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+   
 !    print *,""
 !    print *,"BEGIN INTEGRALS TRANFORMATION:"
 !    print *,"========================================"
@@ -4205,11 +4231,6 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
       call Matrix_constructor (hcoreMatrix,int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
 
       !! Open file for wavefunction
-
-      wfnFile = "lowdin.wfn"
-      wfnUnit = 20
-
-      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
       arguments(2) = MolecularSystem_getNameOfSpecie(i)
       arguments(1) = "COEFFICIENTS"
@@ -4321,7 +4342,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
        call ReadTransformedIntegrals_readOneSpecies( specieID, ConfigurationInteraction_instance%fourCenterIntegrals(i,i)   )
        ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values = &
            ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values * charge * charge
-
+            
        if ( numberOfSpecies > 1 ) then
          do j = 1 , numberOfSpecies
            if ( i .ne. j) then
@@ -4339,10 +4360,10 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
            end if
          end do
-       end if
-     end do
-     close (wfnUnit)
-     call Matrix_destructor (hcoreMatrix)
+      end if
+   end do
+   call Matrix_destructor (hcoreMatrix)
+   close (wfnUnit)
 
   end subroutine ConfigurationInteraction_getTransformedIntegrals
 

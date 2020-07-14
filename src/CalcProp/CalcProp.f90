@@ -60,8 +60,6 @@ program CalcProp_
   call get_command_argument(1,value=fileName)  
 
   if(fileName .eq. "") fileName="lowdin"
-
-  print *, "entre a calc prop con ", fileName
   
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT", fileName )

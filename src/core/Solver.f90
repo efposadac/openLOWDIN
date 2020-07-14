@@ -30,7 +30,6 @@ module Solver_
   implicit none
 
   type, public :: Solver
-     character(20) :: methodName
      logical :: withProperties
   end type Solver
   
@@ -46,293 +45,64 @@ contains
   !! @brief Run the properly programs depending of the requested tasks
   subroutine Solver_run( )
     implicit none
+    character(100) :: strAuxNumber
 
-    if( String_findSubstring( trim(CONTROL_instance%METHOD), "-" ) > 1 ) then
 
-       lowdin_solver%methodName = CONTROL_instance%METHOD(1: scan(CONTROL_instance%METHOD, "-") - 1)
+    !Check cosmo
+    if (CONTROL_instance%COSMO) call system("lowdin-cosmo.x")
 
-    else
-       
-       lowdin_solver%methodName = CONTROL_instance%METHOD
-       
+    !Do SCF
+    select case ( trim(CONTROL_instance%METHOD) )
+
+    case('MM')
+       call system("lowdin-MolecularMechanics.x CONTROL_instance%FORCE_FIELD")
+    case('RHF')
+       call system("lowdin-SCF.x RHF")
+    case('UHF')
+       call system("lowdin-SCF.x UHF")
+    case('RKS')
+       call system("lowdin-SCF.x RKS")
+    case('UKS')
+       call system("lowdin-SCF.x UKS")
+    case default
+       call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
+            "At Solver module in run function")
+    end select
+
+    !Post SCF corrections
+    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION /= 0 .or. &
+         CONTROL_instance%EPSTEIN_NESBET_CORRECTION /= 0 .or. &
+         CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" .or. &
+         CONTROL_instance%PT_ORDER /= 0) then
+       call system("lowdin-integralsTransformation.x")
     end if
-    
-    lowdin_solver%withProperties = .false.
 
+    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION /= 0 ) then
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+    end if
+
+    if ( CONTROL_instance%EPSTEIN_NESBET_CORRECTION /= 0 ) then
+       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
+    end if
+        
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
+       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
+       call system("lowdin-CI.x" //trim(strAuxNumber))
+    end if
+
+    if ( CONTROL_instance%PT_ORDER /= 0 ) then
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+    end if
+       
+    ! lowdin_solver%withProperties = .false.
     ! if(optimization) then
     !    call system("lowdin-Optimizer.x")
     ! else
-    select case ( trim(lowdin_solver%methodName) )
-
-    case('MM')
-       call Solver_MMRun( )
-    case('RHF')
-       call Solver_RHFRun( )
-    case('UHF')
-       call Solver_UHFRun( )
-    case('RKS')
-       call Solver_RKSRun( )
-    case('UKS')
-       call Solver_UKSRun( )
-    case default
-
-       call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
-            "At Solver module in run function")
-
-    end select
     ! end if
      
    end subroutine Solver_run
 
-  !> @brief run Molecular Mechanics based calculation
-  subroutine Solver_MMRun( )
-    implicit none
-
-    !! Run Molecular Mechanics program with the force field selected
-    call system("lowdin-MolecularMechanics.x CONTROL_instance%FORCE_FIELD")
-    
-  end subroutine Solver_MMRun
-  
-  !> @brief run RHF-based calculation
-  subroutine Solver_RHFRun( )
-    implicit none
-    character(50) :: strAuxNumber
-    !! Run HF program in RHF mode
-    
-    select case(CONTROL_instance%METHOD)
-              
-    case("RHF")
-
-       call system("lowdin-SCF.x RHF")
-       
-    case ("RHF-COSMO")
-       
-       call system("lowdin-cosmo.x")
-       call system("lowdin-SCF.x RHF")
-       ! write(*,*) CONTROL_instance%METHOD
-       
-    case('RHF-MP2')
-
-       call system("lowdin-SCF.x RHF")
-
-       call system("lowdin-integralsTransformation.x")
-
-       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
-
-    case('RHF-EN2')
-
-       call system("lowdin-SCF.x RHF")
-
-       call system("lowdin-integralsTransformation.x")
-
-       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
-
-    case ("RHF-MP2-COSMO")
-       
-       call system("lowdin-cosmo.x")
-       call system("lowdin-SCF.x RHF")
-
-       call system("lowdin-integralsTransformation.x")
-
-       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
-    
-    case('RHF-CI')
-
-       call system("lowdin-SCF.x RHF")
-       call system("lowdin-integralsTransformation.x")
-
-       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
-       call system("lowdin-CI.x" //trim(strAuxNumber))
-
-    case('RHF-PT')
-       
-       call system("lowdin-SCF.x RHF")
-
-       call system("lowdin-integralsTransformation.x")
-       
-       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
-    
-    case ("RHF-PT-COSMO")
-       
-       call system("lowdin-cosmo.x")
-       call system("lowdin-SCF.x RHF")
-
-       call system("lowdin-integralsTransformation.x")
-
-       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
-       
-    case default
-
-       call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
-            "At Solver module in RHFrun function")
-
-    end select
-    
-!     call RHF_run()
-!     if ( this%withProperties ) then
-!        call CalculateProperties_dipole( CalculateProperties_instance )
-!        call CalculateProperties_expectedPosition( CalculateProperties_instance )
-!        if (Parameters%CALCULATE_INTERPARTICLE_DISTANCES .or. Parameters%CALCULATE_DENSITY_VOLUME ) &
-!             call CalculateProperties_buildDensityCubesLimits( CalculateProperties_instance )
-!        if (Parameters%CALCULATE_DENSITY_VOLUME) then
-!           call CalculateProperties_buildDensityCubes( CalculateProperties_instance )
-!           call CalculateProperties_volumes( CalculateProperties_instance )
-!        end if
-!        if (Parameters%CALCULATE_INTERPARTICLE_DISTANCES) call CalculateProperties_interparticleDistance( CalculateProperties_instance )
-!        ! call CalculateProperties_interparticleOverlap( CalculateProperties_instance )
-!        ! call CalculateProperties_expectedR2( CalculateProperties_instance )
-!     end if
-    
-!     this%energy = MolecularSystem_getTotalEnergy()
-
-  end subroutine Solver_RHFRun
-
-  !> @brief run ROHF-based calculation
-  subroutine Solver_ROHFRun( )
-    implicit none
-    
-    select case(CONTROL_instance%METHOD)
-
-    case("ROHF")
-
-    case('ROHF-MP2')
-
-    case('ROHF-CI')
-
-    case('ROHF-PT')
-
-    case default
-
-       call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
-            "At Solver module in ROHFrun function")
-
-    end select
-    
-!     call RHF_run()
-!     if ( this%withProperties ) then
-!        call CalculateProperties_dipole( CalculateProperties_instance )
-!        call CalculateProperties_expectedPosition( CalculateProperties_instance )
-!        if (Parameters%CALCULATE_INTERPARTICLE_DISTANCES .or. Parameters%CALCULATE_DENSITY_VOLUME ) &
-!             call CalculateProperties_buildDensityCubesLimits( CalculateProperties_instance )
-!        if (Parameters%CALCULATE_DENSITY_VOLUME) then
-!           call CalculateProperties_buildDensityCubes( CalculateProperties_instance )
-!           call CalculateProperties_volumes( CalculateProperties_instance )
-!        end if
-!        if (Parameters%CALCULATE_INTERPARTICLE_DISTANCES) call CalculateProperties_interparticleDistance( CalculateProperties_instance )
-!        ! call CalculateProperties_interparticleOverlap( CalculateProperties_instance )
-!        ! call CalculateProperties_expectedR2( CalculateProperties_instance )
-!     end if
-    
-!     this%energy = MolecularSystem_getTotalEnergy()
-    
-  end subroutine Solver_ROHFRun
-
-  !> @brief run UHF-based calculation
-  subroutine Solver_UHFRun( )
-    implicit none
-    character(50) :: strAuxNumber
-
-    select case(CONTROL_instance%METHOD)
-       
-    case("UHF")
-
-       !! Run HF program in RHF mode
-       call system("lowdin-SCF.x RHF")
-
-       
-    case('UHF-CI')
-
-       call system("lowdin-SCF.x UHF")
-       call system("lowdin-integralsTransformation.x")
-
-       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
-       call system("lowdin-CI.x" //trim(strAuxNumber))
-
-    case('UHF-MP2')
-       call system("lowdin-SCF.x UHF")
-       !call system("lowdin-MOERI.x UHF")
-       !rfm call system("lowdin-EPT.x UHF")
-       call system("lowdin-integralsTransformation.x")
-       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
-
-    case('UHF-EN2')
-       call system("lowdin-SCF.x UHF")
-       !call system("lowdin-MOERI.x UHF")
-       !rfm call system("lowdin-EPT.x UHF")
-       call system("lowdin-integralsTransformation.x")
-       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
-       
-    case('UHF-PT')
-       call system("lowdin-SCF.x UHF")
-       !call system("lowdin-MOERI.x UHF")
-       !rfm call system("lowdin-EPT.x UHF")
-       call system("lowdin-integralsTransformation.x")
-       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
-
-       
-    case default
-       
-       call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
-            "At Solver module in UHFrun function")
-       
-    end select
-    
-    
-!     type(Solver) :: this
-    
-!     call UHF_run()
-!     if ( this%withProperties ) then
-!        call CalculateProperties_dipole( CalculateProperties_instance )
-!        call CalculateProperties_expectedPosition( CalculateProperties_instance )
-!     end if
-    
-!     this%energy = MolecularSystem_getTotalEnergy()
-    
-  end subroutine Solver_UHFRun
-
-  !> @brief run RKS-based calculation
-  subroutine Solver_RKSRun( )
-    implicit none
-!     type(Solver) :: this
-
-    print *, "hola Felix, bienvenido de vuelta"
-    
-    !! Run HF program in RHF mode
-    call system("lowdin-SCF.x RKS")
-
-!     call RKS_run()
-!     if ( this%withProperties ) then
-!        call CalculateProperties_dipole( CalculateProperties_instance )
-!        call CalculateProperties_expectedPosition( CalculateProperties_instance )
-!        if (Parameters%POLARIZATION_ORDER>1) then
-!           call CalculateProperties_polarizability( CalculateProperties_instance )
-!        end if
-!        if (Parameters%FUKUI_FUNCTIONS) then
-!           call CalculateProperties_fukuiFunctions (CalculateProperties_instance)
-!        end if
-!     end if
-    
-!     this%energy = MolecularSystem_getTotalEnergy()
-    
-  end subroutine Solver_RKSRun
-  
-  !> @brief run UKS-based calculation
-  subroutine Solver_UKSRun( )
-    implicit none
-!     type(Solver) :: this
-    
-    !! Run HF program in RHF mode
-    call system("lowdin-SCF.x UKS")
-
-!     call UKS_run()
-!     if ( this%withProperties ) then
-!        call CalculateProperties_expectedPosition( CalculateProperties_instance )
-!        call CalculateProperties_dipole( CalculateProperties_instance )
-!     end if
-    
-!     this%energy = MolecularSystem_getTotalEnergy()
-    
-  end subroutine Solver_UKSRun
+ 
   
   !>
   !! @brief Manejo de excepciones

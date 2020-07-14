@@ -37,6 +37,7 @@
 program IntegralsTransformation
   use CONTROL_
   use MolecularSystem_
+  use InputCI_
   use IndexMap_
   use Matrix_
   use Exception_
@@ -51,7 +52,7 @@ program IntegralsTransformation
 
   character(50) :: job
   integer :: i, j, z
-  integer :: specieID, otherSpecieID
+  integer :: speciesID, otherSpeciesID
   integer :: numberOfContractions
   integer :: numberOfContractionsOfOtherSpecie
   integer :: occupation, otherOccupation
@@ -71,16 +72,17 @@ program IntegralsTransformation
   type(Matrix) :: eigenVecOtherSpecie 
   character(50) :: wfnFile
   character(50) :: arguments(2)
+  character(50) :: partialTransform
   integer :: wfnUnit
   integer :: numberOfQuantumSpecies
   logical :: transformThisSpecies
   logical :: transformTheseSpecies
   real(8) :: timeA, timeB
-
+  
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
   
-  if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+  if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
      wfnFile = "lowdin.wfn"
      !!Load the system in lowdin.sys format
      call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
@@ -91,6 +93,9 @@ program IntegralsTransformation
   end if
   wfnUnit = 20
 
+  call InputCI_constructor( )
+  call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
+  
   job = ""  
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
@@ -98,7 +103,28 @@ program IntegralsTransformation
   !!Start time
   timeA = omp_get_wtime()
 
-
+  !! Checks if all integrals are needed
+  if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2 .and. &
+       CONTROL_instance%PT_ORDER == 0 .and. &
+       CONTROL_instance%EPSTEIN_NESBET_CORRECTION == 0 .and. &
+       CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "NONE") then
+     partialTransform="MP2"
+  else if ( CONTROL_instance%PT_ORDER == 2 .and. &
+       CONTROL_instance%MOLLER_PLESSET_CORRECTION == 0 .and. &
+       CONTROL_instance%EPSTEIN_NESBET_CORRECTION == 0 .and. &
+       CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "NONE") then
+     partialTransform="PT2"
+  else if ( CONTROL_instance%PT_ORDER == 2 .and. &
+       CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2 .and. &
+       CONTROL_instance%EPSTEIN_NESBET_CORRECTION == 0 .and. &
+       CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "NONE") then
+     partialTransform="MP2-PT2"
+  else if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL .ne. "NONE") then
+     partialTransform="ALL"
+  else
+     partialTransform="BOUNDS"
+  end if
+  
   write(*,*) ""
   write(*,*) "BEGIN FOUR-INDEX INTEGRALS TRANFORMATION:"
   write(*,*) "========================================"
@@ -121,17 +147,17 @@ program IntegralsTransformation
     case ( "C" ) 
 
       call TransformIntegralsC_show
-      call TransformIntegralsC_constructor( transformInstanceC )
+      call TransformIntegralsC_constructor( transformInstanceC,partialTransform )
 
     case ( "D" )
 
       call TransformIntegralsD_show
-      call TransformIntegralsD_constructor( transformInstanceD )
+      call TransformIntegralsD_constructor( transformInstanceD,partialTransform )
 
     case ( "E" )
 
       call TransformIntegralsE_show
-      call TransformIntegralsE_constructor( transformInstanceE )
+      call TransformIntegralsE_constructor( transformInstanceE,partialTransform )
 
   end select
 
@@ -140,18 +166,14 @@ program IntegralsTransformation
 
   !! get the number of nonzero integrals
 
-  numberOfQuantumSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-
-  open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
-  rewind(wfnUnit)
-
-
+  numberOfQuantumSpecies = MolecularSystem_getNumberOfQuantumSpecies()            
+  
     do i=1, numberOfQuantumSpecies
   
         nameOfSpecies = trim( MolecularSystem_getNameOfSpecie( i ) )
 
         !! For PT = 2 there is no need to transform integrals for all species"
-        if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+        if ( partialTransform == "PT2" .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
           transformThisSpecies = .False.
           do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
             if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIE(z) )  then
@@ -168,8 +190,9 @@ program IntegralsTransformation
               write (*,*) ""
            end if
 
-          !! Reading the coefficients
-  
+           !! Reading the coefficients
+           open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
+
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
            occupation = MolecularSystem_getOcupationNumber( i )
            arguments(2) = MolecularSystem_getNameOfSpecie(i)
@@ -186,9 +209,9 @@ program IntegralsTransformation
            call Vector_getFromFile( elementsNum = numberOfContractions, &
                 unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                 output = eigenValues )     
+           close(wfnUnit)
 
-           specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecies )
-           numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
+           speciesID = i
 
           !! Transforms integrals for one species
 
@@ -199,27 +222,27 @@ program IntegralsTransformation
               case ( "A" ) 
           
                 call TransformIntegralsA_atomicToMolecularOfOneSpecie( repulsionTransformer, &
-                 eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
+                 eigenVec, auxMatrix, speciesID, trim(nameOfSpecies) )
           
               case ( "B" ) 
           
                 call TransformIntegralsB_atomicToMolecularOfOneSpecie(  transformInstanceB, &
-                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) )
+                       eigenVec, auxMatrix, speciesID, trim(nameOfSpecies) )
 
               case ( "C" ) 
 
                 call TransformIntegralsC_atomicToMolecularOfOneSpecie(  transformInstanceC, &
-                       densityMatrix, eigenVec, specieID, trim(nameOfSpecies) ) 
+                       densityMatrix, eigenVec, speciesID, trim(nameOfSpecies) ) 
 
               case ( "D" )
 
                 call TransformIntegralsD_atomicToMolecularOfOneSpecie( transformInstanceD, &
-                       eigenVec, specieID,  trim(nameOfSpecies))
+                       eigenVec, speciesID,  trim(nameOfSpecies))
 
               case ( "E" )
 
                 call TransformIntegralsE_atomicToMolecularOfOneSpecie(  transformInstanceE, &
-                       eigenVec, auxMatrix, specieID, trim(nameOfSpecies) ) 
+                       eigenVec, auxMatrix, speciesID, trim(nameOfSpecies) ) 
 
             end select
 
@@ -233,7 +256,7 @@ program IntegralsTransformation
                           nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
 
                           !! For PT = 2 there is no need to transform integrals for all species"
-                          if ( CONTROL_instance%PT_ORDER == 2 .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+                          if ( partialTransform == "PT2" .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
                             transformTheseSpecies = .False.
                             do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
                               if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIE(z) .or. &
@@ -254,17 +277,17 @@ program IntegralsTransformation
 
                           !! Reading the coefficients
   
+                          open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
                           numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
                           otherOccupation = MolecularSystem_getOcupationNumber( j )
-
   
                           arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
-  
+
                           arguments(1) = "COEFFICIENTS"
                           eigenVecOtherSpecie = &
                                   Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
                                   columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
-  
+
                           arguments(1) = "ORBITALS"
                           call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
                                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -273,9 +296,9 @@ program IntegralsTransformation
                           arguments(1) = "DENSITY"
                           otherdensityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
                           columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
- 
-
-                          otherSpecieID = j
+                          close(wfnUnit)
+           
+                          otherSpeciesID = j
   
                           !! Transforms integrals for two species
 
@@ -287,13 +310,13 @@ program IntegralsTransformation
 
                                 call TransformIntegralsA_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
                                  eigenVec, eigenVecOtherSpecie, &
-                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+                                 auxMatrix, speciesID, nameOfSpecies, otherSpeciesID, nameOfOtherSpecie )
                           
                                case ("B")
 
                               call TransformIntegralsB_atomicToMolecularOfTwoSpecies(transformInstanceB, &
                                  eigenVec, eigenVecOtherSpecie, &
-                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+                                 auxMatrix, speciesID, nameOfSpecies, otherSpeciesID, nameOfOtherSpecie )
 
                               case ( "C" ) 
 
@@ -301,13 +324,13 @@ program IntegralsTransformation
 
                                 call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
                                  densityMatrix, eigenVec, eigenVecOtherSpecie, &
-                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+                                 auxMatrix, speciesID, nameOfSpecies, otherSpeciesID, nameOfOtherSpecie)
 
                               else 
 
                                  call TransformIntegralsC_atomicToMolecularOfTwoSpecies(transformInstanceC, &
                                    otherdensityMatrix, eigenVecOtherSpecie, eigenVec, &
-                                   auxMatrix, otherSpecieID, nameOfOtherSpecie,  specieID, nameOfSpecies )
+                                   auxMatrix, otherSpeciesID, nameOfOtherSpecie,  speciesID, nameOfSpecies)
 
                               end if
 
@@ -315,14 +338,14 @@ program IntegralsTransformation
                               
                               call TransformIntegralsD_atomicToMolecularOfTwoSpecies( transformInstanceD, &
                                  eigenVec, eigenVecOtherSpecie, &
-                                 specieID, nameOfSpecies, &
-                                 otherSpecieID, nameOfOtherSpecie)
+                                 speciesID, nameOfSpecies, &
+                                 otherSpeciesID, nameOfOtherSpecie)
 
                             case ( "E" )
                               
                               call TransformIntegralsE_atomicToMolecularOfTwoSpecies(transformInstanceE, &
                                  eigenVec, eigenVecOtherSpecie, &
-                                 auxMatrix, specieID, nameOfSpecies, otherSpecieID, nameOfOtherSpecie )
+                                 auxMatrix, speciesID, nameOfSpecies, otherSpeciesID, nameOfOtherSpecie )
 
                             end select
 

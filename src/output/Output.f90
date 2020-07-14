@@ -48,8 +48,6 @@ program Output_
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
 
-  print*, "si entre a output con", job
-
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
@@ -58,12 +56,10 @@ program Output_
 
   if(job.eq."FCHK") then
      
-     print *, "trololo"
-     numberOfOutputs=1
-     allocate(outputs(numberOfOutputs) )
+     allocate(outputs(1) )
 
      call OutputBuilder_constructor( outputs(1), 1, &
-          "fchkFile")
+          "fchkFile", "ALL")
      
      call OutputBuilder_buildOutput(outputs(1))
      call OutputBuilder_show(outputs(1))
@@ -79,7 +75,7 @@ program Output_
        do i=1, numberOfOutputs
           call OutputBuilder_constructor( outputs(i), i, &
                InputOutput_Instance(i)%type, &
-               InputOutput_Instance(i)%specie, & 
+               InputOutput_Instance(i)%species, & 
                InputOutput_Instance(i)%state, &
                InputOutput_Instance(i)%orbital, &
                InputOutput_Instance(i)%dimensions, &

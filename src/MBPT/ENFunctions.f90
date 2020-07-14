@@ -27,6 +27,7 @@
 module ENFunctions_
   use CONTROL_
   use MolecularSystem_
+  use InputCI_
   use IndexMap_
   use Exception_
   use Vector_
@@ -46,7 +47,8 @@ module ENFunctions_
         real(8) :: energyHF
         integer :: orderOfCorrection
         integer :: numberOfSpecies
-        integer :: frozenCoreBoundary
+        integer,allocatable :: frozenCoreBoundary(:)
+        integer,allocatable :: activeOrbitals(:)
         real(8) :: totalEnergy(3)
         real(8) :: totalCorrection(3)
         real(8) :: secondOrderCorrection(3)
@@ -92,6 +94,17 @@ contains
       EpsteinNesbet_instance%orderOfCorrection = orderOfCorrection
       EpsteinNesbet_instance%numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
+      allocate(EpsteinNesbet_instance%frozenCoreBoundary(EpsteinNesbet_instance%numberOfSpecies), &
+           EpsteinNesbet_instance%activeOrbitals(EpsteinNesbet_instance%numberOfSpecies))
+
+      do i=1,  EpsteinNesbet_instance%numberOfSpecies
+         EpsteinNesbet_instance%frozenCoreBoundary(i)=0
+         if ( InputCI_Instance(i)%coreOrbitals /= 0 ) EpsteinNesbet_instance%frozenCoreBoundary(i)=InputCI_Instance(i)%coreOrbitals 
+
+         EpsteinNesbet_instance%activeOrbitals(i)=MolecularSystem_getTotalNumberOfContractions(i)
+         if ( InputCI_Instance(i)%activeOrbitals /= 0 ) EpsteinNesbet_instance%activeOrbitals(i)=InputCI_Instance(i)%activeOrbitals 
+         
+      end do
 
       if ( EpsteinNesbet_instance%orderOfCorrection >= 2 ) then
         !!call Vector_constructor( EpsteinNesbet_instance%energyCorrectionOfSecondOrder, EpsteinNesbet_instance%numberOfSpecies)
@@ -150,22 +163,22 @@ contains
         print *,"=============================="
         print *,""
 
-        write (6,"(T10,A25)") "MOLLER-PLESSET FORMALISM "
-        write (6,"(T10,A23, I5)") "ORDER OF CORRECTION = ",EpsteinNesbet_instance%orderOfCorrection
+        write (6,"(T15,A25)") "MOLLER-PLESSET FORMALISM "
+        write (6,"(T15,A23, I5)") "ORDER OF CORRECTION = ",EpsteinNesbet_instance%orderOfCorrection
 
         print *,""
-        write (6,'(T10,A15,ES20.12)') "E(0) + E(1) = ", EpsteinNesbet_instance%energyHF
-        write (6,'(T10,A15,ES20.12)') "E(2) = ", EpsteinNesbet_instance%secondOrderCorrection(1)
-        write (6,'(T25,A20)') "________________________"
-        write (6,'(T10,A15,ES25.17)') "E(MP2)= ", EpsteinNesbet_instance%totalEnergy(1)
+        write (6,'(A30,F20.12)') "E(0) + E(1) = ", EpsteinNesbet_instance%energyHF
+        write (6,'(A30,F20.12)') "E(2) = ", EpsteinNesbet_instance%secondOrderCorrection(1)
+        write (6,'(T30,A20)') "________________________"
+        write (6,'(A30,F20.12)') "E(MP2) = ", EpsteinNesbet_instance%totalEnergy(1)
         print *,""
-        write ( 6,'(T10,A35)') "-----------------------------------------------"
-        write ( 6,'(T10,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
-        write ( 6,'(T10,A35)') "-----------------------------------------------"
+        write ( 6,'(T15,A35)') "-----------------------------------------------"
+        write ( 6,'(T15,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
+        write ( 6,'(T15,A35)') "-----------------------------------------------"
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(T10,A5,A8,A8,ES16.8)') "E(2){", trim(  MolecularSystem_getNameOfSpecie( i ) ),"   } = ", &
+       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecie( i ) )//"} = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,1)
         end do
 
@@ -174,29 +187,28 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(T10,A5,A16,A4,ES16.8)') "E(2){", &
-               trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
-               "} = ", EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,1)
+           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) )//" } = ", &
+                EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,1)
        end do
      end do
 
         print *,""
-        write (6,"(T10,A37)") "NON-SINGULAR EPSTEIN-NESBET FORMALISM "
-        write (6,"(T10,A23, I5)") "ORDER OF CORRECTION = ",EpsteinNesbet_instance%orderOfCorrection
+        write (6,"(T15,A37)") "NON-SINGULAR EPSTEIN-NESBET FORMALISM "
+        write (6,"(T15,A23, I5)") "ORDER OF CORRECTION = ",EpsteinNesbet_instance%orderOfCorrection
 
         print *,""
-        write (6,'(T10,A15,ES20.12)') "E(0) + E(1) = ", EpsteinNesbet_instance%energyHF
-        write (6,'(T10,A15,ES20.12)') "E(2) = ", EpsteinNesbet_instance%secondOrderCorrection(2)
-        write (6,'(T25,A20)') "________________________"
-        write (6,'(T10,A15,ES25.17)') "E(NS-EN2)= ", EpsteinNesbet_instance%totalEnergy(2)
+        write (6,'(A30,F20.12)') "E(0) + E(1) = ", EpsteinNesbet_instance%energyHF
+        write (6,'(A30,F20.12)') "E(2) = ", EpsteinNesbet_instance%secondOrderCorrection(2)
+        write (6,'(T30,A20)') "________________________"
+        write (6,'(A30,F20.12)') "E(NS-EN2) = ", EpsteinNesbet_instance%totalEnergy(2)
         print *,""
-        write ( 6,'(T10,A35)') "-----------------------------------------------"
-        write ( 6,'(T10,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
-        write ( 6,'(T10,A35)') "-----------------------------------------------"
+        write ( 6,'(T15,A35)') "-----------------------------------------------"
+        write ( 6,'(T15,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
+        write ( 6,'(T15,A35)') "-----------------------------------------------"
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(T10,A5,A8,A8,ES16.8)') "E(2){", trim(  MolecularSystem_getNameOfSpecie( i ) ),"   } = ", &
+       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecie( i ) )//" } = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,2)
         end do
 
@@ -205,29 +217,28 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(T10,A5,A16,A4,ES16.8)') "E(2){", &
-               trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
-               "} = ", EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,2)
+           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ) //" } = ", &
+                EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,2)
        end do
      end do
 
         print *,""
-        write (6,"(T10,A25)") "EPSTEIN-NESBET FORMALISM "
-        write (6,"(T10,A23, I5)") "ORDER OF CORRECTION = ",EpsteinNesbet_instance%orderOfCorrection
+        write (6,"(T15,A25)") "EPSTEIN-NESBET FORMALISM "
+        write (6,"(T15,A23, I5)") "ORDER OF CORRECTION = ",EpsteinNesbet_instance%orderOfCorrection
 
         print *,""
-        write (6,'(T10,A15,ES20.12)') "E(0) + E(1) = ", EpsteinNesbet_instance%energyHF
-        write (6,'(T10,A15,ES20.12)') "E(2) = ", EpsteinNesbet_instance%secondOrderCorrection(3)
-        write (6,'(T25,A20)') "________________________"
-        write (6,'(T10,A15,ES25.17)') "E(EN2)= ", EpsteinNesbet_instance%totalEnergy(3)
+        write (6,'(A30,F20.12)') "E(0) + E(1) = ", EpsteinNesbet_instance%energyHF
+        write (6,'(A30,F20.12)') "E(2) = ", EpsteinNesbet_instance%secondOrderCorrection(3)
+        write (6,'(T30,A20)') "________________________"
+        write (6,'(A30,F20.12)') "E(EN2) = ", EpsteinNesbet_instance%totalEnergy(3)
         print *,""
-        write ( 6,'(T10,A35)') "-----------------------------------------------"
-        write ( 6,'(T10,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
-        write ( 6,'(T10,A35)') "-----------------------------------------------"
+        write ( 6,'(T15,A35)') "-----------------------------------------------"
+        write ( 6,'(T15,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
+        write ( 6,'(T15,A35)') "-----------------------------------------------"
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(T10,A5,A8,A8,ES16.8)') "E(2){", trim(  MolecularSystem_getNameOfSpecie( i ) ),"   } = ", &
+       write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getNameOfSpecie( i ) )//" } = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,3)
         end do
 
@@ -236,9 +247,8 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(T10,A5,A16,A4,ES16.8)') "E(2){", &
-               trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ), &
-               "} = ", EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,3)
+           write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ) // " } = ", &
+                EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,3)
        end do
      end do
 
@@ -452,12 +462,6 @@ end if
 
    do is=1, EpsteinNesbet_instance%numberOfSpecies
 
-      
-      EpsteinNesbet_instance%frozenCoreBoundary = 1
-
-      if ( is == electronsID )  EpsteinNesbet_instance%frozenCoreBoundary = &
-           CONTROL_instance%MP_FROZEN_CORE_BOUNDARY
-      
       nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( is ) )
       
       independentEnergyCorrection = 0.0_8
@@ -479,7 +483,6 @@ end if
          
          specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
          ocupationNumber = MolecularSystem_getOcupationNumber( is )
-         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( is )
          lambda = MolecularSystem_instance%species(is)%lambda
          
          !! Read transformed integrals from file
@@ -488,11 +491,11 @@ end if
            call ReadTransformedIntegrals_readOneSpecies( specieID, auxMatrix)
 
            couplingEnergyCorrection2 = 0
-           do i=EpsteinNesbet_instance%frozenCoreBoundary, ocupationNumber
-             do j=EpsteinNesbet_instance%frozenCoreBoundary,ocupationNumber
-               do a=ocupationNumber+1, numberOfContractions
-                 do b=ocupationNumber+1, numberOfContractions
-                 !do b=a, numberOfContractions
+           do i=EpsteinNesbet_instance%frozenCoreBoundary(is)+1, ocupationNumber
+             do j=EpsteinNesbet_instance%frozenCoreBoundary(is)+1,ocupationNumber
+               do a=ocupationNumber+1, EpsteinNesbet_instance%activeOrbitals(is)
+                 do b=ocupationNumber+1, EpsteinNesbet_instance%activeOrbitals(is)
+                    !do b=a, numberOfContractions
                    auxVal_C = 0
 
                    auxIndex = IndexMap_tensorR4ToVectorB(int(i,8),int(a,8),int(j,8),int(b,8), &
@@ -744,7 +747,6 @@ end if
      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( is ) )
      specieID =MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecie) )
      ocupationNumber = MolecularSystem_getOcupationNumber( is )
-     numberOfContractions = MolecularSystem_getTotalNumberOfContractions( is )
      lambda = MolecularSystem_getEta( is )
 
      do js = is + 1 , EpsteinNesbet_instance%numberOfSpecies
@@ -799,10 +801,10 @@ end if
 
         !print *, "iiiiiiiiiiiiii"
 
-        do i=1, ocupationNumber
-           do j=1,ocupationNumberOfOtherSpecie
-              do a=ocupationNumber+1, numberOfContractions
-                 do b=ocupationNumberOfOtherSpecie+1, numberOfContractionsOfOtherSpecie
+        do i=EpsteinNesbet_instance%frozenCoreBoundary(is)+1, ocupationNumber
+           do j=EpsteinNesbet_instance%frozenCoreBoundary(js)+1,ocupationNumberOfOtherSpecie
+              do a=ocupationNumber+1, EpsteinNesbet_instance%activeOrbitals(is)
+                 do b=ocupationNumberOfOtherSpecie+1, EpsteinNesbet_instance%activeOrbitals(js)
 
                     ! ii II 
                     auxIndex = IndexMap_tensorR4ToVector(i,i,j,j, numberOfContractions, &

@@ -56,7 +56,8 @@ contains
     character(*) :: type
     integer :: numberOfSpecies
     integer :: speciesID,otherSpeciesID
-    character(50) :: labels(2), dftFile
+    character(50) :: labels(2) 
+    character(100) ::   dftFile
     integer :: dftUnit
 
 
@@ -87,11 +88,13 @@ contains
   !! @brief Writes a grid for each species - Different sizes are possible, all points in memory
   ! Felix Moncada, 2017
   ! Roberto Flores-Moreno, 2009
-  subroutine GridManager_writeGrids( )
+  subroutine GridManager_writeGrids( type )
     implicit none
+    character(*) :: type
     integer :: numberOfSpecies
     integer :: speciesID,otherSpeciesID
-    character(50) :: labels(2), dftFile
+    character(50) :: labels(2)
+    character(100) ::   dftFile
     integer :: dftUnit
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
@@ -101,7 +104,14 @@ contains
 
        !! Open file for dft
        dftUnit = 77
-       dftFile = trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".grid"
+       if( trim(type) .eq. "INITIAL" ) then
+          dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".grid"
+       else if( trim(type) .eq. "FINAL" ) then
+          dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".finalGrid"
+       else
+          STOP "ERROR At DFT program, requested an unknown grid type to writeGrids at GridManager"
+       end if
+       
        open(unit = dftUnit, file=trim(dftFile), status="replace", form="unformatted")
 
        labels(2) = Grid_instance(speciesID)%nameOfSpecies
@@ -128,7 +138,13 @@ contains
        do otherSpeciesID = speciesID+1, numberOfSpecies
 
           dftUnit = 77
-          dftFile = trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//".commongrid"
+          if( trim(type) .eq. "INITIAL" ) then
+             dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//".commonGrid"
+          else if( trim(type) .eq. "FINAL" ) then
+             dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//".commonFinalGrid"
+          else
+             STOP "ERROR At DFT program, requested an unknown grid type to writeGrids at GridManager"
+          end if
           open(unit = dftUnit, file=trim(dftFile), status="replace", form="unformatted")
 
           labels(2) = trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)
@@ -150,11 +166,13 @@ contains
   !! @brief Reads a grid for each species - Different sizes are possible, all points in memory
   ! Felix Moncada, 2017
   ! Roberto Flores-Moreno, 2009
-  subroutine GridManager_readGrids( )
+  subroutine GridManager_readGrids( type )
     implicit none
+    character(*) :: type
     integer :: numberOfSpecies
     integer :: speciesID,otherSpeciesID
-    character(50) :: labels(2), dftFile
+    character(50) :: labels(2)
+    character(100) ::   dftFile
     integer :: dftUnit
     real(8) :: auxVal
 
@@ -170,7 +188,14 @@ contains
        Grid_instance(speciesID)%nameOfSpecies=trim(MolecularSystem_getNameOfSpecie(speciesID))
        !! Open file for dft
        dftUnit = 77
-       dftFile = trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".grid"
+       if( trim(type) .eq. "INITIAL" ) then
+          dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".grid"
+       else if( trim(type) .eq. "FINAL" ) then
+          dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".finalGrid"
+       else
+          STOP "ERROR At DFT program, requested an unknown grid type to readGrids at GridManager"
+       end if
+
        open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
 
        labels(2) = Grid_instance(speciesID)%nameOfSpecies
@@ -194,7 +219,13 @@ contains
        do otherSpeciesID = speciesID+1, numberOfSpecies
 
           dftUnit = 77
-          dftFile = trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//".commongrid"
+          if( trim(type) .eq. "INITIAL" ) then
+             dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//".commonGrid"
+          else if( trim(type) .eq. "FINAL" ) then
+             dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//".commonFinalGrid"
+          else
+             STOP "ERROR At DFT program, requested an unknown grid type to readGrids at GridManager"
+          end if
           open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
 
           labels(2) = trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)
@@ -219,9 +250,10 @@ contains
   !! @brief Writes the values of all the atomic orbitals and their gradients in a set of coordinates to a file
 !!! Felix Moncada, 2017
   !<
-  subroutine GridManager_atomicOrbitals( action )
+  subroutine GridManager_atomicOrbitals( action, type )
     implicit none
     character(*) action
+    character(*) type
 
     integer :: numberOfSpecies
     integer :: totalNumberOfContractions
@@ -229,8 +261,9 @@ contains
     integer :: gridSize
     integer :: mu,nu, point, index
 
-    character(50) :: labels(2), dftFile
-    integer :: dftUnit
+    character(50) :: labels(2)
+    character(100) ::   orbsFile
+    integer :: orbsUnit
 
     type(Matrix) :: auxMatrix(4)
     integer :: i, j, k, g, u
@@ -241,8 +274,14 @@ contains
     do speciesID = 1 , numberOfSpecies
        gridSize = Grid_instance(speciesID)%totalSize
        totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
-       dftUnit = 77
-       write( dftFile, "(A,I0.4)") trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".orbitals"
+       orbsUnit = 78
+       if( trim(type) .eq. "INITIAL" ) then
+          write( orbsFile, "(A,I0.4)") "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".orbitals"
+       else if( trim(type) .eq. "FINAL" ) then
+          write( orbsFile, "(A,I0.4)") "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".finalOrbitals"
+       else
+          STOP "ERROR At DFT program, requested an unknown grid type to orbitals at GridManager"
+       end if
 
        allocate(Grid_instance(speciesID)%orbitalsWithGradient(totalNumberOfContractions))
        do u=1, totalNumberOfContractions
@@ -250,20 +289,20 @@ contains
        end do
 
        if( trim(action) .eq. "READ") then
-          open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
+          open(unit = orbsUnit, file=trim(orbsFile), status="old", form="unformatted")
           do u = 1, totalNumberOfContractions
              write( labels(1), "(A,I0.4)") "ORBITAL_", u
              labels(2) = Grid_instance(speciesID)%nameOfSpecies
 
-             Grid_instance(speciesID)%orbitalsWithGradient(u)=Matrix_getFromFile(unit=dftUnit, rows= int(gridSize,4), &
+             Grid_instance(speciesID)%orbitalsWithGradient(u)=Matrix_getFromFile(unit=orbsUnit, rows= int(gridSize,4), &
                   columns= int(4,4), binary=.true., arguments=labels)
 
           end do
-          close(unit=dftUnit)
+          close(unit=orbsUnit)
 
-       else if (trim(action) .eq. "WRITE" .or. trim(action) .eq. "GET") then
+       else if (trim(action) .eq. "WRITE") then
 
-          if(trim(action) .eq. "WRITE") open(unit = dftUnit, file=trim(dftFile), status="replace", form="unformatted")
+          open(unit = orbsUnit, file=trim(orbsFile), status="replace", form="unformatted")
           k=0
           do g = 1, size(MolecularSystem_instance%species(speciesID)%particles)
              do i = 1, size(MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction)
@@ -295,13 +334,11 @@ contains
                    ! call Matrix_show(orbitalAndGradientInGrid)
 
 
-                   if(trim(action) .eq. "WRITE") then
-                      write( labels(1), "(A,I0.4)") "ORBITAL_", k
-                      labels(2) = Grid_instance(speciesID)%nameOfSpecies
+                   write( labels(1), "(A,I0.4)") "ORBITAL_", k
+                   labels(2) = Grid_instance(speciesID)%nameOfSpecies
+                   
+                   call Matrix_writeToFile(Grid_instance(speciesID)%orbitalsWithGradient(k), unit=orbsUnit, binary=.true., arguments = labels(1:2) )
 
-                      call Matrix_writeToFile(Grid_instance(speciesID)%orbitalsWithGradient(k), unit=dftUnit, binary=.true., arguments = labels(1:2) )
-
-                   end if
                 end do
              end do
           end do
@@ -311,7 +348,7 @@ contains
           call Matrix_destructor(auxMatrix(3))
           call Matrix_destructor(auxMatrix(4))
 
-          if(trim(action) .eq. "WRITE") close(unit=dftUnit)
+          if(trim(action) .eq. "WRITE") close(unit=orbsUnit)
 
        end if
 
@@ -319,23 +356,6 @@ contains
 
   end subroutine GridManager_atomicOrbitals
 
-  !>
-  !! @brief Read the values of all the atomic orbitals and their gradients in a set of coordinates from a file for one species
-!!! Felix Moncada, 2020
-  !<
-  subroutine GridManager_readAtomicOrbitals(speciesID, numberOfContractions, orbitalsWithGradient)
-    implicit none
-    integer :: speciesID
-    integer :: numberOfContractions
-    type(Matrix) :: orbitalsWithGradient(numberOfContractions)
-
-    integer :: gridSize
-    integer :: u
-    character(50) ::  dftFile,labels(2)
-    integer ::  dftUnit
-    
-
-  end subroutine GridManager_readAtomicOrbitals
 
   !>
   !! @brief Returns the values of a contracted atomic shell in a set of coordinates
@@ -473,8 +493,6 @@ contains
     integer :: ii, jj, v, gg
     integer :: s, ss
     real(8) :: sum
-    character(50) ::  dftFile,labels(2)
-    integer ::  dftUnit
     integer :: numberOfContractions
 
     integer :: n, nproc
@@ -607,6 +625,12 @@ contains
                   sigma%values(i), energyDensity%values(i) , &
                   Grid_instance(speciesID)%potential%values(i), sigmaPotential%values(i) )
 
+            
+          end do
+          !$omp end do 
+          !$omp end parallel
+          
+          do i=1, gridSize
              !energy integral
              exchangeCorrelationEnergy=exchangeCorrelationEnergy&
                   +energyDensity%values(i)*Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4)
@@ -616,12 +640,11 @@ contains
                 Grid_instance(speciesID)%gradientPotential(dir)%values(i)=Grid_instance(speciesID)%gradientPotential(dir)%values(i)&
                      +2.0*sigmaPotential%values(i)*Grid_instance(speciesID)%densityGradient(dir)%values(i)
              end do
-             
+
           end do
-          !$omp end do 
-          !$omp end parallel
 
           call Vector_Destructor(sigma)
+
           call Vector_Destructor(sigmaPotential)
 
           ! print *, "electronicEXC RKS", exchangeCorrelationEnergy
@@ -657,6 +680,16 @@ contains
              call Functional_libxcEvaluate(Functionals(index), 1, densityAB%values(2*i-1:2*i), sigmaAB%values(3*i-2:3*i), &
                   energyDensity%values(i) , potentialAB%values(2*i-1:2*i), sigmaPotentialAB%values(3*i-2:3*i) )
 
+             !potential assignment
+             Grid_instance(speciesID)%potential%values(i)=Grid_instance(speciesID)%potential%values(i)+potentialAB%values(2*i-1)
+
+             Grid_instance(otherSpeciesID)%potential%values(i)=Grid_instance(otherSpeciesID)%potential%values(i)+potentialAB%values(2*i)
+
+          end do
+          !$omp end do 
+          !$omp end parallel
+
+          do i=1, gridSize
              !energy integrals
              exchangeCorrelationEnergy=exchangeCorrelationEnergy+&
                   energyDensity%values(i)*Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4)
@@ -664,10 +697,6 @@ contains
              otherExchangeCorrelationEnergy=otherExchangeCorrelationEnergy+&
                   energyDensity%values(i)*Grid_instance(otherSpeciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4) 
 
-             !potential assignment
-             Grid_instance(speciesID)%potential%values(i)=Grid_instance(speciesID)%potential%values(i)+potentialAB%values(2*i-1)
-
-             Grid_instance(otherSpeciesID)%potential%values(i)=Grid_instance(otherSpeciesID)%potential%values(i)+potentialAB%values(2*i)
 
              !convert to gradient potential
              do dir=1,3
@@ -681,9 +710,7 @@ contains
 
              end do
           end do
-          !$omp end do 
-          !$omp end parallel
-
+          
           ! print *, "density", densityAB%values(1), densityAB%values(2*gridSize)
           ! call Vector_show(densityAB)
           call Vector_Destructor(densityAB)
@@ -739,14 +766,13 @@ contains
   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine GridManager_getInterspeciesEnergyAndPotentialAtGrid( speciesID, exchangeCorrelationEnergy, &
-       otherSpeciesID, otherExchangeCorrelationEnergy, otherElectronID, otherElectronExchangeCorrelationEnergy) 
+  subroutine GridManager_getInterspeciesEnergyAndPotentialAtGrid( speciesID, otherSpeciesID, exchangeCorrelationEnergy, &
+    otherElectronID, otherElectronExchangeCorrelationEnergy) 
 
     implicit none
     integer :: speciesID
-    real(8) :: exchangeCorrelationEnergy
     integer :: otherSpeciesID
-    real(8) :: otherExchangeCorrelationEnergy
+    real(8) :: exchangeCorrelationEnergy
     integer, optional :: otherElectronID
     real(8), optional :: otherElectronExchangeCorrelationEnergy
 
@@ -867,6 +893,8 @@ contains
 
        case ("none")
 
+       case ("NONE")
+
        case default
           print *, trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
           STOP "The nuclear electron functional chosen is not implemented"
@@ -881,16 +909,16 @@ contains
           !nuclear index
           j=int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values(k,2)) 
 
-          otherExchangeCorrelationEnergy=otherExchangeCorrelationEnergy+energyDensity%values(j)*electronicDensityAtOtherGrid%values(j)*Grid_instance(otherSpeciesID)%points%values(j,4) 
+          exchangeCorrelationEnergy=exchangeCorrelationEnergy+&
+               energyDensity%values(j)*Grid_instance(speciesID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(j,4)
 
           Grid_instance(speciesID)%potential%values(i) = Grid_instance(speciesID)%potential%values(i) + electronicPotentialAtOtherGrid%values(j)
 
           do dir=1,3
              Grid_instance(speciesID)%gradientPotential(dir)%values(i) = Grid_instance(speciesID)%gradientPotential(dir)%values(i) + electronicGradientPotentialAtOtherGrid(dir)%values(j)
           end do
+          
           if(nameOfSpecies .eq. "E-ALPHA") then
-             exchangeCorrelationEnergy=exchangeCorrelationEnergy+&
-                  energyDensity%values(j)*Grid_instance(speciesID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(j,4)
 
              otherElectronExchangeCorrelationEnergy=otherElectronExchangeCorrelationEnergy+&
                   energyDensity%values(j)*Grid_instance(otherElectronID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(j,4)
@@ -900,10 +928,6 @@ contains
                 Grid_instance(otherElectronID)%gradientPotential(dir)%values(i) = Grid_instance(otherElectronID)%gradientPotential(dir)%values(i)&
                      + electronicGradientPotentialAtOtherGrid(dir)%values(j)
              end do
-
-          else
-             exchangeCorrelationEnergy=exchangeCorrelationEnergy+&
-                  energyDensity%values(j)*electronicDensityAtOtherGrid%values(j)*Grid_instance(otherSpeciesID)%points%values(j,4)
 
           end if
 
@@ -942,9 +966,6 @@ contains
     integer :: numberOfCartesiansOrbitalsU
     integer :: numberOfCartesiansOrbitalsV
     integer :: u, v, point
-
-    character(50) :: dftFile, labels(2)
-    integer :: dftUnit
 
     real(8) :: time1, time2
     integer :: n, nproc

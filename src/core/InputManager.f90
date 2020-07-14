@@ -49,6 +49,7 @@ module InputManager_
      logical :: optimizeGeometry
      logical :: TDHF
      logical :: cosmo
+     logical :: subsystemEmbedding
 
   end type InputManager
 
@@ -186,6 +187,7 @@ contains
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
     logical:: InputTasks_cosmo
+    logical:: InputTasks_subsystemEmbedding
 
     
     NAMELIST /InputTasks/ &
@@ -196,7 +198,8 @@ contains
          InputTasks_propagatorTheoryCorrection, &
          InputTasks_optimizeGeometry, &
          InputTasks_TDHF, &
-         InputTasks_cosmo		
+         InputTasks_cosmo, &
+         InputTasks_subsystemEmbedding
 
     
     !! Setting defaults    
@@ -208,6 +211,7 @@ contains
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
     InputTasks_cosmo= .false.
+    InputTasks_subsystemEmbedding=.false.
     
     !! reload input file
     rewind(4)
@@ -228,6 +232,7 @@ contains
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
     Input_instance%cosmo = InputTasks_cosmo
+    Input_instance%subsystemEmbedding = InputTasks_subsystemEmbedding
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -249,21 +254,21 @@ contains
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = input_instance%configurationInteractionLevel
     CONTROL_instance%PT_ORDER = input_instance%propagatorTheoryCorrection
 
-    if ( input_instance%mollerPlessetCorrection /= 0 ) then
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-MP2"
-    end if
+    ! if ( input_instance%mollerPlessetCorrection /= 0 ) then
+    !    CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-MP2"
+    ! end if
 
-    if ( input_instance%epsteinNesbetCorrection /= 0 ) then
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-EN2"
-    end if
+    ! if ( input_instance%epsteinNesbetCorrection /= 0 ) then
+    !    CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-EN2"
+    ! end if
         
-    if ( input_instance%configurationInteractionLevel /= "NONE" ) then
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-CI"
-    end if
+    ! if ( input_instance%configurationInteractionLevel /= "NONE" ) then
+    !    CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-CI"
+    ! end if
 
-    if ( input_instance%propagatorTheoryCorrection /= 0 ) then
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-PT"
-    end if
+    ! if ( input_instance%propagatorTheoryCorrection /= 0 ) then
+    !    CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-PT"
+    ! end if
     
     if ( input_instance%optimizeGeometry ) then 
        CONTROL_instance%OPTIMIZE = .true.
@@ -275,7 +280,11 @@ contains
     
     if (input_instance%cosmo) then
        CONTROL_instance%cosmo = .true.
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
+       ! CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
+    end if
+
+    if (input_instance%subsystemEmbedding) then
+       CONTROL_instance%SUBSYSTEM_EMBEDDING = .true.
     end if
     
     if( Input_instance%numberOfExternalPots > 0) then    
@@ -507,7 +516,7 @@ contains
        InputParticle_origin=0.0_8
        InputParticle_fixedCoordinates = "NON"
        InputParticle_multiplicity = 1.0_8
-       InputParticle_fragmentNumber = 1
+       InputParticle_fragmentNumber = 0
        InputParticle_addParticles = 0
        
        !! Reads namelist from input file

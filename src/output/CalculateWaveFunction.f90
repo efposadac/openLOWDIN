@@ -108,7 +108,9 @@ contains
           output=output + densityMatrix%values(u,v)*basisSetValue(u)*basisSetValue(v)
         end do
      end do
-  
+
+     if(output .lt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) output=0.0_8
+     
   end function CalculateWaveFunction_getDensityAt
 
         !>

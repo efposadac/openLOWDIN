@@ -64,9 +64,9 @@ if (diffHx <= 1E-6 and diffHy <= 1E-6 and diffHz <= 1E-6 and diffDx <= 1E-6 and 
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
-    print("Difference H: " + str(diffHx) + str(diffHy) + str(diffHz))
-    print("Difference D: " + str(diffDx) + str(diffDy) + str(diffDz))
-    print("Difference O: " + str(diffOx) + str(diffOy) + str(diffOz))
+    print("Difference H: " + str(diffHx)+ " " + str(diffHy)+ " " + str(diffHz))
+    print("Difference D: " + str(diffDx)+ " " + str(diffDy)+ " " + str(diffDz))
+    print("Difference O: " + str(diffOx)+ " " + str(diffOy)+ " " + str(diffOz))
     sys.exit(1)
 
 output.close()
