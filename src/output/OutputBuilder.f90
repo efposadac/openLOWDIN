@@ -134,9 +134,14 @@ contains
     if( present(dimensions)) this%dimensions=dimensions
     this%cubeSize=0
     if( present(cubeSize)) this%cubeSize=cubeSize
-    if( present(point1)) call Vector_copyConstructor(this%point1, point1)
-    if( present(point2)) call Vector_copyConstructor(this%point2, point2)
-    if( present(point3)) call Vector_copyConstructor(this%point3, point3)
+    
+    call Vector_constructor(this%point1, 3, 0.0_8 )
+    call Vector_constructor(this%point2, 3, 0.0_8 )
+    call Vector_constructor(this%point3, 3, 0.0_8 )
+
+    if( present(point1)) this%point1%values=point1%values
+    if( present(point2)) this%point2%values=point2%values
+    if( present(point3)) this%point3%values=point3%values
 
     if ( trim(CONTROL_instance%UNITS) == "ANGS") then
        this%point1%values= this%point1%values / AMSTRONG
@@ -544,8 +549,6 @@ contains
              write (10,"(A11)") "Spin= Alpha"
 
              occupation=fractionalOccupations(l,state)%values(j)
-
-             print *, l, j, "occupation ", occupation
 
              i = 0
              do k=1,size(coefficientsOfCombination(l,state)%values,dim=1)

@@ -48,7 +48,7 @@ module TransformIntegralsD_
      integer :: r_lowerOrbital, r_upperOrbital
      integer :: s_lowerOrbital, s_upperOrbital
 
-     logical :: partialTransformMP2
+     character(50) :: partialTransform
 
   end type TransformIntegralsD
 
@@ -122,8 +122,7 @@ contains
     this%unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
     this%fileForIntegrals = trim(CONTROL_INSTANCE%INPUT_FILE)//".ints"
 
-    this%partialTransformMP2=.false.
-    if (trim(partial)=="MP2") this%partialTransformMP2=.true.
+    this%partialTransform=trim(partial)
 
   end subroutine TransformIntegralsD_constructor
 
@@ -615,7 +614,7 @@ contains
 
 
     !! only the (ia|jb) integrals will be transformed
-    if ( this%partialTransformMP2 ) then
+    if ( trim(this%partialTransform)=="MP2"  ) then
 
        this%p_lowerOrbital = 0
        this%p_upperOrbital = totalOccupation - 1
@@ -641,6 +640,13 @@ contains
     !!      this%s_upperOrbital = totalNumberOfContractions
     !!
     !!    end if
+    write(*,"(T15,A)") "Transformation boundaries "
+    write(*,"(T15,A10,A6,A6)") "orbital","lower", "upper"
+    write(*,"(T20,A5,I6,I6)") "p", this%p_lowerOrbital, this%p_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "q", this%q_lowerOrbital, this%q_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "r", this%r_lowerOrbital, this%r_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "s", this%s_lowerOrbital, this%s_upperOrbital
+    print *, ""
 
   end subroutine TransformIntegralsD_checkMOIntegralType
 
@@ -670,7 +676,7 @@ contains
 
 
     !! only the (ia|jb) integrals will be transformed
-    if ( this%partialTransformMP2  ) then
+    if ( trim(this%partialTransform) .eq. "MP2"  ) then
 
        this%p_lowerOrbital = 1
        this%p_upperOrbital = totalOccupation
@@ -683,6 +689,14 @@ contains
 
     end if
 
+    write(*,"(T15,A)") "Transformation boundaries "
+    write(*,"(T15,A10,A6,A6)") "orbital","lower", "upper"
+    write(*,"(T20,A5,I6,I6)") "p", this%p_lowerOrbital, this%p_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "q", this%q_lowerOrbital, this%q_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "r", this%r_lowerOrbital, this%r_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "s", this%s_lowerOrbital, this%s_upperOrbital
+    print *, ""
+    
   end subroutine TransformIntegralsD_checkInterMOIntegralType
 
 

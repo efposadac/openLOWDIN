@@ -20,8 +20,8 @@ CONTROL
 	!CIdiagonalizationMethod = "JADAMILU"
 END CONTROL
 INPUT_CI
-	species="E-ALPHA" core = 2 active = 15
-	species="E-BETA" core = 2 active = 15
+	species="E-ALPHA" core = 2 active = 17
+	species="E-BETA" core = 2 active = 17
 END INPUT_CI
 
 

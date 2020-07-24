@@ -119,8 +119,9 @@ program IntegralsTransformation
        CONTROL_instance%EPSTEIN_NESBET_CORRECTION == 0 .and. &
        CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "NONE") then
      partialTransform="MP2-PT2"
-  else if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL .ne. "NONE") then
-     partialTransform="ALL"
+  else if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL .ne. "NONE" .or. &
+       CONTROL_instance%PT_ORDER == 2) then
+     partialTransform="ALLACTIVE"
   else
      partialTransform="BOUNDS"
   end if
