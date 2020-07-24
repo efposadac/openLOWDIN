@@ -33,6 +33,7 @@
 !<
 module TransformIntegralsE_
   use MolecularSystem_
+  use InputCI_
   use LapackInterface_
   use InputManager_
   use ParticleManager_
@@ -62,9 +63,7 @@ module TransformIntegralsE_
      integer :: r_l, r_u
      integer :: s_l, s_u
 
-     logical :: partialTransformMP2
-     logical :: partialTransformPT2
-     logical :: partialTransformMP2PT2
+     character(50) :: partialTransform
      
   end type TransformIntegralsE
 
@@ -120,12 +119,7 @@ contains
     this%unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
     this%fileForIntegrals = trim(CONTROL_INSTANCE%INPUT_FILE)//".ints"
 
-    this%partialTransformPT2=.false.
-    this%partialTransformMP2=.false.
-    this%partialTransformMP2PT2=.false.
-    if (trim(partial)=="MP2") this%partialTransformMP2=.true.
-    if (trim(partial)=="PT2") this%partialTransformPT2=.true.
-    if (trim(partial)=="MP2-PT2") this%partialTransformMP2PT2=.true.
+    this%partialTransform=trim(partial)
 
 
 
@@ -1956,50 +1950,67 @@ contains
     integer :: speciesID
     type(TransformIntegralsE) :: this
     integer :: totalOccupation 
-    integer :: totalNumberOfContractions
+    integer :: coreOrbitals
+    integer :: totalActiveOrbitals
 
     totalOccupation = MolecularSystem_getOcupationNumber( speciesID )
-    totalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID)
 
-    !! All orbitals. Default
-    this%p_l = 1
-    this%p_u = totalNumberOfContractions
-    this%q_l = 1
-    this%q_u = totalNumberOfContractions
-    this%r_l = 1
-    this%r_u = totalNumberOfContractions
-    this%s_l = 1
-    this%s_u = totalNumberOfContractions
+    !! Take the active space from input
+    coreOrbitals=0
+    if ( InputCI_Instance(speciesID)%coreOrbitals /= 0 ) coreOrbitals=InputCI_Instance(speciesID)%coreOrbitals 
 
+    totalActiveOrbitals=this%numberOfContractions
+    if ( InputCI_Instance(speciesID)%activeOrbitals /= 0 ) totalActiveOrbitals=InputCI_Instance(speciesID)%activeOrbitals 
+
+    !! Boundary orbitals. Default
+    this%p_l = coreOrbitals+1
+    this%p_u = totalActiveOrbitals
+    this%q_l = coreOrbitals+1
+    this%q_u = totalActiveOrbitals
+    this%r_l = coreOrbitals+1
+    this%r_u = totalActiveOrbitals
+    this%s_l = coreOrbitals+1
+    this%s_u = totalActiveOrbitals
+    
+    if ( trim(this%partialTransform)=="ALLACTIVE") then
+       this%p_l = 1
+       this%p_u = totalActiveOrbitals
+       this%q_l = 1
+       this%q_u = totalActiveOrbitals
+       this%r_l = 1
+       this%r_u = totalActiveOrbitals
+       this%s_l = 1
+       this%s_u = totalActiveOrbitals !this%numberOfContractions
+    end if
 
     !! only the (ia|jb) integrals will be transformed
-    if ( this%partialTransformMP2  ) then
+    if ( trim(this%partialTransform)=="MP2"  ) then
 
        this%p_l = totalOccupation + 1
-       this%p_u = totalNumberOfContractions
-       this%q_l = 1
+       this%p_u = totalActiveOrbitals
+       this%q_l = coreOrbitals+1
        this%q_u = totalOccupation
        this%r_l = totalOccupation + 1
-       this%r_u = totalNumberOfContractions
-       this%s_l = 1
+       this%r_u = totalActiveOrbitals
+       this%s_l = coreOrbitals+1
        this%s_u = totalOccupation
 
     end if
 
     !! only the (ip|aq) integrals will be transformed
-    if ( this%partialTransformPT2  ) then
+    if ( trim(this%partialTransform)=="PT2"  ) then
     
       if ( CONTROL_instance%IONIZE_MO == 0 ) then
           !! all
-          this%q_l = 1!totalOccupation     !! HOMO 
-          this%q_u = totalOccupation + 1 !! LUMO
-          this%p_l = 1
-          this%p_u = totalNumberOfContractions
+          this%q_l = coreOrbitals+1!totalOccupation     !! HOMO 
+          this%q_u = totalOccupation+1 !! LUMO
+          this%p_l = coreOrbitals+1
+          this%p_u = totalActiveOrbitals
 
-          this%s_l = 1
+          this%s_l = coreOrbitals+1
           this%s_u = totalOccupation 
           this%r_l = totalOccupation + 1
-          this%r_u = totalNumberOfContractions
+          this%r_u = totalActiveOrbitals
 
           !! half symmetric
           !this%p_l = 1 
@@ -2028,26 +2039,26 @@ contains
         if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
           this%q_l = CONTROL_instance%IONIZE_MO  
           this%q_u = CONTROL_instance%IONIZE_MO 
-          this%p_l = 1
-          this%p_u = totalNumberOfContractions
+          this%p_l = coreOrbitals+1
+          this%p_u = totalActiveOrbitals
 
-          this%s_l = 1
+          this%s_l = coreOrbitals+1
           this%s_u = totalOccupation !totalNumberOfContractions
           !this%s_u = totalOccupation !totalNumberOfContractions
-          this%r_l = 1
-          this%r_u = totalNumberOfContractions
+          this%r_l = coreOrbitals+1
+          this%r_u = totalActiveOrbitals
 
         else 
 
           this%q_l = CONTROL_instance%IONIZE_MO  
           this%q_u = CONTROL_instance%IONIZE_MO 
-          this%p_l = 1
-          this%p_u = totalNumberOfContractions
+          this%p_l = coreOrbitals+1
+          this%p_u = totalActiveOrbitals
 
-          this%s_l = 1
+          this%s_l = coreOrbitals+1
           this%s_u = totalOccupation 
           this%r_l = totalOccupation + 1
-          this%r_u = totalNumberOfContractions
+          this%r_u = totalActiveOrbitals
 
         end if
       end if
@@ -2055,51 +2066,60 @@ contains
     end if
 
     !for a simultaneous PT2 - MP2 calculation
-    if ( this%partialTransformMP2PT2 ) then
+    if ( trim(this%partialTransform)=="MP2-PT2" ) then
     
       if ( CONTROL_instance%IONIZE_MO == 0 ) then
           !! all
-          this%q_l = 1!totalOccupation     !! HOMO 
+          this%q_l = coreOrbitals+1!totalOccupation     !! HOMO 
           this%q_u = totalOccupation + 1 !! LUMO
-          this%p_l = 1
-          this%p_u = totalNumberOfContractions
+          this%p_l = coreOrbitals+1
+          this%p_u = totalActiveOrbitals
 
-          this%s_l = 1
+          this%s_l = coreOrbitals+1
           this%s_u = totalOccupation 
           this%r_l = totalOccupation + 1
-          this%r_u = totalNumberOfContractions
+          this%r_u = totalActiveOrbitals
 
       else
 
         if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
-          this%q_l = 1
+          this%q_l = coreOrbitals+1
           this%q_u = max(CONTROL_instance%IONIZE_MO,totalOccupation)
-          this%p_l = 1
-          this%p_u = totalNumberOfContractions
+          this%p_l = coreOrbitals+1
+          this%p_u = totalActiveOrbitals
 
-          this%s_l = 1
+          this%s_l = coreOrbitals+1
           this%s_u = totalOccupation !totalNumberOfContractions
           !this%s_u = totalOccupation !totalNumberOfContractions
-          this%r_l = 1
-          this%r_u = totalNumberOfContractions
+          this%r_l = coreOrbitals+1
+          this%r_u = totalActiveOrbitals
 
         else 
 
-          this%q_l = 1
+          this%q_l = coreOrbitals+1
           this%q_u = max(CONTROL_instance%IONIZE_MO,totalOccupation)
-          this%p_l = 1
-          this%p_u = totalNumberOfContractions
+          this%p_l = coreOrbitals+1
+          this%p_u = totalActiveOrbitals
 
-          this%s_l = 1
+          this%s_l = coreOrbitals+1
           this%s_u = totalOccupation 
           this%r_l = totalOccupation + 1
-          this%r_u = totalNumberOfContractions
+          this%r_u = totalActiveOrbitals
 
         end if
       end if
    end if
    
-  end subroutine TransformIntegralsE_checkMOIntegralType
+   write(*,"(T15,A)") "Transformation boundaries "
+   write(*,"(T15,A10,A6,A6)") "orbital","lower", "upper"
+   write(*,"(T20,A5,I6,I6)") "p", this%p_l, this%p_u
+   write(*,"(T20,A5,I6,I6)") "q", this%q_l, this%q_u
+   write(*,"(T20,A5,I6,I6)") "r", this%r_l, this%r_u
+   write(*,"(T20A5,I6,I6)") "s", this%s_l, this%s_u
+   print *, ""
+
+   
+ end subroutine TransformIntegralsE_checkMOIntegralType
 
 
   subroutine TransformIntegralsE_checkInterMOIntegralType(speciesID, otherSpeciesID, this)
@@ -2107,51 +2127,71 @@ contains
     integer :: speciesID, otherSpeciesID
     type(TransformIntegralsE) :: this
     integer :: totalOccupation, otherTotalOccupation
-    integer :: totalNumberOfContractions, otherTotalNumberOfContractions
+    integer :: coreOrbitals, otherCoreOrbitals
+    integer :: totalActiveOrbitals, otherTotalActiveOrbitals
     logical :: ionizeA, ionizeB
     integer :: s
     character(10) :: nameOfSpecies
     character(10) :: nameOfOtherSpecies
 
     totalOccupation = MolecularSystem_getOcupationNumber( speciesID )
-    totalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions ( speciesID )
     otherTotalOccupation = MolecularSystem_getOcupationNumber( otherSpeciesID )
-    otherTotalNumberOfContractions =  MolecularSystem_getTotalNumberOfContractions ( otherSpeciesID )
 
-    !! All orbitals. Default
-    this%p_l = 1
-    this%p_u = totalNumberOfContractions
-    this%q_l = 1
-    this%q_u = totalNumberOfContractions
-    this%r_l = 1
-    this%r_u = otherTotalNumberOfContractions
-    this%s_l = 1
-    this%s_u = otherTotalNumberOfContractions
+    !! Take the active space from input
+    coreOrbitals=0
+    otherCoreOrbitals=0
+    if ( InputCI_Instance(speciesID)%coreOrbitals /= 0 ) coreOrbitals=InputCI_Instance(speciesID)%coreOrbitals
+    if ( InputCI_Instance(otherSpeciesID)%coreOrbitals /= 0 ) otherCoreOrbitals=InputCI_Instance(otherSpeciesID)%coreOrbitals
 
+    totalActiveOrbitals=this%numberOfContractions
+    otherTotalActiveOrbitals=this%otherNumberOfContractions
+    if ( InputCI_Instance(speciesID)%activeOrbitals /= 0 ) totalActiveOrbitals=InputCI_Instance(speciesID)%activeOrbitals 
+    if ( InputCI_Instance(otherSpeciesID)%activeOrbitals /= 0 ) otherTotalActiveOrbitals=InputCI_Instance(otherSpeciesID)%activeOrbitals 
+
+    !! Boundary orbitals. Default
+    this%p_l = coreOrbitals+1
+    this%p_u = totalActiveOrbitals
+    this%q_l = coreOrbitals+1
+    this%q_u = totalActiveOrbitals
+    this%r_l = otherCoreOrbitals+1
+    this%r_u = otherTotalActiveOrbitals
+    this%s_l = otherCoreOrbitals+1
+    this%s_u = otherTotalActiveOrbitals
+
+    if ( trim(this%partialTransform) .eq. "ALLACTIVE") then
+       this%p_l = 1
+       this%p_u = totalActiveOrbitals!this%numberOfContractions
+       this%q_l = 1
+       this%q_u = totalActiveOrbitals!this%numberOfContractions
+       this%r_l = 1
+       this%r_u = otherTotalActiveOrbitals!this%otherNumberOfContractions
+       this%s_l = 1
+       this%s_u = otherTotalActiveOrbitals!this%otherNumberOfContractions
+    end if
 
     !! only the (ia|jb) integrals will be transformed
-    if ( this%partialTransformMP2  ) then
+    if ( trim(this%partialTransform) .eq. "MP2"  ) then
        this%p_l = totalOccupation + 1
-       this%p_u = totalNumberOfContractions
-       this%q_l = 1
+       this%p_u = totalActiveOrbitals
+       this%q_l = coreOrbitals+1
        this%q_u = totalOccupation
        this%r_l = otherTotalOccupation + 1
-       this%r_u = otherTotalNumberOfContractions
-       this%s_l = 1
+       this%r_u = otherTotalActiveOrbitals
+       this%s_l = otherCoreOrbitals+1
        this%s_u = otherTotalOccupation
     end if
 
     !! only the (ip|IP) integrals will be transformed.
-    if ( this%partialTransformPT2 ) then
+    if ( trim(this%partialTransform) .eq. "PT2" ) then
 
-       this%q_l = 1
+       this%q_l = coreOrbitals+1
        this%q_u = totalOccupation + 1 !! occ + lumo (default)
-       this%p_l = 1
-       this%p_u = totalNumberOfContractions
-       this%s_l = 1
+       this%p_l = coreOrbitals+1
+       this%p_u = totalActiveOrbitals
+       this%s_l = coreOrbitals+1
        this%s_u = otherTotalOccupation + 1 !!occ + lumo
-       this%r_l = 1
-       this%r_u = otherTotalNumberOfContractions
+       this%r_l = coreOrbitals+1
+       this%r_u = otherTotalActiveOrbitals
 
       if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
 
@@ -2174,37 +2214,37 @@ contains
 
           if ( ionizeA .and. ionizeB ) then
 
-            this%q_l = 1
+            this%q_l = coreOrbitals+1
             this%q_u = totalOccupation + 1 !! occ + lumo (default)
-            this%p_l = 1
-            this%p_u = totalNumberOfContractions
-            this%s_l = 1
+            this%p_l = coreOrbitals+1
+            this%p_u = totalActiveOrbitals
+            this%s_l = otherCoreOrbitals+1
             this%s_u = otherTotalOccupation + 1 !!occ + lumo
-            this%r_l = 1
-            this%r_u = otherTotalNumberOfContractions
+            this%r_l = otherCoreOrbitals+1
+            this%r_u = otherTotalActiveOrbitals
 
           else if ( ionizeA .and. .not. ionizeB ) then
         
-            this%q_l = 1
+            this%q_l = coreOrbitals+1
             this%q_u = totalOccupation + 1 !! occ + lumo (default)
-            this%p_l = 1
-            this%p_u = totalNumberOfContractions
+            this%p_l = coreOrbitals+1
+            this%p_u = totalActiveOrbitals
   
-            this%s_l = 1
+            this%s_l = otherCoreOrbitals+1
             this%s_u = othertotaloccupation 
             this%r_l = othertotaloccupation + 1
-            this%r_u = otherTotalNumberOfContractions
+            this%r_u = otherTotalActiveOrbitals
 
           else if ( .not. ionizeA .and. ionizeB ) then
 
-            this%q_l = 1
+            this%q_l = coreOrbitals+1
             this%q_u = totalOccupation
             this%p_l = totalOccupation + 1
-            this%p_u = totalNumberOfContractions
-            this%s_l = 1
+            this%p_u = totalActiveOrbitals
+            this%s_l = otherCoreOrbitals+1
             this%s_u = otherTotalOccupation + 1
-            this%r_l = 1
-            this%r_u = otherTotalNumberOfContractions
+            this%r_l = otherCoreOrbitals+1
+            this%r_u = otherTotalActiveOrbitals
 
           end if
 
@@ -2212,25 +2252,25 @@ contains
 
           if ( ionizeA .and. ionizeB ) then
             if ( CONTROL_instance%IONIZE_MO <= totalOccupation .and. CONTROL_instance%IONIZE_MO <= othertotalOccupation ) then
-              this%q_l = 1
+              this%q_l = coreOrbitals+1
               this%q_u = totalOccupation
-              this%p_l = 1
-              this%p_u = totalNumberOfContractions
-              this%s_l = 1
+              this%p_l = coreOrbitals+1
+              this%p_u = totalActiveOrbitals
+              this%s_l = otherCoreOrbitals+1
               this%s_u = otherTotalOccupation
-              this%r_l = 1
-              this%r_u = otherTotalNumberOfContractions
+              this%r_l = otherCoreOrbitals+1
+              this%r_u = otherTotalActiveOrbitals
 
             else if ( CONTROL_instance%IONIZE_MO > totalOccupation .and. CONTROL_instance%IONIZE_MO > othertotalOccupation ) then
 
-              this%q_l = 1
-              this%q_u = totalNumberOfContractions!CONTROL_instance%IONIZE_MO 
-              this%p_l = 1
-              this%p_u = totalNumberOfContractions
-              this%s_l = 1
-              this%s_u = otherTotalNumberOfContractions!CONTROL_instance%IONIZE_MO 
-              this%r_l = 1
-              this%r_u = otherTotalNumberOfContractions
+              this%q_l = coreOrbitals+1
+              this%q_u = totalActiveOrbitals!CONTROL_instance%IONIZE_MO 
+              this%p_l = coreOrbitals+1
+              this%p_u = totalActiveOrbitals
+              this%s_l = otherCoreOrbitals+1
+              this%s_u = otherTotalActiveOrbitals!CONTROL_instance%IONIZE_MO 
+              this%r_l = otherCoreOrbitals+1
+              this%r_u = otherTotalActiveOrbitals
 
             end if
 
@@ -2241,31 +2281,31 @@ contains
 
 
         if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
-            this%q_l = 1
-            this%q_u = totalNumberOfContractions
+            this%q_l = coreOrbitals+1
+            this%q_u = totalActiveOrbitals
         end if
-            this%p_l = 1
-            this%p_u = totalNumberOfContractions
+            this%p_l = coreOrbitals+1
+            this%p_u = totalActiveOrbitals
   
-            this%s_l = 1
+            this%s_l = otherCoreOrbitals+1
             this%s_u = othertotaloccupation 
             this%r_l = othertotaloccupation + 1
-            this%r_u = otherTotalNumberOfContractions
+            this%r_u = otherTotalActiveOrbitals
 
           else if ( .not. ionizeA .and. ionizeB ) then
 
-            this%q_l = 1
+            this%q_l = coreOrbitals+1
             this%q_u = totalOccupation
             this%p_l = totalOccupation + 1
-            this%p_u = totalNumberOfContractions
+            this%p_u = totalActiveOrbitals
 
             !this%s_l = CONTROL_instance%IONIZE_MO !...
             !this%s_u = CONTROL_instance%IONIZE_MO !...
-            this%s_l = 1
-            this%s_u = otherTotalNumberOfContractions
+            this%s_l = otherCoreOrbitals+1
+            this%s_u = otherTotalActiveOrbitals
 
-            this%r_l = 1
-            this%r_u = otherTotalNumberOfContractions
+            this%r_l = otherCoreOrbitals+1
+            this%r_u = otherTotalActiveOrbitals
 
           end if
 
@@ -2279,16 +2319,17 @@ contains
    end if
 
    !for a simultaneous PT2 - MP2 calculation
-   if ( this%partialTransformMP2PT2 ) then
+   if ( trim(this%partialTransform)=="MP2-PT2" ) then
 
-      this%q_l = 1
+
+      this%q_l = coreOrbitals+1
       this%q_u = totalOccupation + 1 !! occ + lumo (default)
-      this%p_l = 1
-      this%p_u = totalNumberOfContractions
-      this%s_l = 1
+      this%p_l = coreOrbitals+1
+      this%p_u = totalActiveOrbitals
+      this%s_l = otherCoreOrbitals+1
       this%s_u = otherTotalOccupation + 1 !!occ + lumo
-      this%r_l = 1
-      this%r_u = otherTotalNumberOfContractions
+      this%r_l = otherCoreOrbitals+1
+      this%r_u = totalActiveOrbitals
 
       if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
 
@@ -2311,37 +2352,37 @@ contains
 
             if ( ionizeA .and. ionizeB ) then
 
-               this%q_l = 1
+               this%q_l = coreOrbitals+1
                this%q_u = totalOccupation + 1 !! occ + lumo (default)
-               this%p_l = 1
-               this%p_u = totalNumberOfContractions
-               this%s_l = 1
+               this%p_l = coreOrbitals+1
+               this%p_u = totalActiveOrbitals
+               this%s_l = otherCoreOrbitals+1
                this%s_u = otherTotalOccupation + 1 !!occ + lumo
-               this%r_l = 1
-               this%r_u = otherTotalNumberOfContractions
+               this%r_l = otherCoreOrbitals+1
+               this%r_u = otherTotalActiveOrbitals
 
             else if ( ionizeA .and. .not. ionizeB ) then
 
-               this%q_l = 1
+               this%q_l = coreOrbitals+1
                this%q_u = totalOccupation + 1 !! occ + lumo (default)
-               this%p_l = 1
-               this%p_u = totalNumberOfContractions
+               this%p_l = coreOrbitals+1
+               this%p_u = totalActiveOrbitals
 
-               this%s_l = 1
+               this%s_l = otherCoreOrbitals+1
                this%s_u = othertotaloccupation 
                this%r_l = othertotaloccupation + 1
-               this%r_u = otherTotalNumberOfContractions
+               this%r_u = otherTotalActiveOrbitals
 
             else if ( .not. ionizeA .and. ionizeB ) then
 
-               this%q_l = 1
+               this%q_l = coreOrbitals+1
                this%q_u = totalOccupation
                this%p_l = totalOccupation + 1
-               this%p_u = totalNumberOfContractions
-               this%s_l = 1
+               this%p_u = totalActiveOrbitals
+               this%s_l = otherCoreOrbitals+1
                this%s_u = otherTotalOccupation + 1
-               this%r_l = 1
-               this%r_u = otherTotalNumberOfContractions
+               this%r_l = otherCoreOrbitals+1
+               this%r_u = otherTotalActiveOrbitals
 
             end if
 
@@ -2349,59 +2390,59 @@ contains
 
             if ( ionizeA .and. ionizeB ) then
                if ( CONTROL_instance%IONIZE_MO <= totalOccupation .and. CONTROL_instance%IONIZE_MO <= othertotalOccupation ) then
-                  this%q_l = 1
+                  this%q_l = coreOrbitals+1
                   this%q_u = totalOccupation
-                  this%p_l = 1
-                  this%p_u = totalNumberOfContractions
-                  this%s_l = 1
+                  this%p_l = coreOrbitals+1
+                  this%p_u = totalActiveOrbitals
+                  this%s_l = otherCoreOrbitals+1
                   this%s_u = otherTotalOccupation
-                  this%r_l = 1
-                  this%r_u = otherTotalNumberOfContractions
+                  this%r_l = otherCoreOrbitals+1
+                  this%r_u = otherTotalActiveOrbitals
 
                else if ( CONTROL_instance%IONIZE_MO > totalOccupation .and. CONTROL_instance%IONIZE_MO > othertotalOccupation ) then
 
-                  this%q_l = 1
-                  this%q_u = totalNumberOfContractions!CONTROL_instance%IONIZE_MO 
-                  this%p_l = 1
-                  this%p_u = totalNumberOfContractions
-                  this%s_l = 1
-                  this%s_u = otherTotalNumberOfContractions!CONTROL_instance%IONIZE_MO 
-                  this%r_l = 1
-                  this%r_u = otherTotalNumberOfContractions
+                  this%q_l = coreOrbitals+1
+                  this%q_u = totalActiveOrbitals!CONTROL_instance%IONIZE_MO 
+                  this%p_l = coreOrbitals+1
+                  this%p_u = totalActiveOrbitals
+                  this%s_l = otherCoreOrbitals+1
+                  this%s_u = otherTotalActiveOrbitals!CONTROL_instance%IONIZE_MO 
+                  this%r_l = otherCoreOrbitals+1
+                  this%r_u = otherTotalActiveOrbitals
 
                end if
 
             else if ( ionizeA .and. .not. ionizeB ) then
 
-               this%q_l = 1
+               this%q_l = coreOrbitals+1
                this%q_u = max(CONTROL_instance%IONIZE_MO,totalOccupation)
 
                if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
-                  this%q_l = 1
-                  this%q_u = totalNumberOfContractions
+                  this%q_l = coreOrbitals+1
+                  this%q_u = totalActiveOrbitals
                end if
-               this%p_l = 1
-               this%p_u = totalNumberOfContractions
+               this%p_l = coreOrbitals+1
+               this%p_u = totalActiveOrbitals
 
-               this%s_l = 1
+               this%s_l = otherCoreOrbitals+1
                this%s_u = othertotaloccupation 
                this%r_l = othertotaloccupation + 1
-               this%r_u = otherTotalNumberOfContractions
+               this%r_u = otherTotalActiveOrbitals
 
             else if ( .not. ionizeA .and. ionizeB ) then
 
-               this%q_l = 1
+               this%q_l = coreOrbitals+1
                this%q_u = totalOccupation
                this%p_l = totalOccupation + 1
-               this%p_u = totalNumberOfContractions
+               this%p_u = totalActiveOrbitals
 
                !this%s_l = CONTROL_instance%IONIZE_MO !...
                !this%s_u = CONTROL_instance%IONIZE_MO !...
-               this%s_l = 1
-               this%s_u = otherTotalNumberOfContractions
+               this%s_l = otherCoreOrbitals+1
+               this%s_u = otherTotalActiveOrbitals
 
-               this%r_l = 1
-               this%r_u = otherTotalNumberOfContractions
+               this%r_l = otherCoreOrbitals+1
+               this%r_u = otherTotalActiveOrbitals
 
             end if
 
@@ -2414,8 +2455,16 @@ contains
 
 
    end if
+   
+   write(*,"(T15,A)") "Transformation boundaries "
+   write(*,"(T15,A10,A6,A6)") "orbital","lower", "upper"
+   write(*,"(T20,A5,I6,I6)") "p", this%p_l, this%p_u
+   write(*,"(T20,A5,I6,I6)") "q", this%q_l, this%q_u
+   write(*,"(T20,A5,I6,I6)") "r", this%r_l, this%r_u
+   write(*,"(T20,A5,I6,I6)") "s", this%s_l, this%s_u
+   print *, ""
 
-  end subroutine TransformIntegralsE_checkInterMOIntegralType
+ end subroutine TransformIntegralsE_checkInterMOIntegralType
 
   subroutine TransformIntegralsE_setmem( ssize, twoParticlesIntegrals )
     implicit none 

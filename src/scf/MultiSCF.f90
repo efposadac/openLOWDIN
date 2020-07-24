@@ -103,7 +103,7 @@ contains
     case(1)
        MultiSCF_instance%name="ELECTRONIC_FULLY_CONVERGED_BY_NONELECTRONIC_ITERATION"
     case(2)
-       MultiSCF_instance%name="SPECIES_FULLY_CONVERGED_INDIVIDIALLY"
+       MultiSCF_instance%name="SPECIES_FULLY_CONVERGED_INDIVIDUALLY"
     case(3)
        MultiSCF_instance%name="SIMULTANEOUS"
     case(4)
@@ -118,9 +118,6 @@ contains
          MultiSCF_instance%singleDensityTolerance(MolecularSystem_getNumberOfQuantumSpecies()),&
          MultiSCF_instance%singleMaxIterations(MolecularSystem_getNumberOfQuantumSpecies()))
 
-    print *, "CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS", CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
-    print *, "CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS", CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
-    
     do i = 1, MolecularSystem_getNumberOfQuantumSpecies()
        if(MolecularSystem_instance%species(i)%isElectron ) then
           MultiSCF_instance%singleEnergyTolerance(i)=CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE

@@ -341,8 +341,8 @@ contains
       end if
       if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
         ConfigurationInteraction_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
-                                    ConfigurationInteraction_instance%lambda%values(i) + &
-                                    ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i)
+             ConfigurationInteraction_instance%lambda%values(i)
+        ! +ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i)
       end if
 
        !!Uneven occupation number = alpha
@@ -1240,13 +1240,10 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
         arguments(2) = speciesName
         arguments(1) = "COEFFICIENTS"
-        ! print *, "trolo", numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
 
         coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-        ! print *, "trololo"
-        
         do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
            call Matrix_constructor ( ciDensityMatrix(species,state) , &
@@ -2509,7 +2506,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for Building diagonal of CI matrix : ", timeB - timeA ," (s)"
 
     write (*,*) "Reference energy, H_0: ",  ConfigurationInteraction_instance%diagonalHamiltonianMatrix2%values(1)
-
+       
   end subroutine ConfigurationInteraction_buildDiagonal
 
 recursive  function ConfigurationInteraction_numberOfConfigurationsRecursion(s, numberOfSpecies, c, cilevel) result (os)
@@ -3860,57 +3857,59 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     auxCIenergy = 0.0_8
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-      a = this(i)
-      do kk=1, ConfigurationInteraction_instance%occupationNumber( i )  !! 1 is from a and 2 from b
+       a = this(i)
+       do kk=1, ConfigurationInteraction_instance%occupationNumber( i )  !! 1 is from a and 2 from b
 
-        k = ConfigurationInteraction_instance%strings(i)%values(kk,a)
+          k = ConfigurationInteraction_instance%strings(i)%values(kk,a)
 
-        !One particle terms
-        auxCIenergy = auxCIenergy + &
-                    ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( k, k )
-
-        !Two particles, same specie
-        auxIndex1 = ConfigurationInteraction_instance%twoIndexArray(i)%values(k,k)
-
-        do ll = kk + 1, ConfigurationInteraction_instance%occupationNumber( i )  !! 1 is from a and 2 from b
-
-          l = ConfigurationInteraction_instance%strings(i)%values(ll,a)
-          auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(i)%values(l,l)
-          auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values(auxIndex1,auxIndex2) 
-
-          !Coulomb
+          !One particle terms
           auxCIenergy = auxCIenergy + &
-              ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+               ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( k, k )
 
-          !Exchange, depends on spin
+          !Two particles, same specie
+          auxIndex1 = ConfigurationInteraction_instance%twoIndexArray(i)%values(k,k)
 
-          auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
-                        ConfigurationInteraction_instance%twoIndexArray(i)%values(k,l), &
-                        ConfigurationInteraction_instance%twoIndexArray(i)%values(l,k) )
+          do ll = kk + 1, ConfigurationInteraction_instance%occupationNumber( i )  !! 1 is from a and 2 from b
 
-          auxCIenergy = auxCIenergy + &
+             l = ConfigurationInteraction_instance%strings(i)%values(ll,a)
+
+             auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(i)%values(l,l)
+             auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values(auxIndex1,auxIndex2) 
+
+             !Coulomb
+             auxCIenergy = auxCIenergy + &
+                  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+
+             !Exchange, depends on spin
+
+             auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
+                  ConfigurationInteraction_instance%twoIndexArray(i)%values(k,l), &
+                  ConfigurationInteraction_instance%twoIndexArray(i)%values(l,k) )
+
+             auxCIenergy = auxCIenergy + &
                   MolecularSystem_instance%species(i)%kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
-        end do
-
-        !!Two particles, different species
-        do j = i + 1, MolecularSystem_instance%numberOfQuantumSpecies
-          b = this(j)
-          auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
-
-          do ll = 1, ConfigurationInteraction_instance%occupationNumber( j ) !! 1 is from a and 2 from b
-            l = ConfigurationInteraction_instance%strings(j)%values(ll,b)
-
-            auxIndex2= ConfigurationInteraction_instance%twoIndexArray(j)%values(l,l)
-            auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
-
-            auxCIenergy = auxCIenergy + &!couplingEnergy
-            ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
 
           end do
 
-        end do
+          !!Two particles, different species
+          do j = i + 1, MolecularSystem_instance%numberOfQuantumSpecies
+             b = this(j)
+             auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
 
-      end do
+             do ll = 1, ConfigurationInteraction_instance%occupationNumber( j ) !! 1 is from a and 2 from b
+                l = ConfigurationInteraction_instance%strings(j)%values(ll,b)
+
+                auxIndex2= ConfigurationInteraction_instance%twoIndexArray(j)%values(l,l)
+                auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
+
+                auxCIenergy = auxCIenergy + &!couplingEnergy
+                     ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
+
+             end do
+
+          end do
+
+       end do
     end do
 
     auxCIenergy= auxCIenergy + HartreeFock_instance%puntualInteractionEnergy
