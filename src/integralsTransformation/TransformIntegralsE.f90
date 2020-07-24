@@ -1900,7 +1900,7 @@ contains
     coreOrbitals=0
     if ( InputCI_Instance(speciesID)%coreOrbitals /= 0 ) coreOrbitals=InputCI_Instance(speciesID)%coreOrbitals 
 
-    totalActiveOrbitals=this%numberOfContractions
+    totalActiveOrbitals=MolecularSystem_getTotalNumberOfContractions( speciesID )
     if ( InputCI_Instance(speciesID)%activeOrbitals /= 0 ) totalActiveOrbitals=InputCI_Instance(speciesID)%activeOrbitals 
 
     !! Boundary orbitals. Default
@@ -2084,8 +2084,8 @@ contains
     if ( InputCI_Instance(speciesID)%coreOrbitals /= 0 ) coreOrbitals=InputCI_Instance(speciesID)%coreOrbitals
     if ( InputCI_Instance(otherSpeciesID)%coreOrbitals /= 0 ) otherCoreOrbitals=InputCI_Instance(otherSpeciesID)%coreOrbitals
 
-    totalActiveOrbitals=this%numberOfContractions
-    otherTotalActiveOrbitals=this%otherNumberOfContractions
+    totalActiveOrbitals=MolecularSystem_getTotalNumberOfContractions( speciesID )
+    otherTotalActiveOrbitals=MolecularSystem_getTotalNumberOfContractions( otherSpeciesID )
     if ( InputCI_Instance(speciesID)%activeOrbitals /= 0 ) totalActiveOrbitals=InputCI_Instance(speciesID)%activeOrbitals 
     if ( InputCI_Instance(otherSpeciesID)%activeOrbitals /= 0 ) otherTotalActiveOrbitals=InputCI_Instance(otherSpeciesID)%activeOrbitals 
 
