@@ -15342,8 +15342,6 @@ end module PropagatorTheory_
 !    print *,"END OF GENERALIZED ANY-PARTICLE PROPAGATOR CALCULATIONS"
 !    print *,"***************************************************************"
 !  end subroutine PropagatorTheory_thirdOrderCorrection4
-!       print *,"      BEGIN FOUR-INDEX INTEGRALS TRANSFORMATION:    "
-!       print *,"===================================================="
 !       print *,"    Algorithm Four-index integral tranformation"
 !       print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
 !       print *,"  Computer Physics Communications, 2005, 166, 58-65 "
@@ -20941,4 +20939,5 @@ end module PropagatorTheory_
   end subroutine PropagatorTheory_exception
   
 end module PropagatorTheory_
+
 
