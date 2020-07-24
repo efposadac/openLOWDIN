@@ -1436,15 +1436,15 @@ contains
     this%s_l = coreOrbitals+1
     this%s_u = totalActiveOrbitals
 
-    if ( trim(this%partialTransform)=="ALL") then
+    if ( trim(this%partialTransform)=="ALLACTIVE") then
        this%p_l = 1
-       this%p_u = this%numberOfContractions
+       this%p_u = totalActiveOrbitals
        this%q_l = 1
-       this%q_u = this%numberOfContractions
+       this%q_u = totalActiveOrbitals
        this%r_l = 1
-       this%r_u = this%numberOfContractions
+       this%r_u = totalActiveOrbitals
        this%s_l = 1
-       this%s_u = this%numberOfContractions
+       this%s_u = totalActiveOrbitals !this%numberOfContractions
     end if
     
     !! only the (ia|jb) integrals will be transformed
@@ -1452,12 +1452,12 @@ contains
 
        this%p_l = coreOrbitals+1
        this%p_u = totalOccupation 
-       this%q_l = totalOccupation + coreOrbitals+1
+       this%q_l = totalOccupation+1 !+coreOrbitals+1
        this%q_u = totalActiveOrbitals
 
        this%r_l = coreOrbitals+1
        this%r_u = totalOccupation 
-       this%s_l = totalOccupation + coreOrbitals+1
+       this%s_l = totalOccupation+1 !+coreOrbitals+1
        this%s_u = totalActiveOrbitals
 
     end if
@@ -1623,15 +1623,15 @@ contains
     this%s_lowerOrbital = otherCoreOrbitals+1
     this%s_upperOrbital = otherTotalActiveOrbitals
 
-    if ( trim(this%partialTransform) .eq. "ALL") then
+    if ( trim(this%partialTransform) .eq. "ALLACTIVE") then
        this%p_lowerOrbital = 1
-       this%p_upperOrbital = this%numberOfContractions
+       this%p_upperOrbital = totalActiveOrbitals!this%numberOfContractions
        this%q_lowerOrbital = 1
-       this%q_upperOrbital = this%numberOfContractions
+       this%q_upperOrbital = totalActiveOrbitals!this%numberOfContractions
        this%r_lowerOrbital = 1
-       this%r_upperOrbital = this%otherNumberOfContractions
+       this%r_upperOrbital = otherTotalActiveOrbitals!this%otherNumberOfContractions
        this%s_lowerOrbital = 1
-       this%s_upperOrbital = this%otherNumberOfContractions
+       this%s_upperOrbital = otherTotalActiveOrbitals!this%otherNumberOfContractions
     end if
     
 
@@ -1642,7 +1642,7 @@ contains
        this%p_upperOrbital = totalOccupation
        this%q_lowerOrbital = totalOccupation + 1
        this%q_upperOrbital = totalActiveOrbitals
-       this%r_lowerOrbital = coreOrbitals+1
+       this%r_lowerOrbital = otherCoreOrbitals+1
        this%r_upperOrbital = otherTotalOccupation
        this%s_lowerOrbital = otherTotalOccupation + 1
        this%s_upperOrbital = otherTotalActiveOrbitals

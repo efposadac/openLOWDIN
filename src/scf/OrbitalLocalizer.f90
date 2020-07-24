@@ -1085,14 +1085,15 @@ contains
 
      write(*,*) ""
 
+     totalExchangeCorrelationEnergyA=0.0
+     totalExchangeCorrelationEnergyB=0.0
+     totalExchangeCorrelationEnergyAB=0.0
+     totalEmbeddingPotentialEnergyA=0.0
      if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
         write(*,*) ""
         write(*,"(A35,A20,A20,A20)") " Exchange-Correlation(DFT) energy: ", "(Subsystem A)*", "Subsystem B", "A-B Interaction"
         write(*,*) "---------------------------------------------------------------------------------------------"
         write(*,*) ""
-        totalExchangeCorrelationEnergyA=0.0
-        totalExchangeCorrelationEnergyB=0.0
-        totalExchangeCorrelationEnergyAB=0.0
         do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
            write (6,"(A35,F20.12,F20.12,F20.12)") &
                 trim( MolecularSystem_instance%species(speciesID)%name ) // &
@@ -1129,7 +1130,6 @@ contains
         write(*,"(A35,A20,A20,A20)") " A Embedding in B Potential Energy: ", "A-B Interaction"
         write(*,*) "-----------------------------------------------------------"
         write(*,*) ""
-        totalEmbeddingPotentialEnergyA=0.0
         do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
            write (6,"(A35,F20.12)") &
                 trim( MolecularSystem_instance%species(speciesID)%name ) // &
