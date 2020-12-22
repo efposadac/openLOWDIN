@@ -61,6 +61,7 @@ module OutputBuilder_
      integer :: orbital
      integer :: dimensions
      integer :: outputID
+     integer :: auxID
      real(8) :: cubeSize
      type(vector) :: point1
      type(vector) :: point2
@@ -68,6 +69,8 @@ module OutputBuilder_
      logical :: isInstanced
   end type OutputBuilder
 
+  type(OutputBuilder), public, allocatable :: outputs_instance(:)
+  
   public :: &
        OutputBuilder_constructor, &
        OutputBuilder_destructor, &
@@ -116,6 +119,7 @@ contains
     type(Vector),optional :: point1
     type(Vector),optional :: point2
     type(Vector),optional :: point3
+    integer :: i
     
     this%type=type
     ! print *, "this%type", this%type
@@ -149,6 +153,11 @@ contains
        this%point3%values= this%point3%values / AMSTRONG
     end if
 
+    this%auxID=1
+    !!Check for other outputs of the same type
+    do i=1, this%outputID-1
+       if( trim(outputs_instance(i)%type) .eq. trim(this%type)  ) this%auxID=this%auxID+1
+    end do
     
   end subroutine OutputBuilder_constructor
 
@@ -1805,7 +1814,7 @@ contains
 
    subroutine OutputBuilder_get3DPlot(this)
      type(OutputBuilder) :: this
-     character(50) :: outputID
+     character(50) :: outputID, auxID
      character(50) :: orbitalNum
 
      integer :: speciesID
@@ -1834,6 +1843,7 @@ contains
      step1%values(:)=(this%point2%values(:)-this%point1%values(:))/numberOfSteps
      step2%values(:)=(this%point3%values(:)-this%point1%values(:))/numberOfSteps
      outputID=String_convertIntegerToString(this%outputID)
+     auxID=String_convertIntegerToString(this%auxID)
 
      x_title="x/a.u."
      y_title="y/a.u."
@@ -1910,7 +1920,7 @@ contains
    subroutine OutputBuilder_get2DPlot(this)
      implicit none
      type(outputBuilder) :: this
-     character(50) :: outputID
+     character(50) :: outputID, auxID
      character(50) :: orbitalNum
 
      integer :: i, speciesID
@@ -1933,6 +1943,7 @@ contains
      numberOfSteps= CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
      step%values(:)=(this%point2%values(:)-this%point1%values(:))/numberOfSteps
      outputID=String_convertIntegerToString(this%outputID)
+     auxID=String_convertIntegerToString(this%auxID)
 
      x_title="distance/a.u."
      select case( this%type )
@@ -1992,7 +2003,7 @@ contains
   subroutine OutputBuilder_getDensityCube(this )
     implicit none
     type(OutputBuilder) :: this
-    character(50) :: outputID
+    character(50) :: outputID, auxID
     real(8):: cubeSize
 
     integer :: i, j, k, n, w, natom
@@ -2019,6 +2030,7 @@ contains
     numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
 
     outputID=String_convertIntegerToString(this%outputID)
+    auxID=String_convertIntegerToString(this%auxID)
   
     ! Check if there are CI density matrices and read those or the HF matrix
     occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
@@ -2119,7 +2131,7 @@ contains
 
   subroutine OutputBuilder_getDensityPlot(this)
      type(OutputBuilder) :: this
-     character(50) :: outputID
+     character(50) :: outputID, auxID
      character(50) :: orbitalNum
 
      integer :: i,j,l, speciesID, wfnunit, occupationsUnit 
@@ -2139,6 +2151,7 @@ contains
 
      numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
      outputID=String_convertIntegerToString(this%outputID)
+     auxID=String_convertIntegerToString(this%auxID)
 
      l=0
      do speciesID=1, numberOfSpecies
@@ -2194,8 +2207,6 @@ contains
            step1%values(:)=(this%point2%values(:)-this%point1%values(:))/numberOfSteps
            step2%values(:)=(this%point3%values(:)-this%point1%values(:))/numberOfSteps
            
-           outputID=String_convertIntegerToString(this%outputID)
-
            write(auxstring,*) this%state
            title=trim(nameOfSpecies)//" state "//auxstring//" density" 
 
@@ -2205,11 +2216,12 @@ contains
 
            !Write density grids according to the number of dimensions chosen
            if(this%dimensions.eq.3)then
-              this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".3D.dens"
               !!check if there is another density plot with the same same
-              inquire(FILE = this%fileName(l), EXIST = existFile )
-              if( existFile) this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".3D-"//trim(outputID)//".dens"
-              
+              if( this%auxID .eq. 1) then
+                 this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".3D.dens"
+              else
+                 this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".3D-"//trim(auxID)//".dens"
+              end if
               x_title="x/a.u."
               y_title="y/a.u."
               z_title=""
@@ -2235,11 +2247,13 @@ contains
               close(10)
 
            elseif(this%dimensions.eq.2) then
-              this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".2D.dens"
               !!check if there is another density plot with the same same
-              inquire(FILE = this%fileName(l), EXIST = existFile )
-              if( existFile) this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".2D-"//trim(outputID)//".dens"
-              
+              if( this%auxID .eq. 1) then
+                 this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".2D.dens"
+              else
+                 this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".2D-"//trim(auxID)//".dens"
+              end if
+
               x_title="distance/a.u."
               y_title="density/a.u.^{-3}"
               open(10,file=this%fileName(l),status='replace',action='write')
@@ -2342,9 +2356,14 @@ contains
      character(*) :: z_title
      real(8) :: minValue
      real(8) :: maxValue
-
+     real(8) :: maxMinDiff
+     
      integer :: status
+     integer :: levels
 
+     maxMinDiff=maxValue-minValue
+     levels=10
+     
      open ( 100,FILE=trim(fileName)//'.gnp', STATUS='REPLACE',ACTION='WRITE')
      write (100,"(A)") 'set term post eps enh color "Helvetica" 16 size 7cm,5cm'
      write (100,"(A)") 'set encoding iso_8859_1'
@@ -2354,8 +2373,15 @@ contains
      write (100,"(A)") 'splot "'//trim(fileName)//'" u 1:2:3'
      write (100,"(A)") 'unset table'
 
+     write (100,"(A,I5)") 'levels=', levels
+     write (100,"(A,I5)") 'numColors=', 5
+     write (100,"(A,E20.8)") 'maxValue=', maxValue
+     write (100,"(A,E20.8)") 'minValue=', minValue
+     write (100,"(A)") 'step=(maxValue-minValue)/levels'
+     write (100,"(A)") 'colorStep=(maxValue-minValue)/numColors'
+     
      write (100,"(A)") 'set contour base'
-     write (100,"(A,F10.6,A,F10.6,A,F10.6)") 'set cntrparam level incremental ', minValue,',', (maxValue-minValue)/10.0 ,',', maxValue
+     write (100,"(A)") 'set cntrparam level incremental minValue, step , maxValue'
      write (100,"(A)") 'unset surface'
 
      write (100,"(A)") 'set table "'//trim(fileName)//'.cont"'
@@ -2365,20 +2391,14 @@ contains
      write (100,"(A)") 'reset'
      write (100,"(A)") 'unset key'
 
-     write (100,"(A,F10.6,A,F10.6,A)") 'set cbrange [',minValue,':',maxValue,']'
-     write (100,"(A)") 'set palette maxcolors 10'
-
-     write (100,"(A,F10.6,A,F10.6,A,F10.6,A,F10.6,A,F10.6,A,F10.6,A)") 'set palette defined (',&
-          minValue, '"white",', &
-          minValue+(maxValue-minValue)/5.0, '"blue",', &
-          minValue+2.0*(maxValue-minValue)/5.0, '"green",', &
-          minValue+3.0*(maxValue-minValue)/5.0, '"yellow",', &
-          minValue+4.0*(maxValue-minValue)/5.0, '"orange",', &
-          maxValue, '"red")'
-
+     write (100,"(A)") 'set cbrange [minValue:maxValue]'
+     write (100,"(A)") 'set palette maxcolors levels'
+     write (100,"(A)") 'set cbtics step'
+     write (100,"(A)") 'set format cb "%3.1E"'
+     
+     write (100,"(A)") 'set palette defined (minValue "white",minValue+colorStep "blue",minValue+colorStep*2 "green",minValue+colorStep*3 "yellow",minValue+colorStep*4 "orange",maxValue "red")'
      write (100,"(A)") 'set grid front'
 
-     write (100,"(A)") 'set format cb "%.2f"'
      
      write (100,"(A)") 'set format x "%.0f"'
      write (100,"(A)") 'set format y "%.0f"'

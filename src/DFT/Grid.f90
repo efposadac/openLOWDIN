@@ -166,10 +166,10 @@ contains
     ! call Matrix_show(this%points)
 
 
-    print *, "Screening delocalized orbital(<1E-6) and weight(<1E-14) points ..."
-    print *, "Final molecular grid size: ", Grid_instance(speciesID)%totalSize ," points"
-
-    ! print *, labels
+    write(*,"(A,ES9.3,A,ES9.3,A)") "Screening delocalized orbital(<", CONTROL_instance%ELECTRON_DENSITY_THRESHOLD,&
+         ") and low weight(<",CONTROL_instance%GRID_WEIGHT_THRESHOLD,") points ..."
+    print *, "Final molecular grid size for: ", trim(this%nameOfSpecies), Grid_instance(speciesID)%totalSize ," points"
+    print *, " "
 
     call Matrix_destructor( atomicGrid)
     call Matrix_destructor( molecularGrid)
@@ -227,7 +227,7 @@ contains
     ! We assume that it is an s-function for simplicity
 
     normC=(2*minExp/Math_PI)**(3/4)
-    orbitalCutoff=1E-6
+    orbitalCutoff=CONTROL_instance%ELECTRON_DENSITY_THRESHOLD
     radialCutoff=sqrt(1/minExp*log(normC/orbitalCutoff))
 
     relevantPoints=0
@@ -253,7 +253,7 @@ contains
     integer :: point, rpoint
 
     !Should be a control parameter
-    weightCutoff=1E-14
+    weightCutoff=CONTROL_instance%GRID_WEIGHT_THRESHOLD
     
     finalGridSize=0
     do point = 1, molecularGridSize

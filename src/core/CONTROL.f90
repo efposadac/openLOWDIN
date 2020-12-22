@@ -237,6 +237,8 @@ module CONTROL_
      logical :: STORE_THREE_CENTER_ELECTRON_INTEGRALS
      logical :: CALL_LIBXC
      real(8) :: NUCLEAR_ELECTRON_DENSITY_THRESHOLD
+     real(8) :: ELECTRON_DENSITY_THRESHOLD
+     real(8) :: GRID_WEIGHT_THRESHOLD
      real(8) :: BETA_PARAMETER_A
      real(8) :: BETA_PARAMETER_B
      real(8) :: BETA_PARAMETER_C
@@ -542,6 +544,8 @@ module CONTROL_
   logical :: LowdinParameters_storeThreeCenterElectronIntegrals
   logical :: LowdinParameters_callLibxc
   real(8) :: LowdinParameters_nuclearElectronDensityThreshold
+  real(8) :: LowdinParameters_electronDensityThreshold
+  real(8) :: LowdinParameters_gridWeightThreshold
   real(8) :: LowdinParameters_betaParameterA
   real(8) :: LowdinParameters_betaParameterB
   real(8) :: LowdinParameters_betaParameterC
@@ -855,6 +859,8 @@ module CONTROL_
        LowdinParameters_storeThreeCenterElectronIntegrals,&
        LowdinParameters_callLibxc,&
        LowdinParameters_nuclearElectronDensityThreshold,&
+       LowdinParameters_electronDensityThreshold,&
+       LowdinParameters_gridWeightThreshold,&
        LowdinParameters_betaParameterA,&
        LowdinParameters_betaParameterB,&
        LowdinParameters_betaParameterC,&
@@ -1185,6 +1191,12 @@ contains
     LowdinParameters_auxiliaryDensity = .false.
     LowdinParameters_storeThreeCenterElectronIntegrals = .true.
     LowdinParameters_callLibxc = .true.
+    LowdinParameters_nuclearElectronDensityThreshold = 1E-10
+    LowdinParameters_electronDensityThreshold = 1E-10
+    LowdinParameters_gridWeightThreshold = 1E-10
+    LowdinParameters_betaParameterA = 0.0
+    LowdinParameters_betaParameterB = 0.0
+    LowdinParameters_betaParameterC = 0.0
 
     !!*****************************************************
     !! Subsystem embedding Options
@@ -1490,6 +1502,8 @@ contains
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = .true.
     CONTROL_instance%CALL_LIBXC = .true.
     CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD = 1E-10
+    CONTROL_instance%ELECTRON_DENSITY_THRESHOLD = 1E-10
+    CONTROL_instance%GRID_WEIGHT_THRESHOLD = 1E-10
     CONTROL_instance%BETA_PARAMETER_A=0.0
     CONTROL_instance%BETA_PARAMETER_B=0.0
     CONTROL_instance%BETA_PARAMETER_C=0.0
@@ -1837,6 +1851,8 @@ contains
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = LowdinParameters_storeThreeCenterElectronIntegrals
     CONTROL_instance%CALL_LIBXC = LowdinParameters_callLibxc
     CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD = LowdinParameters_nuclearElectronDensityThreshold
+    CONTROL_instance%ELECTRON_DENSITY_THRESHOLD = LowdinParameters_electronDensityThreshold
+    CONTROL_instance%GRID_WEIGHT_THRESHOLD = LowdinParameters_gridWeightThreshold
     CONTROL_instance%BETA_PARAMETER_A = LowdinParameters_betaParameterA
     CONTROL_instance%BETA_PARAMETER_B = LowdinParameters_betaParameterB
     CONTROL_instance%BETA_PARAMETER_C = LowdinParameters_betaParameterC
@@ -2154,6 +2170,12 @@ contains
     LowdinParameters_auxiliaryDensity = CONTROL_instance%AUXILIARY_DENSITY
     LowdinParameters_storeThreeCenterElectronIntegrals = CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS
     LowdinParameters_callLibxc = CONTROL_instance%CALL_LIBXC
+    LowdinParameters_nuclearElectronDensityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD
+    LowdinParameters_electronDensityThreshold=CONTROL_instance%ELECTRON_DENSITY_THRESHOLD
+    LowdinParameters_gridWeightThreshold=CONTROL_instance%GRID_WEIGHT_THRESHOLD
+    LowdinParameters_betaParameterA=CONTROL_instance%BETA_PARAMETER_A 
+    LowdinParameters_betaParameterB=CONTROL_instance%BETA_PARAMETER_B
+    LowdinParameters_betaParameterC=CONTROL_instance%BETA_PARAMETER_C
 
     !!*****************************************************
     !! Subsystem embedding Options
@@ -2447,7 +2469,9 @@ contains
     otherThis%POLARIZATION_ORDER = this%POLARIZATION_ORDER 
     otherThis%FUKUI_FUNCTIONS = this%FUKUI_FUNCTIONS 
     otherThis%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS = this%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS 
-
+    otherThis%NUCLEAR_ELECTRON_DENSITY_THRESHOLD= this%NUCLEAR_ELECTRON_DENSITY_THRESHOLD
+    otherThis%ELECTRON_DENSITY_THRESHOLD= this%ELECTRON_DENSITY_THRESHOLD
+    otherThis%GRID_WEIGHT_THRESHOLD= this%GRID_WEIGHT_THRESHOLD
     !!*****************************************************
     !! Subsystem embedding Options
     !!

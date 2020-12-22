@@ -25,6 +25,7 @@ module OrbitalLocalizer_
   use MolecularSystem_
   use WaveFunction_
   use Convergence_
+  use omp_lib
 
   implicit none
 
@@ -122,7 +123,7 @@ contains
     
     close(30)
 
-    statusSystem = system ("erkale_fchkpt erkale.read")
+    call system("erkale_fchkpt erkale.read")
 
     !! Localize orbitals
     open(unit=30, file="erkale.local", status="replace", form="formatted")
@@ -135,7 +136,7 @@ contains
 
     close(30)
 
-    statusSystem = system ("erkale_loc_omp erkale.local")
+    call system("erkale_loc_omp erkale.local")
     
     !!Convert erkale chk files to lowdin fchk files
     open(unit=30, file="erkale.write", status="replace", form="formatted")
@@ -145,7 +146,7 @@ contains
     
     close(30)
 
-    statusSystem = system ("erkale_fchkpt erkale.write")
+    call system("erkale_fchkpt erkale.write")
     
     !! Read orbital coefficients from fchk files
     call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.fchk",  orbitalCoefficients, densityMatrix, nameOfSpecies )

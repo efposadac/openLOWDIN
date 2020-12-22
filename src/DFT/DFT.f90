@@ -120,7 +120,9 @@ program DFT
 
      allocate( densityMatrix(numberOfSpecies) , numberOfParticles(numberOfSpecies), &
           exchangeCorrelationMatrix(numberOfSpecies), exchangeCorrelationEnergy(numberOfSpecies,numberOfSpecies))
-     
+
+     numberOfParticles=0.0
+     exchangeCorrelationEnergy=0.0
      if(trim(job).eq."SCF_DFT") then
         call GridManager_readGrids( "INITIAL")
         call GridManager_atomicOrbitals( "READ", "INITIAL" )
@@ -243,6 +245,12 @@ program DFT
         end if
      end do
 
+     if(trim(job).eq."FINAL_DFT" .and. CONTROL_instance%BETA_FUNCTION .eq. "PsBeta" ) then
+        CONTROL_instance%BETA_FUNCTION = "PsBetaMax"
+        print *, ""
+        print *, "We are changing the PsBeta with cutoff to the PsBeta with max(pe,pp)"
+     end if
+
      ! call Stopwatch_stop(lowdin_stopwatch)     
      ! write(*,"(A,F10.3,A4)") "** Calculating density and gradient:", lowdin_stopwatch%enlapsetTime ," (s)"
 
@@ -352,6 +360,15 @@ program DFT
            end do
         end do
 
+        
+        print *, ""
+        print *, "Density-point charges expected distances"
+        print *, ""
+        do speciesID = 1 , numberOfSpecies
+           call GridManager_getExpectedDistances( speciesID )
+        end do
+        print *, ""
+
      end if
      
      !!In the final iteration we don't update the exchange correlation matrix to save time
@@ -368,8 +385,7 @@ program DFT
      ! Write results to file
      do speciesID = 1 , numberOfSpecies
 
-
-        ! print *, Grid_instance(speciesID)%nameOfSpecies, numberOfParticles(speciesID), exchangeCorrelationEnergy(speciesID)
+        ! print *, Grid_instance(speciesID)%nameOfSpecies, numberOfParticles(speciesID)
         ! call Matrix_show(exchangeCorrelationMatrix(speciesID))
 
         labels(2) = trim(Grid_instance(speciesID)%nameOfSpecies)
