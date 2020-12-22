@@ -41,12 +41,12 @@ contains
   
   !>
   !! @brief Obtiene la matriz de densidad inicial
-  function DensityMatrixSCFGuess_getGuess( speciesID ) result( output )
+  subroutine DensityMatrixSCFGuess_getGuess( speciesID, densityMatrix, orbitals )
     implicit none
     integer, intent(in) :: speciesID
-    type(Matrix) :: output
-    
+    type(Matrix) :: densityMatrix
     type(Matrix) :: orbitals
+    
     character(30) :: nameOfSpecies
     integer(8) :: orderOfMatrix, occupationNumber
     logical :: existPlain, existBinnary, readSuccess
@@ -55,22 +55,22 @@ contains
     character(50) :: arguments(20)
     integer :: wfnUnit
     integer :: i,j,k
-    
+
     orderOfMatrix = MolecularSystem_getTotalnumberOfContractions( speciesID )
     nameOfSpecies = MolecularSystem_instance%species(speciesID)%name
     occupationNumber = MolecularSystem_getOcupationNumber( speciesID )
     readSuccess=.false.
-    call Matrix_constructor(output, orderOfMatrix, orderOfMatrix, 0.0_8  )
-    call Matrix_constructor(orbitals, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
 
     arguments(2) = nameOfSpecies
     arguments(1) = "COEFFICIENTS"
+
+    call Matrix_constructor(densityMatrix, orderOfMatrix, orderOfMatrix, 0.0_8  )
+    call Matrix_constructor(orbitals, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
     
     !!Verifica el archivo que contiene los coeficientes para una especie dada
     if ( CONTROL_instance%READ_FCHK ) then
 
-       call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk", orbitals, output, nameOfSpecies )
-       call Matrix_destructor(orbitals)
+       call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk", orbitals, densityMatrix, nameOfSpecies )
        return
 
     else if ( CONTROL_instance%READ_COEFFICIENTS ) then
@@ -105,7 +105,7 @@ contains
 
     if(readSuccess) print *, "Combination coefficients for ", trim(nameOfSpecies), " were read from ", trim(wfnFile)
 
-    
+
     if(.not. readSuccess) then
        call Matrix_constructor(orbitals, orderOfMatrix, orderOfMatrix, 0.0_8  )
 
@@ -123,7 +123,7 @@ contains
        case( "ONES" )
 
           do i=1, occupationNumber
-             output%values(i,i) =1.0_8
+             densityMatrix%values(i,i) =1.0_8
           end do
           return
 
@@ -131,7 +131,7 @@ contains
           call DensityMatrixSCFGuess_hcore( orbitals, speciesID )
 
           !case( "HUCKEL" )
-          ! call DensityMatrixSCFGuess_huckel( output, speciesID )
+          ! call DensityMatrixSCFGuess_huckel( densityMatrix, speciesID )
 
        case default
           call DensityMatrixSCFGuess_exception( ERROR, "the selected guess method for "//nameOfSpecies//" is not implemented", "at program SCF module DensityMatrixSCFGuess")
@@ -143,22 +143,19 @@ contains
     do i = 1 , orderOfMatrix
        do j = 1 , orderOfMatrix
           do k = 1 , occupationNumber
-             output%values(i,j) = output%values( i,j ) + orbitals%values(i,k) * orbitals%values(j,k)
+             densityMatrix%values(i,j) = densityMatrix%values( i,j ) + orbitals%values(i,k) * orbitals%values(j,k)
           end do
        end do
     end do
-    output%values=output%values*MolecularSystem_getEta( speciesID )
-      
+    densityMatrix%values=densityMatrix%values*MolecularSystem_getEta( speciesID )
+
     if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX ) then
-       output%values(occupationNumber,:) = 0.1*output%values(occupationNumber,:)*output%values(occupationNumber+1,:)
+       densityMatrix%values(occupationNumber,:) = 0.1*densityMatrix%values(occupationNumber,:)*densityMatrix%values(occupationNumber+1,:)
     end if
 
 
-  call Matrix_destructor(orbitals)
+  end subroutine DensityMatrixSCFGuess_getGuess
 
-    
-  end function DensityMatrixSCFGuess_getGuess
-  
   !>
   !! @brief Diagonaliza el hamiltoniano monoelectronico para obtener los
   !! 			orbitales iniciales de partida

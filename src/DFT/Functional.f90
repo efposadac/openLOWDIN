@@ -1080,23 +1080,28 @@ contains
   end subroutine Functional_myCSEvaluate
 
 
-    subroutine Functional_expCSEvaluate( this, mass, npoints, rhoE, rhoN, ec, vcE, vcN )
+    subroutine Functional_expCSEvaluate( this, mass, npoints, rhoE, rhoP, ec, vcE, vcP )
     ! Evaluates my Exponential Jastrow factor functional
     ! Felix Moncada, 2019
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
     integer :: npoints !!nuclear gridSize
-    real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
+    real(8) :: rhoE(*), rhoP(*) !! electron and positive particle Densities - input
     real(8) :: ec(*) !! Energy density - output
-    real(8) :: vcE(*), vcN(*) !! Potentials - output   
+    real(8) :: vcE(*), vcP(*) !! Potentials - output   
 
     real(8) :: a0,a1,a2,a3,a4,b0,b1,b2,b3,b4,p,qe,qn,qen,q2en,q3en,Ea2b,Eab2,Eab,q0,q2,q4
-    real(8) :: beta, dbetaE, dbetaN, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta
+    real(8) :: beta, dbetaE, dbetaP, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta
+    real(8) :: d2BdE2, d2BdP2, d2BdEP !! dummys - not required
     real(8) :: deltaQ
     real :: time1, time2
     integer :: i,n
 
+    real(8) :: densityThreshold
+    
+    densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD !TODO: add to other functionals
+    
     !!The idea is that the parameters are a functional of the nuclear mass and charge
     if(this%name .eq. "correlation:expCS-A" ) then
        if(mass .gt. 2.0) then !nuclear- adiabatic
@@ -1161,159 +1166,20 @@ contains
        STOP "The nuclear electron functional chosen is not implemented"
     end if
 
-    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
-       qe=CONTROL_instance%DUMMY_REAL_A
-       qn=CONTROL_instance%DUMMY_REAL_B
-       if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3rhoEN6") then
-          qen=CONTROL_instance%DUMMY_REAL_C
-          p=1
-       else
-          p=CONTROL_instance%DUMMY_REAL_C
-       end if
-    else
-       qe=1.1487573585337585
-       qn=1.1487573585337585
-       p=1.0
+    p=1.0
+    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 ) then
+       p=CONTROL_instance%DUMMY_REAL_A 
     end if
-
-    if(CONTROL_instance%BETA_FUNCTION .eq. "newBeta") then
-
-       if(mass .gt. 2.0) then !hydrogen
-          Ea2b=0.527444
-          Eab2=0.597139 
-       else !positron
-          Ea2b=0.262005
-          Eab2=0.262005
-       end if
-       p=1.0
-       
-       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
-          Ea2b=CONTROL_instance%DUMMY_REAL_A
-          Eab2=CONTROL_instance%DUMMY_REAL_B
-          p=CONTROL_instance%DUMMY_REAL_C
-       end if
-
-       qe=a0*(11.0/8.0/Ea2b-3.0/4.0/Eab2)
-       qn=a0*(11.0/8.0/Eab2-3.0/4.0/Ea2b)
-       q2en=a0*3.0/16.0*(1.0/Ea2b+1.0/Eab2)
-       q3en=a0*9.0/16.0*(1.0/Eab2-1.0/Ea2b)
-       
-    else if(CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") then
-
-       if(this%mass2 .gt. 2.0) then !hydrogen
-          STOP "this beta function only works for electron-positron"
-       else !positron
-          Eab=0.25
-          Eab2=0.2620050702329801
-       end if
-
-       p=1.0
-
-       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
-          Eab=CONTROL_instance%DUMMY_REAL_A
-          Eab2=CONTROL_instance%DUMMY_REAL_B
-          p=CONTROL_instance%DUMMY_REAL_C
-       end if
-
-       q0=a0/2/Eab
-       q2=a0*(-5/Eab+53/Eab2/8)
-       q4=a0*(9/Eab/2-45/Eab2/8)
-    end if
-
     
     
     time1=omp_get_wtime()
-    !$omp parallel private(beta, dbetaE, dbetaN, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta)
+    !$omp parallel private(beta, dbetaE, dbetaP, d2BdE2, d2BdP2, d2BdEP, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta)
     !$omp do schedule (dynamic)
     do i = 1, npoints
-       if( rhoE(i) .gt. 1E-10 .and. rhoN(i) .gt. 1E-10 ) then !
-          if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3rhoEN6") then
-             beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)+qen*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
-             dbetaE=1.0/3.0*qe*rhoE(i)**(-2.0/3.0)+(1.0/6.0)*qen*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
-             dbetaN=1.0/3.0*qn*rhoN(i)**(-2.0/3.0)+(1.0/6.0)*qen*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
-          else if(CONTROL_instance%BETA_FUNCTION .eq. "newBeta") then
-             beta=(qe*rhoE(i)&
-                  +qn*rhoN(i)&
-                  +q2en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))&
-                  +q3en*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**2&
-                  )**(1.0/3.0)
-             
-             dbetaE=(qe&
-                  -q2en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))**2&
-                  +2.0*q2en*(rhoE(i)-rhoN(i))/(rhoE(i)+rhoN(i))&
-                  -2.0*q3en*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**3&
-                  +3.0*q3en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))**2&
-                  )/(3.0*beta**2)
-             
-             dbetaN=(qn&
-                  -q2en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))**2&
-                  -2.0*q2en*(rhoE(i)-rhoN(i))/(rhoE(i)+rhoN(i))&
-                  -2.0*q3en*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**3&
-                  -3.0*q3en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))**2&
-                  )/(3.0*beta**2)
-          else if(CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") then
-             beta=(q0*(rhoE(i)+rhoN(i))&
-                  +q2*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))&
-                  +q4*(rhoE(i)-rhoN(i))**4/(rhoE(i)+rhoN(i))**3&
-                  )**(1.0/3.0)
-             
-             dbetaE=(q0&
-                  -q2*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))**2&
-                  +2.0*q2*(rhoE(i)-rhoN(i))/(rhoE(i)+rhoN(i))&
-                  -3.0*q4*(rhoE(i)-rhoN(i))**4/(rhoE(i)+rhoN(i))**4&
-                  +4.0*q4*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**3&
-                  )/(3.0*beta**2)
-             
-             dbetaN=(q0&
-                  -q2*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))**2&
-                  -2.0*q2*(rhoE(i)-rhoN(i))/(rhoE(i)+rhoN(i))&
-                  -3.0*q4*(rhoE(i)-rhoN(i))**4/(rhoE(i)+rhoN(i))**4&
-                  -4.0*q4*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**3&
-                  )/(3.0*beta**2)
-          else
-             beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)
-             dbetaE=1.0/3.0*qe*rhoE(i)**(-2.0/3.0)
-             dbetaN=1.0/3.0*qn*rhoN(i)**(-2.0/3.0)
-          end if
-       else if( rhoE(i) .gt. 1E-10 ) then !
-          ! beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)+qen*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
-          if(CONTROL_instance%BETA_FUNCTION .eq. "newBeta") then
-             beta=((qe+q2en+q3en)*rhoE(i))**(1.0/3.0)
-             dbetaE=1.0/3.0*(qe+q2en+q3en)**(1.0/3.0)*rhoE(i)**(-2.0/3.0)
-             dbetaN=0.0
-          else if(CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") then
-             beta=((q0+q2+q4)*rhoE(i))**(1.0/3.0)
-             dbetaE=1.0/3.0*(q0+q2+q4)**(1.0/3.0)*rhoE(i)**(-2.0/3.0)
-             dbetaN=0.0
-          else
-             beta=qe*rhoE(i)**(1.0/3.0)
-             dbetaE=1.0/3.0*qe*rhoE(i)**(-2.0/3.0)
-             dbetaN=0.0
-          end if
-       else if( rhoN(i) .gt. 1E-10 ) then !
-          ! beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)+qen*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
-          if(CONTROL_instance%BETA_FUNCTION .eq. "newBeta") then
-             beta=((qn+q2en+q3en)*rhoN(i))**(1.0/3.0)
-             dbetaE=0.0
-             dbetaN=1.0/3.0*(qn+q2en+q3en)**(1.0/3.0)*rhoN(i)**(-2.0/3.0)
-          else if(CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") then
-             beta=((q0+q2+q4)*rhoN(i))**(1.0/3.0)
-             dbetaE=0.0
-             dbetaN=1.0/3.0*(q0+q2+q4)**(1.0/3.0)*rhoN(i)**(-2.0/3.0)
-          else
-             beta=qn*rhoN(i)**(1.0/3.0)
-             dbetaE=0.0
-             dbetaN=1.0/3.0*qn*rhoN(i)**(-2.0/3.0)
-          end if
 
-       else
-          beta=0.0
-          dbetaE=0.0
-          dbetaN=0.0
-       end if
-       
+       call Functional_getBeta( rhoE(i), rhoP(i), mass, a0, beta, dbetaE, dbetaP, d2BdE2, d2BdP2, d2BdEP)
 
-       if( rhoE(i) .gt. 1E-10 .and. rhoN(i) .gt. 1E-10 ) then !
+       if( rhoE(i) .gt. densityThreshold .and. rhoP(i) .gt. densityThreshold ) then !
           !!!Energy
           aPoly=a0+a1*beta+a2*beta**2+a3*beta**3+a4*beta**4
           bPoly=b0*beta**3+b1*beta**4+b2*beta**5+b3*beta**6+b4*beta**7
@@ -1321,25 +1187,25 @@ contains
 
          !!!Potential
           daPolydbeta=a1+2*a2*beta+3*a3*beta**2+4*a4*beta**3
-          dbPolydbeta=3*b0*beta**2+4*b1*beta**3+5*b2*beta**4+6*b3*beta**5+7*b4*beta**6
+          dbPolydbeta=3.0*b0*beta**2+4.0*b1*beta**3+5.0*b2*beta**4+6.0*b3*beta**5+7.0*b4*beta**6
           dFdbeta=(daPolydbeta*bPoly-aPoly*dbPolydbeta)/bPoly**2
-          
-       else if( rhoE(i) .gt. 1E-10 ) then !
+
+       else if( rhoE(i) .gt. densityThreshold .or. rhoP(i) .gt. densityThreshold) then !
           F=a0/b0*beta**(-3)
           dFdbeta=-3*a0/b0*beta**(-4)
-       else if( rhoN(i) .gt. 1E-10 ) then !
-          F=a0/b0*beta**(-3)
-          dFdbeta=-3*a0/b0*beta**(-4)
+
        else
           F=0.0
           dFdbeta=0.0
+          
        end if
+       
        ! ec(i)= -p*rhoE(i)*rhoN(i)*F
-       ec(i)= -p*rhoN(i)*F
-       vcE(i)=-p*rhoN(i)*(F+rhoE(i)*dbetaE*dFdbeta)
-       vcN(i)=-p*rhoE(i)*(F+rhoN(i)*dbetaN*dFdbeta)
+       ec(i)= -p*rhoP(i)*F
+       vcE(i)=-p*rhoP(i)*(F+rhoE(i)*dbetaE*dFdbeta)
+       vcP(i)=-p*rhoE(i)*(F+rhoP(i)*dbetaP*dFdbeta)
 
-       ! write(*,"(I0.1,7F20.10)") i, rhoE(i), rhoN(i), beta, F, ec(i)*rhoE(i), vcE(i), vcN(i) 
+       ! write(*,"(I0.1,9F20.10)") i, rhoE(i), rhoP(i), beta, dbetaE, dbetaP, F, ec(i)*rhoE(i), vcE(i), vcP(i) 
        ! write(*,"(I0.1,5F16.6)") i, rhoE(i)/rhoN(i), rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)/rhoN(i)**(1.0/3.0), beta/rhoN(i)**(1.0/3.0), F*beta**3.0, ec(i)/rhoN(i)
        ! write(*,"(I0.1,6E20.10)") i, beta, dFdbeta, dbetaE, dbetaN, vcE(i), vcN(i)
        ! write(*,"(I0.1,5F16.6)") i, aPoly, bPoly, daPolydbeta, dbPolydbeta, dFdbeta
@@ -1349,86 +1215,6 @@ contains
 
     time2=omp_get_wtime()
     ! write(*,"(A,F10.3,A4)") "**expCSEvaluate:", time2-time1 ," (s)"
-
-
-        ! if( rhoE(i) .gt. 1E-10 .and. rhoN(i) .gt. 1E-10 ) then !
-    ! qen=1.6611702899694878
-    ! qe=0.39931914867244567
-    ! qn=0.39931914867244567
-    ! p=0.75
-          ! deltaQ=(rhoN(i)-rhoE(i))/(rhoN(i)+rhoE(i))
-          ! if( deltaQ .gt. 0.0 ) then
-          !    beta=qen*(rhoN(i)+rhoE(i))**(1.0/3.0)+qn*deltaQ*rhoN(i)**(1.0/3.0)
-
-          !    dbetaE=-qn*rhoN(i)**(1.0/3.0)*deltaQ/(rhoN(i)+rhoE(i)) &
-          !         -qn*rhoN(i)**(1.0/3.0)/(rhoN(i)+rhoE(i)) &
-          !         +qen/(3*(rhoN(i)+rhoE(i))**(2.0/3.0))
-
-          !    dbetaN=-qn*rhoN(i)**(1.0/3.0)*deltaQ/(rhoN(i)+rhoE(i)) &
-          !         +qn*rhoN(i)**(1.0/3.0)/(rhoN(i)+rhoE(i)) &
-          !         +qn*deltaQ/(3*rhoN(i)**(2.0/3.0))&
-          !         +qen/(3*(rhoN(i)+rhoE(i))**(2.0/3.0))
-
-          ! else
-          !    beta=qen*(rhoN(i)+rhoE(i))**(1.0/3.0)-qe*deltaQ*rhoE(i)**(1.0/3.0)
-
-          !    dbetaE=qe*rhoE(i)**(1.0/3.0)*deltaQ/(rhoN(i)+rhoE(i)) &
-          !         +qe*rhoE(i)**(1.0/3.0)/(rhoN(i)+rhoE(i)) &
-          !         -qe*deltaQ/(3*rhoE(i)**(2.0/3.0))&
-          !         +qen/(3*(rhoN(i)+rhoE(i))**(2.0/3.0))
-
-          !    dbetaN=qe*rhoE(i)**(1.0/3.0)*deltaQ/(rhoN(i)+rhoE(i)) &
-          !         -qe*rhoE(i)**(1.0/3.0)/(rhoN(i)+rhoE(i)) &
-          !         +qen/(3*(rhoN(i)+rhoE(i))**(2.0/3.0))
-
-          ! end if
-       !    beta=qen*(rhoN(i)+rhoE(i))**(1.0/3.0)+qn*deltaQ*rhoN(i)**(1.0/3.0)-qe*deltaQ*rhoE(i)**(1.0/3.0)
-          
-       !    dbetaE=qe*rhoE(i)**(1.0/3.0)*deltaQ/(rhoN(i)+rhoE(i)) &
-       !         -qn*rhoN(i)**(1.0/3.0)*deltaQ/(rhoN(i)+rhoE(i)) &
-       !         +qe*rhoE(i)**(1.0/3.0)/(rhoN(i)+rhoE(i)) &
-       !         -qn*rhoN(i)**(1.0/3.0)/(rhoN(i)+rhoE(i)) &
-       !         -qe*deltaQ/(3*rhoE(i)**(2.0/3.0))&
-       !         +qen/(3*(rhoN(i)+rhoE(i))**(2.0/3.0))
-
-       !    dbetaN=qe*rhoE(i)**(1.0/3.0)*deltaQ/(rhoN(i)+rhoE(i)) &
-       !         -qn*rhoN(i)**(1.0/3.0)*deltaQ/(rhoN(i)+rhoE(i)) &
-       !         -qe*rhoE(i)**(1.0/3.0)/(rhoN(i)+rhoE(i)) &
-       !         +qn*rhoN(i)**(1.0/3.0)/(rhoN(i)+rhoE(i)) &
-       !         +qn*deltaQ/(3*rhoN(i)**(2.0/3.0))&
-       !         +qen/(3*(rhoN(i)+rhoE(i))**(2.0/3.0))
-       ! else if( rhoE(i) .gt. 1E-10 ) then !
-       !    beta=(qen+qe)*rhoE(i)**(1.0/3.0)
-       !    dbetaE=1.0/3.0*(qen+qe)*rhoE(i)**(-2.0/3.0)
-       !    dbetaN=0.0
-       ! else if( rhoN(i) .gt. 1E-10 ) then !
-       !    ! beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)+qen*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
-       !    beta=(qen+qn)*rhoN(i)**(1.0/3.0)
-       !    dbetaE=0.0
-       !    dbetaN=1.0/3.0*(qen+qn)*rhoN(i)**(-2.0/3.0)
-       ! else
-       !    beta=0.0
-       !    dbetaE=0.0
-       !    dbetaN=0.0
-       ! end if
-       ! if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3") then
-       !    beta=qe*rhoE(i)**(1.0/3.0)
-       !    dbetaE=(1.0/3.0)*qe*rhoE(i)**(-2.0/3.0)
-       !    dbetaN=0.0
-       ! else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE6rhoN6") then
-       !    beta=(qe+qn)*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
-       !    dbetaE=(1.0/6.0)*(qe+qn)*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
-       !    dbetaN=(1.0/6.0)*(qe+qn)*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
-       ! else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3As") then
-       ! else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3rhoEN6") then
-       !    beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)+qen*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
-       !    dbetaE=1.0/3.0*qe*rhoE(i)**(-2.0/3.0)+(1.0/6.0)*qen*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
-       !    dbetaN=1.0/3.0*qn*rhoN(i)**(-2.0/3.0)+(1.0/6.0)*qen*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
-       ! else
-       !    beta=qe*rhoE(i)**(1.0/3.0)+qn*rhoN(i)**(1.0/3.0)
-       !    dbetaE=1.0/3.0*qe*rhoE(i)**(-2.0/3.0)
-       !    dbetaN=1.0/3.0*qn*rhoN(i)**(-2.0/3.0)
-       ! end if
 
 
   end subroutine Functional_expCSEvaluate
@@ -1759,14 +1545,14 @@ contains
           cutOff=CONTROL_instance%BETA_PARAMETER_B
        else
           if( positiveMass .gt. 2.0) then
-             Eab=0.5
+             Eab=-0.5
           else
-             Eab=0.25
+             Eab=-0.25
           end if
-          cutOff=1.0E-6
+          cutOff=0.1
        end if
 
-       q0=functionalLimitConstant/2/Eab
+       q0=-functionalLimitConstant/2/Eab
        ! print *, q0
        
        if( rhoTot .gt. densityThreshold) then !
@@ -1796,11 +1582,13 @@ contains
                +rhoTot**2*cutOff*(-1.0+tanh(rhoDif/rhoTot/cutOff)))/&
                (3.0*beta**2*rhoTot**2*cutOff)
 
-          d2BdE2=-4.0*q0**2*(1.0+rhoDif/Sqrt(rhoDif**2))/&
-               (9.0*beta**5)     
+          d2BdE2=0.0
+          ! -4.0*q0**2*(1.0+rhoDif/Sqrt(rhoDif**2))/&
+          !      (9.0*beta**5)     
           
-          d2BdP2=-4.0*q0**2*(1.0-rhoDif/Sqrt(rhoDif**2))/&
-               (9.0*beta**5)     
+          d2BdP2=0.0
+          ! -4.0*q0**2*(1.0-rhoDif/Sqrt(rhoDif**2))/&
+          !      (9.0*beta**5)     
 
           ! beta=(q0*rhoTot*(1.0+Sqrt(rhoDif**2)/rhoTot))**(1.0/3.0)
 
@@ -1850,10 +1638,122 @@ contains
 
        ! print *, rhoE, rhoP, Sqrt(rhoDif**2), beta, dBdE, dBdP
        
+    case("PsBetaMax")
+       if(CONTROL_instance%BETA_PARAMETER_A .ne. 0.0 ) then
+          Eab=CONTROL_instance%BETA_PARAMETER_A
+       else
+          if( positiveMass .gt. 2.0) then
+             Eab=-0.5
+          else
+             Eab=-0.25
+          end if
+       end if
+
+       q0=(-functionalLimitConstant/Eab)**(1.0/3.0)
+       ! print *, q0
+
+       if( rhoTot .gt. densityThreshold) then !
+
+          if( abs(rhoDif) .lt. densityThreshold) then !could be .lt. cutoff
+
+             beta=q0*(rhoTot/2.0)**(1.0/3.0)
+             dBdE=q0**3/6.0/beta**2
+             dBdP=q0**3/6.0/beta**2
+             d2BdE2=-q0**6/18.0/beta**5
+             d2BdP2=-q0**6/18.0/beta**5
+             d2BdEP=-q0**6/18.0/beta**5
+
+          elseif (rhoE .gt. rhoP) then
+
+             beta=q0*rhoE**(1.0/3.0)
+             dBdE=q0**3/3.0/beta**2
+             dBdP=0.0
+             d2BdE2=-2.0*q0**6/9.0/beta**5
+             d2BdP2=0.0
+             d2BdEP=0.0
+
+          elseif (rhoP .gt. rhoE) then
+
+             beta=q0*rhoP**(1.0/3.0)
+             dBdE=0.0
+             dBdP=q0**3/3.0/beta**2
+             d2BdE2=0.0
+             d2BdP2=-2.0*q0**6/9.0/beta**5
+             d2BdEP=0.0
+          end if
+
+       else
+          beta=0.0
+          dBdE=0.0
+          dBdP=0.0
+          d2BdE2=0.0
+          d2BdP2=0.0
+          d2BdEP=0.0
+       end if
+
+       ! print *, rhoE, rhoP, beta
     case default
 
     end select
 
+    ! if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
+    !    qe=CONTROL_instance%DUMMY_REAL_A
+    !    qn=CONTROL_instance%DUMMY_REAL_B
+    !    if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3rhoEN6") then
+    !       qen=CONTROL_instance%DUMMY_REAL_C
+    !       p=1
+    !    else
+    !       p=CONTROL_instance%DUMMY_REAL_C
+    !    end if
+    ! else
+    !    qe=1.1487573585337585
+    !    qn=1.1487573585337585
+    !    p=1.0
+    ! end if
+
+    ! if(CONTROL_instance%BETA_FUNCTION .eq. "newBeta") then
+
+    !    if(mass .gt. 2.0) then !hydrogen
+    !       Ea2b=0.527444
+    !       Eab2=0.597139 
+    !    else !positron
+    !       Ea2b=0.262005
+    !       Eab2=0.262005
+    !    end if
+    !    p=1.0
+       
+    !    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
+    !       Ea2b=CONTROL_instance%DUMMY_REAL_A
+    !       Eab2=CONTROL_instance%DUMMY_REAL_B
+    !       p=CONTROL_instance%DUMMY_REAL_C
+    !    end if
+
+    !    qe=a0*(11.0/8.0/Ea2b-3.0/4.0/Eab2)
+    !    qn=a0*(11.0/8.0/Eab2-3.0/4.0/Ea2b)
+    !    q2en=a0*3.0/16.0*(1.0/Ea2b+1.0/Eab2)
+    !    q3en=a0*9.0/16.0*(1.0/Eab2-1.0/Ea2b)
+       
+    ! else if(CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") then
+
+    !    if(this%mass2 .gt. 2.0) then !hydrogen
+    !       STOP "this beta function only works for electron-positron"
+    !    else !positron
+    !       Eab=0.25
+    !       Eab2=0.2620050702329801
+    !    end if
+
+    !    p=1.0
+
+    !    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
+    !       Eab=CONTROL_instance%DUMMY_REAL_A
+    !       Eab2=CONTROL_instance%DUMMY_REAL_B
+    !       p=CONTROL_instance%DUMMY_REAL_C
+    !    end if
+
+    !    q0=a0/2/Eab
+    !    q2=a0*(-5/Eab+53/Eab2/8)
+    !    q4=a0*(9/Eab/2-45/Eab2/8)
+    ! end if
 
   end subroutine Functional_getBeta
   

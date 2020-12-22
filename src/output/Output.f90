@@ -42,7 +42,6 @@ program Output_
 
   character(50) :: job
   integer :: numberOfOutputs, i
-  type(OutputBuilder), allocatable :: outputs(:)
   
   job = ""
   call get_command_argument(1,value=job)  
@@ -56,13 +55,13 @@ program Output_
 
   if(job.eq."FCHK") then
      
-     allocate(outputs(1) )
+     allocate(outputs_instance(1) )
 
-     call OutputBuilder_constructor( outputs(1), 1, &
+     call OutputBuilder_constructor( outputs_instance(1), 1, &
           "fchkFile", "ALL")
      
-     call OutputBuilder_buildOutput(outputs(1))
-     call OutputBuilder_show(outputs(1))
+     call OutputBuilder_buildOutput(outputs_instance(1))
+     call OutputBuilder_show(outputs_instance(1))
      
   else
      read(job,"(I10)") numberOfOutputs
@@ -70,10 +69,10 @@ program Output_
        call InputOutput_constructor( numberOfOutputs )
        call InputOutput_load( )
 
-       allocate(outputs(numberOfOutputs) )
+       allocate(outputs_instance(numberOfOutputs) )
   
        do i=1, numberOfOutputs
-          call OutputBuilder_constructor( outputs(i), i, &
+          call OutputBuilder_constructor( outputs_instance(i), i, &
                InputOutput_Instance(i)%type, &
                InputOutput_Instance(i)%species, & 
                InputOutput_Instance(i)%state, &
@@ -84,8 +83,8 @@ program Output_
                InputOutput_Instance(i)%point2, &
                InputOutput_Instance(i)%point3  )
 
-          call OutputBuilder_buildOutput(outputs(i))
-          call OutputBuilder_show(outputs(i))
+          call OutputBuilder_buildOutput(outputs_instance(i))
+          call OutputBuilder_show(outputs_instance(i))
 
        end do
 

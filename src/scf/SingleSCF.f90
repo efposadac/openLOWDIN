@@ -227,7 +227,6 @@ contains
 
        call Matrix_copyConstructor( fockMatrixTransformed, WaveFunction_instance( speciesID )%fockMatrix )
 
-       
        !!**********************************************************************************************
        !! Level Shifting Convergence Method       
        !!
@@ -239,24 +238,11 @@ contains
              levelShiftingFactor=CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
           end if
 
-          if ( WaveFunction_instance(speciesID)%numberOfIterations .gt. 1 ) then
-             !! Obtiene el valor de energia de la ultima iteracion
-             call List_end( WaveFunction_instance(speciesID)%energySCF )
-             deltaEnergy= List_current( WaveFunction_instance(speciesID)%energySCF )
-             
-             !! Obtiene el valor  de energia anterior a la ultima iteracion
-             call List_iterate( WaveFunction_instance(speciesID)%energySCF, -1)
-             
-             !! Obtiene el cambio de energia en las ultimas dos iteraciones
-             deltaEnergy = abs(deltaEnergy - List_current( WaveFunction_instance(speciesID)%energySCF ))
-             
-          end if
-          
           fockMatrixTransformed%values = &
                matmul( matmul( transpose( WaveFunction_instance( speciesID )%waveFunctionCoefficients%values ) , &
                fockMatrixTransformed%values), WaveFunction_instance( speciesID )%waveFunctionCoefficients%values )
 
-          totales = Matrix_getNumberOfRows(fockMatrixTransformed)
+          totales = numberOfContractions !Matrix_getNumberOfRows(fockMatrixTransformed)
           ocupados = MolecularSystem_getOcupationNumber( speciesID )
 
           do i= ocupados + 1, totales

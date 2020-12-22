@@ -189,7 +189,8 @@ program SCF
      !! Build Guess and first density matrix
      !!
 
-     WaveFunction_instance(speciesID)%densityMatrix=DensityMatrixSCFGuess_getGuess( speciesID )
+     call DensityMatrixSCFGuess_getGuess( speciesID, WaveFunction_instance(speciesID)%densityMatrix, WaveFunction_instance(speciesID)%waveFunctionCoefficients )
+
      write(*,"(A,A,A,F7.3)") "number of ", trim(MolecularSystem_getNameOfSpecie( speciesID )) ," particles in guess density matrix: ",  &
          sum( transpose(wavefunction_instance(speciesID)%densityMatrix%values)*WaveFunction_instance(speciesID)%overlapMatrix%values)
 
@@ -241,7 +242,7 @@ program SCF
      write(*,*) ""
      write(*,*) "-------------------------------------------------------------------------"
      if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-        write(*,"(A20,A12,A20,A20,A20)") "Iteration", "Energy","Energy Change","Density Change","ParticulesInGrid" 
+        write(*,"(A20,A12,A20,A20,A20)") "Iteration", "Energy","Energy Change","Density Change","ParticlesInGrid" 
      else
         write(*,"(A20,A12,A20,A20)") "Iteration", "Energy","Energy Change","Density Change"
      end if
@@ -442,7 +443,7 @@ program SCF
      write(*,*) "=============================="
      write(*,*) ""
      do speciesID=1, numberOfSpecies
-        if(MolecularSystem_getMass( speciesID ) .lt. 10.0) then !We assume that heavy particle orbitals are naturally localized
+        if(MolecularSystem_getMass( speciesID ) .lt. 10.0 .and. MolecularSystem_getOcupationNumber( speciesID ) .gt. 1) then !We assume that heavy particle orbitals are naturally localized
            call OrbitalLocalizer_erkaleLocal(speciesID,&
                 WaveFunction_instance( speciesID )%densityMatrix,&
                 WaveFunction_instance( speciesID )%fockMatrix, &

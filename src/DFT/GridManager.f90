@@ -615,16 +615,17 @@ contains
           !$omp do schedule (dynamic)
           do i=1, gridSize
 
-             !libxc works with the gradient squared - sigma
-             sigma%values(i)=(Grid_instance(speciesID)%densityGradient(1)%values(i)**2&
-                  +Grid_instance(speciesID)%densityGradient(2)%values(i)**2&
-                  +Grid_instance(speciesID)%densityGradient(3)%values(i)**2)
+             if(Grid_instance(speciesID)%density%values(i) .gt. CONTROL_instance%ELECTRON_DENSITY_THRESHOLD) then !
+                !libxc works with the gradient squared - sigma
+                sigma%values(i)=(Grid_instance(speciesID)%densityGradient(1)%values(i)**2&
+                     +Grid_instance(speciesID)%densityGradient(2)%values(i)**2&
+                     +Grid_instance(speciesID)%densityGradient(3)%values(i)**2)
 
-             !evaluates energy density, potential and sigma potential
-             call Functional_libxcEvaluate(Functionals(index), 1, Grid_instance(speciesID)%density%values(i), &
-                  sigma%values(i), energyDensity%values(i) , &
-                  Grid_instance(speciesID)%potential%values(i), sigmaPotential%values(i) )
-
+                !evaluates energy density, potential and sigma potential
+                call Functional_libxcEvaluate(Functionals(index), 1, Grid_instance(speciesID)%density%values(i), &
+                     sigma%values(i), energyDensity%values(i) , &
+                     Grid_instance(speciesID)%potential%values(i), sigmaPotential%values(i) )
+             end if
             
           end do
           !$omp end do 
@@ -660,31 +661,35 @@ contains
           !$omp parallel private(i)
           !$omp do schedule (dynamic)
           do i=1, gridSize
-             !libxc expects a single array of alpha and beta densities 
-             densityAB%values(2*i-1)=Grid_instance(speciesID)%density%values(i)
 
-             densityAB%values(2*i)=Grid_instance(otherSpeciesID)%density%values(i)
+             if(Grid_instance(speciesID)%density%values(i)+Grid_instance(otherSpeciesID)%density%values(i) .gt. CONTROL_instance%ELECTRON_DENSITY_THRESHOLD) then
+                !libxc expects a single array of alpha and beta densities 
+                densityAB%values(2*i-1)=Grid_instance(speciesID)%density%values(i)
 
-             !libxc works with the gradient squared - sigma
-             sigmaAB%values(3*i-2)=(Grid_instance(speciesID)%densityGradient(1)%values(i)**2 + Grid_instance(speciesID)%densityGradient(2)%values(i)**2 + &
-                  Grid_instance(speciesID)%densityGradient(3)%values(i)**2)
+                densityAB%values(2*i)=Grid_instance(otherSpeciesID)%density%values(i)
 
-             sigmaAB%values(3*i-1)=Grid_instance(speciesID)%densityGradient(1)%values(i)*Grid_instance(otherSpeciesID)%densityGradient(1)%values(i)+&
-                  Grid_instance(speciesID)%densityGradient(2)%values(i)*Grid_instance(otherSpeciesID)%densityGradient(2)%values(i)+&
-                  Grid_instance(speciesID)%densityGradient(3)%values(i)*Grid_instance(otherSpeciesID)%densityGradient(3)%values(i)
+                !libxc works with the gradient squared - sigma
+                sigmaAB%values(3*i-2)=(Grid_instance(speciesID)%densityGradient(1)%values(i)**2 + Grid_instance(speciesID)%densityGradient(2)%values(i)**2 + &
+                     Grid_instance(speciesID)%densityGradient(3)%values(i)**2)
 
-             sigmaAB%values(3*i)=(Grid_instance(otherSpeciesID)%densityGradient(1)%values(i)**2 + Grid_instance(otherSpeciesID)%densityGradient(2)%values(i)**2 + &
-                  Grid_instance(otherSpeciesID)%densityGradient(3)%values(i)**2)
+                sigmaAB%values(3*i-1)=Grid_instance(speciesID)%densityGradient(1)%values(i)*Grid_instance(otherSpeciesID)%densityGradient(1)%values(i)+&
+                     Grid_instance(speciesID)%densityGradient(2)%values(i)*Grid_instance(otherSpeciesID)%densityGradient(2)%values(i)+&
+                     Grid_instance(speciesID)%densityGradient(3)%values(i)*Grid_instance(otherSpeciesID)%densityGradient(3)%values(i)
 
-             !evaluates energy density, potential and sigma potential
-             call Functional_libxcEvaluate(Functionals(index), 1, densityAB%values(2*i-1:2*i), sigmaAB%values(3*i-2:3*i), &
-                  energyDensity%values(i) , potentialAB%values(2*i-1:2*i), sigmaPotentialAB%values(3*i-2:3*i) )
+                sigmaAB%values(3*i)=(Grid_instance(otherSpeciesID)%densityGradient(1)%values(i)**2 + Grid_instance(otherSpeciesID)%densityGradient(2)%values(i)**2 + &
+                     Grid_instance(otherSpeciesID)%densityGradient(3)%values(i)**2)
 
-             !potential assignment
-             Grid_instance(speciesID)%potential%values(i)=Grid_instance(speciesID)%potential%values(i)+potentialAB%values(2*i-1)
 
-             Grid_instance(otherSpeciesID)%potential%values(i)=Grid_instance(otherSpeciesID)%potential%values(i)+potentialAB%values(2*i)
+                !evaluates energy density, potential and sigma potential
+                call Functional_libxcEvaluate(Functionals(index), 1, densityAB%values(2*i-1:2*i), sigmaAB%values(3*i-2:3*i), &
+                     energyDensity%values(i) , potentialAB%values(2*i-1:2*i), sigmaPotentialAB%values(3*i-2:3*i) )
 
+                !potential assignment
+                Grid_instance(speciesID)%potential%values(i)=Grid_instance(speciesID)%potential%values(i)+potentialAB%values(2*i-1)
+
+                Grid_instance(otherSpeciesID)%potential%values(i)=Grid_instance(otherSpeciesID)%potential%values(i)+potentialAB%values(2*i)
+
+             end if
           end do
           !$omp end do 
           !$omp end parallel
@@ -705,10 +710,14 @@ contains
                      +Grid_instance(otherSpeciesID)%densityGradient(dir)%values(i)*sigmaPotentialAB%values(3*i-1)
                 
                 Grid_instance(otherSpeciesID)%gradientPotential(dir)%values(i)=Grid_instance(otherSpeciesID)%gradientPotential(dir)%values(i)&
-                     +2.0*sigmaPotentialAB%values(3*i-2)*Grid_instance(otherSpeciesID)%densityGradient(dir)%values(i)&
+                     +2.0*sigmaPotentialAB%values(3*i)*Grid_instance(otherSpeciesID)%densityGradient(dir)%values(i)&
                      +Grid_instance(speciesID)%densityGradient(dir)%values(i)*sigmaPotentialAB%values(3*i-1)
 
              end do
+
+             ! print *, i, densityAB%values(2*i-1), densityAB%values(2*i), energyDensity%values(i), potentialAB%values(2*i-1), potentialAB%values(2*i)
+             ! print *, sigmaAB%values(3*i-2), sigmaAB%values(3*i-1), sigmaAB%values(3*i), sigmaPotentialAB%values(3*i-2), sigmaPotentialAB%values(3*i-1), sigmaPotentialAB%values(3*i)
+             
           end do
           
           ! print *, "density", densityAB%values(1), densityAB%values(2*gridSize)
@@ -806,7 +815,7 @@ contains
 
        !!This adds E-BETA density and gradient
        call GridManager_getElectronicDensityInOtherGrid(speciesID, otherSpeciesID, &
-            int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values), GridsCommonPoints(speciesID,otherSpeciesID)%totalSize, &
+            GridsCommonPoints(speciesID,otherSpeciesID)%totalSize, int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values), &
             electronicDensityAtOtherGrid, electronicGradientAtOtherGrid)
 
 !!!These routines return the electronic energy density
@@ -1051,10 +1060,10 @@ contains
 
 
 
-  subroutine GridManager_getElectronicDensityInOtherGrid(electronicID,otherSpeciesID, commonPoints, commonSize, electronicDensityAtOtherGrid, electronicGradientAtOtherGrid )
+  subroutine GridManager_getElectronicDensityInOtherGrid(electronicID,otherSpeciesID, commonGridSize, commonPoints, electronicDensityAtOtherGrid, electronicGradientAtOtherGrid )
     integer :: electronicID, otherSpeciesID
-    integer :: commonPoints(commonSize,2)
-    integer :: commonSize
+    integer :: commonGridSize
+    integer :: commonPoints(commonGridSize,2)
     type(Vector) :: electronicDensityAtOtherGrid
     type(Vector) :: electronicGradientAtOtherGrid(3)
     
@@ -1075,7 +1084,7 @@ contains
     call Vector_constructor(electronicDensityAtOtherGrid, otherGridSize, 1.0E-12_8)
     
     time1=omp_get_wtime()
-    do k=1, commonSize
+    do k=1, commonGridSize
        !here we are assuming that the electron came in the first position
        i=commonPoints(k,1)
        j=commonPoints(k,2)
@@ -1157,11 +1166,12 @@ contains
     
     integer :: gridSize
     integer :: point
-    real(8) :: a0,a0n,a1n,a2n,a3n,a4n,a0d,a1d,a2d,p,q0,q2,q4,Eab,Eab2
-    real(8) :: beta, rhoE,rhoP, rhoTot, rhoDif, npos, densityThreshold
+    real(8) :: kf,a0n,a1n,a2n,a3n,a4n,a0d,a1d,a2d,p,q0,q2,q4,Eab,Eab2
+    real(8) :: rhoE,rhoP, rhoTot, rhoDif, npos, densityThreshold
+    real(8) :: beta, dBdE, dBdP, d2BdE2, d2BdP2, d2BdEP
 
     integer :: n, nproc
-    real(8) :: contactDensity
+    real(8) :: contactDensity, overlapDensity
     
     type(Vector) :: electronicDensityAtOtherGrid, electronicGradientAtOtherGrid(3), gfactor
 
@@ -1174,13 +1184,14 @@ contains
 
     !electrons go on the first position
     call GridManager_getElectronicDensityInOtherGrid(speciesID, otherSpeciesID, &
-         int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values), GridsCommonPoints(speciesID,otherSpeciesID)%totalSize, electronicDensityAtOtherGrid, electronicGradientAtOtherGrid )
+         GridsCommonPoints(speciesID,otherSpeciesID)%totalSize, int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values), electronicDensityAtOtherGrid, electronicGradientAtOtherGrid )
 
     call Vector_constructor(gfactor, gridSize, 0.0_8)
     
     nproc=omp_get_max_threads()
 
     contactDensity=0.0
+    overlapDensity=0.0
     ! do n=1, nproc
     !    call Matrix_Constructor( nodeExchangeCorrelationMatrix(n), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
     ! end do
@@ -1191,17 +1202,10 @@ contains
        if(present(otherElectronID) )     print *, "Including contact density between ", trim(MolecularSystem_getNameOfSpecie(otherElectronID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
 
        print *, "As the integral of rhoA*rhoB(1+g[beta])"
-       if(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA" .and. CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") then
+       if(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-A" .or. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA" ) then
           print *, "With g[beta] from the expCS-A functional"
-          a0=2.2919886876120283056
-          Eab=0.25
-          Eab2=0.2620050702329801
+          kf=2.2919886876120283056
        end if
-       p=1.0
-       
-       q0=a0/2/Eab
-       q2=a0*(-5/Eab+53/Eab2/8)
-       q4=a0*(9/Eab/2-45/Eab2/8)
 
        a0n=0.3647813291441602
        a1n=0.04801434878972582
@@ -1220,20 +1224,8 @@ contains
        do point = 1 , gridSize
           rhoE=electronicDensityAtOtherGrid%values(point)
           rhoP=Grid_instance(otherSpeciesID)%density%values(point)
-          rhoTot=rhoE+rhoP
-          rhoDif=rhoE-rhoP
-          if( rhoTot .gt. densityThreshold ) then !
-             beta=(q0*rhoTot&
-                  +q2*rhoDif**2/rhoTot&
-                  +q4*rhoDif**4/rhoTot**3&
-                  )**(1.0/3.0)
-          else if( rhoE .gt. densityThreshold ) then !
-             beta=((q0+q2+q4)*rhoE)**(1.0/3.0)
-          else if( rhoP .gt. densityThreshold ) then !
-             beta=((q0+q2+q4)*rhoP)**(1.0/3.0)
-          else
-             beta=0.0
-          end if
+
+          call Functional_getBeta( rhoE, rhoP, MolecularSystem_getMass(otherSpeciesID), kf, beta, dBdE, dBdP, d2BdE2, d2BdP2, d2BdEP)
 
           if( rhoE .gt. densityThreshold .and. rhoP .gt. densityThreshold ) then !
              gfactor%values(point)=(a0n+a1n*beta+a2n*beta**2+a3n*beta**3+a4n*beta**4)/(a0d*beta**3+a1d*beta**4+a2d*beta**5)
@@ -1242,7 +1234,7 @@ contains
           else
              gfactor%values(point)=0.0
           end if
-          ! print *, gfactor%values(point)
+          ! print *, point, rhoE, rhoP, beta, gfactor%values(point)
        end do
        !$omp end do 
        !$omp end parallel
@@ -1252,14 +1244,21 @@ contains
     end if
 
     do point = 1 , gridSize
-           contactDensity=contactDensity+&
+
+       overlapDensity=overlapDensity+&
             electronicDensityAtOtherGrid%values(point)*&
             Grid_instance(otherSpeciesID)%density%values(point)*&
-            (1+gfactor%values(point))*&
+            Grid_instance(otherSpeciesID)%points%values(point,4)
+
+       contactDensity=contactDensity+&
+            electronicDensityAtOtherGrid%values(point)*&
+            Grid_instance(otherSpeciesID)%density%values(point)*&
+            (1.0+gfactor%values(point))*&
             Grid_instance(otherSpeciesID)%points%values(point,4) 
     end do
 
-    print *, "pep=", contactDensity
+    write (*,"(A10,F20.10)") "overlap=", overlapDensity
+    write (*,"(A10,F20.10)") "pep=", contactDensity
 
     ! npos=0.0
     ! do point = 1 , gridSize
@@ -1272,6 +1271,45 @@ contains
     ! print *, "npos=", npos
     
   end subroutine GridManager_getContactDensity
+
+    !>
+  !! @brief Builds the exchange correlation for a species
+  ! Felix Moncada, 2017
+  subroutine GridManager_getExpectedDistances( speciesID)
+    implicit none
+    integer :: speciesID
+    
+    integer :: point,gridSize
+    integer :: center,numberOfCenters
+    real(8), allocatable :: distances(:)
+
+
+    gridSize =Grid_instance(speciesID)%totalSize
+    numberOfCenters=MolecularSystem_instance%numberOfPointCharges
+
+    allocate(distances(numberOfCenters))
+
+    distances(:)=0.0
+    do center = 1, numberOfCenters
+       
+       do point = 1 , gridSize
+
+          distances(center)=distances(center) + &
+               Grid_instance(speciesID)%density%values(point)* &
+               sqrt((MolecularSystem_instance%pointCharges(center)%origin(1)-Grid_instance(speciesID)%points%values(point,1) )**2+ &
+               (MolecularSystem_instance%pointCharges(center)%origin(2)-Grid_instance(speciesID)%points%values(point,2) )**2+ &
+               (MolecularSystem_instance%pointCharges(center)%origin(3)-Grid_instance(speciesID)%points%values(point,3) )**2 ) * &
+               Grid_instance(speciesID)%points%values(point,4) 
+
+       end do
+       
+       write (*,"(A10,A10,F20.10)") trim(Grid_instance(speciesID)%nameOfSpecies), trim(MolecularSystem_instance%pointCharges(center)%nickname), distances(center)
+       
+    end do
+
+
+    
+  end subroutine GridManager_getExpectedDistances
 
   
 end module GridManager_

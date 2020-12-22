@@ -269,7 +269,13 @@ contains
 
   character(50) :: wfnFile
   integer :: wfnUnit
-  wfnFile = "lowdin.wfn"
+
+  if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+     wfnFile = "lowdin.wfn"
+  else
+     wfnFile = "lowdin-subsystemA.wfn"
+  end if
+
   wfnUnit = 20
 
   
@@ -443,7 +449,11 @@ end if
    integer, parameter :: ONE_SPECIE     = 0
    integer, parameter :: TWO_SPECIES      = 1
 
-   wfnFile = "lowdin.wfn"
+   if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+      wfnFile = "lowdin.wfn"
+   else
+      wfnFile = "lowdin-subsystemA.wfn"
+   end if
    wfnUnit = 20
    
 
