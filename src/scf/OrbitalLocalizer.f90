@@ -33,6 +33,7 @@ module OrbitalLocalizer_
   type, public :: OrbitalLocalizer
      real(8) :: levelShiftingValue !control parameter
      real(8) :: populationThreshold !control parameter
+     real(8) :: basisThreshold !control parameter
      logical :: reduceSubsystemBasis !control parameter
      type(Matrix) :: projectionMatrix
      type(Matrix) :: hcoreMatrixA
@@ -41,6 +42,7 @@ module OrbitalLocalizer_
      type(Vector) :: molecularOrbitalsEnergyA
      integer,allocatable :: subsystemList(:)
      integer,allocatable :: orbitalSubsystem(:)
+     integer,allocatable :: basisSubsystem(:)
      integer :: occupiedOrbitalsA
      integer :: virtualOrbitalsA
      integer :: occupiedOrbitalsB
@@ -65,6 +67,8 @@ contains
 
        OrbitalLocalizer_instance(speciesID)%levelShiftingValue = CONTROL_INSTANCE%SUBSYSTEM_LEVEL_SHIFTING
        OrbitalLocalizer_instance(speciesID)%populationThreshold = CONTROL_INSTANCE%SUBSYSTEM_POPULATION_THRESHOLD
+       ! OrbitalLocalizer_instance(speciesID)%basisThreshold = CONTROL_INSTANCE%SUBSYSTEM_BASIS_THRESHOLD
+       OrbitalLocalizer_instance(speciesID)%basisThreshold = 0.0005
        OrbitalLocalizer_instance(speciesID)%reduceSubsystemBasis = CONTROL_INSTANCE%REDUCE_SUBSYSTEM_BASIS
        
 
@@ -80,6 +84,7 @@ contains
        
        allocate(OrbitalLocalizer_instance(speciesID)%subsystemList(numberOfContractions))
        allocate(OrbitalLocalizer_instance(speciesID)%orbitalSubsystem(numberOfContractions))
+       allocate(OrbitalLocalizer_instance(speciesID)%basisSubsystem(numberOfContractions))
 
        mu=0
        do i = 1, size(MolecularSystem_instance%species(speciesID)%particles)
@@ -428,16 +433,32 @@ contains
                 atomPopulationB(speciesID)%values(i)=atomPopulationB(speciesID)%values(i)+populationMatrixB(speciesID)%values(mu,mu)
              end do
           end do
-          if (abs(atomPopulationA(speciesID)%values(i)) .lt. OrbitalLocalizer_instance(speciesID)%populationThreshold ) then
-             write(*,"(A20,F10.6,F10.6)") trim(ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner))//"*",&
-                  atomPopulationA(speciesID)%values(i), atomPopulationB(speciesID)%values(i)
-          else
-             write(*,"(A20,F10.6,F10.6)") trim(ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner)),&
-                  atomPopulationA(speciesID)%values(i), atomPopulationB(speciesID)%values(i)
-          end if
+          write(*,"(A20,F10.6,F10.6)") trim(ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner)),&
+               atomPopulationA(speciesID)%values(i), atomPopulationB(speciesID)%values(i)
+          ! if (abs(atomPopulationA(speciesID)%values(i)) .lt. OrbitalLocalizer_instance(speciesID)%populationThreshold .and. &
+          !      OrbitalLocalizer_instance(speciesID)%reduceSubsystemBasis ) then
+          !    write(*,"(A20,F10.6,F10.6)") trim(ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner))//"*",&
+          !         atomPopulationA(speciesID)%values(i), atomPopulationB(speciesID)%values(i)
+          ! else
+          !    write(*,"(A20,F10.6,F10.6)") trim(ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner)),&
+          !         atomPopulationA(speciesID)%values(i), atomPopulationB(speciesID)%values(i)
+          ! end if
        end do
        write(*,"(T20,A20)") "____________________"
        write(*,"(A20,F10.6,F10.6)") "Total", sum(atomPopulationA(speciesID)%values(:)), sum(atomPopulationB(speciesID)%values(:))
+
+       write(*,"(A10,A10,A10)") "Basis:      ", "A   ", "B   "
+       do mu=1, numberOfContractions
+          if (abs(populationMatrixA(speciesID)%values(mu,mu)) .lt. OrbitalLocalizer_instance(speciesID)%basisThreshold .and. &
+               OrbitalLocalizer_instance(speciesID)%reduceSubsystemBasis .and. &
+               OrbitalLocalizer_instance(speciesID)%subsystemList(mu) .ne. 1 ) then
+             write(*,"(I5,A5,F10.6,F10.6)") mu, "*",&
+                  populationMatrixA(speciesID)%values(mu,mu), populationMatrixB(speciesID)%values(mu,mu)
+          else
+             write(*,"(I5,A5,F10.6,F10.6)") mu, "",&
+                  populationMatrixA(speciesID)%values(mu,mu), populationMatrixB(speciesID)%values(mu,mu)
+          end if
+       end do
        print *, "* will be projected out from A basis set"
        
        !Build Proyection Matrix to force orbital orthogonality between A and B occupied orbitals
@@ -457,25 +478,53 @@ contains
        ! print *, "projectionMatrix"
        ! Call Matrix_show(OrbitalLocalizer_instance(speciesID)%projectionMatrix)
 
+       !Adds diagonal proyection elements to orbitals with small contributions to A orbitals - small mulliken population
+       !These will correspond to virtual orbitals with high energy that can be removed from post-SCF calculations
+       print *, "Basis Subsystem"
+       OrbitalLocalizer_instance(speciesID)%basisSubsystem(:)=1
+       if(OrbitalLocalizer_instance(speciesID)%reduceSubsystemBasis) then
+
+          do mu=1,numberOfContractions
+             if (abs(populationMatrixA(speciesID)%values(mu,mu)) .lt.  OrbitalLocalizer_instance(speciesID)%basisThreshold .and. &
+                  OrbitalLocalizer_instance(speciesID)%subsystemList(mu) .ne. 1                 ) then
+                OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB=&
+                     OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB+1
+                OrbitalLocalizer_instance(speciesID)%projectionMatrix%values(mu,mu)=&
+                     OrbitalLocalizer_instance(speciesID)%projectionMatrix%values(mu,mu)+1.0
+                OrbitalLocalizer_instance(speciesID)%basisSubsystem(mu)=2
+             else
+                OrbitalLocalizer_instance(speciesID)%basisSubsystem(mu)=1
+             end if
+          end do
+
+       end if
+
        !Adds diagonal proyection elements to atoms with small contributions to A orbitals - small mulliken population
        !These will correspond to virtual orbitals with high energy that can be removed from post-SCF calculations
-       if(OrbitalLocalizer_instance(speciesID)%reduceSubsystemBasis) then
-          mu=0
-          OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB=0
-          do i=1, numberOfCenters
-             do j=1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
-                do k=1, MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
-                   mu=mu+1
-                   if (abs(atomPopulationA(speciesID)%values(i)) .lt. OrbitalLocalizer_instance(speciesID)%populationThreshold ) then
-                      OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB=&
-                           OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB+1
-                      OrbitalLocalizer_instance(speciesID)%projectionMatrix%values(mu,mu)=&
-                           OrbitalLocalizer_instance(speciesID)%projectionMatrix%values(mu,mu)+1.0
-                   end if
-                end do
-             end do
-          end do
-       end if
+       ! print *, "Basis Subsystem"
+       ! OrbitalLocalizer_instance(speciesID)%basisSubsystem(:)=1
+       ! if(OrbitalLocalizer_instance(speciesID)%reduceSubsystemBasis) then
+       !    mu=0
+       !    OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB=0
+       !    do i=1, numberOfCenters
+       !       do j=1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
+       !          do k=1, MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
+       !             mu=mu+1
+       !             if (abs(atomPopulationA(speciesID)%values(i)) .lt. OrbitalLocalizer_instance(speciesID)%populationThreshold ) then
+       !                OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB=&
+       !                     OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB+1
+       !                OrbitalLocalizer_instance(speciesID)%projectionMatrix%values(mu,mu)=&
+       !                     OrbitalLocalizer_instance(speciesID)%projectionMatrix%values(mu,mu)+1.0
+       !                OrbitalLocalizer_instance(speciesID)%basisSubsystem(mu)=2
+       !             else
+       !                OrbitalLocalizer_instance(speciesID)%basisSubsystem(mu)=1
+       !             end if
+       !             ! print *, mu, OrbitalLocalizer_instance(speciesID)%basisSubsystem(mu)
+       !          end do
+       !       end do
+       !    end do
+       ! end if
+       
        OrbitalLocalizer_instance(speciesID)%removedOrbitalsA=OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB&
             +OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsB
 
@@ -484,9 +533,20 @@ contains
             -OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA&
             -OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsB
 
+
+       !!Manual fixes for some problematic cases
        if(OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA .eq.0 ) OrbitalLocalizer_instance(speciesID)%virtualOrbitalsA = 0
+       if(OrbitalLocalizer_instance(speciesID)%virtualOrbitalsA .lt. OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA ) then
+          OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB = OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB - &
+               (OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA - OrbitalLocalizer_instance(speciesID)%virtualOrbitalsA)
+          OrbitalLocalizer_instance(speciesID)%virtualOrbitalsA = OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA
+       end if
        if(OrbitalLocalizer_instance(speciesID)%removedOrbitalsA .gt. numberOfContractions ) OrbitalLocalizer_instance(speciesID)%removedOrbitalsA=numberOfContractions
-       
+
+       if(OrbitalLocalizer_instance(speciesID)%virtualOrbitalsA .eq. 0 ) then
+          OrbitalLocalizer_instance(speciesID)%removedOrbitalsA = WaveFunction_instance(speciesID)%removedOrbitals
+          OrbitalLocalizer_instance(speciesID)%virtualOrbitalsA = OrbitalLocalizer_instance(speciesID)%virtualOrbitalsA - OrbitalLocalizer_instance(speciesID)%removedOrbitalsA
+       end if
        ! print *, "projectionMatrix-2"
        ! Call Matrix_show(OrbitalLocalizer_instance(speciesID)%projectionMatrix)
 
@@ -542,12 +602,22 @@ contains
     print *, ""
     call MolecularSystem_showCartesianMatrix(1)
 
-    !!Save density matrix B and run DFT for the subsystem B
+    !Forces equal density matrices for E-ALPHA and E-BETA in open shell calculations
+    if ( CONTROL_instance%METHOD .eq. "UKS" .and. CONTROL_instance%FORCE_CLOSED_SHELL ) then
+       speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
+       otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
+       if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
+          densityMatrixB(otherSpeciesID)%values=densityMatrixB(speciesID)%values
+       end if
+    end if
+
     
+    !!Save density matrix B and run DFT for the subsystem B   
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
        call WaveFunction_writeDensityMatricesToFile(trim(densFileB),densityMatrixB(:))
        call system("lowdin-DFT.x SCF_DFT "//trim(densFileB))
     end if
+
     !!!Build subsystem B matrices - these do not change in the second SCF cycle
     !Two particles and coupling matrices
     do speciesID=1, numberOfSpecies     
@@ -626,7 +696,7 @@ contains
     newTotalEnergy=0.0
     do while( SUBSYSTEM_SCF_CONTINUE )
        iter=iter+1
-    
+      
        !Run DFT with the total density and the subsystem density 
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
 
@@ -774,6 +844,41 @@ contains
                matmul( WaveFunction_instance(speciesID)%transformationMatrix%values, &
                OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values )
 
+          !! Removes contributions from basis sets of subsystem B and renormalizes orbital
+          i=0
+          do k = 1 , OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA + OrbitalLocalizer_instance(speciesID)%virtualOrbitalsA
+             i=i+1
+             do mu = 1 , numberOfContractions
+                if(OrbitalLocalizer_instance(speciesID)%basisSubsystem(mu).ne.1) &
+                     OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values(mu,i)=0.0
+             end do
+             
+             normCheck=0.0
+             do mu = 1 , numberOfContractions
+                do nu = 1 , numberOfContractions
+                   normCheck=normCheck+OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values(mu,i)*&
+                        OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values(nu,i)*&
+                        WaveFunction_instance(speciesID)%overlapMatrix%values(mu,nu)
+                end do
+             end do
+             ! print *, i, "normCheck", normCheck
+
+             !! Filtra los orbitales eliminados por el umbral de solapamiento
+             if ( normCheck .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD) then
+                ! Shift orbital coefficients to the end of the matrix and Make energy a very large number
+                do j = i , numberOfContractions-1
+                   OrbitalLocalizer_instance(speciesID)%molecularOrbitalsEnergyA%values(j)=OrbitalLocalizer_instance(speciesID)%molecularOrbitalsEnergyA%values(j+1)
+                   OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values(:,j) = OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values(:,j+1)
+                end do
+                OrbitalLocalizer_instance(speciesID)%molecularOrbitalsEnergyA%values(numberOfContractions)=1/CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
+                OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values(:,numberOfContractions)=0.0
+                i=i-1
+             else
+                !! Renormalize
+                OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values(:,i)=OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values(:,i)/normCheck
+             end if
+          end do
+
           !Updates atomic density matrix
           call Matrix_constructor (newDensityMatrix, int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
 
@@ -795,7 +900,18 @@ contains
                densityMatrixB(speciesID)%values
 
        end do
+       !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
+       if ( CONTROL_instance%METHOD .eq. "UKS" .and. CONTROL_instance%FORCE_CLOSED_SHELL ) then
+          speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
+          otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
 
+          if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
+             OrbitalLocalizer_instance(otherSpeciesID)%waveFunctionCoefficientsA%values = OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values
+             densityMatrixA(otherSpeciesID)%values=densityMatrixA(speciesID)%values
+             densityMatrixAB(otherSpeciesID)%values=densityMatrixAB(speciesID)%values
+          end if
+       end if
+       
        !Check convergence and print messages
        totalDensStd=sqrt(sum(densStd(:)**2))
        deltaEnergy=newTotalEnergy-totalEnergy

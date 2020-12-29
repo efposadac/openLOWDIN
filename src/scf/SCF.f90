@@ -152,7 +152,6 @@ program SCF
 
   do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-
      !!**********************************************************
      !! Builds Hcore
      !!
@@ -186,14 +185,28 @@ program SCF
 
      write(*,"(A,A,A,F7.3)") "number of ", trim(MolecularSystem_getNameOfSpecie( speciesID )) ," particles in guess density matrix: ",  &
          sum( transpose(wavefunction_instance(speciesID)%densityMatrix%values)*WaveFunction_instance(speciesID)%overlapMatrix%values)
+  end do
+    
+  !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
+  if ( (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") .and. CONTROL_instance%FORCE_CLOSED_SHELL ) then
+     speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
+     otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
 
-     
-     !!**********************************************************
-     !! Save matrices to lowdin.wfn file required by ints program
-     !!
+     if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
+        WaveFunction_instance(otherSpeciesID)%waveFunctionCoefficients%values= WaveFunction_instance(speciesID)%waveFunctionCoefficients%values
+        WaveFunction_instance(otherSpeciesID)%densityMatrix%values= WaveFunction_instance(speciesID)%densityMatrix%values
+     end if
 
+     print *, "E-ALPHA AND E-BETA COEFFICIENTS ARE FORCED TO BE EQUAL IN THIS RUN"
+  end if
+   
+  !!**********************************************************
+  !! Save matrices to lowdin.wfn file required by ints program
+  !!
+  
+  do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
      labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
-     
+
      labels(1) = "DENSITY"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 

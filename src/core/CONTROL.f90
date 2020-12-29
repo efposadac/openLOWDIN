@@ -70,6 +70,7 @@ module CONTROL_
      logical :: DIIS_ERROR_IN_DAMPING
      logical :: ACTIVATE_LEVEL_SHIFTING
      logical :: EXCHANGE_ORBITALS_IN_SCF
+     logical :: FORCE_CLOSED_SHELL
      logical :: DEBUG_SCFS
      character(10) ::  SCF_GHOST_SPECIES
 
@@ -378,6 +379,7 @@ module CONTROL_
   logical :: LowdinParameters_diisErrorInDamping
   logical :: LowdinParameters_activateLevelShifting
   logical :: LowdinParameters_exchangeOrbitalsInSCF
+  logical :: LowdinParameters_forceClosedShell
   logical :: LowdinParameters_debugScfs
   character(10) :: LowdinParameters_scfGhostSpecies
 
@@ -692,6 +694,7 @@ module CONTROL_
        LowdinParameters_diisErrorInDamping,&
        LowdinParameters_activateLevelShifting,&
        LowdinParameters_exchangeOrbitalsInSCF,&
+       LowdinParameters_forceClosedShell,&
        LowdinParameters_debugScfs,&
        LowdinParameters_scfGhostSpecies, &
        
@@ -1024,6 +1027,7 @@ contains
     LowdinParameters_diisErrorInDamping = .false.
     LowdinParameters_activateLevelShifting = .false.
     LowdinParameters_exchangeOrbitalsInSCF = .false.
+    LowdinParameters_forceClosedShell = .false.
     LowdinParameters_debugScfs = .false.
     LowdinParameters_scfGhostSpecies = "NONE"
 
@@ -1336,6 +1340,7 @@ contains
     CONTROL_instance%DIIS_ERROR_IN_DAMPING = .false.
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = .false.
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = .false.
+    CONTROL_instance%FORCE_CLOSED_SHELL = .true.
     CONTROL_instance%DEBUG_SCFS = .false.
     CONTROL_instance%SCF_GHOST_SPECIES = "NONE"
     ! CONTROL_instance%DEBUG_SCFS = .true.
@@ -1677,6 +1682,7 @@ contains
     CONTROL_instance%DIIS_ERROR_IN_DAMPING = LowdinParameters_diisErrorInDamping
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = LowdinParameters_activateLevelShifting
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = LowdinParameters_exchangeOrbitalsInSCF
+    CONTROL_instance%FORCE_CLOSED_SHELL = LowdinParameters_forceClosedShell
     CONTROL_instance%DEBUG_SCFS = LowdinParameters_debugScfs
     CONTROL_instance%SCF_GHOST_SPECIES = LowdinParameters_scfGhostSpecies
 
@@ -2001,6 +2007,7 @@ contains
     LowdinParameters_diisErrorInDamping = CONTROL_instance%DIIS_ERROR_IN_DAMPING
     LowdinParameters_activateLevelShifting = CONTROL_instance%ACTIVATE_LEVEL_SHIFTING
     LowdinParameters_exchangeOrbitalsInSCF = CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF
+    LowdinParameters_forceClosedShell = CONTROL_instance%FORCE_CLOSED_SHELL 
     LowdinParameters_debugScfs = CONTROL_instance%DEBUG_SCFS
 
     LowdinParameters_scfGhostSpecies = CONTROL_instance%SCF_GHOST_SPECIES
@@ -2320,6 +2327,7 @@ contains
     otherThis%DIIS_ERROR_IN_DAMPING = this%DIIS_ERROR_IN_DAMPING 
     otherThis%ACTIVATE_LEVEL_SHIFTING = this%ACTIVATE_LEVEL_SHIFTING 
     otherThis%EXCHANGE_ORBITALS_IN_SCF = this%EXCHANGE_ORBITALS_IN_SCF 
+    otherThis%FORCE_CLOSED_SHELL = this%FORCE_CLOSED_SHELL
     otherThis%DEBUG_SCFS = this%DEBUG_SCFS 
     otherThis%SCF_GHOST_SPECIES = this%SCF_GHOST_SPECIES 
     !!***************************************************************************

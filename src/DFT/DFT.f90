@@ -361,13 +361,13 @@ program DFT
         end do
 
         
-        print *, ""
-        print *, "Density-point charges expected distances"
-        print *, ""
-        do speciesID = 1 , numberOfSpecies
-           call GridManager_getExpectedDistances( speciesID )
-        end do
-        print *, ""
+        ! print *, ""
+        ! print *, "Density-point charges expected distances"
+        ! print *, ""
+        ! do speciesID = 1 , numberOfSpecies
+        !    call GridManager_getExpectedDistances( speciesID )
+        ! end do
+        ! print *, ""
 
      end if
      
