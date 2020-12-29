@@ -1187,6 +1187,7 @@ contains
          GridsCommonPoints(speciesID,otherSpeciesID)%totalSize, int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values), electronicDensityAtOtherGrid, electronicGradientAtOtherGrid )
 
     call Vector_constructor(gfactor, gridSize, 0.0_8)
+    gfactor%values=0.0_8
     
     nproc=omp_get_max_threads()
 
@@ -1205,6 +1206,8 @@ contains
        if(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-A" .or. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA" ) then
           print *, "With g[beta] from the expCS-A functional"
           kf=2.2919886876120283056
+       else
+          print *, "With g[beta]=0.0"
        end if
 
        a0n=0.3647813291441602
@@ -1239,7 +1242,6 @@ contains
        !$omp end do 
        !$omp end parallel
     else
-       gfactor%values=0.0_8
        print *, "With g[beta]=0.0"
     end if
 
