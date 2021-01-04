@@ -251,7 +251,9 @@ module CONTROL_
      logical :: LOCALIZE_ORBITALS
      logical :: REDUCE_SUBSYSTEM_BASIS
      real(8) :: SUBSYSTEM_LEVEL_SHIFTING
-     real(8) :: SUBSYSTEM_POPULATION_THRESHOLD
+     real(8) :: SUBSYSTEM_ORBITAL_THRESHOLD
+     real(8) :: SUBSYSTEM_BASIS_THRESHOLD
+     character(50) :: ERKALE_LOCALIZATION_METHOD
 
      !!*****************************************************
      !! External Potential Options
@@ -559,7 +561,9 @@ module CONTROL_
   logical :: LowdinParameters_localizeOrbitals
   logical :: LowdinParameters_reduceSubsystemBasis
   real(8) :: LowdinParameters_subsystemLevelShifting
-  real(8) :: LowdinParameters_subsystemPopulationThreshold
+  real(8) :: LowdinParameters_subsystemOrbitalThreshold
+  real(8) :: LowdinParameters_subsystemBasisThreshold
+  character(50) :: LowdinParameters_erkaleLocalizationMethod
 
   !!*****************************************************
   !! External Potential Options
@@ -875,7 +879,9 @@ module CONTROL_
        LowdinParameters_localizeOrbitals,&
        LowdinParameters_reduceSubsystemBasis,&
        LowdinParameters_subsystemLevelShifting,&
-       LowdinParameters_subsystemPopulationThreshold,&
+       LowdinParameters_subsystemOrbitalThreshold,&
+       LowdinParameters_subsystemBasisThreshold,&
+       LowdinParameters_erkaleLocalizationMethod,&
 
                                 !!*****************************************************
                                 !! External Potential Options
@@ -1209,7 +1215,9 @@ contains
     LowdinParameters_localizeOrbitals = .false.
     LowdinParameters_reduceSubsystemBasis = .true.
     LowdinParameters_subsystemLevelShifting = 1.0E6
-    LowdinParameters_subsystemPopulationThreshold = 0.1
+    LowdinParameters_subsystemOrbitalThreshold = 0.1
+    LowdinParameters_subsystemBasisThreshold = 0.0001
+    LowdinParameters_erkaleLocalizationMethod = "MU"
 
     !!*****************************************************
     !! External Potential Options
@@ -1520,7 +1528,9 @@ contains
     CONTROL_instance%LOCALIZE_ORBITALS = .false.
     CONTROL_instance%REDUCE_SUBSYSTEM_BASIS = .true.
     CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING = 1.0E6
-    CONTROL_instance%SUBSYSTEM_POPULATION_THRESHOLD = 0.1
+    CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD = 0.1
+    CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD = 0.0001
+    CONTROL_instance%ERKALE_LOCALIZATION_METHOD = "MU"
 
     !!*****************************************************                                                                    
     !! External Potential Options                                                                                              
@@ -1870,7 +1880,9 @@ contains
     CONTROL_instance%LOCALIZE_ORBITALS = (LowdinParameters_localizeOrbitals .or. LowdinParameters_subsystemEmbedding)
     CONTROL_instance%REDUCE_SUBSYSTEM_BASIS = LowdinParameters_reduceSubsystemBasis
     CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING = LowdinParameters_subsystemLevelShifting
-    CONTROL_instance%SUBSYSTEM_POPULATION_THRESHOLD = LowdinParameters_subsystemPopulationThreshold
+    CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD = LowdinParameters_subsystemOrbitalThreshold
+    CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD = LowdinParameters_subsystemBasisThreshold
+    CONTROL_instance%ERKALE_LOCALIZATION_METHOD = LowdinParameters_erkaleLocalizationMethod
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -2191,8 +2203,10 @@ contains
     LowdinParameters_localizeOrbitals=CONTROL_instance%LOCALIZE_ORBITALS
     LowdinParameters_reduceSubsystemBasis=CONTROL_instance%REDUCE_SUBSYSTEM_BASIS
     LowdinParameters_subsystemLevelShifting=CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING
-    LowdinParameters_subsystemPopulationThreshold=CONTROL_instance%SUBSYSTEM_POPULATION_THRESHOLD
-    
+    LowdinParameters_subsystemOrbitalThreshold=CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD
+    LowdinParameters_subsystemBasisThreshold=CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD
+    LowdinParameters_erkaleLocalizationMethod=CONTROL_instance%ERKALE_LOCALIZATION_METHOD
+
     !!*****************************************************                            
     !! External Potential Options                                                      
     !!                                                                                 
@@ -2487,7 +2501,9 @@ contains
     otherThis%LOCALIZE_ORBITALS = this%LOCALIZE_ORBITALS
     otherThis%REDUCE_SUBSYSTEM_BASIS = this%REDUCE_SUBSYSTEM_BASIS
     otherThis%SUBSYSTEM_LEVEL_SHIFTING = this%SUBSYSTEM_LEVEL_SHIFTING
-    otherThis%SUBSYSTEM_POPULATION_THRESHOLD = this%SUBSYSTEM_POPULATION_THRESHOLD
+    otherThis%SUBSYSTEM_ORBITAL_THRESHOLD = this%SUBSYSTEM_ORBITAL_THRESHOLD
+    otherThis%SUBSYSTEM_BASIS_THRESHOLD = this%SUBSYSTEM_BASIS_THRESHOLD
+    otherThis%ERKALE_LOCALIZATION_METHOD = this%ERKALE_LOCALIZATION_METHOD
 
     !!*****************************************************
     !! External Potential Options
@@ -2844,8 +2860,17 @@ contains
 
     end if
 
-    if(CONTROL_instance%LOCALIZE_ORBITALS) &
-         write (*,"(T10,A)") "OCCUPIED ORBITALS WILL BE LOCALIZED WITH THE PIPEK-MEZEY SCHEME"
+    if(CONTROL_instance%LOCALIZE_ORBITALS) then
+       select case (trim(CONTROL_instance%ERKALE_LOCALIZATION_METHOD))
+       case("MU")
+          write (*,"(T10,A)") "OCCUPIED ORBITALS WILL BE LOCALIZED WITH THE PIPEK-MEZEY SCHEME WITH MULLIKEN CHARGES"
+       case("IAO")
+          write (*,"(T10,A)") "OCCUPIED ORBITALS WILL BE LOCALIZED WITH THE PIPEK-MEZEY SCHEME WITH IBO CHARGES"
+       case default
+          write (*,"(T10,A)") "OCCUPIED ORBITALS WILL BE LOCALIZED WITH THE ", trim(CONTROL_instance%ERKALE_LOCALIZATION_METHOD) ," SCHEME"
+       end select
+    end if
+       
          
     
     if(CONTROL_instance%SUBSYSTEM_EMBEDDING) then
@@ -2856,9 +2881,9 @@ contains
        write (*,"(T10,A)") "POST-SCF CORRECTIONS ONLY WILL BE PERFORMED IN THE SECOND CALCULATION"
        print *, "  "
 
-       write (*,"(T10,A,F5.3,A)") "SUBSYSTEM B IS BUILT FROM ORBITALS WITH POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_POPULATION_THRESHOLD ," OVER FRAGMENT ONE ATOMS"
+       write (*,"(T10,A,E6.1,A)") "SUBSYSTEM B IS BUILT FROM ORBITALS WITH POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD ," OVER FRAGMENT ONE ATOMS"
        if(CONTROL_instance%REDUCE_SUBSYSTEM_BASIS) &
-            write (*,"(T10,A,F5.3,A)") "ATOMS WITH MULLIKEN POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_POPULATION_THRESHOLD ," WILL BE REMOVED FROM SUBSYSTEM A BASIS SET"
+            write (*,"(T10,A,E6.1,A)") "SHELLS WITH MULLIKEN POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD ," WILL BE REMOVED FROM SUBSYSTEM A BASIS SET"
             
     end if
 
