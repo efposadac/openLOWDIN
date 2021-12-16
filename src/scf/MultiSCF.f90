@@ -213,7 +213,7 @@ contains
     implicit none
     integer, intent(in) :: iterationScheme
 
-    integer :: i
+    integer :: i,j
     integer :: numberOfSpecies
     character(30) :: nameOfSpecies
     integer :: speciesID
@@ -346,6 +346,19 @@ contains
             sqrt(List_current(WaveFunction_instance(i)%standardDesviationOfDensityMatrixElements)**2)
     end do
 
+    if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
+         (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
+       i=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
+       j=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
+
+       if(MolecularSystem_getNumberOfParticles(i) .eq. MolecularSystem_getNumberOfParticles(j) ) then
+          WaveFunction_instance(j)%waveFunctionCoefficients%values= WaveFunction_instance(i)%waveFunctionCoefficients%values
+          WaveFunction_instance(j)%densityMatrix%values= WaveFunction_instance(i)%densityMatrix%values
+       end if
+
+    end if
+
+    
   end subroutine MultiSCF_iterate
 
   ! >

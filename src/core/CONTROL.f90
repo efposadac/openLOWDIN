@@ -96,6 +96,7 @@ module CONTROL_
      logical :: IS_OPEN_SHELL
      logical :: GET_GRADIENTS
      logical :: HF_PRINT_EIGENVALUES
+     character(20) :: HF_PRINT_EIGENVECTORS
      real(8) :: OVERLAP_EIGEN_THRESHOLD
      real(8) :: ELECTRIC_FIELD(6)
      integer :: MULTIPOLE_ORDER
@@ -249,7 +250,6 @@ module CONTROL_
      !!
      logical :: SUBSYSTEM_EMBEDDING
      logical :: LOCALIZE_ORBITALS
-     logical :: REDUCE_SUBSYSTEM_BASIS
      real(8) :: SUBSYSTEM_LEVEL_SHIFTING
      real(8) :: SUBSYSTEM_ORBITAL_THRESHOLD
      real(8) :: SUBSYSTEM_BASIS_THRESHOLD
@@ -408,6 +408,7 @@ module CONTROL_
   logical :: LowdinParameters_isOpenShell
   logical :: LowdinParameters_getGradients
   logical :: LowdinParameters_HFprintEigenvalues
+  character(20) :: LowdinParameters_HFprintEigenvectors
   real(8) :: LowdinParameters_overlapEigenThreshold
   real(8) :: LowdinParameters_electricField(6)
   integer :: LowdinParameters_multipoleOrder
@@ -559,7 +560,6 @@ module CONTROL_
   !!
   logical :: LowdinParameters_subsystemEmbedding
   logical :: LowdinParameters_localizeOrbitals
-  logical :: LowdinParameters_reduceSubsystemBasis
   real(8) :: LowdinParameters_subsystemLevelShifting
   real(8) :: LowdinParameters_subsystemOrbitalThreshold
   real(8) :: LowdinParameters_subsystemBasisThreshold
@@ -725,6 +725,7 @@ module CONTROL_
        LowdinParameters_isOpenShell, &
        LowdinParameters_getGradients, &
        LowdinParameters_HFprintEigenvalues, &
+       LowdinParameters_HFprintEigenvectors, &
        LowdinParameters_overlapEigenThreshold, &
        LowdinParameters_electricField, &
        
@@ -877,7 +878,6 @@ module CONTROL_
                                 !!
        LowdinParameters_subsystemEmbedding,&
        LowdinParameters_localizeOrbitals,&
-       LowdinParameters_reduceSubsystemBasis,&
        LowdinParameters_subsystemLevelShifting,&
        LowdinParameters_subsystemOrbitalThreshold,&
        LowdinParameters_subsystemBasisThreshold,&
@@ -1059,8 +1059,9 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = .false.
     LowdinParameters_isOpenShell = .false.
     LowdinParameters_getGradients = .false.
-    LowdinParameters_HFprintEigenvalues = .false.
-    LowdinParameters_overlapEigenThreshold = 0.0_8
+    LowdinParameters_HFprintEigenvalues = .true.
+    LowdinParameters_HFprintEigenvectors = "OCCUPIED"
+    LowdinParameters_overlapEigenThreshold = 1.0E-8_8
     LowdinParameters_electricField(:) = 0.0_8
     LowdinParameters_multipoleOrder = 0
 
@@ -1213,7 +1214,6 @@ contains
     !!
     LowdinParameters_subsystemEmbedding = .false.
     LowdinParameters_localizeOrbitals = .false.
-    LowdinParameters_reduceSubsystemBasis = .true.
     LowdinParameters_subsystemLevelShifting = 1.0E6
     LowdinParameters_subsystemOrbitalThreshold = 0.1
     LowdinParameters_subsystemBasisThreshold = 0.0001
@@ -1372,8 +1372,9 @@ contains
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = .false.
     CONTROL_instance%IS_OPEN_SHELL = .false.
     CONTROL_instance%GET_GRADIENTS = .false.
-    CONTROL_instance%HF_PRINT_EIGENVALUES = .false.
-    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = 0.0_8
+    CONTROL_instance%HF_PRINT_EIGENVALUES = .true.
+    CONTROL_instance%HF_PRINT_EIGENVECTORS = "OCCUPIED"
+    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = 1.0E-8_8
     CONTROL_instance%ELECTRIC_FIELD(:) = 0.0_8
     CONTROL_instance%MULTIPOLE_ORDER = 0
     !!***************************************************************************                                              
@@ -1526,7 +1527,6 @@ contains
     !!
     CONTROL_instance%SUBSYSTEM_EMBEDDING = .false.
     CONTROL_instance%LOCALIZE_ORBITALS = .false.
-    CONTROL_instance%REDUCE_SUBSYSTEM_BASIS = .true.
     CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING = 1.0E6
     CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD = 0.1
     CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD = 0.0001
@@ -1718,6 +1718,7 @@ contains
     CONTROL_instance%IS_OPEN_SHELL = LowdinParameters_isOpenShell
     CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients
     CONTROL_instance%HF_PRINT_EIGENVALUES = LowdinParameters_HFprintEigenvalues
+    CONTROL_instance%HF_PRINT_EIGENVECTORS = LowdinParameters_HFprintEigenvectors
     CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = LowdinParameters_overlapEigenThreshold 
 
     CONTROL_instance%ELECTRIC_FIELD = LowdinParameters_electricField
@@ -1878,7 +1879,6 @@ contains
     !!
     CONTROL_instance%SUBSYSTEM_EMBEDDING = LowdinParameters_subsystemEmbedding
     CONTROL_instance%LOCALIZE_ORBITALS = (LowdinParameters_localizeOrbitals .or. LowdinParameters_subsystemEmbedding)
-    CONTROL_instance%REDUCE_SUBSYSTEM_BASIS = LowdinParameters_reduceSubsystemBasis
     CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING = LowdinParameters_subsystemLevelShifting
     CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD = LowdinParameters_subsystemOrbitalThreshold
     CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD = LowdinParameters_subsystemBasisThreshold
@@ -2046,6 +2046,7 @@ contains
     LowdinParameters_isOpenShell = CONTROL_instance%IS_OPEN_SHELL
     LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
     LowdinParameters_HFprintEigenvalues = CONTROL_instance%HF_PRINT_EIGENVALUES 
+    LowdinParameters_HFprintEigenvectors = CONTROL_instance%HF_PRINT_EIGENVECTORS
     LowdinParameters_overlapEigenThreshold = CONTROL_instance%OVERLAP_EIGEN_THRESHOLD 
     LowdinParameters_electricField = CONTROL_instance%ELECTRIC_FIELD 
     LowdinParameters_multipoleOrder = CONTROL_instance%MULTIPOLE_ORDER 
@@ -2201,7 +2202,6 @@ contains
     !!
     LowdinParameters_subsystemEmbedding=CONTROL_instance%SUBSYSTEM_EMBEDDING
     LowdinParameters_localizeOrbitals=CONTROL_instance%LOCALIZE_ORBITALS
-    LowdinParameters_reduceSubsystemBasis=CONTROL_instance%REDUCE_SUBSYSTEM_BASIS
     LowdinParameters_subsystemLevelShifting=CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING
     LowdinParameters_subsystemOrbitalThreshold=CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD
     LowdinParameters_subsystemBasisThreshold=CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD
@@ -2363,6 +2363,7 @@ contains
     otherThis%IS_OPEN_SHELL = this%IS_OPEN_SHELL    
     otherThis%GET_GRADIENTS = this%GET_GRADIENTS    
     otherThis%HF_PRINT_EIGENVALUES = this%HF_PRINT_EIGENVALUES 
+    otherThis%HF_PRINT_EIGENVECTORS = this%HF_PRINT_EIGENVECTORS
     otherThis%OVERLAP_EIGEN_THRESHOLD = this%OVERLAP_EIGEN_THRESHOLD 
     otherThis%ELECTRIC_FIELD = this%ELECTRIC_FIELD 
     otherThis%MULTIPOLE_ORDER = this%MULTIPOLE_ORDER 
@@ -2499,7 +2500,6 @@ contains
     !!
     otherThis%SUBSYSTEM_EMBEDDING = this%SUBSYSTEM_EMBEDDING
     otherThis%LOCALIZE_ORBITALS = this%LOCALIZE_ORBITALS
-    otherThis%REDUCE_SUBSYSTEM_BASIS = this%REDUCE_SUBSYSTEM_BASIS
     otherThis%SUBSYSTEM_LEVEL_SHIFTING = this%SUBSYSTEM_LEVEL_SHIFTING
     otherThis%SUBSYSTEM_ORBITAL_THRESHOLD = this%SUBSYSTEM_ORBITAL_THRESHOLD
     otherThis%SUBSYSTEM_BASIS_THRESHOLD = this%SUBSYSTEM_BASIS_THRESHOLD
@@ -2850,6 +2850,8 @@ contains
        end select
     end if
 
+    if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 .or. CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) CONTROL_instance%ACTIVATE_LEVEL_SHIFTING=.true.
+       
     if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
 
        if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
@@ -2882,7 +2884,7 @@ contains
        print *, "  "
 
        write (*,"(T10,A,E6.1,A)") "SUBSYSTEM B IS BUILT FROM ORBITALS WITH POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD ," OVER FRAGMENT ONE ATOMS"
-       if(CONTROL_instance%REDUCE_SUBSYSTEM_BASIS) &
+       if(CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD .gt. 0.0) &
             write (*,"(T10,A,E6.1,A)") "SHELLS WITH MULLIKEN POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD ," WILL BE REMOVED FROM SUBSYSTEM A BASIS SET"
             
     end if

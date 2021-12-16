@@ -341,7 +341,8 @@ contains
 
     !! Get number of shells and number of cartesian contractions
     numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
+
     WaveFunction_instance( speciesID )%overlapMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments)
     close(34)
@@ -395,7 +396,7 @@ contains
        !! diagonaliza la matriz de overlap obteniendo una matriz unitaria
        !!          
        call Matrix_eigen( WaveFunction_instance( speciesID )%overlapMatrix, eigenValues, eigenVectors, SYMMETRIC  )
-
+       
        ! do i = 1 , numberOfContractions
        !   print *, eigenvalues%values(i) 
        ! end do
@@ -442,7 +443,7 @@ contains
                matmul(WaveFunction_instance( speciesID )%transformationMatrix%values, transpose(eigenVectors%values))
 
        case default
-
+          
           WaveFunction_instance( speciesID )%transformationMatrix%values  = &
                matmul(WaveFunction_instance( speciesID )%transformationMatrix%values, transpose(eigenVectors%values))
 
@@ -1149,10 +1150,6 @@ contains
 
        else !! Direct
 
-          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-             call WaveFunction_exception(ERROR, "Direct integrals are not implemented in DFT yet", "trololo")
-          end if
-          
           call DirectIntegralManager_getDirectIntraRepulsionIntegrals(&
                speciesID, &
                trim(CONTROL_instance%INTEGRAL_SCHEME), &
@@ -1160,7 +1157,8 @@ contains
                tmpTwoParticlesMatrix, &
                factor)
 
-          wavefunction_instance(speciesID)%twoParticlesMatrix%values = tmpTwoParticlesMatrix
+          twoParticlesMatrix%values = tmpTwoParticlesMatrix
+
           deallocate(tmpTwoParticlesMatrix)
 
        end if
@@ -1187,10 +1185,10 @@ contains
 
   !>
   !! @brief Builds the coupling matrix.
-  subroutine WaveFunction_buildCouplingMatrix( nameOfSpecie, initialSpeciesIterator, densityMatricesIN, couplingMatrixOUT, hartreeMatricesOUT )
+  subroutine WaveFunction_buildCouplingMatrix( nameOfSpecies, initialSpeciesIterator, densityMatricesIN, couplingMatrixOUT, hartreeMatricesOUT )
     implicit none
     
-    character(*), optional :: nameOfSpecie
+    character(*), optional :: nameOfSpecies
     integer, optional :: initialSpeciesIterator
     integer :: initialSpeciesIteratorSelected
     type(Matrix), optional :: densityMatricesIN(*)
@@ -1198,8 +1196,8 @@ contains
     type(Matrix), optional :: hartreeMatricesOUT(*)
 
 
-    character(30) :: nameOfSpecieSelected
-    character(30) :: nameOfOtherSpecie
+    character(30) :: nameOfSpeciesSelected
+    character(30) :: nameOfOtherSpecies
     integer :: numberOfSpecies
     integer :: numberOfContractions
     integer :: otherNumberOfContractions
@@ -1228,20 +1226,15 @@ contains
     integer :: unitid
     integer :: status
 
-    character(50) :: integralsFile
-    integer :: integralsUnit
-    type(Matrix) :: firstDerivMatrixA, firstDerivMatrixB, rhomatrix
-    character(40) :: arguments(2)
-
-    nameOfSpecieSelected = "E-"    
+    nameOfSpeciesSelected = "E-"    
 
     initialSpeciesIteratorSelected = 1
 
     if ( present( initialSpeciesIterator ) ) initialSpeciesIteratorSelected= initialSpeciesIterator
-    if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
+    if ( present( nameOfSpecies ) )  nameOfSpeciesSelected= trim( nameOfSpecies )
 
     numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
-    currentSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
+    currentSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpeciesSelected )
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(currentSpeciesID)
 
     allocate(densityMatrices(numberOfSpecies))
@@ -1271,7 +1264,7 @@ contains
        if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
 
           !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, a, b, r, s, integral, u, i, j, coulomb, auxMatrix, speciesIterator, &
-          !$OMP& otherSpeciesID, nameofOtherSpecie, otherNumberOfContractions)
+          !$OMP& otherSpeciesID, nameofOtherSpecies, otherNumberOfContractions)
 
           nthreads = OMP_GET_NUM_THREADS()
           threadid = OMP_GET_THREAD_NUM()
@@ -1285,9 +1278,9 @@ contains
 
           do speciesIterator = initialSpeciesIteratorSelected, numberOfSpecies
 
-             otherSpecieID = speciesIterator
-             nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpecieID )          
-             OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+             otherSpeciesID = speciesIterator
+             nameOfOtherSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )          
+             OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
 
              !! Restringe suma de terminos repulsivos de la misma especie.
              if ( otherSpeciesID /= currentSpeciesID ) then
@@ -1298,9 +1291,23 @@ contains
 
                    auxMatrix = 0.0_8
 
+                   
                    !! open file for integrals
-                   open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)//".ints", &
-                        STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   if(CONTROL_instance%IS_OPEN_SHELL .and. &
+                        MolecularSystem_instance%species(currentSpeciesID)%isElectron .and. &
+                        MolecularSystem_instance%species(otherSpeciesID)%isElectron ) then
+                      open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
+                           STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(otherSpeciesID)%isElectron) then
+                      open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA."//trim(nameOfSpecies)//".ints", &
+                           STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(currentSpeciesID)%isElectron) then
+                      open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfOtherSpecies)//".E-ALPHA.ints", &
+                           STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   else
+                      open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfOtherSpecies)//"."//trim(nameOfSpecies)//".ints", &
+                           STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   end if
 
                    readIntegrals1 : do
 
@@ -1311,7 +1318,7 @@ contains
                                     integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
                       if(status == -1 ) then
-                         print*, "end of file! file: ",trim(fileid)//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)//".ints"
+                         print*, "end of file! file: ",trim(fileid)//trim(nameOfOtherSpecies)//"."//trim(nameOfSpecies)//".ints"
                          exit readIntegrals1
                       end if
 
@@ -1345,8 +1352,21 @@ contains
                    auxMatrix=0.0_8
 
                    !! open file for integrals
-                   open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
-                        STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   if(CONTROL_instance%IS_OPEN_SHELL .and. &
+                        MolecularSystem_instance%species(currentSpeciesID)%isElectron .and. &
+                        MolecularSystem_instance%species(otherSpeciesID)%isElectron ) then
+                      open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
+                           STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(otherSpeciesID)%isElectron) then
+                      open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecies)//".E-ALPHA.ints", &
+                           STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(currentSpeciesID)%isElectron) then
+                      open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA."//trim(nameOfOtherSpecies)//".ints", &
+                           STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   else
+                      open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".ints", &
+                           STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+                   end if
 
                    readIntegrals2 : do
 
@@ -1357,7 +1377,7 @@ contains
                                     integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
                       if(status == -1 ) then
-                         print*, "end of file! file: ", trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints"
+                         print*, "end of file! file: ", trim(fileid)//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".ints"
                          exit readIntegrals2
                       end if
 
@@ -1441,9 +1461,9 @@ contains
                 end do
              end do
 
-             nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( otherSpeciesID )          
+             nameOfOtherSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )          
 
-             if ( nameOfOtherSpecie .ne. CONTROL_instance%SCF_GHOST_SPECIES ) &
+             if ( nameOfOtherSpecies .ne. CONTROL_instance%SCF_GHOST_SPECIES ) &
                   couplingMatrix%values = couplingMatrix%values + hartreeMatrices(otherSpeciesID)%values 
 
           end if
@@ -1467,8 +1487,8 @@ contains
     
     
     if (  CONTROL_instance%DEBUG_SCFS) then
-       write(*,*) "Coupling Matrix: ", trim(nameOfSpecieSelected)
-       call Matrix_show( wavefunction_instance(currentSpecieID)%couplingMatrix )
+       write(*,*) "Coupling Matrix: ", trim(nameOfSpeciesSelected)
+       call Matrix_show( wavefunction_instance(currentSpeciesID)%couplingMatrix )
     end if
 
 

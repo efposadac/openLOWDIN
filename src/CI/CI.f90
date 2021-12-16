@@ -49,13 +49,13 @@ program CI
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
-  if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
      !!Load the system in lowdin.sys format
      call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-  else
-     !!Load the system in lowdin.sys format
-     call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
-  end if
+  ! else
+  !    !!Load the system in lowdin.sys format
+  !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
+  ! end if
 
   call InputCI_constructor( )
   if(numberOfSpeciesInCI .ne. 0) then

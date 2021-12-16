@@ -747,17 +747,21 @@ contains
        if(existFile) then
 
           !! Destroy the molecular system if any
-          call MolecularSystem_destroy()
+          ! call MolecularSystem_destroy()
+          if(allocated(MolecularSystem_instance%pointCharges)) deallocate(MolecularSystem_instance%pointCharges)
+          if(allocated(MolecularSystem_instance%allParticles)) deallocate(MolecularSystem_instance%allParticles)
 
           open(unit=40, file="lowdin.bas", status="old", form="formatted")
           
           read(40,*) MolecularSystem_instance%numberOfQuantumSpecies
-          allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
+          if(.not. allocated(MolecularSystem_instance%species)) allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
 
           MolecularSystem_instance%numberOfQuantumParticles = 0
 
           do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
              
+             if(allocated(MolecularSystem_instance%species(i)%particles)) deallocate(MolecularSystem_instance%species(i)%particles)
+
              read(40,*) MolecularSystem_instance%species(i)%name             
              read(40,*) auxValue
              
@@ -792,28 +796,22 @@ contains
           
           counter = 1          
           do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-             
              do j = 1, size(MolecularSystem_instance%species(i)%particles)
-                                
                 molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%species(i)%particles(j)
-                
                 counter = counter + 1
-                
              end do
           end do
 
           do i = 1, MolecularSystem_instance%numberOfPointCharges
-             
              molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%pointCharges(i)
              counter = counter + 1
-             
           end do
           
           particleManager_instance => molecularSystem_instance%allParticles
 
        else
           
-          call MolecularSystem_exception(ERROR, "The file: lowdin.bas  was not found!","MolecularSystem module at LoadFromFile function.")
+          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".bas was not found!","MolecularSystem module at LoadFromFile function.")
           
        end if
        
@@ -838,7 +836,7 @@ contains
           
        else
 
-          call MolecularSystem_exception(ERROR, "The file: lowdin.dat  was not found!","MolecularSystem module at LoadFromFile function.")
+          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".dat was not found!","MolecularSystem module at LoadFromFile function.")
           
        end if
        
@@ -950,7 +948,7 @@ contains
 
        else
           
-          call MolecularSystem_exception(ERROR, "The file: lowdin.sys  was not found!","MolecularSystem module at LoadFromFile function.")
+          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".sys was not found!","MolecularSystem module at LoadFromFile function.")
           
        end if
           

@@ -188,7 +188,8 @@ program SCF
   end do
     
   !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
-  if ( (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") .and. CONTROL_instance%FORCE_CLOSED_SHELL ) then
+  if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
+     (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
      speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
      otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
 
@@ -467,31 +468,69 @@ program SCF
      write(*,*) "=============================="
      write(*,*) ""
 
-     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies      
-
-        write(*,*) ""
-        write(*,*) " Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
-        write(*,*) "-----------------"
-        write(*,*) ""
-
-        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
-        call Matrix_constructor(coefficientsShow,int(numberOfContractions,8),int(numberOfContractions-WaveFunction_instance(speciesID)%removedOrbitals,8),0.0_8)
-        do i=1, numberOfContractions
-           do j=1, numberOfContractions-WaveFunction_instance(speciesID)%removedOrbitals
-              coefficientsShow%values(i,j)=WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(i,j)
+     if ( CONTROL_instance%HF_PRINT_EIGENVALUES ) then
+        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+           write(*,*) ""
+           write(*,*) " Eigenvalues for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+           write(*,*) "-----------------"
+           write(*,*) ""
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+           do i = 1 , numberOfContractions 
+              write(6,"(T2,I4,F20.12)") i,WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)
            end do
+           write(*,*) ""
         end do
+        write(*,*) " end of eigenvalues "
+     end if
 
-        call Matrix_show(coefficientsShow , &
-             rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
-             columnkeys = string_convertvectorofrealstostring( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy ),&
-             flags=WITH_BOTH_KEYS)
+     if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "ALL" .or. trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "OCCUPIED" ) then
 
-        call Matrix_destructor(coefficientsShow)
+        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies      
+
+           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+          
+           if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "ALL") then
+
+              write(*,*) ""
+              write(*,*) " Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+              write(*,*) "-----------------"
+              write(*,*) ""
+              
+              call Matrix_constructor(coefficientsShow,int(numberOfContractions,8),int(numberOfContractions-WaveFunction_instance(speciesID)%removedOrbitals,8),0.0_8)
+              do i=1, numberOfContractions
+                 do j=1, numberOfContractions-WaveFunction_instance(speciesID)%removedOrbitals
+                    coefficientsShow%values(i,j)=WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(i,j)
+                 end do
+              end do
+              
+           else if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "OCCUPIED" ) then
+              
+              write(*,*) ""
+              write(*,*) " Occupied Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+              write(*,*) "--------------------------- "
+              write(*,*) ""
+              
+              call Matrix_constructor(coefficientsShow,int(numberOfContractions,8),int(MolecularSystem_getOcupationNumber(speciesID),8),0.0_8)
+              do i=1, numberOfContractions
+                 do j=1, MolecularSystem_getOcupationNumber(speciesID)
+                    coefficientsShow%values(i,j)=WaveFunction_instance(speciesID)%waveFunctionCoefficients%values(i,j)
+                 end do
+              end do
+              
+           end if
+
+           call Matrix_show(coefficientsShow , &
+                rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
+                columnkeys = string_convertvectorofrealstostring( WaveFunction_instance(speciesID)%molecularOrbitalsEnergy ),&
+                flags=WITH_BOTH_KEYS)
+
+           call Matrix_destructor(coefficientsShow)
+        end do
+        
         write(*,*) ""
         write(*,*) " end of eigenvectors "
 
-     end do
+     end if
 
      write(*,*) ""
      write(*,*) " END OF EIGENVALUES AND EIGENVECTORS"
@@ -505,6 +544,20 @@ program SCF
      call WaveFunction_buildDensityMatrix( trim(nameOfSpecies) )
   end do
 
+  !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
+  if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
+     (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
+     speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
+     otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
+
+     if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
+        WaveFunction_instance(otherSpeciesID)%waveFunctionCoefficients%values= WaveFunction_instance(speciesID)%waveFunctionCoefficients%values
+        WaveFunction_instance(otherSpeciesID)%densityMatrix%values= WaveFunction_instance(speciesID)%densityMatrix%values
+     end if
+
+     print *, "E-ALPHA AND E-BETA COEFFICIENTS ARE FORCED TO BE EQUAL IN THIS RUN"
+  end if
+  
   if (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") then
      call system("lowdin-DFT.x BUILD_FINAL_GRID "//trim(densFile))
      call WaveFunction_writeDensityMatricesToFile(trim(densFile))
@@ -698,24 +751,6 @@ program SCF
   write(*,*) " END ENERGY COMPONENTS"
   write(*,*) ""
 
-
-  if ( CONTROL_instance%HF_PRINT_EIGENVALUES ) then
-     write(*,*) "BEGIN EIGENVALUES"
-     write(*,*) ""
-     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-
-        write (6,"(T2,A12)") trim( MolecularSystem_instance%species(speciesID)%name) 
-        write(*,*) ""
-
-        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
-
-        do i = 1 , numberOfContractions 
-           write(6,"(T2,I4,F20.12)") i,WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)
-        end do
-        write(*,*) ""
-     end do
-     write(*,*) "END OF EIGENVALUES"
-  end if
 
   !stop time
   ! call Stopwatch_stop(lowdin_stopwatch)
