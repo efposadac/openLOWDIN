@@ -218,11 +218,11 @@ contains
   character(50) :: wfnFile
   integer :: wfnUnit
 
-  if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
      wfnFile = "lowdin.wfn"
-  else
-     wfnFile = "lowdin-subsystemA.wfn"
-  end if
+  ! else
+  !    wfnFile = "lowdin-subsystemA.wfn"
+  ! end if
 
   wfnUnit = 20
 
@@ -389,11 +389,12 @@ end if
    integer, parameter :: ONE_SPECIE     = 0
    integer, parameter :: TWO_SPECIES      = 1
 
-  if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
      wfnFile = "lowdin.wfn"
-  else
-     wfnFile = "lowdin-subsystemA.wfn"
-  end if
+  ! else
+  !    wfnFile = "lowdin-subsystemA.wfn"
+  ! end if
+     
    wfnUnit = 20
    
 

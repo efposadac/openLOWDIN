@@ -180,13 +180,13 @@ contains
     integer :: numberOfContractions
     character(50) :: arguments(2)
 
-    if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+    ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
        wfnFile = "lowdin.wfn"
        !!Load the system in lowdin.sys format
-    else
-       wfnFile = "lowdin-subsystemA.wfn"
-       !!Load the system in lowdin.sys format
-    end if
+    ! else
+    !    wfnFile = "lowdin-subsystemA.wfn"
+    !    !!Load the system in lowdin.sys format
+    ! end if
     wfnUnit = 20
 
     !! Open file for wavefunction
@@ -1221,11 +1221,11 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       allocate( coefficients(numberOfSpecies), atomicDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
                ciDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), auxDensMatrix(numberOfSpecies,ConfigurationInteraction_instance%nproc) )
 
-      if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+      ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
          wfnFile = "lowdin.wfn"
-      else
-         wfnFile = "lowdin-subsystemA.wfn"
-      end if
+      ! else
+      !    wfnFile = "lowdin-subsystemA.wfn"
+      ! end if
       wfnUnit = 20
       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
@@ -4192,13 +4192,13 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     allocate(ConfigurationInteraction_instance%twoIndexArray(numberOfSpecies))
     allocate(ConfigurationInteraction_instance%fourIndexArray(numberOfSpecies))
  
-    if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+    ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
        wfnFile = "lowdin.wfn"
        !!Load the system in lowdin.sys format
-    else
-       wfnFile = "lowdin-subsystemA.wfn"
-       !!Load the system in lowdin.sys format
-    end if
+    ! else
+    !    wfnFile = "lowdin-subsystemA.wfn"
+    !    !!Load the system in lowdin.sys format
+    ! end if
     wfnUnit = 20
 
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
@@ -5024,7 +5024,8 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 !                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
 !                        SHIFT, DROPTOL, MEM, ICNTL, &
 !                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1_8,-1_8,EIGS, RES, X, LX, NEIG, &
+
+10     CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1_8,-1_8,EIGS, RES, X, LX, NEIG, &
                         SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                         SHIFT, DROPTOL, MEM, ICNTL, &
                         IJOB, NDX1, NDX2, IPRINT, INFO, GAP)

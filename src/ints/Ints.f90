@@ -60,8 +60,6 @@ Program Ints
   !!Load the system in lowdin.bas format
   call MolecularSystem_loadFromFile( "LOWDIN.BAS" )
 
-  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 

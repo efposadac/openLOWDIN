@@ -827,10 +827,18 @@ contains
     integer :: i, j
     integer :: auxCounter = 0
 
+    !! Skip integrals calculation two times for electrons alpha and beta    
+    ! if(CONTROL_instance%IS_OPEN_SHELL .and. ( trim(nameOfSpecies) == "E-BETA" )) return
+    
     if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE )) == "DIRECT") return 
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+
+       if(CONTROL_instance%IS_OPEN_SHELL .and. trim(MolecularSystem_getNameOfSpecie(i)) == "E-BETA" ) cycle
+
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
+
+          if(trim(MolecularSystem_getNameOfSpecie(j)) == "E-BETA" .and. .not. trim(MolecularSystem_getNameOfSpecie(i)) == "E-ALPHA" ) cycle
 
           !! Calculate integrals (stored on disk)       
           select case (trim(String_getUppercase(trim(scheme))))

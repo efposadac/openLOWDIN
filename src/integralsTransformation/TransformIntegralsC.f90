@@ -828,7 +828,17 @@ contains
 
 
     if ( specieID < otherSpecieID ) then
-      fileName = trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+
+       if ( trim(nameOfSpecie) == "E-ALPHA" .and. trim(nameOfOtherSpecie) == "E-BETA" ) then
+          fileName = "E-ALPHA.E-BETA"
+       else if( trim(nameOfOtherSpecie) == "E-BETA" ) then
+          fileName = trim(nameOfSpecie)//".E-ALPHA"
+       else if(trim(nameOfSpecie) == "E-BETA") then
+          fileName = "E-ALPHA."//trim(nameOfOtherSpecie)
+       else 
+          fileName = trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+       end if
+
     !! Read integrals
 !$  timeA(1) = omp_get_wtime()
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, pp, qq, rr, ss, p, shellIntegrals, i, index2, filesize, pq, rs)
@@ -885,9 +895,18 @@ contains
 
     !$OMP END PARALLEL
 
-
     else
-      fileName = trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
+
+       if ( trim(nameOfOtherSpecie) == "E-ALPHA" .and. trim(nameOfSpecie) == "E-BETA" ) then
+          fileName = "E-ALPHA.E-BETA"
+       else if( trim(nameOfOtherSpecie) == "E-BETA" ) then
+          fileName = "E-ALPHA."//trim(nameOfSpecie)
+       else if(trim(nameOfSpecie) == "E-BETA") then
+          fileName = trim(nameOfOtherSpecie)//".E-ALPHA"
+       else 
+          fileName = trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
+       end if
+
     !! Read integrals
 !$  timeA(1) = omp_get_wtime()
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, pp, qq, rr, ss, p, shellIntegrals, i, index2, filesize, pq, rs)

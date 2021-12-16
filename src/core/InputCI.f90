@@ -180,11 +180,11 @@ contains
                      InputCI_Instance(i)%coreOrbitals=CONTROL_instance%MP_FROZEN_CORE_BOUNDARY
 
                 !! Check for orbitals removed in the SCF
-                if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
-                   wfnFile = "lowdin.wfn"
-                else
-                   wfnFile = "lowdin-subsystemA.wfn"
-                end if
+                ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+                wfnFile = "lowdin.wfn"
+                ! else
+                !    wfnFile = "lowdin-subsystemA.wfn"
+                ! end if
                 wfnUnit = 20
                 open(unit = wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
@@ -194,7 +194,7 @@ contains
                 close(wfnUnit)
 
                 if(removedOrbitals .ne. 0.0) InputCI_Instance(i)%activeOrbitals = MolecularSystem_getTotalNumberOfContractions(i)- int(removedOrbitals) 
-                
+
              end if
           end if
        end do

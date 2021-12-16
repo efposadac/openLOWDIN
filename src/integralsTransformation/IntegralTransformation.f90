@@ -82,15 +82,15 @@ program IntegralsTransformation
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
   
-  if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+  ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
      wfnFile = "lowdin.wfn"
-     !!Load the system in lowdin.sys format
+     !Load the system in lowdin.sys format
      call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-  else
-     wfnFile = "lowdin-subsystemA.wfn"
-     !!Load the system in lowdin.sys format
-     call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
-  end if
+  ! else
+  !    wfnFile = "lowdin-subsystemA.wfn"
+  !    !!Load the system in lowdin.sys format
+  !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
+  ! end if
   wfnUnit = 20
 
   call InputCI_constructor( )

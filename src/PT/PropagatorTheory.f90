@@ -304,12 +304,12 @@ contains
                 if ( PropagatorTheory_instance%externalSCS .eqv. .false. ) then
 
                   write ( 6,'(T10,A90)') "-------------------------------------------------------------------------------------------------"
-                  write ( 6,'(T10,A10,A10,A10,A10,A12,A10,A12,A10)') " Orbital ","  KT (eV) "," EP2 (eV) ","  P.S  "," SCS-EP2(eV)"&
+                  write ( 6,'(T10,A12,A12,A12,A12,A12,A12,A12,A12)') " Orbital ","  KT (eV) "," EP2 (eV) ","  P.S  "," SCS-EP2(eV)"&
                        ,"  P.S  "," SOS-EP2(eV)","  P.S  "
                   write ( 6,'(T10,A90)') "-------------------------------------------------------------------------------------------------"
                   
                   do j=1,n
-                     write (*,'(T10,A4,I2,A4,F10.4,F10.4,F10.4,F12.4,F10.4,F12.4,F10.4)') "    ",&
+                     write (*,'(T10,A4,I4,A4,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6)') "    ",&
                           int(PropagatorTheory_instance%secondOrderCorrections(i)%values(j,1)),&
                           "    ",PropagatorTheory_instance%secondOrderCorrections(i)%values(j,2), &
                           PropagatorTheory_instance%secondOrderCorrections(i)%values(j,3), &
@@ -323,14 +323,14 @@ contains
 
                 else 
                   write ( 6,'(T10,A110)') "---------------------------------------------------------------------------------------------------------------------"
-                  write ( 6,'(T10,A10,A10,A10,A10,A12,A10,A12,A10,A12,A10)') " Orbital ","  KT (eV) "," EP2 (eV) ","  P.S  "," SCS-EP2(eV)"&
+                  write ( 6,'(T10,A12,A12,A12,A12,A12,A12,A12,A12,A12,A12)') " Orbital ","  KT (eV) "," EP2 (eV) ","  P.S  "," SCS-EP2(eV)"&
                        ,"  P.S  "," SOS-EP2(eV)","  P.S  ","*SCS-EP2(eV)","  P.S  "
 
 
                   write ( 6,'(T10,A110)') "---------------------------------------------------------------------------------------------------------------------"
                   
                   do j=1,n
-                     write (*,'(T10,A4,I2,A4,F10.4,F10.4,F10.4,F12.4,F10.4,F12.4,F10.4,F12.4,F10.4)') "    ",&
+                     write (*,'(T10,A4,I4,A4,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6)') "    ",&
                           int(PropagatorTheory_instance%secondOrderCorrections(i)%values(j,1)),&
                           "    ",PropagatorTheory_instance%secondOrderCorrections(i)%values(j,2), &
                           PropagatorTheory_instance%secondOrderCorrections(i)%values(j,3), &
@@ -345,24 +345,24 @@ contains
                   end do
 
                   write ( 6,'(T10,A110)') "---------------------------------------------------------------------------------------------------------------------"
-                  write ( 6,'(T10,A12,A11,F10.4,A12,F10.4)') "*SCS-EP2    ","Factor OS: ",  CONTROL_instance%PT_FACTOR_OS, &
+                  write ( 6,'(T10,A12,A11,F12.6,A12,F12.6)') "*SCS-EP2    ","Factor OS: ",  CONTROL_instance%PT_FACTOR_OS, &
                          "Factor SS: ",  CONTROL_instance%PT_FACTOR_SS 
                 end if
                 
              else
                    
-                write ( 6,'(T10,A45)') "------------------------------------------------------"
-                write ( 6,'(T10,A10,A10,A10,A10)') " Orbital ","  KT (eV) ","  EP2 (eV)","  P.S  "
-                write ( 6,'(T10,A45)') "------------------------------------------------------"
+                write ( 6,'(T10,A50)') "-----------------------------------------------------------"
+                write ( 6,'(T10,A12,A12,A12,A12)') " Orbital ","  KT (eV) ","  EP2 (eV)","  P.S  "
+                write ( 6,'(T10,A50)') "-----------------------------------------------------------"
                 
                 do j=1,n
-                   write (*,'(T10,A4,I2,A4,F10.4,F10.4,F10.4,F10.4,F10.4,F10.4,F10.4)') "    ",&
+                   write (*,'(T10,A4,I4,A4,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6)') "    ",&
                         int(PropagatorTheory_instance%secondOrderCorrections(i)%values(j,1)),&
                         "    ",PropagatorTheory_instance%secondOrderCorrections(i)%values(j,2), &
                         PropagatorTheory_instance%secondOrderCorrections(i)%values(j,3), &
                         PropagatorTheory_instance%secondOrderCorrections(i)%values(j,4)
                 end do
-                write ( 6,'(T10,A45)') "------------------------------------------------------"
+                write ( 6,'(T10,A50)') "-----------------------------------------------------------"
 
              end if
 
@@ -411,7 +411,7 @@ contains
 !             write ( 6,'(T10,A85)') "--------------------------------------------------------------------------------------------"
 !
 !             do j=1,n
-!                write (*,'(T10,A4,I2,A4,F10.4,F10.4,F10.4,F10.4,F10.4,F10.4,F10.4)') "    ",&
+!                write (*,'(T10,A4,I4,A4,F10.4,F10.4,F10.4,F10.4,F10.4,F10.4,F10.4)') "    ",&
 !                     int(PropagatorTheory_instance%thirdOrderCorrections(i)%values(j,1)),&
 !                     "    ",PropagatorTheory_instance%thirdOrderCorrections(i)%values(j,2), &
 !                     PropagatorTheory_instance%thirdOrderCorrections(i)%values(j,3), &
@@ -486,11 +486,11 @@ contains
     character(50) :: arguments(2)
     integer :: wfnUnit
 
-    if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+    ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
        wfnFile = "lowdin.wfn"
-    else
-       wfnFile = "lowdin-subsystemA.wfn"
-    end if
+    ! else
+    !    wfnFile = "lowdin-subsystemA.wfn"
+    ! end if
 
     wfnUnit = 20
 
@@ -763,10 +763,11 @@ contains
                          !!auxIndex = IndexMap_tensorR4ToVector(pa, aa, ia, ba, activeOrbitalsOfSpeciesA )
                          auxIndex = PropagatorTheory_IndexMapAA(pa, aa, ia, ba, i )
                          auxValue_A= auxMatrix2(j)%values(auxIndex, 1)
+
                          !auxIndex = IndexMap_tensorR4ToVector(pa, ba, ia, aa, activeOrbitalsOfSpeciesA )
                          auxIndex = PropagatorTheory_IndexMapAA(pa, ba, ia, aa, i )
                          auxValue_B= auxMatrix2(j)%values(auxIndex, 1)
-                         
+
                          id1 = id1 + 1
      
                          selfEnergy2ph(j)%values(1,id1) = auxValue_A*(lambdaOfSpeciesA*auxValue_A - auxValue_B)
@@ -875,7 +876,6 @@ contains
                    do aa = occupationNumberOfSpeciesA+1 , activeOrbitalsOfSpeciesA
                       do ab = occupationNumberOfSpeciesB+1 , activeOrbitalsOfSpeciesB
                          
-
                         !auxIndex = IndexMap_tensorR4ToVector(pa, aa, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                         !print *, "A", auxIndex
                          auxIndex = PropagatorTheory_IndexMapAB(pa, aa, ib, ab, i, j )
@@ -903,7 +903,7 @@ contains
                         !auxIndex = IndexMap_tensorR4ToVector(pa, ia, ib, ab, activeOrbitalsOfSpeciesA, activeOrbitalsOfSpeciesB )
                          auxIndex = PropagatorTheory_IndexMapAB(pa, ia, ib, ab, i, j )
                          auxValue_A = auxMatrix2(j)%values(auxIndex, 1)
-                         
+
                          selfEnergy2hp(j)%values(1,id2) = occupationsOfSpeciesA%values(ia)*&
                               lambdaOfSpeciesA*lambdaOfSpeciesB*((auxValue_A)**2.0_8)
                          
@@ -1259,11 +1259,11 @@ contains
     integer :: wfnUnit
     integer :: oo,oarray(6), ooarray(6), maxoo
 
-    if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+    ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
        wfnFile = "lowdin.wfn"
-    else
-       wfnFile = "lowdin-subsystemA.wfn"
-    end if
+    ! else
+    !    wfnFile = "lowdin-subsystemA.wfn"
+    ! end if
     wfnUnit = 20
 
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
@@ -4649,14 +4649,14 @@ contains
           write (*,"(T5,A55,I2,A13,A8)") "SUMMARY OF PROPAGATOR RESULTS FOR THE SPIN-ORBITAL:",&
                int(PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1))," OF SPECIES:",nameOfSpeciesA 
           write (*, "(T5,A45)") "--------------------------------------------" 
-          write (*, "(T10,A10,A10,A10)") " Method ","BE (eV)","Pole S."
+          write (*, "(T10,A12,A12,A12)") " Method ","BE (eV)","Pole S."
           write (*, "(T5,A45)") "--------------------------------------------"
-          write (*,"(T10,A10,F10.4)") "KT        ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
-          write (*,"(T10,A10,F10.4,F10.4)") "EP2       ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
+          write (*,"(T10,A12,F12.6)") "KT        ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
+          write (*,"(T10,A12,F12.6,F12.6)") "EP2       ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
                PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)
           do o=1,6
 
-             write (*,"(T10,A10,F10.4,F10.4)") thirdOrderMethods(o),thirdOrderResults(1,o),thirdOrderResults(2,o)
+             write (*,"(T10,A12,F12.6,F12.6)") thirdOrderMethods(o),thirdOrderResults(1,o),thirdOrderResults(2,o)
              
           end do
           write (*, "(T5,A45)") "--------------------------------------------"

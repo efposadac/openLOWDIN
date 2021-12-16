@@ -423,7 +423,7 @@ contains
        end do
        arguments(2) = MolecularSystem_getNameOfSpecie(l)
        arguments(1) = "COEFFICIENTS"
-       coefficientsOfcombination = &
+       coefficientsOfcombination(l,1) = &
             Matrix_getFromFile(unit=wfnUnit, &
             rows= int(MolecularSystem_getTotalNumberOfContractions(l),4), &
             columns= int(MolecularSystem_getTotalNumberOfContractions(l),4),&
@@ -482,7 +482,9 @@ contains
              totalNumberOfParticles = totalNumberOfParticles + 1
 
              write (10,"(A,I8,I8,F15.8,F15.8,F15.8)") trim(symbol), j,&
-                  int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), origin(1), origin(2), origin(3)
+                  int(abs(molecularSystem_instance%allParticles( MolecularSystem_instance%species(l)%particles(j)%owner )%particlePtr%charge)) ,&
+                  origin(1), origin(2), origin(3)
+                  ! int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), &
 
           end do
 
@@ -551,24 +553,24 @@ contains
           occupationTotal=MolecularSystem_getOcupationNumber(l)
 
           call MolecularSystem_changeOrbitalOrder(coefficientsOfcombination(l,state),l,"LOWDIN","MOLDEN")
-          
+
           do j=1,size(energyOfMolecularOrbital(l,state)%values)
              write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital(l,state)%values(j)
 
              write (10,"(A11)") "Spin= Alpha"
 
-             occupation=fractionalOccupations(l,state)%values(j)
+             write (10,"(A5,F15.10)") "Occup= ",fractionalOccupations(l,state)%values(j)
 
              i = 0
              do k=1,size(coefficientsOfCombination(l,state)%values,dim=1)
                 i = i + 1
-                write(10,"(I4,A2,F15.10)") k,"  ", coefficientsOfCombination(l,state)%values(k,j)
+                write(10,"(I4,A2,E15.8)") k,"  ", coefficientsOfCombination(l,state)%values(k,j)
              end do
 
               if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
                 if ( CONTROL_instance%MOLDEN_FILE_FORMAT == "MIXED" ) then
                   do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-                    write(10,"(I4,A2,F15.10)") i+n,"  ", 0.0_8
+                    write(10,"(I4,A2,ES15.8)") i+n,"  ", 0.0
                   end do
                 end if
               end if
@@ -580,9 +582,9 @@ contains
        end do
     end do
 
-    call Matrix_destructor( localizationOfCenters )
-    call Matrix_destructor( auxMatrix )
-    deallocate(labels)
+    ! call Matrix_destructor( localizationOfCenters )
+    ! call Matrix_destructor( auxMatrix )
+    ! deallocate(labels)
 
     !     end if
 
@@ -951,9 +953,11 @@ contains
        write(10,"(A40,3X,A1,3X,A2,I12)") header, "I", "N=", numberOfAtoms
        do j=1, numberOfAtoms
           if(mod(j,6).eq.0 .or. j.eq.numberOfAtoms ) then
-             write(10,"(I12)") MolecularSystem_instance%species(l)%particles(j)%internalSize
+             ! write(10,"(I12)") MolecularSystem_instance%species(l)%particles(j)%internalSize
+             write(10,"(I12)") int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge))
           else
-             write(10,"(I12)", advance="no") MolecularSystem_instance%species(l)%particles(j)%internalSize
+             ! write(10,"(I12)", advance="no") MolecularSystem_instance%species(l)%particles(j)%internalSize
+             write(10,"(I12)", advance="no") int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge))
           end if
        end do
 
