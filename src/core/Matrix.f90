@@ -247,7 +247,7 @@ contains
     integer, optional, intent(in) :: value
 
     integer :: valueTmp
-    this%isInstanced = .true.
+
     valueTmp = 0.0_8
     if( present(value) ) valueTmp = value
 
@@ -1313,19 +1313,58 @@ contains
 
   !>
   !! @brief Retorna el determinante de la matriz
-  !! @param flags Indica las propiedades adicionales de la matriz que
-  !!              permite optimizar el calculo
-  !! @todo Falta implementar
-  function Matrix_getDeterminant( this, method, flags ) result ( output )
+  !! @param method se calcula a partir de una descomposicion SVD (valor absoluto) o LU
+  subroutine Matrix_getDeterminant( this, determinant, method)
     implicit none
     type(Matrix), intent(inout) :: this
-    integer, intent(in), optional :: method
-    integer, intent(in), optional :: flags
-    real(8) :: output
+    real(8) :: determinant
+    character(*), optional :: method
 
-    output = 0.0_8
+    type(Matrix) :: range, nullSpace, singular
+    type(Matrix) :: U, auxMatrix
+    integer :: dim, i
+    integer, allocatable :: pivotIndices(:)
+    character(10) :: selectedMethod
 
-  end function Matrix_getDeterminant
+    if( present ( method ) ) then
+       selectedMethod=trim(method)
+    else
+       selectedMethod="LU"
+    end if
+    dim=size(this%values, dim=1)
+    
+    select case( trim(selectedMethod) )
+    case("SVD")
+
+       call Matrix_constructor(range, int(dim,8), int(dim,8), 0.0_8)
+       call Matrix_constructor(nullSpace, int(dim,8), int(dim,8), 0.0_8)
+       call Matrix_constructor(singular, int(dim,8), int(dim,8), 0.0_8)
+
+       call Matrix_svd( this, range, nullSpace, singular )
+
+       determinant=1.0
+       do i=1,dim
+          determinant=determinant*singular%values(i,i)
+       end do
+
+    case("LU")
+
+       call Matrix_constructor(U, int(dim,8), int(dim,8), 0.0_8)
+       allocate( pivotIndices( dim ))
+       
+       auxMatrix=Matrix_factorizeLU( this, pivotIndices=pivotIndices, U=U )
+       
+       determinant=1.0
+       do i=1,dim
+          determinant=determinant*U%values(i,i)
+          if(pivotIndices(i) .ne. i) determinant=-determinant
+       end do
+
+    case default
+       call Matrix_exception(ERROR, "The selected method to compute the determinant is not implemented", "Class object Matrix in the getDeterminant() function")
+    end select
+
+  end subroutine Matrix_getDeterminant
 
   !>
   !! @brief Retorna la matriz inversa de la matriz
@@ -1826,7 +1865,7 @@ contains
                abstol, &
                m_dsyevx, &
                eigenValues%values, &
-               matrixSize, matrixSize, &
+               eigenVectors%values, matrixSize, &
                workSpace, &
                lengthWorkSpace, &
                iwork, &
@@ -1851,7 +1890,7 @@ contains
                abstol, &
                m_dsyevx, &
                eigenValues%values, &
-               matrixSize, matrixSize, &
+               eigenVectors%values, matrixSize, &
                workSpace, &
                lengthWorkSpace, &
                iwork, &
@@ -2018,7 +2057,7 @@ contains
                abstol, &
                m_dsyevx, &
                eigenValues%values, &
-               matrixSize, matrixSize, &
+               eigenVectors%values, matrixSize, &
                largestEigenValue - smallestEigenValue + 1, &
                workSpace, &
                lengthWorkSpace, &
@@ -2051,7 +2090,7 @@ contains
                abstol, &
                m_dsyevx, &
                eigenValues%values, &
-               matrixSize, matrixSize, &
+               eigenVectors%values, matrixSize, &
                largestEigenValue - smallestEigenValue + 1, &
                workSpace, &
                lengthWorkSpace, &

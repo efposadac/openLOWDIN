@@ -52,8 +52,8 @@ module Math_
   real(8), parameter :: Math_PI = 3.141592653589793238D0
   real(8), parameter :: Math_SQRT_PI = Math_PI ** 0.5_8
   real(8), parameter :: Zero = 0.0_8
-  real(8), parameter :: Math_NaN = Z'7FFFFFFFFFFFFFFF'
-
+  ! real(8), parameter :: Math_NaN = Z'7FFFFFFFFFFFFFFF'
+  real(8), parameter :: Math_NaN = 0.0_8/0.0_8
   !>
   !! Gamma function related parameters
   integer, parameter :: maxfac = 24

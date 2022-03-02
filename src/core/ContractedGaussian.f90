@@ -56,6 +56,7 @@ module ContractedGaussian_
   use CONTROL_
   use Exception_
   use String_
+  use Matrix_
   implicit none
   
   type :: contractedGaussian
@@ -956,7 +957,189 @@ contains
 
   end function ContractedGaussian_primitiveProductConstant
 
+  !>
+  !! @brief Returns the values of a contracted atomic shell in a set of coordinates
+  !! grid: Matrix of gridSize*3 with the coordinates
+  !! orbital: Matrix of gridSize*numberOfCartesiansOrbitals that contains the gaussians calculated values 
+  !! Felix Moncada, 2022
+  !<
+  subroutine ContractedGaussian_getValuesAtGrid( this, grid, gridSize, orbital)
+    implicit none
+    type(ContractedGaussian) , intent(in) :: this
+    type(Matrix) :: grid
+    type(Matrix) :: orbital    
+    integer :: gridSize
 
+    integer :: h
+    integer :: nx, ny, nz !< indices de momento angular
+    integer :: i, j, m, w
+    integer :: point
+    real(8) :: coordinate(3)
+    real(8) :: exponential, dx, dy, dz
+    real(8) :: auxOutput(this%numCartesianOrbital)
+    real :: time1,time2
+
+    time1=omp_get_wtime()
+    !$omp parallel private(i, j, m, w,nx, ny, nz, h, point, coordinate,exponential, dx, dy, dz, auxOutput)
+    !$omp do schedule (dynamic)
+    do point=1, gridSize
+       coordinate(1)=grid%values(point,1)-this%origin(1)
+       coordinate(2)=grid%values(point,2)-this%origin(2)
+       coordinate(3)=grid%values(point,3)-this%origin(3)
+       do h=1, this%length
+          exponential=dexp(-this%orbitalExponents(h)*(coordinate(1)**2 + coordinate(2)**2 +coordinate(3)**2) )
+          m = 0
+          do i = 0 , this%angularMoment
+             nx = this%angularMoment - i
+             do j = 0 , i
+                ny = i - j
+                nz = j
+                m = m + 1
+
+                !!Orbital
+                auxOutput(m) = this%contNormalization(m) &
+                     * this%primNormalization(h,m) &
+                     * coordinate(1)** nx &
+                     * coordinate(2)** ny &
+                     * coordinate(3)** nz &
+                     * exponential 
+
+             end do
+          end do
+
+          auxOutput = auxOutput * this%contractionCoefficients(h)
+
+          do w=1, m
+             orbital%values(point,w) =   orbital%values(point,w)   + auxOutput(w) 
+          end do
+       end do
+    end do
+    !$omp end do 
+    !$omp end parallel
+
+    time2=omp_get_wtime()
+    ! write(*,"(A,F10.3,A4)") "**getOrbitalAtGrid:", time2-time1 ," (s)"
+
+  end subroutine ContractedGaussian_getValuesAtGrid
+
+  !>
+  !! @brief Returns the values of a contracted atomic shell and its gradient in a set of coordinates
+  !! grid: Matrix of gridSize*3 with the coordinates
+  !! orbital: Matrix of gridSize*numberOfCartesiansOrbitals that contains the gaussians calculated values 
+  !! orbitaldXYZ: Matrices of gridSize*numberOfCartesiansOrbitals that contains the derivatives calculated values
+  !! Felix Moncada, 2022
+  !<
+  subroutine ContractedGaussian_getGradientAtGrid( this, grid, gridSize, orbital, orbitaldX, orbitaldY, orbitaldZ)
+    implicit none
+    type(ContractedGaussian) , intent(in) :: this
+    type(Matrix) :: grid
+    type(Matrix) :: orbital    
+    type(Matrix) :: orbitaldX, orbitaldY, orbitaldZ
+    integer :: gridSize
+
+    integer :: h
+    integer :: nx, ny, nz !< indices de momento angular
+    integer :: i, j, m, w
+    integer :: point
+    real(8) :: coordinate(3)
+    real(8) :: exponential, dx, dy, dz
+    real(8) :: auxOutput(this%numCartesianOrbital,4)
+    real :: time1,time2
+
+    time1=omp_get_wtime()
+    !$omp parallel private(i, j, m, w,nx, ny, nz, h, point, coordinate,exponential, dx, dy, dz, auxOutput)
+    !$omp do schedule (dynamic)
+    do point=1, gridSize
+       coordinate(1)=grid%values(point,1)-this%origin(1)
+       coordinate(2)=grid%values(point,2)-this%origin(2)
+       coordinate(3)=grid%values(point,3)-this%origin(3)
+       do h=1, this%length
+          exponential=dexp(-this%orbitalExponents(h)*(coordinate(1)**2 + coordinate(2)**2 +coordinate(3)**2) )
+          m = 0
+          do i = 0 , this%angularMoment
+             nx = this%angularMoment - i
+             do j = 0 , i
+                ny = i - j
+                nz = j
+                m = m + 1
+
+                !!Orbital
+                auxOutput(m,4) = this%contNormalization(m) &
+                     * this%primNormalization(h,m) &
+                     * coordinate(1)** nx &
+                     * coordinate(2)** ny &
+                     * coordinate(3)** nz &
+                     * exponential 
+
+                dx=-2*this%orbitalExponents(h) &
+                     * coordinate(1)** (nx+1) &
+                     * coordinate(2)** ny &
+                     * coordinate(3)** nz 
+
+                ! Orbital derivative
+                if( nx .ge. 1 ) then
+                   dx= dx + &
+                        nx*coordinate(1)** (nx-1) &
+                        * coordinate(2)** ny &
+                        * coordinate(3)** nz 
+                end if
+
+                dy=-2*this%orbitalExponents(h) &
+                     * coordinate(1)** nx &
+                     * coordinate(2)** (ny+1) &
+                     * coordinate(3)** nz 
+
+                if( ny .ge. 1 ) then
+                   dy= dy + &
+                        coordinate(1)** nx &
+                        *ny*coordinate(2)** (ny-1) &
+                        * coordinate(3)** nz 
+                end if
+
+                dz=-2*this%orbitalExponents(h) &
+                     * coordinate(1)** nx &
+                     * coordinate(2)** ny &
+                     * coordinate(3)** (nz+1) 
+
+                if( nz .ge. 1 ) then
+                   dz= dz+ &
+                        coordinate(1)** nx &
+                        *coordinate(2)** ny &
+                        *nz*coordinate(3)** (nz-1) 
+                end if
+
+                auxOutput(m,1) = this%contNormalization(m) &
+                     *this%primNormalization(h,m) &
+                     *exponential*dx
+
+                auxOutput(m,2) = this%contNormalization(m) &
+                     *this%primNormalization(h,m) &
+                     *exponential*dy
+
+                auxOutput(m,3) = this%contNormalization(m) &
+                     *this%primNormalization(h,m) &
+                     *exponential*dz
+
+             end do
+          end do
+
+          auxOutput = auxOutput * this%contractionCoefficients(h)
+
+          do w=1, m
+             orbital%values(point,w) =   orbital%values(point,w)   + auxOutput(w,4) 
+             orbitaldX%values(point,w) = orbitaldX%values(point,w) + auxOutput(w,1) 
+             orbitaldY%values(point,w) = orbitaldY%values(point,w) + auxOutput(w,2) 
+             orbitaldZ%values(point,w) = orbitaldZ%values(point,w) + auxOutput(w,3) 
+          end do
+       end do
+    end do
+    !$omp end do 
+    !$omp end parallel
+
+    time2=omp_get_wtime()
+    ! write(*,"(A,F10.3,A4)") "**getOrbitalGradientAtGrid:", time2-time1 ," (s)"
+
+  end subroutine ContractedGaussian_getGradientAtGrid
 
   !>
   !! @brief  Maneja excepciones de la clase

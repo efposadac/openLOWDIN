@@ -34,7 +34,7 @@ program lowdin_
 
  character(50) :: strAuxNumber
  integer :: statusSystem
-
+ 
  !! Time Control
  call Stopwatch_constructor( lowdin_stopwatch )
  call Stopwatch_start( lowdin_stopwatch )
@@ -175,10 +175,9 @@ program lowdin_
     call GeometryOptimizer_constructor( GeometryOptimizer_instance )
     call GeometryOptimizer_run( GeometryOptimizer_instance )
     call GeometryOptimizer_destructor( GeometryOptimizer_instance )
- else
+ else    
     call Solver_run()
  end if
-
  !!
  !!******************************************************************************
 
@@ -186,8 +185,8 @@ program lowdin_
 
   if ( CONTROL_instance%IS_THERE_OUTPUT ) then
     write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
-!!  call system("lowdin-output.x" //trim(strAuxNumber))
-    statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
+    call system("lowdin-output.x" //trim(strAuxNumber))
+    ! statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
   end if
 
 
