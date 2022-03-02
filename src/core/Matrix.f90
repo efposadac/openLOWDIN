@@ -247,7 +247,7 @@ contains
     integer, optional, intent(in) :: value
 
     integer :: valueTmp
-    this%isInstanced = .true.
+
     valueTmp = 0.0_8
     if( present(value) ) valueTmp = value
 
@@ -1313,19 +1313,58 @@ contains
 
   !>
   !! @brief Retorna el determinante de la matriz
-  !! @param flags Indica las propiedades adicionales de la matriz que
-  !!              permite optimizar el calculo
-  !! @todo Falta implementar
-  function Matrix_getDeterminant( this, method, flags ) result ( output )
+  !! @param method se calcula a partir de una descomposicion SVD (valor absoluto) o LU
+  subroutine Matrix_getDeterminant( this, determinant, method)
     implicit none
     type(Matrix), intent(inout) :: this
-    integer, intent(in), optional :: method
-    integer, intent(in), optional :: flags
-    real(8) :: output
+    real(8) :: determinant
+    character(*), optional :: method
 
-    output = 0.0_8
+    type(Matrix) :: range, nullSpace, singular
+    type(Matrix) :: U, auxMatrix
+    integer :: dim, i
+    integer, allocatable :: pivotIndices(:)
+    character(10) :: selectedMethod
 
-  end function Matrix_getDeterminant
+    if( present ( method ) ) then
+       selectedMethod=trim(method)
+    else
+       selectedMethod="LU"
+    end if
+    dim=size(this%values, dim=1)
+    
+    select case( trim(selectedMethod) )
+    case("SVD")
+
+       call Matrix_constructor(range, int(dim,8), int(dim,8), 0.0_8)
+       call Matrix_constructor(nullSpace, int(dim,8), int(dim,8), 0.0_8)
+       call Matrix_constructor(singular, int(dim,8), int(dim,8), 0.0_8)
+
+       call Matrix_svd( this, range, nullSpace, singular )
+
+       determinant=1.0
+       do i=1,dim
+          determinant=determinant*singular%values(i,i)
+       end do
+
+    case("LU")
+
+       call Matrix_constructor(U, int(dim,8), int(dim,8), 0.0_8)
+       allocate( pivotIndices( dim ))
+       
+       auxMatrix=Matrix_factorizeLU( this, pivotIndices=pivotIndices, U=U )
+       
+       determinant=1.0
+       do i=1,dim
+          determinant=determinant*U%values(i,i)
+          if(pivotIndices(i) .ne. i) determinant=-determinant
+       end do
+
+    case default
+       call Matrix_exception(ERROR, "The selected method to compute the determinant is not implemented", "Class object Matrix in the getDeterminant() function")
+    end select
+
+  end subroutine Matrix_getDeterminant
 
   !>
   !! @brief Retorna la matriz inversa de la matriz
@@ -1833,7 +1872,25 @@ contains
               iwork, &
               ifail, infoProcess )
 
-         lengthWorkSpace = int(workSpace(1))
+          lengthWorkSpace = -1
+          !! calculates the optimal size of the WORK array
+          call dsyevx( &
+               COMPUTE_EIGENVALUES, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, matrixSize, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               ifail, infoProcess )
 
          !! Crea el vector de trabajo
          if (allocated(workSpace)) deallocate(workSpace)
@@ -1859,9 +1916,24 @@ contains
               iwork, &
               ifail, infoProcess )
 
-         call Matrix_destructor( eigenVectorsTmp )
-       
-       end if !!  present( eigenVectors ) 
+          !! Calcula valores propios de la matriz de entrada
+          call dsyevx( &
+               COMPUTE_EIGENVALUES, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, matrixSize, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               ifail, infoProcess )
 
       !! Determina la ocurrencia de errores
       if ( infoProcess /= 0 )  then
@@ -2029,39 +2101,89 @@ contains
          lengthiwork = int(iwork(1))
 
          !! Crea el vector de trabajo
-         if (allocated(workSpace)) deallocate(workSpace)
-         allocate( workSpace( lengthWorkSpace ) )
+           if (allocated(iwork)) deallocate(iwork)
+          allocate( iwork( lengthiwork ) )
+
+
+          !! Calcula valores propios de la matriz de entrada
+          call dsyevr( &
+               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, matrixSize, &
+               largestEigenValue - smallestEigenValue + 1, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               lengthiwork, &
+               infoProcess )
+
+
+       else
+
+          !! Crea la matriz que almacenara los vectores propios
+!!          call Matrix_copyConstructor( eigenVectorsTmp, this )
+
+          lengthWorkSpace = -1
+          lengthiwork = -1
+
+          !! calculates the optimal size of the WORK array
+          call dsyevr( &
+               COMPUTE_EIGENVALUES, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, matrixSize, &
+               largestEigenValue - smallestEigenValue + 1, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               lengthiwork, &
+               infoProcess )
+
+          lengthWorkSpace = int(workSpace(1))
+          lengthiwork = int(iwork(1))
 
          !! Crea el vector de trabajo
          if (allocated(iwork)) deallocate(iwork)
          allocate( iwork( lengthiwork ) )
 
 
-         !! Calcula valores propios de la matriz de entrada
-         call dsyevr( &
-              COMPUTE_EIGENVALUES, &
-              "I", &
-              UPPER_TRIANGLE_IS_STORED, &
-              matrixSize, &
-              this%values, &
-              matrixSize, &
-              vl, vu, &
-              smallestEigenValue, largestEigenValue, &
-              abstol, &
-              m_dsyevx, &
-              eigenValues%values, &
-              eigenVectorsTmp%values, &
-              matrixSize, &
-              largestEigenValue - smallestEigenValue + 1, &
-              workSpace, &
-              lengthWorkSpace, &
-              iwork, &
-              lengthiwork, &
-              infoProcess )
-            
-        call Matrix_destructor( eigenVectorsTmp )
-             
-      end if
+          !! Calcula valores propios de la matriz de entrada
+          call dsyevr( &
+               COMPUTE_EIGENVALUES, &
+               "I", &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               this%values, &
+               matrixSize, &
+               vl, vu, &
+               smallestEigenValue, largestEigenValue, &
+               abstol, &
+               m_dsyevx, &
+               eigenValues%values, &
+               eigenVectors%values, matrixSize, &
+               largestEigenValue - smallestEigenValue + 1, &
+               workSpace, &
+               lengthWorkSpace, &
+               iwork, &
+               lengthiwork, &
+               infoProcess )
 
       !! Determina la ocurrencia de errores
       if ( infoProcess /= 0 )  then

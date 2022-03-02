@@ -184,6 +184,15 @@ if [ $extFile="lowdin" ]; then
                         else if($i=="fragmentNumber"){
 				printf("\tInputParticle_fragmentNumber = %s\n",$(i+2) )
 			}
+                        else if($i=="translationCenter"){
+				printf("\tInputParticle_translationCenter = %s\n",$(i+2) )
+			}
+                        else if($i=="rotationPoint"){
+				printf("\tInputParticle_rotationPoint = %s\n",$(i+2) )
+			}
+                        else if($i=="rotateAround"){
+				printf("\tInputParticle_rotateAround = %s\n",$(i+2) )
+			}
                         else if($i=="q"){
 				printf("\tInputParticle_charge = %s\n",$(i+2) )
 			}

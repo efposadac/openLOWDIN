@@ -97,7 +97,11 @@ module MolecularSystem_
        MolecularSystem_getSpecieIDFromSymbol, &
        MolecularSystem_getPointChargesEnergy, &
        MolecularSystem_getMMPointChargesEnergy, &
-       MolecularSystem_getlabelsofcontractions
+       MolecularSystem_getlabelsofcontractions, &
+       MolecularSystem_changeOrbitalOrder, &
+       MolecularSystem_readFchk, &
+       MolecularSystem_copyConstructor, &
+       MolecularSystem_mergeTwoSystems       
   
   !>Singleton
   type(MolecularSystem), public, target :: MolecularSystem_instance
@@ -601,7 +605,7 @@ contains
     
     !! Saving general information.
     write(40,*) MolecularSystem_instance%name
-    write(40,*) MolecularSystem_instance%description    
+    write(40,'(A100)') MolecularSystem_instance%description    
     write(40,*) MolecularSystem_instance%charge
     
     !! Saving quantum species.
@@ -859,7 +863,7 @@ contains
           
           !! read general information.
           read(40,*) MolecularSystem_instance%name
-          read(40,*) MolecularSystem_instance%description    
+          read(40,'(A100)') MolecularSystem_instance%description    
           read(40,*) MolecularSystem_instance%charge
           
           !! load quantum species.
@@ -1723,7 +1727,447 @@ contains
   end subroutine MolecularSystem_readFchk
 
    
-   !>
+  !>
+  !! @brief Copies a molecular system into another molecular system object
+  !! @author F. M. Moncada 2022
+  subroutine MolecularSystem_copyConstructor(this,originalThis)
+    implicit none
+
+    type(MolecularSystem), intent(out), target :: this
+    type(MolecularSystem), intent(in) :: originalThis
+
+    integer :: i, j
+    integer :: counter
+
+    !! Destroy the molecular system if any
+    ! call MolecularSystem_destroy()
+    if(allocated(this%pointCharges)) deallocate(this%pointCharges)
+    if(allocated(this%allParticles)) deallocate(this%allParticles)
+
+    !! Start copy atribute by atribute
+    !! Non structured information 
+    this%name=originalThis%name 
+    this%description=originalThis%description
+    this%numberOfParticles=originalThis%numberOfParticles
+    this%numberOfPointCharges=originalThis%numberOfPointCharges 
+    this%numberOfQuantumParticles=originalThis%numberOfQuantumParticles
+    this%numberOfQuantumSpecies=originalThis%numberOfQuantumSpecies
+    this%charge=originalThis%charge
+
+    !! Allocate memory for species and particles
+    allocate(this%species(originalThis%numberOfQuantumSpecies))
+
+    !!Copies species information
+    do i = 1, originalThis%numberOfQuantumSpecies
+       allocate(this%species(i)%particles( size(originalThis%species(i)%particles)))
+       this%species(i)%name = originalThis%species(i)%name
+       this%species(i)%symbol = originalThis%species(i)%symbol
+       this%species(i)%statistics = originalThis%species(i)%statistics
+       this%species(i)%charge = originalThis%species(i)%charge
+       this%species(i)%mass = originalThis%species(i)%mass
+       this%species(i)%spin = originalThis%species(i)%spin
+       this%species(i)%totalCharge = originalThis%species(i)%totalCharge
+       this%species(i)%kappa = originalThis%species(i)%kappa
+       this%species(i)%eta = originalThis%species(i)%eta
+       this%species(i)%lambda = originalThis%species(i)%lambda
+       this%species(i)%particlesFraction = originalThis%species(i)%particlesFraction
+       this%species(i)%ocupationNumber = originalThis%species(i)%ocupationNumber
+       this%species(i)%multiplicity = originalThis%species(i)%multiplicity
+       this%species(i)%internalSize = originalThis%species(i)%internalSize
+       this%species(i)%basisSetSize = originalThis%species(i)%basisSetSize
+       this%species(i)%speciesID = originalThis%species(i)%speciesID
+       this%species(i)%isElectron = originalThis%species(i)%isElectron
+    end do
+
+    allocate(this%pointCharges(originalThis%numberOfPointCharges))
+    allocate(this%allParticles(originalThis%numberOfParticles))
+       
+    !! Set the particles manager (all pointers)        
+    counter = 1
+    do i = 1, originalThis%numberOfQuantumSpecies
+       do j = 1, size(originalThis%species(i)%particles)        
+          this%allParticles(counter)%particlePtr => this%species(i)%particles(j)
+          counter = counter + 1
+       end do
+    end do
+
+    do i = 1, originalThis%numberOfPointCharges       
+       this%allParticles(counter)%particlePtr => this%pointCharges(i)
+       counter = counter + 1
+    end do
+    
+    
+    !!Copies particles information
+    do i = 1, originalThis%numberOfParticles
+       this%allParticles(i)%particlePtr%name=originalThis%allParticles(i)%particlePtr%name
+       this%allParticles(i)%particlePtr%symbol=originalThis%allParticles(i)%particlePtr%symbol
+       this%allParticles(i)%particlePtr%nickname=originalThis%allParticles(i)%particlePtr%nickname
+       this%allParticles(i)%particlePtr%statistics=originalThis%allParticles(i)%particlePtr%statistics
+       this%allParticles(i)%particlePtr%basisSetName=originalThis%allParticles(i)%particlePtr%basisSetName
+       this%allParticles(i)%particlePtr%origin=originalThis%allParticles(i)%particlePtr%origin
+       this%allParticles(i)%particlePtr%charge=originalThis%allParticles(i)%particlePtr%charge
+       this%allParticles(i)%particlePtr%mass=originalThis%allParticles(i)%particlePtr%mass
+       this%allParticles(i)%particlePtr%spin=originalThis%allParticles(i)%particlePtr%spin
+       this%allParticles(i)%particlePtr%totalCharge=originalThis%allParticles(i)%particlePtr%totalCharge
+       this%allParticles(i)%particlePtr%klamt=originalThis%allParticles(i)%particlePtr%klamt
+       this%allParticles(i)%particlePtr%vanderWaalsRadio=originalThis%allParticles(i)%particlePtr%vanderWaalsRadio
+       this%allParticles(i)%particlePtr%isQuantum=originalThis%allParticles(i)%particlePtr%isQuantum
+       this%allParticles(i)%particlePtr%isDummy=originalThis%allParticles(i)%particlePtr%isDummy
+       this%allParticles(i)%particlePtr%fixComponent=originalThis%allParticles(i)%particlePtr%fixComponent
+       this%allParticles(i)%particlePtr%isCenterOfOptimization=originalThis%allParticles(i)%particlePtr%isCenterOfOptimization
+       this%allParticles(i)%particlePtr%multiplicity=originalThis%allParticles(i)%particlePtr%multiplicity
+       this%allParticles(i)%particlePtr%subsystem=originalThis%allParticles(i)%particlePtr%subsystem
+       this%allParticles(i)%particlePtr%translationCenter=originalThis%allParticles(i)%particlePtr%translationCenter
+       this%allParticles(i)%particlePtr%rotationPoint=originalThis%allParticles(i)%particlePtr%rotationPoint
+       this%allParticles(i)%particlePtr%rotateAround=originalThis%allParticles(i)%particlePtr%rotateAround
+       this%allParticles(i)%particlePtr%id=originalThis%allParticles(i)%particlePtr%id
+       this%allParticles(i)%particlePtr%internalSize=originalThis%allParticles(i)%particlePtr%internalSize
+       this%allParticles(i)%particlePtr%owner=originalThis%allParticles(i)%particlePtr%owner
+       this%allParticles(i)%particlePtr%basisSetSize=originalThis%allParticles(i)%particlePtr%basisSetSize
+
+       if ( allocated(originalThis%allParticles(i)%particlePtr%childs) ) then
+          allocate(this%allParticles(i)%particlePtr%childs( size(originalThis%allParticles(i)%particlePtr%childs)))
+          this%allParticles(i)%particlePtr%childs=originalThis%allParticles(i)%particlePtr%childs
+       end if
+
+       !! Copies basis set information
+       if ( this%allParticles(i)%particlePtr%isQuantum ) then
+
+          this%allParticles(i)%particlePtr%basis%name=originalThis%allParticles(i)%particlePtr%basis%name
+          this%allParticles(i)%particlePtr%basis%origin=originalThis%allParticles(i)%particlePtr%basis%origin
+          this%allParticles(i)%particlePtr%basis%length=originalThis%allParticles(i)%particlePtr%basis%length
+          this%allParticles(i)%particlePtr%basis%ttype=originalThis%allParticles(i)%particlePtr%basis%ttype
+          this%allParticles(i)%particlePtr%basis%contractionLength=originalThis%allParticles(i)%particlePtr%basis%contractionLength
+          this%allParticles(i)%particlePtr%basis%numberOfPrimitives=originalThis%allParticles(i)%particlePtr%basis%numberOfPrimitives
+
+          allocate(this%allParticles(i)%particlePtr%basis%contraction(originalThis%allParticles(i)%particlePtr%basis%length))
+          
+          do j=1, originalThis%allParticles(i)%particlePtr%basis%length
+             this%allParticles(i)%particlePtr%basis%contraction(j)%id=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%id
+             this%allParticles(i)%particlePtr%basis%contraction(j)%length=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%length
+             this%allParticles(i)%particlePtr%basis%contraction(j)%angularMoment=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%angularMoment
+             this%allParticles(i)%particlePtr%basis%contraction(j)%numCartesianOrbital=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%numCartesianOrbital
+             this%allParticles(i)%particlePtr%basis%contraction(j)%owner=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%owner
+             this%allParticles(i)%particlePtr%basis%contraction(j)%subsystem=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%subsystem
+             this%allParticles(i)%particlePtr%basis%contraction(j)%origin=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%origin
+
+             allocate(this%allParticles(i)%particlePtr%basis%contraction(j)%orbitalExponents(&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%length))
+             allocate(this%allParticles(i)%particlePtr%basis%contraction(j)%contractionCoefficients(&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%length))
+
+             this%allParticles(i)%particlePtr%basis%contraction(j)%orbitalExponents=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%orbitalExponents
+             this%allParticles(i)%particlePtr%basis%contraction(j)%contractionCoefficients=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%contractionCoefficients
+
+             allocate(this%allParticles(i)%particlePtr%basis%contraction(j)%contNormalization(&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%numCartesianOrbital))
+             allocate(this%allParticles(i)%particlePtr%basis%contraction(j)%primNormalization(&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%length,&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%numCartesianOrbital))
+
+             this%allParticles(i)%particlePtr%basis%contraction(j)%contNormalization=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%contNormalization
+             this%allParticles(i)%particlePtr%basis%contraction(j)%primNormalization=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%primNormalization                  
+
+          end do
+       end if
+
+    end do
+    ! particleManager_instance => molecularSystem_instance%allParticles
+    
+  end subroutine MolecularSystem_copyConstructor
+
+  !>
+  !! @brief Stack together the basis sets of two molecular systems for Non Orthogonal CI calculations
+  !! @author F. M. Moncada 2022
+  subroutine MolecularSystem_mergeTwoSystems(mergedThis,thisA,thisB)
+    type(MolecularSystem), intent(out), target :: mergedThis
+    type(MolecularSystem), intent(in) :: thisA, thisB
+    
+    integer :: i, j, k, jj
+    integer :: counter
+
+    !! Destroy the molecular system if any
+    ! call MolecularSystem_destroy()
+    if(allocated(mergedThis%pointCharges)) deallocate(mergedThis%pointCharges)
+    if(allocated(mergedThis%allParticles)) deallocate(mergedThis%allParticles)
+
+    !! Start copy atribute by atribute
+    !! Non structured information 
+    mergedThis%name=thisA%name 
+    mergedThis%description=thisA%description
+    mergedThis%charge=thisA%charge
+    mergedThis%numberOfPointCharges=thisA%numberOfPointCharges 
+    mergedThis%numberOfQuantumParticles=thisA%numberOfQuantumParticles
+    mergedThis%numberOfQuantumSpecies=thisA%numberOfQuantumSpecies
+    mergedThis%numberOfParticles=thisA%numberOfPointCharges 
+
+    !! Allocate memory for particles
+    allocate(mergedThis%species(mergedThis%numberOfQuantumSpecies))
+
+    !!Copies species information
+    !!Double basis set (A+B)
+    do i = 1, mergedThis%numberOfQuantumSpecies
+       allocate(mergedThis%species(i)%particles( size(thisA%species(i)%particles) + size(thisB%species(i)%particles) ))
+       mergedThis%species(i)%name = thisA%species(i)%name
+       mergedThis%species(i)%symbol = thisA%species(i)%symbol
+       mergedThis%species(i)%statistics = thisA%species(i)%statistics
+       mergedThis%species(i)%charge = thisA%species(i)%charge
+       mergedThis%species(i)%mass = thisA%species(i)%mass
+       mergedThis%species(i)%spin = thisA%species(i)%spin
+       mergedThis%species(i)%totalCharge = thisA%species(i)%totalCharge
+       mergedThis%species(i)%kappa = thisA%species(i)%kappa
+       mergedThis%species(i)%eta = thisA%species(i)%eta
+       mergedThis%species(i)%lambda = thisA%species(i)%lambda
+       mergedThis%species(i)%particlesFraction = thisA%species(i)%particlesFraction
+       mergedThis%species(i)%ocupationNumber = thisA%species(i)%ocupationNumber
+       mergedThis%species(i)%multiplicity = thisA%species(i)%multiplicity
+       mergedThis%species(i)%internalSize = thisA%species(i)%internalSize
+       mergedThis%species(i)%basisSetSize = thisA%species(i)%basisSetSize+thisB%species(i)%basisSetSize
+       mergedThis%species(i)%speciesID = thisA%species(i)%speciesID
+       mergedThis%species(i)%isElectron = thisA%species(i)%isElectron
+       mergedThis%numberOfParticles=mergedThis%numberOfParticles+size(mergedThis%species(i)%particles)
+    end do
+
+    allocate(mergedThis%pointCharges(mergedThis%numberOfPointCharges))
+    allocate(mergedThis%allParticles(mergedThis%numberOfParticles))
+       
+    !! Set the particles manager (all pointers)        
+    counter = 1
+    do i = 1, mergedThis%numberOfQuantumSpecies
+       do j = 1, size(mergedThis%species(i)%particles)        
+          mergedThis%allParticles(counter)%particlePtr => mergedThis%species(i)%particles(j)
+          counter = counter + 1
+       end do
+    end do
+
+    do i = 1, mergedThis%numberOfPointCharges       
+       mergedThis%allParticles(counter)%particlePtr => mergedThis%pointCharges(i)
+       counter = counter + 1
+    end do
+
+    !!Copies point charges particles information
+    do i = 1, mergedThis%numberOfPointCharges
+       mergedThis%pointCharges(i)%name=thisA%pointCharges(i)%name
+       mergedThis%pointCharges(i)%symbol=thisA%pointCharges(i)%symbol
+       mergedThis%pointCharges(i)%nickname=thisA%pointCharges(i)%nickname
+       mergedThis%pointCharges(i)%statistics=thisA%pointCharges(i)%statistics
+       mergedThis%pointCharges(i)%basisSetName=thisA%pointCharges(i)%basisSetName
+       mergedThis%pointCharges(i)%origin=thisA%pointCharges(i)%origin
+       mergedThis%pointCharges(i)%charge=thisA%pointCharges(i)%charge
+       mergedThis%pointCharges(i)%mass=thisA%pointCharges(i)%mass
+       mergedThis%pointCharges(i)%spin=thisA%pointCharges(i)%spin
+       mergedThis%pointCharges(i)%totalCharge=thisA%pointCharges(i)%totalCharge
+       mergedThis%pointCharges(i)%klamt=thisA%pointCharges(i)%klamt
+       mergedThis%pointCharges(i)%vanderWaalsRadio=thisA%pointCharges(i)%vanderWaalsRadio
+       mergedThis%pointCharges(i)%isQuantum=thisA%pointCharges(i)%isQuantum
+       mergedThis%pointCharges(i)%isDummy=thisA%pointCharges(i)%isDummy
+       mergedThis%pointCharges(i)%fixComponent=thisA%pointCharges(i)%fixComponent
+       mergedThis%pointCharges(i)%isCenterOfOptimization=thisA%pointCharges(i)%isCenterOfOptimization
+       mergedThis%pointCharges(i)%multiplicity=thisA%pointCharges(i)%multiplicity
+       mergedThis%pointCharges(i)%subsystem=thisA%pointCharges(i)%subsystem
+       mergedThis%pointCharges(i)%translationCenter=thisA%pointCharges(i)%translationCenter
+       mergedThis%pointCharges(i)%rotationPoint=thisA%pointCharges(i)%rotationPoint
+       mergedThis%pointCharges(i)%rotateAround=thisA%pointCharges(i)%rotateAround
+       mergedThis%pointCharges(i)%id=thisA%pointCharges(i)%id
+       mergedThis%pointCharges(i)%internalSize=thisA%pointCharges(i)%internalSize
+       mergedThis%pointCharges(i)%owner=thisA%pointCharges(i)%owner
+       mergedThis%pointCharges(i)%basisSetSize=thisA%pointCharges(i)%basisSetSize
+
+       if ( allocated(thisA%pointCharges(i)%childs) ) then
+          allocate(mergedThis%pointCharges(i)%childs( size(thisA%pointCharges(i)%childs)))
+          mergedThis%pointCharges(i)%childs=thisA%pointCharges(i)%childs
+       end if
+
+    end do
+
+    do i = 1, mergedThis%numberOfQuantumSpecies
+       !!Copies quantum particles information from system A
+       do j = 1, size(thisA%species(i)%particles)
+
+          mergedThis%species(i)%particles(j)%name=thisA%species(i)%particles(j)%name
+          mergedThis%species(i)%particles(j)%symbol=thisA%species(i)%particles(j)%symbol
+          mergedThis%species(i)%particles(j)%nickname=thisA%species(i)%particles(j)%nickname
+          mergedThis%species(i)%particles(j)%statistics=thisA%species(i)%particles(j)%statistics
+          mergedThis%species(i)%particles(j)%basisSetName=thisA%species(i)%particles(j)%basisSetName
+          mergedThis%species(i)%particles(j)%origin=thisA%species(i)%particles(j)%origin
+          mergedThis%species(i)%particles(j)%charge=thisA%species(i)%particles(j)%charge
+          mergedThis%species(i)%particles(j)%mass=thisA%species(i)%particles(j)%mass
+          mergedThis%species(i)%particles(j)%spin=thisA%species(i)%particles(j)%spin
+          mergedThis%species(i)%particles(j)%totalCharge=thisA%species(i)%particles(j)%totalCharge
+          mergedThis%species(i)%particles(j)%klamt=thisA%species(i)%particles(j)%klamt
+          mergedThis%species(i)%particles(j)%vanderWaalsRadio=thisA%species(i)%particles(j)%vanderWaalsRadio
+          mergedThis%species(i)%particles(j)%isQuantum=thisA%species(i)%particles(j)%isQuantum
+          mergedThis%species(i)%particles(j)%isDummy=thisA%species(i)%particles(j)%isDummy
+          mergedThis%species(i)%particles(j)%fixComponent=thisA%species(i)%particles(j)%fixComponent
+          mergedThis%species(i)%particles(j)%isCenterOfOptimization=thisA%species(i)%particles(j)%isCenterOfOptimization
+          mergedThis%species(i)%particles(j)%multiplicity=thisA%species(i)%particles(j)%multiplicity
+          mergedThis%species(i)%particles(j)%subsystem=thisA%species(i)%particles(j)%subsystem
+          mergedThis%species(i)%particles(j)%translationCenter=thisA%species(i)%particles(j)%translationCenter
+          mergedThis%species(i)%particles(j)%rotationPoint=thisA%species(i)%particles(j)%rotationPoint
+          mergedThis%species(i)%particles(j)%rotateAround=thisA%species(i)%particles(j)%rotateAround
+          mergedThis%species(i)%particles(j)%id=thisA%species(i)%particles(j)%id
+          mergedThis%species(i)%particles(j)%internalSize=thisA%species(i)%particles(j)%internalSize
+          mergedThis%species(i)%particles(j)%owner=thisA%species(i)%particles(j)%owner
+          mergedThis%species(i)%particles(j)%basisSetSize=thisA%species(i)%particles(j)%basisSetSize
+
+          if ( allocated(thisA%species(i)%particles(j)%childs) ) then
+             allocate(mergedThis%species(i)%particles(j)%childs( size(thisA%species(i)%particles(j)%childs)))
+             mergedThis%species(i)%particles(j)%childs=thisA%species(i)%particles(j)%childs
+          end if
+
+          !!Basis information 
+          mergedThis%species(i)%particles(j)%basis%name=thisA%species(i)%particles(j)%basis%name
+          mergedThis%species(i)%particles(j)%basis%origin=thisA%species(i)%particles(j)%basis%origin
+          mergedThis%species(i)%particles(j)%basis%length=thisA%species(i)%particles(j)%basis%length
+          mergedThis%species(i)%particles(j)%basis%ttype=thisA%species(i)%particles(j)%basis%ttype
+          mergedThis%species(i)%particles(j)%basis%contractionLength=thisA%species(i)%particles(j)%basis%contractionLength
+          mergedThis%species(i)%particles(j)%basis%numberOfPrimitives=thisA%species(i)%particles(j)%basis%numberOfPrimitives
+
+          allocate(mergedThis%species(i)%particles(j)%basis%contraction(thisA%species(i)%particles(j)%basis%length))
+          
+          do k=1, thisA%species(i)%particles(j)%basis%length
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%id=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%id
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%length=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%length
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%angularMoment=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%angularMoment
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%numCartesianOrbital=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%numCartesianOrbital
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%owner=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%owner
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%subsystem=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%subsystem
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%origin=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%origin
+
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%orbitalExponents(&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%length))
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients(&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%length))
+
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%orbitalExponents=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%orbitalExponents
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients
+
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%contNormalization(&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%numCartesianOrbital))
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%primNormalization(&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%length,&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%numCartesianOrbital))
+
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%contNormalization=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%contNormalization
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%primNormalization=&
+                  thisA%species(i)%particles(j)%basis%contraction(k)%primNormalization                  
+
+          end do
+
+       end do
+
+       !!Copies quantum particles information from system B
+       jj=0
+       do j = size(thisA%species(i)%particles)+1, size(thisA%species(i)%particles)+size(thisB%species(i)%particles)        
+          jj=jj+1
+          mergedThis%species(i)%particles(j)%name=thisB%species(i)%particles(jj)%name
+          mergedThis%species(i)%particles(j)%symbol=thisB%species(i)%particles(jj)%symbol
+          mergedThis%species(i)%particles(j)%nickname=thisB%species(i)%particles(jj)%nickname
+          mergedThis%species(i)%particles(j)%statistics=thisB%species(i)%particles(jj)%statistics
+          mergedThis%species(i)%particles(j)%basisSetName=thisB%species(i)%particles(jj)%basisSetName
+          mergedThis%species(i)%particles(j)%origin=thisB%species(i)%particles(jj)%origin
+          mergedThis%species(i)%particles(j)%charge=thisB%species(i)%particles(jj)%charge
+          mergedThis%species(i)%particles(j)%mass=thisB%species(i)%particles(jj)%mass
+          mergedThis%species(i)%particles(j)%spin=thisB%species(i)%particles(jj)%spin
+          mergedThis%species(i)%particles(j)%totalCharge=thisB%species(i)%particles(jj)%totalCharge
+          mergedThis%species(i)%particles(j)%klamt=thisB%species(i)%particles(jj)%klamt
+          mergedThis%species(i)%particles(j)%vanderWaalsRadio=thisB%species(i)%particles(jj)%vanderWaalsRadio
+          mergedThis%species(i)%particles(j)%isQuantum=thisB%species(i)%particles(jj)%isQuantum
+          mergedThis%species(i)%particles(j)%isDummy=thisB%species(i)%particles(jj)%isDummy
+          mergedThis%species(i)%particles(j)%fixComponent=thisB%species(i)%particles(jj)%fixComponent
+          mergedThis%species(i)%particles(j)%isCenterOfOptimization=thisB%species(i)%particles(jj)%isCenterOfOptimization
+          mergedThis%species(i)%particles(j)%multiplicity=thisB%species(i)%particles(jj)%multiplicity
+          mergedThis%species(i)%particles(j)%subsystem=thisB%species(i)%particles(jj)%subsystem
+          mergedThis%species(i)%particles(j)%translationCenter=thisB%species(i)%particles(jj)%translationCenter
+          mergedThis%species(i)%particles(j)%rotationPoint=thisB%species(i)%particles(jj)%rotationPoint
+          mergedThis%species(i)%particles(j)%rotateAround=thisB%species(i)%particles(jj)%rotateAround
+          mergedThis%species(i)%particles(j)%id=thisB%species(i)%particles(jj)%id
+          mergedThis%species(i)%particles(j)%internalSize=thisB%species(i)%particles(jj)%internalSize
+          mergedThis%species(i)%particles(j)%owner=thisB%species(i)%particles(jj)%owner
+          mergedThis%species(i)%particles(j)%basisSetSize=thisB%species(i)%particles(jj)%basisSetSize
+
+          if ( allocated(thisB%species(i)%particles(jj)%childs) ) then
+             allocate(mergedThis%species(i)%particles(j)%childs( size(thisB%species(i)%particles(jj)%childs)))
+             mergedThis%species(i)%particles(j)%childs=thisB%species(i)%particles(jj)%childs
+          end if
+
+          !!Basis information 
+          mergedThis%species(i)%particles(j)%basis%name=thisB%species(i)%particles(jj)%basis%name
+          mergedThis%species(i)%particles(j)%basis%origin=thisB%species(i)%particles(jj)%basis%origin
+          mergedThis%species(i)%particles(j)%basis%length=thisB%species(i)%particles(jj)%basis%length
+          mergedThis%species(i)%particles(j)%basis%ttype=thisB%species(i)%particles(jj)%basis%ttype
+          mergedThis%species(i)%particles(j)%basis%contractionLength=thisB%species(i)%particles(jj)%basis%contractionLength
+          mergedThis%species(i)%particles(j)%basis%numberOfPrimitives=thisB%species(i)%particles(jj)%basis%numberOfPrimitives
+
+          allocate(mergedThis%species(i)%particles(j)%basis%contraction(thisB%species(i)%particles(jj)%basis%length))
+          
+          do k=1, thisB%species(i)%particles(jj)%basis%length
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%id=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%id
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%length=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%length
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%angularMoment=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%angularMoment
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%numCartesianOrbital=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%owner=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%owner
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%subsystem=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%subsystem
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%origin=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%origin
+
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%orbitalExponents(&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%length))
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients(&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%length))
+
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%orbitalExponents=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%orbitalExponents
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%contractionCoefficients
+
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%contNormalization(&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital))
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%primNormalization(&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%length,&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital))
+
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%contNormalization=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%contNormalization
+             mergedThis%species(i)%particles(j)%basis%contraction(k)%primNormalization=&
+                  thisB%species(i)%particles(jj)%basis%contraction(k)%primNormalization                  
+
+          end do
+       end do
+    end do
+
+    particleManager_instance => mergedThis%allParticles
+    
+    
+  end subroutine MolecularSystem_mergeTwoSystems
+  !>
    !! @brief  Maneja excepciones de la clase
    subroutine MolecularSystem_exception( typeMessage, description, debugDescription)
      implicit none

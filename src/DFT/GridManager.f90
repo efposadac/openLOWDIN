@@ -30,7 +30,6 @@ module GridManager_
        GridManager_buildGrids, &
        GridManager_writeGrids, &
        GridManager_readGrids, &
-       GridManager_getOrbitalGradientAtGrid, &
        GridManager_getDensityGradientAtGrid, &
        GridManager_getEnergyAndPotentialAtGrid, & !, &       GridManager_getEnergyFromGrid
        GridManager_writeAtomicOrbitals, &
@@ -299,7 +298,8 @@ contains
 
              do j = 1, numberOfCartesiansOrbitals
 
-                call Matrix_constructor(orbitalAndGradientInGrid, int(gridSize,8), int(4,8), 0.0_8)
+                call ContractedGaussian_getGradientAtGrid( MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i), &
+                     Grid_instance(speciesID)%points, gridSize, auxMatrix(1), auxMatrix(2), auxMatrix(3), auxMatrix(4))
 
                 ! call Matrix_show(auxMatrix(1))
 
@@ -358,114 +358,6 @@ contains
     end do
 
     ! close(unit=dftUnit)
-
-
-  !>
-  !! @brief Returns the values of a contracted atomic shell in a set of coordinates
-!!! Felix Moncada, 2017
-  !<
-  subroutine GridManager_getOrbitalGradientAtGrid( this, grid, gridSize, orbital, orbitaldX, orbitaldY, orbitaldZ)
-    implicit none
-    type(ContractedGaussian) , intent(in) :: this
-    type(Matrix) :: grid
-    type(Matrix) :: orbital    
-    type(Matrix) :: orbitaldX, orbitaldY, orbitaldZ
-    integer :: gridSize
-
-    integer :: h
-    integer :: nx, ny, nz !< indices de momento angular
-    integer :: i, j, m, w
-    integer :: point
-    real(8) :: coordinate(3)
-    real(8) :: exponential, dx, dy, dz
-    real(8) :: auxOutput(this%numCartesianOrbital,4)
-
-    do point=1, gridSize
-       coordinate(1)=grid%values(point,1)-this%origin(1)
-       coordinate(2)=grid%values(point,2)-this%origin(2)
-       coordinate(3)=grid%values(point,3)-this%origin(3)
-       do h=1, this%length
-          exponential=dexp(-this%orbitalExponents(h)*(coordinate(1)**2 + coordinate(2)**2 +coordinate(3)**2) )
-          m = 0
-          do i = 0 , this%angularMoment
-             nx = this%angularMoment - i
-             do j = 0 , i
-                ny = i - j
-                nz = j
-                m = m + 1
-
-                !!Orbital
-                auxOutput(m,4) = this%contNormalization(m) &
-                     * this%primNormalization(h,m) &
-                     * coordinate(1)** nx &
-                     * coordinate(2)** ny &
-                     * coordinate(3)** nz &
-                     * exponential 
-
-                dx=-2*this%orbitalExponents(h) &
-                     * coordinate(1)** (nx+1) &
-                     * coordinate(2)** ny &
-                     * coordinate(3)** nz 
-
-                ! Orbital derivative
-                if( nx .ge. 1 ) then
-                   dx= dx + &
-                        nx*coordinate(1)** (nx-1) &
-                        * coordinate(2)** ny &
-                        * coordinate(3)** nz 
-                end if
-
-                dy=-2*this%orbitalExponents(h) &
-                     * coordinate(1)** nx &
-                     * coordinate(2)** (ny+1) &
-                     * coordinate(3)** nz 
-
-                if( ny .ge. 1 ) then
-                   dy= dy + &
-                        coordinate(1)** nx &
-                        *ny*coordinate(2)** (ny-1) &
-                        * coordinate(3)** nz 
-                end if
-
-                dz=-2*this%orbitalExponents(h) &
-                     * coordinate(1)** nx &
-                     * coordinate(2)** ny &
-                     * coordinate(3)** (nz+1) 
-
-                if( nz .ge. 1 ) then
-                   dz= dz+ &
-                        coordinate(1)** nx &
-                        *coordinate(2)** ny &
-                        *nz*coordinate(3)** (nz-1) 
-                end if
-
-                auxOutput(m,1) = this%contNormalization(m) &
-                     *this%primNormalization(h,m) &
-                     *exponential*dx
-
-                auxOutput(m,2) = this%contNormalization(m) &
-                     *this%primNormalization(h,m) &
-                     *exponential*dy
-
-                auxOutput(m,3) = this%contNormalization(m) &
-                     *this%primNormalization(h,m) &
-                     *exponential*dz
-
-             end do
-          end do
-
-          auxOutput = auxOutput * this%contractionCoefficients(h)
-
-          do w=1, m
-             orbital%values(point,w) =   orbital%values(point,w)   + auxOutput(w,4) 
-             orbitaldX%values(point,w) = orbitaldX%values(point,w) + auxOutput(w,1) 
-             orbitaldY%values(point,w) = orbitaldY%values(point,w) + auxOutput(w,2) 
-             orbitaldZ%values(point,w) = orbitaldZ%values(point,w) + auxOutput(w,3) 
-          end do
-       end do
-    end do
-  end subroutine GridManager_getOrbitalGradientAtGrid
-
 
   !>
   !! @brief Returns the values of the density in a set of coordinates

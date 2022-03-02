@@ -17,6 +17,7 @@
 !! @author E. F. Posada, 2013
 !! @version 1.0
 module CONTROL_
+  use Units_
   use Exception_
   use omp_lib
   implicit none
@@ -201,6 +202,18 @@ module CONTROL_
      logical :: CI_BUILD_FULL_MATRIX
      integer :: CI_MADSPACE
 
+     !!***************************************************************************
+     !! Non-orthogonal CI
+     !!
+     logical :: NONORTHOGONAL_CONFIGURATION_INTERACTION
+     integer :: TRANSLATION_SCAN_GRID(3)
+     integer :: ROTATIONAL_SCAN_GRID
+     integer :: NESTED_ROTATIONAL_GRIDS
+     real(8) :: TRANSLATION_STEP
+     real(8) :: NESTED_GRIDS_DISPLACEMENT
+     real(8) :: CONFIGURATION_ENERGY_THRESHOLD
+     real(8) :: CONFIGURATION_OVERLAP_THRESHOLD
+     
      !!***************************************************************************
      !! CCSD Parameters
      !!
@@ -511,6 +524,18 @@ module CONTROL_
   logical :: LowdinParameters_CIBuildFullMatrix
   integer :: LowdinParameters_CIMadSpace
 
+  !!***************************************************************************
+  !! Non-orthogonal CI
+  !!
+  logical :: LowdinParameters_nonOrthogonalConfigurationInteraction
+  integer :: LowdinParameters_translationScanGrid(3)
+  integer :: LowdinParameters_rotationalScanGrid
+  integer :: LowdinParameters_nestedRotationalGrids
+  real(8) :: LowdinParameters_translationStep
+  real(8) :: LowdinParameters_nestedGridsDisplacement
+  real(8) :: LowdinParameters_configurationEnergyThreshold
+  real(8) :: LowdinParameters_configurationOverlapThreshold
+  
   !!***************************************************************************
   !! CCSD
   !! 
@@ -828,6 +853,17 @@ module CONTROL_
        LowdinParameters_CIPrintEigenVectorsFormat, &
        LowdinParameters_CIPrintThreshold, &
        
+                                !!***************************************************************************
+                                !! Non-orthogonal CI
+                                !!
+       LowdinParameters_nonOrthogonalConfigurationInteraction,&
+       LowdinParameters_translationScanGrid,&
+       LowdinParameters_rotationalScanGrid,&
+       LowdinParameters_nestedRotationalGrids,&
+       LowdinParameters_translationStep,&
+       LowdinParameters_nestedGridsDisplacement,&
+       LowdinParameters_configurationEnergyThreshold,&
+       LowdinParameters_configurationOverlapThreshold,&
        
                                 !!***************************************************************************
                                 !! CCSD 
@@ -1164,6 +1200,17 @@ contains
     LowdinParameters_CIPrintEigenVectorsFormat = "OCCUPIED"
     LowdinParameters_CIPrintThreshold = 1E-1
 
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    LowdinParameters_nonOrthogonalConfigurationInteraction=.false.
+    LowdinParameters_translationScanGrid(:)=0
+    LowdinParameters_rotationalScanGrid=0
+    LowdinParameters_nestedRotationalGrids=1
+    LowdinParameters_translationStep=0.0
+    LowdinParameters_nestedGridsDisplacement=0.0
+    LowdinParameters_configurationEnergyThreshold=1.0
+    LowdinParameters_configurationOverlapThreshold=1.0E-8
 
     !!***************************************************************************
     !! CCSD
@@ -1476,8 +1523,18 @@ contains
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = "OCCUPIED"
     CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
 
-
-
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION=.FALSE.
+    CONTROL_instance%TRANSLATION_SCAN_GRID(:)=0
+    CONTROL_instance%ROTATIONAL_SCAN_GRID=0
+    CONTROL_instance%NESTED_ROTATIONAL_GRIDS=1
+    CONTROL_instance%TRANSLATION_STEP=0.0
+    CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=0.0
+    CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD=1.0
+    CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD=1.0E-8
+   
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
     !!                                                                                                                         
@@ -1616,8 +1673,9 @@ contains
     integer, optional :: unit
 
     integer :: uunit
-    integer:: stat
-
+    integer :: stat
+    character(1000) :: line
+    
     uunit = 4
     if(present(unit)) uunit = unit
 
@@ -1630,6 +1688,12 @@ contains
     !! Check the process
     if(stat > 0 ) then
 
+       write (*,'(A)') 'Error reading LowdinParameters'
+       ! write (*, '(a, i0)') 'iostat was:', stat
+       backspace(uunit)
+       read(uunit,fmt='(A)') line
+       write(*,'(A)') 'Invalid line : '//trim(line)
+         
        call CONTROL_exception( ERROR, "Class object CONTROL in the load function", &
             "check the CONTROL block in your input file")
     end if
@@ -1821,6 +1885,17 @@ contains
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
     CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
 
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION=LowdinParameters_nonOrthogonalConfigurationInteraction
+    CONTROL_instance%TRANSLATION_SCAN_GRID=LowdinParameters_translationScanGrid
+    CONTROL_instance%ROTATIONAL_SCAN_GRID=LowdinParameters_rotationalScanGrid
+    CONTROL_instance%NESTED_ROTATIONAL_GRIDS=LowdinParameters_nestedRotationalGrids
+    CONTROL_instance%TRANSLATION_STEP=LowdinParameters_translationStep
+    CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=LowdinParameters_nestedGridsDisplacement
+    CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD=LowdinParameters_configurationEnergyThreshold
+    CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD=LowdinParameters_configurationOverlapThreshold
 
 
     !!***************************************************************************      
@@ -2153,6 +2228,18 @@ contains
     LowdinParameters_CIPrintEigenVectorsFormat = CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT 
     LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
 
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    LowdinParameters_nonOrthogonalConfigurationInteraction=CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION
+    LowdinParameters_translationScanGrid=CONTROL_instance%TRANSLATION_SCAN_GRID
+    LowdinParameters_rotationalScanGrid=CONTROL_instance%ROTATIONAL_SCAN_GRID
+    LowdinParameters_nestedRotationalGrids=CONTROL_instance%NESTED_ROTATIONAL_GRIDS
+    LowdinParameters_translationStep=CONTROL_instance%TRANSLATION_STEP
+    LowdinParameters_nestedGridsDisplacement=CONTROL_instance%NESTED_GRIDS_DISPLACEMENT
+    LowdinParameters_configurationEnergyThreshold=CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD
+    LowdinParameters_configurationOverlapThreshold=CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
+    
     !!***************************************************************************      
     !! CCSD                                                                      
     !!                                                                                 
@@ -2459,6 +2546,18 @@ contains
     otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
 
     !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    otherThis%NONORTHOGONAL_CONFIGURATION_INTERACTION = this%NONORTHOGONAL_CONFIGURATION_INTERACTION
+    otherThis%TRANSLATION_SCAN_GRID = this%TRANSLATION_SCAN_GRID
+    otherThis%ROTATIONAL_SCAN_GRID = this%ROTATIONAL_SCAN_GRID
+    otherThis%NESTED_ROTATIONAL_GRIDS = this%NESTED_ROTATIONAL_GRIDS
+    otherThis%TRANSLATION_STEP = this%TRANSLATION_STEP
+    otherThis%NESTED_GRIDS_DISPLACEMENT = this%NESTED_GRIDS_DISPLACEMENT
+    otherThis%CONFIGURATION_ENERGY_THRESHOLD=this%CONFIGURATION_ENERGY_THRESHOLD
+    otherThis%CONFIGURATION_OVERLAP_THRESHOLD=this%CONFIGURATION_OVERLAP_THRESHOLD
+    
+    !!***************************************************************************
     !! CCSD
     !!
     otherThis%COUPLED_CLUSTER_LEVEL = this%COUPLED_CLUSTER_LEVEL 
@@ -2661,10 +2760,47 @@ contains
 
     
     if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
-      
-      write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
-      ! CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE = 1E-08
-      ! CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
+
+       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+       ! CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE = 1E-08
+       ! CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
+
+    end if
+
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    if(CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION ) then
+       print *, ""
+       write (*,"(T10,A)") "PERFORMING A NONORTHOGONAL CONFIGURATION INTERACTION CALCULATION"
+       write (*,"(T10,A)") "THAT MIXES HF CALCULATIONS WITH DIFFERENT BASIS SET CENTERS "
+
+       if(CONTROL_instance%UNITS .eq. "ANGS") &
+          CONTROL_instance%TRANSLATION_STEP = CONTROL_instance%TRANSLATION_STEP / AMSTRONG
+
+       
+       if(sum(CONTROL_instance%TRANSLATION_SCAN_GRID) .gt. 0 ) then
+          write (*,"(T10,A,I6,A)") "THE BASIS FUNCTIONS AT EACH TRANSLATION CENTER WILL BE DISPLACED FORMING ", CONTROL_instance%TRANSLATION_SCAN_GRID(1)*CONTROL_instance%TRANSLATION_SCAN_GRID(2)*CONTROL_instance%TRANSLATION_SCAN_GRID(3) ," BODY-CENTERED-CUBIC CELLS"
+          write (*,"(T10,A,I3,I3,I3,A)") "IN A RECTANGULAR ARRAY OF", CONTROL_instance%TRANSLATION_SCAN_GRID(1:3), "CELLS ALONG THE X,Y,Z AXIS"
+          write (*,"(T10,A,F6.3,A)") "WITH A SEPARATION BETWEEN POINTS OF", CONTROL_instance%TRANSLATION_STEP, CONTROL_instance%UNITS
+       end if
+
+       if(CONTROL_instance%ROTATIONAL_SCAN_GRID .gt. 0 ) then
+          if(CONTROL_instance%NESTED_ROTATIONAL_GRIDS .gt. 1 ) then
+             write (*,"(T10,I3,A,I6,A)") CONTROL_instance%NESTED_ROTATIONAL_GRIDS, " LEBEDEV GRIDS OF", CONTROL_instance%ROTATIONAL_SCAN_GRID, " BASIS FUNCTIONS WILL BE PLACED AROUND EACH ROTATIONAL CENTER"
+             write (*,"(T10,A,F6.3,A)") "WITH A RADIAL SEPARATION  OF", CONTROL_instance%NESTED_GRIDS_DISPLACEMENT, CONTROL_instance%UNITS
+          else
+             write (*,"(T10,A,I6,A)") "A LEBEDEV GRID OF", CONTROL_instance%ROTATIONAL_SCAN_GRID, " BASIS FUNCTIONS WILL BE PLACED AROUND EACH ROTATIONAL CENTER"
+          end if
+       end if
+
+       if(CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,A)") "GEOMETRIES WITH ENERGY HIGHER THAN ", CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD," A.U. COMPARED TO THE HF REFERENCE WILL NOT BE INCLUDED IN THE CONFIGURATION SPACE"  
+       
+       if(CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,I6,A)") "SKIPPING HAMILTONIAN MATRIX ELEMENTS FROM CONFIGURATIONS WITH OVERLAP LOWER THAN ",  CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
+       
+       print *, ""
 
     end if
 

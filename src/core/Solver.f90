@@ -45,8 +45,7 @@ contains
   !! @brief Run the properly programs depending of the requested tasks
   subroutine Solver_run( )
     implicit none
-    character(100) :: strAuxNumber
-
+    character(100) :: auxString
 
     !Check cosmo
     if (CONTROL_instance%COSMO) call system("lowdin-cosmo.x")
@@ -86,14 +85,18 @@ contains
     end if
         
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
-       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
-       call system("lowdin-CI.x" //trim(strAuxNumber))
+       write(auxString,"(I10)") Input_instance%numberOfSpeciesInCI
+       call system("lowdin-CI.x" //trim(auxString))
+    end if
+
+    if ( CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION ) then
+       call system("lowdin-CI.x NOCI")
     end if
 
     if ( CONTROL_instance%PT_ORDER /= 0 ) then
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
     end if
-       
+   
     ! lowdin_solver%withProperties = .false.
     ! if(optimization) then
     !    call system("lowdin-Optimizer.x")
