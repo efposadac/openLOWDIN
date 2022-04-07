@@ -62,8 +62,7 @@ program CI
 
      call NonOrthogonalCI_constructor(NonOrthogonalCI_instance)
      call NonOrthogonalCI_displaceGeometries(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_configurationsOverlapAndOneParticle(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_firstImplementation(NonOrthogonalCI_instance)
+     call NonOrthogonalCI_buildOverlapAndHamiltonianMatrix(NonOrthogonalCI_instance)
      call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
      call NonOrthogonalCI_plotDensities(NonOrthogonalCI_instance)
   else

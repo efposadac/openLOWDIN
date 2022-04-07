@@ -82,15 +82,14 @@ program IntegralsTransformation
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
   
-  ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
-     wfnFile = "lowdin.wfn"
-     !Load the system in lowdin.sys format
-     call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-  ! else
-  !    wfnFile = "lowdin-subsystemA.wfn"
-  !    !!Load the system in lowdin.sys format
-  !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
-  ! end if
+  !Load the system in lowdin.sys format
+  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+
+  call MolecularSystem_showInformation()  
+  call MolecularSystem_showParticlesInformation()
+  call MolecularSystem_showCartesianMatrix()
+
+  wfnFile = "lowdin.wfn"
   wfnUnit = 20
 
   call InputCI_constructor( )
@@ -119,6 +118,8 @@ program IntegralsTransformation
        CONTROL_instance%EPSTEIN_NESBET_CORRECTION == 0 .and. &
        CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "NONE") then
      partialTransform="MP2-PT2"
+  else if (CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION .eqv. .true.) then
+     partialTransform="NOCI"
   else if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL .ne. "NONE" .or. &
        CONTROL_instance%PT_ORDER == 2) then
      partialTransform="ALLACTIVE"
@@ -200,7 +201,7 @@ program IntegralsTransformation
   
            arguments(1) = "COEFFICIENTS"
            eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+                columns= int(max(numberOfContractions,occupation),4), binary=.true., arguments=arguments(1:2))
 
            arguments(1) = "DENSITY"
            densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -276,18 +277,17 @@ program IntegralsTransformation
                              write (*,*) ""
                           end if
 
-                          !! Reading the coefficients
-  
+                          !! Reading the coefficients                          
                           open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
                           numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
                           otherOccupation = MolecularSystem_getOcupationNumber( j )
-  
+
                           arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
 
                           arguments(1) = "COEFFICIENTS"
                           eigenVecOtherSpecie = &
                                   Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
-                                  columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+                                  columns= int(max(numberOfContractionsOfOtherSpecie,otherOccupation),4), binary=.true., arguments=arguments(1:2))
 
                           arguments(1) = "ORBITALS"
                           call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &

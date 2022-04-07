@@ -343,8 +343,7 @@ contains
     integer :: wfnUnit, occupationsUnit
     character(50) :: wfnFile, occupationsFile, fileName
     integer :: numberOfContractions
-    character(50) :: arguments(20)
-    character(19) , allocatable :: labelsOfContractions(:)
+    character(50) :: arguments(2)
     integer :: counter, auxcounter
     character(6) :: nickname
     character(4) :: shellCode
@@ -373,7 +372,7 @@ contains
     inquire(FILE = occupationsFile, EXIST = existFile )
 
     !! Check if there are CI fractional occupations or build the occupations vector
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
+    if ( CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
 
        print *, "              We are printing the molden files for the CI states!"
        
@@ -620,7 +619,7 @@ contains
     integer :: wfnUnit
     character(50) :: wfnFile
     integer :: numberOfContractions
-    character(50) :: arguments(20)
+    character(50) :: arguments(2)
     character(19) , allocatable :: labelsOfContractions(:)
     integer :: counter, auxcounter
     character(6) :: nickname
@@ -1246,7 +1245,7 @@ contains
     integer :: wfnUnit
     character(50) :: wfnFile
     integer :: numberOfContractions
-    character(50) :: arguments(20)
+    character(50) :: arguments(2)
     character(19) , allocatable :: labelsOfContractions(:)
     integer :: counter, auxcounter
     character(6) :: nickname
@@ -1339,7 +1338,7 @@ contains
     real(8) :: densityElement
     character(50) :: nameOfSpecies
     character(40) :: header
-    character(50) :: arguments(20)
+    character(50) :: arguments(2)
     logical :: existFile
 
 
@@ -1717,7 +1716,7 @@ contains
     character(50) :: wfnFile
     character(2) :: wfnStatus, wfxStatus, nboStatus
     character(10) :: extension
-    character(50) :: arguments(20)
+    character(50) :: arguments(2)
     integer :: wfnUnit
     real(8) :: totalEnergy, virial
 
@@ -2023,7 +2022,7 @@ contains
     integer :: numberOfOrbitals
     type(matrix) :: densityMatrix
 
-    character(50) :: arguments(20), wfnFile, occupationsFile, auxstring, nameOfSpecies
+    character(50) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
     logical :: existFile
 
     !Writes Gaussian Cube 
@@ -2039,7 +2038,7 @@ contains
     ! Check if there are CI density matrices and read those or the HF matrix
     occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
     inquire(FILE = occupationsFile, EXIST = existFile )
-    
+
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. existFile ) then
        print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
 
@@ -2146,7 +2145,7 @@ contains
      real(8) :: val, maxValue, minValue
      real(8) :: coordinate(3), plotDistance1, plotDistance2
 
-     character(50) :: arguments(20), wfnFile, occupationsFile, auxstring, nameOfSpecies
+     character(50) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
      character(50) :: title, x_title, y_title, z_title
      logical :: existFile
 
@@ -2168,7 +2167,7 @@ contains
            inquire(FILE = occupationsFile, EXIST = existFile )
 
            ! Check if there are CI density matrices and read those or the HF matrix
-           if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. existFile) then
+           if ( CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
               print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
 
               occupationsUnit = 29
@@ -2182,6 +2181,8 @@ contains
               densityMatrix= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,4), &
                    columns= int(numberOfOrbitals,4), binary=.false., arguments=arguments(1:2))
 
+              ! print *, "output density matrix for", arguments
+              ! call Matrix_show(densityMatrix)
               close(occupationsUnit)     
            else
 

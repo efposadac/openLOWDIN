@@ -546,7 +546,7 @@ contains
           end if
           
           print *,""
-          write (6,"("//trim(formatSize)//"F15.6)") ( this%values(i), i = l, u )
+          write (6,"("//trim(formatSize)//"I15)") ( this%values(i), i = l, u )
           print *,""
           
        end do
@@ -558,18 +558,18 @@ contains
           if( present( keys ) ) then
              do i=1, ssize
                 
-                write (6,"(A18,F15.6)") trim(keys(i)), this%values(i)
+                write (6,"(A18,I15)") trim(keys(i)), this%values(i)
              end do
           else
              do i=1, ssize
-                write (6,"(I5,F15.6)") i, this%values(i)
+                write (6,"(I5,I15)") i, this%values(i)
              end do
           end if
           
        else
           
           do i=1, ssize
-             write (6,"(F15.6)") this%values(i)
+             write (6,"(I15)") this%values(i)
           end do
           
        end if

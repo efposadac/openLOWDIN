@@ -418,6 +418,8 @@ contains
                   rr(m) = r
                   ss(m) = s
 
+                  ! print *, p, q, r, s, auxTransformedTwoParticlesIntegral
+                  
                   if (m == integralStackSize ) then
                     write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) pp, qq, rr, ss, auxIntegrals
                     mm = mm + m
@@ -1465,6 +1467,22 @@ contains
        this%s_l = 1
        this%s_u = totalActiveOrbitals !this%numberOfContractions
     end if
+
+    !! only the (aIaII|bIbII) integrals will be transformed
+    if ( trim(this%partialTransform)=="NOCI"  ) then
+
+       this%p_l = 1
+       this%p_u = totalOccupation/2 
+       this%q_l = totalOccupation/2+1 !+coreOrbitals+1
+       this%q_u = totalOccupation
+
+       this%r_l = 1
+       this%r_u = totalOccupation/2 
+       this%s_l = totalOccupation/2+1 !+coreOrbitals+1
+       this%s_u = totalOccupation
+
+    end if
+
     
     !! only the (ia|jb) integrals will be transformed
     if ( trim(this%partialTransform)=="MP2"  ) then
@@ -1653,6 +1671,19 @@ contains
        this%s_upperOrbital = otherTotalActiveOrbitals!this%otherNumberOfContractions
     end if
     
+    !! only the (aIaII|bIbII) integrals will be transformed
+    if ( trim(this%partialTransform)=="NOCI"  ) then
+
+       this%p_lowerOrbital = 1
+       this%p_upperOrbital = totalOccupation/2!this%numberOfContractions
+       this%q_lowerOrbital = totalOccupation/2+1
+       this%q_upperOrbital = totalOccupation!this%numberOfContractions
+       this%r_lowerOrbital = 1
+       this%r_upperOrbital = otherTotalOccupation/2!this%otherNumberOfContractions
+       this%s_lowerOrbital = otherTotalOccupation/2+1
+       this%s_upperOrbital = otherTotalOccupation !this%otherNumberOfContractions
+
+    end if
 
     !! only the (ia|jb) integrals will be transformed
     if ( trim(this%partialTransform) .eq. "MP2"  ) then

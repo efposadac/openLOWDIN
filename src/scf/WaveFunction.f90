@@ -401,29 +401,26 @@ contains
        !   print *, eigenvalues%values(i) 
        ! end do
 
-       if ( CONTROL_instance%OVERLAP_EIGEN_THRESHOLD .gt. 0.0 ) then
-
-          do i = 1 , numberOfContractions
-             do j = 1 , numberOfContractions
-                if ( abs(eigenValues%values(j)) >= CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
-                   WaveFunction_instance( speciesID )%transformationMatrix%values(i,j) = &
-                        eigenVectors%values(i,j)/sqrt( eigenvalues%values(j) )
-                else
-                   WaveFunction_instance( speciesID )%transformationMatrix%values(i,j) = 0
-                end if
-             end do
+       do i = 1 , numberOfContractions
+          do j = 1 , numberOfContractions
+             if ( abs(eigenValues%values(j)) >= CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
+                WaveFunction_instance( speciesID )%transformationMatrix%values(i,j) = &
+                     eigenVectors%values(i,j)/sqrt( eigenvalues%values(j) )
+             else
+                WaveFunction_instance( speciesID )%transformationMatrix%values(i,j) = 0
+             end if
           end do
+       end do
 
-          do i = 1 , numberOfContractions
-             if ( abs(eigenValues%values(i)) .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) &
-                  WaveFunction_instance( speciesID )%removedOrbitals=WaveFunction_instance( speciesID )%removedOrbitals+1
-          end do
+       do i = 1 , numberOfContractions
+          if ( abs(eigenValues%values(i)) .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) &
+               WaveFunction_instance( speciesID )%removedOrbitals=WaveFunction_instance( speciesID )%removedOrbitals+1
+       end do
 
-          if (WaveFunction_instance( speciesID )%removedOrbitals .gt. 0) &
-               write(*,"(A,I5,A,A,A,ES9.3)") "Removed ", WaveFunction_instance( speciesID )%removedOrbitals , " orbitals for species ", &
-               trim(MolecularSystem_getNameOfSpecie(speciesID)), " with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
+       if (WaveFunction_instance( speciesID )%removedOrbitals .gt. 0) &
+            write(*,"(A,I5,A,A,A,ES9.3)") "Removed ", WaveFunction_instance( speciesID )%removedOrbitals , " orbitals for species ", &
+            trim(MolecularSystem_getNameOfSpecie(speciesID)), " with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
 
-       end if
       !!
        !!****************************************************************
 
