@@ -75,7 +75,7 @@ contains
     real(8), allocatable :: auxIntegrals(:)
     real(8) :: auxIntegralValue
 
-    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
+    numberOfContractions = max( MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getOcupationNumber( specieID ))
     nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
 
     prefixOfFile =""//trim(nameOfSpecie)
@@ -227,6 +227,7 @@ contains
           do i = 1, integralStackSize
             if ( pp(i) == -1_8 ) exit readIntegralsC
 
+            ! print *, int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), auxIntegrals(i)
           auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), int(numberOfContractions,8 ))
         !    auxIndex = IndexMap_tensorR2ToVectorB( auxpq(i), auxrs(i), ssize )
             matrixContainer%values( auxIndex, 1 ) = auxIntegrals(i)
@@ -604,13 +605,15 @@ contains
 
        !if ( otherSpecieID > SpecieID ) then
        select case (order)
-       case ("AB")
-          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID) &
-               + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
-          bias = MolecularSystem_getTotalNumberOfContractions(specieID)
+       case ("AB")         
 
-          ssizea = MolecularSystem_getTotalNumberOfContractions(specieID)
-          ssizeb = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+          numberOfContractions = &
+               max( MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getOcupationNumber( specieID )) +&
+               max( MolecularSystem_getTotalNumberOfContractions(otherSpecieID), MolecularSystem_getOcupationNumber( otherSpecieID ))
+          bias = max( MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getOcupationNumber( specieID )) 
+
+          ssizea = max( MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getOcupationNumber( specieID ))
+          ssizeb = max( MolecularSystem_getTotalNumberOfContractions(otherSpecieID), MolecularSystem_getOcupationNumber( otherSpecieID ))
 
           ssize2a = ( ssizea * (ssizea + 1 ) ) / 2_8
           ssize2b = ( ssizeb * (ssizeb + 1 ) ) / 2_8
@@ -641,6 +644,7 @@ contains
           do i = 1, integralStackSize
             if ( pp(i) == -1_8 ) exit readIntegralsC
 
+            ! print *, int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), auxIntegrals(i)
 
              auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), &
                   int(bias,8), int(numberOfContractions - bias,8) )
@@ -657,13 +661,13 @@ contains
        case ("BA")
 
  
-          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID) &
-               + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
-          bias = MolecularSystem_getTotalNumberOfContractions(specieID)
+          numberOfContractions = &
+               max( MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getOcupationNumber( specieID )) +&
+               max( MolecularSystem_getTotalNumberOfContractions(otherSpecieID), MolecularSystem_getOcupationNumber( otherSpecieID ))
+          bias = max( MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getOcupationNumber( specieID )) 
 
-
-          ssizea = MolecularSystem_getTotalNumberOfContractions(specieID)
-          ssizeb = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
+          ssizea = max( MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getOcupationNumber( specieID ))
+          ssizeb = max( MolecularSystem_getTotalNumberOfContractions(otherSpecieID), MolecularSystem_getOcupationNumber( otherSpecieID ))
 
           ssize2a = ( ssizea * (ssizea + 1 ) ) / 2_8
           ssize2b = ( ssizeb * (ssizeb + 1 ) ) / 2_8
@@ -695,6 +699,7 @@ contains
             if ( rr(i) == -1_8 ) exit readIntegralsC2
 
 
+            ! print *, int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), auxIntegrals(i)
              !auxIndex = IndexMap_tensorR4ToVectorB( int(rr(i),8), int(ss(i),8), int(pp(i),8), int(qq(i),8), &
              !     int(bias,8), int(numberOfContractions - bias,8) )
 

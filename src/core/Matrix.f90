@@ -204,7 +204,6 @@ contains
     this%isInstanced = .true.
     valueTmp = 0.0_8
     if( present(value) ) valueTmp = value
-
     if (allocated(this%values)) deallocate(this%values)
     allocate( this%values( dim1, dim2 ) )
 
@@ -758,7 +757,7 @@ contains
 
              else
                 
-                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
                 return
              end if
@@ -805,7 +804,7 @@ contains
                 
                 close(4)
                 
-                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
                 return
 
@@ -909,7 +908,7 @@ contains
 
             else
                 
-                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
                 return
 
@@ -942,8 +941,8 @@ contains
                 
                 close(4)
                 
-                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(file)//" are wrong ",&
-                     "Class object Matrix  in the getFromFile() function" )
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
+                     "Class object Matrix  in the getFromFile() function"  )
                 return
 
                 

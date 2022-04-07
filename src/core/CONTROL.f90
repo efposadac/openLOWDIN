@@ -220,6 +220,9 @@ module CONTROL_
      real(8) :: NESTED_GRIDS_DISPLACEMENT
      real(8) :: CONFIGURATION_ENERGY_THRESHOLD
      real(8) :: CONFIGURATION_OVERLAP_THRESHOLD
+     real(8) :: CONFIGURATION_DISPLACEMENT_THRESHOLD
+     real(8) :: CONFIGURATION_EQUIVALENCE_DISTANCE
+     logical :: CONFIGURATION_USE_SYMMETRY
      
      !!***************************************************************************
      !! CCSD Parameters
@@ -549,6 +552,9 @@ module CONTROL_
   real(8) :: LowdinParameters_nestedGridsDisplacement
   real(8) :: LowdinParameters_configurationEnergyThreshold
   real(8) :: LowdinParameters_configurationOverlapThreshold
+  real(8) :: LowdinParameters_configurationDisplacementThreshold
+  real(8) :: LowdinParameters_configurationEquivalenceDistance
+  logical :: LowdinParameters_configurationUseSymmetry
   
   !!***************************************************************************
   !! CCSD
@@ -878,7 +884,9 @@ module CONTROL_
        LowdinParameters_nestedGridsDisplacement,&
        LowdinParameters_configurationEnergyThreshold,&
        LowdinParameters_configurationOverlapThreshold,&
-       
+       LowdinParameters_configurationDisplacementThreshold,&       
+       LowdinParameters_configurationEquivalenceDistance,&
+       LowdinParameters_configurationUseSymmetry,&
                                 !!***************************************************************************
                                 !! CCSD 
                                 !!
@@ -1231,7 +1239,9 @@ contains
     LowdinParameters_nestedGridsDisplacement=0.0
     LowdinParameters_configurationEnergyThreshold=1.0
     LowdinParameters_configurationOverlapThreshold=1.0E-8
-
+    LowdinParameters_configurationDisplacementThreshold=1.0E-2
+    LowdinParameters_configurationEquivalenceDistance=1.0E-8
+    LowdinParameters_configurationUseSymmetry=.false.
     !!***************************************************************************
     !! CCSD
     !!
@@ -1560,7 +1570,9 @@ contains
     CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=0.0
     CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD=1.0
     CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD=1.0E-8
-   
+    CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD=1.0E-2  
+    CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=1.0E-8
+    CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
     !!                                                                                                                         
@@ -1928,6 +1940,9 @@ contains
     CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=LowdinParameters_nestedGridsDisplacement
     CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD=LowdinParameters_configurationEnergyThreshold
     CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD=LowdinParameters_configurationOverlapThreshold
+    CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD=LowdinParameters_configurationDisplacementThreshold
+    CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=LowdinParameters_configurationEquivalenceDistance
+    CONTROL_instance%CONFIGURATION_USE_SYMMETRY=LowdinParameters_configurationUseSymmetry
 
 
     !!***************************************************************************      
@@ -2278,6 +2293,9 @@ contains
     LowdinParameters_nestedGridsDisplacement=CONTROL_instance%NESTED_GRIDS_DISPLACEMENT
     LowdinParameters_configurationEnergyThreshold=CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD
     LowdinParameters_configurationOverlapThreshold=CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
+    LowdinParameters_configurationDisplacementThreshold=CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD
+    LowdinParameters_configurationEquivalenceDistance=CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE
+    LowdinParameters_configurationUseSymmetry=CONTROL_instance%CONFIGURATION_USE_SYMMETRY
     
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -2602,7 +2620,10 @@ contains
     otherThis%NESTED_GRIDS_DISPLACEMENT = this%NESTED_GRIDS_DISPLACEMENT
     otherThis%CONFIGURATION_ENERGY_THRESHOLD=this%CONFIGURATION_ENERGY_THRESHOLD
     otherThis%CONFIGURATION_OVERLAP_THRESHOLD=this%CONFIGURATION_OVERLAP_THRESHOLD
-    
+    otherThis%CONFIGURATION_DISPLACEMENT_THRESHOLD=this%CONFIGURATION_DISPLACEMENT_THRESHOLD
+    otherThis%CONFIGURATION_EQUIVALENCE_DISTANCE=this%CONFIGURATION_EQUIVALENCE_DISTANCE
+    otherThis%CONFIGURATION_USE_SYMMETRY=this%CONFIGURATION_USE_SYMMETRY
+
     !!***************************************************************************
     !! CCSD
     !!
@@ -2821,20 +2842,23 @@ contains
        write (*,"(T10,A)") "PERFORMING A NONORTHOGONAL CONFIGURATION INTERACTION CALCULATION"
        write (*,"(T10,A)") "THAT MIXES HF CALCULATIONS WITH DIFFERENT BASIS SET CENTERS "
 
-       if(CONTROL_instance%UNITS .eq. "ANGS") &
+       if(CONTROL_instance%UNITS .eq. "ANGS") then
           CONTROL_instance%TRANSLATION_STEP = CONTROL_instance%TRANSLATION_STEP / AMSTRONG
-
+          CONTROL_instance%NESTED_GRIDS_DISPLACEMENT = CONTROL_instance%NESTED_GRIDS_DISPLACEMENT / AMSTRONG
+          CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD = CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD / AMSTRONG
+          CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE = CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE / AMSTRONG
+       end if
        
        if(sum(CONTROL_instance%TRANSLATION_SCAN_GRID) .gt. 0 ) then
           write (*,"(T10,A,I6,A)") "THE BASIS FUNCTIONS AT EACH TRANSLATION CENTER WILL BE DISPLACED FORMING ", CONTROL_instance%TRANSLATION_SCAN_GRID(1)*CONTROL_instance%TRANSLATION_SCAN_GRID(2)*CONTROL_instance%TRANSLATION_SCAN_GRID(3) ," BODY-CENTERED-CUBIC CELLS"
           write (*,"(T10,A,I3,I3,I3,A)") "IN A RECTANGULAR ARRAY OF", CONTROL_instance%TRANSLATION_SCAN_GRID(1:3), "CELLS ALONG THE X,Y,Z AXIS"
-          write (*,"(T10,A,F6.3,A)") "WITH A SEPARATION BETWEEN POINTS OF", CONTROL_instance%TRANSLATION_STEP, CONTROL_instance%UNITS
+          write (*,"(T10,A,F6.3,A10)") "WITH A SEPARATION BETWEEN POINTS OF", CONTROL_instance%TRANSLATION_STEP, CONTROL_instance%UNITS
        end if
 
        if(CONTROL_instance%ROTATIONAL_SCAN_GRID .gt. 0 ) then
           if(CONTROL_instance%NESTED_ROTATIONAL_GRIDS .gt. 1 ) then
              write (*,"(T10,I3,A,I6,A)") CONTROL_instance%NESTED_ROTATIONAL_GRIDS, " LEBEDEV GRIDS OF", CONTROL_instance%ROTATIONAL_SCAN_GRID, " BASIS FUNCTIONS WILL BE PLACED AROUND EACH ROTATIONAL CENTER"
-             write (*,"(T10,A,F6.3,A)") "WITH A RADIAL SEPARATION  OF", CONTROL_instance%NESTED_GRIDS_DISPLACEMENT, CONTROL_instance%UNITS
+             write (*,"(T10,A,F6.3,A10)") "WITH A RADIAL SEPARATION  OF", CONTROL_instance%NESTED_GRIDS_DISPLACEMENT, CONTROL_instance%UNITS
           else
              write (*,"(T10,A,I6,A)") "A LEBEDEV GRID OF", CONTROL_instance%ROTATIONAL_SCAN_GRID, " BASIS FUNCTIONS WILL BE PLACED AROUND EACH ROTATIONAL CENTER"
           end if
@@ -2844,9 +2868,20 @@ contains
             write (*,"(T10,A,ES15.5,A)") "GEOMETRIES WITH ENERGY HIGHER THAN ", CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD," A.U. COMPARED TO THE HF REFERENCE WILL NOT BE INCLUDED IN THE CONFIGURATION SPACE"  
        
        if(CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD .gt. 0.0) &
-            write (*,"(T10,A,ES15.5,I6,A)") "SKIPPING HAMILTONIAN MATRIX ELEMENTS FROM CONFIGURATIONS WITH OVERLAP LOWER THAN ",  CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
+            write (*,"(T10,A,ES15.5)") "SKIPPING HAMILTONIAN MATRIX ELEMENTS FROM CONFIGURATIONS WITH OVERLAP LOWER THAN ",  CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
+
+       if(CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH DISPLACEMENT LOWER THAN ",  CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD, CONTROL_instance%UNITS, " COMPARED TO PREVIOUS GEOMETRIES"
+
+       if(CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,A10,A)") "GEOMETRIES WITH DISTANCE MATRIX THAT DIFFER IN LESS THAN ",  CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE, CONTROL_instance%UNITS, " WILL BE REGARDED AS EQUIVALENT"
        
+       if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY) &
+            write (*,"(T10,A)") "CONFIGURATION PAIRS WILL BE CLASSIFIED ACCORDING TO THEIR MIXED GEOMETRY DISTANCE MATRIX AND ONLY UNIQUE ELEMENTS WILL BE COMPUTED"
+
        print *, ""
+
+
 
     end if
 
