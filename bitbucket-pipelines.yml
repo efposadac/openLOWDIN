@@ -14,7 +14,7 @@ pipelines:
         script:
           - export DEBIAN_FRONTEND=noninteractive
           - apt-get update
-          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev 
+          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev 
           - # Define work directories
           - WORKDIR=$PWD/dependencies
           - mkdir $WORKDIR
