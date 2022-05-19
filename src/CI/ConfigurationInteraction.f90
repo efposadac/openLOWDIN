@@ -40,6 +40,7 @@ module ConfigurationInteraction_
   use InputCI_
   use omp_lib
   use ArpackInterface_
+  use JadamiluInterface_
   implicit none
       
   !>
@@ -4899,6 +4900,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
   subroutine ConfigurationInteraction_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors)
     implicit none
+    external DPJDREVCOM
     integer(8) :: maxnev
     real(8) :: CIenergy
     integer(8) :: nproc
@@ -4913,6 +4915,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     real(8), allocatable :: EIGS(:), RES(:), X(:)!, D(:)
 !   arguments to pass to the routines
     integer(8) :: NEIG, MADSPACE, ISEARCH, NINIT
+    integer(8) :: JA(1), IA(1)
     integer(8) :: ICNTL(5)
     integer(8) :: ITER, IPRINT, INFO
     real(8) :: SIGMA, TOL, GAP, MEM, DROPTOL, SHIFT
@@ -4943,7 +4946,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 !    set input variables
 !    the matrix is already in the required format
 
-     IPRINT = -6 !     standard report on standard output
+     IPRINT = 0 !     standard report on standard output
      ISEARCH = 1 !    we want the smallest eigenvalues
      NEIG = maxeig !    number of wanted eigenvalues
      !NINIT = 0 !    no initial approximate eigenvectors
@@ -4964,6 +4967,9 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
      ICNTL(5)=1
 
      IJOB=0
+
+     JA(1) = -1 
+     IA(1) = -1 
 
      ! set initial eigenpairs
      if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
@@ -5005,7 +5011,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 !                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
 !                        SHIFT, DROPTOL, MEM, ICNTL, &
 !                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1_8,-1_8,EIGS, RES, X, LX, NEIG, &
+10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values , JA, IA, EIGS, RES, X, LX, NEIG, &
                         SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                         SHIFT, DROPTOL, MEM, ICNTL, &
                         IJOB, NDX1, NDX2, IPRINT, INFO, GAP)

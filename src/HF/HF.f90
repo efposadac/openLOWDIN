@@ -371,10 +371,10 @@ program HF
         write(*,*) "-----------------"
         write(*,*) ""
 
-        call Matrix_show( WaveFunction_instance(speciesID)%coefficientsofcombination, &
-             rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
-             columnkeys = string_convertvectorofrealstostring( WaveFunction_instance(speciesID)%energyofmolecularorbital ),&
-             flags=WITH_BOTH_KEYS)
+        !!call Matrix_show( WaveFunction_instance(speciesID)%coefficientsofcombination, &
+        !!     rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
+        !!     columnkeys = string_convertvectorofrealstostring( WaveFunction_instance(speciesID)%energyofmolecularorbital ),&
+        !!     flags=WITH_BOTH_KEYS)
 
         write(*,*) ""
         write(*,*) " end of eigenvectors "

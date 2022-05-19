@@ -367,7 +367,7 @@ if [ $extFile="lowdin" ]; then
     		export OMP_NUM_THREADS=$numberOfThreads
 	fi
 
-	echo "Running on " $OMP_NUM_THREADS "OMP threads" 
+	#echo "Running on " $OMP_NUM_THREADS "OMP threads" 
 
 	# Start ...
 	echo "Running on " $OMP_NUM_THREADS "OMP threads" > $nameFile.out
