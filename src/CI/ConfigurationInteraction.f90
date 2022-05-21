@@ -181,13 +181,7 @@ contains
     integer :: numberOfContractions
     character(50) :: arguments(2)
 
-    ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
-       wfnFile = "lowdin.wfn"
-       !!Load the system in lowdin.sys format
-    ! else
-    !    wfnFile = "lowdin-subsystemA.wfn"
-    !    !!Load the system in lowdin.sys format
-    ! end if
+    wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
     !! Open file for wavefunction
@@ -341,8 +335,8 @@ contains
       end if
       if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
         ConfigurationInteraction_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
-             ConfigurationInteraction_instance%lambda%values(i)
-        ! +ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i)
+                                    ConfigurationInteraction_instance%lambda%values(i) + &
+                                    ConfigurationInteraction_instance%numberOfCoreOrbitals%values(i)
       end if
 
        !!Uneven occupation number = alpha
@@ -1222,11 +1216,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       allocate( coefficients(numberOfSpecies), atomicDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
                ciDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), auxDensMatrix(numberOfSpecies,ConfigurationInteraction_instance%nproc) )
 
-      ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
-         wfnFile = "lowdin.wfn"
-      ! else
-      !    wfnFile = "lowdin-subsystemA.wfn"
-      ! end if
+      wfnFile = "lowdin.wfn"
       wfnUnit = 20
       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
@@ -1240,10 +1230,13 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
         arguments(2) = speciesName
         arguments(1) = "COEFFICIENTS"
+        ! print *, "trolo", numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
 
         coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
+        ! print *, "trololo"
+        
         do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
            call Matrix_constructor ( ciDensityMatrix(species,state) , &
@@ -1522,7 +1515,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
      unit = 29
        
      file = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-     open(unit = unit, file=trim(file), status="replace", form="formatted")
+     open(unit = unit, file=trim(file), status="new", form="formatted")
        
      !! Building the CI reduced density matrix in the atomic orbital representation       
      do species=1, numberOfSpecies
@@ -1634,12 +1627,6 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
           arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
              
           call Matrix_writeToFile ( atomicDensityMatrix(species,state), unit , arguments=arguments(1:2) )
-
-          write(auxstring,*) state
-          arguments(2) = speciesName
-          arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
-
-          call Vector_writeToFile(densityEigenValues, unit, arguments=arguments(1:2) )
 
          !! it's the same
          !!auxdensityEigenVectors%values = 0
@@ -1953,6 +1940,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       write(*,*) " large sparse symmetric matrices, "
       write(*,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
       write(*,*) "============================================================="
+
 
       call ConfigurationInteraction_jadamiluInterface(ConfigurationInteraction_instance%numberOfConfigurations, &
            int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
@@ -2276,7 +2264,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
     auxIndex1= ConfigurationInteraction_instance%twoIndexArray(ii)%values( diffOrb(1), diffOrb(2))
     ConfigurationInteraction_instance%couplingMatrixOrbOne(ii,n)%values(b) = auxIndex1
-    
+
     do ll=1, ConfigurationInteraction_instance%occupationNumber( ii ) !! the same orbitals pair are excluded by the exchange
 
       l = ConfigurationInteraction_instance%strings(ii)%values(ll,b) !! or a
@@ -2407,7 +2395,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
                   diffOrbA(2),diffOrbB(2)) )
 
     auxCIenergy = ConfigurationInteraction_instance%fourCenterIntegrals(ii,ii)%values(auxIndex, 1)
-    
+
     auxIndex = ConfigurationInteraction_instance%fourIndexArray(ii)%values( &
                  ConfigurationInteraction_instance%twoIndexArray(ii)%values(&
                    diffOrbA(1),diffOrbB(2)),&
@@ -2506,7 +2494,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for Building diagonal of CI matrix : ", timeB - timeA ," (s)"
 
     write (*,*) "Reference energy, H_0: ",  ConfigurationInteraction_instance%diagonalHamiltonianMatrix2%values(1)
-       
+
   end subroutine ConfigurationInteraction_buildDiagonal
 
 recursive  function ConfigurationInteraction_numberOfConfigurationsRecursion(s, numberOfSpecies, c, cilevel) result (os)
@@ -3857,59 +3845,57 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
     auxCIenergy = 0.0_8
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-       a = this(i)
-       do kk=1, ConfigurationInteraction_instance%occupationNumber( i )  !! 1 is from a and 2 from b
+      a = this(i)
+      do kk=1, ConfigurationInteraction_instance%occupationNumber( i )  !! 1 is from a and 2 from b
 
-          k = ConfigurationInteraction_instance%strings(i)%values(kk,a)
+        k = ConfigurationInteraction_instance%strings(i)%values(kk,a)
 
-          !One particle terms
+        !One particle terms
+        auxCIenergy = auxCIenergy + &
+                    ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( k, k )
+
+        !Two particles, same specie
+        auxIndex1 = ConfigurationInteraction_instance%twoIndexArray(i)%values(k,k)
+
+        do ll = kk + 1, ConfigurationInteraction_instance%occupationNumber( i )  !! 1 is from a and 2 from b
+
+          l = ConfigurationInteraction_instance%strings(i)%values(ll,a)
+          auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(i)%values(l,l)
+          auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values(auxIndex1,auxIndex2) 
+
+          !Coulomb
           auxCIenergy = auxCIenergy + &
-               ConfigurationInteraction_instance%twoCenterIntegrals(i)%values( k, k )
+              ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
 
-          !Two particles, same specie
-          auxIndex1 = ConfigurationInteraction_instance%twoIndexArray(i)%values(k,k)
+          !Exchange, depends on spin
 
-          do ll = kk + 1, ConfigurationInteraction_instance%occupationNumber( i )  !! 1 is from a and 2 from b
+          auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
+                        ConfigurationInteraction_instance%twoIndexArray(i)%values(k,l), &
+                        ConfigurationInteraction_instance%twoIndexArray(i)%values(l,k) )
 
-             l = ConfigurationInteraction_instance%strings(i)%values(ll,a)
-
-             auxIndex2 = ConfigurationInteraction_instance%twoIndexArray(i)%values(l,l)
-             auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values(auxIndex1,auxIndex2) 
-
-             !Coulomb
-             auxCIenergy = auxCIenergy + &
-                  ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
-
-             !Exchange, depends on spin
-
-             auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
-                  ConfigurationInteraction_instance%twoIndexArray(i)%values(k,l), &
-                  ConfigurationInteraction_instance%twoIndexArray(i)%values(l,k) )
-
-             auxCIenergy = auxCIenergy + &
+          auxCIenergy = auxCIenergy + &
                   MolecularSystem_instance%species(i)%kappa*ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
+        end do
+
+        !!Two particles, different species
+        do j = i + 1, MolecularSystem_instance%numberOfQuantumSpecies
+          b = this(j)
+          auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
+
+          do ll = 1, ConfigurationInteraction_instance%occupationNumber( j ) !! 1 is from a and 2 from b
+            l = ConfigurationInteraction_instance%strings(j)%values(ll,b)
+
+            auxIndex2= ConfigurationInteraction_instance%twoIndexArray(j)%values(l,l)
+            auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
+
+            auxCIenergy = auxCIenergy + &!couplingEnergy
+            ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
 
           end do
 
-          !!Two particles, different species
-          do j = i + 1, MolecularSystem_instance%numberOfQuantumSpecies
-             b = this(j)
-             auxnumberOfOtherSpecieSpatialOrbitals = ConfigurationInteraction_instance%numberOfSpatialOrbitals2%values(j) 
+        end do
 
-             do ll = 1, ConfigurationInteraction_instance%occupationNumber( j ) !! 1 is from a and 2 from b
-                l = ConfigurationInteraction_instance%strings(j)%values(ll,b)
-
-                auxIndex2= ConfigurationInteraction_instance%twoIndexArray(j)%values(l,l)
-                auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
-
-                auxCIenergy = auxCIenergy + &!couplingEnergy
-                     ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
-
-             end do
-
-          end do
-
-       end do
+      end do
     end do
 
     auxCIenergy= auxCIenergy + HartreeFock_instance%puntualInteractionEnergy
@@ -4001,6 +3987,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
             auxCIenergy = auxCIenergy + &
                         ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1)
 
+
             auxIndex = ConfigurationInteraction_instance%fourIndexArray(i)%values( &
                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(diffOrb(1),l), &
                                 ConfigurationInteraction_instance%twoIndexArray(i)%values(l,diffOrb(2)) ) 
@@ -4024,8 +4011,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
                 auxIndex = auxnumberOfOtherSpecieSpatialOrbitals * (auxIndex1 - 1 ) + auxIndex2
 
                 auxCIenergy = auxCIenergy + &
-                     ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
-
+                      ConfigurationInteraction_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1) 
               end do
             end if
           end do
@@ -4193,18 +4179,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
     allocate(ConfigurationInteraction_instance%twoIndexArray(numberOfSpecies))
     allocate(ConfigurationInteraction_instance%fourIndexArray(numberOfSpecies))
- 
-    ! if ( .not. CONTROL_instance%SUBSYSTEM_EMBEDDING) then
-       wfnFile = "lowdin.wfn"
-       !!Load the system in lowdin.sys format
-    ! else
-    !    wfnFile = "lowdin-subsystemA.wfn"
-    !    !!Load the system in lowdin.sys format
-    ! end if
-    wfnUnit = 20
 
-    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-   
 !    print *,""
 !    print *,"BEGIN INTEGRALS TRANFORMATION:"
 !    print *,"========================================"
@@ -4232,6 +4207,11 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
       call Matrix_constructor (hcoreMatrix,int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
 
       !! Open file for wavefunction
+
+      wfnFile = "lowdin.wfn"
+      wfnUnit = 20
+
+      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
       arguments(2) = MolecularSystem_getNameOfSpecie(i)
       arguments(1) = "COEFFICIENTS"
@@ -4343,7 +4323,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
        call ReadTransformedIntegrals_readOneSpecies( specieID, ConfigurationInteraction_instance%fourCenterIntegrals(i,i)   )
        ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values = &
            ConfigurationInteraction_instance%fourCenterIntegrals(i,i)%values * charge * charge
-            
+
        if ( numberOfSpecies > 1 ) then
          do j = 1 , numberOfSpecies
            if ( i .ne. j) then
@@ -4361,10 +4341,10 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 
            end if
          end do
-      end if
-   end do
-   call Matrix_destructor (hcoreMatrix)
-   close (wfnUnit)
+       end if
+     end do
+     close (wfnUnit)
+     call Matrix_destructor (hcoreMatrix)
 
   end subroutine ConfigurationInteraction_getTransformedIntegrals
 
@@ -5031,8 +5011,7 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
 !                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
 !                        SHIFT, DROPTOL, MEM, ICNTL, &
 !                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-
-10     CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values ,-1_8,-1_8,EIGS, RES, X, LX, NEIG, &
+10   CALL DPJDREVCOM( N, ConfigurationInteraction_instance%diagonalHamiltonianMatrix%values , JA, IA, EIGS, RES, X, LX, NEIG, &
                         SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                         SHIFT, DROPTOL, MEM, ICNTL, &
                         IJOB, NDX1, NDX2, IPRINT, INFO, GAP)

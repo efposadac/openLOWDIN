@@ -1147,7 +1147,7 @@ contains
 
        else !! Direct
 
-          call DirectIntegralManager_getDirectIntraRepulsionIntegrals(&
+          call DirectIntegralManager_getDirectIntraRepulsionMatrix(&
                speciesID, &
                trim(CONTROL_instance%INTEGRAL_SCHEME), &
                densityMatrix, & 
@@ -1423,8 +1423,8 @@ contains
              !! Restringe suma de terminos repulsivos de la misma especie.
              if ( otherSpeciesID /= currentSpeciesID ) then
 
-                   call DirectIntegralManager_getDirectInterRepulsionIntegrals(&
-                        currentSpecieID, OtherSpecieID, &
+                   call DirectIntegralManager_getDirectInterRepulsionMatrix(&
+                        currentSpeciesID, OtherSpeciesID, &
                         trim(CONTROL_instance%INTEGRAL_SCHEME), &
                         densityMatrices(otherSpeciesID), &
                         auxMatrix )
@@ -2079,12 +2079,12 @@ contains
               !!   call WaveFunction_exception(ERROR, "Direct integrals are not implemented in DFT yet", "trololo")
               !!  end if
           
-              !!  call DirectIntegralManager_getDirectAlphaBetaRepulsionIntegrals(&
-              !!         speciesID, OtherSpecieID, &
-              !!         trim(CONTROL_instance%INTEGRAL_SCHEME), &
-              !!         wavefunction_instance(speciesID)%densityMatrix, &
-              !!         wavefunction_instance(otherSpecieID)%densityMatrix, &
-              !!         auxMatrix )
+               call DirectIntegralManager_getDirectAlphaBetaRepulsionMatrix(&
+                      speciesID, OtherSpeciesID, &
+                      trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                      wavefunction_instance(speciesID)%densityMatrix, &
+                      wavefunction_instance(otherSpeciesID)%densityMatrix, &
+                      auxMatrix )
 
               !!
               !!  auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpecieID )

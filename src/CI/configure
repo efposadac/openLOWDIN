@@ -15,7 +15,8 @@ TARGET=lowdin-CI.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 INCI=-I\$(TOPDIR)src/integralsTransformation/
-LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a \$(TOPDIR)lib/libjadamilu.a 
+INCII=-I\$(TOPDIR)src/ints/
+LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a \$(TOPDIR)lib/libjadamilu.a \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Iterators.o     
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
@@ -48,6 +49,14 @@ do
         echo -e "$ifile \c" >> makefile
       fi
    done
+   for ifile in $INCII 
+   do
+      incii=$(grep $ifile $file)
+      if [[ -n $incii ]]
+      then
+        echo -e "$ifile \c" >> makefile
+      fi
+   done
 
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
    do
@@ -61,7 +70,7 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(FLAGS) ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(INCII) \$(FLAGS) ${file}\n" >> makefile
 done
 #
 cat >> makefile << EOF

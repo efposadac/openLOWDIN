@@ -1906,7 +1906,7 @@ contains
        end if
 
     end do
-    ! particleManager_instance => molecularSystem_instance%allParticles
+    ! particleManager_instance => this%allParticles
     
   end subroutine MolecularSystem_copyConstructor
 
