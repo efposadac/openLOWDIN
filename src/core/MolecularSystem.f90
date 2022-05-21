@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -33,11 +33,13 @@ module MolecularSystem_
   use Exception_
   use Units_
   use Particle_
-  use ParticleManager_
   use Species_
   use MecanicProperties_
   use Matrix_
   use Vector_
+  use InternalCoordinates_
+  use ExternalPotential_
+  use InterPotential_
   implicit none
   
   type , public :: MolecularSystem
@@ -53,6 +55,7 @@ module MolecularSystem_
      type(Species), allocatable :: species(:)
      type(particle), allocatable :: pointCharges(:)
      type(particleManager), allocatable :: allParticles(:)
+     type(InternalCoordinates) :: intCoordinates
 
      type(MecanicProperties) :: mechanicalProp
      
@@ -68,6 +71,7 @@ module MolecularSystem_
        MolecularSystem_showInformation, &
        MolecularSystem_showParticlesInformation, &
        MolecularSystem_showCartesianMatrix, &
+       MolecularSystem_showZMatrix, &
        MolecularSystem_showDistanceMatrix, &
        MolecularSystem_saveToFile, &
        MolecularSystem_loadFromFile, &
@@ -77,16 +81,22 @@ module MolecularSystem_
        MolecularSystem_getTotalNumberOfContractions, &
        MolecularSystem_getBasisSet, &
        MolecularSystem_getMaxAngularMoment, &
+       MolecularSystem_getMaxNumberofPrimitives, &
+       MolecularSystem_getMaxNumberofCartesians, &
        MolecularSystem_getOcupationNumber, &
        MolecularSystem_getCharge, &
        MolecularSystem_getMass, &
        MolecularSystem_getEta, &
        MolecularSystem_getLambda, &
+       MolecularSystem_getKappa, &
+       MolecularSystem_getMultiplicity, &
        MolecularSystem_getParticlesFraction, &
        MolecularSystem_getFactorOfInterchangeIntegrals, &
        MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getSpecieID, &
+       MolecularSystem_getSpecieIDFromSymbol, &
        MolecularSystem_getPointChargesEnergy, &
+       MolecularSystem_getMMPointChargesEnergy, &
        MolecularSystem_getlabelsofcontractions
   
   !>Singleton
@@ -116,7 +126,7 @@ contains
     MolecularSystem_instance%numberOfPointCharges = numberOfPointCharges
     MolecularSystem_instance%numberOfQuantumSpecies = numberOfQuantumSpecies
     MolecularSystem_instance%numberOfParticles = sum(numberOfParticlesForSpecies) + numberOfPointCharges
-    
+
     !! Allocate memory for particles
     allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
 
@@ -162,7 +172,7 @@ contains
     !! Setting quantum species
     MolecularSystem_instance%numberOfQuantumParticles = 0
     MolecularSystem_instance%charge = 0
-    
+   
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
        
        call Species_setSpecie(MolecularSystem_instance%species(i), speciesID = i)
@@ -213,6 +223,10 @@ contains
     if(allocated(MolecularSystem_instance%allParticles)) deallocate(MolecularSystem_instance%allParticles)
     
     call MecanicProperties_destructor(MolecularSystem_instance%mechanicalProp)
+
+    call ExternalPotential_destructor()
+    call InterPotential_destructor()
+
 
   end subroutine MolecularSystem_destroy
 
@@ -346,11 +360,11 @@ contains
     print *,""
     print *,"                INFORMATION OF QUANTUM SPECIES "
     write (6,"(T5,A70)") "---------------------------------------------------------------------"
-    write (6,"(T10,A2,A4,A8,A10,A4,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","spin","","multiplicity"
+    write (6,"(T10,A2,A4,A8,A12,A4,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","spin","","multiplicity"
     write (6,"(T5,A70)") "---------------------------------------------------------------------"
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-       write (6,'(T8,I3.0,A5,A10,A5,F7.1,A5,F5.1,A5,F5.2,A5,F5.2)') &
+       write (6,'(T8,I3.0,A5,A10,A5,F10.4,A5,F5.2,A5,F5.2,A5,F5.2)') &
             i, " ", &
             trim(MolecularSystem_instance%species(i)%symbol)," ",&
             MolecularSystem_instance%species(i)%mass," ",&
@@ -392,6 +406,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                int(MolecularSystem_instance%species(i)%internalSize / 2), " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
+          ! write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        else
 
@@ -401,6 +416,7 @@ contains
                MolecularSystem_instance%species(i)%basisSetSize," ",&
                MolecularSystem_instance%species(i)%internalSize, " ",&
                trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
+          ! write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        end if
        
@@ -436,7 +452,46 @@ contains
     print *,""
     print *," END INFORMATION OF PARTICLES"
     print *,""
-    
+
+    !!***********************************************************************
+    !! Prints information about number of occupied orbitales and basis set size
+    !!
+    print *,""
+    print *," INFORMATION OF THE QUANTUM SYSTEM "
+    write (6,"(T5,A70)") "---------------------------------------------------------------------"
+    write (6,"(T10,A10,A5,A17,A5,A10)") "ID", " ", "Occupied Orbitals", " " ,"Basis size"
+    write (6,"(T5,A70)") "---------------------------------------------------------------------"
+
+    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          write (6,'(T10,A10,A5,I8,A5,I12)') &
+               trim(MolecularSystem_instance%species(i)%symbol)," ",&
+                MolecularSystem_getOcupationNumber( i )," ",&
+               MolecularSystem_getTotalNumberOfContractions(i)
+    end do
+
+    print *,""
+    print *," END INFORMATION OF QUANTUM SYSTEM"
+    print *,""
+
+
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      print *,""
+      print *," INFORMATION OF EXTERNAL POTENTIALS "
+      call ExternalPotential_show()
+      print *,""
+      print *," END INFORMATION OF EXTERNAL POTENTIALS"
+      print *,""
+    end if
+
+    if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+      print *,""
+      print *," INFORMATION OF INTER-PARTICLE POTENTIALS "
+      call InterPotential_show()
+      print *,""
+      print *," END INFORMATION OF INTER-PARTICLE POTENTIALS"
+      print *,""
+    end if
+ 
   end subroutine MolecularSystem_showParticlesInformation
 
   !>
@@ -481,6 +536,20 @@ contains
     
   end subroutine MolecularSystem_showCartesianMatrix
 
+  
+  !>                      
+  !! @Construye y mustra una matriz Z de coordenadas internas
+  !> 
+  subroutine MolecularSystem_showZMatrix( this )
+    implicit none
+    type(MolecularSystem) :: this
+
+    call InternalCoordinates_constructor(  this%intCoordinates )
+    call InternalCoordinates_obtainCoordinates( this%intCoordinates )
+    call InternalCoordinates_destructor(  this%intCoordinates )
+
+  end subroutine MolecularSystem_showZMatrix
+
   !>
   !! @brief Imprime una matriz de distancias entre particulas presentes en el sistema
   subroutine MolecularSystem_showDistanceMatrix()
@@ -507,6 +576,7 @@ contains
     implicit none
     
     integer i, j, k
+    character(100) :: title
     
     !!****************************************************************************
     !! CONTROL parameters on file.
@@ -543,10 +613,32 @@ contains
     do i = 1, MolecularSystem_instance%numberOfPointCharges
        call Particle_saveToFile(MolecularSystem_instance%pointCharges(i), unit=40)
     end do
-    
+
     !! Saving the total of particles on the system
     write(40,*) MolecularSystem_instance%numberOfParticles
     write(40,*) MolecularSystem_instance%numberOfQuantumParticles
+
+    ! Saving External/Inter-particle potentials information
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      write(40,*) ExternalPotential_instance%ssize 
+      do i = 1, ExternalPotential_instance%ssize 
+        write(40,*) i 
+        write(40,*) ExternalPotential_instance%potentials(i)%name
+        write(40,*) ExternalPotential_instance%potentials(i)%specie 
+      end do
+
+    end if
+
+    if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+      write(40,*) InterPotential_instance%ssize 
+      do i = 1, InterPotential_instance%ssize 
+        write(40,*) i 
+        write(40,*) InterPotential_instance%potentials(i)%name
+        write(40,*) InterPotential_instance%potentials(i)%specie 
+        write(40,*) InterPotential_instance%potentials(i)%otherSpecie 
+      end do
+
+    end if
 
     close(40)
     
@@ -586,6 +678,39 @@ contains
     
     close(40)
     
+    !!****************************************************************************
+    !! Saving info for gepol program
+    !!
+  
+    call get_command_argument (1,value=title)
+    150 format (4(F10.5))
+    open(unit=41, file="gepol.xyzr",status="replace",form="formatted")
+
+      do i = 1,MolecularSystem_instance%numberOfQuantumSpecies  
+        if (MolecularSystem_instance%species(i)%isElectron .eqv. .true.) then
+        write(41,"(I8)") size(MolecularSystem_instance%species(i)%particles)
+        do j = 1, size(MolecularSystem_instance%species(i)%particles)
+            write(41,150)&
+              MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(2)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
+        end do
+        end if
+      end do
+    close(41)
+    
+    160 format (A,A)
+    open(unit=42, file="gepol.inp",status="replace", form="formatted")
+      write(42,160)"TITL=",trim(title)
+      write(42,160)"COOF=gepol.xyzr"
+      write(42,160)"VECF=vectors.vec"
+      write(42,160)"LPRIN"
+      write(42,160)"NDIV=5"
+      ! write(42,160)"ESURF"
+    
+    close(42)
+    
   end subroutine MolecularSystem_saveToFile
 
   !>
@@ -600,8 +725,10 @@ contains
     integer :: counter
     integer :: i, j
     logical :: existFile
-    
-    
+    character(20) :: name
+    character(50) :: species
+    character(50) :: otherSpecies
+
     select case (trim(form))
        
     case("LOWDIN.BAS")
@@ -756,7 +883,6 @@ contains
           read(40,*) MolecularSystem_instance%numberOfParticles
           read(40,*) MolecularSystem_instance%numberOfQuantumParticles
           
-          close(40)
 
           !! Set the particles manager (all pointers)              
           allocate(molecularSystem_instance%allParticles(MolecularSystem_instance%numberOfParticles ))
@@ -779,6 +905,45 @@ contains
           end do
           
           particleManager_instance => molecularSystem_instance%allParticles
+
+          
+          !! Loading External/Inter-particle potentials information
+          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+
+            read(40,*) auxValue
+            call ExternalPotential_constructor(auxValue)
+
+            !! FELIX TODO: create function to get potential ID
+            
+            do j = 1, ExternalPotential_instance%ssize 
+              read(40,*) i 
+              read(40,*) name
+              read(40,*) species
+
+              call ExternalPotential_load(i, name, species)
+
+            end do
+
+          end if
+
+          if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+
+            read(40,*) auxValue 
+            call InterPotential_constructor(auxValue)
+
+            do j = 1, InterPotential_instance%ssize 
+              read(40,*) i 
+              read(40,*) name
+              read(40,*) species
+              read(40,*) otherSpecies
+  
+              call InterPotential_load(i, name, species, otherSpecies)
+
+            end do
+
+          end if
+
+          close(40)
 
        else
           
@@ -918,6 +1083,52 @@ contains
      
    end function MolecularSystem_getMaxAngularMoment
 
+   !> @brief find the maximun number of primitives for specieID, necessary for derive with libint
+   !! @author J.M. Rodas 2015
+   !! @version 1.0
+   function MolecularSystem_getMaxNumberofPrimitives(specieID) result(output)
+     implicit none
+     
+     integer :: specieID
+     integer :: output
+     
+     integer :: i, j
+     
+     output = -1
+     
+     do i = 1, size(MolecularSystem_instance%species(specieID)%particles)
+        do j = 1, size(MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction)
+           
+           output = max(output, MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction(j)%length)
+           
+        end do
+     end do
+
+   end function MolecularSystem_getMaxNumberofPrimitives
+
+   !> @brief find de maximun number of primitives for specieID, necessary for derive with libint
+   !! @author J.M. Rodas 2015
+   !! @version 1.0
+   function MolecularSystem_getMaxNumberofCartesians(specieID) result(output)
+     implicit none
+     
+     integer :: specieID
+     integer :: output
+     
+     integer :: i, j
+     
+     output = -1
+     
+     do i = 1, size(MolecularSystem_instance%species(specieID)%particles)
+        do j = 1, size(MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction)
+           
+           output = max(output, MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction(j)%numCartesianOrbital)
+           
+        end do
+     end do
+
+   end function MolecularSystem_getMaxNumberofCartesians
+     
    !> @brief Returns the occupation number of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
@@ -956,6 +1167,31 @@ contains
      output = MolecularSystem_instance%species(speciesID)%lambda
           
    end function MolecularSystem_getLambda
+
+
+   function MolecularSystem_getKappa(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     integer :: output
+     
+     output = -1
+     output = MolecularSystem_instance%species(speciesID)%kappa
+          
+   end function MolecularSystem_getKappa
+
+   function MolecularSystem_getMultiplicity(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     integer :: output
+     
+     output = -1
+     output = MolecularSystem_instance%species(speciesID)%spin
+          
+   end function MolecularSystem_getMultiplicity
+
+
 
 
    function MolecularSystem_getParticlesFraction(speciesID) result(output)
@@ -1028,20 +1264,36 @@ contains
    function MolecularSystem_getSpecieID( nameOfSpecie ) result(output)
      implicit none
      
-     character(*) nameOfSpecie
+     character(*) :: nameOfSpecie
      integer :: output
      integer i 
      
      output = 0
-     
+
      do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        if( trim(MolecularSystem_instance%species(i)%name) == trim(nameOfSpecie)) then
-           output = i
-        end if
+        if( trim(MolecularSystem_instance%species(i)%name) == trim(nameOfSpecie)) output = i
      end do
-          
+
    end function MolecularSystem_getSpecieID
-   
+
+      !> @brief Returns the name of a species
+   !! @author E. F. Posada, 2013
+   !! @version 1.0
+   function MolecularSystem_getSpecieIDFromSymbol( symbolOfSpecie ) result(output)
+     implicit none
+     
+     character(*) :: symbolOfSpecie
+     integer :: output
+     integer i 
+     
+     output = 0
+
+     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+        if( trim(MolecularSystem_instance%species(i)%symbol) == trim(symbolOfSpecie)) output = i
+     end do
+
+   end function MolecularSystem_getSpecieIDFromSymbol
+
    !>
    !! @brief calcula la energia total para una especie especificada
    function MolecularSystem_getPointChargesEnergy() result( output )
@@ -1069,6 +1321,34 @@ contains
      end do
      
    end function MolecularSystem_getPointChargesEnergy
+
+   function MolecularSystem_getMMPointChargesEnergy() result( output )
+     implicit none
+     real(8) :: output
+
+     integer :: i
+     integer :: j
+     real(8) :: deltaOrigin(3)
+     real(8) :: tmp
+
+     output =0.0_8
+     
+     do i=1, size( MolecularSystem_instance%pointCharges )
+        if(trim(MolecularSystem_instance%pointCharges(i)%nickname) == "PC") then
+           do j = i + 1 , size( MolecularSystem_instance%pointCharges )
+
+              deltaOrigin = MolecularSystem_instance%pointCharges(i)%origin &
+                   - MolecularSystem_instance%pointCharges(j)%origin
+
+              output=output + ( ( MolecularSystem_instance%pointCharges(i)%charge &
+                   * MolecularSystem_instance%pointCharges(j)%charge )&
+                   / sqrt( sum( deltaOrigin**2.0_8 ) ) )
+
+           end do
+        end if
+     end do
+
+   end function MolecularSystem_getMMPointChargesEnergy
    
    !>
    !! @brief returns an array of labels of all basis set of speciesID
@@ -1111,7 +1391,7 @@ contains
      end do
      
    end function MolecularSystem_getlabelsofcontractions
-   
+
    !>
    !! @brief  Maneja excepciones de la clase
    subroutine MolecularSystem_exception( typeMessage, description, debugDescription)

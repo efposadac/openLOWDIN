@@ -1,0 +1,21 @@
+GEOMETRY
+	e-(H)   cc-pVTZ			0.00	0.00 	0.00 addParticles=1
+	H	dirac			0.00	0.00 	0.00
+	e+	e+-H-7SP-aug-cc-pVTZ	0.00	0.00	0.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	propagatorTheoryCorrection = 3
+END TASKS
+
+CONTROL
+!	integralsTransformationMethod = "A"
+!	ptP3Method = "REN-P3" "TROLOLO"
+!	ptP3Method = "OVGF"
+!	ptP3Method = "P3" "EP3" "OVGF" "REN-P3"
+	ptP3Method = "P3" "EP3" "OVGF-A" "OVGF-B" "OVGF-C" "REN-P3" "TROLOLO"
+END CONTROL
+
+
+

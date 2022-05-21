@@ -1,4 +1,4 @@
-  STO-3G  EMSL  Basis Set Exchange Library   7/13/12 9:23 PM 
+  STO-1G  EMSL  Basis Set Exchange Library   7/13/12 9:23 PM 
  Elements                             References 
   H - Ne: W.J. Hehre, R.F. Stewart and J.A. Pople, J. Chem. Phys. 2657 (1969). 
  Na - Ar: W.J. Hehre, R. Ditchfield, R.F. Stewart, J.A. Pople, 
@@ -8,13 +8,11 @@
  Sc - Zn: W.J. Pietro and W.J. Hehre, J. Comp. Chem. 4, 241 (1983) + Gaussian. 
   Y - Cd: W.J. Pietro and W.J. Hehre, J. Comp. Chem. 4, 241 (1983). + Gaussian 
     
-O-HYDROGEN H (STO-3G) BASIS TYPE: 1
+O-HYDROGEN H (STO-1G) BASIS TYPE: 1
 # 
-2
+1
 1 0 1
-0.50000000 1.00000000
-2 1 1
-0.50000000 1.00000000
+0.4166124 1.00000000
 
 O-HELIUM HE (STO-3G) BASIS TYPE: 1
 # 

@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+SRCMOD=$(ls [!_]*.f90)
+#
+rm -f makefile
+rm -f *.o 
+rm -f *.mod 
+rm -f *~
+#
+cat > makefile << EOF
+TOPDIR=../../
+include \$(TOPDIR)/CONFIG
+
+TARGET=lowdin-cosmo.x
+LDR=\$(FC)
+INC=-I\$(TOPDIR)src/core/
+INCI=-I\$(TOPDIR)src/ints/
+LDPATH=\$(TOPDIR)lib/lowdincore.a 
+FLAGS=\$(FCFLAGS)
+LIBS=\$(ALL_LIBS)
+
+OBJECTS=$(for file in $SRCMOD 
+          do
+            echo -e "${file%.f90}.o \c"
+          done
+          ) 
+EOF
+echo -e "\n\$(TARGET) : \$(OBJECTS)" >> makefile
+echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(LDPATH) \$(LIBS)" >> makefile
+echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
+#
+for file in $SRCMOD 
+do
+  echo -e "${file%.f90}.o:\t${file} \c" >> makefile
+   for ifile in $INC 
+   do
+      inc=$(grep $ifile $file)
+      if [[ -n $inc ]]
+      then
+        echo -e "$ifile \c" >> makefile
+      fi
+   done
+   for ifile in $INCI 
+   do
+      inci=$(grep $ifile $file)
+      if [[ -n $inci ]]
+      then
+        echo -e "$ifile \c" >> makefile
+      fi
+   done
+
+  for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
+   do
+     name=$(echo $mod)
+     
+     for jfile in $SRCMOD
+     do
+       if [[ $jfile == $name.f90 ]]
+       then
+         echo -e "$name.o \c" >> makefile
+       fi
+     done
+   done
+  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(FLAGS) ${file}\n" >> makefile
+done
+#
+cat >> makefile << EOF
+clean:: 
+	rm -f *.o
+	rm -f *.mod
+	rm makefile
+EOF
+#

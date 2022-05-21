@@ -55,6 +55,7 @@ module ContractedGaussian_
   use Math_
   use CONTROL_
   use Exception_
+  use String_
   implicit none
   
   type :: contractedGaussian
@@ -74,9 +75,14 @@ module ContractedGaussian_
   public :: &
        ContractedGaussian_saveToFile, &
        ContractedGaussian_loadFromFile, &
+       ContractedGaussian_constructor, &
        ContractedGaussian_showInCompactForm, &
+       ContractedGaussian_showInSimpleForm,  &
        ContractedGaussian_normalizePrimitive, &
        ContractedGaussian_normalizeContraction, &
+       ContractedGaussian_product, &
+       ContractedGaussian_primitiveProduct, &
+       ContractedGaussian_primitiveProductConstant, &
        ContractedGaussian_overlapIntegral, &
        ContractedGaussian_getShellCode, &
        ContractedGaussian_getAllAngularMomentIndex
@@ -102,10 +108,18 @@ contains
     write(unit,*) this%numCartesianOrbital
     write(unit,*) this%owner
     write(unit,*) this%origin
+
+#ifdef intel
+    write(unit,'(<size(this%orbitalExponents)>F)') this%orbitalExponents
+    write(unit,'(<size(this%contractionCoefficients)>F)') this%contractionCoefficients
+    write(unit,'(<size(this%contNormalization)>F)') this%contNormalization
+    write(unit,'(<size(this%primNormalization)>E)') this%primNormalization
+#else
     write(unit,*) this%orbitalExponents
     write(unit,*) this%contractionCoefficients
     write(unit,*) this%contNormalization
     write(unit,*) this%primNormalization
+#endif
 
   end subroutine ContractedGaussian_saveToFile
 
@@ -133,13 +147,141 @@ contains
     read(unit,*) this%contractionCoefficients
 
     allocate(this%contNormalization(this%numCartesianOrbital))
-    allocate(this%primNormalization(this%length, this%length*this%numCartesianOrbital))
+    allocate(this%primNormalization(this%length, this%numCartesianOrbital))
                  
     read(unit,*) this%contNormalization
     read(unit,*) this%primNormalization
 
   end subroutine ContractedGaussian_loadFromFile
 
+  !>
+  !! @brief Constructs the ContractedGaussian structure.
+  !! @param this contracted gaussian
+  !! @author E. F. Posada, 2013
+  subroutine ContractedGaussian_constructor( this , orbitalsExponents , &
+       contractionCoefficients , origin , angularMoment, owner, ssize, noNormalize )
+
+    implicit none
+    
+    type(ContractedGaussian) :: this
+    real(8), optional, intent(in) :: orbitalsExponents(:)
+    real(8), optional , intent(in) :: contractionCoefficients(:)
+    real(8), optional , intent(in) :: origin(3)
+    integer(4),optional, intent(in) :: angularMoment
+    integer, optional, intent(in) :: owner
+    integer, optional :: ssize
+    logical, optional, intent(in) :: noNormalize
+
+    !! Defaults values
+    this%id = 0
+    this%length = 0
+    this%angularMoment = 0
+    this%numCartesianOrbital = 0
+    this%owner = 0
+    this%origin = 0
+
+    if ( present(ssize) .and. .not. present(orbitalsExponents) .and. .not. present (contractionCoefficients) ) then
+
+       this%length=ssize
+
+    else if( present(orbitalsExponents) ) then
+
+       this%length = size(orbitalsExponents)
+
+    else if( present(contractionCoefficients) ) then
+
+       this%length = size(contractionCoefficients)
+
+    end if
+
+    if ( this%length > 0 ) then
+
+      if (allocated(this%orbitalExponents) ) deallocate(this%orbitalExponents)
+      allocate(this%orbitalExponents(this%length))
+      if (allocated(this%contractionCoefficients)) deallocate(this%contractionCoefficients)
+      allocate(this%contractionCoefficients(this%length))
+
+      this%orbitalExponents = 0 
+      this%contractionCoefficients = 0
+
+      if ( present(orbitalsExponents) ) then
+        this%orbitalExponents = orbitalsExponents 
+      end if
+
+      if ( present(contractionCoefficients) ) then
+        this%contractionCoefficients = contractionCoefficients
+      end if
+
+    end if
+    
+    if ( present ( origin ) ) this%origin = origin
+    if ( present ( angularMoment ) ) this%angularMoment = angularMoment
+    if ( present ( owner ) ) this%owner = owner
+
+    
+    !! Calculates the number of cartesian orbitals, by dimensionality
+    select case(CONTROL_instance%DIMENSIONALITY)
+      case(3)
+        this%numCartesianOrbital = ( ( this%angularMoment + 1_8 )*( this%angularMoment + 2_8 ) ) / 2_8
+      case(2)
+        this%numCartesianOrbital = ( ( this%angularMoment + 1_8 ) )
+      case(1)
+        this%numCartesianOrbital = 1 
+    end select
+            
+    if (allocated(this%contNormalization)) deallocate(this%contNormalization)
+    allocate(this%contNormalization(this%numCartesianOrbital))
+    if (allocated(this%primNormalization)) deallocate(this%primNormalization)
+    allocate(this%primNormalization(this%length,this%length*this%numCartesianOrbital))
+    
+    this%contNormalization = 1.0_8
+    this%primNormalization = 1.0_8
+
+    !! Normalize
+    if(.not. present(noNormalize) ) then
+      call ContractedGaussian_normalizePrimitive(this)
+      call ContractedGaussian_normalizeContraction(this)
+    end if
+
+  end subroutine ContractedGaussian_constructor
+
+  !>
+  !! @brief Copy the ContractedGaussian structure from otherThis to this.
+  !! @param this contracted gaussian
+  !! @author E. F. Posada, 2013
+  subroutine ContractedGaussian_copyConstructor( otherThis, this )
+
+    implicit none
+    
+    type(ContractedGaussian) :: this
+    type(ContractedGaussian) :: otherThis
+
+    !! Defaults values
+    this%id = otherThis%id
+    this%length = otherThis%length
+    this%angularMoment = otherThis%angularMoment 
+    this%numCartesianOrbital = otherThis%numCartesianOrbital 
+    this%owner = otherThis%owner 
+    this%origin = otherThis%origin
+
+    if ( allocated ( this%orbitalExponents ) ) deallocate (this%orbitalExponents)
+    allocate(this%orbitalExponents(this%length))
+
+    if ( allocated ( this%contractionCoefficients ) ) deallocate (this%contractionCoefficients)
+    allocate(this%contractionCoefficients(this%length))
+
+    this%orbitalExponents = otherThis%orbitalExponents 
+    this%contractionCoefficients = otherThis%contractionCoefficients
+
+    if ( allocated (this%contNormalization )) deallocate (this%contNormalization )
+    allocate(this%contNormalization(this%numCartesianOrbital))
+    this%contNormalization = otherThis%contNormalization 
+
+    if ( allocated(this%primNormalization )) deallocate(this%primNormalization )
+    allocate(this%primNormalization(this%length,this%length*this%numCartesianOrbital))
+    this%primNormalization = otherThis%primNormalization 
+
+  end subroutine ContractedGaussian_copyConstructor
 
   !>
   !! Muestra en pantalla el valor de los atributos asociados a la gausiana
@@ -150,7 +292,7 @@ contains
     
     type(ContractedGaussian) , intent(in) :: this
 
-    integer :: i, j
+    integer :: i
     character(9) :: shellCode(this%numCartesianOrbital)
 
     shellCode=ContractedGaussian_getShellCode(this)
@@ -174,6 +316,26 @@ contains
     ! end do
 
   end subroutine ContractedGaussian_showInCompactForm
+
+  subroutine ContractedGaussian_showInSimpleForm( this, unidOfOutput)
+    implicit none
+    type(ContractedGaussian) , intent(in) :: this
+    integer :: unidOfOutput
+
+    integer :: i
+    character(9) :: shellCode(this%numCartesianOrbital)
+
+    shellCode=ContractedGaussian_getShellCode(this)
+
+    write (unidOfOutput,"(A1,I3,F5.2)") trim(String_getLowercase(shellCode(1)(1:1))),this%length,1.00
+
+    do i=1,this%length
+       write (unidOfOutput,"(ES19.10,ES19.10)") this%orbitalExponents(i) ,this%contractionCoefficients(i)
+    end do
+
+  end subroutine ContractedGaussian_showInSimpleForm
+
+
     
   !>
   !! @brief Normalization constant for a primitive gaussian
@@ -186,7 +348,7 @@ contains
     type(contractedGaussian) , intent( inout ) :: this
     
     integer, allocatable :: angularMomentIndex(:,:)
-    integer :: i, j, m
+    integer :: i, j
     
     if(allocated(angularMomentIndex)) deallocate(angularMomentIndex)
     allocate(angularMomentIndex(3, this%numCartesianOrbital))
@@ -194,17 +356,17 @@ contains
     call ContractedGaussian_getAllAngularMomentIndex( angularMomentIndex, this)
     
     
+    ! write(*,*) "Normalization" 
     do i = 1, this%length
-       m = 1
        do j = 1, this%numCartesianOrbital
-          this%primNormalization(i,m) =( ( 2.0_8*this%orbitalExponents(i)/Math_PI )**0.75_8 ) &
+          this%primNormalization(i,j) =( ( 2.0_8*this%orbitalExponents(i)/Math_PI )**0.75_8 ) &
                / sqrt( &
                Math_factorial( 2_8 * angularMomentIndex(1, j) - 1_8,2 )&
                * Math_factorial( 2_8 * angularMomentIndex(2, j) - 1_8,2 )&
                * Math_factorial( 2_8 * angularMomentIndex(3, j) - 1_8,2 )/&
                ((4.0_8*this%orbitalExponents(i))**this%angularMoment))
-          m = m + 1
        end do
+          ! write(*,*) this%primNormalization(i,:)
     end do
     
   end subroutine ContractedGaussian_normalizePrimitive
@@ -221,7 +383,7 @@ contains
 
     type(ContractedGaussian) , intent(inout) :: this
     real(8) :: integralValue(this%numCartesianOrbital * this%numCartesianOrbital)
-    integer :: i, j, m, n
+    integer :: i, j, m
 
     this%contNormalization = 1.0_8
     
@@ -268,7 +430,7 @@ contains
     real(8) ::  nor2(0:contractedGaussianB%length)
     integer, allocatable :: angularMomentIndexA(:,:)
     integer, allocatable :: angularMomentIndexB(:,:)
-    integer ::  i, m, p, q
+    integer ::  m, p, q
     
     real(8), allocatable ::  x(:,:), y(:,:), z(:,:)
     real(8) :: AB2
@@ -417,7 +579,7 @@ contains
     integer, intent(in) :: angularMoment1, angularMoment2
 
     real(8) :: pp
-    integer :: i, j, k
+    integer :: i, j
 
     pp = 1/(2*gamma)
 
@@ -489,11 +651,11 @@ contains
 
     type(Exception) :: ex
 
-    character(1) :: indexCode(0:this%angularMoment)	!< Codigo para solo un indice de momento angular
-    character(1) :: shellCode(0:8)			!< Codigo para una capa dada
-    character(1) :: coordCode(3)			!< Codigo de las coordenadas cartesianas
-    integer :: nx, ny, nz	 			!< Indices de momento angular
-    integer :: i, j, m, u, v				!< Iteradores
+    character(1) :: indexCode(0:this%angularMoment) !< Codigo para solo un indice de momento angular
+    character(1) :: shellCode(0:8) !< Codigo para una capa dada
+    character(1) :: coordCode(3) !< Codigo de las coordenadas cartesianas
+    integer :: nx, ny, nz !< Indices de momento angular
+    integer :: i, j, m, u, v,uu !< Iteradores
 
     if ( this%angularMoment <= 8 ) then
        
@@ -506,7 +668,7 @@ contains
        
        select case(CONTROL_instance%DIMENSIONALITY)
           
-       case(3)	
+       case(3)
           
           do i = 0 , this%angularMoment
              nx = this%angularMoment - i
@@ -530,7 +692,12 @@ contains
                    u = u + 1
                    indexCode(u) = trim(coordCode(3))
                 end do
+
+                !!do uu = 0, size(indexCode)-1
+                !!  output(m)(uu+1:uu+1) = indexCode(uu)
+                !!end do
                 output(m) = trim(indexCode(1)(0:this%angularMoment))
+
              end do
           end do
           
@@ -638,6 +805,152 @@ contains
   end subroutine  ContractedGaussian_getAllAngularMomentIndex
 
   !>
+  !!@brief Calcula el producto de dos funciones gausianas contraidas
+  !!           Actualmente el producto debe ser entre una funcion contraida
+  !!           generica (de cualquier momento angular) y una funcion tipo s.
+  !<
+  subroutine ContractedGaussian_product(this, anotherThis, output)
+    implicit none
+    type(ContractedGaussian), intent(in) :: this
+    type(ContractedGaussian), intent(in) :: anotherThis
+    type(ContractedGaussian), intent(inout) :: output
+
+    integer :: i
+    integer :: j
+    integer :: k
+    real(8) :: auxValue
+
+    call ContractedGaussian_constructor(output, ssize=(this%length*anotherThis%length), &
+         noNormalize=.true., angularMoment=this%angularMoment + anotherthis%angularMoment )
+
+    k=1
+    do i = 1, this%length
+       do j = 1 , anotherthis%length
+
+!!          call PrimitiveGaussian_product( this%primitives(i) , &
+!!               anotherthis%primitives(j), proportConstant=auxValue, output=output%primitives(k) )
+          call ContractedGaussian_primitiveproduct( this,  i, &
+               anotherthis, j , output, k, proportConstant=auxValue  )
+
+
+!!          output%primitives(k)%normalizationConstant =  &
+!!              this%primitives(i)%normalizationConstant
+          output%contNormalization(k) = this%contNormalization(i)
+
+!!          output%primitives(k)%owner =  &
+!!               this%primitives(i)%owner
+          output%owner = this%owner
+
+!!          output%contractionCoefficients(k)=this%contractionCoefficients(i)* &
+!!               anotherthis%contractionCoefficients(j) * auxValue
+          output%contractionCoefficients(k)=this%contractionCoefficients(i)* &
+               anotherthis%contractionCoefficients(j) * auxValue
+
+          k=k+1
+
+       end do
+    end do
+
+    !!output%normalizationConstant=this%normalizationConstant !!?
+    output%contNormalization = this%contNormalization !!?
+    output%primNormalization = this%primNormalization !! check
+    output%owner= anotherthis%owner !! ?
+    !call ContractedGaussian_showInCompactForm( output )
+
+  end subroutine ContractedGaussian_product
+
+  !<
+  ! Obtiene el producto de la parte exponencial de dos funciones gausianas,
+  ! de acuerdo con la identidad de transformacion de dos gausianas en una
+  ! unica exponencial.
+  !
+  ! @param gA  Gausiana primitiva A
+  ! @param gB  Gausiana primitiva B
+  !
+  ! @return this Gausiana primitiva transformada.
+  !
+  ! @see #gaussianProductConstant()
+  !>
+  subroutine  ContractedGaussian_primitiveProduct( contractedGaussianA, ia, contractedGaussianB, ib, output, io ,proportConstant )
+    implicit none
+    type(ContractedGaussian), intent( in ) :: contractedGaussianA , contractedGaussianB
+    type(ContractedGaussian), intent(inout) :: output
+    integer :: ia, ib, io
+    real(8), optional, intent(inout) :: proportConstant
+
+    !output%angularMomentIndex(1) = primitiveGaussianA%angularMomentIndex(1) + primitiveGaussianB%angularMomentIndex(1)
+    !output%angularMomentIndex(2) = primitiveGaussianA%angularMomentIndex(2) + primitiveGaussianB%angularMomentIndex(2)
+    !output%angularMomentIndex(3) = primitiveGaussianA%angularMomentIndex(3) + primitiveGaussianB%angularMomentIndex(3)
+
+    output%angularMoment = contractedGaussianA%angularMoment + contractedGaussianB%angularMoment
+
+    !! Calcula el nuevo exponente orbital
+    output%orbitalExponents(io) = contractedGaussianA%orbitalExponents(ia) + contractedGaussianB%orbitalExponents(ib)
+
+    !!**************************************************************
+    !! Determinacion de las componentes cartesianas donde se centra
+    !! la nueva funcion
+    !!
+    !! Componente x
+    output%origin( 1 ) = ( contractedGaussianA%origin( 1 ) * contractedGaussianA%orbitalExponents(ia) &
+             + contractedGaussianB%origin( 1 ) * contractedGaussianB%orbitalExponents(ib) ) &
+             /  ( output%orbitalExponents(io) )
+
+    !! Componente y
+    output%origin( 2 ) = ( contractedGaussianA%origin( 2 ) * contractedGaussianA%orbitalExponents(ia) &
+             + contractedGaussianB%origin( 2 ) * contractedGaussianB%orbitalExponents(ib) ) &
+             / ( output%orbitalExponents(io) )
+
+    !! Componente z
+    output%origin( 3 ) = ( contractedGaussianA%origin( 3 ) * contractedGaussianA%orbitalExponents(ia) &
+             + contractedGaussianB%origin( 3 ) * contractedGaussianB%orbitalExponents(ib) ) &
+             / ( output%orbitalExponents(io) )
+    !!**************************************************************
+
+    if(present(proportConstant)) then
+      proportConstant = ContractedGaussian_primitiveProductConstant( &
+       contractedGaussianA, ia, contractedGaussianB, ib )
+    end if
+
+  end subroutine ContractedGaussian_primitiveProduct
+
+  !<
+  ! Obtiene  la constante de proporcionalidad para el el producto de la
+  ! parte  exponencial de dos funciones gausianas.
+  !
+  ! @param gA  Gausiana primitiva A
+  ! @param gB  Gausiana primitiva B
+  !
+  ! @return gaussianProductConstant Constate de proporcionalidad
+  !
+  ! @see gaussianProduct()
+  !>
+
+  function ContractedGaussian_primitiveProductConstant( contractedGaussianA, ia, contractedGaussianB, ib ) result( output )
+    type( ContractedGaussian ) , intent( in ) :: contractedGaussianA , contractedGaussianB
+    integer :: ia, ib
+    real(8) :: output
+
+    real(8) :: distanceGaussians
+    real(8) :: orbitalExponent
+
+    !! calcula el nuevo exponente orbital
+    orbitalExponent = contractedGaussianA%orbitalExponents(ia) + contractedGaussianB%orbitalExponents(ib)
+
+    !! Calcula distancia entre gausianas
+    distanceGaussians = ( ( contractedGaussianA%origin( 1 ) - contractedGaussianB%origin( 1 ) ) ** 2.0_8 &
+            + ( contractedGaussianA%origin( 2 ) - contractedGaussianB%origin( 2 ) ) ** 2.0_8 &
+            + ( contractedGaussianA%origin( 3 ) - contractedGaussianB%origin( 3 ) ) ** 2.0_8 )
+
+    !! Calcula la constante de proporcionalidad
+    output = exp( - ( ( contractedGaussianA%orbitalExponents(ia) * contractedGaussianB%orbitalExponents(ib) ) &
+             / orbitalExponent ) * distanceGaussians )
+
+  end function ContractedGaussian_primitiveProductConstant
+
+
+
+  !>
   !! @brief  Maneja excepciones de la clase
   subroutine ContractedGaussian_exception( typeMessage, description, debugDescription)
     implicit none
@@ -656,3 +969,4 @@ contains
   end subroutine ContractedGaussian_exception
   
 end module ContractedGaussian_
+

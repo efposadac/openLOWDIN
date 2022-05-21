@@ -175,6 +175,7 @@ contains
     real(8) :: commonPreFactor
     real(8) :: x00, y00, z00
     real(8) :: x01, y01, z01
+    real(8) :: x02, y02, z02
     real(8) :: x10, y10, z10
     real(8) :: x11, y11, z11
 
@@ -238,6 +239,10 @@ contains
           y01 = y(angularMomentIndexA(1),angularMomentIndexB(1)+1)
           z01 = z(angularMomentIndexA(2),angularMomentIndexB(2)+1)
 
+          x02 = x(angularMomentIndexA(0),angularMomentIndexB(0)+2)
+          y02 = y(angularMomentIndexA(1),angularMomentIndexB(1)+2)
+          z02 = z(angularMomentIndexA(2),angularMomentIndexB(2)+2)
+
           x10 = x(angularMomentIndexA(0)+1,angularMomentIndexB(0))
           y10 = y(angularMomentIndexA(1)+1,angularMomentIndexB(1))
           z10 = z(angularMomentIndexA(2)+1,angularMomentIndexB(2))
@@ -248,14 +253,54 @@ contains
 
           select case (component)
 
-
+          !! Dipole
           case(1) !X
              integralValue = integralValue + (commonPreFactor*(x01+x00*(B(0)-originRC(1)))*y00*z00)
           case(2) !Y
              integralValue = integralValue + (commonPreFactor*x00*(y01+y00*(B(1)-originRC(2)))*z00)
           case(3) !Z
              integralValue = integralValue + (commonPreFactor*x00*y00*(z01+z00*(B(2)-originRC(3))))
+
+          !! Quadrupole
+          case(4) !XX
+            integralValue = integralValue + (commonPreFactor*y00*z00* &
+                            (x11 + x10*(B(0)-originRC(1)) + x01*(A(0)-originRC(1)) + x00*(A(0)-originRC(1))*(B(0)-originRC(1)) ) )
+          case(5) !YY
+            integralValue = integralValue + (commonPreFactor*x00*z00* &
+                            (y11 + y10*(B(1)-originRC(2)) + y01*(A(1)-originRC(2)) + y00*(A(1)-originRC(3))*(B(1)-originRC(2)) ) )
+          case(6) !ZZ
+            !integralValue = integralValue + (1.0/1.0)*(commonPreFactor*x00*y00*(z11))
+            integralValue = integralValue + (commonPreFactor*x00*y00* &
+                            (z11 + z10*(B(2)-originRC(3)) + z01*(A(2)-originRC(3)) + z00*(A(2)-originRC(3))*(B(2)-originRC(3)) ) )
+          case(7) !XY
+             integralValue = integralValue + (commonPreFactor*(x01+x00*(B(0)-originRC(1)))*(y01+y00*(B(1)-originRC(2)))*z00)
+          case(8) !XZ
+             integralValue = integralValue + (commonPreFactor*(x01+x00*(B(0)-originRC(1)))*y00*(z01+z00*(B(2)-originRC(3))))
+          case(9) !YZ
+             integralValue = integralValue + (commonPreFactor*x00*(y01+y00*(B(1)-originRC(2)))*(z01+z00*(B(2)-originRC(3))))
           end select
+
+!          !! Quadrupole
+!          case(4) !XX
+!             integralValue = integralValue + (1.0/1.0)*(commonPreFactor*(x02+x00*(B(0)-originRC(1)))*y00*z00)
+!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*x00*(y02+y00*(B(1)-originRC(2)))*z00)
+!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*x00*y00*(z02+z00*(B(2)-originRC(3))))
+!          case(5) !YY
+!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*(x02+x00*(B(0)-originRC(1)))*y00*z00)
+!             integralValue = integralValue + (1.0/1.0)*(commonPreFactor*x00*(y02+y00*(B(1)-originRC(2)))*z00)
+!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*x00*y00*(z02+z00*(B(2)-originRC(3))))
+!          case(6) !ZZ
+!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*(x02+x00*(B(0)-originRC(1)))*y00*z00)
+!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*x00*(y02+y00*(B(1)-originRC(2)))*z00)
+!             integralValue = integralValue + (1.0/1.0)*(commonPreFactor*x00*y00*(z02+z00*(B(2)-originRC(3))))
+!          case(7) !XY
+!             integralValue = integralValue + (3.0/2.0)*(commonPreFactor*(x01+x00*(B(0)-originRC(1)))*(y01+y00*(B(1)-originRC(2)))*z00)
+!          case(8) !XZ
+!             integralValue = integralValue + (3.0/2.0)*(commonPreFactor*(x01+x00*(B(0)-originRC(1)))*y00*(z01+z00*(B(2)-originRC(3))))
+!          case(9) !YZ
+!             integralValue = integralValue + (3.0/2.0)*(commonPreFactor*x00*(y01+y00*(B(1)-originRC(2)))*(z01+z00*(B(2)-originRC(3))))
+!          end select
+
 
        end do
     end do

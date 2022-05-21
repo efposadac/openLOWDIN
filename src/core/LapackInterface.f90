@@ -39,6 +39,14 @@ module LapackInterface_
      end subroutine dsyev
 
      !>
+     !! @brief LInear
+     subroutine dgesv(N, NRHS, A, LDA, IPIV, B, LDB, INFO)
+       integer :: N, NRHS, LDA, LDB, INFO
+       real(8) :: A(LDA,*), B(*)
+       integer :: IPIV(*)
+     end subroutine dgesv
+
+     !>
      !! @brief Calcula todos los valores propios y opcionalmente los eigenvectores
      !! por la izquieda o derecha de una matriz cuadrada real y no-simetrica.
      !! Los eigenvectores se normalizan para tener norma euclidiana igual a 1
@@ -75,6 +83,16 @@ module LapackInterface_
        integer :: INFO, LDA, LDU, LDVT, LWORK, M, N
        real(8) :: A(  LDA,  *  ),  S( * ), U( LDU, * ), VT(LDVT, * ), WORK( * )
      end subroutine dgesvd
+
+     !>                                                                         
+     !! @brief Calcula la descomposicion en valore simples de una matriz real de MxN 
+     subroutine dgemm(TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
+       character :: TRANSA, TRANSB
+       integer :: M, N, K
+       integer :: LDA, LDB, LDC
+       real(8) :: A(LDA,*), B(LDB,*), C(LDC,*)
+       real(8) :: ALPHA, BETA
+     end subroutine dgemm
      
   end interface
   

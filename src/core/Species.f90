@@ -43,20 +43,20 @@ module Species_
      character(10) :: name                     !< Name of species: electron, muons, etc.
      character(10) :: symbol                   !< Symbol of species: e-, u-, etc.
      character(10) :: statistics               !< Boson / fermion
-     real(8) :: charge 			       !< Carga asociada a la especie.
-     real(8) :: mass			       !< Masa asociada a la particula.
-     real(8) :: spin			       !< Especifica el espin de la especie
-     real(8) :: totalCharge		       !< Carga total asociada a la especie.
+     real(8) :: charge        !< Carga asociada a la especie.
+     real(8) :: mass       !< Masa asociada a la particula.
+     real(8) :: spin       !< Especifica el espin de la especie
+     real(8) :: totalCharge       !< Carga total asociada a la especie.
      real(8) :: kappa
      real(8) :: eta
      real(8) :: lambda
      real(8) :: particlesFraction
      real(8) :: ocupationNumber
      real(8) :: multiplicity
-     integer :: internalSize		       !< Numero de particulas si se trata de una particula estructurada
-     integer :: basisSetSize		       
+     integer :: internalSize       !< Numero de particulas si se trata de una particula estructurada
+     integer :: basisSetSize       
      integer :: speciesID
-     logical :: isElectron
+     logical(1) :: isElectron
      
      type(Particle), allocatable :: particles(:)
      

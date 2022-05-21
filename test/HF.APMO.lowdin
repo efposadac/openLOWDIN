@@ -28,7 +28,6 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCores = 4
 	readCoefficients=F
 	!iterationScheme = 3
 END CONTROL

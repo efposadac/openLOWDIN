@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 SRCMOD=$(ls [!_]*.f90)
-
+SRCMOD="$SRCMOD $(ls [!_]*.c)" 
 #
 rm -f makefile
 rm -f *.o 
@@ -20,45 +20,54 @@ LIBS=\$(ALL_LIBS)
 
 OBJECTS=$(for file in $SRCMOD 
          do
-            echo -e "${file%.f90}.o \c"
+            echo -e "${file%.*}.o \c"
          done
          ) 
 EOF
-echo -e "\n\$(TARGET)	: \$(OBJECTS)" >> makefile
-echo -e "\t\$(LDR) -cru \$(TARGET) \$(OBJECTS)" >> makefile
-echo -e "\tmv \$(TARGET) \$(TOPDIR)lib/\n" >> makefile
-#
-for file in $SRCMOD 
-do
-  echo -e "${file%.f90}.o:\t${file} \c" >> makefile
-  for ifile in $INC
-  do
-     inc=$(grep $ifile $file)
-     if [[ -n $inc ]]
-     then
-       echo -e "$ifile \c" >> makefile
-     fi
-  done
+    echo -e "\n\$(TARGET)	: \$(OBJECTS)" >> makefile
+    echo -e "\t\$(LDR) -cru \$(TARGET) \$(OBJECTS)" >> makefile
+    echo -e "\tmv \$(TARGET) \$(TOPDIR)lib/\n" >> makefile
+    #
 
-  for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
-  do
-      name=$(echo $mod)
-      
-      for jfile in $SRCMOD
-      do
-	  if [[ $jfile == $name.f90 ]]
-	  then
-              echo -e "$name.o \c" >> makefile
-	  fi
-      done
-  done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) ${file}$\n" >> makefile
-done
-#
-cat >> makefile << EOF
+    SRCMOD=$(ls [!_]*.f90)
+    for file in $SRCMOD 
+    do
+	echo -e "${file%.f90}.o:\t${file} \c" >> makefile
+	for ifile in $INC
+	do
+	    inc=$(grep $ifile $file)
+	    if [[ -n $inc ]]
+	    then
+		echo -e "$ifile \c" >> makefile
+	    fi
+	done
+
+	for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
+	do
+	    name=$(echo $mod)
+	    
+	    for jfile in $SRCMOD
+	    do
+		if [[ $jfile == $name.f90 ]]
+		then
+		    echo -e "$name.o \c" >> makefile
+		fi
+	    done
+	done
+	echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) ${file} \n" >> makefile
+    done
+    #c sources
+    SRCMOD=$(ls [!_]*.c)
+    for file in $SRCMOD 
+    do
+	echo -e "${file%.c}.o:\t${file} \c" >> makefile
+	echo -e "\n\t\$(CC) -c \$(INC) ${file} -lgsl -lgslblas\n" >> makefile
+    done
+    #
+    cat >> makefile << EOF
 clean:: 
 	rm -f *.o
 	rm -f *.mod
 	rm makefile
 EOF
-#
+    #

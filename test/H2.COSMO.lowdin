@@ -1,0 +1,34 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test RHF
+%  H2O Single Point
+%  Electronic Hartree Fock
+%  Basis sets used:
+%      6-311g e-
+%  Results
+%      TEST ENERGY =     -76.008843007734
+%      VIRIAL RATIO (V/T) =         1.9991485503
+% End Results
+%      Author: Felix Moncada - GQT-UNAL/2011
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de H2 multi test'
+
+GEOMETRY
+	e-[H]   STO-3G     0.000000     0.000000      0.000000
+	e-[H]   STO-3G     0.000000     0.000000      0.73000
+	H     dirac     0.000000     0.000000      0.000000
+	H     dirac 0.000000     0.000000      0.73000
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+  cosmo=T
+	mollerPlessetCorrection = 2
+END TASKS
+
+CONTROL
+END CONTROL
+
+
+
+

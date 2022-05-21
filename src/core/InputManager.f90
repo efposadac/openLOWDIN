@@ -23,6 +23,8 @@ module InputManager_
   use Exception_
   use Particle_
   use MolecularSystem_
+  use InterPotential_
+  use ExternalPotential_
   implicit none
 
   
@@ -34,15 +36,20 @@ module InputManager_
      integer :: numberOfParticles
      integer :: numberOfExternalPots
      integer :: numberOfInterPots
+     integer :: numberOfLJCenters
      integer :: numberOfOutputs
+     integer :: numberOfSpeciesInCI
      integer :: numberOfFragments
      !!Task
      character(50) :: method
      integer :: mollerPlessetCorrection
+     integer :: epsteinNesbetCorrection
      character(20) :: configurationInteractionLevel
      integer :: propagatorTheoryCorrection
      logical :: optimizeGeometry
      logical :: TDHF
+     logical :: cosmo
+
   end type InputManager
 
   !> Singleton
@@ -52,7 +59,8 @@ module InputManager_
        InputManager_loadSystem, &
        InputManager_loadControl, &
        InputManager_loadTask, &
-       InputManager_loadGeometry
+       InputManager_loadGeometry, &
+       InputManager_loadPotentials
 
 contains
 
@@ -71,13 +79,17 @@ contains
     integer:: InputSystem_numberOfParticles
     integer:: InputSystem_numberOfExternalPots
     integer:: InputSystem_numberOfInterPots
+    integer:: InputSystem_numberOfLJCenters
     integer:: InputSystem_numberOfOutputs
+    integer:: InputSystem_numberOfSpeciesInCI
     
     NAMELIST /InputSystem/ &
          InputSystem_numberOfParticles, &
          InputSystem_numberOfExternalPots, &
          InputSystem_numberOfInterPots, &
+         InputSystem_numberOfLJCenters, &
          InputSystem_numberOfOutputs, &
+         InputSystem_numberOfSpeciesInCI, & 
          InputSystem_description
     
     !! Get input name
@@ -105,7 +117,9 @@ contains
        !! Setting defaults
        InputSystem_numberOfExternalPots=0
        InputSystem_numberOfInterPots=0
+       InputSystem_numberOfLJCenters=0
        InputSystem_numberOfOutputs=0
+       InputSystem_numberOfSpeciesInCI=0
        InputSystem_numberOfParticles=0
        InputSystem_description=trim(Input_instance%systemName)
 
@@ -123,7 +137,9 @@ contains
        Input_instance%numberOfParticles = InputSystem_numberOfParticles
        Input_instance%numberOfExternalPots = InputSystem_numberOfExternalPots
        Input_instance%numberOfInterPots = InputSystem_numberOfInterPots
+       Input_instance%numberOfLJCenters = InputSystem_numberOfLJCenters
        Input_instance%numberOfOutputs = InputSystem_numberOfOutputs
+       Input_instance%numberOfSpeciesInCI = InputSystem_numberOfSpeciesInCI
 
        !!done
        
@@ -165,25 +181,33 @@ contains
     character(50):: InputTasks_method
     character(20):: InputTasks_configurationInteractionLevel
     integer:: InputTasks_mollerPlessetCorrection
+    integer:: InputTasks_epsteinNesbetCorrection
     integer:: InputTasks_propagatorTheoryCorrection
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
+    logical:: InputTasks_cosmo
+
     
     NAMELIST /InputTasks/ &
          InputTasks_method, &
          InputTasks_configurationInteractionLevel, &
          InputTasks_mollerPlessetCorrection, &
+         InputTasks_epsteinNesbetCorrection, &
          InputTasks_propagatorTheoryCorrection, &
          InputTasks_optimizeGeometry, &
-         InputTasks_TDHF
+         InputTasks_TDHF, &
+         InputTasks_cosmo		
+
     
     !! Setting defaults    
     InputTasks_method = "NONE"
     InputTasks_mollerPlessetCorrection = 0
+    InputTasks_epsteinNesbetCorrection = 0
     InputTasks_configurationInteractionLevel = "NONE"
     InputTasks_propagatorTheoryCorrection = 0
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
+    InputTasks_cosmo= .false.
     
     !! reload input file
     rewind(4)
@@ -198,10 +222,12 @@ contains
     !! all uppercase! Mandatory for ALL character variables
     Input_instance%method = trim(String_getUppercase(trim(InputTasks_method)))
     Input_instance%mollerPlessetCorrection = InputTasks_mollerPlessetCorrection
+    Input_instance%epsteinNesbetCorrection = InputTasks_epsteinNesbetCorrection 
     Input_instance%configurationInteractionLevel = trim(String_getUppercase(trim(InputTasks_configurationInteractionLevel)))
     Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
+    Input_instance%cosmo = InputTasks_cosmo
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -219,11 +245,16 @@ contains
     !! Setting some parameters-object variables
     CONTROL_instance%METHOD = trim(input_instance%method)
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = input_instance%mollerPlessetCorrection
+    CONTROL_instance%EPSTEIN_NESBET_CORRECTION = input_instance%epsteinNesbetCorrection
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = input_instance%configurationInteractionLevel
     CONTROL_instance%PT_ORDER = input_instance%propagatorTheoryCorrection
 
     if ( input_instance%mollerPlessetCorrection /= 0 ) then
        CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-MP2"
+    end if
+
+    if ( input_instance%epsteinNesbetCorrection /= 0 ) then
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-EN2"
     end if
         
     if ( input_instance%configurationInteractionLevel /= "NONE" ) then
@@ -242,8 +273,14 @@ contains
        CONTROL_instance%TDHF = .true.
     end if    
     
+    if (input_instance%cosmo) then
+       CONTROL_instance%cosmo = .true.
+       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
+    end if
+    
     if( Input_instance%numberOfExternalPots > 0) then    
        CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL=.true.
+
     end if
         
     if(Input_instance%numberOfInterPots > 0) then
@@ -264,7 +301,9 @@ contains
     implicit none
     
     character(15), allocatable :: quantumSpeciesName(:)
+    character(15), allocatable :: auxquantumSpeciesName(:)
     integer, allocatable :: numberOfParticlesForSpecies(:)
+    integer, allocatable :: auxnumberOfParticlesForSpecies(:)
     integer, allocatable :: particlesID(:)
 
     character(15) :: atomName
@@ -275,11 +314,12 @@ contains
     integer :: i, j, counter
     logical :: isNewSpecies
     logical :: isElectron
-    
     !! Namelist definition
     character(15):: InputParticle_name
     character(30):: InputParticle_basisSetName
     real(8):: InputParticle_origin(3)
+    real(8) :: InputParticle_charge
+    real(8) :: InputParticle_mass
     character(3):: InputParticle_fixedCoordinates
     integer:: InputParticle_addParticles
     real(8):: InputParticle_multiplicity    
@@ -287,14 +327,22 @@ contains
     NAMELIST /InputParticle/ &
          InputParticle_name, &
          InputParticle_basisSetName, &
+         InputParticle_charge, &
+         InputParticle_mass, &
          InputParticle_origin, &
          InputParticle_fixedCoordinates, &
          InputParticle_multiplicity, &
          InputParticle_addParticles
     
+
     !! Allocate memory for buffer.
-    allocate(quantumSpeciesName(Input_instance%numberOfParticles))
-    allocate(numberOfParticlesForSpecies(Input_instance%numberOfParticles))
+    if( CONTROL_instance%IS_OPEN_SHELL) then
+      allocate(quantumSpeciesName(Input_instance%numberOfParticles+1))
+      allocate(numberOfParticlesForSpecies(Input_instance%numberOfParticles+1))
+    else 
+      allocate(quantumSpeciesName(Input_instance%numberOfParticles))
+      allocate(numberOfParticlesForSpecies(Input_instance%numberOfParticles))
+    end if
 
     !! Initializes some variables.
     quantumSpeciesName = ""
@@ -346,7 +394,8 @@ contains
              !! Counters for old species
              isNewSpecies = .false.
              !! Only are species those who have basis-set
-             if((trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
+             if((trim(InputParticle_basisSetName) /= "MM") .and. &
+                  (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
                 
                 !! For open-shell case electrons are alpha and beta
                 if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
@@ -371,7 +420,8 @@ contains
        !! Counters for new species
        if(isNewSpecies) then          
           !! Look for Quantum species
-          if((trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then 
+          if((trim(InputParticle_basisSetName) /= "MM") .and. &
+               (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then 
              
              !! For open-shell case electrons are alpha and beta
              if(isElectron .and. CONTROL_instance%IS_OPEN_SHELL) then
@@ -408,10 +458,28 @@ contains
        end if
     end do
     
-    !! Reshape arrays
-    quantumSpeciesName = reshape(quantumSpeciesName, (/numberOfQuantumSpecies/))
-    numberOfParticlesForSpecies = reshape(numberOfParticlesForSpecies, (/numberOfQuantumSpecies/))
-    
+    !! Reshape arrays, old style
+
+    allocate ( auxquantumSpeciesName( size(quantumSpeciesName)))
+    auxquantumSpeciesName = ""
+    auxquantumSpeciesName = quantumSpeciesName
+    deallocate ( quantumSpeciesName )
+    allocate ( quantumSpeciesName ( numberOfQuantumSpecies))
+    quantumSpeciesName = "" 
+    quantumSpeciesName = auxquantumSpeciesName
+    deallocate ( auxquantumSpeciesName )
+
+    allocate ( auxnumberOfParticlesForSpecies( size( numberOfParticlesForSpecies )))
+    auxnumberOfParticlesForSpecies = 0
+    auxnumberOfParticlesForSpecies = numberOfParticlesForSpecies
+    deallocate ( numberOfParticlesForSpecies )
+    allocate ( numberOfParticlesForSpecies( numberOfQuantumSpecies ))
+    numberOfParticlesForSpecies = 0 
+    numberOfParticlesForSpecies = auxnumberOfParticlesForSpecies
+    deallocate ( auxnumberOfParticlesForSpecies )
+ 
+    !quantumSpeciesName = reshape(quantumSpeciesName, (/numberOfQuantumSpecies/))
+    !numberOfParticlesForSpecies = reshape(numberOfParticlesForSpecies, (/numberOfQuantumSpecies/))
 
     !!*****************************************************************************
     !! LOAD GEOMETRY block 
@@ -424,7 +492,6 @@ contains
     !! Initializes the molecular system object
     call MolecularSystem_initialize(numberOfQuantumSpecies, numberOfPointCharges, numberOfParticlesForSpecies, quantumSpeciesName, &
          trim(input_instance%systemName), trim(input_instance%systemDescription))
-    
     !! Reload input file
     rewind(4)
     
@@ -433,14 +500,15 @@ contains
        !! Setting defaults
        InputParticle_name = "NONE"
        InputParticle_basisSetName = "NONE"
-       InputParticle_origin =0.0_8
-       InputParticle_fixedCoordinates = "NONE"
+       InputParticle_charge=0.0_8
+       InputParticle_mass=0.0_8
+       InputParticle_origin=0.0_8
+       InputParticle_fixedCoordinates = "NON"
        InputParticle_multiplicity = 1.0_8
        InputParticle_addParticles = 0
        
        !! Reads namelist from input file
        read(4,NML = InputParticle, iostat = stat)
-       
        if( stat > 0 ) then          
           call InputManager_exception( ERROR, "check the GEOMETRY block in your input file", "InputManager loadParticles function")          
        end if
@@ -475,7 +543,8 @@ contains
        end if
        
        !! Load quantum species
-       if((trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
+       if((trim(InputParticle_basisSetName) /= "MM") .and. &
+            (trim(InputParticle_basisSetName) /= "DIRAC") .and. (trim(InputParticle_basisSetName) /= "")) then
 
           !! Locate specie
           do j = 1, numberOfQuantumSpecies          
@@ -498,19 +567,21 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID)  )
+                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), charge = InputParticle_charge, &
+                  mass = InputParticle_mass )
              
              !!BETA SET
              speciesID = speciesID + 1
              
              particlesID(speciesID) = particlesID(speciesID) + 1
              InputParticle_name = "E-BETA-"//trim(atomName)             
-             
              !! Loads Particle
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID) )
+                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), charge = InputParticle_charge, &
+                  mass = InputParticle_mass )
+             
              
           else 
 
@@ -526,9 +597,8 @@ contains
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)),&
                   name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
                   origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID))
-
-
+                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), charge = InputParticle_charge, &
+                  mass = InputParticle_mass )
              
           end if
 
@@ -536,17 +606,97 @@ contains
           
           !! Loads Point charges   
           counter = counter + 1
-          
+          !! Loads Molecular Mechanics Particle 
+          if(trim(InputParticle_basisSetName) == "MM") then
+             call Particle_load( MolecularSystem_instance%pointCharges(counter),&
+                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, id = counter, charge = InputParticle_charge)
+          else
           !! Loads Particle
-          call Particle_load( MolecularSystem_instance%pointCharges(counter),&
-               name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
-               origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-               multiplicity=inputParticle_multiplicity, id = counter)
-          
+             call Particle_load( MolecularSystem_instance%pointCharges(counter),&
+                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, id = counter,  charge = InputParticle_charge)
+          end if
        end if
     end do
 
   end subroutine InputManager_loadGeometry
+
+  !>
+  !! @brief Load all potentials
+  !! @author E. F. Posada
+  !! @version 1.0
+  subroutine InputManager_loadPotentials()
+    implicit none
+    integer :: stat
+    integer :: potId
+
+    !! Namelist definition
+
+    ! External
+    character(15) :: ExternalPot_name
+    character(15) :: ExternalPot_specie
+
+    ! Inter
+    character(15) :: InterPot_name
+    character(15) :: InterPot_specie
+    character(15) :: InterPot_otherSpecie
+    
+    NAMELIST /ExternalPot/ &
+         ExternalPot_name, &
+         ExternalPot_specie
+    
+    NAMELIST /InterPot/ &
+         InterPot_name, &
+         InterPot_specie, &
+         InterPot_otherSpecie
+
+    ! Load interpotentials
+    if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+
+      call InterPotential_constructor(Input_instance%numberOfInterPots)
+
+      !! Reload input file
+      rewind(4)
+      
+      do potId = 1, InterPotential_instance%ssize
+        !! Read InputTask namelist from input file
+        read(4,NML=InterPot, iostat=stat)
+    
+        if( stat > 0 ) then       
+          call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
+        end if
+
+        call InterPotential_load(potId, trim(InterPot_name), trim(InterPot_specie), trim(InterPot_otherSpecie))
+
+      end do
+    
+    end if
+
+    ! Load External Potentials
+    if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+
+      call ExternalPotential_constructor(Input_instance%numberOfExternalPots)
+
+      !! Reload input file
+      rewind(4)
+      
+      do potId = 1, ExternalPotential_instance%ssize
+        !! Read InputTask namelist from input file
+        read(4,NML=ExternalPot, iostat=stat)
+    
+        if( stat > 0 ) then       
+          call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
+        end if
+
+        call ExternalPotential_load(potId, trim(ExternalPot_name), trim(ExternalPot_specie))
+
+      end do
+    end if
+      
+  end subroutine InputManager_loadPotentials
 
   !>
   !! @brief Retorna la descripcion del sistema

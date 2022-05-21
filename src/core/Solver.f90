@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -26,6 +26,7 @@ module Solver_
   use MolecularSystem_
   use String_
   use Exception_
+  use InputManager_
   implicit none
 
   type, public :: Solver
@@ -45,7 +46,7 @@ contains
   !! @brief Run the properly programs depending of the requested tasks
   subroutine Solver_run( )
     implicit none
-    
+
     if( String_findSubstring( trim(CONTROL_instance%METHOD), "-" ) > 1 ) then
 
        lowdin_solver%methodName = CONTROL_instance%METHOD(1: scan(CONTROL_instance%METHOD, "-") - 1)
@@ -57,51 +58,109 @@ contains
     end if
     
     lowdin_solver%withProperties = .false.
-    
+
+    ! if(optimization) then
+    !    call system("lowdin-Optimizer.x")
+    ! else
     select case ( trim(lowdin_solver%methodName) )
-       
-      case('RHF')
-        call Solver_RHFRun( )
-      case('UHF')
-        call Solver_UHFRun( )
-      case('RKS')
-        call Solver_RKSRun( )
-      case('UKS')
-        call Solver_UKSRun( )
-      case default
-       
-        call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
-             "At Solver module in run function")
-        
-     end select
+
+    case('MM')
+       call Solver_MMRun( )
+    case('RHF')
+       call Solver_RHFRun( )
+    case('UHF')
+       call Solver_UHFRun( )
+    case('RKS')
+       call Solver_RKSRun( )
+    case('UKS')
+       call Solver_UKSRun( )
+    case default
+
+       call Solver_exception(ERROR, "The method: "//trim(lowdin_solver%methodName)//" is not implemented", &
+            "At Solver module in run function")
+
+    end select
+    ! end if
      
    end subroutine Solver_run
+
+  !> @brief run Molecular Mechanics based calculation
+  subroutine Solver_MMRun( )
+    implicit none
+
+    !! Run Molecular Mechanics program with the force field selected
+    call system("lowdin-MolecularMechanics.x CONTROL_instance%FORCE_FIELD")
+    
+  end subroutine Solver_MMRun
   
   !> @brief run RHF-based calculation
   subroutine Solver_RHFRun( )
     implicit none
-
+    character(50) :: strAuxNumber
     !! Run HF program in RHF mode
-    call system("lowdin-HF.x RHF")
     
     select case(CONTROL_instance%METHOD)
               
     case("RHF")
 
-       return
+       call system("lowdin-HF.x RHF")
+       
+    case ("RHF-COSMO")
+       
+       call system("lowdin-cosmo.x")
+       call system("lowdin-HF.x RHF")
+       ! write(*,*) CONTROL_instance%METHOD
        
     case('RHF-MP2')
 
-       call system("lowdin-integralsTransformation.x")
-       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+       call system("lowdin-HF.x RHF")
 
+       call system("lowdin-integralsTransformation.x")
+
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+
+    case('RHF-EN2')
+
+       call system("lowdin-HF.x RHF")
+
+       call system("lowdin-integralsTransformation.x")
+
+       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
+
+    case ("RHF-MP2-COSMO")
+       
+       call system("lowdin-cosmo.x")
+       call system("lowdin-HF.x RHF")
+
+       call system("lowdin-integralsTransformation.x")
+
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+    
     case('RHF-CI')
 
+       call system("lowdin-HF.x RHF")
+       call system("lowdin-integralsTransformation.x")
+
+       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
+       call system("lowdin-CI.x" //trim(strAuxNumber))
+
     case('RHF-PT')
+       
+       call system("lowdin-HF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
+       
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+    
+    case ("RHF-PT-COSMO")
+       
+       call system("lowdin-cosmo.x")
+       call system("lowdin-HF.x RHF")
 
+       call system("lowdin-integralsTransformation.x")
+
+       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+       
     case default
 
        call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
@@ -171,38 +230,56 @@ contains
   !> @brief run UHF-based calculation
   subroutine Solver_UHFRun( )
     implicit none
-
-
-    call system("lowdin-HF.x RHF")
+    character(50) :: strAuxNumber
 
     select case(CONTROL_instance%METHOD)
        
     case("UHF")
 
-	return
+       !! Run HF program in RHF mode
+       call system("lowdin-HF.x RHF")
 
-    case('UHF-CI')
        
-    case('UHF-MP2')
+    case('UHF-CI')
+
+       call system("lowdin-HF.x UHF")
        call system("lowdin-integralsTransformation.x")
-       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+
+       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
+       call system("lowdin-CI.x" //trim(strAuxNumber))
+
+    case('UHF-MP2')
+       call system("lowdin-HF.x UHF")
+       !call system("lowdin-MOERI.x UHF")
+       !rfm call system("lowdin-EPT.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+
+    case('UHF-EN2')
+       call system("lowdin-HF.x UHF")
+       !call system("lowdin-MOERI.x UHF")
+       !rfm call system("lowdin-EPT.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
        
     case('UHF-PT')
-
+       call system("lowdin-HF.x UHF")
+       !call system("lowdin-MOERI.x UHF")
+       !rfm call system("lowdin-EPT.x UHF")
        call system("lowdin-integralsTransformation.x")
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
-       !rfm call system("lowdin-EPT.x UHF")
+
        
     case default
        
        call Solver_exception(ERROR, "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented", &
             "At Solver module in UHFrun function")
-
+       
     end select
-
-
+    
+    
 !     type(Solver) :: this
-
+    
 !     call UHF_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_dipole( CalculateProperties_instance )
@@ -217,7 +294,12 @@ contains
   subroutine Solver_RKSRun( )
     implicit none
 !     type(Solver) :: this
+
+    print *, "hola Felix, bienvenido de vuelta"
     
+    !! Run HF program in RHF mode
+    call system("lowdin-HF.x RKS")
+
 !     call RKS_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_dipole( CalculateProperties_instance )
@@ -239,6 +321,9 @@ contains
     implicit none
 !     type(Solver) :: this
     
+    !! Run HF program in RHF mode
+    call system("lowdin-HF.x UKS")
+
 !     call UKS_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_expectedPosition( CalculateProperties_instance )

@@ -1,0 +1,26 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test CISD
+%  Electronic Hartree Fock
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de Li'
+
+GEOMETRY
+e-(Be)  6-31G	0.000	0.000	1.6075621 multiplicity=1
+Be    	dirac	0.000	0.000	1.6075621
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="CISDTQ"
+END TASKS
+
+CONTROL
+	!numberOfCores=1
+	scfelectronicenergytolerance=1E-8
+        CIdiagonalizationMethod="DSYEVR"
+        !CIdiagonalizationMethod="ARPACK"
+        !CIdiagonalizationMethod="JADAMILU"
+END CONTROL
+
+

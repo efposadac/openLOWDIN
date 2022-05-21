@@ -51,6 +51,10 @@ module MecanicProperties_
   public :: &
        MecanicProperties_constructor, &
        MecanicProperties_destructor, &
+       MecanicProperties_getHandyProjector, &
+       MecanicProperties_getTotallyAsymmetricTensor, &
+       MecanicProperties_getUnitaryMolecularInertiaTensor, &
+       MecanicProperties_getUnitaryCenterOfMass, &
        MecanicProperties_isInstanced
   
   private :: &
@@ -182,93 +186,92 @@ contains
 
 
   
-!   function MecanicProperties_getTotallyAsymmetricTensor(this) result(output)
-!     implicit none
-!     type(MecanicProperties) :: this
-!     real(8) :: output(3,3,3)
-    
-!     output=0.0
-!     output(2,3,1) =  1.0
-!     output(3,2,1) = -1.0
-!     output(1,3,2) = -1.0
-!     output(3,1,2) =  1.0
-!     output(1,2,3) =  1.0
-!     output(2,1,3) = -1.0
-    
-!   end function MecanicProperties_getTotallyAsymmetricTensor
+  function MecanicProperties_getTotallyAsymmetricTensor(this) result(output)
+    implicit none
+    type(MecanicProperties) :: this
+    real(8) :: output(3,3,3)
+
+    output=0.0
+    output(2,3,1) =  1.0
+    output(3,2,1) = -1.0
+    output(1,3,2) = -1.0
+    output(3,1,2) =  1.0
+    output(1,2,3) =  1.0
+    output(2,1,3) = -1.0
+
+  end function MecanicProperties_getTotallyAsymmetricTensor
   
 !   !>
 !   !! @brief  Calcula y retorna el centro de masa unitario del sistema
-!   function MecanicProperties_getUnitaryCenterOfMass( this ) result( output )
-!     implicit none
-!     type(MecanicProperties) :: this
-!     real(8) :: output(3)
+  function MecanicProperties_getUnitaryCenterOfMass( this ) result( output )
+    implicit none
+    type(MecanicProperties) :: this
+    real(8) :: output(3)
     
-!     this%cartesianCoordinates = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
+    this%cartesianCoordinates = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
     
-!     output(1)=sum(this%cartesianCoordinates%values(:,1))
-!     output(2)=sum(this%cartesianCoordinates%values(:,2))
-!     output(3)=sum(this%cartesianCoordinates%values(:,3))
-!     output=output/this%numberOfPoints
+    output(1)=sum(this%cartesianCoordinates%values(:,1))
+    output(2)=sum(this%cartesianCoordinates%values(:,2))
+    output(3)=sum(this%cartesianCoordinates%values(:,3))
+    output=output/this%numberOfPoints
     
-!   end function MecanicProperties_getUnitaryCenterOfMass
+  end function MecanicProperties_getUnitaryCenterOfMass
   
-  
-  
-!   function MecanicProperties_getUnitaryMolecularInertiaTensor( this, cartesianCoordinatesInCM,info ) result( output )
-!     implicit  none
-!     type(MecanicProperties) :: this
-!     type(Matrix) :: output
-!     type(Vector), optional :: cartesianCoordinatesInCM
-!     integer,optional :: info
     
-!     real(8) :: unitaryCenterOfMass(3)
-!     type(vector) :: coordinates
-!     integer :: infoProcess
-!     integer :: i
-!     integer :: j
-    
-!     call Vector_constructor(coordinates,3*this%numberOfPoints)
-    
-!     !!**************************************************************************
-!     !!   Calcula el centro de masa unitario y desplaza la coordenadas
-!     !!*************
-!     unitaryCenterOfMass=MecanicProperties_getUnitaryCenterOfMass(this)
-!     do i=1,this%numberOfPoints
-!        coordinates%values(3*i-2:3*i) = this%cartesianCoordinates%values(i,:) - unitaryCenterOfMass
-!     end do
-    
-!     !! Si se desea retorna una matriz de coordenadas centras en el centro de masa
-!     if( present(cartesianCoordinatesInCM) ) cartesianCoordinatesInCM=coordinates
-    
-!     !!
-!     !!**************************************************************************
-    
-!     !!**************************************************************************
-!     !!  Determina el tesor de inercial para una estructira de masa unitarias
-!     !!************
-!     call Matrix_constructor(output,3_8,3_8,0.0_8)
-!     do i=1,this%numberOfPoints
-!        j=3*(i-1)+1
-!        output%values(1,1)=output%values(1,1)+coordinates%values(j+1)**2+coordinates%values(j+2)**2
-!        output%values(1,2)=output%values(1,2)-coordinates%values(j)*coordinates%values(j+1)
-!        output%values(1,3)=output%values(1,3)-coordinates%values(j)*coordinates%values(j+2)
-!        output%values(2,2)=output%values(2,2)+coordinates%values(j)**2+coordinates%values(j+2)**2
-!        output%values(2,3)=output%values(2,3)-coordinates%values(j+1)*coordinates%values(j+2)
-!        output%values(3,3)=output%values(3,3)+coordinates%values(j)**2+coordinates%values(j+1)**2
-!     end do
-!     output%values(2,1)=output%values(1,2)
-!     output%values(3,1)=output%values(1,3)
-!     output%values(3,2)=output%values(2,3)
-    
-!     output = Matrix_inverse( output, info=infoProcess,printFormatFlags=WITHOUT_MESSAGES )
-!     call Vector_destructor(coordinates)
-!     if (present(info)) info=infoProcess
-    
-!     !!
-!     !!**************************************************************************
-    
-!   end function MecanicProperties_getUnitaryMolecularInertiaTensor
+  function MecanicProperties_getUnitaryMolecularInertiaTensor( this, cartesianCoordinatesInCM, info ) result( output )
+    implicit  none
+    type(MecanicProperties) :: this
+    type(Matrix) :: output
+    type(Vector), optional :: cartesianCoordinatesInCM
+    integer,optional :: info
+
+    real(8) :: unitaryCenterOfMass(3)
+    type(vector) :: coordinates
+    integer :: infoProcess
+    integer :: i
+    integer :: j
+
+    call Vector_constructor(coordinates, 3*this%numberOfPoints)
+
+    !!**************************************************************************
+    !!   Calcula el centro de masa unitario y desplaza la coordenadas
+    !!*************
+    unitaryCenterOfMass = MecanicProperties_getUnitaryCenterOfMass(this)
+    do i=1,this%numberOfPoints
+       coordinates%values(3*i-2:3*i) = this%cartesianCoordinates%values(i,:) - unitaryCenterOfMass
+    end do
+
+    !! Si se desea retorna una matriz de coordenadas centradas en el centro de masa
+    if( present(cartesianCoordinatesInCM) ) cartesianCoordinatesInCM=coordinates
+
+    !!
+    !!**************************************************************************
+
+    !!**************************************************************************
+    !!  Determina el tesor de inercial para una estructura de masa unitarias
+    !!************
+    call Matrix_constructor(output,3_8,3_8,0.0_8)
+    do i=1,this%numberOfPoints
+       j=3*(i-1)+1
+       output%values(1,1)=output%values(1,1)+coordinates%values(j+1)**2+coordinates%values(j+2)**2
+       output%values(1,2)=output%values(1,2)-coordinates%values(j)*coordinates%values(j+1)
+       output%values(1,3)=output%values(1,3)-coordinates%values(j)*coordinates%values(j+2)
+       output%values(2,2)=output%values(2,2)+coordinates%values(j)**2+coordinates%values(j+2)**2
+       output%values(2,3)=output%values(2,3)-coordinates%values(j+1)*coordinates%values(j+2)
+       output%values(3,3)=output%values(3,3)+coordinates%values(j)**2+coordinates%values(j+1)**2
+    end do
+    output%values(2,1)=output%values(1,2)
+    output%values(3,1)=output%values(1,3)
+    output%values(3,2)=output%values(2,3)
+
+    output = Matrix_inverse( output, info=infoProcess, printFormatFlags=WITHOUT_MESSAGES )
+    call Vector_destructor(coordinates)
+    if (present(info)) info=infoProcess
+
+    !!
+    !!**************************************************************************
+
+  end function MecanicProperties_getUnitaryMolecularInertiaTensor
   
 !   !>
 !   !! @brief Calcula y retorna una proyector de constantes de fuerza para
@@ -400,85 +403,85 @@ contains
   
 !   !>
 !   !! @brief Calcula y retorna el proyector de Handy
-!   function MecanicProperties_getHandyProjector( this,infoProcess ) result( output )
-!     implicit none
-!     type(MecanicProperties) :: this
-!     integer,optional,intent(inout) :: infoProcess
-!     type(Matrix) :: output
+  function MecanicProperties_getHandyProjector( this, infoProcess ) result( output )
+    implicit none
+    type(MecanicProperties) :: this
+    integer,optional,intent(inout) :: infoProcess
+    type(Matrix) :: output
     
-!     type(vector) :: coordinates
-!     type(Matrix) :: molecularInertiaTensor
-!     real(8) :: totallyAsymmetricTensor(3,3,3)
-!     real(8) :: L_ilk
-!     integer  :: i,j,IP,INDX,KNDX,JP,JNDX,LNDX,IC,II,KK,JEND,JC,JJ,LL,IA,IB,JA,JB
+    type(vector) :: coordinates
+    type(Matrix) :: molecularInertiaTensor
+    real(8) :: totallyAsymmetricTensor(3,3,3)
+    real(8) :: L_ilk
+    integer  :: i,j,IP,INDX,KNDX,JP,JNDX,LNDX,IC,II,KK,JEND,JC,JJ,LL,IA,IB,JA,JB
     
-!     totallyAsymmetricTensor=MecanicProperties_getTotallyAsymmetricTensor(this)
+    totallyAsymmetricTensor = MecanicProperties_getTotallyAsymmetricTensor(this)
     
-!     call Vector_constructor(coordinates,3*this%numberOfPoints)
-!     call Matrix_constructor(output,3_8*this%numberOfPoints,3_8*this%numberOfPoints,0.0_8)
-!     call Matrix_constructor(molecularInertiaTensor,3_8,3_8,0.0_8)
+    call Vector_constructor(coordinates, 3*this%numberOfPoints)
+    call Matrix_constructor(output,3_8*this%numberOfPoints,3_8*this%numberOfPoints,0.0_8)
+    call Matrix_constructor(molecularInertiaTensor,3_8,3_8,0.0_8)
     
-!     !! Obtiene tensor de inercia molecular unitaria y la matriz de coodenadas en el centro de masa
-!     molecularInertiaTensor=MecanicProperties_getUnitaryMolecularInertiaTensor(this,coordinates,info=infoProcess)
+    ! !! Obtiene tensor de inercia molecular unitaria y la matriz de coodenadas en el centro de masa
+    molecularInertiaTensor = MecanicProperties_getUnitaryMolecularInertiaTensor(this,coordinates,info=infoProcess)
     
-!     !!**************************************************************************
-!     !! Calcula el proyector de Miller-Handy-Adams
-!     !!************
-!     do IP=1,this%numberOfPoints
-!        INDX=3*(IP-1)
-!        KNDX=MAX(3*(IP-1),6*(IP-1)-3*this%numberOfPoints)
-!        do JP=1,IP
-!           JNDX=3*(JP-1)
-!           LNDX=MAX(3*(JP-1),6*(JP-1)-3*this%numberOfPoints)
-!           do IC=1,3
-!              II=INDX+IC
-!              KK=KNDX+IC
-!              JEND=3
-!              if(JP == IP) JEND=IC
-!              do JC=1,JEND
-!                 JJ=JNDX+JC
-!                 LL=LNDX+JC
-!                 L_ilk=0.0
-!                 do IA=1,3
-!                    do IB=1,3
-!                       if(abs(totallyAsymmetricTensor(IA,IB,IC)) ==1.0 ) then
-!                          do JA=1,3
-!                             do JB=1,3
-!                                if ( abs(totallyAsymmetricTensor(JA,JB,JC)) == 1.0)  then
-!                                   L_ilk = L_ilk +totallyAsymmetricTensor(IA,IB,IC) &
-!                                        * totallyAsymmetricTensor(JA,JB,JC) &
-!                                        * molecularInertiaTensor%values(IA,JA) &
-!                                        * coordinates%values(INDX+IB) &
-!                                        * coordinates%values(JNDX+JB)
-!                                end if
-!                             end do
-!                          end do
-!                       end if
-!                    end do
-!                 end do
-!                 output%values(KK,LL)=L_ilk
-!                 if (IC.EQ.JC) output%values(KK,LL)=output%values(KK,LL)  + 1.0 /this%numberOfPoints
-!              end do
-!           end do
-!        end do
-!     end do
-!     !!
-!     !!**************************************************************************
+    !!**************************************************************************
+    !! Calcula el proyector de Miller-Handy-Adams
+    !!************
+    do IP=1,this%numberOfPoints
+       INDX=3*(IP-1)
+       KNDX=MAX(3*(IP-1),6*(IP-1)-3*this%numberOfPoints)
+       do JP=1,IP
+          JNDX=3*(JP-1)
+          LNDX=MAX(3*(JP-1),6*(JP-1)-3*this%numberOfPoints)
+          do IC=1,3
+             II=INDX+IC
+             KK=KNDX+IC
+             JEND=3
+             if(JP == IP) JEND=IC
+             do JC=1,JEND
+                JJ=JNDX+JC
+                LL=LNDX+JC
+                L_ilk=0.0
+                do IA=1,3
+                   do IB=1,3
+                      if(abs(totallyAsymmetricTensor(IA,IB,IC)) ==1.0 ) then
+                         do JA=1,3
+                            do JB=1,3
+                               if ( abs(totallyAsymmetricTensor(JA,JB,JC)) == 1.0)  then
+                                  L_ilk = L_ilk +totallyAsymmetricTensor(IA,IB,IC) &
+                                       * totallyAsymmetricTensor(JA,JB,JC) &
+                                       * molecularInertiaTensor%values(IA,JA) &
+                                       * coordinates%values(INDX+IB) &
+                                       * coordinates%values(JNDX+JB)
+                               end if
+                            end do
+                         end do
+                      end if
+                   end do
+                end do
+                output%values(KK,LL)=L_ilk
+                if (IC.EQ.JC) output%values(KK,LL)=output%values(KK,LL)  + 1.0 /this%numberOfPoints
+             end do
+          end do
+       end do
+    end do
+    !!
+    !!**************************************************************************
     
-!     !! Calcula el termino I-P
-!     do i=1,3*this%numberOfPoints
-!        do j=1,i
-!           output%values(i,j)=-output%values(i,j)
-!           if(i == j) output%values(i,j) = 1.0 + output%values(i,j)
-!           if( abs(output%values(i,j) ) < 1.0D-8) output%values(i,j)= 0.0
-!           output%values(j,i) = output%values(i,j)
-!        end do
-!     end do
+    !! Calcula el termino I-P
+    do i=1,3*this%numberOfPoints
+       do j=1,i
+          output%values(i,j)=-output%values(i,j)
+          if(i == j) output%values(i,j) = 1.0 + output%values(i,j)
+          if( abs(output%values(i,j) ) < 1.0D-8) output%values(i,j)= 0.0
+          output%values(j,i) = output%values(i,j)
+       end do
+    end do
     
-!     call Vector_destructor(coordinates)
-!     call Matrix_destructor(molecularInertiaTensor)
+    call Vector_destructor(coordinates)
+    call Matrix_destructor(molecularInertiaTensor)
     
-!   end function MecanicProperties_getHandyProjector
+  end function MecanicProperties_getHandyProjector
   
 !   !>
 !   !!  @brief Calcula el core de la matriz de transformacion para eliminar  grados de libertad externos

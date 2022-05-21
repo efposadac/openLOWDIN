@@ -5,10 +5,12 @@ source ${VARS_PATH}
 
 usage(){
 	echo "Usage:"
-	echo "   $ lowdin -i file.lowdin [-t [all] [list] [file]] [-v number] [-p] [-s] [-h] "
+	echo "   $ lowdin -i file.lowdin [-t [all] [list] [file]] [-n number] [-v number] [-p] [-s] [-h] "
 	echo ""
 	echo "   -i file.lowdin"
 	echo "      This is the input file name"
+	echo "   -n number"
+	echo "      This will set the number of OMP threads"
         echo "   -t all"
         echo "      This will run all the test files located on the test database."
         echo "   -t list"
@@ -19,6 +21,10 @@ usage(){
 	echo "      This is the lowdin version that will be used"
 	echo "   -p"
 	echo "      This will print the output file to the standard output on the fly"
+	echo "   -w"
+	echo "      This will save the LOWDIN .wfn file"
+	echo "   -k"
+	echo "      This will keep the temporary files in the scratch directory after running the calculation"
 	echo "   -s"
 	echo "      This activate the singleton mode"
 	echo "   -h"
@@ -44,7 +50,7 @@ fi
 if [  $printOut = "T" ]; then
 	test.x $test | tee  $test.out
 else
-      	test.x $test > $test.out
+      	test.x $test 2> $test.out
 fi
 
 echo "done"
@@ -60,19 +66,30 @@ then
 fi
 
 printOut="F"
+saveWfn="F"
 singleton="F"
 version=".x"
 runTest="F"
+keepScratch="F"
 
-while getopts 	"i:pt:sv:h" OPTNAME
+while getopts 	"i:pt:sv:n:hwk" OPTNAME
 do
 	case $OPTNAME in
 		i)
 			nameFile=$OPTARG
 			extFile=${nameFile/#*./}
 			;;
+		n)
+			numberOfThreads=$OPTARG
+			;;
 		p)
 			printOut="T"
+			;;
+		w)
+			saveWfn="T"
+			;;
+		k)
+			keepScratch="T"
 			;;
 		s)
 			singleton="T"
@@ -113,7 +130,7 @@ then
 	else
 		chmod +w $LOWDIN_SCRATCH/lowdin.pid
 		echo "## WARNING ## Another LOWDIN process (pid=`cat $LOWDIN_SCRATCH/lowdin.pid`) in singleton mode (-s) have finished with errors"
-		rm $LOWDIN_SCRATCH/lowdin.pid
+		# rm $LOWDIN_SCRATCH/lowdin.pid
 	fi
 elif [ $singleton = "T" ]
 then
@@ -144,7 +161,9 @@ if [ $extFile="lowdin" ]; then
 	###############################################
 
 	gawk "/CONTROL/,/END/" $nameFile | grep -v "CONTROL" | sed "s/=/ = /g" | gawk \
-	    ' BEGIN{printf("\n&LowdinParameters\n")} { printf("\tLowdinParameters_%s = %s %s %s %s\n",$1,$3,$4,$5,$6)} END{printf("/\n") } ' > $nameFile.aux
+	    ' BEGIN{printf("\n&LowdinParameters\n")} { printf("\tLowdinParameters_%s =",$1)
+		for (i=1;i<=NF-2;i++) {printf("%s ",$(i+2))} 
+		printf("\n") } END{printf("/\n") } ' > $nameFile.aux
 	
 	gawk "/TASKS/,/END/" $nameFile | grep -v "TASKS" | sed "s/=/ = /g" | gawk \
 	    ' BEGIN{printf("\n&InputTasks\n")} {printf("\tInputTasks_%s = %s\n",$1,$3)}  END{printf("/\n")} ' >> $nameFile.aux
@@ -164,11 +183,32 @@ if [ $extFile="lowdin" ]; then
                         }
                         else if($i=="fragmentNumber"){
 				printf("\tInputParticle_fragmentNumber = %s\n",$(i+2) )
+			}
+                        else if($i=="q"){
+				printf("\tInputParticle_charge = %s\n",$(i+2) )
+			}
+                        else if($i=="m"){
+				printf("\tInputParticle_mass = %s\n",$(i+2) )
 			};
 		};
 		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
 	}
-	END{ printf("\n&InputSystem\n\tInputSystem_numberOfParticles = %u\n",NR) }
+	END{}
+'| sed "s/,/./g" >> $nameFile.aux
+
+	systemSize=$(gawk "/GEOMETRY/,/END/" $nameFile | grep -v "GEOMETRY" | sed "s/=/ = /g" | gawk '{}END{printf(NR)}')
+	MMsystemSize=$(gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | sed "s/=/ = /g" | gawk '{}END{printf(NR)}')
+	totalSystemSize=`expr $systemSize + $MMsystemSize`
+	
+	gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",$1,$2)
+                if(NF==6){
+            		  printf("\tInputParticle_charge = %15.12E \n",$6)                       
+                         }
+		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
+	}
+	END{ printf("\n&InputSystem\n\tInputSystem_numberOfParticles = %u\n",'$totalSystemSize') }
 ' | sed "s/,/./g" >> $nameFile.aux
 	
 	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
@@ -178,10 +218,19 @@ if [ $extFile="lowdin" ]; then
 	gawk "/INTERPOTENTIAL/,/END/" $nameFile | grep -v "INTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfInterPots =  %u\n",NR) }
 ' | sed "s/,/./g" >> $nameFile.aux
-	
+
+	gawk "/LJPOTENTIAL/,/END/" $nameFile | grep -v "LJPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	    'END{ printf("\tInputSystem_numberOfLJCenters =  %u\n",NR) }
+' | sed "s/,/./g" >> $nameFile.aux
+
 	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | sed "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfOutputs =  %u\n",NR) }
 ' | sed "s/,/./g" >> $nameFile.aux
+
+	gawk "/INPUT_CI/,/END/" $nameFile | grep -v "CI" | sed "s/=/ = /g" | gawk \
+	    'END{ printf("\tInputSystem_numberOfSpeciesInCI =  %u\n",NR) }
+' | sed "s/,/./g" >> $nameFile.aux
+
 
 	grep  "SYSTEM_DESCRIPTION" $nameFile | sed "s/SYSTEM_DESCRIPTION//g"  | sed "s/=//g" | gawk '{printf("\tInputSystem_description = %s\n",$0)}' >> $nameFile.aux
 	
@@ -211,6 +260,13 @@ if [ $extFile="lowdin" ]; then
 	}
 	' | sed "s/,/./g" >> $nameFile.aux
 
+	gawk "/LJPOTENTIAL/,/END/" $nameFile | grep -v "LJPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&LJPot\n\tLJPot_particle = \"%s\"\n",$1)
+                printf("\tLJPot_origin = %15.12E %15.12E %15.12E \n/\n",$2,$3,$4)
+	}
+	' | sed "s/,/./g" >> $nameFile.aux
+
 	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | sed "s/=/ = /g" | gawk \
 	    '{
                 printf("\n&Output\n")
@@ -220,6 +276,9 @@ if [ $extFile="lowdin" ]; then
 			}
 			else if($i=="orbital"){
 				printf("\tOutput_orbital = %s\n",$(i+2) )
+			}
+			else if($i=="state"){
+				printf("\tOutput_state = %s\n",$(i+2) )
 			}
 			else if($i=="dimensions"){
 				printf("\tOutput_dimensions = %s\n",$(i+2) )
@@ -241,7 +300,29 @@ if [ $extFile="lowdin" ]; then
 	}
 	' | sed "s/,/./g" >> $nameFile.aux
 
-	rm -f $nameFile
+	gawk "/INPUT_CI/,/END/" $nameFile | grep -v "INPUT_CI" | sed "s/=/ = /g" | gawk \
+	    '{
+                printf("\n&InputCINamelist\n")
+		for(i=1;i<=NF;i++){
+			if($i=="species"){
+				printf("\tInputCI_species = %s\n",$(i+2) )
+			}
+			else if($i=="core"){
+				printf("\tInputCI_core = %s\n",$(i+2) )
+			}
+			else if($i=="active"){
+				printf("\tInputCI_active = %s\n",$(i+2) )
+                        }
+                        else if($i=="excitation"){
+                 		printf("\tInputCI_excitation =  %s\n",$(i+2) )
+			};
+		};
+                 printf("/\n")
+	}
+	' | sed "s/,/./g" >> $nameFile.aux
+
+
+	# rm -f $nameFile
 	
 	###########################################
 	# Exec lowdin.x
@@ -254,7 +335,7 @@ if [ $extFile="lowdin" ]; then
 	    echo "## WARNING ## The scratch directory $LOWDIN_SCRATCH/$nameFile"
 	    echo "              has been removed, probably it corresponds to"
 	    echo "              a calculation completed or with errors."
-	    rm -rf $LOWDIN_SCRATCH/$nameFile
+	    # rm -rf $LOWDIN_SCRATCH/$nameFile
 	    mkdir $LOWDIN_SCRATCH/$nameFile
 	else
 	    mkdir $LOWDIN_SCRATCH/$nameFile
@@ -263,6 +344,8 @@ if [ $extFile="lowdin" ]; then
 	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.der $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.coup $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
@@ -274,8 +357,25 @@ if [ $extFile="lowdin" ]; then
 	    cp $nameFile.gms.bs $LOWDIN_SCRATCH/$nameFile
 	fi
 
+	# setting default number of cores for OpenMP
+
+	if [ -z "$OMP_NUM_THREADS" ]; then
+	    	export OMP_NUM_THREADS=4
+	fi
+
+	if [ -n "$numberOfThreads" ]; then
+    		export OMP_NUM_THREADS=$numberOfThreads
+	fi
+
+	#echo "Running on " $OMP_NUM_THREADS "OMP threads" 
+
+	# Start ...
+	echo "Running on " $OMP_NUM_THREADS "OMP threads" > $nameFile.out
 	echo "Begin job by input: "$nameFile.lowdin, "for user: "$USERNAME " at " `date` > $nameFile.out
 	echo "under operating system" `uname -a` >> $nameFile.out
+	echo "Compilation information" >> $nameFile.out
+	echo "  commit: "$LOWDIN_COMMIT >> $nameFile.out
+	echo "  compilation date: " $LOWDIN_DATE >> $nameFile.out
 	echo "" >> $nameFile.out
 	echo "BEGIN INPUT INFO:" >> $nameFile.out
 	echo "------------------------------------" >> $nameFile.out
@@ -285,6 +385,9 @@ if [ $extFile="lowdin" ]; then
 	echo "" >> $nameFile.out
 	
 	cp $nameFile.lowdin $LOWDIN_SCRATCH/$nameFile
+	mv $nameFile $LOWDIN_SCRATCH/$nameFile
+	cp lowdin.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp lowdin.civec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	echo "" >> $nameFile.out
 	mv $nameFile.out $LOWDIN_SCRATCH/$nameFile
 	mv $nameFile.aux $LOWDIN_SCRATCH/$nameFile
@@ -292,29 +395,46 @@ if [ $extFile="lowdin" ]; then
 	cd $LOWDIN_SCRATCH/$nameFile
 	
 	if [  $printOut = "T" ]; then
-	    lowdin$version $nameFile.aux | tee -a $nameFile.out 
+	    lowdin$version $nameFile.aux |& tee -a $nameFile.out 
 	else
-	    lowdin$version $nameFile.aux >>   $nameFile.out
+	    lowdin$version $nameFile.aux >> $nameFile.out 2> >(tee -a $nameFile.out >&2)
 	fi
 	
-	ls -l * >> $nameFile.out
+	ls -lh * >> $nameFile.out
 
 	if [ -e $nameFile.out ]
 	then
 	    cp $LOWDIN_SCRATCH/$nameFile/*.out $currentPath
 	    cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
+	#		cp $LOWDIN_SCRATCH/$nameFile/*.xyzr $currentPath 
+	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
 	fi
 
+	if [ $saveWfn = "T" ]; then
+	   cp $LOWDIN_SCRATCH/$nameFile/lowdin.wfn $currentPath
+	fi
 
+	mv $LOWDIN_SCRATCH/$nameFile/lowdin-plain.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.mol* $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
+	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
+	#mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
+	#mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
+	# mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
+	mv $LOWDIN_SCRATCH/$nameFile/*.molden $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfn $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfx $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
-        # mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
-        # mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
-        # mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.civec $currentPath &> 2
+        # mv $LOWDIN_SCRATCH/$nameFile/*.ci $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.coeff $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*coup $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.com $currentPath &> 2
@@ -322,7 +442,11 @@ if [ $extFile="lowdin" ]; then
 	# mv $LOWDIN_SCRATCH/$nameFile/*.kin $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
-	rm -rf $LOWDIN_SCRATCH/$nameFile
+	mv $LOWDIN_SCRATCH/$nameFile/*.casino $currentPath &> 2
+
+	if [ $keepScratch = "F" ]; then
+	   rm -rf $LOWDIN_SCRATCH/$nameFile
+	fi
 	
     else
 		echo $1 ", this file does not exist. "
@@ -339,7 +463,7 @@ if [ $singleton = "T" ]
 then
 	cd $LOWDIN_SCRATCH
 	chmod +w lowdin.pid
-	rm lowdin.pid
+	# rm lowdin.pid
 	exit 0
 else
 	exit 0

@@ -28,8 +28,12 @@ program lowdin_
  use InputManager_
  use MolecularSystem_
  use MecanicProperties_
+ use GeometryOptimizer_
  use Solver_
  implicit none
+
+ character(50) :: strAuxNumber
+ integer :: statusSystem
 
  !! Time Control
  call Stopwatch_constructor( lowdin_stopwatch )
@@ -55,18 +59,25 @@ program lowdin_
  !! Load input and build the molecular system
  !!
  write(6, "(1A)", advance="no") " PARSING INPUT..."
- 
+
+
  !! Load info for system being calculated
  call InputManager_loadSystem() 
- 
+
  !! Load CONTROL block 
  call InputManager_loadControl() 
  
  !! Load TASKS block
  call InputManager_loadTask()   
- 
+
  !! Load GEOMETRY block
  call InputManager_loadGeometry() 
+
+ !! Load potentials if any
+ call InputManager_loadPotentials()
+
+ !! Load OUTPUTY block
+! call InputManager_loadOUTPUT() 
  
  write(6, "(1A)") " DONE!"
 
@@ -78,18 +89,24 @@ program lowdin_
  
  !! Shows some information related to molecular system
  call MolecularSystem_showInformation()  
- call MolecularSystem_showParticlesInformation()
- !!
- !!****************************************************************************
 
- !!***************************************************************************
- !!        Shows system's geometry
- !!
- write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
- write (6,"(T18,A35)") "------------------------------------------"
+ if (CONTROL_instance%METHOD/="MM") then 
  
- call MolecularSystem_showCartesianMatrix()
+    call MolecularSystem_showParticlesInformation()
+
+    !!
+    !!****************************************************************************
+
+    !!***************************************************************************
+    !!        Shows system's geometry
+    !!
+    write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
+    write (6,"(T18,A35)") "------------------------------------------"
  
+    call MolecularSystem_showCartesianMatrix()
+ 
+ end if 
+
  !! Transform to center of mass
  call MecanicProperties_constructor(MolecularSystem_instance%mechanicalProp)
   
@@ -103,7 +120,9 @@ program lowdin_
     
  end if
  
- call MolecularSystem_showDistanceMatrix()  
+ if (CONTROL_instance%METHOD/="MM") then 
+    call MolecularSystem_showDistanceMatrix()
+ end if
   
  !! At this moment it is not relevant
  !! call MolecularSystem_showZMatrix( MolecularSystem_instance )  
@@ -130,11 +149,12 @@ program lowdin_
  !!***************************************************************************
  !!        Running the properly solver for a selected method
  !!
- call Solver_run()
+ ! call Solver_run()
   
  ! if  (Parameters%OPTIMIZE .and. .not. Parameters%ELECTRONIC_WAVEFUNCTION_ANALYSIS &
  !      .and. .not.Parameters%ARE_THERE_DUMMY_ATOMS .and. .not. Parameters%CP_CORRECTION ) then
  
+
  !    call GeometryOptimizer_constructor( lowdin_geometryOptimizer, ssolver = lowdin_solver)
  !    call GeometryOptimizer_run( lowdin_geometryOptimizer )
  !    call GeometryOptimizer_destructor( lowdin_geometryOptimizer )
@@ -150,15 +170,26 @@ program lowdin_
  !    call TimeEvolution_constructor( lowdin_TimeEvolution, ssolver = lowdin_solver)
  !    call TimeEvolution_run( lowdin_TimeEvolution )
  !    call TimeEvolution_destructor( lowdin_TimeEvolution )
- 
- ! else
- 
- !    call Solver_run( lowdin_solver )
- 
- ! end if
+
+ if ( CONTROL_instance%OPTIMIZE ) then 
+    call GeometryOptimizer_constructor( GeometryOptimizer_instance )
+    call GeometryOptimizer_run( GeometryOptimizer_instance )
+    call GeometryOptimizer_destructor( GeometryOptimizer_instance )
+ else
+    call Solver_run()
+ end if
 
  !!
  !!******************************************************************************
+
+  statusSystem = system ("lowdin-CalcProp.x")
+
+  if ( CONTROL_instance%IS_THERE_OUTPUT ) then
+    write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
+!!  call system("lowdin-output.x" //trim(strAuxNumber))
+    statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
+  end if
+
 
  !!Cleaning
  call MolecularSystem_destroy()
@@ -166,13 +197,14 @@ program lowdin_
  !!Shows time information 
  call Stopwatch_stop(lowdin_stopwatch)
  write(*, *)
+ write(*,"(A,F10.3,A4)") "  TOTAL CPU Time: ", lowdin_stopwatch%enlapsetTime ," (s)"
+ write(*,"(A,F10.3,A4)") " TOTAL Wall Time: ", lowdin_stopwatch%elapsetWTime ," (s)"
  write(6,"(A16,i3,A1,i3,A1,i3,A1,i4,A2)") &
-      "Enlapsed Time: ", &
+      "Elapsed Time: ", &
       lowdin_stopwatch%endTime(5),"h", &
       lowdin_stopwatch%endTime(6),"m", &
       lowdin_stopwatch%endTime(7),"s", &
       lowdin_stopwatch%endTime(8),"ms"
-
  
  write (6,"(A, A)") "LOWDIN execution terminated normally at : ", trim( Stopwatch_getCurretData( lowdin_stopwatch ) )
  call Stopwatch_destructor( lowdin_stopwatch )

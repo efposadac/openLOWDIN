@@ -48,6 +48,7 @@ module AtomicElement_
      real(8) :: covalentRadius
      real(8) :: atomicRadio
      real(8) :: vanderWaalsRadio
+     real(8) :: klamt
      real(8) :: atomicWeight
      real(8) :: nuclearSpin     
      !!< Variables con propositos de conveniencia
@@ -57,8 +58,9 @@ module AtomicElement_
   
   public :: &
        AtomicElement_load, &
-       AtomicElement_show
-  
+       AtomicElement_show, &
+       AtomicElement_getCovalentRadius
+
 contains
     
   !>
@@ -90,6 +92,7 @@ contains
     real(8) :: covalent
     real(8) :: atomic
     real(8) :: vanderWaals
+    real(8) :: klamt
     real(8) :: isotopes(4,30) !! asumming that no one atom have more than 30 isotopes...
 
     NAMELIST /element/ &
@@ -106,6 +109,7 @@ contains
          covalent, & 
          atomic, & 
          vanderWaals, &
+         klamt, &
          isotopes
 
     !! Looking for library    
@@ -137,6 +141,7 @@ contains
           covalent = 0
           atomic = 0
           vanderWaals = 0
+          klamt = 0
           isotopes = -1
           
           if (stat == -1 ) then
@@ -170,6 +175,7 @@ contains
        this%covalentRadius = covalent
        this%atomicRadio =atomic
        this%vanderWaalsRadio =	vanderWaals
+       this%klamt = klamt
        this%isMassNumberPresent = .false.
        this%abundance = 0
        this%isInstanced = .true.
@@ -244,9 +250,33 @@ contains
     write (6,"(T10,A22,F12.5,A10)")	"Van der Waals radius= ",this%vanderwaalsRadio," pm"
     write (6,"(T10,A22,F12.5,A10)")	"Atomic weight       = ",this%atomicWeight,"u.m.a"
     write (6,"(T10,A22,F12.5,A10)")	"Nuclear Spin        = ",this%nuclearSpin,""
+    write (6,"(T10,A22,F12.5,A10)")	"Klamt radius		 		= ",this%klamt," pm"
     print *,""
     
   end subroutine AtomicElement_show
+
+  function AtomicElement_getCovalentRadius( symbolOfElement ) result( output )
+		implicit none
+		character(*),  intent( in ) :: symbolOfElement
+		real(8)  :: output
+
+		type(AtomicElement) :: element
+		character(10) :: auxSymbol
+
+		! call AtomicElement_constructor( element )
+		auxSymbol=trim( symbolOfElement )
+
+		if (  scan( auxSymbol, "_" ) /= 0 ) then
+			auxSymbol = trim(auxSymbol(1: scan( auxSymbol, "_" ) - 1 ) )
+		end if
+
+		call AtomicElement_load( element, auxSymbol, 0 )
+		output = element%covalentRadius
+
+		! call AtomicElement_destructor(element)
+
+  end function AtomicElement_getCovalentRadius
+
   
   !>
   !! @brief  Maneja excepciones de la clase
