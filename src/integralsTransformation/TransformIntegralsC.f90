@@ -544,7 +544,7 @@ contains
        !! First quarter
        !do mu = 1, this%numberOfContractions
 
-          call DirectIntegralManager_getDirectIntraRepulsionIntegrals(&
+          call DirectIntegralManager_getDirectIntraRepulsionFirstQuarter(&
                speciesID, &
                trim(CONTROL_instance%INTEGRAL_SCHEME), &
                densityMatrix, & 
@@ -1257,7 +1257,7 @@ contains
        !! First quarter
        !do mu = 1, this%numberOfContractions
 
-          call DirectIntegralManager_getDirectInterRepulsionIntegrals(&
+          call DirectIntegralManager_getDirectInterRepulsionFirstQuarter(&
                specieID, otherSpecieID, &
                trim(CONTROL_instance%INTEGRAL_SCHEME), &
                densityMatrix, & 
@@ -1473,12 +1473,12 @@ contains
 
        this%p_l = 1
        this%p_u = totalOccupation/2 
-       this%q_l = totalOccupation/2+1 !+coreOrbitals+1
+       this%q_l = totalOccupation/2+1
        this%q_u = totalOccupation
 
        this%r_l = 1
        this%r_u = totalOccupation/2 
-       this%s_l = totalOccupation/2+1 !+coreOrbitals+1
+       this%s_l = totalOccupation/2+1
        this%s_u = totalOccupation
 
     end if

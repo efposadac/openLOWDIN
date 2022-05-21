@@ -50,9 +50,9 @@ module IntegralManager_
        IntegralManager_getAttractionIntegrals, &
        IntegralManager_getMomentIntegrals, &
        IntegralManager_getInterRepulsionIntegrals, &
-       IntegralManager_getIntraRepulsionIntegrals
-  private :: &
+       IntegralManager_getIntraRepulsionIntegrals, &
        IntegralManager_getLabels
+  ! private :: &
 
 contains
 

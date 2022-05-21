@@ -85,9 +85,9 @@ program IntegralsTransformation
   !Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-  call MolecularSystem_showInformation()  
-  call MolecularSystem_showParticlesInformation()
-  call MolecularSystem_showCartesianMatrix()
+  ! call MolecularSystem_showInformation()  
+  ! call MolecularSystem_showParticlesInformation()
+  ! call MolecularSystem_showCartesianMatrix()
 
   wfnFile = "lowdin.wfn"
   wfnUnit = 20

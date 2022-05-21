@@ -482,7 +482,7 @@ contains
     type(c_ptr) :: matrixA_ptr
 
     integer :: nspecies
-
+    
     nspecies = size(MolecularSystem_instance%species)
     if (.not. allocated(Libint2Instance)) then
        allocate(Libint2Instance(nspecies))  
@@ -502,11 +502,11 @@ contains
     ! Initialize libint objects
     if (.not. Libint2Instance(speciesID)%isInstanced) then
        call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
-    endif
+    end if
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
     call c_LibintInterface_compute2BodyDirectIT(Libint2Instance(speciesID)%this, density_ptr, coefficients_ptr, matrixA_ptr, p)
-
+    
   end subroutine Libint2Interface_compute2BodyIntraspecies_direct_IT
 
   !>
