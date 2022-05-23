@@ -57,6 +57,7 @@ module WaveFunction_
      type(Matrix) :: densityMatrix
      type(Matrix) :: twoParticlesMatrix
      type(Matrix) :: couplingMatrix
+     type(Matrix) :: exchangeCorrelationMatrix
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: coefficientsofcombination
      type(vector) :: energyofmolecularorbital
@@ -65,6 +66,8 @@ module WaveFunction_
      type(Matrix) :: cosmo2
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
+     type(Matrix) :: electricField(9)
+     type(Matrix) :: harmonic
      real(8) :: cosmoCharge
      !!**************************************************************
 
@@ -80,6 +83,7 @@ module WaveFunction_
      real(8) :: repulsionEnergy
      real(8) :: couplingEnergy
      real(8) :: externalPotentialEnergy
+     real(8) :: exchangeCorrelationEnergy
      !! Cosmo Things
      real(8) :: cosmoEnergy
      !!**************************************************************
@@ -115,6 +119,7 @@ contains
        WaveFunction_instance( speciesID )%repulsionEnergy = 0.0_8
        WaveFunction_instance( speciesID )%externalPotentialEnergy = 0.0_8
        WaveFunction_instance( speciesID )%couplingEnergy = 0.0_8
+       WaveFunction_instance( speciesID )%exchangeCorrelationEnergy = 0.0_8
 
        call Matrix_constructor( WaveFunction_instance(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions )
 
@@ -151,8 +156,10 @@ contains
     close(34)
 
     !! DEBUG
-    ! print *,"Matriz de overlap: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    ! call Matrix_show(WaveFunction_instance( speciesID )%overlapMatrix)
+    if (  CONTROL_instance%DEBUG_SCFS) then
+     print *,"Matriz de overlap: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+     call Matrix_show(WaveFunction_instance( speciesID )%overlapMatrix)
+    end if
 
   end subroutine WaveFunction_buildOverlapMatrix
 
@@ -199,14 +206,21 @@ contains
        !!          
        call Matrix_eigen( WaveFunction_instance( speciesID )%overlapMatrix, eigenValues, eigenVectors, SYMMETRIC  )
 
+       !!do i = 1 , numberOfContractions
+       !!   print *, eigenvalues%values(i) 
+       !!end do
+
        do i = 1 , numberOfContractions
-          do j = 1 , numberOfContractions
-
+         do j = 1 , numberOfContractions
+           if ( abs(eigenValues%values(j)) >= CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
              WaveFunction_instance( speciesID )%transformationMatrix%values(i,j) = &
-                  eigenVectors%values(i,j)/sqrt( eigenValues%values(j) )
+                            eigenVectors%values(i,j)/sqrt( eigenvalues%values(j) )
+           else
+             WaveFunction_instance( speciesID )%transformationMatrix%values(i,j) = 0
+           end if
+         end do
+      end do
 
-          end do
-       end do
        !!
        !!****************************************************************
 
@@ -217,13 +231,11 @@ contains
 
           !! Ortogonalizacion canonica
        case (CANONICAL_ORTHOGONALIZATION)
-
           WaveFunction_instance( speciesID )%transformationMatrix%values = &
                WaveFunction_instance( speciesID )%transformationMatrix%values
 
           !!Ortogonalizacion simetrica
        case (SYMMETRIC_ORTHOGONALIZATION)
-
           WaveFunction_instance( speciesID )%transformationMatrix%values  = &
                matmul(WaveFunction_instance( speciesID )%transformationMatrix%values, transpose(eigenVectors%values))
 
@@ -269,7 +281,8 @@ contains
     real(8) :: auxCharge
     integer :: numberOfContractions
     integer :: totalNumberOfContractions
-    character(10) :: arguments(2)
+    character(40) :: arguments(2)
+    type(matrix) :: auxmatrix
 
     !! Open file
     unit = 34
@@ -340,8 +353,10 @@ contains
     end if
 
     !! DEBUG
-    !!   print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
-    !!    call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
+    if (  CONTROL_instance%DEBUG_SCFS) then
+       print *,"Matriz de energia cinetica: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
+        call Matrix_show( WaveFunction_instance(speciesID)%kineticMatrix )
+    end if
 
     !! Load N-Q- Attraction  Matrix
     arguments(1) = "ATTRACTION"
@@ -350,7 +365,7 @@ contains
          unit=unit, binary=.true., arguments=arguments)    
 
     !! Incluiding charge effect
-    auxCharge = MolecularSystem_getCharge( speciesID )
+    auxcharge = MolecularSystem_getCharge( speciesID )
 
     WaveFunction_instance( speciesID )%puntualInteractionMatrix%values = &
          WaveFunction_instance( speciesID )%puntualInteractionMatrix%values * (-auxCharge)
@@ -358,8 +373,6 @@ contains
     !! DEBUG
     ! print *,"Matriz de interaccion n-quantum: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
     ! call Matrix_show( WaveFunction_instance(speciesID)%puntualInteractionMatrix )
-
-    close(34)    
 
     !! Build Hcore Matrix
     if ( .not.allocated(WaveFunction_instance( speciesID )%HcoreMatrix%values ) ) then
@@ -370,8 +383,103 @@ contains
     end if
 
     WaveFunction_instance(speciesID)%HCoreMatrix%values = &
-         WaveFunction_instance(speciesID)%kineticMatrix%values + &
-         WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
+        WaveFunction_instance(speciesID)%kineticMatrix%values + &
+        WaveFunction_instance(speciesID)%puntualInteractionMatrix%values
+
+    !! Add electric field F_i < \mu | e_i | \nu >
+!    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+    if ( CONTROL_instance%MULTIPOLE_ORDER /= 0 ) then
+
+      write (*,"(T2,A15,I2)") "MULTIPOLE ORDER R**X: ", CONTROL_instance%MULTIPOLE_ORDER
+      write (*,"(T2,A15,3F12.8)") "ELECTRIC FIELD:", CONTROL_instance%ELECTRIC_FIELD
+
+      select case ( CONTROL_instance%MULTIPOLE_ORDER )
+
+      case (1)
+
+        arguments(1) = "MOMENTX0"
+        WaveFunction_instance(speciesID)%electricField(1) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                             columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTY0"
+        WaveFunction_instance(speciesID)%electricField(2) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTZ0"
+        WaveFunction_instance(speciesID)%electricField(3) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+  
+        WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+          WaveFunction_instance(speciesID)%HCoreMatrix%values + &
+                  auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(speciesID)%electricField(1)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(speciesID)%electricField(2)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(speciesID)%electricField(3)%values )
+
+      case (2)
+
+        arguments(1) = "MOMENTXX"
+        WaveFunction_instance(speciesID)%electricField(4) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                             columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTYY"
+        WaveFunction_instance(speciesID)%electricField(5) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTZZ"
+        WaveFunction_instance(speciesID)%electricField(6) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+  
+        arguments(1) = "MOMENTXY"
+        WaveFunction_instance(speciesID)%electricField(7) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                             columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTXZ"
+        WaveFunction_instance(speciesID)%electricField(8) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+        arguments(1) = "MOMENTYZ"
+        WaveFunction_instance(speciesID)%electricField(9) = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                              columns=totalNumberOfContractions, &
+                                                              unit=unit, binary=.true., arguments=arguments)    
+  
+  
+        WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+          WaveFunction_instance(speciesID)%HCoreMatrix%values + &
+                  (1.0/3.0)*auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(speciesID)%electricField(4)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(speciesID)%electricField(5)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(speciesID)%electricField(6)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(4)*WaveFunction_instance(speciesID)%electricField(7)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(5)*WaveFunction_instance(speciesID)%electricField(8)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(6)*WaveFunction_instance(speciesID)%electricField(9)%values )
+
+      case default 
+
+        call WaveFunction_exception ( ERROR, "WaveFunction_HCoreMatrix", "Multipole order not implemented")
+
+      end select
+    end if
+
+     if ( CONTROL_instance%HARMONIC_CONSTANT /= 0.0_8 ) then 
+
+      write (*,"(T2,A15,3F12.8)") "HARMONIC CONSTANT:", CONTROL_instance%HARMONIC_CONSTANT
+
+      arguments(1) = "HARMONIC"
+      WaveFunction_instance(speciesID)%harmonic = Matrix_getFromFile(rows=totalNumberOfContractions, &
+                                                            columns=totalNumberOfContractions, &
+                                                            unit=unit, binary=.true., arguments=arguments)   
+
+      WaveFunction_instance(speciesID)%HCoreMatrix%values = &
+        WaveFunction_instance(speciesID)%HCoreMatrix%values + &
+        CONTROL_instance%HARMONIC_CONSTANT * WaveFunction_instance(speciesID)%harmonic%values
+
+     end if
+
+    close(34)    
+         !WaveFunction_instance(speciesID)%externalPotentialMatrix%values 
 
     !! DEBUG
     !!   print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecie(speciesID))
@@ -388,6 +496,8 @@ contains
     integer :: speciesID
 
     integer :: totalNumberOfContractions
+    character(50) :: densFile, labels(2)
+    integer :: densUnit
 
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
@@ -401,6 +511,21 @@ contains
     !! Debug
     ! print*, "Matriz de densidad inicial ", MolecularSystem_getNameOfSpecie(speciesID)
     ! call Matrix_show(WaveFunction_instance( speciesID )%densityMatrix)
+
+    !!Save this matrix for DFT calculations, because reasons
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       
+       densUnit = 78
+       densFile = trim(CONTROL_instance%INPUT_FILE)//trim(MolecularSystem_getNameOfSpecie(speciesID))//".densmatrix"
+       open(unit = densUnit, file=trim(densFile), status="replace", form="unformatted")
+
+       labels(1) = "DENSITY-MATRIX"
+       labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+     
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=densUnit, binary=.true., arguments = labels )
+
+       close (78)
+    end if
 
   end subroutine WaveFunction_setDensityMatrix
 
@@ -439,6 +564,41 @@ contains
     implicit none
 
     integer :: specieID
+    real(8) :: auxCharge
+
+    auxcharge = MolecularSystem_getCharge( specieID )
+
+    !! Remove the electric field matrix to calculate the energy components
+    if ( CONTROL_instance%MULTIPOLE_ORDER /= 0 ) then
+
+      select case ( CONTROL_instance%MULTIPOLE_ORDER )
+
+      case(1)
+        WaveFunction_instance(specieID)%HCoreMatrix%values = &
+          WaveFunction_instance(specieID)%HCoreMatrix%values - &
+                  auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(1)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(2)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(3)%values )
+
+      case(2)
+
+        WaveFunction_instance(specieID)%HCoreMatrix%values = &
+          WaveFunction_instance(specieID)%HCoreMatrix%values - &
+                  (1.0/3.0)*auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(4)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(5)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(6)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(4)*WaveFunction_instance(specieID)%electricField(7)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(5)*WaveFunction_instance(specieID)%electricField(8)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(6)*WaveFunction_instance(specieID)%electricField(9)%values )
+
+      end select
+
+    end if
+
+
+
 
     !! Calcula la energia de repulsion
     WaveFunction_instance( specieID )%repulsionEnergy = 0.5_8 * &
@@ -479,13 +639,13 @@ contains
     !! Calcula energia de acoplamiento en caso de mas de una especie presente
     WaveFunction_instance( specieID )%couplingEnergy = &
          sum( transpose( WaveFunction_instance( specieID )%densityMatrix%values ) * &
-         WaveFunction_instance( specieID )%couplingMatrix%values )
-
+         WaveFunction_instance( specieID )%couplingMatrix%values )    
 
     !! Total energy for species
     WaveFunction_instance( specieID )%totalEnergyForSpecie = &
          WaveFunction_instance( specieID )%independentSpecieEnergy +  &
-         WaveFunction_instance( specieID )%couplingEnergy
+         WaveFunction_instance( specieID )%couplingEnergy + &
+         WaveFunction_instance( specieID )%exchangeCorrelationEnergy
 
 
     !! Calcula la energia COSMO	
@@ -514,6 +674,37 @@ contains
 
 
     end if
+
+    !! Put back the electric field matrix to the Hcore matrix
+    if ( CONTROL_instance%MULTIPOLE_ORDER /= 0 ) then
+
+      select case ( CONTROL_instance%MULTIPOLE_ORDER )
+
+      case(1)
+        WaveFunction_instance(specieID)%HCoreMatrix%values = &
+          WaveFunction_instance(specieID)%HCoreMatrix%values + &
+                  auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(1)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(2)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(3)%values )
+
+      case(2)
+
+        WaveFunction_instance(specieID)%HCoreMatrix%values = &
+          WaveFunction_instance(specieID)%HCoreMatrix%values + &
+                  (1.0/3.0)*auxcharge * &
+          (CONTROL_instance%ELECTRIC_FIELD(1)*WaveFunction_instance(specieID)%electricField(4)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(2)*WaveFunction_instance(specieID)%electricField(5)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(3)*WaveFunction_instance(specieID)%electricField(6)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(4)*WaveFunction_instance(specieID)%electricField(7)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(5)*WaveFunction_instance(specieID)%electricField(8)%values + &
+           CONTROL_instance%ELECTRIC_FIELD(6)*WaveFunction_instance(specieID)%electricField(9)%values )
+
+      end select
+
+    end if
+
+
 
 
     ! print *, "__________________ ENERGY COMPONENTS _______________________"
@@ -639,61 +830,61 @@ contains
 
   end subroutine WaveFunction_cosmoHcoreMatrix
 
-  !   !<
-  !   !! @brief Contruye una matriz de interaccion con un potencial externo
-  !   !!
-  !   !! @param nameOfSpecie nombre de la especie seleccionada.
-  !   !>
-  !   subroutine WaveFunction_buildExternalPotentialMatrix( nameOfSpecie )
-  !     implicit none
-  !     character(*), optional :: nameOfSpecie
+  !<
+  !! @brief Contruye una matriz de interaccion con un potencial externo
+  !!
+  !! @param nameOfSpecie nombre de la especie seleccionada.
+  !>
+  subroutine WaveFunction_buildExternalPotentialMatrix( file, speciesID )
+    implicit none
+    character(30) :: nameOfSpecieSelected
+    character(*), intent(in) :: file
+    integer, intent(in) :: speciesID
 
-  !     character(30) :: nameOfSpecieSelected
-  !     integer :: specieID
+    integer :: unit
+    integer :: numberOfContractions
+    integer :: totalNumberOfContractions
+    character(50) :: arguments(2)
 
-  !     nameOfSpecieSelected = "e-"
-  !     if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
+    arguments(1) = "EXTERNAL_POTENTIAL"
+    arguments(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
 
-  !     specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
+    !! Open file
+    unit = 34
+    open(unit = unit, file=trim(file), status="old", form="unformatted")
 
-  !     if ( nameOfspecie /= "e-BETA" ) then
+    WaveFunction_instance(speciesID)%externalPotentialMatrix%values = 0.0_8
 
-  ! 	if( WaveFunction_instance(specieID)%isThereExternalPotential ) then
-  ! 		WaveFunction_instance(specieID)%externalPotentialMatrix%values = 0.0_8
+    !! Get number of shells and number of cartesian contractions
+    numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )          
+    WaveFunction_instance( speciesID )%externalPotentialMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, &
+         columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments(1:2))
+    close(34)
 
+      !!if ( CONTROL_instance%NUMERICAL_INTEGRATION_FOR_EXTERNAL_POTENTIAL )  then  !! Numerical integration
+      !!if ( trim(ExternalPotential_Manager_instance%externalsPots(1)%name) == "none" ) then
+      !!  WaveFunction_instance(specieID)%externalPotentialMatrix = &
+      !!    IntegralManager_getNumericalInteractionWithPotentialMatrix( &
+      !!    ExternalPotential_Manager_instance%externalsPots, specieID, integralName="external" )
 
-  ! 	if ( CONTROL_instance%NUMERICAL_INTEGRATION_FOR_EXTERNAL_POTENTIAL )	then	!! Numerical integration
-  ! 		if ( trim(ExternalPotential_Manager_instance%externalsPots(1)%name) == "none" ) then
-  ! 			WaveFunction_instance(specieID)%externalPotentialMatrix = &
-  ! 				IntegralManager_getNumericalInteractionWithPotentialMatrix( &
-  ! 				ExternalPotential_Manager_instance%externalsPots, specieID, integralName="external" )
+      !!else     !! From xml file
+      !!  WaveFunction_instance(specieID)%externalPotentialMatrix = &
+      !!    IntegralManager_getNumericalPotentialMatrixFromXml( &
+      !!    ExternalPotential_Manager_instance%externalsPots, specieID, integralName="external" )
+      !!end if
+      !!else    !! Analytical Integration  
 
-  ! 		else 		!! From xml file
-  ! 			WaveFunction_instance(specieID)%externalPotentialMatrix = &
-  ! 				IntegralManager_getNumericalPotentialMatrixFromXml( &
-  ! 				ExternalPotential_Manager_instance%externalsPots, specieID, integralName="external" )
-  ! 		end if
-  ! 	else		!! Analytical Integration	
+      !!end if
 
-  ! 		WaveFunction_instance(specieID)%externalPotentialMatrix = &
-  ! 		IntegralManager_getInteractionWithPotentialMatrix( &
-  ! 		ExternalPotential_Manager_instance%externalsPots, specieID, "external" )
+    !! Debug
+    if (  CONTROL_instance%DEBUG_SCFS) then
+      print *,"EXTERNAL POTENTIAL MATRIX FOR: ", arguments(2)
+      call Matrix_show(WaveFunction_instance(speciesID)%externalPotentialMatrix)
+    end if
 
-  !           end if
-
-  !        end if
-
-  !    else !! Use the same matrix for e-beta and e-alpha
-
-  !        WaveFunction_instance(specieID)%externalPotentialMatrix = &
-  !             WaveFunction_instance( MolecularSystem_getSpecieID( nameOfSpecie="e-ALPHA" ))%externalPotentialMatrix
-
-  !     end if
-
-  !     			print *,"EXTERNAL POTENTIAL MATRIX FOR: ", nameOfSpecie
-  !     			call Matrix_show(WaveFunction_instance(specieID)%externalPotentialMatrix)
-
-  !   end subroutine WaveFunction_buildExternalPotentialMatrix
+  end subroutine WaveFunction_buildExternalPotentialMatrix
 
 
   !   function WaveFunction_getValueForOrbitalAt( nameOfSpecie, orbitalNum, coordinate ) result(output)

@@ -11,6 +11,10 @@ END TASKS
 
 CONTROL
 !	integralsTransformationMethod = "A"
+!	ptP3Method = "REN-P3" "TROLOLO"
+!	ptP3Method = "OVGF"
+!	ptP3Method = "P3" "EP3" "OVGF" "REN-P3"
+	ptP3Method = "P3" "EP3" "OVGF-A" "OVGF-B" "OVGF-C" "REN-P3" "TROLOLO"
 END CONTROL
 
 

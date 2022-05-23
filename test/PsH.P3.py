@@ -44,9 +44,9 @@ for line in outputRead:
         orb1Positron_EP2 = float(outputRead[count + 5].split()[1])
         orb1Positron_P3 = float(outputRead[count + 6].split()[1])
         orb1Positron_EP3 = float(outputRead[count + 7].split()[1])
-        orb1Positron_OVGF_A = float(outputRead[count + 8].split()[2])
-        orb1Positron_OVGF_B = float(outputRead[count + 9].split()[2])
-        orb1Positron_OVGF_C = float(outputRead[count + 10].split()[2])
+        orb1Positron_OVGF_A = float(outputRead[count + 8].split()[1])
+        orb1Positron_OVGF_B = float(outputRead[count + 9].split()[1])
+        orb1Positron_OVGF_C = float(outputRead[count + 10].split()[1])
         orb1Positron_RENP3 = float(outputRead[count + 11].split()[1])
 
     count = count + 1

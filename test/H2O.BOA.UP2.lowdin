@@ -24,13 +24,13 @@ END GEOMETRY
 
 TASKS
 	method = "UHF"
-	propagatorTheoryCorrection= 3
+	propagatorTheoryCorrection= 2
 END TASKS
 
 CONTROL
-	ionizeSpecie=E-ALPHA
-	ionizeMO=2
-	ptJustOneOrbital=T
+!	ionizeSpecie="E-ALPHA"
+!	ionizeMO=2
+!	ptJustOneOrbital=T
 !	ptTransitionOperator=T
 END CONTROL
 

@@ -21,6 +21,7 @@
 !!   - <tt> 02-11-11 </tt>:  edwin posada (efposadac@unal.edu.co)
 !!        -# Implementation of split time function
 module Stopwatch_
+  use omp_lib
   implicit none
 
   type, public :: Stopwatch
@@ -29,6 +30,9 @@ module Stopwatch_
      real(8) :: startTime
      real(8) :: enlapsetTime
      real(8) :: currentTime
+     real(8) :: startWTime
+     real(8) :: elapsetWTime
+     real(8) :: currentWTime
      character(255) :: initialDate
      character(255) :: currentDate
      integer :: initTime(8)
@@ -44,6 +48,7 @@ module Stopwatch_
        Stopwatch_start, &
        Stopwatch_stop, &
        Stopwatch_splitTime, &
+       Stopwatch_splitWTime, &
        Stopwatch_getCurretData
 
   private
@@ -64,6 +69,9 @@ contains
     this%currentDate = trim(this%initialDate)
     this%enlapsetTime = 0.0_8
 
+    this%startWTime = 0.0_8
+    this%elapsetWTime = 0.0_8
+
   end subroutine Stopwatch_constructor
 
 
@@ -80,6 +88,9 @@ contains
     this%currentDate = ""
     this%enlapsetTime = 0.0_8
 
+    this%startWTime = 0.0_8
+    this%elapsetWTime = 0.0_8
+
   end subroutine Stopwatch_destructor
 
 
@@ -89,9 +100,11 @@ contains
     type(Stopwatch) :: this
 
     call cpu_time(this%startTime)
+    this%startWTime = omp_get_wtime()
     call DATE_AND_TIME(values=this%initTime)
 
     this%currentTime = this%startTime
+    this%currentWTime = this%startWTime
 
   end subroutine Stopwatch_start
 
@@ -102,6 +115,7 @@ contains
     implicit none
     type(Stopwatch) :: this
     real(8) :: currentTime
+    real(8) :: currentWTime
     real(8) :: iinit, eend
     
     call DATE_AND_TIME(values=this%EndTime)
@@ -132,8 +146,10 @@ contains
     this%endTime(8) = ceiling(eend)
     
     call cpu_time(currentTime)
+    currentWTime = omp_get_wtime()
 
     this%enlapsetTime =  currentTime - this%startTime
+    this%elapsetWTime =  currentWTime - this%startWTime
 
   end subroutine Stopwatch_stop
 
@@ -147,10 +163,22 @@ contains
     lowdin_stopwatch%enlapsetTime =  currentTime - lowdin_stopwatch%currentTime
     lowdin_stopwatch%currentTime = currentTime
 
-    write(*,"(F5.2)", advance="no") lowdin_stopwatch%enlapsetTime
-
+    write(*,"(F10.3)", advance="no") lowdin_stopwatch%enlapsetTime
 
   end subroutine Stopwatch_splitTime
+
+  subroutine Stopwatch_splitWTime()
+    implicit none
+    real(8) :: currentWTime
+
+    currentWTime = omp_get_wtime()
+
+    lowdin_stopwatch%elapsetWTime =  currentWTime - lowdin_stopwatch%currentWTime
+    lowdin_stopwatch%currentWTime = currentWTime
+
+    write(*,"(F10.3)", advance="no") lowdin_stopwatch%elapsetWTime
+
+  end subroutine Stopwatch_splitWTime
 
 
   function Stopwatch_getCurretData( this ) result( output )

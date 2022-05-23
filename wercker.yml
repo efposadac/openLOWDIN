@@ -21,7 +21,7 @@ build:
     # http://devcenter.wercker.com/docs/steps/index.html
   steps:
     - install-packages:
-        packages: git build-essential liblapack-dev libblas-dev libgsl0-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev
+        packages: git build-essential liblapack-dev libblas-dev automake libtool gfortran python gawk
     - script:
         name: setup
         code: |
@@ -37,37 +37,22 @@ build:
           aclocal -I lib/autoconf
           autoconf
           ./configure --prefix=$WORKDIR
-          make -j 4
-          make install
-          make clean
-          make distclean
-          #Build libint2
-          export CC=gcc
-          export CXX=g++
-          export OPENMPFLAGS=-fopenmp
-          export CXXFLAGS="-std=c++11 -Wno-enum-compare $OPENMPFLAGS"
-          export LDFLAGS=$OPENMPFLAGS
-          git checkout master
-          aclocal -I lib/autoconf
-          autoconf
-          ./configure --prefix=$WORKDIR CPPFLAGS='-I/usr/include/eigen3'
-          make -j 4
+          make
           make install
           cd ..
     - script:
         name: build
         code: |
+          WORKDIR=$PWD/dependencies
           export PATH=$PATH:$WORKDIR/bin
-          export C_INCLUDE_PATH=$C_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
-          export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
+          export C_INCLUDE_PATH=$C_INCLUDE_PATH:$WORKDIR/include
+          export CPP_INCLUDE_PATH=$CPP_INCLUDE_PATH:$WORKDIR/include
           export LIBRARY_PATH=$LIBRARY_PATH:$WORKDIR/lib
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$WORKDIR/lib
           # Build Lowdin
           ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
-          make -j 4
+          make
           make install
-    - script:
-        name: tests
-        code: |
           # Perform tests
           make test
+

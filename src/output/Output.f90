@@ -37,12 +37,13 @@ program Output_
   use MolecularSystem_
   use Matrix_
   use InputOutput_
-  use OutputManager_
+  use OutputBuilder_
   implicit none
 
   character(50) :: job
-  integer :: numberOfOutputs
-
+  integer :: numberOfOutputs, i
+  type(OutputBuilder), allocatable :: outputs(:)
+  
   job = ""
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
@@ -57,8 +58,26 @@ program Output_
   call InputOutput_constructor( numberOfOutputs )
   call InputOutput_load( )
 
-  call OutputManager_buildOutputs(OutputManager_instance)
-  call OutputManager_show(OutputManager_instance)
+  allocate(outputs(numberOfOutputs) )
+  
+  do i=1, numberOfOutputs
+     call OutputBuilder_constructor( outputs(i), i, &
+          InputOutput_Instance(i)%type, &
+          InputOutput_Instance(i)%specie, & 
+          InputOutput_Instance(i)%state, &
+          InputOutput_Instance(i)%orbital, &
+          InputOutput_Instance(i)%dimensions, &
+          InputOutput_Instance(i)%cubeSize, &
+          InputOutput_Instance(i)%point1, & 
+          InputOutput_Instance(i)%point2, &
+          InputOutput_Instance(i)%point3  )
+
+     call OutputBuilder_buildOutput(outputs(i))
+     call OutputBuilder_show(outputs(i))
+
+  end do
+
+  
 
 end program Output_
 

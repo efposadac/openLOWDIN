@@ -66,7 +66,8 @@ program PT
   call Stopwatch_stop(lowdin_stopwatch)
   
   write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time PT : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL CPU Time PT : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time PT : ", lowdin_stopwatch%elapsetWTime ," (s)"
   write(*, *) ""
   close(30)
 

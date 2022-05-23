@@ -1,0 +1,78 @@
+# This is a sample build configuration for Other.
+# Check our guides at https://confluence.atlassian.com/x/5Q4SMw for more examples.
+# Only use spaces to indent your .yml configuration.
+# -----
+# You can specify a custom docker image from Docker Hub as your build environment.
+image: ubuntu:latest
+
+pipelines:
+  default:
+    - step:
+        name: build
+        caches:
+          - node
+        script:
+          - export DEBIAN_FRONTEND=noninteractive
+          - apt-get update
+          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev python2-pip-whl python2-setuptools-whl virtualenv
+          - # Define work directories
+          - WORKDIR=$PWD/dependencies
+          - mkdir $WORKDIR
+          - mkdir $WORKDIR/bin
+          - mkdir $WORKDIR/lib
+          - cd $WORKDIR
+          - # wget https://www.dropbox.com/s/f34pbzmvcoms000/libint2.0-beta-codeship.tgz # minimal G12, fPIC, old distro
+          - # wget https://www.dropbox.com/s/0e6ov2fxo7pdafb/libint2.0-beta-full.tgz # full G12, no fPIC, new distro
+          - # wget https://www.dropbox.com/s/tzmqzt3n0trpayf/libint2.0-beta.tgz # minimal G12, fPIC, new distro
+          - wget https://www.dropbox.com/s/195ymylrns04a2a/libint-master-SEP052019.tgz # minimal (default am), G12, fPIC, new distro, gcc 9.1.0, Linux Kernel 5.2.9
+          - tar xzvf libint-master-SEP052019.tgz
+          - cd -
+          - # Build libint
+          - git clone https://github.com/evaleev/libint.git
+          - cd libint
+          - git checkout v1
+          - aclocal -I lib/autoconf
+          - autoconf
+          - ./configure --prefix=$WORKDIR
+          - make -j 4
+          - make install
+          - make clean
+          - make distclean
+          - #Build libint2
+          - #export CC=gcc
+          - #export CXX=g++
+          - #export OPENMPFLAGS=-fopenmp
+          - #export CXXFLAGS="-std=c++11 -Wno-enum-compare $OPENMPFLAGS"
+          - #export LDFLAGS=$OPENMPFLAGS
+          - #git checkout master
+          - #aclocal -I lib/autoconf
+          - #autoconf
+          - #./configure --prefix=$WORKDIR CPPFLAGS='-I/usr/include/eigen3'
+          - #make -j 4
+          - #make install
+          - cd ..
+          - #build libxc
+          - git clone https://gitlab.com/libxc/libxc.git
+          - cd libxc
+          - git checkout 724fe21518a34433dee327ec2232ff26b8d1142e
+          - autoreconf -i
+          - ./configure --enable-shared --prefix=$WORKDIR
+          - make -j 4
+          - make install
+          - cd ..
+          - export PATH=$PATH:$WORKDIR/bin
+          - export C_INCLUDE_PATH=$C_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
+          - export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
+          - export LIBRARY_PATH=$LIBRARY_PATH:$WORKDIR/lib
+          - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$WORKDIR/lib
+          - # Build Lowdin
+          - ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
+          - make -j 4
+          - make install
+          - # Create virtual Environment for Python 2
+          - virtualenv -p $(which python2) test
+          - source test/bin/activate
+          - # Perform tests
+          - make test
+
+

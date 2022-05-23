@@ -5,6 +5,9 @@
 *.aux
 *.out
 *.a
+*.swp
+*.dSYM
 CONFIG
 makefile
 __pycache__
+

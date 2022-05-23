@@ -41,9 +41,10 @@ program SCF
   character(30) :: labels(2)
   character(100) :: iterationScheme(0:3)
   character :: convergenceType
+  integer :: statusSystem
 
   !! Open file for wfn
-  wfnUnit = 30
+  wfnUnit = 300
   wfnFile = "lowdin.wfn"
 
   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
@@ -87,9 +88,22 @@ program SCF
         write(*,*) "---------------------------------------------------------"
      end if
 
+     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+        !!statusSystem = system ("lowdin-DFT.x BUILD_MATRICES")
+        call system ("lowdin-DFT.x BUILD_MATRICES")
+     end if
+     
      do i = 1, numberOfSpecies
         nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
+        
         call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie))
+
+        !call WaveFunction_buildCouplingMatrix( trim(nameOfSpecie))
+
+        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+           call WaveFunction_buildExchangeCorrelationMatrix( trim(nameOfSpecie))
+        end if
+        
         call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
 
         if (CONTROL_instance%COSMO) then
@@ -133,6 +147,16 @@ program SCF
            write (6,"(A10,A12,A25)") "Iteration", "Energy","Energy Change"
            print *,"---------------------------------------------------------"
         end if
+
+!     do i = 1, numberOfSpecies
+!        nameOfSpecie = MolecularSystem_getNameOfSpecie(i)
+!        call WaveFunction_buildTwoParticlesMatrix( trim(nameOfSpecie), MultiSCF_instance%nproc )
+!        call WaveFunction_buildFockMatrix( trim(nameOfSpecie) )
+!
+!        if (CONTROL_instance%COSMO) then
+!           call WaveFunction_buildCosmo2Matrix(trim(nameOfSpecie))
+!        end if
+!     end do
 
         do while( status == SCF_GLOBAL_CONVERGENCE_CONTINUE .and. &
              MultiSCF_getNumberOfIterations() <= CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS )
@@ -210,13 +234,24 @@ program SCF
      end if
 
   else
-
+     
      call MultiSCF_iterate( CONTROL_instance%ITERATION_SCHEME )
 
 
   end if
 
   close(wfnUnit)
+
+  ! Final integration grid goes here
+  if ( (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") .and. &
+       ( CONTROL_instance%FINAL_GRID_ANGULAR_POINTS*CONTROL_instance%FINAL_GRID_RADIAL_POINTS  .gt. &
+       CONTROL_instance%GRID_ANGULAR_POINTS*CONTROL_instance%GRID_RADIAL_POINTS ) ) then
+     !!statusSystem = system ("lowdin-DFT.x FINAL_GRID")
+     call system ("lowdin-DFT.x FINAL_GRID")
+     do speciesID = 1, numberOfSpecies
+        call WaveFunction_buildExchangeCorrelationMatrix( trim(MolecularSystem_getNameOfSpecie(speciesID)) )
+     end do
+  end if
 
   !!**********************************************************
   !! Save matrices to lowdin.wfn file
@@ -225,7 +260,9 @@ program SCF
   rewind(wfnUnit)
 
   labels = ""
-
+  
+  
+  
   do speciesID = 1, numberOfSpecies
 
      labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
@@ -236,17 +273,31 @@ program SCF
      labels(1) = "COUPLING"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%couplingMatrix, unit=wfnUnit, binary=.true., arguments = labels )  
 
+     labels(1) = "EXCHANGE-CORRELATION"
+     call Matrix_writeToFile(WaveFunction_instance(speciesID)%exchangeCorrelationMatrix, unit=wfnUnit, binary=.true., arguments = labels )  
+
+     labels(1) = "EXCHANGE-CORRELATION-ENERGY"
+     call Vector_writeToFile(unit=wfnUnit, binary=.true., value=WaveFunction_instance(speciesID)%exchangeCorrelationEnergy, arguments= labels )
+     
      labels(1) = "COEFFICIENTS"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, unit=wfnUnit, binary=.true., arguments = labels )
 
      labels(1) = "DENSITY"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
-
+     
      labels(1) = "HCORE"
      call Matrix_writeToFile(WaveFunction_instance(speciesID)%hcoreMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
      labels(1) = "ORBITALS"
      call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, unit=wfnUnit, binary=.true., arguments = labels )
+
+     labels(1) = "FOCK"
+     call Matrix_writeToFile(WaveFunction_instance(speciesID)%fockMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
+     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+       labels(1) = "EXTERNAL_POTENTIAL"
+       call Matrix_writeToFile(WaveFunction_instance(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+     end if
 
      if (CONTROL_instance%COSMO) then
         labels(1) = "COSMO2"
@@ -257,25 +308,82 @@ program SCF
 
   end do
 
-  if ( .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
-     labels = ""
-     !! Open file for wfn
-     vecUnit = 36
-     vecFile = "lowdin-plain.vec"
-     open(unit=vecUnit, file=trim(vecFile), status="replace", form="formatted")
+  labels = ""
+  !! Open file for vec
+  vecUnit = 36
+  if ( CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+     vecFile = trim(CONTROL_instance%INPUT_FILE)//"vec"
+     open(unit=vecUnit, file=trim(vecFile), form="unformatted", status='replace')
+     do speciesID = 1, numberOfSpecies
+        labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+        labels(1) = "COEFFICIENTS"
+        call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
+             unit=vecUnit, binary=.true., arguments = labels)
+
+        labels(1) = "ORBITALS"
+        call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, & 
+             unit=vecUnit, binary=.true., arguments = labels )
+     end do
+
+  else
+     vecFile = trim(CONTROL_instance%INPUT_FILE)//"plainvec"
+     open(unit=vecUnit, file=trim(vecFile), form="formatted", status='replace')
 
      do speciesID = 1, numberOfSpecies
-
         labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
         labels(1) = "COEFFICIENTS"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
              unit=vecUnit, binary=.false., arguments = labels)
 
+        labels(1) = "ORBITALS"
+        call Vector_writeToFile(WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, & 
+             unit=vecUnit, binary=.false., arguments = labels )
      end do
-
-     close (vecUnit)
-
+     
   end if
+  close (vecUnit)
+
+!   vecUnit = 36
+!   if ( CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+     
+!      open(unit=vecUnit, file=trim(vecFile), status="replace", form="unformatted")
+
+!      do speciesID = 1, numberOfSpecies
+
+!         labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+!         labels(1) = "COEFFICIENTS"
+!         call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
+!              unit=vecUnit, binary=.true., arguments = labels)
+
+!      end do
+
+!      close (vecUnit)
+
+!   else
+!      labels = ""
+!      !! Open file for wfn
+!      vecFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin-plain.vec"
+!      open(unit=vecUnit, file=trim(vecFile), status="replace", form="formatted")
+
+!      if ( .not. CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY .or. .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+
+!         labels = ""
+!     !! Open file for vec
+!     vecUnit = 36
+!     vecFile = "lowdin-plain.vec"
+!     open(unit=vecUnit, file=trim(vecFile), form="formatted", status='unknown')
+
+!     if ( .not. CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY ) then
+!       do speciesID = 1, numberOfSpecies
+
+!         labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+!         labels(1) = "COEFFICIENTS"
+!         call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
+!              unit=vecUnit, binary=.false., arguments = labels)
+!       end do
+!     end if
+
+
   !!**********************************************************
   !! Save Some energies
   !!
@@ -289,13 +397,13 @@ program SCF
 
   call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MolecularSystem_getPointChargesEnergy(), arguments=["PUNTUALINTERACTIONENERGY"])
 
-
   !stop time
   call Stopwatch_stop(lowdin_stopwatch)
 
   if(CONTROL_instance%LAST_STEP) then
      write(*, *) ""
-     write(*,"(A,F10.3,A4)") "** TOTAL Enlapsed Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*,"(A,F10.3,A4)") "** TOTAL CPU Time SCF : ", lowdin_stopwatch%enlapsetTime ," (s)"
+     write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time SCF : ", lowdin_stopwatch%elapsetWTime ," (s)"
      write(*, *) ""
   end if
 
@@ -306,3 +414,5 @@ program SCF
   end if
 
 end program SCF
+
+

@@ -4,15 +4,22 @@ import os
 import sys
 from colorstring import *
 
-testName = "H2O.APMO.UP2.IS"
+testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
 # Reference values
 
-refTotalEnergy = -75.930658814297
-refOrb1h1_P2 = -16.9153
+refValues = {
+"HF energy" : [-75.930658814297,1E-8],
+"Orb1H1a_P2" : [-16.9153,1E-4],
+"Orb2H1a_P2" : [-50.7107,1E-4],
+}
 
+testValues = dict(refValues) #copy 
+for value in testValues: #reset
+    testValues[value] = 0 #reset
+    
 # Run calculation
 
 status = os.system("lowdin2 -i " + inputName)
@@ -25,32 +32,35 @@ output = open(outputName, "r")
 outputRead = output.readlines()
 
 # Values
-
-count = 0
-Orb5 = False
-Orb1H1 = False
-for line in outputRead:
+for i in range(0,len(outputRead)):
+    line = outputRead[i]
     if "TOTAL ENERGY =" in line:
-        totalEnergy = float(line.split()[3])
-
+        testValues["HF energy"] = float(line.split()[3])
     if "Results for spin-orbital: 1 of species: H-A_1" in line:
-        Orb1H1 = True
+        for j in range(i,len(outputRead)): 
+            if "Optimized second order pole:" in outputRead[j] :
+                testValues["Orb1H1a_P2"] = float(outputRead[j].split()[4])
+                break
+    if "Results for spin-orbital: 2 of species: H-A_1" in line:
+        for j in range(i,len(outputRead)): 
+            if "Optimized second order pole:" in outputRead[j] :
+                testValues["Orb2H1a_P2"] = float(outputRead[j].split()[4])
+                break
 
-    if " Optimized second order pole:" in line and Orb1H1:
-        Orb1h1_P2 = float(outputRead[count].split()[4])
-        Orb1H1 = False
+passTest = True
 
-    count = count + 1
+for value in refValues:
+    diffValue = abs(refValues[value][0] - testValues[value]) 
+    if ( diffValue <= refValues[value][1] ):
+        passTest = passTest * True
+    else :
+        passTest = passTest * False
+        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
 
-diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffOrb1h1_P2 = abs(refOrb1h1_P2 - Orb1h1_P2)
-
-if (diffTotalEnergy <= 1E-10 and diffOrb1h1_P2 == 0):
+if passTest :
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
-    print("Difference HF: " + str(diffTotalEnergy))
-    print("Difference orbital 1 H-A_1 P2: " + str(diffOrb1h1_P2))
     sys.exit(1)
 
 output.close()

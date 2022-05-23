@@ -262,22 +262,79 @@ contains
                    output = j - i + ( ( ( 2 * basisSizeA * (i -1 )) - ( i * i) + (3*i) ) / 2 )
                 end if
 
-    end function IndexMap_TensorR2ToVectorB
+	end function IndexMap_TensorR2ToVectorB
 
-    !<
-    !! @brief Transforma cuatro indices i,j,k,l para un tensor de rango cuatro en un unico indice
-    !!      asociado a un vector(procedimiento para intra -  especies) 
-    !>
-    function IndexMap_tensorR4ToVectorC( i, j, k, l, basisSizeA, basisSizeB ) result ( output )
-        implicit none
-        integer, intent(in) :: i
-        integer, intent(in) :: j
-        integer, intent(in) :: k
-        integer, intent(in) :: l
-        integer, optional :: basisSizeA
-        integer, optional :: basisSizeB
+	!<
+	!! @brief Transforma cuatro indices i,j,k,l para un tensor de rango cuatro en un unico indice
+	!!		asociado a un vector(procedimiento para intra -  especies)
+	!>
+	function IndexMap_tensorR4ToVectorC( i, j, k, l, basisSizeA, basisSizeB ) result ( output )
+		implicit none
+		integer(kind=4), intent(in) :: i
+		integer(kind=4), intent(in) :: j
+		integer(kind=4), intent(in) :: k
+		integer(kind=4), intent(in) :: l
+		integer(kind=4), optional :: basisSizeA
+		integer(kind=4), optional :: basisSizeB
 
-        integer(kind=8) :: output
+		integer(kind=4) :: output
+		integer(kind=4) :: auxSize
+    integer(kind=4) :: ij, kl
+
+    if ( .not. present ( basisSizeB ) ) then
+
+        ij = IndexMap_tensorR2ToVectorC( i, j, basisSizeA)
+        kl = IndexMap_tensorR2ToVectorC( k, l, basisSizeA)
+
+        auxSize = ( basisSizeA * ( basisSizeA + 1 ) ) / 2
+        output = IndexMap_tensorR2ToVectorC (ij, kl, auxSize)
+    else 
+
+        ij = IndexMap_tensorR2ToVectorC( i, j, basisSizeA) - 1
+        kl = IndexMap_tensorR2ToVectorC( k, l, basisSizeB)
+
+        auxSize = ( basisSizeB * ( basisSizeB + 1 ) ) / 2
+        output = auxSize * ij + kl
+           
+    end if
+
+	end function IndexMap_TensorR4ToVectorC
+
+
+
+	function IndexMap_tensorR2ToVectorC( i, j, basisSizeA, basisSizeB ) result ( output )
+		implicit none
+		integer(kind=4), intent(in) :: i
+		integer(kind=4), intent(in) :: j
+		integer(kind=4), optional :: basisSizeA
+		integer(kind=4), optional :: basisSizeB
+
+		integer(kind=4) :: output
+		integer(kind=4) :: auxSize
+
+                if ( i > j ) then
+                   output = i - j + ( ( ( 2 * basisSizeA * (j -1 )) - ( j * j) + (3*j) ) / 2 )
+                else 
+                   output = j - i + ( ( ( 2 * basisSizeA * (i -1 )) - ( i * i) + (3*i) ) / 2 )
+                end if
+
+	end function IndexMap_TensorR2ToVectorC
+
+
+	!<
+	!! @brief Transforma cuatro indices i,j,k,l para un tensor de rango cuatro en un unico indice
+	!!		asociado a un vector(procedimiento para intra -  especies) 
+	!>
+	function IndexMap_tensorR4ToVectorD( i, j, k, l, basisSizeA, basisSizeB ) result ( output )
+		implicit none
+		integer, intent(in) :: i
+		integer, intent(in) :: j
+		integer, intent(in) :: k
+		integer, intent(in) :: l
+		integer, optional :: basisSizeA
+		integer, optional :: basisSizeB
+
+		integer(kind=8) :: output
                 integer(kind=8) :: ij, kl
                 if ( .not. present(basisSizeB)) then
                   if ( i > j ) then
@@ -300,117 +357,116 @@ contains
 
                 end if
 
-                
-    end function IndexMap_TensorR4ToVectorC
+	end function IndexMap_TensorR4ToVectorD
 
-    !<
-    !! @brief Transforma cuatro indices i,j,k,l para un tensor de rango cuatro en un unico indice
-    !!      asociado a un vector(procedimiento para inter -  especies)
-    !! @author Edwin Posada, 2010
-    !>
-    function IndexMap_tensorR4ToVector2( i, j, k, l, basisSizeA, basisSizeB, order) result ( output )
-        implicit none
-        integer, intent(in) :: i
-        integer, intent(in) :: j
-        integer, intent(in) :: k
-        integer, intent(in) :: l
-        integer, intent(in) :: order
-        integer :: basisSizeA !! numero total de contracciones particula A
-        integer :: basisSizeB !! numero total de contracciones particula B
-        integer(8) :: output
+	!<
+	!! @brief Transforma cuatro indices i,j,k,l para un tensor de rango cuatro en un unico indice
+	!!		asociado a un vector(procedimiento para inter -  especies)
+	!! @author Edwin Posada, 2010
+	!>
+	function IndexMap_tensorR4ToVector2( i, j, k, l, basisSizeA, basisSizeB, order) result ( output )
+		implicit none
+		integer, intent(in) :: i
+		integer, intent(in) :: j
+		integer, intent(in) :: k
+		integer, intent(in) :: l
+		integer, intent(in) :: order
+		integer :: basisSizeA !! numero total de contracciones particula A
+		integer :: basisSizeB !! numero total de contracciones particula B
+		integer(8) :: output
 
-        integer(8) :: aux_i, ii
-        integer(8) :: aux_j, jj
-        integer(8) :: aux_k, kk
-        integer(8) :: aux_l, ll
-        integer(8) :: auxA
-        integer(8) :: auxB
+		integer(8) :: aux_i, ii
+		integer(8) :: aux_j, jj
+		integer(8) :: aux_k, kk
+		integer(8) :: aux_l, ll
+		integer(8) :: auxA
+		integer(8) :: auxB
 
-        output = 0
+		output = 0
 
-        !!************************************************************
-        !! Orderna los indices de entrada segun order (ver LibintInterface)
-        !!
-        select case (order)
-            case(0)
-                !!(SS|SS)
-                ii = i
-                jj = j
-                kk = k
-                ll = l
-            case(1)
-                !!(AB|CD)
-                ii = i
-                jj = j
-                kk = k
-                ll = l
-            case(2)
-                !!(BA|CD)
-                ii = j
-                jj = i
-                kk = k
-                ll = l
-            case(3)
-                !!(AB|DC)
-                ii = i
-                jj = j
-                kk = l
-                ll = k
-            case(4)
-                !!(BA|DC)
-                ii = j
-                jj = i
-                kk = l
-                ll = k
-            case(5)
-                !!(CD|AB)
-                ii = k
-                jj = l
-                kk = i
-                ll = j
-            case(6)
-                !!(DC|AB)
-                ii = l
-                jj = k
-                kk = i
-                ll = j
-            case(7)
-                !!(CD|BA)
-                ii = l
-                jj = k
-                kk = i
-                ll = j
-            case(8)
-                !!(DC|BA)
-                ii = l
-                jj = k
-                kk = j
-                ll = i
+		!!************************************************************
+		!! Orderna los indices de entrada segun order (ver LibintInterface)
+		!!
+		select case (order)
+			case(0)
+				!!(SS|SS)
+				ii = i
+				jj = j
+				kk = k
+				ll = l
+			case(1)
+				!!(AB|CD)
+				ii = i
+				jj = j
+				kk = k
+				ll = l
+			case(2)
+				!!(BA|CD)
+				ii = j
+				jj = i
+				kk = k
+				ll = l
+			case(3)
+				!!(AB|DC)
+				ii = i
+				jj = j
+				kk = l
+				ll = k
+			case(4)
+				!!(BA|DC)
+				ii = j
+				jj = i
+				kk = l
+				ll = k
+			case(5)
+				!!(CD|AB)
+				ii = k
+				jj = l
+				kk = i
+				ll = j
+			case(6)
+				!!(DC|AB)
+				ii = l
+				jj = k
+				kk = i
+				ll = j
+			case(7)
+				!!(CD|BA)
+				ii = l
+				jj = k
+				kk = i
+				ll = j
+			case(8)
+				!!(DC|BA)
+				ii = l
+				jj = k
+				kk = j
+				ll = i
 
-        end select
+		end select
 
-        if ( ii > jj ) then
+		if ( ii > jj ) then
 
-            aux_i = jj
-            aux_j = ii
-        else
-            aux_i = ii
-            aux_j = jj
+			aux_i = jj
+			aux_j = ii
+		else
+			aux_i = ii
+			aux_j = jj
 
-        end if
+		end if
 
-        if ( kk > ll ) then
-            aux_k = ll
-            aux_l = kk
+		if ( kk > ll ) then
+			aux_k = ll
+			aux_l = kk
 
-        else
+		else
 
-            aux_k = kk
-            aux_l = ll
+			aux_k = kk
+			aux_l = ll
 
-        end if
+		end if
 
-        auxA = aux_j - aux_i + ( ( ( 2_8 * basisSizeA * ( aux_i - 1_8 )) - ( aux_i ** 2_8) + (3_8 * aux_i) ) / 2_8 )
+		auxA = aux_j - aux_i + ( ( ( 2_8 * basisSizeA * ( aux_i - 1_8 )) - ( aux_i ** 2_8) + (3_8 * aux_i) ) / 2_8 )
         auxB = aux_l - aux_k + ( ( ( 2_8 * basisSizeB * ( aux_k - 1_8 )) - ( aux_k ** 2_8) + (3_8 * aux_k) ) / 2_8 )
 
         output = ((basisSizeB*(basisSizeB + 1))/2) * auxA - (((basisSizeB*(basisSizeB + 1))/2) - auxB)

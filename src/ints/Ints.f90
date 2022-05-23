@@ -31,12 +31,12 @@ Program Ints
   use CosmoCore_
   use ParticleManager_
   use Libint2Interface_
+  use G12Integrals_
 
   implicit none
 
   character(50) :: job
-  character(50) :: speciesName
-  integer :: speciesID
+  integer :: speciesID, i, j
 
   type(surfaceSegment) :: surface_aux
 
@@ -88,10 +88,19 @@ Program Ints
      ! !!Calculate overlap integrals
      ! call Libint2Interface_compute1BodyInts(1)
      call IntegralManager_getOverlapIntegrals()
+     !call IntegralManager_getThreeCenterIntegrals()
 
      ! !!Calculate kinetic integrals
      ! call Libint2Interface_compute1BodyInts(2)
      call IntegralManager_getKineticIntegrals()
+
+     if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
+       call IntegralManager_getFirstDerivativeIntegrals()
+     end if
+
+     if ( CONTROL_instance%HARMONIC_CONSTANT /= 0.0_8 ) then 
+       call IntegralManager_getHarmonicIntegrals()
+     end if
 
      ! !!Calculate attraction integrals
      ! call Libint2Interface_compute1BodyInts(3)
@@ -99,12 +108,19 @@ Program Ints
 
      ! !!Calculate moment integrals
      call IntegralManager_getMomentIntegrals()
-
+      
+     !! Calculate integrals with external potential
+     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+       call IntegralManager_getThreeCenterIntegrals()
+       !call IntegralManager_getThreeCenterIntegralsByProduct()
+     end if
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
 
      if(CONTROL_instance%LAST_STEP) then     
-        write(*,"(A,F10.3,A4)") "*** TOTAL Enlapsed Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*, *) ""
+        write(*,"(A,F10.3,A4)") "** TOTAL CPU Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time INTS : ", lowdin_stopwatch%elapsetWTime ," (s)"
         write(*, *) ""
      end if
      close(30)
@@ -128,7 +144,8 @@ Program Ints
 
      if(CONTROL_instance%LAST_STEP) then
         write(*, *) ""
-        write(*,"(A,F10.3,A4)") "*** TOTAL Enlapsed Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "** TOTAL CPU Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
+        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Cosmo-INTS : ", lowdin_stopwatch%elapsetWTime ," (s)"
         write(*, *) ""
      end if
      close(40)
@@ -139,7 +156,7 @@ Program Ints
         write(*, "(A)") " "
         write(*, "(A)") " TWO-BODY INTEGRAL SETUP: "
         write(*, "(A)") "------------------------- "
-        write(*, "(A, A6)") " Storage: ", trim(String_getUppercase( CONTROL_instance%INTEGRAL_DESTINY ))
+        write(*, "(A, A6)") " Storage: ", trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE ))
         write(*, '(A, A6)') " Scheme: ", trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME)))
         write(*, '(A, I6)') " Stack size: ", CONTROL_instance%INTEGRAL_STACK_SIZE
         write(*, "(A)") " "
@@ -181,9 +198,14 @@ Program Ints
 
      !stop time
      if(CONTROL_instance%LAST_STEP) then
-        write(*,"(/A)", advance="no") "*** TOTAL enlapsed time intra-species integrals : "
+        write(*,"(/A)", advance="no") "*** TOTAL CPU time intra-species integrals : "
         call Stopwatch_splitTime()
+        write(*,"(A4)") " (s)"
+
+        write(*,"(A)", advance="no") "*** TOTAL elapsed time intra-species integrals : "
+        call Stopwatch_splitWTime()
         write(*,"(A4/)") " (s)"
+
      end if
 
      !! inter-species two-boy integration
@@ -196,7 +218,8 @@ Program Ints
         call Stopwatch_stop(lowdin_stopwatch)
 
         if(CONTROL_instance%LAST_STEP) then
-           write(*,"(/A,F10.3,A4/)") "*** TOTAL enlapsed time inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
+           write(*,"(/A,F10.3,A4)") "*** TOTAL CPU time inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
+           write(*,"(A,F10.3,A4/)") "*** TOTAL elapsed time inter-species integrals : ", lowdin_stopwatch%elapsetWTime ," (s)"
         end if
      end if
 
@@ -204,9 +227,54 @@ Program Ints
      call EnergyGradients_constructor()
      call EnergyGradients_getAnalyticDerivative()
 
-  case("TWO_PARTICLE_F12")
+  case("TWO_PARTICLE_G12")
 
-     stop "NOT IMPLEMENTED"
+     !! intra-species G12 integration
+     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+        !!Calculate repulsion integrals (intra-species)
+
+        ! call G12Integrals_diskIntraSpecie(speciesID)
+
+        call Libint2Interface_computeG12Intraspecies_disk(speciesID)
+
+
+     end do
+
+     !stop time
+     if(CONTROL_instance%LAST_STEP) then
+        write(*,"(/A)", advance="no") "*** TOTAL CPU time  G12 intra-species integrals : "
+        call Stopwatch_splitTime()
+        write(*,"(A4/)") " (s)"
+
+        write(*,"(/A)", advance="no") "*** TOTAL elapsed time  G12 intra-species integrals : "
+        call Stopwatch_splitWTime()
+        write(*,"(A4/)") " (s)"
+
+     end if
+
+     !! inter-species two-boy integration
+     if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
+
+        !!Calculate attraction integrals (inter-species)
+        do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
+
+             call Libint2Interface_computeG12Interspecies_disk(i, j)
+        
+             ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecie(i)), &
+             !  trim(MolecularSystem_getNameOfSpecie(j)), i, j)
+
+          end do
+        end do
+
+        !stop time
+        call Stopwatch_stop(lowdin_stopwatch)
+
+        if(CONTROL_instance%LAST_STEP) then
+           write(*,"(/A,F10.3,A4/)") "*** TOTAL CPU time G12 inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
+           write(*,"(/A,F10.3,A4/)") "*** TOTAL elapsed time G12 inter-species integrals : ", lowdin_stopwatch%elapsetWTime ," (s)"
+        end if
+     end if
 
   case default
 
@@ -214,9 +282,8 @@ Program Ints
      write(*,*) "Where job can be: "
      write(*,*) "  ONE_PARTICLE"
      write(*,*) "  TWO_PARTICLE_R12"
-     write(*,*) "  TWO_PARTICLE_R12"
      write(*,*) "  GET_GRADIENTS"
-     write(*,*) "  TWO_PARTICLE_F12"
+     write(*,*) "  TWO_PARTICLE_G12"
      stop "ERROR"
 
   end select

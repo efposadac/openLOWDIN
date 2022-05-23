@@ -58,7 +58,7 @@ contains
   !<
   !! @brief  Calculates density at one point
   !>
-  function CalculateWaveFunction_getDensityAt ( nameOfSpecie, coordinate ) result( output )
+  function CalculateWaveFunction_getDensityAt ( nameOfSpecie, coordinate, densityMatrix ) result( output )
   implicit none
   character(*), optional, intent(in):: nameOfSpecie
   real(8) :: coordinate(3)
@@ -85,20 +85,7 @@ contains
      specieID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
      numberOfContractions = MolecularSystem_getNumberOfContractions( specieID )
      totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( specieID )
-  
-     wfnFile = "lowdin.wfn"
-     wfnUnit = 20
-  
-     !! Open file for wavefunction
-     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-  
-     arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
-     arguments(1) = "DENSITY"
-  
-     densityMatrix = &
-     Matrix_getFromFile(unit=wfnUnit, rows= int(totalNumberOfContractions,4), &
-     columns= int(totalNumberOfContractions,4), binary=.true., arguments=arguments(1:2))
-  
+         
      if( allocated(basisSetValue)) deallocate(basisSetValue)
      allocate(basisSetValue(totalNumberOfContractions))
      output=0.0_8
@@ -121,7 +108,6 @@ contains
           output=output + densityMatrix%values(u,v)*basisSetValue(u)*basisSetValue(v)
         end do
      end do
-     close (wfnUnit)
   
   end function CalculateWaveFunction_getDensityAt
 

@@ -1,4 +1,3 @@
-
 !!******************************************************************************
 !!	This code is part of LOWDIN Quantum chemistry package                 
 !!	
@@ -53,6 +52,8 @@ program CalcProp_
   use CalculateProperties_ ! module name
   implicit none
 
+  type(CalculateProperties) :: CalculateProperties_instance
+
   character(50) :: job
 
   job = ""
@@ -66,12 +67,18 @@ program CalcProp_
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-!  call CalculatePropertiesmod_constructor () !modificar
- ! call CalculatePropertiesmod_destructor ()
+  call CalculateProperties_constructor (CalculateProperties_instance) !modificar
 
- !! Calculate properties subroutines
-  call CalculateProperties_showPopulationAnalyses()
-    
+  !! Calculate properties subroutines
+  call CalculateProperties_showPopulationAnalyses(CalculateProperties_instance)
+
+  call CalculateProperties_showExpectedPositions(CalculateProperties_instance)
+
+  call CalculateProperties_showContributionsToElectrostaticMoment(CalculateProperties_instance)
+
+  call CalculateProperties_destructor (CalculateProperties_instance)
+
+  
 end program CalcProp_
 
 

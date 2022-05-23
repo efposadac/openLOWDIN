@@ -1,0 +1,37 @@
+GEOMETRY
+	e-(H)   SHARON-E-6S2P	0.00	0.00 	0.00 addParticles=1  q = 1.00
+	H	dirac			0.00	0.00 	0.00  q = -1.00
+	e+	SHARON-E+6S2P	0.00	0.00	0.00  q = -1.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="FCI"
+	!configurationInteractionLevel ="CISD"
+END TASKS
+
+CONTROL
+	numberOfCIstates=1
+	!CIdiagonalizationMethod = "DSYEVX"
+	!CIdiagonalizationMethod = "ARPACK"
+	CIdiagonalizationMethod = "JADAMILU"
+!	CISizeOfGuessMatrix=1728
+	CISizeOfGuessMatrix=30
+	CIConvergence=1E-4
+	CIJacobi = F
+	CIMadSpace = 30
+	!CISaveEigenvector=T
+	!CILoadEigenvector=T
+	integralsTransformationMethod = "A"
+	integralStackSize=1
+END CONTROL
+INPUT_CI
+	species="E-ALPHA" core=0 active=0 excitation=2
+	species="E-BETA" core=0 active=0 excitation=2
+	species="POSITRON" core=0 active=0 excitation=2
+END INPUT_CI
+
+
+
+
+

@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://www.qcc.unal.edu.co
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
 !!
-!!		Todos los derechos reservados, 2013
+!!    Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -26,6 +26,7 @@ module Solver_
   use MolecularSystem_
   use String_
   use Exception_
+  use InputManager_
   implicit none
 
   type, public :: Solver
@@ -95,7 +96,7 @@ contains
   !> @brief run RHF-based calculation
   subroutine Solver_RHFRun( )
     implicit none
-
+    character(50) :: strAuxNumber
     !! Run HF program in RHF mode
     
     select case(CONTROL_instance%METHOD)
@@ -116,7 +117,15 @@ contains
 
        call system("lowdin-integralsTransformation.x")
 
-       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+
+    case('RHF-EN2')
+
+       call system("lowdin-HF.x RHF")
+
+       call system("lowdin-integralsTransformation.x")
+
+       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
 
     case ("RHF-MP2-COSMO")
        
@@ -125,23 +134,25 @@ contains
 
        call system("lowdin-integralsTransformation.x")
 
-       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
     
-		case('RHF-CI')
+    case('RHF-CI')
 
        call system("lowdin-HF.x RHF")
        call system("lowdin-integralsTransformation.x")
-       call system("lowdin-CI.x" )
+
+       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
+       call system("lowdin-CI.x" //trim(strAuxNumber))
 
     case('RHF-PT')
-			 
+       
        call system("lowdin-HF.x RHF")
 
        call system("lowdin-integralsTransformation.x")
        
        call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
     
-		case ("RHF-PT-COSMO")
+    case ("RHF-PT-COSMO")
        
        call system("lowdin-cosmo.x")
        call system("lowdin-HF.x RHF")
@@ -219,6 +230,7 @@ contains
   !> @brief run UHF-based calculation
   subroutine Solver_UHFRun( )
     implicit none
+    character(50) :: strAuxNumber
 
     select case(CONTROL_instance%METHOD)
        
@@ -232,14 +244,23 @@ contains
 
        call system("lowdin-HF.x UHF")
        call system("lowdin-integralsTransformation.x")
-       call system("lowdin-CI.x" )
+
+       write(strAuxNumber,"(I10)") Input_instance%numberOfSpeciesInCI
+       call system("lowdin-CI.x" //trim(strAuxNumber))
 
     case('UHF-MP2')
        call system("lowdin-HF.x UHF")
        !call system("lowdin-MOERI.x UHF")
        !rfm call system("lowdin-EPT.x UHF")
        call system("lowdin-integralsTransformation.x")
-       call system("lowdin-MollerPlesset.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
+
+    case('UHF-EN2')
+       call system("lowdin-HF.x UHF")
+       !call system("lowdin-MOERI.x UHF")
+       !rfm call system("lowdin-EPT.x UHF")
+       call system("lowdin-integralsTransformation.x")
+       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
        
     case('UHF-PT')
        call system("lowdin-HF.x UHF")
@@ -273,7 +294,12 @@ contains
   subroutine Solver_RKSRun( )
     implicit none
 !     type(Solver) :: this
+
+    print *, "hola Felix, bienvenido de vuelta"
     
+    !! Run HF program in RHF mode
+    call system("lowdin-HF.x RKS")
+
 !     call RKS_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_dipole( CalculateProperties_instance )
@@ -295,6 +321,9 @@ contains
     implicit none
 !     type(Solver) :: this
     
+    !! Run HF program in RHF mode
+    call system("lowdin-HF.x UKS")
+
 !     call UKS_run()
 !     if ( this%withProperties ) then
 !        call CalculateProperties_expectedPosition( CalculateProperties_instance )

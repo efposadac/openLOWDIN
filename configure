@@ -44,12 +44,13 @@ CXX="g++"
 CC="gcc"
 CFLAGS="-g -O2 -fopenmp -D gfortran"
 CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11 "
-FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran"
+FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fallow-invalid-boz -fbacktrace -g -D gfortran"
 GSL_LIBS="-lgsl -lgslcblas"
-LAPACK_LIBS="-lblas -llapack"
+LAPACK_LIBS="-lblas -llapack -larpack"
 STDCPP_LIBS="-lstdc++"
 LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS"
+LIBXC_LIBS="-lxcf03 -lxc"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
 DEFAULTS='F'
 
 ############################################
@@ -71,7 +72,7 @@ do
             ;;
         l)  
             LAPACK_LIBS=$OPTARG
-            ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS"
+            ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
             DEFAULTS='T'
             ;;
         h)
@@ -89,23 +90,24 @@ else
     ###############################################################################
     if [ -e CONFIG ] ; then
         FC=`awk '{if($1 == "FC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print  $i}}' CONFIG`
         PREFIX=`awk '{if($1 == "PREFIX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         SCRATCH=`awk '{if($1 == "SCRATCH" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CXX=`awk '{if($1 == "CXX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         CC=`awk '{if($1 == "CC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print "%s ", $i}}' CONFIG`
+        CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        LIBXC_LIBS=`awk '{if($1 == "LIBXC_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        # ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
     fi
     
     ###############################################################################
@@ -125,7 +127,7 @@ else
         CC="icc"
         CU="nvcc -arch=sm_20"
         CFLAGS="-g -O2 -D intel "
-        CPPFLAGS="-g -O2 -D intel -std=c++11"
+        CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "
     else
         CXX=g++
         CC=gcc
@@ -134,7 +136,7 @@ else
         CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11"
     fi
 
-    echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only) [$FLAGS]"
+    echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level [$FLAGS]"
     read FFLAGS
 
     if [ "$FFLAGS" = "" ] ; then
@@ -164,7 +166,7 @@ else
         if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
         else
-    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -D gfortran $addflagsCuda"
+    	FCFLAGS="-ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz  -fno-range-check -g -D gfortran $addflagsCuda"
         fi
     fi
 
@@ -172,7 +174,7 @@ else
         if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
         else
-    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
         fi
     fi
 
@@ -181,7 +183,22 @@ else
     	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -qopenmp -traceback -g -debug extended  $addflagsCuda"
         else
     	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
-    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+        fi
+    fi
+    if [ "$FLAGS" = "4" ] ; then
+        if [ "$FC" = "ifort" ] ; then
+    	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+        else
+    	FCFLAGS="-O2 -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -ffree-line-length-0 -ffpe-trap=zero,overflow,underflow -finit-real=nan -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fallow-invalid-boz -fbacktrace -fcheck=all -g -D gfortran $addflagsCuda"
+        fi
+    fi
+
+    if [ "$FLAGS" = "5" ] ; then
+        if [ "$FC" = "ifort" ] ; then
+    	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+        else
+    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
         fi
     fi
 
@@ -190,9 +207,9 @@ else
     ###############################################################################
 
     if [ "$FC" = "ifort" ] ; then
-        LAPACK_LIBS="-mkl"
+        LAPACK_LIBS="-mkl -larpack"
     else
-        LAPACK_LIBS="-lblas -llapack"
+        LAPACK_LIBS="-lblas -llapack -larpack"
     fi
 
     if [ "$CUDAFLAGS" = "yes" ] ; then
@@ -200,11 +217,15 @@ else
     else
         CUDA_LIBS=""
     fi
-
-    STDCPP_LIBS="-lstdc++"
+    
+    if [ "$FC" = "ifort" ] ; then
+        STDCPP_LIBS="-lstdc++ "
+    else
+        STDCPP_LIBS="-lstdc++"
+    fi
     GSL_LIBS="-lgsl -lgslcblas"
     LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
-    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
+    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
 
     ###############################################################################
     #                       SPECIFIC INSTALLATION DIRECTORIES
@@ -239,6 +260,7 @@ echo "LAPACK_LIBS = $LAPACK_LIBS"  >> CONFIG
 echo "STDCPP_LIBS = $STDCPP_LIBS"  >> CONFIG
 echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG
 echo "LIBINT_LIBS = $LIBINT_LIBS"  >> CONFIG
+echo "LIBXC_LIBS = $LIBXC_LIBS"  >> CONFIG
 echo "CUDA_LIBS = $CUDA_LIBS" >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
@@ -248,7 +270,7 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="core ints HF scf integralsTransformation MP2 PT CalcProp aduw gepol cosmo output CI MM molden2aim"
+SUBDIRS="core ints HF DFT scf integralsTransformation MBPT PT CalcProp aduw gepol cosmo output CI MM molden2aim jadamilu"
 
 for DIR in $SRCDIR ; do
     cd $DIR
@@ -264,3 +286,4 @@ for DIR in $SRCDIR ; do
 done
 
 echo "DONE. Now you can proceed with \"make\" command"
+

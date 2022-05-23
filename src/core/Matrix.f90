@@ -52,6 +52,7 @@ module Matrix_
   !use CudaInterface_
   use Math_
   use String_
+  use omp_lib
   use, intrinsic :: iso_c_binding
   implicit none
 
@@ -66,6 +67,20 @@ module Matrix_
      logical :: isUnitary
      logical :: isInstanced
   end type Matrix
+
+  type, public :: IMatrix8
+     integer(8), allocatable :: values(:,:)
+     logical :: isInstanced
+  end type IMatrix8
+
+  type, public :: IMatrix
+     integer, allocatable :: values(:,:)
+     logical :: isInstanced
+  end type IMatrix
+
+  type, public :: IMatrix1
+     integer(1), allocatable :: values(:,:)
+  end type IMatrix1
   
   interface assignment(=)
      module procedure Matrix_copyConstructor
@@ -133,6 +148,7 @@ module Matrix_
        Matrix_orthogonalize, &
        Matrix_eigen, &
        Matrix_eigen_select, &
+       Matrix_eigen_dsyevr, &
        Matrix_svd, &
        Matrix_symmetrize, &
        Matrix_solveLinearEquation, &
@@ -165,7 +181,10 @@ module Matrix_
        Matrix_removeColumn, &
        Matrix_Fortran_orthogonalizeLastVector, &
        Matrix_eigenProperties, &
-       diagonalize_matrix ! Copiada de Parakata
+       diagonalize_matrix, & ! Copiada de Parakata
+       Matrix_constructorInteger8, &
+       Matrix_constructorInteger, &
+       Matrix_constructorInteger1
 
   private
 
@@ -193,6 +212,74 @@ contains
     this%isInstanced = .true.
 
   end subroutine Matrix_constructor
+
+  !>
+  !! @brief Constructor
+  !! Constructor por omision
+  subroutine Matrix_constructorInteger8( this, dim1, dim2, value)
+    implicit none
+    type(IMatrix8), intent(inout) :: this
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
+    integer(8), optional, intent(in) :: value
+
+    integer(8) :: valueTmp
+    this%isInstanced = .true.
+    valueTmp = 0.0_8
+    if( present(value) ) valueTmp = value
+
+    if (allocated(this%values)) deallocate(this%values)
+    allocate( this%values( dim1, dim2 ) )
+
+    this%values = valueTmp
+    this%isInstanced = .true.
+
+  end subroutine Matrix_constructorInteger8
+
+  !>
+  !! @brief Constructor
+  !! Constructor por omision
+  subroutine Matrix_constructorInteger( this, dim1, dim2, value)
+    implicit none
+    type(IMatrix), intent(inout) :: this
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
+    integer, optional, intent(in) :: value
+
+    integer :: valueTmp
+    this%isInstanced = .true.
+    valueTmp = 0.0_8
+    if( present(value) ) valueTmp = value
+
+    if (allocated(this%values)) deallocate(this%values)
+    allocate( this%values( dim1, dim2 ) )
+
+    this%values = valueTmp
+    this%isInstanced = .true.
+
+  end subroutine Matrix_constructorInteger
+
+  !>
+  !! @brief Constructor
+  !! Constructor por omision
+  subroutine Matrix_constructorInteger1( this, dim1, dim2, value)
+    implicit none
+    type(IMatrix1), intent(inout) :: this
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
+    integer(1), optional, intent(in) :: value
+    integer(1) :: valueTmp
+
+    valueTmp = 0
+    if( present(value) ) valueTmp = value
+
+    if (allocated(this%values)) deallocate(this%values)
+    allocate( this%values( dim1, dim2 ) )
+
+    this%values = valueTmp
+
+  end subroutine Matrix_constructorInteger1
+
 
   !>
   !! @brief Constructor de copia
@@ -595,7 +682,7 @@ contains
                    if(status == -1) then
                       
                       call Matrix_exception( ERROR, "End of file!",&
-                           "Class object Matrix in the getfromFile() function" )
+                           "Class object Matrix in the getfromFile() function "//trim(arguments(1))//" "//trim(arguments(2)) )
                    end if
                    
                    if(trim(line) == trim(arguments(1))) then
@@ -646,9 +733,14 @@ contains
                 read(unit) values
                 
                 m = 1
-                do i=1,columns
-                   do j=1,columns
-                      output%values(j, i) = values(m)
+
+                ! do i=1,rows
+                !    do j=1,columns
+                      ! output%values(j, i) = values(m)
+                      ! FELIX: We may need to check this again to read asymmetrical matrices
+                do j=1,columns
+                   do i=1,rows
+                      output%values(i, j) = values(m)
                       m = m + 1
                    end do
                 end do
@@ -692,7 +784,7 @@ contains
                 close(4)
                 
                 m = 1
-                do i=1,columns
+                do i=1,rows
                    do j=1,columns
                       output%values(j, i) = values(m)
                       m = m + 1
@@ -790,9 +882,10 @@ contains
                 read(unit,*) values
                 
                 m = 1
-                do i=1,columns
+                
+                do i=1,rows
                    do j=1,columns
-!!                      output%values(j, i) = values(m) !! ???
+!                      output%values(j, i) = values(m) !! ???
                       output%values(i, j) = values(m)
                       m = m + 1
                    end do
@@ -1562,13 +1655,14 @@ contains
        if ( infoProcess /= 0 )  then
 
           call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+          print *, "Info Process: ", infoProcess
 
        end if
 
        do i=1,size(eigenValues%values)
           if( eigenValues%values(i) == Math_NaN ) then
 
-             call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+             call Matrix_exception(WARNING, "Diagonalization failed, Math_NaN", "Class object Matrix in the getEigen() function")
           end if
        end do
 
@@ -1590,27 +1684,27 @@ contains
 !! For further information, visit http://www.netlib.org/lapack/double/dsyevx.f
 !! @warning Implemented only to compute eigenvalues. 
 
-  subroutine Matrix_eigen_select( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method	 )
+  subroutine Matrix_eigen_select( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method )
     implicit none
     type(Matrix), intent(in) :: this
-    type(Vector), intent(inout) :: eigenValues
+    type(Vector8), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
-    integer, intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
-								  !! of the eigenvalues to be computed. Start at 1
-    integer, intent(in), optional :: flags
-    integer, intent(in), optional :: dm
+    integer(4), intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
+    !! of the eigenvalues to be computed. Start at 1
+    integer(4), intent(in), optional :: flags
+    integer(4), intent(in), optional :: dm
     real(8), intent(in), optional :: m(:,:)
-    integer, intent(in), optional :: method
-    integer :: lengthWorkSpace
-    integer :: matrixSize
-    integer :: infoProcess
+    integer(4), intent(in), optional :: method
+    integer(4) :: lengthWorkSpace
+    integer(4) :: matrixSize
+    integer(4) :: infoProcess
     real(8), allocatable :: workSpace(:)
     type(Matrix) :: eigenVectorsTmp
-    integer :: i
-    real(8) :: vl, vu			!! If RANGE='V', the lower and upper bounds of the interval to be searched for eigenvalues.
+    integer(4) :: i
+    real(8) :: vl, vu  !! If RANGE='V', the lower and upper bounds of the interval to be searched for eigenvalues.
     real(8) :: abstol
-    integer :: m_dsyevx 		!! The total number of eigenvalues found.
-    integer, allocatable :: iFail(:)  
+    integer(4) :: m_dsyevx   !! The total number of eigenvalues found.
+    integer(4), allocatable :: iFail(:), iwork(:)
 
     !!Negative ABSTOL means using the default value
     abstol = -1.0
@@ -1619,101 +1713,356 @@ contains
     if (allocated (iFail) ) deallocate (iFail)
     allocate (iFail(matrixSize))
 
+    if (allocated (iwork) ) deallocate (iwork)
+    allocate( iwork( 5*matrixSize ) )
+
+    call omp_set_num_threads(omp_get_max_threads())
+!    call omp_set_num_threads (OMP_GET_NUM_THREADS())
+
     if( flags == SYMMETRIC ) then
 
-       !! Determina la longitud adecuada del vector de trabajo
-       lengthWorkSpace=3*matrixSize-1
+      !! Determina la longitud adecuada del vector de trabajo
+      lengthWorkSpace=3*matrixSize-1
 
-       !! Crea el vector de trabajo
-       allocate( workSpace( lengthWorkSpace ) )
+      !! Crea el vector de trabajo
+      allocate( workSpace( lengthWorkSpace ) )
 
-       if( present( eigenVectors ) ) then
+      if( present( eigenVectors ) ) then
 
-          if (present ( dm ) ) then
-             eigenvectors%values = m
-          else	
+         if (present ( dm ) ) then
+            eigenvectors%values = m
+         else
 
-             eigenVectors%values=this%values
+            eigenVectors%values=this%values
 
-          end if
+         end if
 
-             call Matrix_exception( ERROR, "Diagonalization method not implemented yet",&
-                  "Class object Matrix in the eigen_select" )
-       else
+         !! Crea la matriz que almacenara los vectores propios
+         !! call Matrix_copyConstructor( eigenVectorsTmp, this )
 
-          !! Crea la matriz que almacenara los vectores propios
-!!          call Matrix_copyConstructor( eigenVectorsTmp, this )
+         lengthWorkSpace = -1
+         !! calculates the optimal size of the WORK array
+         call dsyevx( &
+              COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+              "I", &
+              UPPER_TRIANGLE_IS_STORED, &
+              matrixSize, &
+              this%values, &
+              matrixSize, &
+              vl, vu, &
+              smallestEigenValue, largestEigenValue, &
+              abstol, &
+              m_dsyevx, &
+              eigenValues%values, &
+              eigenVectors%values, &
+              matrixSize, &
+              workSpace, &
+              lengthWorkSpace, &
+              iwork, &
+              ifail, infoProcess )
 
-          lengthWorkSpace = -1
-          !! calculates the optimal size of the WORK array
-          call dsyevx( &
-               COMPUTE_EIGENVALUES, &
-	       "I", &
-               UPPER_TRIANGLE_IS_STORED, &
-               matrixSize, &
-               this%values, &
-               matrixSize, &
-	       vl, vu, &
-    	       smallestEigenValue, largestEigenValue, &
-	       abstol, &
-	       m_dsyevx, &
-               eigenValues%values, &
-	       matrixSize, matrixSize, &				 
-               workSpace, &
-               lengthWorkSpace, &
-               infoProcess, &
-	       ifail, infoProcess )
+         lengthWorkSpace = int(workSpace(1))
 
-          lengthWorkSpace = int(workSpace(1))
+         !! Crea el vector de trabajo
+         if (allocated(workSpace)) deallocate(workSpace)
+         allocate( workSpace( lengthWorkSpace ) )
 
-	  !! Crea el vector de trabajo
-	  if (allocated(workSpace)) deallocate(workSpace)
-          allocate( workSpace( lengthWorkSpace ) )
+         !! Calcula valores propios de la matriz de entrada
+         call dsyevx( &
+              COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+              "I", &
+              UPPER_TRIANGLE_IS_STORED, &
+              matrixSize, &
+              this%values, &
+              matrixSize, &
+              vl, vu, &
+              smallestEigenValue, largestEigenValue, &
+              abstol, &
+              m_dsyevx, &
+              eigenValues%values, &
+              eigenVectors%values, &
+              matrixSize, &
+              workSpace, &
+              lengthWorkSpace, &
+              iwork, &
+              ifail, infoProcess )
 
-          !! Calcula valores propios de la matriz de entrada
-          call dsyevx( &
-               COMPUTE_EIGENVALUES, &
-	       "I", &
-               UPPER_TRIANGLE_IS_STORED, &
-               matrixSize, &
-               this%values, &
-               matrixSize, &
-	       vl, vu, &
-    	       smallestEigenValue, largestEigenValue, &
-	       abstol, &
-	       m_dsyevx, &
-               eigenValues%values, &
-	       matrixSize, matrixSize, &				 
-               workSpace, &
-               lengthWorkSpace, &
-               infoProcess, &
-	       ifail, infoProcess )
+       else !! only eigenvalues
+       
+         !! Crea la matriz que almacenara los vectores propios
+         call Matrix_copyConstructor( eigenVectorsTmp, this )
 
-          ! call Matrix_destructor( eigenVectorsTmp )
+         lengthWorkSpace = -1
+         !! calculates the optimal size of the WORK array
+         call dsyevx( &
+              COMPUTE_EIGENVALUES, &
+              "I", &
+              UPPER_TRIANGLE_IS_STORED, &
+              matrixSize, &
+              this%values, &
+              matrixSize, &
+              vl, vu, &
+              smallestEigenValue, largestEigenValue, &
+              abstol, &
+              m_dsyevx, &
+              eigenValues%values, &
+              eigenVectorsTmp%values, &
+              matrixSize, &
+              workSpace, &
+              lengthWorkSpace, &
+              iwork, &
+              ifail, infoProcess )
 
-       end if
+         lengthWorkSpace = int(workSpace(1))
 
-       !! Determina la ocurrencia de errores
-       if ( infoProcess /= 0 )  then
+         !! Crea el vector de trabajo
+         if (allocated(workSpace)) deallocate(workSpace)
+         allocate( workSpace( lengthWorkSpace ) )
 
-          call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+         !! Calcula valores propios de la matriz de entrada
+         call dsyevx( &
+              COMPUTE_EIGENVALUES, &
+              "I", &
+              UPPER_TRIANGLE_IS_STORED, &
+              matrixSize, &
+              this%values, &
+              matrixSize, &
+              vl, vu, &
+              smallestEigenValue, largestEigenValue, &
+              abstol, &
+              m_dsyevx, &
+              eigenValues%values, &
+              eigenVectorsTmp%values, &
+              matrixSize, &
+              workSpace, &
+              lengthWorkSpace, &
+              iwork, &
+              ifail, infoProcess )
 
-       end if
+         call Matrix_destructor( eigenVectorsTmp )
+       
+       end if !!  present( eigenVectors ) 
 
-       do i=1,size(eigenValues%values)
-          if( eigenValues%values(i) == Math_NaN ) then
+      !! Determina la ocurrencia de errores
+      if ( infoProcess /= 0 )  then
 
-             call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
-          end if
-       end do
+         call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+
+      end if
+
+      do i=1,size(eigenValues%values)
+        if( eigenValues%values(i) == Math_NaN ) then
+
+         call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+         end if
+      end do
 
 
-       !! libera memoria separada para vector de trabajo
-       deallocate(workSpace)
+      !! libera memoria separada para vector de trabajo
+      deallocate(workSpace)
+
+    end if
+    
+  end subroutine Matrix_eigen_select
+
+  subroutine Matrix_eigen_dsyevr( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method )
+    implicit none
+    type(Matrix), intent(in) :: this
+    type(Vector8), intent(inout) :: eigenValues
+    type(Matrix), intent(inout), optional :: eigenVectors
+    integer, intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
+    !! of the eigenvalues to be computed. Start at 1
+    integer, intent(in), optional :: flags
+    integer, intent(in), optional :: dm
+    real(8), intent(in), optional :: m(:,:)
+    integer, intent(in), optional :: method
+    integer :: lengthWorkSpace, lengthiwork
+    integer :: matrixSize
+    integer :: infoProcess
+    real(8), allocatable :: workSpace(:)
+    type(Matrix) :: eigenVectorsTmp
+    integer :: i
+    real(8) :: vl, vu  !! If RANGE='V', the lower and upper bounds of the interval to be searched for eigenvalues.
+    real(8) :: abstol
+    integer :: m_dsyevx   !! The total number of eigenvalues found.
+    integer, allocatable :: iFail(:), iwork(:)
+
+    !!Negative ABSTOL means using the default value
+    abstol = -1.0
+
+    matrixSize = size( this%values, DIM=1 )
+    if (allocated (iFail) ) deallocate (iFail)
+    allocate (iFail(matrixSize))
+
+    if (allocated (iwork) ) deallocate (iwork)
+    allocate( iwork( matrixSize*5 ) )
+
+    call omp_set_num_threads(omp_get_max_threads())
+!    call omp_set_num_threads (OMP_GET_NUM_THREADS())
+
+    if( flags == SYMMETRIC ) then
+
+      !! Determina la longitud adecuada del vector de trabajo
+      lengthWorkSpace=3*matrixSize-1
+
+      !! Crea el vector de trabajo
+      allocate( workSpace( lengthWorkSpace ) )
+
+      if( present( eigenVectors ) ) then
+
+         if (present ( dm ) ) then
+            eigenvectors%values = m
+         else
+
+            eigenVectors%values=this%values
+
+         end if
+         
+         lengthWorkSpace = -1
+         lengthiwork = -1
+
+         !! calculates the optimal size of the WORK array
+         call dsyevr( &
+              COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+              "I", &
+              UPPER_TRIANGLE_IS_STORED, &
+              matrixSize, &
+              this%values, &
+              matrixSize, &
+              vl, vu, &
+              smallestEigenValue, largestEigenValue, &
+              abstol, &
+              m_dsyevx, &
+              eigenValues%values, &
+              eigenVectors%values, matrixSize, &
+              largestEigenValue - smallestEigenValue + 1, &
+              workSpace, &
+              lengthWorkSpace, &
+              iwork, &
+              lengthiwork, &
+              infoProcess )
+
+         lengthWorkSpace = int(workSpace(1))
+         lengthiwork = int(iwork(1))
+         
+         !! Crea el vector de trabajo
+         if (allocated(workSpace)) deallocate(workSpace)
+         allocate( workSpace( lengthWorkSpace ) )
+
+         !! Crea el vector de trabajo
+         if (allocated(iwork)) deallocate(iwork)
+         allocate( iwork( lengthiwork ) )
+
+
+         !! Calcula valores propios de la matriz de entrada
+         call dsyevr( &
+              COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+              "I", &
+              UPPER_TRIANGLE_IS_STORED, &
+              matrixSize, &
+              this%values, &
+              matrixSize, &
+              vl, vu, &
+              smallestEigenValue, largestEigenValue, &
+              abstol, &
+              m_dsyevx, &
+              eigenValues%values, &
+              eigenVectors%values, matrixSize, &
+              largestEigenValue - smallestEigenValue + 1, &
+              workSpace, &
+              lengthWorkSpace, &
+              iwork, &
+              lengthiwork, &
+              infoProcess )
+
+      else
+
+         !! Crea la matriz que almacenara los vectores propios
+         call Matrix_copyConstructor( eigenVectorsTmp, this )
+
+         lengthWorkSpace = -1
+         lengthiwork = -1
+
+         !! calculates the optimal size of the WORK array
+         call dsyevr( &
+              COMPUTE_EIGENVALUES, &
+              "I", &
+              UPPER_TRIANGLE_IS_STORED, &
+              matrixSize, &
+              this%values, &
+              matrixSize, &
+              vl, vu, &
+              smallestEigenValue, largestEigenValue, &
+              abstol, &
+              m_dsyevx, &
+              eigenValues%values, &
+              eigenVectorsTmp%values, &
+              matrixSize, &
+              largestEigenValue - smallestEigenValue + 1, &
+              workSpace, &
+              lengthWorkSpace, &
+              iwork, &
+              lengthiwork, &
+              infoProcess )
+
+         lengthWorkSpace = int(workSpace(1))
+         lengthiwork = int(iwork(1))
+
+         !! Crea el vector de trabajo
+         if (allocated(workSpace)) deallocate(workSpace)
+         allocate( workSpace( lengthWorkSpace ) )
+
+         !! Crea el vector de trabajo
+         if (allocated(iwork)) deallocate(iwork)
+         allocate( iwork( lengthiwork ) )
+
+
+         !! Calcula valores propios de la matriz de entrada
+         call dsyevr( &
+              COMPUTE_EIGENVALUES, &
+              "I", &
+              UPPER_TRIANGLE_IS_STORED, &
+              matrixSize, &
+              this%values, &
+              matrixSize, &
+              vl, vu, &
+              smallestEigenValue, largestEigenValue, &
+              abstol, &
+              m_dsyevx, &
+              eigenValues%values, &
+              eigenVectorsTmp%values, &
+              matrixSize, &
+              largestEigenValue - smallestEigenValue + 1, &
+              workSpace, &
+              lengthWorkSpace, &
+              iwork, &
+              lengthiwork, &
+              infoProcess )
+            
+        call Matrix_destructor( eigenVectorsTmp )
+             
+      end if
+
+      !! Determina la ocurrencia de errores
+      if ( infoProcess /= 0 )  then
+
+         call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+
+      end if
+
+      do i=1,size(eigenValues%values)
+        if( eigenValues%values(i) == Math_NaN ) then
+
+            call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+        end if
+      end do
+
+      !! libera memoria separada para vector de trabajo
+      deallocate(workSpace)
 
     end if
 
-  end subroutine Matrix_eigen_select
+  end subroutine Matrix_eigen_dsyevr
 
 
 ! #endif

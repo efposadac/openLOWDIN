@@ -22,15 +22,25 @@ module CONTROL_
   implicit none
 
   type, public :: CONTROL
+
+     !!***************************************************************************
+     !! Dummy variables, just for debugging. 
+     !!
+     real(8) :: DUMMY_REAL(10)
+     integer :: DUMMY_INTEGER(10)
+     logical :: DUMMY_LOGICAL(10)
+     character(50) :: DUMMY_CHARACTER(10)
+
      !!***************************************************************************
      !! Parameter to control Integrals library
      !!
      real(8) :: TV
      real(8) :: INTEGRAL_THRESHOLD
      integer :: INTEGRAL_STACK_SIZE
-     character(20) :: INTEGRAL_DESTINY
+     character(20) :: INTEGRAL_STORAGE
      character(20) :: INTEGRAL_SCHEME
      logical :: SCHWARZ_INEQUALITY
+     real(8) :: HARMONIC_CONSTANT
 
      !!***************************************************************************
      !! Parameter to control SCF program
@@ -62,16 +72,20 @@ module CONTROL_
      logical :: ACTIVATE_LEVEL_SHIFTING
      logical :: EXCHANGE_ORBITALS_IN_SCF
      logical :: DEBUG_SCFS
+     character(10) ::  SCF_GHOST_SPECIES
 
      !!***************************************************************************
      !! Hartree-Fock options
      !!
      character(20) :: FROZEN_PARTICLE(5)
      logical :: FREEZE_NON_ELECTRONIC_ORBITALS
+     logical :: FREEZE_ELECTRONIC_ORBITALS
      logical :: HARTREE_PRODUCT_GUESS
      logical :: READ_COEFFICIENTS
-     logical :: READ_COEFFICIENTS_IN_BINARY
      logical :: WRITE_COEFFICIENTS_IN_BINARY
+     logical :: READ_EIGENVALUES
+     logical :: READ_EIGENVALUES_IN_BINARY
+     logical :: WRITE_EIGENVALUES_IN_BINARY
      logical :: NO_SCF
      logical :: FINITE_MASS_CORRECTION
      logical :: REMOVE_TRANSLATIONAL_CONTAMINATION
@@ -81,6 +95,10 @@ module CONTROL_
      logical :: ELECTRONIC_WAVEFUNCTION_ANALYSIS
      logical :: IS_OPEN_SHELL
      logical :: GET_GRADIENTS
+     logical :: HF_PRINT_EIGENVALUES
+     real(8) :: OVERLAP_EIGEN_THRESHOLD
+     real(8) :: ELECTRIC_FIELD(6)
+     integer :: MULTIPOLE_ORDER
 
      !!***************************************************************************
      !! Parameter to control geometry optimization
@@ -115,11 +133,13 @@ module CONTROL_
      real(8) :: DIHEDRAL_ANGLE_THRESHOLD
 
      !!***************************************************************************
-     !! Parameter to control MPn theory
+     !! Parameter to control MBP theory
      !!
      integer :: MOLLER_PLESSET_CORRECTION
      integer :: MP_FROZEN_CORE_BOUNDARY
      logical :: MP_ONLY_ELECTRONIC_CORRECTION
+
+     integer :: EPSTEIN_NESBET_CORRECTION
 
      !!***************************************************************************
      !! Parameter to control cosmo  
@@ -143,6 +163,9 @@ module CONTROL_
      integer :: PT_ITERATION_METHOD_2_LIMIT
      integer :: PT_ITERATION_SCHEME
      integer :: PT_MAX_NUMBER_POLES_SEARCHED
+     real(8) :: PT_FACTOR_SS
+     real(8) :: PT_FACTOR_OS
+     character(10) :: PT_P3_METHOD(7)
 
 
      !!***************************************************************************
@@ -157,9 +180,25 @@ module CONTROL_
      real(8) :: DOUBLE_ZERO_THRESHOLD
 
      !!***************************************************************************
-     !! CISD - FCI
+     !! CI
      !!
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
+     integer :: NUMBER_OF_CI_STATES
+     character(20) :: CI_DIAGONALIZATION_METHOD
+     character(20) :: CI_PRINT_EIGENVECTORS_FORMAT
+     real(8) :: CI_PRINT_THRESHOLD
+     integer :: CI_STATES_TO_PRINT
+     integer :: CI_ACTIVE_SPACE
+     integer :: CI_MAX_NCV
+     integer :: CI_SIZE_OF_GUESS_MATRIX
+     integer :: CI_STACK_SIZE
+     real(8) :: CI_CONVERGENCE
+     real(8) :: CI_MATVEC_TOLERANCE
+     logical :: CI_SAVE_EIGENVECTOR
+     logical :: CI_LOAD_EIGENVECTOR
+     logical :: CI_JACOBI
+     logical :: CI_BUILD_FULL_MATRIX
+     integer :: CI_MADSPACE
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -183,13 +222,20 @@ module CONTROL_
      !!
      character(50) :: ELECTRON_CORRELATION_FUNCTIONAL
      character(50) :: ELECTRON_EXCHANGE_FUNCTIONAL
-     character(50) :: ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL
+     character(50) :: ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
+     character(50) :: NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+     integer :: GRID_RADIAL_POINTS
+     integer :: GRID_ANGULAR_POINTS
+     integer :: GRID_NUMBER_OF_SHELLS
+     integer :: FINAL_GRID_RADIAL_POINTS
+     integer :: FINAL_GRID_ANGULAR_POINTS
+     integer :: FINAL_GRID_NUMBER_OF_SHELLS
      integer :: POLARIZATION_ORDER
      integer :: NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS
      logical :: FUKUI_FUNCTIONS
      logical :: AUXILIARY_DENSITY
      logical :: STORE_THREE_CENTER_ELECTRON_INTEGRALS
-     logical :: CALL_DFT
+     logical :: CALL_LIBXC
 
      !!*****************************************************
      !! External Potential Options
@@ -212,6 +258,7 @@ module CONTROL_
      !! Graphs Options
      !!
      integer :: NUMBER_OF_POINTS_PER_DIMENSION
+     character(50) :: MOLDEN_FILE_FORMAT
 
      !!*****************************************************
      !! Cubes Options
@@ -249,6 +296,7 @@ module CONTROL_
      !! Integrals transformation options
      !!
      character(10) :: INTEGRALS_TRANSFORMATION_METHOD
+     integer :: IT_BUFFERSIZE
 
      !!***************************************************************************
      !! Environment variables
@@ -269,14 +317,23 @@ module CONTROL_
   !< Namelist definition
 
   !!***************************************************************************
+  !! Dummy variables, just for debugging. 
+  !!
+  real(8) :: LowdinParameters_dummyReal(10)
+  integer :: LowdinParameters_dummyInteger(10)
+  logical :: LowdinParameters_dummyLogical(10)
+  character(50) :: LowdinParameters_dummyCharacter(10)
+
+  !!***************************************************************************
   !! Parameter to control Integrals library
   !!  
   real(8) :: LowdinParameters_tv
   real(8) :: LowdinParameters_integralThreshold
   integer :: LowdinParameters_integralStackSize
-  character(20) :: LowdinParameters_integralDestiny
+  character(20) :: LowdinParameters_integralStorage
   character(20) :: LowdinParameters_integralScheme
   logical :: LowdinParameters_schwarzInequality
+  real(8) :: LowdinParameters_harmonicConstant
 
   !!***************************************************************************
   !! Parameter to control SCF program
@@ -308,16 +365,21 @@ module CONTROL_
   logical :: LowdinParameters_activateLevelShifting
   logical :: LowdinParameters_exchangeOrbitalsInSCF
   logical :: LowdinParameters_debugScfs
+  character(10) :: LowdinParameters_scfGhostSpecies
 
   !!*****************************************************
   !! Hartree-Fock Options
   !!
   character(20) :: LowdinParameters_frozen(5)
   logical :: LowdinParameters_freezeNonElectronicOrbitals
+  logical :: LowdinParameters_freezeElectronicOrbitals
   logical :: LowdinParameters_hartreeProductGuess
   logical :: LowdinParameters_readCoefficients
-  logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_writeCoefficientsInBinary
+  logical :: LowdinParameters_readCoefficientsInBinary
+  logical :: LowdinParameters_readEigenvalues
+  logical :: LowdinParameters_readEigenvaluesInBinary
+  logical :: LowdinParameters_writeEigenvaluesInBinary
   logical :: LowdinParameters_noSCF
   logical :: LowdinParameters_finiteMassCorrection
   logical :: LowdinParameters_removeTranslationalContamination
@@ -327,6 +389,10 @@ module CONTROL_
   logical :: LowdinParameters_electronicWaveFunctionAnalysis
   logical :: LowdinParameters_isOpenShell
   logical :: LowdinParameters_getGradients
+  logical :: LowdinParameters_HFprintEigenvalues
+  real(8) :: LowdinParameters_overlapEigenThreshold
+  real(8) :: LowdinParameters_electricField(6)
+  integer :: LowdinParameters_multipoleOrder
 
   !!***************************************************************************
   !! Parameter to control geometry optimization
@@ -361,11 +427,12 @@ module CONTROL_
   real(8) :: LowdinParameters_dihedralAngleThreshold
 
   !!***************************************************************************
-  !! Parameter to control MPn theory
+  !! Parameter to control MBPn theory
   !!
   integer :: LowdinParameters_mpCorrection
   integer :: LowdinParameters_mpFrozenCoreBoundary
   logical :: LowdinParameters_mpOnlyElectronicCorrection
+  integer :: LowdinParameters_epsteinNesbetCorrection 
 
   !!***************************************************************************
   !! Parameter to control cosmo theory
@@ -388,6 +455,9 @@ module CONTROL_
   integer :: LowdinParameters_ptIterationMethod2Limit
   integer :: LowdinParameters_ptIterationScheme
   integer :: LowdinParameters_ptMaxNumberOfPolesSearched
+  real(8) :: LowdinParameters_ptFactorSS 
+  real(8) :: LowdinParameters_ptFactorOS 
+  character(10) :: LowdinParameters_ptP3Method(7)
 
 
   !!***************************************************************************
@@ -405,6 +475,22 @@ module CONTROL_
   !! CISD - FCI
   !!
   character(20) :: LowdinParameters_configurationInteractionLevel
+  integer :: LowdinParameters_numberOfCIStates
+  character(20) :: LowdinParameters_CIdiagonalizationMethod
+  character(20) :: LowdinParameters_CIPrintEigenVectorsFormat
+  real(8) :: LowdinParameters_CIPrintThreshold
+  integer :: LowdinParameters_CIactiveSpace
+  integer :: LowdinParameters_CIstatesToPrint
+  integer :: LowdinParameters_CImaxNCV
+  integer :: LowdinParameters_CIsizeOfGuessMatrix
+  integer :: LowdinParameters_CIstackSize
+  real(8) :: LowdinParameters_CIConvergence
+  real(8) :: LowdinParameters_CImatvecTolerance
+  logical :: LowdinParameters_CISaveEigenVector
+  logical :: LowdinParameters_CILoadEigenVector
+  logical :: LowdinParameters_CIJacobi
+  logical :: LowdinParameters_CIBuildFullMatrix
+  integer :: LowdinParameters_CIMadSpace
 
   !!***************************************************************************
   !! CCSD
@@ -428,13 +514,20 @@ module CONTROL_
   !!
   character(50) :: LowdinParameters_electronCorrelationFunctional
   character(50) :: LowdinParameters_electronExchangeFunctional
-  character(50) :: LowdinParameters_electronNuclearCorrelationFunctional
+  character(50) :: LowdinParameters_electronExchangeCorrelationFunctional
+  character(50) :: LowdinParameters_nuclearElectronCorrelationFunctional
+  integer :: LowdinParameters_gridRadialPoints
+  integer :: LowdinParameters_gridAngularPoints
+  integer :: LowdinParameters_gridNumberOfShells
+  integer :: LowdinParameters_finalGridRadialPoints
+  integer :: LowdinParameters_finalGridAngularPoints
+  integer :: LowdinParameters_finalGridNumberOfShells
   integer :: LowdinParameters_polarizationOrder
   integer :: LowdinParameters_numberOfBlocksInAuxiliaryFunctions
   logical :: LowdinParameters_fukuiFunctions
   logical :: LowdinParameters_auxiliaryDensity
   logical :: LowdinParameters_storeThreeCenterElectronIntegrals
-  logical :: LowdinParameters_callDft
+  logical :: LowdinParameters_callLibxc
 
   !!*****************************************************
   !! External Potential Options
@@ -457,6 +550,7 @@ module CONTROL_
   !! Graphs Options
   !!
   integer :: LowdinParameters_numberOfPointsPerDimension
+  character(50) :: LowdinParameters_moldenFileFormat
 
   !!*****************************************************
   !! Cubes Options
@@ -493,6 +587,7 @@ module CONTROL_
   !! Integrals transformation options
   !!
   character(10) :: LowdinParameters_integralsTransformationMethod
+  integer :: LowdinParameters_ITBuffersize
 
   !!***************************************************************************
   !! Environment variables
@@ -510,15 +605,26 @@ module CONTROL_
 
 
   NAMELIST /LowdinParameters/ &
+
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    LowdinParameters_dummyReal,&
+    LowdinParameters_dummyInteger,&
+    LowdinParameters_dummyLogical,&
+    LowdinParameters_dummyCharacter,&
+
+
                                 !!***************************************************************************
                                 !! Parameter to control Integrals library
                                 !!  
        LowdinParameters_tv,&
        LowdinParameters_integralThreshold,&
        LowdinParameters_integralStackSize,&
-       LowdinParameters_integralDestiny,&
+       LowdinParameters_integralStorage,&
        LowdinParameters_integralScheme,&
        LowdinParameters_schwarzInequality, &
+       LowdinParameters_harmonicConstant, &
        
                                 !!***************************************************************************
                                 !! Parameter to control SCF program
@@ -550,17 +656,22 @@ module CONTROL_
        LowdinParameters_activateLevelShifting,&
        LowdinParameters_exchangeOrbitalsInSCF,&
        LowdinParameters_debugScfs,&
+       LowdinParameters_scfGhostSpecies, &
        
                                 !!*****************************************************
                                 !! Hartree-Fock Options
                                 !!
        LowdinParameters_frozen,&
        LowdinParameters_freezeNonElectronicOrbitals,&
+       LowdinParameters_freezeElectronicOrbitals,&
        LowdinParameters_hartreeProductGuess,&
-       LowdinParameters_readCoefficients,&
        LowdinParameters_noSCF,&
+       LowdinParameters_readCoefficients,&
        LowdinParameters_readCoefficientsInBinary, &
        LowdinParameters_writeCoefficientsInBinary, &
+       LowdinParameters_readEigenvalues,&
+       LowdinParameters_readEigenvaluesInBinary, &
+       LowdinParameters_writeEigenvaluesInBinary, &
        LowdinParameters_finiteMassCorrection,&
        LowdinParameters_removeTranslationalContamination,&
        LowdinParameters_buildTwoParticlesMatrixForOneParticle,&
@@ -569,6 +680,10 @@ module CONTROL_
        LowdinParameters_electronicWaveFunctionAnalysis,&
        LowdinParameters_isOpenShell, &
        LowdinParameters_getGradients, &
+       LowdinParameters_HFprintEigenvalues, &
+       LowdinParameters_overlapEigenThreshold, &
+       LowdinParameters_electricField, &
+       LowdinParameters_multipoleOrder, &
        
                                 !!***************************************************************************
                                 !! Parameter to control geometry optimization
@@ -603,11 +718,12 @@ module CONTROL_
        LowdinParameters_dihedralAngleThreshold,&
        
                                 !!***************************************************************************
-                                !! Parameter to control MPn theory
+                                !! Parameter to control MBPn theory
                                 !!
        LowdinParameters_mpCorrection,&
        LowdinParameters_mpFrozenCoreBoundary,&
        LowdinParameters_mpOnlyElectronicCorrection,&
+       LowdinParameters_epsteinNesbetCorrection, &
        
                                 !!***************************************************************************
                                 !! Parameter to control cosmo theory
@@ -630,6 +746,10 @@ module CONTROL_
        LowdinParameters_ptIterationMethod2Limit,&
        LowdinParameters_ptIterationScheme,&
        LowdinParameters_ptMaxNumberOfPolesSearched,&
+       LowdinParameters_ptFactorSS, &
+       LowdinParameters_ptFactorOS, &
+       LowdinParameters_ptP3Method, &
+
        
                                 !!***************************************************************************
                                 !! Control print level and units
@@ -642,19 +762,36 @@ module CONTROL_
        LowdinParameters_units    ,&
        LowdinParameters_doubleZeroThreshold,&
        
-                                !!***************************************************************************
-                                !! CISD - FCI
-                                !!
+       !!***************************************************************************
+       !! CISD - FCI
+       !!
        LowdinParameters_configurationInteractionLevel,&
-       
-                                !!***************************************************************************
-                                !! CCSD 
-                                !!
+       LowdinParameters_numberOfCIStates, &
+       LowdinParameters_CIdiagonalizationMethod, &
+       LowdinParameters_CIactiveSpace, &
+       LowdinParameters_CIstatesToPrint, &
+       LowdinParameters_CImaxNCV, &
+       LowdinParameters_CIsizeOfGuessMatrix, &
+       LowdinParameters_CIstackSize, &
+       LowdinParameters_CIConvergence, &
+       LowdinParameters_CImatvecTolerance, &
+       LowdinParameters_CISaveEigenVector, &
+       LowdinParameters_CILoadEigenVector, &
+       LowdinParameters_CIJacobi, &
+       LowdinParameters_CIBuildFullMatrix, &
+       LowdinParameters_CIMadSpace, &
+       LowdinParameters_CIPrintEigenVectorsFormat, &
+       LowdinParameters_CIPrintThreshold, &
+
+
+       !!***************************************************************************
+       !! CCSD 
+       !!
        LowdinParameters_coupledClusterLevel,&
        
-                                !!*****************************************************
-                                !! Parameter to general control
-                                !!
+       !!*****************************************************
+       !! Parameter to general control
+       !!
        LowdinParameters_method,&
        LowdinParameters_transformToCenterOfMass,&
        LowdinParameters_areThereDummyAtoms,&
@@ -669,13 +806,20 @@ module CONTROL_
                                 !!
        LowdinParameters_electronCorrelationFunctional,&
        LowdinParameters_electronExchangeFunctional,&
-       LowdinParameters_electronNuclearCorrelationFunctional,&
+       LowdinParameters_electronExchangeCorrelationFunctional,&
+       LowdinParameters_nuclearElectronCorrelationFunctional,&
+       LowdinParameters_gridRadialPoints,&
+       LowdinParameters_gridAngularPoints,&
+       LowdinParameters_gridNumberOfShells,&
+       LowdinParameters_finalGridRadialPoints,&
+       LowdinParameters_finalGridAngularPoints,&
+       LowdinParameters_finalGridNumberOfShells,&
        LowdinParameters_polarizationOrder,&
        LowdinParameters_numberOfBlocksInAuxiliaryFunctions,&
        LowdinParameters_fukuiFunctions,&
        LowdinParameters_auxiliaryDensity,&
        LowdinParameters_storeThreeCenterElectronIntegrals,&
-       LowdinParameters_callDft,&
+       LowdinParameters_callLibxc,&
        
                                 !!*****************************************************
                                 !! External Potential Options
@@ -698,6 +842,7 @@ module CONTROL_
                                 !! Graphs Options
                                 !!
        LowdinParameters_numberOfPointsPerDimension,&
+       LowdinParameters_moldenFileFormat, &
        
                                 !!*****************************************************
                                 !! Cubes Options
@@ -734,6 +879,7 @@ module CONTROL_
                                 !! Integrals transformation options
                                 !!
        LowdinParameters_integralsTransformationMethod, &
+       LowdinParameters_ITBuffersize, &
        
                                 !!***************************************************************************
                                 !! Variables de ambiente al sistema de archivos del programa
@@ -779,14 +925,23 @@ contains
     !! Set defaults for namelist
 
     !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    LowdinParameters_dummyReal(:) = 0.0_8
+    LowdinParameters_dummyInteger(:) = 0
+    LowdinParameters_dummyLogical(:) = .false.
+    LowdinParameters_dummyCharacter(:) = ""
+
+    !!***************************************************************************
     !! Parameter to control Integrals library
     !!  
     LowdinParameters_tv = 1.0E-6
     LowdinParameters_integralThreshold = 1.0E-10
     LowdinParameters_integralStackSize = 30000
-    LowdinParameters_integralDestiny = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
+    LowdinParameters_integralStorage = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
     LowdinParameters_schwarzInequality = .false.
+    LowdinParameters_harmonicConstant = 0.0_8
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -818,16 +973,20 @@ contains
     LowdinParameters_activateLevelShifting = .false.
     LowdinParameters_exchangeOrbitalsInSCF = .false.
     LowdinParameters_debugScfs = .false.
+    LowdinParameters_scfGhostSpecies = "NONE"
 
     !!*****************************************************
     !! Hartree-Fock Options
     !!
     LowdinParameters_frozen = "NONE"
     LowdinParameters_freezeNonElectronicOrbitals = .false.
+    LowdinParameters_freezeElectronicOrbitals = .false.
     LowdinParameters_hartreeProductGuess = .false.
     LowdinParameters_readCoefficients = .false.
-    LowdinParameters_readCoefficientsInBinary = .true.
     LowdinParameters_writeCoefficientsInBinary = .true.
+    LowdinParameters_readEigenvalues = .false.
+    LowdinParameters_readEigenvaluesInBinary = .true.
+    LowdinParameters_writeEigenvaluesInBinary = .true.
     LowdinParameters_noSCF = .false.
     LowdinParameters_finiteMassCorrection = .false.
     LowdinParameters_removeTranslationalContamination = .false.
@@ -837,6 +996,10 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = .false.
     LowdinParameters_isOpenShell = .false.
     LowdinParameters_getGradients = .false.
+    LowdinParameters_HFprintEigenvalues = .false.
+    LowdinParameters_overlapEigenThreshold = 0.0_8
+    LowdinParameters_electricField(:) = 0.0_8
+    LowdinParameters_multipoleOrder = 0
 
     !!***************************************************************************
     !! Parameter to control geometry optimization
@@ -871,11 +1034,12 @@ contains
     LowdinParameters_dihedralAngleThreshold = 170.0_8
 
     !!***************************************************************************
-    !! Parameter to control MPn theory
+    !! Parameter to control MBPn theory
     !!
     LowdinParameters_mpCorrection = 1
     LowdinParameters_mpFrozenCoreBoundary = 1
     LowdinParameters_mpOnlyElectronicCorrection = .false.
+    LowdinParameters_epsteinNesbetCorrection = 1
 
     !!***************************************************************************
     !! Parameter to control cosmo theory
@@ -899,7 +1063,10 @@ contains
     LowdinParameters_ptIterationScheme = 1
     LowdinParameters_ptMaxNumberOfPolesSearched = 10
 
-
+    LowdinParameters_ptFactorSS = 0 
+    LowdinParameters_ptFactorOS = 0
+    LowdinParameters_ptP3Method = "NONE"
+    LowdinParameters_ptP3Method(1) = "ALL"
 
     !!***************************************************************************
     !! Control print level and units
@@ -916,6 +1083,23 @@ contains
     !! CISD - FCI
     !!
     LowdinParameters_configurationInteractionLevel = "NONE"
+    LowdinParameters_numberOfCIStates = 1
+    LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
+    LowdinParameters_CIactiveSpace = 0 !! Full
+    LowdinParameters_CIstatesToPrint = 1
+    LowdinParameters_CImaxNCV = 30
+    LowdinParameters_CIsizeOfGuessMatrix = 300
+    LowdinParameters_CIstackSize = 5000
+    LowdinParameters_CIConvergence = 1E-4
+    LowdinParameters_CImatvecTolerance = 1E-10
+    LowdinParameters_CISaveEigenVector = .false.
+    LowdinParameters_CILoadEigenVector = .false.
+    LowdinParameters_CIJacobi = .false.
+    LowdinParameters_CIBuildFullMatrix = .false. 
+    LowdinParameters_CIMadSpace = 5
+    LowdinParameters_CIPrintEigenVectorsFormat = "OCCUPIED"
+    LowdinParameters_CIPrintThreshold = 1E-1
+
 
     !!***************************************************************************
     !! CCSD
@@ -939,13 +1123,20 @@ contains
     !!
     LowdinParameters_electronCorrelationFunctional = "NONE"
     LowdinParameters_electronExchangeFunctional = "NONE"
-    LowdinParameters_electronNuclearCorrelationFunctional = "NONE"
+    LowdinParameters_electronExchangeCorrelationFunctional = "NONE"
+    LowdinParameters_nuclearElectronCorrelationFunctional = "NONE"
+    LowdinParameters_gridRadialPoints=35
+    LowdinParameters_gridAngularPoints=110
+    LowdinParameters_gridNumberOfShells=5
+    LowdinParameters_finalGridRadialPoints=50
+    LowdinParameters_finalGridAngularPoints=302
+    LowdinParameters_finalGridNumberOfShells=5
     LowdinParameters_polarizationOrder = 1
     LowdinParameters_numberOfBlocksInAuxiliaryFunctions = 3
     LowdinParameters_fukuiFunctions = .false.
     LowdinParameters_auxiliaryDensity = .false.
     LowdinParameters_storeThreeCenterElectronIntegrals = .true.
-    LowdinParameters_callDft = .false.
+    LowdinParameters_callLibxc = .true.
 
     !!*****************************************************
     !! External Potential Options
@@ -968,6 +1159,7 @@ contains
     !! Graphs Options
     !!
     LowdinParameters_numberOfPointsPerDimension = 50
+    LowdinParameters_moldenFileFormat = "MIXED" 
 
     !!*****************************************************
     !! Cubes Options
@@ -1005,6 +1197,7 @@ contains
     !! Integrals transformation options
     !!
     LowdinParameters_integralsTransformationMethod = "C"
+    LowdinParameters_ITBuffersize = 1024
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
@@ -1027,15 +1220,24 @@ contains
     !!***************************************************************************
     !!***************************************************************************
 
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    CONTROL_instance%DUMMY_REAL(:) = 0 
+    CONTROL_instance%DUMMY_INTEGER(:) = 0
+    CONTROL_instance%DUMMY_LOGICAL(:) = .false.
+    CONTROL_instance%DUMMY_CHARACTER(:) = ""
+
     !!***************************************************************************    
     !! Parameter to control Integrals library                       
     !!
     CONTROL_instance%TV = 1.0E-6
     CONTROL_instance%INTEGRAL_THRESHOLD = 1.0E-10
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
-    CONTROL_instance%INTEGRAL_DESTINY = "DISK" !! "DISK" or "DIRECT"
+    CONTROL_instance%INTEGRAL_STORAGE = "DISK" !! "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
     CONTROL_instance%SCHWARZ_INEQUALITY = .false.
+    CONTROL_instance%HARMONIC_CONSTANT = 0.0_8
 
     !!***************************************************************************
     !! Parameter to control SCF program
@@ -1067,6 +1269,7 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = .false.
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = .false.
     CONTROL_instance%DEBUG_SCFS = .false.
+    CONTROL_instance%SCF_GHOST_SPECIES = "NONE"
     ! CONTROL_instance%DEBUG_SCFS = .true.
 
     !!***************************************************************************                                              
@@ -1074,9 +1277,9 @@ contains
     !!                                                                                                                         
     CONTROL_instance%FROZEN_PARTICLE = "NONE"
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = .false.
+    CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS = .false.
     CONTROL_instance%HARTREE_PRODUCT_GUESS = .false.
     CONTROL_instance%READ_COEFFICIENTS = .false.
-    CONTROL_instance%READ_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%NO_SCF = .false.
     CONTROL_instance%FINITE_MASS_CORRECTION = .false.
@@ -1087,7 +1290,10 @@ contains
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = .false.
     CONTROL_instance%IS_OPEN_SHELL = .false.
     CONTROL_instance%GET_GRADIENTS = .false.
-
+    CONTROL_instance%HF_PRINT_EIGENVALUES = .false.
+    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = 0.0_8
+    CONTROL_instance%ELECTRIC_FIELD(:) = 0.0_8
+    CONTROL_instance%MULTIPOLE_ORDER = 0
     !!***************************************************************************                                              
     !! Parameter to control geometry optimization                                                                              
     !!                                                                                                                         
@@ -1121,11 +1327,13 @@ contains
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = 180.0_8
 
     !!***************************************************************************                                              
-    !! Parameter to control MPn theory                                                                                         
+    !! Parameter to control MBPn theory                                                                                         
     !!                                                                                                                         
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = 1
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = 1
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = .false.
+
+    CONTROL_instance%EPSTEIN_NESBET_CORRECTION = 1
 
     !!***************************************************************************                                              
     !! Parameter to control cosmo method                                                                                         
@@ -1148,7 +1356,10 @@ contains
     CONTROL_instance%PT_ITERATION_METHOD_2_LIMIT = 1
     CONTROL_instance%PT_ITERATION_SCHEME = 1
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = 10
-
+    CONTROL_instance%PT_FACTOR_SS = 0
+    CONTROL_instance%PT_FACTOR_OS = 0 
+    CONTROL_instance%PT_P3_METHOD = "NONE"
+    CONTROL_instance%PT_P3_METHOD(1) = "ALL"
 
     !!***************************************************************************                                              
     !! Control print level and units                                                                                           
@@ -1165,6 +1376,24 @@ contains
     !! CISD - FCI                                                                                                              
     !!                                                                                                                         
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "NONE"
+    CONTROL_instance%NUMBER_OF_CI_STATES= 1
+    CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
+    CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
+    CONTROL_instance%CI_STATES_TO_PRINT = 1
+    CONTROL_instance%CI_MAX_NCV = 30 
+    CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = 300
+    CONTROL_instance%CI_STACK_SIZE = 5000
+    CONTROL_instance%CI_CONVERGENCE = 1E-4
+    CONTROL_instance%CI_MATVEC_TOLERANCE = 1E-10
+    CONTROL_instance%CI_SAVE_EIGENVECTOR = .FALSE.
+    CONTROL_instance%CI_LOAD_EIGENVECTOR = .FALSE.
+    CONTROL_instance%CI_JACOBI = .False.
+    CONTROL_instance%CI_BUILD_FULL_MATRIX = .FALSE. 
+    CONTROL_instance%CI_MADSPACE = 5
+    CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = "OCCUPIED"
+    CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
+
+
 
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
@@ -1188,13 +1417,20 @@ contains
     !!                                                                                                                         
     CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = "NONE"
-    CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%GRID_RADIAL_POINTS= 35
+    CONTROL_instance%GRID_ANGULAR_POINTS= 110
+    CONTROL_instance%GRID_NUMBER_OF_SHELLS= 5
+    CONTROL_instance%FINAL_GRID_RADIAL_POINTS= 50
+    CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= 302
+    CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= 5
     CONTROL_instance%POLARIZATION_ORDER = 1
     CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS = 3
     CONTROL_instance%FUKUI_FUNCTIONS = .false.
     CONTROL_instance%AUXILIARY_DENSITY = .false.
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = .true.
-    CONTROL_instance%CALL_DFT = .false.
+    CONTROL_instance%CALL_LIBXC = .true.
 
     !!*****************************************************                                                                    
     !! External Potential Options                                                                                              
@@ -1217,6 +1453,7 @@ contains
     !! Graphs Options                                                                                                          
     !!                                                                                                                         
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = 50
+    LowdinParameters_moldenFileFormat = "MIXED" 
 
     !!*****************************************************                                                                    
     !! Cubes Options                                                                                                           
@@ -1253,6 +1490,7 @@ contains
     !! Integrals transformation options
     !!
     CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = "C"
+    CONTROL_instance%IT_BUFFERSIZE = 8192
 
     !!***************************************************************************                                              
     !! Environment variables                                                                                                   
@@ -1315,15 +1553,26 @@ contains
 
     end if
 
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    CONTROL_instance%DUMMY_REAL(:) = LowdinParameters_dummyReal(:)
+    CONTROL_instance%DUMMY_INTEGER(:) = LowdinParameters_dummyInteger(:)
+    CONTROL_instance%DUMMY_LOGICAL(:) = LowdinParameters_dummyLogical(:)
+    CONTROL_instance%DUMMY_CHARACTER(:) = LowdinParameters_dummyCharacter(:)
+
+
     !!***************************************************************************      
     !! Parameter to control Integrals library                                          
     !!                                                                                 
     CONTROL_instance%TV = LowdinParameters_tv
     CONTROL_instance%INTEGRAL_THRESHOLD = LowdinParameters_integralThreshold
     CONTROL_instance%INTEGRAL_STACK_SIZE = LowdinParameters_integralStackSize
-    CONTROL_instance%INTEGRAL_DESTINY = LowdinParameters_integralDestiny
+    CONTROL_instance%INTEGRAL_STORAGE = LowdinParameters_integralStorage
     CONTROL_instance%INTEGRAL_SCHEME =  LowdinParameters_integralScheme
     CONTROL_instance%SCHWARZ_INEQUALITY = LowdinParameters_schwarzInequality
+    CONTROL_instance%HARMONIC_CONSTANT = LowdinParameters_harmonicConstant
+
 
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
@@ -1355,16 +1604,20 @@ contains
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = LowdinParameters_activateLevelShifting
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = LowdinParameters_exchangeOrbitalsInSCF
     CONTROL_instance%DEBUG_SCFS = LowdinParameters_debugScfs
+    CONTROL_instance%SCF_GHOST_SPECIES = LowdinParameters_scfGhostSpecies
 
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
     !!                                                                                 
     CONTROL_instance%FROZEN_PARTICLE = LowdinParameters_frozen
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = LowdinParameters_freezeNonElectronicOrbitals
+    CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS = LowdinParameters_freezeElectronicOrbitals
     CONTROL_instance%HARTREE_PRODUCT_GUESS = LowdinParameters_hartreeProductGuess
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
-    CONTROL_instance%READ_COEFFICIENTS_IN_BINARY =  LowdinParameters_readCoefficientsInBinary
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
+    CONTROL_instance%READ_EIGENVALUES = LowdinParameters_readEigenvalues
+    CONTROL_instance%READ_EIGENVALUES_IN_BINARY =  LowdinParameters_readEigenvaluesInBinary
+    CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY = LowdinParameters_writeEigenvaluesInBinary
     CONTROL_instance%NO_SCF = LowdinParameters_noSCF
     CONTROL_instance%FINITE_MASS_CORRECTION = LowdinParameters_finiteMassCorrection
     CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION = LowdinParameters_removeTranslationalContamination
@@ -1373,7 +1626,12 @@ contains
     CONTROL_instance%ONLY_ELECTRONIC_EFFECT = LowdinParameters_onlyElectronicEffect
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = LowdinParameters_electronicWaveFunctionAnalysis
     CONTROL_instance%IS_OPEN_SHELL = LowdinParameters_isOpenShell
-    CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients                                                                                                                                                                                          
+    CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients
+    CONTROL_instance%HF_PRINT_EIGENVALUES = LowdinParameters_HFprintEigenvalues
+    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = LowdinParameters_overlapEigenThreshold 
+
+    CONTROL_instance%ELECTRIC_FIELD = LowdinParameters_electricField
+    CONTROL_instance%MULTIPOLE_ORDER = LowdinParameters_multipoleOrder
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1407,11 +1665,12 @@ contains
     CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD = LowdinParameters_dihedralAngleThreshold
 
     !!***************************************************************************      
-    !! Parameter to control MPn theory                                                 
+    !! Parameter to control MBPn theory                                                 
     !!                                                                                 
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = LowdinParameters_mpCorrection
     CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = LowdinParameters_mpFrozenCoreBoundary
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = LowdinParameters_mpOnlyElectronicCorrection
+    CONTROL_instance%EPSTEIN_NESBET_CORRECTION = LowdinParameters_epsteinNesbetCorrection
 
     !!***************************************************************************      
     !! Parameter to control cosmo method                                               
@@ -1434,6 +1693,10 @@ contains
     CONTROL_instance%PT_ITERATION_METHOD_2_LIMIT = LowdinParameters_ptIterationMethod2Limit
     CONTROL_instance%PT_ITERATION_SCHEME = LowdinParameters_ptIterationScheme
     CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED = LowdinParameters_ptMaxNumberOfPolesSearched
+    CONTROL_instance%PT_FACTOR_SS = LowdinParameters_ptFactorSS
+    CONTROL_instance%PT_FACTOR_OS = LowdinParameters_ptFactorOS
+    CONTROL_instance%PT_P3_METHOD = LowdinParameters_ptP3Method
+
 
     !!***************************************************************************      
     !! Control print level and units                                                   
@@ -1450,6 +1713,24 @@ contains
     !! CISD - FCI                                                                      
     !!                                                                                 
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
+    CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
+    CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
+    CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
+    CONTROL_instance%CI_STATES_TO_PRINT = LowdinParameters_CIstatesToPrint
+    CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
+    CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
+    CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
+    CONTROL_instance%CI_CONVERGENCE = LowdinParameters_CIConvergence
+    CONTROL_instance%CI_MATVEC_TOLERANCE = LowdinParameters_CIMatvecTolerance
+    CONTROL_instance%CI_SAVE_EIGENVECTOR = LowdinParameters_CISaveEigenVector
+    CONTROL_instance%CI_LOAD_EIGENVECTOR = LowdinParameters_CILoadEigenVector
+    CONTROL_instance%CI_JACOBI = LowdinParameters_CIJacobi
+    CONTROL_instance%CI_BUILD_FULL_MATRIX = LowdinParameters_CIBuildFullMatrix 
+    CONTROL_instance%CI_MADSPACE = LowdinParameters_CIMadSpace
+    CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
+    CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
+
+
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -1473,13 +1754,27 @@ contains
     !!                                                                                 
     CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_electronCorrelationFunctional
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = LowdinParameters_electronExchangeFunctional
-    CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = LowdinParameters_electronNuclearCorrelationFunctional
+    CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = LowdinParameters_electronExchangeCorrelationFunctional
+    CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_nuclearElectronCorrelationFunctional
+    CONTROL_instance%GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
+    CONTROL_instance%GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
+    CONTROL_instance%GRID_NUMBER_OF_SHELLS= LowdinParameters_gridNumberOfShells
+    if(LowdinParameters_finalGridRadialPoints*LowdinParameters_finalGridAngularPoints .gt. LowdinParameters_gridRadialPoints*LowdinParameters_gridAngularPoints) then
+       CONTROL_instance%FINAL_GRID_RADIAL_POINTS= LowdinParameters_finalGridRadialPoints
+       CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= LowdinParameters_finalGridAngularPoints
+       CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= LowdinParameters_finalGridNumberOfShells
+    else
+       CONTROL_instance%FINAL_GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
+       CONTROL_instance%FINAL_GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
+       CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS= LowdinParameters_gridNumberOfShells
+    end if
+
     CONTROL_instance%POLARIZATION_ORDER = LowdinParameters_polarizationOrder
     CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS = LowdinParameters_numberOfBlocksInAuxiliaryFunctions
     CONTROL_instance%FUKUI_FUNCTIONS = LowdinParameters_fukuiFunctions
     CONTROL_instance%AUXILIARY_DENSITY = LowdinParameters_auxiliaryDensity
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = LowdinParameters_storeThreeCenterElectronIntegrals
-    CONTROL_instance%CALL_DFT = LowdinParameters_callDft
+    CONTROL_instance%CALL_LIBXC = LowdinParameters_callLibxc
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -1502,6 +1797,8 @@ contains
     !! Graphs Options                                                                  
     !!                                                                                 
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = LowdinParameters_numberOfPointsPerDimension
+    CONTROL_instance%MOLDEN_FILE_FORMAT = LowdinParameters_moldenFileFormat
+
 
     !!*****************************************************                            
     !! Cubes Options                                                                   
@@ -1537,6 +1834,7 @@ contains
     !! Integrals transformation options
     !!
     CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD = LowdinParameters_integralsTransformationMethod
+    CONTROL_instance%IT_BUFFERSIZE = LowdinParameters_ITBuffersize
 
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
@@ -1566,15 +1864,24 @@ contains
 
     !! Saving de control parameters on the name list.
 
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    LowdinParameters_dummyReal(:) = CONTROL_instance%DUMMY_REAL(:) 
+    LowdinParameters_dummyInteger(:) = CONTROL_instance%DUMMY_INTEGER(:)
+    LowdinParameters_dummyLogical(:) = CONTROL_instance%DUMMY_LOGICAL(:)  
+    LowdinParameters_dummyCharacter(:) = CONTROL_instance%DUMMY_CHARACTER(:)
+
     !!***************************************************************************      
     !! Parameter to control Integrals library                                          
     !!                                                                                 
     LowdinParameters_tv = CONTROL_instance%TV
     LowdinParameters_integralThreshold = CONTROL_instance%INTEGRAL_THRESHOLD
     LowdinParameters_integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
-    LowdinParameters_integralDestiny = CONTROL_instance%INTEGRAL_DESTINY
+    LowdinParameters_integralStorage = CONTROL_instance%INTEGRAL_STORAGE
     LowdinParameters_integralScheme = CONTROL_instance%INTEGRAL_SCHEME
     LowdinParameters_schwarzInequality = CONTROL_instance%SCHWARZ_INEQUALITY
+    LowdinParameters_harmonicConstant = CONTROL_instance%HARMONIC_CONSTANT 
 
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
@@ -1607,15 +1914,20 @@ contains
     LowdinParameters_exchangeOrbitalsInSCF = CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF
     LowdinParameters_debugScfs = CONTROL_instance%DEBUG_SCFS
 
+    LowdinParameters_scfGhostSpecies = CONTROL_instance%SCF_GHOST_SPECIES
+
     !!*****************************************************                            
     !! Hartree-Fock Options                                                            
     !!                                                                                 
     LowdinParameters_frozen = CONTROL_instance%FROZEN_PARTICLE
     LowdinParameters_freezeNonElectronicOrbitals = CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS
+    LowdinParameters_freezeElectronicOrbitals = CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS
     LowdinParameters_hartreeProductGuess = CONTROL_instance%HARTREE_PRODUCT_GUESS
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
-    LowdinParameters_readCoefficientsInBinary = CONTROL_instance%READ_COEFFICIENTS_IN_BINARY
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
+    LowdinParameters_readEigenvalues = CONTROL_instance%READ_EIGENVALUES
+    LowdinParameters_readEigenvaluesInBinary = CONTROL_instance%READ_EIGENVALUES_IN_BINARY
+    LowdinParameters_writeEigenvaluesInBinary = CONTROL_instance%WRITE_EIGENVALUES_IN_BINARY
     LowdinParameters_noSCF = CONTROL_instance%NO_SCF
     LowdinParameters_finiteMassCorrection = CONTROL_instance%FINITE_MASS_CORRECTION
     LowdinParameters_removeTranslationalContamination = CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION
@@ -1625,7 +1937,10 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS
     LowdinParameters_isOpenShell = CONTROL_instance%IS_OPEN_SHELL
     LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
-
+    LowdinParameters_HFprintEigenvalues = CONTROL_instance%HF_PRINT_EIGENVALUES 
+    LowdinParameters_overlapEigenThreshold = CONTROL_instance%OVERLAP_EIGEN_THRESHOLD 
+    LowdinParameters_electricField = CONTROL_instance%ELECTRIC_FIELD 
+    LowdinParameters_multipoleOrder = CONTROL_instance%MULTIPOLE_ORDER 
     !!***************************************************************************      
     !! Parameter to control geometry optimization                                      
     !!                                                                                 
@@ -1667,12 +1982,12 @@ contains
     LowdinParameters_dihedralAngleThreshold = CONTROL_instance%DIHEDRAL_ANGLE_THRESHOLD
 
     !!***************************************************************************      
-    !! Parameter to control MPn theory                                                 
+    !! Parameter to control MBPn theory                                                 
     !!                                                                                 
     LowdinParameters_mpCorrection = CONTROL_instance%MOLLER_PLESSET_CORRECTION
     LowdinParameters_mpFrozenCoreBoundary = CONTROL_instance%MP_FROZEN_CORE_BOUNDARY
     LowdinParameters_mpOnlyElectronicCorrection = CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION
-
+    LowdinParameters_epsteinNesbetCorrection = CONTROL_instance%EPSTEIN_NESBET_CORRECTION 
     !!***************************************************************************      
     !! Parameter to control cosmo method                                                 
     !!                                                                                 
@@ -1694,6 +2009,10 @@ contains
     LowdinParameters_ptIterationMethod2Limit = CONTROL_instance%PT_ITERATION_METHOD_2_LIMIT
     LowdinParameters_ptIterationScheme = CONTROL_instance%PT_ITERATION_SCHEME
     LowdinParameters_ptMaxNumberOfPolesSearched = CONTROL_instance%PT_MAX_NUMBER_POLES_SEARCHED
+    LowdinParameters_ptFactorSS = CONTROL_instance%PT_FACTOR_SS 
+    LowdinParameters_ptFactorOS = CONTROL_instance%PT_FACTOR_OS 
+    LowdinParameters_ptP3Method =CONTROL_instance%PT_P3_METHOD 
+
 
     !!***************************************************************************      
     !! Control print level and units                                                   
@@ -1710,6 +2029,20 @@ contains
     !! CISD - FCI                                                                      
     !!                                                                                 
     LowdinParameters_configurationInteractionLevel = CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+    LowdinParameters_numberOfCIStates        = CONTROL_instance%NUMBER_OF_CI_STATES
+    LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
+
+    LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE 
+    LowdinParameters_CIstatesToPrint = CONTROL_instance%CI_STATES_TO_PRINT
+    LowdinParameters_CImaxNCV = CONTROL_instance%CI_MAX_NCV 
+    LowdinParameters_CIsizeOfGuessMatrix = CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX  
+    LowdinParameters_CIstackSize = CONTROL_instance%CI_STACK_SIZE 
+    LowdinParameters_CIJacobi = CONTROL_instance%CI_JACOBI
+    LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
+    LowdinParameters_CIMadSpace = CONTROL_instance%CI_MADSPACE
+
+    LowdinParameters_CIPrintEigenVectorsFormat = CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT 
+    LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
 
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -1733,13 +2066,20 @@ contains
     !!                                                                                 
     LowdinParameters_electronCorrelationFunctional = CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
     LowdinParameters_electronExchangeFunctional = CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
-    LowdinParameters_electronNuclearCorrelationFunctional = CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL
+    LowdinParameters_electronExchangeCorrelationFunctional = CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
+    LowdinParameters_nuclearElectronCorrelationFunctional = CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+    LowdinParameters_gridRadialPoints = CONTROL_instance%GRID_RADIAL_POINTS
+    LowdinParameters_gridAngularPoints = CONTROL_instance%GRID_ANGULAR_POINTS
+    LowdinParameters_gridNumberOfShells = CONTROL_instance%GRID_NUMBER_OF_SHELLS
+    LowdinParameters_finalGridRadialPoints = CONTROL_instance%FINAL_GRID_RADIAL_POINTS
+    LowdinParameters_finalGridAngularPoints = CONTROL_instance%FINAL_GRID_ANGULAR_POINTS
+    LowdinParameters_finalGridNumberOfShells = CONTROL_instance%FINAL_GRID_NUMBER_OF_SHELLS
     LowdinParameters_polarizationOrder = CONTROL_instance%POLARIZATION_ORDER
     LowdinParameters_numberOfBlocksInAuxiliaryFunctions = CONTROL_instance%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS
     LowdinParameters_fukuiFunctions = CONTROL_instance%FUKUI_FUNCTIONS
     LowdinParameters_auxiliaryDensity = CONTROL_instance%AUXILIARY_DENSITY
     LowdinParameters_storeThreeCenterElectronIntegrals = CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS
-    LowdinParameters_callDft = CONTROL_instance%CALL_DFT
+    LowdinParameters_callLibxc = CONTROL_instance%CALL_LIBXC
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -1762,7 +2102,7 @@ contains
     !! Graphs Options                                                                  
     !!                                                                                 
     LowdinParameters_numberOfPointsPerDimension = CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
-
+    LowdinParameters_moldenFileFormat = CONTROL_instance%MOLDEN_FILE_FORMAT 
     !!*****************************************************                            
     !! Cubes Options                                                                   
     !!                                                                                 
@@ -1797,6 +2137,7 @@ contains
     !! Integrals transformation options
     !!
     LowdinParameters_integralsTransformationMethod = CONTROL_instance%INTEGRALS_TRANSFORMATION_METHOD 
+    LowdinParameters_ITBuffersize = CONTROL_instance%IT_BUFFERSIZE 
 
     !!***************************************************************************      
     !! Variables de ambiente al sistema de archivos del programa                       
@@ -1826,15 +2167,24 @@ contains
     type(CONTROL) :: otherThis
     integer :: i
 
+    !!***************************************************************************
+    !! Dummy variables, just for debugging. 
+    !!
+    otherThis%DUMMY_REAL(:) = this%DUMMY_REAL(:)
+    otherThis%DUMMY_INTEGER(:) = this%DUMMY_INTEGER(:)
+    otherThis%DUMMY_LOGICAL(:) = this%DUMMY_LOGICAL(:)
+    otherThis%DUMMY_CHARACTER(:) = this%DUMMY_CHARACTER(:)
+
     !!*****************************************************
     !! Variables para control de integrales
     !!
     otherThis%TV = this%TV 
     otherThis%INTEGRAL_THRESHOLD = this%INTEGRAL_THRESHOLD 
-    otherThis%INTEGRAL_DESTINY = this%INTEGRAL_DESTINY 
+    otherThis%INTEGRAL_STORAGE = this%INTEGRAL_STORAGE 
     otherThis%INTEGRAL_SCHEME = this%INTEGRAL_SCHEME
     otherThis%INTEGRAL_STACK_SIZE = this%INTEGRAL_STACK_SIZE 
     otherThis%SCHWARZ_INEQUALITY = this%SCHWARZ_INEQUALITY
+    otherThis%HARMONIC_CONSTANT = this%HARMONIC_CONSTANT 
 
     !!***************************************************************************
     !! Parametros para control de proceso de minizacion de energia mediante
@@ -1867,14 +2217,15 @@ contains
     otherThis%ACTIVATE_LEVEL_SHIFTING = this%ACTIVATE_LEVEL_SHIFTING 
     otherThis%EXCHANGE_ORBITALS_IN_SCF = this%EXCHANGE_ORBITALS_IN_SCF 
     otherThis%DEBUG_SCFS = this%DEBUG_SCFS 
+    otherThis%SCF_GHOST_SPECIES = this%SCF_GHOST_SPECIES 
     !!***************************************************************************
     !! Parametros para control Hartree-Fock
     !!
     otherThis%FROZEN_PARTICLE = this%FROZEN_PARTICLE 
     otherThis%FREEZE_NON_ELECTRONIC_ORBITALS = this%FREEZE_NON_ELECTRONIC_ORBITALS 
+    otherThis%FREEZE_ELECTRONIC_ORBITALS = this%FREEZE_ELECTRONIC_ORBITALS 
     otherThis%HARTREE_PRODUCT_GUESS = this%HARTREE_PRODUCT_GUESS 
     otherThis%READ_COEFFICIENTS = this%READ_COEFFICIENTS 
-    otherThis%READ_COEFFICIENTS_IN_BINARY = this%READ_COEFFICIENTS_IN_BINARY
     otherThis%WRITE_COEFFICIENTS_IN_BINARY = this%WRITE_COEFFICIENTS_IN_BINARY
     otherThis%NO_SCF = this%NO_SCF 
     otherThis%FINITE_MASS_CORRECTION = this%FINITE_MASS_CORRECTION 
@@ -1885,6 +2236,10 @@ contains
     otherThis%ELECTRONIC_WAVEFUNCTION_ANALYSIS = this%ELECTRONIC_WAVEFUNCTION_ANALYSIS 
     otherThis%IS_OPEN_SHELL = this%IS_OPEN_SHELL    
     otherThis%GET_GRADIENTS = this%GET_GRADIENTS    
+    otherThis%HF_PRINT_EIGENVALUES = this%HF_PRINT_EIGENVALUES 
+    otherThis%OVERLAP_EIGEN_THRESHOLD = this%OVERLAP_EIGEN_THRESHOLD 
+    otherThis%ELECTRIC_FIELD = this%ELECTRIC_FIELD 
+    otherThis%MULTIPOLE_ORDER = this%MULTIPOLE_ORDER 
     !!***************************************************************************
     !! Parametros para control de proceso de minimizacion multidimensional
     !!
@@ -1920,6 +2275,7 @@ contains
     otherThis%MOLLER_PLESSET_CORRECTION = this%MOLLER_PLESSET_CORRECTION 
     otherThis%MP_FROZEN_CORE_BOUNDARY = this%MP_FROZEN_CORE_BOUNDARY 
     otherThis%MP_ONLY_ELECTRONIC_CORRECTION = this%MP_ONLY_ELECTRONIC_CORRECTION 
+    otherThis%EPSTEIN_NESBET_CORRECTION = this%EPSTEIN_NESBET_CORRECTION
     !!*****************************************************
     !! Control de parametros de metodo cosmo
     !!
@@ -1941,6 +2297,9 @@ contains
     otherThis%PT_MAX_NUMBER_POLES_SEARCHED = this%PT_MAX_NUMBER_POLES_SEARCHED 
     otherThis%PT_ITERATION_SCHEME = this%PT_ITERATION_SCHEME 
     otherThis%PT_ORDER = this%PT_ORDER 
+    otherThis%PT_FACTOR_SS = this%PT_FACTOR_SS
+    otherThis%PT_FACTOR_OS = this%PT_FACTOR_OS
+    otherThis%PT_P3_METHOD = this%PT_P3_METHOD 
 
     !!*****************************************************
     !! Control parametros de formato
@@ -1955,6 +2314,23 @@ contains
     !! CISD - FCI
     !!
     otherThis%CONFIGURATION_INTERACTION_LEVEL = this%CONFIGURATION_INTERACTION_LEVEL 
+    otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
+    otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
+    otherThis%CI_ACTIVE_SPACE =  this%CI_ACTIVE_SPACE 
+    otherThis%CI_STATES_TO_PRINT =  this%CI_STATES_TO_PRINT
+    otherThis%CI_MAX_NCV = this%CI_MAX_NCV
+    otherThis%CI_SIZE_OF_GUESS_MATRIX = this%CI_SIZE_OF_GUESS_MATRIX
+    otherThis%CI_STACK_SIZE = this%CI_STACK_SIZE 
+    otherThis%CI_CONVERGENCE = this%CI_CONVERGENCE
+    otherThis%CI_MATVEC_TOLERANCE = this%CI_MATVEC_TOLERANCE 
+    otherThis%CI_SAVE_EIGENVECTOR = this%CI_SAVE_EIGENVECTOR
+    otherThis%CI_LOAD_EIGENVECTOR = this%CI_LOAD_EIGENVECTOR
+    otherThis%CI_JACOBI = this%CI_JACOBI
+    otherThis%CI_BUILD_FULL_MATRIX = this%CI_BUILD_FULL_MATRIX
+    otherThis%CI_MADSPACE = this%CI_MADSPACE
+    otherThis%CI_PRINT_EIGENVECTORS_FORMAT = this%CI_PRINT_EIGENVECTORS_FORMAT 
+    otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
+
     !!***************************************************************************
     !! CCSD
     !!
@@ -1973,10 +2349,17 @@ contains
     !! Density Functional Theory Options
     !!
     otherThis%AUXILIARY_DENSITY = this%AUXILIARY_DENSITY 
-    otherThis%CALL_DFT = this%CALL_DFT 
+    otherThis%CALL_LIBXC = this%CALL_LIBXC
     otherThis%ELECTRON_CORRELATION_FUNCTIONAL = this%ELECTRON_CORRELATION_FUNCTIONAL 
     otherThis%ELECTRON_EXCHANGE_FUNCTIONAL = this%ELECTRON_EXCHANGE_FUNCTIONAL 
-    otherThis%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL = this%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL 
+    otherThis%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = this%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL 
+    otherThis%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = this%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL 
+    otherThis%GRID_RADIAL_POINTS=this%GRID_RADIAL_POINTS
+    otherThis%GRID_ANGULAR_POINTS=this%GRID_ANGULAR_POINTS
+    otherThis%GRID_NUMBER_OF_SHELLS=this%GRID_NUMBER_OF_SHELLS
+    otherThis%FINAL_GRID_RADIAL_POINTS=this%FINAL_GRID_RADIAL_POINTS
+    otherThis%FINAL_GRID_ANGULAR_POINTS=this%FINAL_GRID_ANGULAR_POINTS
+    otherThis%FINAL_GRID_NUMBER_OF_SHELLS=this%FINAL_GRID_NUMBER_OF_SHELLS
     otherThis%STORE_THREE_CENTER_ELECTRON_INTEGRALS = this%STORE_THREE_CENTER_ELECTRON_INTEGRALS 
     otherThis%POLARIZATION_ORDER = this%POLARIZATION_ORDER 
     otherThis%FUKUI_FUNCTIONS = this%FUKUI_FUNCTIONS 
@@ -2001,6 +2384,7 @@ contains
     !! Graphs Options
     !!
     otherThis%NUMBER_OF_POINTS_PER_DIMENSION = this%NUMBER_OF_POINTS_PER_DIMENSION 
+    otherThis%MOLDEN_FILE_FORMAT = this%MOLDEN_FILE_FORMAT 
     !!*****************************************************
     !! Cubes Options
     !!
@@ -2032,6 +2416,7 @@ contains
     !! Integrals transformation options
     !!
     otherThis%INTEGRALS_TRANSFORMATION_METHOD = this%INTEGRALS_TRANSFORMATION_METHOD 
+    otherThis%IT_BUFFERSIZE = this%IT_BUFFERSIZE 
 
     !!***************************************************************************
     !! Variables de ambiente al sistema de archivos del programa
@@ -2076,19 +2461,30 @@ contains
 
        if(CONTROL_instance%AUXILIARY_DENSITY) write (*,"(T10,A)") "USING AUXILIARY DENSITY"
 
-       write (*,"(T10,A)") "ELECTRON CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
-       write (*,"(T10,A)") "ELECTRON EXCHANGE FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)
-       write (*,"(T10,A)") "ELECTRON-NUCLEAR CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_NUCLEAR_CORRELATION_FUNCTIONAL)
-
-       if(CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS) then
-
-          write (*,"(T10,A)") "STORING THREE CENTER ELECTRON INTEGRALS IN DISK"
-
+       if(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .ne. "NONE") then
+          write (*,"(T10,A)") "ELECTRON EXCHANGE CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
        else
-
-          write (*,"(T10,A)") "CALCULATING THREE CENTER ELECTRON INTEGRALS ON THE FLY"
-
+          write (*,"(T10,A)") "ELECTRON CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL)
+          write (*,"(T10,A)") "ELECTRON EXCHANGE FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL)
        end if
+       
+       write (*,"(T10,A)") "ELECTRON-NUCLEAR CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+       write (*,"(T10,A,I5,A,I5)") "SCF ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%GRID_RADIAL_POINTS,"x",CONTROL_instance%GRID_ANGULAR_POINTS
+       if( CONTROL_instance%FINAL_GRID_ANGULAR_POINTS*CONTROL_instance%FINAL_GRID_RADIAL_POINTS  .gt. &
+            CONTROL_instance%GRID_ANGULAR_POINTS*CONTROL_instance%GRID_RADIAL_POINTS) then
+          write (*,"(T10,A,I5,A,I5)") "FINAL ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%FINAL_GRID_RADIAL_POINTS,"x",CONTROL_instance%FINAL_GRID_ANGULAR_POINTS
+       end if
+       
+
+       ! if(CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS) then
+
+       !    write (*,"(T10,A)") "STORING THREE CENTER ELECTRON INTEGRALS IN DISK"
+
+       ! else
+
+       !    write (*,"(T10,A)") "CALCULATING THREE CENTER ELECTRON INTEGRALS ON THE FLY"
+
+       ! end if
 
     end if
 
@@ -2108,6 +2504,14 @@ contains
 
     end if
 
+    if(CONTROL_instance%EPSTEIN_NESBET_CORRECTION>=2) then
+
+       write (*,"(T10,A,I5)") "EPSTEIN NESBET CORRECTION:  ",CONTROL_instance%EPSTEIN_NESBET_CORRECTION
+
+    end if
+
+
+
     if(CONTROL_instance%COSMO) then
 
        write (*,"(T10,A)") "COSMO:  T "
@@ -2115,8 +2519,10 @@ contains
     end if
 
     if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
-
-       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+      
+      write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+      ! CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = 1E-08
+      ! CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
 
     end if
 
@@ -2245,7 +2651,7 @@ contains
 
     if(CONTROL_instance%METHOD/="MM") then
        write (*,"(T10,A,I5)") "SCHEME OF ITERATION: ",CONTROL_instance%ITERATION_SCHEME
-       write (*,"(T10,A)") "INTEGRAL DESTINY: "//trim(CONTROL_instance%INTEGRAL_DESTINY)
+       write (*,"(T10,A)") "INTEGRAL STORAGE: "//trim(CONTROL_instance%INTEGRAL_STORAGE)
        write (*,"(T10,A,I5)") "STACK SIZE FOR ERIS : ", CONTROL_instance%INTEGRAL_STACK_SIZE
 
        select case(CONTROL_instance%CONVERGENCE_METHOD)
@@ -2267,6 +2673,16 @@ contains
           write(*,"(T10,A,I5)") "DIIS DIMENSIONALITY: ", CONTROL_instance%DIIS_DIMENSIONALITY
 
        end select
+    end if
+
+    if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
+       
+       if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+            write(*,"(T10,A,F10.6)") "SHIFTING ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
+
+       if ( CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+            write(*,"(T10,A,F10.6)") "SHIFTING NON-ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
+
     end if
 
   end subroutine CONTROL_show
