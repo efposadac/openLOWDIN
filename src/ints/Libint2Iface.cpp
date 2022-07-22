@@ -647,7 +647,7 @@ void LibintInterface::compute_2body_directIT(const Matrix &D, const Matrix &C,
   //printf("%e\n", C(0,1));
   //printf("ppp %i\n", p);
 
-  std::vector<Matrix> G(nthreads, Matrix::Zero(n, n));
+  // std::vector<Matrix> G(nthreads, Matrix::Zero(n, n));
   bool do_schwartz_screen = is_electron;
   if (is_electron) {
     do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
@@ -703,7 +703,7 @@ void LibintInterface::compute_2body_directIT(const Matrix &D, const Matrix &C,
   auto lambda = [&](int thread_id) {
 
     auto &engine = engines[thread_id];
-    auto &g = G[thread_id];
+    // auto &g = G[thread_id];
     const auto &buf = engines[thread_id].results();
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
@@ -882,10 +882,10 @@ void LibintInterface::compute_2body_directIT(const Matrix &D, const Matrix &C,
     }
   }
 
-  // accumulate contributions from all threads
-  for (size_t i = 1; i != nthreads; ++i) {
-    G[0] += G[i];
-  }
+  // // accumulate contributions from all threads
+  // for (size_t i = 1; i != nthreads; ++i) {
+  //   G[0] += G[i];
+  // }
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
   double time_for_ints = 0.0;
@@ -898,6 +898,14 @@ void LibintInterface::compute_2body_directIT(const Matrix &D, const Matrix &C,
     engines[t].print_timers();
 #endif
 
+  // do I really have to free this memory?
+  for ( int i = 0; i < n; i++)
+    {
+      for ( int j = 0; j < n; j++) 
+	delete(GG[i][j]);
+      delete(GG[i]);
+    }
+  delete(GG);
   // std::cout << " Number of unique integrals for species: " << speciesID << "
   // = "
   //           << num_ints_computed << std::endl;
@@ -1281,7 +1289,7 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
 
 void LibintInterface::compute_coupling_directIT(LibintInterface &other,
                                                 const Matrix &D, const Matrix &C, 
-																								int &p, double *A, 
+						int &p, double *A, 
                                                 const bool permuted,
                                                 double precision) {
   const auto n = permuted ? other.get_nbasis() : get_nbasis();
@@ -1335,7 +1343,7 @@ void LibintInterface::compute_coupling_directIT(LibintInterface &other,
 		}
 	}
 
-  std::vector<Matrix> B(nthreads, Matrix::Zero(n, n));
+  // std::vector<Matrix> B(nthreads, Matrix::Zero(n, n));
 
   auto fock_precision = precision;
 
@@ -1382,7 +1390,7 @@ void LibintInterface::compute_coupling_directIT(LibintInterface &other,
 
     auto &engine = engines[thread_id];
     const auto &buf = engines[thread_id].results();
-    auto &b = B[thread_id];
+    // auto &b = B[thread_id];
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
     auto &timer = timers[thread_id];
@@ -1575,9 +1583,9 @@ void LibintInterface::compute_coupling_directIT(LibintInterface &other,
   }
 
   // accumulate contributions from all threads
-  for (size_t i = 1; i != nthreads; ++i) {
-    B[0] += B[i];
-  }
+  // for (size_t i = 1; i != nthreads; ++i) {
+  //   B[0] += B[i];
+  // }
 
 #if defined(REPORT_INTEGRAL_TIMINGS)
   double time_for_ints = 0.0;
@@ -1589,6 +1597,15 @@ void LibintInterface::compute_coupling_directIT(LibintInterface &other,
   for (int t = 0; t != nthreads; ++t)
     engines[t].print_timers();
 #endif
+
+  // do I really have to free this memory?
+  for ( int i = 0; i < nn1; i++)
+    {
+      for ( int j = 0; j < nn2; j++) 
+	delete(GG[i][j]);
+      delete(GG[i]);
+    }
+  delete(GG);
 
   // std::cout << " Number of unique integrals for species: " << speciesID << "
   // / "
@@ -2380,7 +2397,8 @@ LibintInterface *LibintInterface_new(const int stack_size, const int id,
 
 void LibintInterface_del(LibintInterface *lint) {
   // printf("%s\n", "LibintInterface_del");
-  lint->~LibintInterface();
+  // lint->~LibintInterface();
+  delete(lint);
 }
 
 void LibintInterface_add_particle(LibintInterface *lint, const int z,

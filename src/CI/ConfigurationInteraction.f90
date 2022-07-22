@@ -987,13 +987,13 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
        write (6,"(T8,A30, A5)") "LEVEL = ", ConfigurationInteraction_instance%level
        write (6,"(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", ConfigurationInteraction_instance%numberOfConfigurations
        do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-        write (6,"(T8,A17,I3,A10, F18.12)") "STATE: ", i, " ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(i)
+        write (6,"(T8,A17,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(i)
        end do
        write(*,"(A)") ""
        CIcorrection = ConfigurationInteraction_instance%eigenvalues%values(1) - &
                 HartreeFock_instance%totalEnergy
 
-       write (6,"(T4,A34, F20.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
+       write (6,"(T4,A34, F25.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
 
        if (  ConfigurationInteraction_instance%level == "CISD" ) then
          write(*,"(A)") ""
@@ -1006,15 +1006,15 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
          davidsonCorrection = ( 1 - HFcoefficient*HFcoefficient) * CIcorrection / (HFcoefficient*HFcoefficient)
   
   
-         write (6,"(T8,A19, F20.12)") "HF COEFFICIENT = ", HFcoefficient
-         write (6,"(T8,A19, F20.12)") "\delta E(Q) = ", davidsonCorrection
-         write (6,"(T8,A19, F20.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
+         write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
+         write (6,"(T8,A19, F25.12)") "\delta E(Q) = ", davidsonCorrection
+         write (6,"(T8,A19, F25.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
             CIcorrection + davidsonCorrection
        else 
 
          write(*,"(A)") ""
          HFcoefficient = ConfigurationInteraction_instance%eigenVectors%values(1,1) 
-         write (6,"(T8,A19, F20.12)") "HF COEFFICIENT = ", HFcoefficient
+         write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
 
        end if
 
@@ -1074,7 +1074,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     write (*,*) ""
 
     do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-      write (*, "(T1,A,I4,A,F18.10)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
+      write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
       write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
       write (*,*) ""
       do a = 1, numberOfConfigurations
@@ -1101,7 +1101,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     write (*,*) ""
 
     do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-      write (*, "(T1,A,I4,A,F18.10)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
+      write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
       write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
       write (*,*) ""
       do a = 1, numberOfConfigurations

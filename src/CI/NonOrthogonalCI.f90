@@ -169,17 +169,16 @@ contains
     
     if(numberOfTranslationCenters.ne.0) then
 
-       print *, ""
-       write (*,"(A,I5,A,I3,A,I3,A,I3,A)") "Displacing coordinates of ", numberOfTranslationCenters, " centers", &
-            CONTROL_instance%TRANSLATION_SCAN_GRID(1),"*",&
-            CONTROL_instance%TRANSLATION_SCAN_GRID(2),"*",&
-            CONTROL_instance%TRANSLATION_SCAN_GRID(3)," times"
-       print *, ""
-
        this%transformationType="TRANSLATION"
        this%numberOfTransformedCenters=numberOfTranslationCenters
        this%numberOfIndividualTransformations=&
-            CONTROL_instance%TRANSLATION_SCAN_GRID(1)*CONTROL_instance%TRANSLATION_SCAN_GRID(2)*CONTROL_instance%TRANSLATION_SCAN_GRID(3)
+            CONTROL_instance%TRANSLATION_SCAN_GRID(1)*CONTROL_instance%TRANSLATION_SCAN_GRID(2)*CONTROL_instance%TRANSLATION_SCAN_GRID(3)&
+            +(CONTROL_instance%TRANSLATION_SCAN_GRID(1)-1)*(CONTROL_instance%TRANSLATION_SCAN_GRID(2)-1)*(CONTROL_instance%TRANSLATION_SCAN_GRID(3)-1)
+
+              print *, ""
+       write (*,"(A,I5,A,I10,A)") "Displacing coordinates of ", numberOfTranslationCenters, " centers", &
+            this%numberOfIndividualTransformations," times"
+       print *, ""
 
     else if(numberOfRotationCenters.ne.0) then
        print *, ""
@@ -222,6 +221,7 @@ contains
     integer :: closestSystem
     integer :: systemType
     logical :: newSystemFlag
+    logical :: skip
     real(8) :: timeA
     real(8) :: timeB
     
@@ -243,29 +243,39 @@ contains
 
     this%numberOfDisplacedSystems=0
 
-    print *, "this%numberOfTransformedCenters", this%numberOfTransformedCenters
-    print *, "this%numberOfIndividualTransformations", this%numberOfIndividualTransformations
 !!!!! clock type iterations to form all the possible combination of modified geometries
     do while (.true.)
 
        !Apply the transformation given by transformationCounter to each center, the result is saved in molecularSystemInstance
-       call NonOrthogonalCI_transformCoordinates(this,transformationCounter(1:this%numberOfTransformedCenters),originalMolecularSystem)
-       
+       call NonOrthogonalCI_transformCoordinates(this,transformationCounter(1:this%numberOfTransformedCenters),originalMolecularSystem,displacement)       
        write (*,"(A,A)") "Transformation counter: ", MolecularSystem_instance%description
 
        call MolecularSystem_showCartesianMatrix()
 
-       !Check if the new system is not to close to previous calculated systems - duplicate protection
-       call NonOrthogonalCI_checkNewSystemDisplacement(this,closestSystem,displacement) 
-
+       skip=.false.
+       
        !Classify the system according to its distance matrix (symmetry) 
        if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY .eqv. .true.) &
             call NonOrthogonalCI_classifyNewSystem(this,systemType, newSystemFlag) 
-       
-       if(displacement .lt. CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD ) then
-          print *, " Skipping system with distance ", displacement , "a.u. from system ", closestSystem
+
+       !Check if the new system is not beyond the max displacement
+       if(displacement .gt. CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD .and.&
+            CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD .gt. 0.0 ) then
+          print *, " Skipping system with displacement ", displacement , "a.u. from the reference system "
+          skip=.true.
           this%numberOfRejectedSystems=this%numberOfRejectedSystems+1                      
-       else
+       end if
+       
+       !Check if the new system is not to close to previous calculated systems - duplicate protection
+       call NonOrthogonalCI_checkNewSystemDisplacement(this,closestSystem,displacement) 
+       
+       if(displacement .lt. CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE ) then
+          print *, " Skipping system with distance ", displacement , "a.u. from system ", closestSystem
+          skip=.true.
+          this%numberOfRejectedSystems=this%numberOfRejectedSystems+1                      
+       end if
+
+       if(skip .eqv. .false.) then
 !!!Run a HF calculation at each displaced geometry 
           call MolecularSystem_saveToFile()          
           call NonOrthogonalCI_runHF(testEnergy)
@@ -312,13 +322,14 @@ contains
     if(this%numberOfRejectedSystems .gt. 0) &
          write (*,'(A10,I10,A,F18.12,A,F18.12)') "Rejected ", this%numberOfRejectedSystems, &
          " geometries with energy higher than", this%refEnergy+CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD, &     
-         " or with distance to other systems lower than", CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD
+         " or with displacement higher than", CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD
     print *, ""
     
     allocate(this%HFCoefficients(this%numberOfDisplacedSystems,molecularSystem_instance%numberOfQuantumSpecies))
     call Matrix_constructor(this%configurationHamiltonianMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
     call Matrix_constructor(this%configurationOverlapMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 1.0_8)
-    call Matrix_constructorInteger(this%configurationPairTypes,  int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0)
+    if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY .eqv. .true.) &
+         call Matrix_constructorInteger(this%configurationPairTypes,int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0)
     
     !!Read HF energies and coefficients and fill CI matrix diagonals 
     ! minEnergy=0.0    
@@ -355,16 +366,19 @@ contains
   !! @brief Apply the transformation (translation or rotation) given by transformationCounter to each center, based in the originalMolecularSystemPositions the result is saved in molecularSystemInstance 
   !! @param this,transformationCounter,originalMolecularSystem
   !<
-  subroutine NonOrthogonalCI_transformCoordinates(this,transformationCounter,originalMolecularSystem)
+  subroutine NonOrthogonalCI_transformCoordinates(this,transformationCounter,originalMolecularSystem,maxDisplacement)
     type(NonOrthogonalCI) :: this
     integer :: transformationCounter(*)
     type(MolecularSystem) :: originalMolecularSystem
+    real(8), intent(out) :: maxDisplacement
 
     real(8) :: centerX, centerY, centerZ, displacedOrigin(3), distanceToCenter
     integer :: center, displacementId
     real(8),allocatable :: X(:), Y(:), Z(:), W(:)
     integer :: i,j,k,p,q,mu
 
+    maxDisplacement=0.0
+    
     MolecularSystem_instance%description=""
     do i=1,this%numberOfTransformedCenters
        write(MolecularSystem_instance%description, '(A,I3)') trim(MolecularSystem_instance%description), transformationCounter(i)
@@ -386,35 +400,49 @@ contains
           !!These loops update the molecular system file for each displaced geometry
           !!ADD DIFFERENT AXIS DISPLACEMENTS!
           displacementId=0
-          do i=1,CONTROL_instance%TRANSLATION_SCAN_GRID(1)
-             do j=1,CONTROL_instance%TRANSLATION_SCAN_GRID(2)
-                do k=1,CONTROL_instance%TRANSLATION_SCAN_GRID(3)
-                   displacementId=displacementId+1
-                   if(displacementId .eq. transformationCounter(center) ) then
-                      displacedOrigin(1)=centerX+CONTROL_instance%TRANSLATION_STEP*(i-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0)
-                      displacedOrigin(2)=centerY+CONTROL_instance%TRANSLATION_STEP*(j-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0)
-                      displacedOrigin(3)=centerZ+CONTROL_instance%TRANSLATION_STEP*(k-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0)
+          !Body centered cube
+          do i=1,CONTROL_instance%TRANSLATION_SCAN_GRID(1)*2-1
+             do j=1,CONTROL_instance%TRANSLATION_SCAN_GRID(2)*2-1
+                do k=1,CONTROL_instance%TRANSLATION_SCAN_GRID(3)*2-1
 
-                      do p=1, size(MolecularSystem_instance%allParticles)
-                         if(center.eq.MolecularSystem_instance%allParticles(p)%particlePtr%translationCenter) then
-                            ! call ParticleManager_setOrigin( MolecularSystem_instance%allParticles(p)%particlePtr, displacedOrigin )
-                            MolecularSystem_instance%allParticles(p)%particlePtr%origin=displacedOrigin
-                            do mu = 1, MolecularSystem_instance%allParticles(p)%particlePtr%basis%length
-                               MolecularSystem_instance%allParticles(p)%particlePtr%basis%contraction(mu)%origin = displacedOrigin
-                            end do
-                         end if
-                      end do
+                   if( (mod(i,2) .eq. mod(j,2)) .and. (mod(i,2) .eq. mod(k,2)) ) then
+                      displacementId=displacementId+1
 
-                      ! write(*, '(F4.1,A,F4.1,A,F4.1)') &
-                      !      (i-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0)," ", &
-                      !      (j-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0)," ", &
-                      !      (k-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0)
+                      if(displacementId .eq. transformationCounter(center) ) then
+
+                         displacedOrigin(1)=centerX+CONTROL_instance%TRANSLATION_STEP*((i+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0)
+                         displacedOrigin(2)=centerY+CONTROL_instance%TRANSLATION_STEP*((j+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0)
+                         displacedOrigin(3)=centerZ+CONTROL_instance%TRANSLATION_STEP*((k+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0)
+
+                         distanceToCenter=sqrt( &
+                              (CONTROL_instance%TRANSLATION_STEP*((i+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0))**2 +&
+                              (CONTROL_instance%TRANSLATION_STEP*((j+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0))**2 +&
+                              (CONTROL_instance%TRANSLATION_STEP*((k+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0))**2)
+
+                         if(distanceToCenter.gt.maxDisplacement) maxDisplacement=distanceToCenter
+                         
+                         do p=1, size(MolecularSystem_instance%allParticles)
+                            if(center.eq.MolecularSystem_instance%allParticles(p)%particlePtr%translationCenter) then
+                               ! call ParticleManager_setOrigin( MolecularSystem_instance%allParticles(p)%particlePtr, displacedOrigin )
+                               MolecularSystem_instance%allParticles(p)%particlePtr%origin=displacedOrigin
+                               do mu = 1, MolecularSystem_instance%allParticles(p)%particlePtr%basis%length
+                                  MolecularSystem_instance%allParticles(p)%particlePtr%basis%contraction(mu)%origin = displacedOrigin
+                               end do
+                            end if
+                         end do
+                         
+                         ! write(*, '(3I5,F4.1,A,F4.1,A,F4.1)') i,j,k, &
+                         !      (i+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0," ", &
+                         !      (j+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0," ", &
+                         !      (k+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0
+                      end if
                    end if
                 end do
              end do
           end do
+          
        end do
-       
+
     else if(trim(this%transformationType).eq."ROTATION") then
 
        allocate(X(CONTROL_instance%ROTATIONAL_SCAN_GRID),&
@@ -503,6 +531,8 @@ contains
        end if
     end do
 
+    deallocate(displacementVector)
+    
   end subroutine NonOrthogonalCI_checkNewSystemDisplacement
 
   !>
@@ -773,7 +803,7 @@ contains
           call NonOrthogonalCI_computeOverlapAndHCoreElements(this,sysI,sysII,mergedCoefficients,sysIbasisList,sysIIbasisList,inverseOverlapMatrices)
           !$  timeB = omp_get_wtime()
           !$  timeOverlap=timeOverlap+(timeB - timeA)
-          
+
           !! SKIP ENERGY EVALUATION IF OVERLAP IS TOO LOW
 
           if( CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD .gt. 0.0 .and. &
@@ -986,6 +1016,8 @@ contains
        estimatedOverlap=estimatedOverlap*speciesOverlap
     end do
 
+    deallocate(displacementVector)
+    
   end subroutine NonOrthogonalCI_prescreenOverlap
 
   !>
@@ -1087,13 +1119,14 @@ contains
     integer :: a,b,bb,mu,nu    
     type(Matrix) :: auxMatrix
     type(Matrix) :: molecularOverlapMatrix
-    type(Matrix), allocatable :: auxOverlapMatrix(:), auxKineticMatrix(:), auxAttractionMatrix(:), molecularHCoreMatrix(:)
+    type(Matrix), allocatable :: auxOverlapMatrix(:), auxKineticMatrix(:), auxAttractionMatrix(:), auxExternalPotMatrix(:), molecularHCoreMatrix(:)
     type(Vector) :: overlapDeterminant
     real(8) :: oneParticleEnergy
     
     allocate(auxOverlapMatrix(molecularSystem_instance%numberOfQuantumSpecies), &
          auxKineticMatrix(molecularSystem_instance%numberOfQuantumSpecies), &
          auxAttractionMatrix(molecularSystem_instance%numberOfQuantumSpecies), &
+         auxExternalPotMatrix(molecularSystem_instance%numberOfQuantumSpecies), &
          molecularHCoreMatrix(molecularSystem_instance%numberOfQuantumSpecies))
     
     !! Calculate one- particle integrals  
@@ -1180,6 +1213,7 @@ contains
     if ( trim(CONTROL_instance%INTEGRAL_STORAGE) .eq. "DIRECT" ) then
        call DirectIntegralManager_getKineticIntegrals(auxKineticMatrix)
        call DirectIntegralManager_getAttractionIntegrals(auxAttractionMatrix)
+       if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) call DirectIntegralManager_getExternalPotentialIntegrals(auxExternalPotMatrix)
     else
        open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
@@ -1192,6 +1226,12 @@ contains
           auxAttractionMatrix(speciesID) = Matrix_getFromFile(rows=MolecularSystem_getTotalNumberOfContractions(speciesID), &
                columns=MolecularSystem_getTotalNumberOfContractions(speciesID), &
                unit=integralsUnit, binary=.true., arguments=arguments)
+          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+             arguments(1) = "EXTERNAL_POTENTIAL"
+             auxExternalPotMatrix(speciesID)= Matrix_getFromFile(rows=MolecularSystem_getTotalNumberOfContractions(speciesID), &
+               columns=MolecularSystem_getTotalNumberOfContractions(speciesID), &
+               unit=integralsUnit, binary=.true., arguments=arguments)
+          end if
        end do
        close(integralsUnit)
     end if
@@ -1239,6 +1279,11 @@ contains
                          molecularHCoreMatrix(speciesID)%values(a,bb)=molecularHCoreMatrix(speciesID)%values(a,bb)+&
                               mergedCoefficients(speciesID)%values(mu,a)*mergedCoefficients(speciesID)%values(nu,b)*&
                               (auxKineticMatrix(speciesID)%values(mu,nu)+auxAttractionMatrix(speciesID)%values(mu,nu))                         
+
+                         if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+                              molecularHCoreMatrix(speciesID)%values(a,bb)=molecularHCoreMatrix(speciesID)%values(a,bb)+&
+                              mergedCoefficients(speciesID)%values(mu,a)*mergedCoefficients(speciesID)%values(nu,b)*&
+                              auxExternalPotMatrix(speciesID)%values(mu,nu)                         
                       end do
                    end do
                 end if
@@ -1268,7 +1313,9 @@ contains
        this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)+oneParticleEnergy
        ! print *, "oneParticleEnergy for species", speciesID, oneParticleEnergy
     end do
-        
+
+    deallocate(auxOverlapMatrix, auxKineticMatrix, auxAttractionMatrix, auxExternalPotMatrix, molecularHCoreMatrix)
+    
   end subroutine NonOrthogonalCI_computeOverlapAndHCoreElements
   !>
   !! @brief Computes the two particles contributions to the non diagonal elements of the hamiltonian matrix
@@ -1326,9 +1373,8 @@ contains
     
     !! Calculate two- particle integrals  
     if ( trim(CONTROL_instance%INTEGRAL_STORAGE) .eq. "DIRECT" ) then
-       call NonOrthogonalCI_transformIntegralsMemory(MolecularSystem_instance, mergedCoefficients, &
-            twoIndexArray, fourIndexArray, fourCenterIntegrals)
-
+          call NonOrthogonalCI_transformIntegralsMemory(MolecularSystem_instance, mergedCoefficients, &
+               twoIndexArray, fourIndexArray, fourCenterIntegrals)
     else
        call system("lowdin-ints.x TWO_PARTICLE_R12 >> extendedOutput.eut")
        ! call system("lowdin-ints.x TWO_PARTICLE_R12")
@@ -1495,11 +1541,11 @@ contains
     call Matrix_constructor(this%configurationCoefficients, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
     call Vector_constructor(this%statesEigenvalues, this%numberOfDisplacedSystems, 0.0_8)
 
-    print *, "non orthogonal CI overlap Matrix "
-    call Matrix_show(this%configurationOverlapMatrix)
+    ! print *, "non orthogonal CI overlap Matrix "
+    ! call Matrix_show(this%configurationOverlapMatrix)
 
-    print *, "non orthogonal CI Hamiltionian Matrix "
-    call Matrix_show(this%configurationHamiltonianMatrix)
+    ! print *, "non orthogonal CI Hamiltionian Matrix "
+    ! call Matrix_show(this%configurationHamiltonianMatrix)
 
     print *, ""
     print *, "Transforming non orthogonal CI Hamiltionian Matrix..."
@@ -1514,11 +1560,11 @@ contains
     !!          
     call Matrix_eigen( this%configurationOverlapMatrix, eigenValues, eigenVectors, SYMMETRIC  )
 
-    print *,"Overlap eigenvectors "
-    call Matrix_show( eigenVectors )
+    ! print *,"Overlap eigenvectors "
+    ! call Matrix_show( eigenVectors )
 
-    print *,"Overlap eigenvalues "
-    call Vector_show( eigenValues )
+    ! print *,"Overlap eigenvalues "
+    ! call Vector_show( eigenValues )
     
     !! Remove states from configurations with linear dependencies
     do i = 1 , this%numberOfDisplacedSystems
@@ -1547,8 +1593,8 @@ contains
     transformationMatrix%values  = &
          matmul(transformationMatrix%values, transpose(eigenVectors%values))
 
-    print *,"Matriz de transformacion "
-    call Matrix_show( transformationMatrix )
+    ! print *,"Matriz de transformacion "
+    ! call Matrix_show( transformationMatrix )
 
     !!**********************************************************************************************
     !! Transform configuration hamiltonian matrix
@@ -1557,8 +1603,8 @@ contains
          matmul( matmul( transpose( transformationMatrix%values ) , &
          this%configurationHamiltonianMatrix%values), transformationMatrix%values )
 
-    print *,"transformed Hamiltonian Matrix "
-    call Matrix_show( this%configurationHamiltonianMatrix )
+    ! print *,"transformed Hamiltonian Matrix "
+    ! call Matrix_show( this%configurationHamiltonianMatrix )
 
     print *, "Diagonalizing non orthogonal CI Hamiltionian Matrix..."
     !! Calcula valores y vectores propios de matriz de CI transformada.
@@ -1567,11 +1613,11 @@ contains
     !! Calcula los  vectores propios para matriz de CI       
     this%configurationCoefficients%values = matmul( transformationMatrix%values, this%configurationCoefficients%values )
 
-    print *,"non orthogonal CI eigenvalues "
-    call Vector_show( this%statesEigenvalues )
+    ! print *,"non orthogonal CI eigenvalues "
+    ! call Vector_show( this%statesEigenvalues )
 
-    print *,"configuration Coefficients"
-    call Matrix_show( this%configurationCoefficients )
+    ! print *,"configuration Coefficients"
+    ! call Matrix_show( this%configurationCoefficients )
 
     write(*,"(A)") ""
     write(*,"(A)") " MIXED HARTREE-FOCK CALCULATION"
@@ -1579,7 +1625,7 @@ contains
     write(*,"(A)") " EIGENVALUES AND EIGENVECTORS: "
     write(*,"(A)") "========================================="
     write(*,"(A)") ""
-    do i = 1, size(this%statesEigenvalues%values)
+    do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
        write (*,"(T8,A17,I3,A10, F18.12)") "STATE: ", i, " ENERGY = ", this%statesEigenvalues%values(i)
     end do
     write(*,"(A)") ""
@@ -1641,10 +1687,9 @@ contains
     allocate(mergedCoefficients(molecularSystem_instance%numberOfQuantumSpecies),&
          auxCoefficients(molecularSystem_instance%numberOfQuantumSpecies),&
          sysBasisList(this%numberOfDisplacedSystems,molecularSystem_instance%numberOfQuantumSpecies),&
-         auxBasisList(molecularSystem_instance%numberOfQuantumSpecies))
-
-    allocate(overlapMatrix(molecularSystem_instance%numberOfQuantumSpecies))
-    allocate(mergedDensityMatrix(CONTROL_instance%CI_STATES_TO_PRINT,molecularSystem_instance%numberOfQuantumSpecies))
+         auxBasisList(molecularSystem_instance%numberOfQuantumSpecies),&
+         overlapMatrix(molecularSystem_instance%numberOfQuantumSpecies),&
+         mergedDensityMatrix(CONTROL_instance%CI_STATES_TO_PRINT,molecularSystem_instance%numberOfQuantumSpecies))
     
     !Create a super molecular system
     !!!Merge coefficients from system 1 and system 2
@@ -1967,10 +2012,17 @@ contains
       write(*,*) " END OF NATURAL ORBITALS"
       write(*,*) "=============================="
       write(*,*) ""
-
+     
     !$  timeB = omp_get_wtime()
     !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for NOCI density plots : ", timeB - timeA ," (s)"
-    
+
+    deallocate(mergedCoefficients,&
+         auxCoefficients,&
+         sysBasisList,&
+         auxBasisList,&
+         overlapMatrix,&
+         mergedDensityMatrix)
+      
     return
     
     ! write(*,"(A)") ""
@@ -2193,7 +2245,7 @@ contains
        do p = p_l, p_u
           n = p
 
-          !First quarter transformation happens here
+       !    !First quarter transformation happens here
           call DirectIntegralManager_getDirectIntraRepulsionFirstQuarter(&
                speciesID, &
                trim(CONTROL_instance%INTEGRAL_SCHEME), &
