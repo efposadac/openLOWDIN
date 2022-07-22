@@ -668,7 +668,7 @@ contains
 
        call Matrix_constructor(cmatin, int(surface%sizeSurface,8), int(surface%sizeSurface,8))
 
-       call CosmoCore_cmat(surface,cmatin)
+       ! call CosmoCore_cmat(surface,cmatin)
 
        ! call Matrix_Show(cmatin)
        ! do i=1,120
@@ -769,7 +769,7 @@ contains
                             cosmoV = 0 
                             cosmoV(:)=integralValueCosmo(m,:)
 
-                            call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
+                            ! call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges,f)
 
                             write(70)integralValueCosmo(m,:)
                             write(80)qCharges
@@ -797,7 +797,7 @@ contains
           ! write(80)totals(f)
 
           ! ####################################
-          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(f),f,f)
+          ! call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(f),f,f)
 
 
           !!clasical vs clasical
@@ -809,7 +809,8 @@ contains
           write(40) job
           write(40) MolecularSystem_instance%species(f)%name
 
-          call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals(f),f,f,labels)
+          ! call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoClasicalChargeFile,numberOfPointCharges,1,totals(f),f,f,labels)
+
           !clasical vs quantum
 
 
@@ -817,7 +818,7 @@ contains
           write(40) job
           write(40) MolecularSystem_instance%species(f)%name
 
-          call CosmoCore_nucleiPotentialQuantumCharges(surface,cosmoQuantumChargeFile,totals(f),labels,f)
+          ! call CosmoCore_nucleiPotentialQuantumCharges(surface,cosmoQuantumChargeFile,totals(f),labels,f)
 
        end do
        !! end do especies
@@ -836,7 +837,7 @@ contains
                    cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
                    cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
 
-                   call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
+                   ! call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
 
                 end if
              end do

@@ -21,15 +21,18 @@
 !! <b> Historial de modificaciones: </b> Merge DirectIntegralManagers from different programs Felix 2022-4
 !!
 module DirectIntegralManager_
-  use CONTROL_
+  use CONTROL_  
   use MolecularSystem_
+  use IntegralManager_
   use OverlapIntegrals_
+  use ThreeCOverlapIntegrals_
   use AttractionIntegrals_
   use KineticIntegrals_
   use Libint2Interface_
   use RysQuadrature_
   use Matrix_
   use Stopwatch_
+  use ExternalPotential_
   !# use RysQInts_  !! Please do not remove this line
 
   implicit none
@@ -43,7 +46,8 @@ module DirectIntegralManager_
        DirectIntegralManager_destructor, &
        DirectIntegralManager_getOverlapIntegrals, &
        DirectIntegralManager_getKineticIntegrals, &
-       DirectIntegralManager_getAttractionIntegrals  
+       DirectIntegralManager_getAttractionIntegrals, &
+       DirectIntegralManager_getExternalPotentialIntegrals
 contains
 
   !> 
@@ -193,7 +197,8 @@ contains
        call Libint2Interface_compute2BodyIntraspecies_direct_IT(speciesID, density, coefficients, matrixA, p )
     end select
 
-    deallocate(density)
+    deallocate(coefficients,density)
+
   end subroutine DirectIntegralManager_getDirectIntraRepulsionFirstQuarter
 
 
@@ -218,9 +223,10 @@ contains
     integer :: p
 
     ssize = size(coeffMatrix%values, DIM=1)
+
     allocate(coefficients(ssize, ssize))
     coefficients = coeffMatrix%values
-
+    
     ssize = size(densityMatrix%values, DIM=1)
     ! print*, "DIRECT, SIZE DENS:", ssize
     allocate(density(ssize, ssize))
@@ -237,9 +243,8 @@ contains
        call Libint2Interface_compute2BodyInterspecies_direct_IT(speciesID, otherSpeciesID, density, coefficients, couplingMatrix, p)
     end select
 
-
-    deallocate(density)
-
+    deallocate(coefficients,density)
+    
   end subroutine DirectIntegralManager_getDirectInterRepulsionFirstQuarter
 
   subroutine DirectIntegralManager_getDirectAlphaBetaRepulsionMatrix(speciesID, OtherSpeciesID, scheme, &
@@ -257,11 +262,13 @@ contains
 
     ssize = size(densityMatrix%values, DIM=1)
     ! print*, "DIRECT, SIZE DENS:", ssize
+    if(allocated(density))deallocate(density)
     allocate(density(ssize, ssize))
     density = densityMatrix%values
 
     ssize = size(otherdensityMatrix%values, DIM=1)
     ! print*, "DIRECT, SIZE DENS:", ssize
+    if(allocated(otherdensity))deallocate(otherdensity)
     allocate(otherdensity(ssize, ssize))
     otherdensity = otherdensityMatrix%values
 
@@ -321,7 +328,7 @@ contains
 
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -433,7 +440,7 @@ contains
 
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -784,7 +791,7 @@ contains
 
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -874,40 +881,149 @@ contains
 
   end subroutine DirectIntegralManager_getAttractionIntegrals
 
-  !>
-  !! @brief Return real labels for integrals
-  !! @autor E. F. Posada, 2011
-  !! @version 1.0
-  function DirectIntegralManager_getLabels(specieSelected) result(labelsOfContractions)
+  ! !>
+  ! !! @brief Return real labels for integrals
+  ! !! @autor E. F. Posada, 2011
+  ! !! @version 1.0
+  ! function DirectIntegralManager_getLabels(specieSelected) result(labelsOfContractions)
+  !   implicit none
+
+  !   type(species) :: specieSelected
+  !   integer:: labelsOfContractions(specieSelected%basisSetSize)
+
+  !   integer:: auxLabelsOfContractions
+  !   integer:: i, j, k
+
+  !   auxLabelsOfContractions = 1
+
+  !   ! write(*,*)"labels data from integral manager"
+
+  !   k = 0
+  !   ! write(*,*)size(specieSelected%particles)
+  !   do i = 1, size(specieSelected%particles)
+
+  !      do j = 1, size(specieSelected%particles(i)%basis%contraction)
+
+  !         k = k + 1
+
+  !         !!position for cartesian contractions
+  !         labelsOfContractions(k) = auxLabelsOfContractions
+  !         auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
+  !         ! write(*,*)specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
+
+  !      end do
+  !   end do
+
+
+  ! end function DirectIntegralManager_getLabels
+
+  subroutine DirectIntegralManager_getExternalPotentialIntegrals(output)
     implicit none
+    type(Matrix), intent(out) :: output(:)
+    integer :: f, g, h, i
+    integer :: j, k, l, m, r
+    integer :: o, p, potID
+    integer :: ii, jj, hh
+    integer, allocatable :: labels(:)
+    real(8), allocatable :: integralValue(:), auxintegralValue(:)
+    real(8), allocatable :: integralsMatrix(:,:)
+    character(100) :: job, speciesName
+    type (ContractedGaussian) :: auxContractionA, auxContractionB, auxContraction
+    type (ExternalPotential) :: potential
+    
 
-    type(species) :: specieSelected
-    integer:: labelsOfContractions(specieSelected%basisSetSize)
+    job = "EXTERNAL_POTENTIAL"
+    !!Overlap Integrals for all species    
+    do f = 1, size(MolecularSystem_instance%species)
 
-    integer:: auxLabelsOfContractions
-    integer:: i, j, k
+       potID = 0
 
-    auxLabelsOfContractions = 1
+       do i= 1, ExternalPotential_instance%ssize
+         !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
+         ! if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
+         !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
 
-    ! write(*,*)"labels data from integral manager"
-
-    k = 0
-    ! write(*,*)size(specieSelected%particles)
-    do i = 1, size(specieSelected%particles)
-
-       do j = 1, size(specieSelected%particles(i)%basis%contraction)
-
-          k = k + 1
-
-          !!position for cartesian contractions
-          labelsOfContractions(k) = auxLabelsOfContractions
-          auxLabelsOfContractions = auxLabelsOfContractions + specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
-          ! write(*,*)specieSelected%particles(i)%basis%contraction(j)%numCartesianOrbital
-
+         if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
+           potID=i
+           exit
+         end if
        end do
-    end do
+
+       write(30) job
+       speciesName = MolecularSystem_instance%species(f)%name
+       write(30) speciesName
+
+       if(allocated(labels)) deallocate(labels)
+       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+
+       call Matrix_constructor(output(f), int(MolecularSystem_getTotalNumberOfContractions(f),8), &
+            int(MolecularSystem_getTotalNumberOfContractions(f),8), 0.0_8)
+
+       ii = 0
+       do g = 1, size(MolecularSystem_instance%species(f)%particles)
+          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+
+             hh = h
+
+             ii = ii + 1
+             jj = ii - 1
+
+             do i = g, size(MolecularSystem_instance%species(f)%particles)
+                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+
+                   jj = jj + 1
+
+                   !! allocating memory Integrals for shell
+                   if(allocated(integralValue)) deallocate(integralValue)
+                   allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+
+                   if(allocated(auxintegralValue)) deallocate(auxintegralValue)
+                   allocate(auxintegralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
 
 
-  end function DirectIntegralManager_getLabels
+                   integralValue = 0.0_8
+                   do p = 1, ExternalPotential_instance%potentials(potID)%numOfComponents
+                     auxintegralValue = 0.0_8
 
+                      
+                     do r = 1, ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%numcartesianOrbital
+                       ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%primNormalization( &
+                       1:ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%length,r) = 1
+
+                     ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%contNormalization(r) = 1
+                    end do
+
+                     !! Calculating integrals for shell
+                     call ThreeCOverlapIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                           MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), &
+                           ExternalPotential_instance%potentials(potID)%gaussianComponents(p), auxintegralValue)
+                    integralValue = integralValue + auxintegralValue
+
+                   end do !! potential
+                   !! saving integrals on Matrix
+                   m = 0
+                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         m = m + 1
+
+                         output(f)%values(k, l) = integralValue(m)
+                         output(f)%values(l, k) = output(f)%values(k, l)
+
+                      end do
+                   end do
+
+                end do
+                hh = 1
+             end do
+
+          end do
+       end do
+    end do !done!    
+
+  end subroutine DirectIntegralManager_getExternalPotentialIntegrals
+
+  
 end module DirectIntegralManager_

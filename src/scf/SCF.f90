@@ -270,12 +270,12 @@ program SCF
      !!!!Print iteration results
      if ( .not.CONTROL_instance%OPTIMIZE ) then
         if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-           write (*,"(I15,F20.12,F20.12,F20.12,F20.12)") MultiSCF_getNumberOfIterations(), &
+           write (*,"(I15,F25.12,F25.12,F25.12,F25.12)") MultiSCF_getNumberOfIterations(), &
                 MultiSCF_getLastEnergy(), deltaEnergy, &
                 MultiSCF_instance%totalDensityMatrixStandardDeviation ,&
                 sum(WaveFunction_instance(:)%particlesInGrid)
         else
-           write (*,"(I15,F20.12,F20.12,F20.12)") MultiSCF_getNumberOfIterations(), &
+           write (*,"(I15,F25.12,F25.12,F25.12)") MultiSCF_getNumberOfIterations(), &
                 MultiSCF_getLastEnergy(), deltaEnergy, &
                 MultiSCF_instance%totalDensityMatrixStandardDeviation
         end if
@@ -350,7 +350,7 @@ program SCF
      !    deltaEnergy = oldEnergy-MultiSCF_getLastEnergy()
 
      !    if ( .not.CONTROL_instance%OPTIMIZE .or. CONTROL_instance%DEBUG_SCFS ) then
-     !       write (6,"(I5,F20.12,F20.12)") MultiSCF_getNumberOfIterations(), &
+     !       write (6,"(I5,F25.12,F25.12)") MultiSCF_getNumberOfIterations(), &
      !            MultiSCF_getLastEnergy(),deltaEnergy
      !    end if
 
@@ -399,11 +399,11 @@ program SCF
               if ( diisError > CONTROL_instance%DIIS_SWITCH_THRESHOLD ) convergenceType = "*"
 
               if (abs(diisError) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-                 write (6,"(I5,F20.12,F20.12,A20,A1)") i,  List_current( WaveFunction_instance(speciesID)%energySCF ),&
+                 write (6,"(I5,F25.12,F25.12,A20,A1)") i,  List_current( WaveFunction_instance(speciesID)%energySCF ),&
                       List_current( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements ), &
                       "         --         ",convergenceType
               else
-                 write (6,"(I5,F20.12,F20.12,F20.12,A1)") i,  List_current( WaveFunction_instance(speciesID)%energySCF ),&
+                 write (6,"(I5,F25.12,F25.12,F25.12,A1)") i,  List_current( WaveFunction_instance(speciesID)%energySCF ),&
                       List_current( WaveFunction_instance(speciesID)%standardDesviationOfDensityMatrixElements ), &
                       diisError,convergenceType
               end if
@@ -476,7 +476,7 @@ program SCF
            write(*,*) ""
            numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
            do i = 1 , numberOfContractions 
-              write(6,"(T2,I4,F20.12)") i,WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)
+              write(6,"(T2,I4,F25.12)") i,WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)
            end do
            write(*,*) ""
         end do
@@ -609,13 +609,13 @@ program SCF
   write(*,*) ""             
 
   do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-     write (6,"(A38,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+     write (6,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
           " Kinetic energy = ", WaveFunction_instance(speciesID)%kineticEnergy
   end do
   totalKineticEnergy = sum( WaveFunction_instance(:)%kineticEnergy)             
 
   write (6,"(T10,A50)") "_____________________"
-  write (6,"(A38,F20.12)") "Total kinetic energy = ", totalKineticEnergy
+  write (6,"(A38,F25.12)") "Total kinetic energy = ", totalKineticEnergy
 
   write(*,*) ""
   write(*,*) " COMPONENTS OF POTENTIAL ENERGY: "
@@ -628,12 +628,12 @@ program SCF
   write(*,*) ""
 
   do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-     write (6,"(A38,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+     write (6,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
           "/Fixed interact. energy = ", WaveFunction_instance(speciesID)%puntualInteractionEnergy
   end do
   totalQuantumPuntualInteractionEnergy = sum ( WaveFunction_instance(:)%puntualInteractionEnergy )
   write (6,"(T10,A50)") "_____________________"
-  write (6,"(A38,F20.12)") "Total Q/Fixed energy = ", totalQuantumPuntualInteractionEnergy
+  write (6,"(A38,F25.12)") "Total Q/Fixed energy = ", totalQuantumPuntualInteractionEnergy
 
   write(*,*) ""
   write(*,*) " Coulomb energy: "
@@ -641,33 +641,33 @@ program SCF
   write(*,*) ""
   totalHartreeEnergy=0.0
   do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-     write (6,"(A38,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+     write (6,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
           "/"//trim( MolecularSystem_instance%species(speciesID)%name ) // &
           " Hartree energy = ", WaveFunction_instance(speciesID)%hartreeEnergy(speciesID)
      totalHartreeEnergy=totalHartreeEnergy+WaveFunction_instance(speciesID)%hartreeEnergy(speciesID)
   end do
   do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
      do otherSpeciesID = speciesID + 1, MolecularSystem_instance%numberOfQuantumSpecies                
-        write (6,"(A38,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+        write (6,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
              "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
              " Hartree energy = ", WaveFunction_instance(speciesID)%hartreeEnergy(otherSpeciesID)
         totalHartreeEnergy=totalHartreeEnergy+WaveFunction_instance(speciesID)%hartreeEnergy(otherSpeciesID)
      end do
   end do
   write (6,"(T10,A50)") "_____________________"
-  write (6,"(A38,F20.12)") "Total Hartree energy = ", totalHartreeEnergy
+  write (6,"(A38,F25.12)") "Total Hartree energy = ", totalHartreeEnergy
 
   write(*,*) ""
   write(*,*) " Exchange(HF) energy: "
   write(*,*) "----------------------"
   write(*,*) ""
   do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-     write (6,"(A38,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+     write (6,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
           " Exchange energy = ", WaveFunction_instance(speciesID)%exchangeHFEnergy
   end do
   totalExchangeHFEnergy=sum(WaveFunction_instance(:)%exchangeHFEnergy)
   write (6,"(T10,A50)") "_____________________"
-  write (6,"(A38,F20.12)") "Total Exchange energy = ", totalExchangeHFEnergy
+  write (6,"(A38,F25.12)") "Total Exchange energy = ", totalExchangeHFEnergy
 
 
   if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
@@ -677,20 +677,20 @@ program SCF
      write(*,*) "" 
      totalExchangeCorrelationEnergy=0.0
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-        write (6,"(A38,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+        write (6,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
              " Exc.Corr. energy = ", WaveFunction_instance(speciesID)%exchangeCorrelationEnergy(speciesID)
         totalExchangeCorrelationEnergy=totalExchangeCorrelationEnergy+WaveFunction_instance(speciesID)%exchangeCorrelationEnergy(speciesID)
      end do
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
         do otherSpeciesID = speciesID + 1, MolecularSystem_instance%numberOfQuantumSpecies                
-           write (6,"(A38,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+           write (6,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
                 "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
                 " Corr. energy = ", WaveFunction_instance(speciesID)%exchangeCorrelationEnergy(otherSpeciesID)
            totalExchangeCorrelationEnergy=totalExchangeCorrelationEnergy+WaveFunction_instance(speciesID)%exchangeCorrelationEnergy(otherSpeciesID)
         end do
      end do
      write (6,"(T10,A50)") "_____________________"
-     write (6,"(A38,F20.12)") "Total Exchange Correlation energy = ", totalExchangeCorrelationEnergy
+     write (6,"(A38,F25.12)") "Total Exchange Correlation energy = ", totalExchangeCorrelationEnergy
   end if
 
 
@@ -702,21 +702,21 @@ program SCF
      write(*,*) ""
 
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-        write (6,"(A38,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name) // &
+        write (6,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name) // &
              " Ext Pot energy = ", WaveFunction_instance(speciesID)%externalPotentialEnergy
      end do
      totalExternalPotentialEnergy=sum(WaveFunction_instance(:)%externalPotentialEnergy)
-     write (6,"(A38,F20.12)") "Total External Potential energy = ", totalExternalPotentialEnergy             
+     write (6,"(A38,F25.12)") "Total External Potential energy = ", totalExternalPotentialEnergy             
 
   end if
 
   write(*,*) ""
   puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy()
-  write (6,"(A38,F20.12)") "Fixed potential energy    = ", puntualInteractionEnergy
+  write (6,"(A38,F25.12)") "Fixed potential energy    = ", puntualInteractionEnergy
 
   puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy()
   if(CONTROL_instance%CHARGES_MM) then
-     write (6,"(A38,F20.12)") "Self MM potential energy   = ", puntualMMInteractionEnergy
+     write (6,"(A38,F25.12)") "Self MM potential energy   = ", puntualMMInteractionEnergy
   end if
 
   potentialEnergy = puntualInteractionEnergy &
@@ -740,12 +740,12 @@ program SCF
   write(*,*) " TOTAL ENERGY COMPONENTS: "
   write(*,*) "=========================="
   write(*,*) ""
-  write (6,"(A38,F20.12)") "TOTAL KINETIC ENERGY      = ", totalKineticEnergy
-  write (6,"(A38,F20.12)") "TOTAL POTENTIAL ENERGY    = ", potentialEnergy
+  write (6,"(A38,F25.12)") "TOTAL KINETIC ENERGY      = ", totalKineticEnergy
+  write (6,"(A38,F25.12)") "TOTAL POTENTIAL ENERGY    = ", potentialEnergy
   write (6,"(T10,A50)") "_____________________"
-  write (6,"(A38,F20.12)") "TOTAL ENERGY = ", MultiSCF_instance%totalEnergy             
+  write (6,"(A38,F25.12)") "TOTAL ENERGY = ", MultiSCF_instance%totalEnergy             
   write(*,*) ""
-  write (6,"(A38,F20.12)") "VIRIAL RATIO (V/T) = ", - ( potentialEnergy / totalKineticEnergy)
+  write (6,"(A38,F25.12)") "VIRIAL RATIO (V/T) = ", - ( potentialEnergy / totalKineticEnergy)
   write(*,*) ""
   write(*,*) ""
   write(*,*) " END ENERGY COMPONENTS"

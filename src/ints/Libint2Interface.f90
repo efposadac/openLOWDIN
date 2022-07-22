@@ -315,8 +315,8 @@ contains
     type(Libint2Interface) :: this
     integer :: speciesID
 
-    type(Particle) :: particle_tmp
-    type(ContractedGaussian) :: contraction_tmp
+    ! type(Particle) :: particle_tmp
+    ! type(ContractedGaussian) :: contraction_tmp
     type(c_ptr) :: origin_ptr, alpha_ptr, coeff_ptr
 
     real(8), target :: origin(3)
@@ -324,37 +324,41 @@ contains
 
     integer :: p, c
 
+    if (this%isInstanced) call Libint2Interface_destructor(this)
+
     ! Create Libint object
     this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID, &
-                  MolecularSystem_instance%species(speciesID)%isElectron)
+         MolecularSystem_instance%species(speciesID)%isElectron)
 
-    ! Iterate over particles
+    ! ! Iterate over particles
     do p = 1, size(MolecularSystem_instance%species(speciesID)%particles)
-       particle_tmp = MolecularSystem_instance%species(speciesID)%particles(p)
+       ! particle_tmp = MolecularSystem_instance%species(speciesID)%particles(p)
 
        ! Add particle to the object
-       origin = particle_tmp%origin
+       origin = MolecularSystem_instance%species(speciesID)%particles(p)%origin
        origin_ptr = c_loc(origin(1))
 
-       call c_LibintInterface_addParticle(this%this, int(-particle_tmp%totalCharge), origin_ptr)
+       call c_LibintInterface_addParticle(this%this, int(-MolecularSystem_instance%species(speciesID)%particles(p)%totalCharge), origin_ptr)
 
        ! Add basis-set to the object
-       do c = 1, size(particle_tmp%basis%contraction)
-          contraction_tmp = particle_tmp%basis%contraction(c)
+       do c = 1, size(MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction)
+          ! contraction_tmp = particle_tmp%basis%contraction(c)
 
-          allocate(exponents(contraction_tmp%length))
-          exponents = contraction_tmp%orbitalExponents 
+          allocate(exponents(MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction(c)%length))
+          exponents = MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction(c)%orbitalExponents 
           alpha_ptr = c_loc(exponents(1))
 
-          allocate(coefficients(contraction_tmp%length))
-          coefficients = contraction_tmp%contractionCoefficients
+          allocate(coefficients(MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction(c)%length))
+          coefficients = MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction(c)%contractionCoefficients
           coeff_ptr = c_loc(coefficients(1))
 
-          origin = contraction_tmp%origin
+          origin = MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction(c)%origin
           origin_ptr = c_loc(origin(1))
 
           call c_LibintInterface_addShell(&
-               this%this, alpha_ptr, coeff_ptr, origin_ptr, contraction_tmp%angularMoment, contraction_tmp%length &
+               this%this, alpha_ptr, coeff_ptr, origin_ptr, &
+               MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction(c)%angularMoment, &
+               MolecularSystem_instance%species(speciesID)%particles(p)%basis%contraction(c)%length &
                ) 
 
           deallocate(exponents)
@@ -362,7 +366,6 @@ contains
 
        end do
     end do
-
     this%isInstanced = .true.
 
   end subroutine Libint2Interface_constructor
@@ -472,8 +475,8 @@ contains
     implicit none
 
     integer :: speciesID
-    real(8), allocatable, target :: density(:,:)
-    real(8), allocatable, target :: coefficients(:,:)
+    real(8), target :: density(:,:)
+    real(8), target :: coefficients(:,:)
     real(8), allocatable, target :: matrixA(:,:,:)
     integer :: p
 
@@ -482,7 +485,7 @@ contains
     type(c_ptr) :: matrixA_ptr
 
     integer :: nspecies
-    
+   
     nspecies = size(MolecularSystem_instance%species)
     if (.not. allocated(Libint2Instance)) then
        allocate(Libint2Instance(nspecies))  
@@ -500,13 +503,11 @@ contains
     density_ptr = c_loc(density(1,1))
 
     ! Initialize libint objects
-    if (.not. Libint2Instance(speciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
-    end if
+    if (.not. Libint2Instance(speciesID)%isInstanced) call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
 
     call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
     call c_LibintInterface_compute2BodyDirectIT(Libint2Instance(speciesID)%this, density_ptr, coefficients_ptr, matrixA_ptr, p)
-    
+
   end subroutine Libint2Interface_compute2BodyIntraspecies_direct_IT
 
   !>
@@ -595,11 +596,11 @@ contains
     ! Initialize libint objects
     if (.not. Libint2Instance(speciesID)%isInstanced) then
        call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
-    endif
+    end if
 
     if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
        call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
-    endif
+    end if
 
 
     call c_LibintInterface_computeCouplingDirect(&
@@ -612,8 +613,8 @@ contains
 
     integer :: speciesID
     integer :: otherSpeciesID
-    real(8), allocatable, target :: density(:,:)
-    real(8), allocatable, target :: coefficients(:,:)
+    real(8), target :: density(:,:)
+    real(8), target :: coefficients(:,:)
     real(8), allocatable, target :: coupling(:,:,:)
     integer :: p
 
@@ -640,14 +641,9 @@ contains
     density_ptr = c_loc(density(1,1))
 
     ! Initialize libint objects
-    if (.not. Libint2Instance(speciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
-    endif
+    if (.not. Libint2Instance(speciesID)%isInstanced) call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
 
-    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
-    endif
-
+    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
 
     call c_LibintInterface_computeCouplingDirectIT(&
          Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coefficients_ptr, coupling_ptr, p)
@@ -693,11 +689,11 @@ contains
     ! Initialize libint objects
     if (.not. Libint2Instance(speciesID)%isInstanced) then
        call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
-    endif
+    end if
 
     if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
        call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), otherSpeciesID)
-    endif
+    end if
 
 
     call c_LibintInterface_computeAlphaBetaDirect(&
