@@ -55,8 +55,8 @@ module OutputBuilder_
   type, public :: OutputBuilder
      character(50) :: type
      character(50) :: species
-     character(50),allocatable :: fileName(:)
-     character(50) :: fileName2
+     character(100),allocatable :: fileName(:)
+     character(100) :: fileName2
      integer :: state
      integer :: orbital
      integer :: dimensions
@@ -341,7 +341,7 @@ contains
     type(Vector),allocatable :: fractionalOccupations(:,:)
     character(10),allocatable :: labels(:)
     integer :: wfnUnit, occupationsUnit
-    character(50) :: wfnFile, occupationsFile, fileName
+    character(100) :: wfnFile, occupationsFile, fileName
     integer :: numberOfContractions
     character(50) :: arguments(2)
     integer :: counter, auxcounter
@@ -617,7 +617,7 @@ contains
     type(Matrix) :: coefficientsOfcombination
     character(10),allocatable :: labels(:)
     integer :: wfnUnit
-    character(50) :: wfnFile
+    character(100) :: wfnFile
     integer :: numberOfContractions
     character(50) :: arguments(2)
     character(19) , allocatable :: labelsOfContractions(:)
@@ -1243,7 +1243,7 @@ contains
     type(Matrix) :: coefficientsOfcombination
     character(10),allocatable :: labels(:)
     integer :: wfnUnit
-    character(50) :: wfnFile
+    character(100) :: wfnFile
     integer :: numberOfContractions
     character(50) :: arguments(2)
     character(19) , allocatable :: labelsOfContractions(:)
@@ -1325,7 +1325,7 @@ contains
     character(10),allocatable :: labels(:)
 
     integer :: wfnUnit, occupationsUnit
-    character(50) :: wfnFile, occupationsFile, fileName
+    character(100) :: wfnFile, occupationsFile, fileName
     integer :: numberOfBetaElectrons
     integer :: numberOfPrimitives
     integer :: numberOfContractions
@@ -1710,10 +1710,10 @@ contains
     type(OutputBuilder) :: this
     type(MolecularSystem) :: MolecularSystemInstance
     character(50) :: auxString
-    character(50) :: initialSettingsFile
-    character(50) :: moldenFileName
+    character(100) :: initialSettingsFile
+    character(100) :: moldenFileName
     integer :: l
-    character(50) :: wfnFile
+    character(100) :: wfnFile
     character(2) :: wfnStatus, wfxStatus, nboStatus
     character(10) :: extension
     character(50) :: arguments(2)
@@ -2022,7 +2022,7 @@ contains
     integer :: numberOfOrbitals
     type(matrix) :: densityMatrix
 
-    character(50) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
+    character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
     logical :: existFile
 
     !Writes Gaussian Cube 
@@ -2145,7 +2145,7 @@ contains
      real(8) :: val, maxValue, minValue
      real(8) :: coordinate(3), plotDistance1, plotDistance2
 
-     character(50) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
+     character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
      character(50) :: title, x_title, y_title, z_title
      logical :: existFile
 

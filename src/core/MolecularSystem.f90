@@ -508,14 +508,19 @@ contains
 
   !>
   !! @brief Muestra una matriz cartesianas de las particulas del sistema
-  subroutine MolecularSystem_showCartesianMatrix(fragmentNumber)
+  subroutine MolecularSystem_showCartesianMatrix(fragmentNumber,unit)
     implicit none
     integer,optional :: fragmentNumber
+    integer,optional :: unit
     
-    integer :: i, j
+    integer :: i, j, outUnit
     real(8) :: origin(3)
+
+    outUnit=6
+    if(present(unit)) outUnit=unit
+
     
-    write (6,"(A10,A16,A20,A20)") " ","<x>","<y>","<z>"
+    write (outUnit,"(A10,A16,A20,A20)") " ","<x>","<y>","<z>"
     
     !! Print quatum species information
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
@@ -530,10 +535,10 @@ contains
           if(present(fragmentNumber) .and. (MolecularSystem_instance%species(i)%particles(j)%subsystem .ne. fragmentNumber )) cycle
           
           if(MolecularSystem_instance%species(i)%isElectron) then
-             write (6,"(A10,3F20.10)") trim( MolecularSystem_instance%species(i)%particles(j)%symbol )//trim(MolecularSystem_instance%species(i)%particles(j)%nickname),&
+             write (outUnit,"(A10,3F20.10)") trim( MolecularSystem_instance%species(i)%particles(j)%symbol )//trim(MolecularSystem_instance%species(i)%particles(j)%nickname),&
                   origin(1), origin(2), origin(3)
           else
-             write (6,"(A10,3F20.10)") trim(MolecularSystem_instance%species(i)%particles(j)%nickname), origin(1), origin(2), origin(3)
+             write (outUnit,"(A10,3F20.10)") trim(MolecularSystem_instance%species(i)%particles(j)%nickname), origin(1), origin(2), origin(3)
           end if
           
        end do
@@ -543,11 +548,9 @@ contains
     do i = 1, MolecularSystem_instance%numberOfPointCharges
        
        origin = MolecularSystem_instance%pointCharges(i)%origin * AMSTRONG
-       write (6,"(A10,3F20.10)") trim(MolecularSystem_instance%pointCharges(i)%nickname), origin(1), origin(2), origin(3)
+       write (outUnit,"(A10,3F20.10)") trim(MolecularSystem_instance%pointCharges(i)%nickname), origin(1), origin(2), origin(3)
        
     end do
-    
-    print *," "
     
   end subroutine MolecularSystem_showCartesianMatrix
 

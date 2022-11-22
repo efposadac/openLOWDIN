@@ -59,7 +59,10 @@ module NonOrthogonalCI_
   type, public :: NonOrthogonalCI
      logical :: isInstanced
      integer :: numberOfDisplacedSystems
-     integer :: numberOfRejectedSystems
+     integer :: numberOfEnergyRejectedSystems
+     integer :: numberOfEllipsoidRejectedSystems
+     integer :: numberOfNPdistanceRejectedSystems
+     integer :: numberOfEquivalentSystems
      integer :: numberOfTransformedCenters
      integer :: numberOfIndividualTransformations
      integer :: numberOfUniqueSystems !sort of symmetry
@@ -109,7 +112,9 @@ contains
     print *, ""
     this%isInstanced=.true.
     this%numberOfDisplacedSystems=0
-    this%numberOfRejectedSystems=0
+    this%numberOfEnergyRejectedSystems=0
+    this%numberOfEllipsoidRejectedSystems=0
+    this%numberOfNPdistanceRejectedSystems=0
     this%numberOfUniqueSystems=0
     this%numberOfUniquePairs=0
 
@@ -193,11 +198,10 @@ contains
 
     end if
 
-    !The size here is an upper bound
-    allocate(this%MolecularSystems(this%numberOfIndividualTransformations**this%numberOfTransformedCenters), &
-         this%systemLabels(this%numberOfIndividualTransformations**this%numberOfTransformedCenters))
+    !!Dynamically allocated through the displacement routine
+    allocate(this%MolecularSystems(0))
 
-    call Vector_constructorInteger(this%systemTypes,this%numberOfIndividualTransformations**this%numberOfTransformedCenters,0)
+    ! call Vector_constructorInteger(this%systemTypes,this%numberOfIndividualTransformations**this%numberOfTransformedCenters,0)
     
   end subroutine NonOrthogonalCI_constructor
   !>
@@ -212,10 +216,10 @@ contains
     type(MolecularSystem) :: originalMolecularSystem
     real(8) :: displacement
     real(8) :: testEnergy
-    character(50) :: wfnFile, molFile
+    character(100) :: wfnFile, molFile, coordsFile
     character(50) :: arguments(2)
     integer, allocatable :: transformationCounter(:)
-    integer :: wfnUnit
+    integer :: wfnUnit, coordsUnit
     integer :: i,j
     integer :: sysI, speciesID
     integer :: closestSystem
@@ -240,71 +244,20 @@ contains
     allocate(transformationCounter(this%numberOfTransformedCenters))
 
     transformationCounter(1:this%numberOfTransformedCenters)=1
+    transformationCounter(1)=0
 
     this%numberOfDisplacedSystems=0
+
+    coordsUnit=333
+    coordsFile=trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords"
+
+    print *, "generating NOCI displaced geometries and HF wavefunctions... saving coords to ", trim(coordsFile)
+
+    open(unit=coordsUnit, file=trim(coordsFile), status="replace", form="formatted")
 
 !!!!! clock type iterations to form all the possible combination of modified geometries
     do while (.true.)
 
-       !Apply the transformation given by transformationCounter to each center, the result is saved in molecularSystemInstance
-       call NonOrthogonalCI_transformCoordinates(this,transformationCounter(1:this%numberOfTransformedCenters),originalMolecularSystem,displacement)       
-       write (*,"(A,A)") "Transformation counter: ", MolecularSystem_instance%description
-
-       call MolecularSystem_showCartesianMatrix()
-
-       skip=.false.
-       
-       !Classify the system according to its distance matrix (symmetry) 
-       if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY .eqv. .true.) &
-            call NonOrthogonalCI_classifyNewSystem(this,systemType, newSystemFlag) 
-
-       !Check if the new system is not beyond the max displacement
-       if(displacement .gt. CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD .and.&
-            CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD .gt. 0.0 ) then
-          print *, " Skipping system with displacement ", displacement , "a.u. from the reference system "
-          skip=.true.
-          this%numberOfRejectedSystems=this%numberOfRejectedSystems+1                      
-       end if
-       
-       !Check if the new system is not to close to previous calculated systems - duplicate protection
-       call NonOrthogonalCI_checkNewSystemDisplacement(this,closestSystem,displacement) 
-       
-       if(displacement .lt. CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE ) then
-          print *, " Skipping system with distance ", displacement , "a.u. from system ", closestSystem
-          skip=.true.
-          this%numberOfRejectedSystems=this%numberOfRejectedSystems+1                      
-       end if
-
-       if(skip .eqv. .false.) then
-!!!Run a HF calculation at each displaced geometry 
-          call MolecularSystem_saveToFile()          
-          call NonOrthogonalCI_runHF(testEnergy)
-
-          !!Screen geometries with high energies
-          if( CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD .ne. 0.0 .and. &
-               testEnergy .gt. this%refEnergy+CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD) then
-             print *, " Skipping system with high energy", testEnergy
-             this%numberOfRejectedSystems=this%numberOfRejectedSystems+1                      
-          else
-             this%numberOfDisplacedSystems=this%numberOfDisplacedSystems+1
-             if(newSystemFlag) then
-                this%numberOfUniqueSystems=this%numberOfUniqueSystems+1
-                this%systemTypes%values(this%numberOfDisplacedSystems)=this%numberOfUniqueSystems
-             else
-                this%systemTypes%values(this%numberOfDisplacedSystems)=systemType
-             end if
-
-             if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY .eqv. .true.) then
-                write (*,"(A,I5,A,I10,A,F20.12)") "Saving system of type ",  this%systemTypes%values(this%numberOfDisplacedSystems) , &
-                     " with ID ", this%numberOfDisplacedSystems, " and energy", testEnergy
-             else
-                write (*,"(A,I10,A,F20.12)") "Saving system with ID ", this%numberOfDisplacedSystems, " and energy", testEnergy
-             end if
-             !!Copy the molecular system to the NonOrthogonalCI object
-             call NonOrthogonalCI_saveSystem(this,this%numberOfDisplacedSystems)
-          end if
-       end if
-       
        !Determine the next movement like a clock iteration
        transformationCounter(1)=transformationCounter(1)+1
        do i=1,this%numberOfTransformedCenters-1
@@ -315,17 +268,99 @@ contains
           end if
        end do
        if(transformationCounter(this%numberOfTransformedCenters) .gt. this%numberOfIndividualTransformations) exit
+
+       skip=.false.
+       !Apply the transformation given by transformationCounter to each center, the result is saved in molecularSystemInstance
+       call NonOrthogonalCI_transformCoordinates(this,transformationCounter(1:this%numberOfTransformedCenters),originalMolecularSystem,skip)       
+
+       write (coordsUnit,"(A,A)") "Transformation counter: ", MolecularSystem_instance%description
+
+       call MolecularSystem_showCartesianMatrix(unit=coordsUnit)
+       
+       !Classify the system according to its distance matrix (symmetry) 
+       if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY .eqv. .true.) &
+            call NonOrthogonalCI_classifyNewSystem(this,systemType, newSystemFlag) 
+
+       !Check if the new system is not beyond the max displacement
+       if(skip) then
+          write (coordsUnit,"(A)") "Skipping system beyond the ellipsoids boundaries"
+          this%numberOfEllipsoidRejectedSystems=this%numberOfEllipsoidRejectedSystems+1                      
+          cycle
+       end if
+
+       !Check if the separation between positive and negative particles is not too big
+       call NonOrthogonalCI_checkNegativePositiveDistance(MolecularSystem_instance,displacement,skip)
+
+       if(skip) then
+          write (coordsUnit,"(A,F20.12)") "Skipping system with large positive and negative particle separation", displacement
+          this%numberOfNPdistanceRejectedSystems=this%numberOfNPdistanceRejectedSystems+1                      
+          cycle
+       end if
+
+       !Check if the new system is not to close to previous calculated systems - duplicate protection
+       call NonOrthogonalCI_checkNewSystemDisplacement(this,closestSystem,displacement) 
+       
+       if(displacement .lt. CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE ) then
+          write (coordsUnit,"(A,F20.12,A,I10)") "Skipping system with distance ", displacement , "a.u. from system ", closestSystem
+          skip=.true.
+          this%numberOfEquivalentSystems=this%numberOfEquivalentSystems+1                      
+          cycle
+       end if
+
+       if(skip .eqv. .false.) then
+!!!Run a HF calculation at each displaced geometry 
+          call MolecularSystem_saveToFile()          
+          call NonOrthogonalCI_runHF(testEnergy)
+
+          !!Screen geometries with high energies
+          if( CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD .ne. 0.0 .and. &
+               testEnergy .gt. this%refEnergy+CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD) then
+             write (coordsUnit,"(A,F20.12)") "Skipping system with high energy", testEnergy
+             this%numberOfEnergyRejectedSystems=this%numberOfEnergyRejectedSystems+1                      
+          else
+             !!Copy the molecular system to the NonOrthogonalCI object
+             call NonOrthogonalCI_saveSystem(this)
+             ! if(newSystemFlag) then
+             !    this%numberOfUniqueSystems=this%numberOfUniqueSystems+1
+             !    this%systemTypes%values(this%numberOfDisplacedSystems)=this%numberOfUniqueSystems
+             ! else
+             !    this%systemTypes%values(this%numberOfDisplacedSystems)=systemType
+             ! end if
+
+             ! if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY .eqv. .true.) then
+             !    write (coordsUnit,"(A,I5,A,I10,A,F20.12)") "Saving system of type ",  this%systemTypes%values(this%numberOfDisplacedSystems) , &
+             !         " with ID ", this%numberOfDisplacedSystems, " and energy", testEnergy
+             ! else
+             write (coordsUnit,"(A,I10,A,F20.12)") "Saving system with ID ", this%numberOfDisplacedSystems, " and energy", testEnergy
+             ! end if
+          end if
+       end if
     end do
+
+    close(coordsUnit)
 
     print *, ""
     write (*,'(A10,I10,A)') "Mixing ", this%numberOfDisplacedSystems, " HF calculations at different geometries"
-    if(this%numberOfRejectedSystems .gt. 0) &
-         write (*,'(A10,I10,A,F18.12,A,F18.12)') "Rejected ", this%numberOfRejectedSystems, &
-         " geometries with energy higher than", this%refEnergy+CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD, &     
-         " or with displacement higher than", CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD
+    if(this%numberOfEnergyRejectedSystems .gt. 0) &
+         write (*,'(A10,I10,A,F18.12)') "Rejected ", this%numberOfEnergyRejectedSystems, &
+         " geometries with energy higher than", this%refEnergy+CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD
+
+    if(this%numberOfEllipsoidRejectedSystems .gt. 0) &
+         write (*,'(A10,I10,A)') "Rejected ", this%numberOfEllipsoidRejectedSystems, &
+         " geometries outside the ellipsoids area"
+
+    if(this%numberOfNPdistanceRejectedSystems .gt. 0) &
+         write (*,'(A10,I10,A,F18.12)') "Rejected ", this%numberOfNPdistanceRejectedSystems, &
+         " geometries with separation between positive and negative basis sets larger than", CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE
+
+    if(this%numberOfEquivalentSystems .gt. 0) &
+         write (*,'(A10,I10,A)') "Rejected ", this%numberOfEquivalentSystems, &
+         " duplicated geometries after permutations"
+    
     print *, ""
     
     allocate(this%HFCoefficients(this%numberOfDisplacedSystems,molecularSystem_instance%numberOfQuantumSpecies))
+    allocate(this%systemLabels(this%numberOfDisplacedSystems))
     call Matrix_constructor(this%configurationHamiltonianMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
     call Matrix_constructor(this%configurationOverlapMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 1.0_8)
     if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY .eqv. .true.) &
@@ -366,22 +401,22 @@ contains
   !! @brief Apply the transformation (translation or rotation) given by transformationCounter to each center, based in the originalMolecularSystemPositions the result is saved in molecularSystemInstance 
   !! @param this,transformationCounter,originalMolecularSystem
   !<
-  subroutine NonOrthogonalCI_transformCoordinates(this,transformationCounter,originalMolecularSystem,maxDisplacement)
+  subroutine NonOrthogonalCI_transformCoordinates(this,transformationCounter,originalMolecularSystem,skip)
     type(NonOrthogonalCI) :: this
     integer :: transformationCounter(*)
     type(MolecularSystem) :: originalMolecularSystem
-    real(8), intent(out) :: maxDisplacement
+    logical, intent(out) :: skip
 
-    real(8) :: centerX, centerY, centerZ, displacedOrigin(3), distanceToCenter
+    real(8) :: centerX, centerY, centerZ, displacedOrigin(3), distanceCheck, distanceToCenter
     integer :: center, displacementId
     real(8),allocatable :: X(:), Y(:), Z(:), W(:)
     integer :: i,j,k,p,q,mu
-
-    maxDisplacement=0.0
+    
+    skip=.false.
     
     MolecularSystem_instance%description=""
     do i=1,this%numberOfTransformedCenters
-       write(MolecularSystem_instance%description, '(A,I3)') trim(MolecularSystem_instance%description), transformationCounter(i)
+       write(MolecularSystem_instance%description, '(A,I6)') trim(MolecularSystem_instance%description), transformationCounter(i)
     end do
 
     particleManager_instance => MolecularSystem_instance%allParticles
@@ -410,16 +445,35 @@ contains
 
                       if(displacementId .eq. transformationCounter(center) ) then
 
+                         distanceCheck= &
+                              (CONTROL_instance%TRANSLATION_STEP*((i+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0))**2/&
+                              CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT(1)**2+&
+                              (CONTROL_instance%TRANSLATION_STEP*((j+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0))**2/&
+                              CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT(2)**2+&
+                              (CONTROL_instance%TRANSLATION_STEP*((k+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0))**2/&
+                              CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT(3)**2
+
+                         if(distanceCheck .gt. 1.0) then
+                            skip=.true.
+                            ! return
+                         end if
+                         
+                         distanceCheck= &
+                              (CONTROL_instance%TRANSLATION_STEP*((i+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0))**2/&
+                              CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(1)**2+&
+                              (CONTROL_instance%TRANSLATION_STEP*((j+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0))**2/&
+                              CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(2)**2+&
+                              (CONTROL_instance%TRANSLATION_STEP*((k+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0))**2/&
+                              CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(3)**2
+
+                         if(distanceCheck .lt. 1.0) then
+                            skip=.true.
+                            ! return
+                         end if
+
                          displacedOrigin(1)=centerX+CONTROL_instance%TRANSLATION_STEP*((i+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0)
                          displacedOrigin(2)=centerY+CONTROL_instance%TRANSLATION_STEP*((j+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0)
                          displacedOrigin(3)=centerZ+CONTROL_instance%TRANSLATION_STEP*((k+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0)
-
-                         distanceToCenter=sqrt( &
-                              (CONTROL_instance%TRANSLATION_STEP*((i+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(1)+1)/2.0))**2 +&
-                              (CONTROL_instance%TRANSLATION_STEP*((j+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(2)+1)/2.0))**2 +&
-                              (CONTROL_instance%TRANSLATION_STEP*((k+1)/2.0-(CONTROL_instance%TRANSLATION_SCAN_GRID(3)+1)/2.0))**2)
-
-                         if(distanceToCenter.gt.maxDisplacement) maxDisplacement=distanceToCenter
                          
                          do p=1, size(MolecularSystem_instance%allParticles)
                             if(center.eq.MolecularSystem_instance%allParticles(p)%particlePtr%translationCenter) then
@@ -524,7 +578,7 @@ contains
           dispSum=dispSum+sum(displacementVector(i)%values(:))
        end do
        if(dispSum/molecularSystem_instance%numberOfQuantumSpecies &
-            .lt. CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD ) then
+            .lt. CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE ) then
           displacement=dispSum/molecularSystem_instance%numberOfQuantumSpecies
           closestSystem=sysI
           exit
@@ -535,6 +589,42 @@ contains
     
   end subroutine NonOrthogonalCI_checkNewSystemDisplacement
 
+
+  !>
+  !! @brief Finds the maximum of the distances between the basis set center of a particle to its closest neighbour with opposite charge
+  !!
+  !! @param this, output: closestSystem: ID of previous system closest to the new one, displacement: sum of the distances between particles 
+  !<
+  subroutine NonOrthogonalCI_checkNegativePositiveDistance(molSys,minNPDistance,skip) 
+    implicit none
+    type(MolecularSystem) :: molSys
+    real(8) :: minNPDistance
+    logical :: skip
+
+    integer :: p,q
+    real(8) :: npDistance
+    
+
+    minNPDistance=1E8
+    do p=1, size(molSys%allParticles)-1
+       if(molSys%allParticles(p)%particlePtr%translationCenter .ne. 0 .or. &
+            molSys%allParticles(p)%particlePtr%rotateAround .ne. 0) then
+          do q=p+1, size(molSys%allParticles)
+             if( molSys%allParticles(p)%particlePtr%charge*molSys%allParticles(q)%particlePtr%charge .lt. 0.0 ) then
+                npDistance=sqrt(&
+                     (molSys%allParticles(p)%particlePtr%origin(1)-molSys%allParticles(q)%particlePtr%origin(1))**2+&
+                     (molSys%allParticles(p)%particlePtr%origin(2)-molSys%allParticles(q)%particlePtr%origin(2))**2+&
+                     (molSys%allParticles(p)%particlePtr%origin(3)-molSys%allParticles(q)%particlePtr%origin(3))**2)
+                if(npDistance .lt. minNPDistance) minNPDistance=npDistance
+             end if
+          end do
+       end if
+    end do
+
+    if(minNPDistance .gt. CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE) skip=.true.
+    
+  end subroutine NonOrthogonalCI_checkNegativePositiveDistance
+  
   !>
   !! @brief Classify the new system by comparing its distance matrix to previosly saved systems
   !!
@@ -642,19 +732,38 @@ contains
   
   ! @param systemID
   ! <
-  subroutine NonOrthogonalCI_saveSystem(this,systemID)
+  subroutine NonOrthogonalCI_saveSystem(this)
     implicit none
     type(NonOrthogonalCI) :: this
-    integer :: systemID
-    character(50) :: wfnFile, molFile, auxString
+
+    type(MolecularSystem), allocatable :: tempMolecularSystems(:)
+    integer :: i
+    character(100) :: wfnFile, molFile, auxString
     integer :: wfnUnit
-    
+
+    !!Increase the size of the molecular systems array by 1
+    this%numberOfDisplacedSystems=this%numberOfDisplacedSystems+1
+
+    allocate(tempMolecularSystems(size(this%MolecularSystems)))
+
+    do i=1, size(this%MolecularSystems)
+       call MolecularSystem_copyConstructor(tempMolecularSystems(i),this%MolecularSystems(i))
+    end do
+
+    deallocate(this%MolecularSystems)
+    allocate(this%MolecularSystems(this%numberOfDisplacedSystems))
+
+    do i=1, size(tempMolecularSystems)
+       call MolecularSystem_copyConstructor(this%MolecularSystems(i),tempMolecularSystems(i))    
+    end do
+
+    deallocate(tempMolecularSystems)
     !!Copy the molecular system to the NonOrthogonalCI object
-    call MolecularSystem_copyConstructor(this%MolecularSystems(systemID), molecularSystem_instance)    
+
+    call MolecularSystem_copyConstructor(this%MolecularSystems(this%numberOfDisplacedSystems), molecularSystem_instance)    
     
     !!Save the molecular system and WF results to separate files for each geometry     
-
-    write(auxString, '(I16)') systemID
+    write(auxString, '(I16)') this%numberOfDisplacedSystems
     wfnFile="lowdin-"//trim(adjustl(auxString))//".wfn"
     call system("cp lowdin.wfn "//wfnFile)
     ! molFile="LOWDIN-"//trim(adjustl(auxString))
@@ -679,7 +788,7 @@ contains
     logical :: newPairFlag
 
     integer :: matrixUnit
-    character(50) :: matrixFile
+    character(100) :: matrixFile
     
     real(8) :: timePrescreen, timeSymmetry, timeOverlap, timeTwoIntegrals
     real(8) :: timeA
@@ -877,7 +986,7 @@ contains
     type(IVector), intent(in) :: sysIbasisList(*), sysIIbasisList(*)
     type(Matrix), intent(out) :: mergedCoefficients(*)
     
-    character(50) :: wfnFile
+    character(100) :: wfnFile
     character(50) :: arguments(2)
     integer :: wfnUnit
     integer :: speciesID, i, j, k, l, m, mu, nu, notCommonBasis
@@ -1113,7 +1222,7 @@ contains
     type(IVector) :: sysIbasisList(*), sysIIbasisList(*)
 
     integer :: integralsUnit
-    character(50) :: integralsFile    
+    character(100) :: integralsFile    
     character(50) :: arguments(2)
     integer :: speciesID
     integer :: a,b,bb,mu,nu    
@@ -1672,9 +1781,9 @@ contains
     integer :: a,b,g,i,ii,j,jj,k,p,mu,nu, sysI, sysII, speciesID
 
     integer :: integralsUnit, densUnit
-    character(50) :: integralsFile, densFile
+    character(100) :: integralsFile, densFile
     character(50) :: arguments(2), auxString
-    character(50) :: molFileI, outFile
+    character(100) :: molFileI, outFile
     integer :: wfnUnit,wfnUnitI,wfnUnitII,outUnit
     real(8) :: timeA
     real(8) :: timeB
@@ -1892,6 +2001,7 @@ contains
           !       mergedDensityMatrix(state,speciesID)%values(nu,mu) = mergedDensityMatrix(state,speciesID)%values(mu,nu)  
           !    end do
           ! end do
+          ! print *, "mergedDensityMatrix", state, trim( MolecularSystem_instance%species(speciesID)%name )
           ! call Matrix_show(mergedDensityMatrix(state,speciesID))
 
        end do
