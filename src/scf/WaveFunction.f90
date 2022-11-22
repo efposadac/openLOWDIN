@@ -1430,6 +1430,12 @@ contains
     
     
     if (  CONTROL_instance%DEBUG_SCFS) then
+       do otherSpeciesID = initialSpeciesIteratorSelected, numberOfSpecies
+          if ( otherSpeciesID /= currentSpeciesID ) then
+             write(*,*) "Hartree Matrix for: ", trim(nameOfSpeciesSelected), MolecularSystem_getNameOfSpecie( otherSpeciesID )          
+             call Matrix_show( wavefunction_instance(currentSpeciesID)%hartreeMatrix(otherSpeciesID) )
+          end if
+       end do
        write(*,*) "Coupling Matrix: ", trim(nameOfSpeciesSelected)
        call Matrix_show( wavefunction_instance(currentSpeciesID)%couplingMatrix )
     end if

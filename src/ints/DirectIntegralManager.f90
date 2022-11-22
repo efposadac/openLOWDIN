@@ -949,9 +949,9 @@ contains
          end if
        end do
 
-       write(30) job
+       ! write(30) job
        speciesName = MolecularSystem_instance%species(f)%name
-       write(30) speciesName
+       ! write(30) speciesName
 
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))

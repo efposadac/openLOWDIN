@@ -220,7 +220,9 @@ module CONTROL_
      real(8) :: NESTED_GRIDS_DISPLACEMENT
      real(8) :: CONFIGURATION_ENERGY_THRESHOLD
      real(8) :: CONFIGURATION_OVERLAP_THRESHOLD
-     real(8) :: CONFIGURATION_DISPLACEMENT_THRESHOLD
+     real(8) :: CONFIGURATION_MAX_DISPLACEMENT(3)
+     real(8) :: CONFIGURATION_MIN_DISPLACEMENT(3)
+     real(8) :: CONFIGURATION_MAX_NP_DISTANCE
      real(8) :: CONFIGURATION_EQUIVALENCE_DISTANCE
      logical :: CONFIGURATION_USE_SYMMETRY
      
@@ -552,7 +554,9 @@ module CONTROL_
   real(8) :: LowdinParameters_nestedGridsDisplacement
   real(8) :: LowdinParameters_configurationEnergyThreshold
   real(8) :: LowdinParameters_configurationOverlapThreshold
-  real(8) :: LowdinParameters_configurationDisplacementThreshold
+  real(8) :: LowdinParameters_configurationMaxDisplacement(3)
+  real(8) :: LowdinParameters_configurationMinDisplacement(3)
+  real(8) :: LowdinParameters_configurationMaxNPDistance
   real(8) :: LowdinParameters_configurationEquivalenceDistance
   logical :: LowdinParameters_configurationUseSymmetry
   
@@ -884,7 +888,9 @@ module CONTROL_
        LowdinParameters_nestedGridsDisplacement,&
        LowdinParameters_configurationEnergyThreshold,&
        LowdinParameters_configurationOverlapThreshold,&
-       LowdinParameters_configurationDisplacementThreshold,&       
+       LowdinParameters_configurationMinDisplacement,&       
+       LowdinParameters_configurationMaxDisplacement,&       
+       LowdinParameters_configurationMaxNPDistance,&
        LowdinParameters_configurationEquivalenceDistance,&
        LowdinParameters_configurationUseSymmetry,&
                                 !!***************************************************************************
@@ -1239,7 +1245,9 @@ contains
     LowdinParameters_nestedGridsDisplacement=0.0
     LowdinParameters_configurationEnergyThreshold=1.0
     LowdinParameters_configurationOverlapThreshold=1.0E-8
-    LowdinParameters_configurationDisplacementThreshold=0.0
+    LowdinParameters_configurationMaxDisplacement(:)=0.0
+    LowdinParameters_configurationMinDisplacement(:)=0.0
+    LowdinParameters_configurationMaxNPDistance=1.0E8
     LowdinParameters_configurationEquivalenceDistance=1.0E-8
     LowdinParameters_configurationUseSymmetry=.false.
     !!***************************************************************************
@@ -1570,7 +1578,9 @@ contains
     CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=0.0
     CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD=1.0
     CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD=1.0E-8
-    CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD=0.0
+    CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT(:)=0.0
+    CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(:)=0.0
+    CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE=1.0E8
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=1.0E-8
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
     !!***************************************************************************                                              
@@ -1942,12 +1952,13 @@ contains
     CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=LowdinParameters_nestedGridsDisplacement
     CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD=LowdinParameters_configurationEnergyThreshold
     CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD=LowdinParameters_configurationOverlapThreshold
-    if(LowdinParameters_configurationDisplacementThreshold.ne.0.0) then
-       CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD=LowdinParameters_configurationDisplacementThreshold
+    CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT=LowdinParameters_configurationMinDisplacement
+    if(sum(LowdinParameters_configurationMaxDisplacement).ne.0.0) then
+       CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT=LowdinParameters_configurationMaxDisplacement
     else
-       CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD=1.001*CONTROL_instance%TRANSLATION_STEP*max(&
-            CONTROL_instance%TRANSLATION_SCAN_GRID(1),CONTROL_instance%TRANSLATION_SCAN_GRID(2),CONTROL_instance%TRANSLATION_SCAN_GRID(3))/2
+       CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT=1.001*CONTROL_instance%TRANSLATION_STEP*CONTROL_instance%TRANSLATION_SCAN_GRID/2
     end if
+    CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE=LowdinParameters_configurationMaxNPDistance
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=LowdinParameters_configurationEquivalenceDistance
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=LowdinParameters_configurationUseSymmetry
 
@@ -2300,7 +2311,9 @@ contains
     LowdinParameters_nestedGridsDisplacement=CONTROL_instance%NESTED_GRIDS_DISPLACEMENT
     LowdinParameters_configurationEnergyThreshold=CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD
     LowdinParameters_configurationOverlapThreshold=CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
-    LowdinParameters_configurationDisplacementThreshold=CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD
+    LowdinParameters_configurationMaxDisplacement=CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT
+    LowdinParameters_configurationMinDisplacement=CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT
+    LowdinParameters_configurationMaxNPDistance=CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE
     LowdinParameters_configurationEquivalenceDistance=CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE
     LowdinParameters_configurationUseSymmetry=CONTROL_instance%CONFIGURATION_USE_SYMMETRY
     
@@ -2627,7 +2640,9 @@ contains
     otherThis%NESTED_GRIDS_DISPLACEMENT = this%NESTED_GRIDS_DISPLACEMENT
     otherThis%CONFIGURATION_ENERGY_THRESHOLD=this%CONFIGURATION_ENERGY_THRESHOLD
     otherThis%CONFIGURATION_OVERLAP_THRESHOLD=this%CONFIGURATION_OVERLAP_THRESHOLD
-    otherThis%CONFIGURATION_DISPLACEMENT_THRESHOLD=this%CONFIGURATION_DISPLACEMENT_THRESHOLD
+    otherThis%CONFIGURATION_MAX_DISPLACEMENT=this%CONFIGURATION_MAX_DISPLACEMENT
+    otherThis%CONFIGURATION_MIN_DISPLACEMENT=this%CONFIGURATION_MIN_DISPLACEMENT
+    otherThis%CONFIGURATION_MAX_NP_DISTANCE=this%CONFIGURATION_MAX_NP_DISTANCE
     otherThis%CONFIGURATION_EQUIVALENCE_DISTANCE=this%CONFIGURATION_EQUIVALENCE_DISTANCE
     otherThis%CONFIGURATION_USE_SYMMETRY=this%CONFIGURATION_USE_SYMMETRY
 
@@ -2852,8 +2867,10 @@ contains
        if(CONTROL_instance%UNITS .eq. "ANGS") then
           CONTROL_instance%TRANSLATION_STEP = CONTROL_instance%TRANSLATION_STEP / AMSTRONG
           CONTROL_instance%NESTED_GRIDS_DISPLACEMENT = CONTROL_instance%NESTED_GRIDS_DISPLACEMENT / AMSTRONG
-          CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD = CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT = CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT = CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT / AMSTRONG
           CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE = CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE = CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE / AMSTRONG
        end if
        
        if(sum(CONTROL_instance%TRANSLATION_SCAN_GRID) .gt. 0 ) then
@@ -2877,8 +2894,14 @@ contains
        if(CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD .gt. 0.0) &
             write (*,"(T10,A,ES15.5)") "SKIPPING HAMILTONIAN MATRIX ELEMENTS FROM CONFIGURATIONS WITH OVERLAP LOWER THAN ",  CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
 
-       if(CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD .gt. 0.0) &
-            write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH DISPLACEMENT HIGHER THAN ",  CONTROL_instance%CONFIGURATION_DISPLACEMENT_THRESHOLD,  " BOHRS", " FROM THE REFERENCE CENTER"
+       if(sum(CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT) .gt. 0.0) &
+            write (*,"(T10,A,3ES15.5,A10,A)") "SKIPPING GEOMETRIES OUTSIDE AN ELLIPSOID OF SEMI-AXES ",  CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT,  " BOHRS", " FROM THE REFERENCE CENTER"
+
+       if(sum(CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT) .gt. 0.0) &
+            write (*,"(T10,A,3ES15.5,A10,A)") "SKIPPING GEOMETRIES INSIDE AN ELLIPSOID OF SEMI-AXES ",  CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT,  " BOHRS", " FROM THE REFERENCE CENTER"
+
+       if(CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH SEPARATION BETWEEN POSITIVE AND NEGATIVE BASIS SET CENTERS HIGHER THAN ",  CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE, " BOHRS"
 
        if(CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE .gt. 0.0) &
             write (*,"(T10,A,ES15.5,A10,A)") "GEOMETRIES WITH DISTANCE MATRIX THAT DIFFER IN LESS THAN ",  CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE, " BOHRS", " WILL BE REGARDED AS EQUIVALENT"
