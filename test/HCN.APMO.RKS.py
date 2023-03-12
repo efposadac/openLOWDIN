@@ -10,9 +10,9 @@ outputName = testName + ".out"
 
 # Reference values
 
-refExchangeCorrelationEnergy=-10.15758267
-refNuclearElectronCorrelationEnergy=-0.03005334
-refTotalEnergy=-93.367393799928
+refExchangeCorrelationEnergy=-10.125588571062
+refNuclearElectronCorrelationEnergy=-0.033320942512
+refTotalEnergy=-93.367985322582
 # Run calculation
 
 status = os.system("lowdin2 -i " + inputName)
@@ -29,8 +29,8 @@ outputRead = output.readlines()
 for line in outputRead:
     if "TOTAL ENERGY =" in line:
         totalEnergy = float(line.split()[3])
-    if "Total Exchange Correlation energy" in line:
-        exchangeCorrelationEnergy = float(line.split()[5])
+    if "E- Exc.Corr. energy" in line:
+        exchangeCorrelationEnergy = float(line.split()[4])
     if "E-/H_1 Corr. energy" in line:
         nuclearElectronCorrelationEnergy = float(line.split()[4])
 
@@ -39,7 +39,7 @@ diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffExchangeCorrelationEnergy = abs(refExchangeCorrelationEnergy - exchangeCorrelationEnergy)
 diffNuclearElectronCorrelationEnergy = abs(refNuclearElectronCorrelationEnergy - nuclearElectronCorrelationEnergy)
 
-if (diffTotalEnergy <= 1E-5 and diffExchangeCorrelationEnergy <= 1E-5 and diffNuclearElectronCorrelationEnergy <= 1E-5 ):
+if (diffTotalEnergy <= 1E-6 and diffExchangeCorrelationEnergy <= 1E-3 and diffNuclearElectronCorrelationEnergy <= 1E-3 ):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

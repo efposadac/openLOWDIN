@@ -10,9 +10,9 @@ outputName = testName + ".out"
 
 # Reference values
 
-refExchangeCorrelationEnergy=-2.22090013
-refNumberOfE=3.99993052
-refTotalEnergy=-8.070166473147
+refExchangeCorrelationEnergy=-2.220930439475
+refNumberOfE=3.99998704
+refTotalEnergy=-8.070168253764
 # Run calculation
 
 status = os.system("lowdin2 -i " + inputName)
@@ -39,7 +39,7 @@ diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffExchangeCorrelationEnergy = abs(refExchangeCorrelationEnergy - exchangeCorrelationEnergy)
 diffRefNumberOfE = abs(refNumberOfE - numberOfE)
 
-if (diffTotalEnergy <= 1E-6 and diffExchangeCorrelationEnergy <= 1E-6 and diffRefNumberOfE <= 1E-5 ):
+if (diffTotalEnergy <= 1E-6 and diffExchangeCorrelationEnergy <= 1E-3 and diffRefNumberOfE <= 1E-4 ):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

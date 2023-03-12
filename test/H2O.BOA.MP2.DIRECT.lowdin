@@ -23,7 +23,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralStorage="direct"
+readCoefficients=F
+integralStorage="direct"
 	integralStackSize = 1024
 END CONTROL
 !OUTPUTS

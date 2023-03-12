@@ -242,6 +242,7 @@ contains
     real(8) :: levelShiftingFactor
     real(8) :: totalKineticEnergyA,totalKineticEnergyB, puntualInteractionEnergy
     real(8) :: totalQuantumPuntualInteractionEnergyA, totalQuantumPuntualInteractionEnergyB
+    real(8) :: totalExternalPotentialEnergyA, totalExternalPotentialEnergyB
     real(8) :: totalHartreeEnergyA, totalHartreeEnergyB, totalHartreeEnergyAB
     real(8) :: totalExchangeHFEnergyA, totalExchangeHFEnergyB, totalExchangeHFEnergyAB 
     real(8) :: totalExchangeCorrelationEnergyA, totalExchangeCorrelationEnergyB, totalExchangeCorrelationEnergyAB
@@ -690,7 +691,7 @@ contains
    
     !!Save density matrix B and run DFT for the subsystem B   
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-       call WaveFunction_writeDensityMatricesToFile(trim(densFileB),densityMatrixB(:))
+       call WaveFunction_writeDensityMatricesToFile(WaveFunction_instance,trim(densFileB),densityMatrixB(:))
        call system("lowdin-DFT.x SCF_DFT "//trim(densFileB))
     end if
 
@@ -700,7 +701,7 @@ contains
        
        nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
        !Only Coulomb (factor=0.0)
-       call WaveFunction_buildTwoParticlesMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+       call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
          densityMatrixIN=densityMatrixB(speciesID),&
          factorIN=0.0_8,&
          twoParticlesMatrixOUT=hartreeMatrixB(speciesID,speciesID) )
@@ -711,7 +712,7 @@ contains
        end if
 
        !Exchange-HF matrix with the HF fraction used in the global SCF calculation       
-       call WaveFunction_buildTwoParticlesMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+       call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
          densityMatrixIN=densityMatrixB(speciesID),&
          twoParticlesMatrixOUT=exchangeHFMatrixB(speciesID))
 
@@ -727,7 +728,7 @@ contains
           call Matrix_constructor (auxMatrix(otherSpeciesID), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
        end do
 
-       call WaveFunction_buildCouplingMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+       call WaveFunction_buildCouplingMatrix(WaveFunction_instance,speciesID,&
          densityMatricesIN=densityMatrixB(1:numberOfSpecies),&
          couplingMatrixOUT=couplingMatrixB(speciesID),&
          hartreeMatricesOUT=auxMatrix(1:numberOfSpecies)) 
@@ -745,11 +746,10 @@ contains
        
        auxEnergy(:)=0.0
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-          call WaveFunction_readExchangeCorrelationMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+          call WaveFunction_readExchangeCorrelationMatrix(WaveFunction_instance(speciesID),&
                excFileIN=trim(densFileB)//".exc",&
                exchangeCorrelationMatrixOUT=exchangeCorrelationMatrixB(speciesID),&
                exchangeCorrelationEnergyOUT=auxEnergy(1:numberOfSpecies),&
-
                particlesInGridOUT=particlesInGridB(speciesID) )
 
           if ( CONTROL_instance%DEBUG_SCFS ) then
@@ -801,8 +801,8 @@ contains
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
 
           !!Save density matrix A, A+B
-          call WaveFunction_writeDensityMatricesToFile(trim(densFileA),densityMatrixA(:))
-          call WaveFunction_writeDensityMatricesToFile(trim(densFileAB),densityMatrixAB(:))
+          call WaveFunction_writeDensityMatricesToFile(WaveFunction_instance,trim(densFileA),densityMatrixA(:))
+          call WaveFunction_writeDensityMatricesToFile(WaveFunction_instance,trim(densFileAB),densityMatrixAB(:))
           
           !!Run DFT for subsystem A
           call system("lowdin-DFT.x SCF_DFT "//trim(densFileA))
@@ -817,7 +817,7 @@ contains
           nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
           
           !Updates two particles matrix - only Coulomb (factor=0.0)
-          call WaveFunction_buildTwoParticlesMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+          call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
                densityMatrixIN=densityMatrixA(speciesID),&
                factorIN=0.0_8,&
                twoParticlesMatrixOUT=hartreeMatrixA(speciesID,speciesID))
@@ -829,7 +829,7 @@ contains
 
           
           !Obtains exchange-correlation matrix from a full HF calculation (factor=1.0)
-          call WaveFunction_buildTwoParticlesMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+          call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
                densityMatrixIN=densityMatrixA(speciesID),&
                factorIN=1.0_8,&
                twoParticlesMatrixOUT=exchangeHFMatrixA(speciesID))
@@ -847,7 +847,7 @@ contains
              call Matrix_constructor (auxMatrix(otherSpeciesID), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
           end do
 
-          call WaveFunction_buildCouplingMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+          call WaveFunction_buildCouplingMatrix(WaveFunction_instance,speciesID,&
                densityMatricesIN=densityMatrixA(:),&
                couplingMatrixOUT=couplingMatrixA(speciesID),&
                hartreeMatricesOUT=auxMatrix(:)) 
@@ -866,7 +866,7 @@ contains
           !Updates exchange correlation matrices
           if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
              auxEnergy=0.0
-             call WaveFunction_readExchangeCorrelationMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+             call WaveFunction_readExchangeCorrelationMatrix(WaveFunction_instance(speciesID),&
                   excFileIN=trim(densFileA)//".exc",&
                   exchangeCorrelationMatrixOUT=exchangeCorrelationMatrixA(speciesID),&
                   exchangeCorrelationEnergyOUT=auxEnergy(1:numberOfSpecies),&
@@ -881,7 +881,7 @@ contains
              end if
 
              auxEnergy=0.0
-             call WaveFunction_readExchangeCorrelationMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+             call WaveFunction_readExchangeCorrelationMatrix(WaveFunction_instance(speciesID),&
                   excFileIN=trim(densFileAB)//".exc",&
                   exchangeCorrelationMatrixOUT=exchangeCorrelationMatrixAB(speciesID),&
                   exchangeCorrelationEnergyOUT=auxEnergy(1:numberOfSpecies),&
@@ -899,6 +899,7 @@ contains
           
        !!Updates Fock Matrix
           OrbitalLocalizer_instance(speciesID)%hcoreMatrixA%values=WaveFunction_instance(speciesID)%hcoreMatrix%values&
+               +WaveFunction_instance(speciesID)%externalPotentialMatrix%values&
                +hartreeMatrixB(speciesID,speciesID)%values&
                +exchangeHFMatrixB(speciesID)%values&
                +couplingMatrixB(speciesID)%values&
@@ -1207,9 +1208,9 @@ contains
 
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
        !!Save density matrix A, B, A+B
-       call WaveFunction_writeDensityMatricesToFile(trim(densFileA),densityMatrixA(:))
-       call WaveFunction_writeDensityMatricesToFile(trim(densFileB),densityMatrixB(:))
-       call WaveFunction_writeDensityMatricesToFile(trim(densFileAB),densityMatrixAB(:))
+       call WaveFunction_writeDensityMatricesToFile(WaveFunction_instance,trim(densFileA),densityMatrixA(:))
+       call WaveFunction_writeDensityMatricesToFile(WaveFunction_instance,trim(densFileB),densityMatrixB(:))
+       call WaveFunction_writeDensityMatricesToFile(WaveFunction_instance,trim(densFileAB),densityMatrixAB(:))
 
        write(*,*) " FINAL GRID DFT EVALUATION FOR SUBSYSTEM A: "
        write(*,*) "-----------------------------"
@@ -1229,13 +1230,13 @@ contains
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
        !Updates two particles matrix - only Coulomb (factor=0.0)
-       call WaveFunction_buildTwoParticlesMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+       call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
             densityMatrixIN=densityMatrixA(speciesID),&
             factorIN=0.0_8,&
             twoParticlesMatrixOUT=hartreeMatrixA(speciesID,speciesID))
 
        !Obtains exchange-correlation matrix from a full HF calculation (factor=1.0)
-       call WaveFunction_buildTwoParticlesMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+       call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
             densityMatrixIN=densityMatrixA(speciesID),&
             factorIN=1.0_8,&
             twoParticlesMatrixOUT=exchangeHFMatrixA(speciesID))
@@ -1248,7 +1249,7 @@ contains
           call Matrix_constructor (auxMatrix(otherSpeciesID), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
        end do
 
-       call WaveFunction_buildCouplingMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+       call WaveFunction_buildCouplingMatrix(WaveFunction_instance,speciesID,&
             densityMatricesIN=densityMatrixA(:),&
             couplingMatrixOUT=couplingMatrixA(speciesID),&
             hartreeMatricesOUT=auxMatrix(:)) 
@@ -1261,7 +1262,7 @@ contains
        !Updates exchange correlation matrices
        if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
           auxEnergy=0.0
-          call WaveFunction_readExchangeCorrelationMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+          call WaveFunction_readExchangeCorrelationMatrix(WaveFunction_instance(speciesID),&
                excFileIN=trim(densFileA)//".exc",&
                exchangeCorrelationMatrixOUT=exchangeCorrelationMatrixA(speciesID),&
                exchangeCorrelationEnergyOUT=auxEnergy(1:numberOfSpecies),&
@@ -1271,7 +1272,7 @@ contains
           end do
 
           auxEnergy=0.0
-          call WaveFunction_readExchangeCorrelationMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+          call WaveFunction_readExchangeCorrelationMatrix(WaveFunction_instance(speciesID),&
                excFileIN=trim(densFileB)//".exc",&
                exchangeCorrelationMatrixOUT=exchangeCorrelationMatrixB(speciesID),&
                exchangeCorrelationEnergyOUT=auxEnergy(1:numberOfSpecies),&
@@ -1281,7 +1282,7 @@ contains
           end do
 
           auxEnergy=0.0
-          call WaveFunction_readExchangeCorrelationMatrix(MolecularSystem_getNameOfSpecie(speciesID),&
+          call WaveFunction_readExchangeCorrelationMatrix(WaveFunction_instance(speciesID),&
                excFileIN=trim(densFileAB)//".exc",&
                exchangeCorrelationMatrixOUT=exchangeCorrelationMatrixAB(speciesID),&
                exchangeCorrelationEnergyOUT=auxEnergy(1:numberOfSpecies),&
@@ -1294,6 +1295,7 @@ contains
 
        !!Updates Fock Matrix
        OrbitalLocalizer_instance(speciesID)%hcoreMatrixA%values=WaveFunction_instance(speciesID)%hcoreMatrix%values&
+            +WaveFunction_instance(speciesID)%externalPotentialMatrix%values&
             +hartreeMatrixB(speciesID,speciesID)%values&
             +exchangeHFMatrixB(speciesID)%values&
             +couplingMatrixB(speciesID)%values&
@@ -1521,21 +1523,27 @@ contains
      write (6,"(A35,F20.12,F20.12,F20.12)") "Total Projection energy correction  = ", totalProjectionCorrectionA
 
 
-     ! if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+     totalExternalPotentialEnergyA=0.0
+     totalExternalPotentialEnergyB=0.0
+     if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
 
-     !    write(*,*) ""
-     !    write(*,*) " External Potential energy: "
-     !    write(*,*) "----------------"
-     !    write(*,*) ""
+        write(*,*) ""
+        write(*,"(A35,A20,A20)") " External Potential energy: ", "Subsystem A", "Subsystem B"
+        write(*,*) "---------------------------------------------------------------------------"
+        write(*,*) ""
 
-     !    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-     !       write (6,"(T10,A26,A2,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name) // &
-     !            " Ext Pot energy  ","= ", WaveFunction_instance(speciesID)%externalPotentialEnergy
-     !    end do
-     !    totalExternalPotentialEnergy=sum(WaveFunction_instance(:)%externalPotentialEnergy)
-     !    write (6,"(T10,A28,F20.12)") "External Potential energy  = ", totalExternalPotentialEnergy             
-        
-     ! end if
+        do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+           write (6,"(A35,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // "/Ext. Pot. energy = ",  &
+                sum(transpose(densityMatrixA(speciesID)%values)* WaveFunction_instance( speciesID )%externalPotentialMatrix%values),&
+                sum(transpose(densityMatrixB(speciesID)%values)* WaveFunction_instance( speciesID )%externalPotentialMatrix%values)
+           totalExternalPotentialEnergyA=totalExternalPotentialEnergyA+&
+                sum(transpose(densityMatrixA(speciesID)%values)* WaveFunction_instance( speciesID )%externalPotentialMatrix%values)
+           totalExternalPotentialEnergyB=totalExternalPotentialEnergyB+&
+                sum(transpose(densityMatrixB(speciesID)%values)* WaveFunction_instance( speciesID )%externalPotentialMatrix%values)
+        end do
+        write (6,"(T10,A70)") "_________________________________________"
+        write (6,"(A35,F20.12,F20.12)") "Total External Potential energy = ", totalExternalPotentialEnergyA, totalExternalPotentialEnergyB        
+     end if
 
      ! potentialEnergy = totalRepulsionEnergy &
      !      + puntualInteractionEnergy &
@@ -1564,8 +1572,10 @@ contains
      puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy()
      write(*,"(A35,F20.12)") "Fixed potential energy = ", puntualInteractionEnergy
      write(*,"(A35,F20.12)") "TOTAL SUBSYSTEM A ENERGY = ", totalKineticEnergyA+totalQuantumPuntualInteractionEnergyA+&
+          totalExternalPotentialEnergyA+&
           totalHartreeEnergyA+totalExchangeHFEnergyA
      write(*,"(A35,F20.12)") "TOTAL SUBSYSTEM B ENERGY = ", totalKineticEnergyB+totalQuantumPuntualInteractionEnergyB+&
+          totalExternalPotentialEnergyB+&
           totalHartreeEnergyB+totalExchangeHFEnergyB+totalExchangeCorrelationEnergyB
      write(*,"(A35,F20.12)") "TOTAL A-B INTERACTION ENERGY = ", totalHartreeEnergyAB+totalExchangeHFEnergyAB+totalExchangeCorrelationEnergyAB+totalProjectionCorrectionA
      !+totalEmbeddingPotentialEnergyA
@@ -1574,6 +1584,8 @@ contains
      totalPotentialEnergy=puntualInteractionEnergy+&
           totalQuantumPuntualInteractionEnergyA+&
           totalQuantumPuntualInteractionEnergyB+&
+          totalExternalPotentialEnergyA+&
+          totalExternalPotentialEnergyB+&
           totalHartreeEnergyA+&
           totalHartreeEnergyB+&
           totalHartreeEnergyAB+&
@@ -1810,7 +1822,7 @@ contains
     ! call MolecularSystem_showInformation()
     call MolecularSystem_showParticlesInformation()
 
-    call MolecularSystem_showCartesianMatrix(1)
+    call MolecularSystem_showCartesianMatrix(molecularSystem_instance,1)
     
     !Save molecular system to file
     call MolecularSystem_saveToFile()
@@ -1821,10 +1833,10 @@ contains
 
     !! Start the wavefunction object
     deallocate(WaveFunction_instance)
-    call WaveFunction_constructor( )
+    call WaveFunction_constructor(WaveFunction_instance)
        
     do speciesID=1, numberOfSpecies
-       call WaveFunction_buildOverlapMatrix("lowdin.opints", speciesID)
+       call WaveFunction_readOverlapMatrix(WaveFunction_instance(speciesID), "lowdin.opints")
     end do
     
     !!Now, we are resizing the matrices
@@ -1926,7 +1938,7 @@ contains
     
     if ( trim(CONTROL_instance%INTEGRAL_STORAGE) == "DIRECT" ) then
        do speciesID=1, numberOfSpecies
-          if (Libint2Instance(speciesID)%isInstanced) call Libint2Interface_constructor(Libint2Instance(speciesID), speciesID)
+          if (Libint2Instance(speciesID)%isInstanced) call Libint2Interface_constructor(Libint2Instance(speciesID), MolecularSystem_instance, speciesID)
        end do
     else
        call system("rm  *.ints")   
@@ -1939,11 +1951,11 @@ contains
     
     !! Recalculate matrices - not really needed, but do it anyway to be sure
     do speciesID=1, numberOfSpecies
-       call WaveFunction_buildOverlapMatrix("lowdin.opints", speciesID)
-       call WaveFunction_buildTransformationMatrix("lowdin.opints", speciesID, 2 )
-       call WaveFunction_buildTwoParticlesMatrix(MolecularSystem_instance%species(speciesID)%name,factorIN=1.0_8)
-       call WaveFunction_buildCouplingMatrix(MolecularSystem_instance%species(speciesID)%name)
-       call WaveFunction_buildFockMatrix(MolecularSystem_instance%species(speciesID)%name)
+       call WaveFunction_readOverlapMatrix(WaveFunction_instance(speciesID), "lowdin.opints")
+       call WaveFunction_buildTransformationMatrix(WaveFunction_instance(speciesID), 2 )
+       call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),factorIN=1.0_8)
+       call WaveFunction_buildCouplingMatrix(WaveFunction_instance,speciesID)
+       call WaveFunction_buildFockMatrix(WaveFunction_instance(speciesID))
     end do
 
     !! Molecular orbital fock operator expected value

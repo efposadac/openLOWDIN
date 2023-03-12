@@ -14,5 +14,6 @@ TASKS
 END TASKS
 
 CONTROL
-        getGradients = T
+readCoefficients=F
+getGradients = T
 END CONTROL

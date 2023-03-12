@@ -12,5 +12,6 @@ TASKS
 	cosmo=T
 END TASKS
 CONTROL
-	iterationScheme=3
+readCoefficients=F
+!	iterationScheme=3
 END CONTROL

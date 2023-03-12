@@ -8,7 +8,8 @@ TASKS
 END TASKS
 
 CONTROL
-	transformToCenterOfMass=F
+readCoefficients=F
+transformToCenterOfMass=F
         !CIdiagonalizationMethod="ARPACK"
         !CIdiagonalizationMethod="JADAMILU"
 	CISizeOfGuessMatrix=1

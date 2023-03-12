@@ -2,7 +2,7 @@ TOPDIR=..
 
 include $(TOPDIR)/CONFIG
 
-SUBDIRS = ints HF DFT scf integralsTransformation MBPT PT cosmo CalcProp output CI MM 
+SUBDIRS = ints DFT scf integralsTransformation MBPT PT cosmo CalcProp output CI MM NOCI
 ALLDIRS = $(SUBDIRS) core
 
 LDR=$(FC)

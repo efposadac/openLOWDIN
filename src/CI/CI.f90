@@ -30,7 +30,6 @@ program CI
   use CONTROL_
   use MolecularSystem_
   use Exception_
-  use NonOrthogonalCI_
   use ConfigurationInteraction_
   use String_
   use InputCI_
@@ -58,31 +57,20 @@ program CI
   !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
   ! end if
 
-  if( trim(job) .eq. "NOCI") then
+  read(job,"(I10)") numberOfSpeciesInCI
 
-     call NonOrthogonalCI_constructor(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_displaceGeometries(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_buildOverlapAndHamiltonianMatrix(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_plotDensities(NonOrthogonalCI_instance)
+  call InputCI_constructor( )
+  if(numberOfSpeciesInCI .ne. 0) then
+     call InputCI_load( numberOfSpeciesInCI )
   else
-     
-     read(job,"(I10)") numberOfSpeciesInCI
-
-     call InputCI_constructor( )
-     if(numberOfSpeciesInCI .ne. 0) then
-        call InputCI_load( numberOfSpeciesInCI )
-     else
-        call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
-     end if
-     call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
-     call ConfigurationInteraction_run()
-     call ConfigurationInteraction_show()
-     call ConfigurationInteraction_showEigenVectors()
-     call ConfigurationInteraction_densityMatrices()
-     call ConfigurationInteraction_destructor()
-
+     call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
   end if
+  call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
+  call ConfigurationInteraction_run()
+  call ConfigurationInteraction_show()
+  call ConfigurationInteraction_showEigenVectors()
+  call ConfigurationInteraction_densityMatrices()
+  call ConfigurationInteraction_destructor()
   
   !!stop time
   call Stopwatch_stop(lowdin_stopwatch)

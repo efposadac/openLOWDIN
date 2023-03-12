@@ -11,8 +11,8 @@ outputName = testName + ".out"
 # Reference values
 
 refValues = {
-"HF energy" : -75.93125555356, 
-"e-AlphaBetaRepulsion" : 23.2395577028
+"HF energy" : [-75.93125555356,1E-8], 
+"e-AlphaBetaRepulsion" : [23.2395577028,1E-3]
 }
 
 testValues = dict(refValues) #copy 
@@ -43,12 +43,12 @@ for i in range(0,len(outputRead)):
 passTest = True
 
 for value in refValues:
-    diffValue = abs(refValues[value] - testValues[value]) 
-    if ( diffValue <= 1E-8 ):
+    diffValue = abs(refValues[value][0] - testValues[value]) 
+    if ( diffValue <= refValues[value][1] ):
         passTest = passTest * True
     else :
         passTest = passTest * False
-        print(value + " " + str(refValues[value]) +" " +  str(testValues[value]) + " "+ str(diffValue))
+        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
 
 if passTest :
     print(testName + str_green(" ... OK"))

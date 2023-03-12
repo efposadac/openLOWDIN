@@ -41,11 +41,14 @@ contains
   
   !>
   !! @brief Obtiene la matriz de densidad inicial
-  subroutine DensityMatrixSCFGuess_getGuess( speciesID, densityMatrix, orbitals )
+  subroutine DensityMatrixSCFGuess_getGuess( speciesID, hcoreMatrix, transformationMatrix, densityMatrix, orbitals, printInfo )
     implicit none
     integer, intent(in) :: speciesID
-    type(Matrix) :: densityMatrix
-    type(Matrix) :: orbitals
+    type(Matrix), intent(in) :: hcoreMatrix
+    type(Matrix), intent(in) :: transformationMatrix
+    type(Matrix), intent(inout) :: densityMatrix
+    type(Matrix), intent(inout) :: orbitals
+    logical, intent(in) :: printInfo
     
     character(30) :: nameOfSpecies
     integer(8) :: orderOfMatrix, occupationNumber
@@ -64,22 +67,18 @@ contains
     arguments(2) = nameOfSpecies
     arguments(1) = "COEFFICIENTS"
 
-    call Matrix_constructor(densityMatrix, orderOfMatrix, orderOfMatrix, 0.0_8  )
+    call Matrix_constructor(densityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8  )
     call Matrix_constructor(orbitals, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
     
     !!Verifica el archivo que contiene los coeficientes para una especie dada
     if ( CONTROL_instance%READ_FCHK ) then
-
        call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk", orbitals, densityMatrix, nameOfSpecies )
        return
 
     else if ( CONTROL_instance%READ_COEFFICIENTS ) then
-
        wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
        inquire(FILE = wfnFile, EXIST = existPlain )
-
        if ( existPlain ) then
-
           open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
           orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
                columns= int(orderOfMatrix,4), binary=.false., arguments=arguments(1:2),failContinue=.true.)
@@ -88,9 +87,7 @@ contains
        else
           wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
           inquire(FILE = wfnFile, EXIST = existBinnary )
-
           if ( existBinnary ) then
-
              open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
              orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
                   columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2),failContinue=.true.)
@@ -103,32 +100,29 @@ contains
     !check if the orbitals were read correctly
     if(.not. allocated(orbitals%values) ) readSuccess=.false.
 
-    if(readSuccess) print *, "Combination coefficients for ", trim(nameOfSpecies), " were read from ", trim(wfnFile)
-
+    if(readSuccess .and. printInfo ) print *, "Combination coefficients for ", trim(nameOfSpecies), " were read from ", trim(wfnFile)
 
     if(.not. readSuccess) then
        call Matrix_constructor(orbitals, orderOfMatrix, orderOfMatrix, 0.0_8  )
-
        if ( MolecularSystem_instance%species(speciesID)%isElectron ) then
           guessType=CONTROL_instance%SCF_ELECTRONIC_TYPE_GUESS
        else
           guessType=CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS
        end if
 
-       write(*, '(A13, A6, A28, A10)') &
-            "INFO: Usign ", trim(guessType), " density guess for species: ", trim(nameOfSpecies)
+       if(printInfo) write(*, '(A13, A6, A28, A10)') &
+            "Usign ", trim(guessType), " density guess for species: ", trim(nameOfSpecies)
 
        select case( trim( String_getUppercase( guessType ) ) )
 
        case( "ONES" )
-
-          do i=1, occupationNumber
+          do i=1, orderOfMatrix
              densityMatrix%values(i,i) =1.0_8
           end do
           return
 
        case( "HCORE" )
-          call DensityMatrixSCFGuess_hcore( orbitals, speciesID )
+          call DensityMatrixSCFGuess_hcore( speciesID, hcoreMatrix, transformationMatrix, orbitals )
 
           !case( "HUCKEL" )
           ! call DensityMatrixSCFGuess_huckel( densityMatrix, speciesID )
@@ -159,14 +153,14 @@ contains
   !>
   !! @brief Diagonaliza el hamiltoniano monoelectronico para obtener los
   !! 			orbitales iniciales de partida
-  subroutine DensityMatrixSCFGuess_hcore( eigenVectors, speciesID )
+  subroutine DensityMatrixSCFGuess_hcore(speciesID, hcore, transformation, eigenVectors)
     implicit none
-    type(Matrix), intent(inout) :: eigenVectors
     integer, intent(in) :: speciesID
+    type(Matrix), intent(in) :: hcore   
+    type(Matrix), intent(in) :: transformation
+    type(Matrix), intent(inout) :: eigenVectors
     
-    type(Matrix) :: hcore
     type(Matrix) :: hcoreTransformed
-    type(Matrix) :: transformation
     type(Vector) :: eigenValues
 
     integer(8) :: orderOfMatrix
@@ -177,23 +171,16 @@ contains
        call Matrix_constructor(eigenVectors, orderOfMatrix, orderOfMatrix )
     end if
     
-    call Matrix_constructor(hcore, orderOfMatrix, orderOfMatrix )
     call Matrix_constructor(hcoreTransformed, orderOfMatrix, orderOfMatrix )
-    call Matrix_constructor(transformation, orderOfMatrix, orderOfMatrix )
     call Vector_constructor(eigenValues, int( orderOfMatrix ) )
     
-    hcore=WaveFunction_instance(speciesID)%hCoreMatrix
-    transformation = WaveFunction_instance(speciesID)%transformationMatrix
-        
     hcoreTransformed%values = matmul( matmul( transpose(transformation%values ) , hcore%values ) , transformation%values )
 
     call Matrix_eigen( hcoreTransformed, eigenValues, eigenVectors, SYMMETRIC )
 
     eigenVectors%values = matmul( transformation%values , eigenVectors%values )
     
-    call Matrix_destructor( hcore )
     call Matrix_destructor( hcoreTransformed )
-    call Matrix_destructor( transformation )
     call Vector_destructor( eigenValues )
     
   end subroutine DensityMatrixSCFGuess_hcore

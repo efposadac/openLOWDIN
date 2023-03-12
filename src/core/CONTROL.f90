@@ -216,6 +216,8 @@ module CONTROL_
      real(8) :: CONFIGURATION_MAX_DISPLACEMENT(3)
      real(8) :: CONFIGURATION_MIN_DISPLACEMENT(3)
      real(8) :: CONFIGURATION_MAX_NP_DISTANCE
+     real(8) :: CONFIGURATION_MIN_PP_DISTANCE
+     real(8) :: CONFIGURATION_MAX_PP_DISTANCE
      real(8) :: CONFIGURATION_EQUIVALENCE_DISTANCE
      logical :: CONFIGURATION_USE_SYMMETRY
      
@@ -543,6 +545,8 @@ module CONTROL_
   real(8) :: LowdinParameters_configurationMaxDisplacement(3)
   real(8) :: LowdinParameters_configurationMinDisplacement(3)
   real(8) :: LowdinParameters_configurationMaxNPDistance
+  real(8) :: LowdinParameters_configurationMinPPDistance
+  real(8) :: LowdinParameters_configurationMaxPPDistance
   real(8) :: LowdinParameters_configurationEquivalenceDistance
   logical :: LowdinParameters_configurationUseSymmetry
   
@@ -877,6 +881,8 @@ module CONTROL_
        LowdinParameters_configurationMinDisplacement,&       
        LowdinParameters_configurationMaxDisplacement,&       
        LowdinParameters_configurationMaxNPDistance,&
+       LowdinParameters_configurationMinPPDistance,&
+       LowdinParameters_configurationMaxPPDistance,&
        LowdinParameters_configurationEquivalenceDistance,&
        LowdinParameters_configurationUseSymmetry,&
                                 !!***************************************************************************
@@ -1050,7 +1056,7 @@ contains
     LowdinParameters_tv = 1.0E-6
     LowdinParameters_integralThreshold = 1.0E-10
     LowdinParameters_integralStackSize = 30000
-    LowdinParameters_integralStorage = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
+    LowdinParameters_integralStorage = "DISK" !! "MEMORY" or "DISK" or "DIRECT"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
     LowdinParameters_schwarzInequality = .false.
     LowdinParameters_harmonicConstant = 0.0_8
@@ -1228,6 +1234,8 @@ contains
     LowdinParameters_configurationMaxDisplacement(:)=0.0
     LowdinParameters_configurationMinDisplacement(:)=0.0
     LowdinParameters_configurationMaxNPDistance=1.0E8
+    LowdinParameters_configurationMinPPDistance=0.1
+    LowdinParameters_configurationMaxPPDistance=1.0E8
     LowdinParameters_configurationEquivalenceDistance=1.0E-8
     LowdinParameters_configurationUseSymmetry=.false.
     !!***************************************************************************
@@ -1555,6 +1563,8 @@ contains
     CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT(:)=0.0
     CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(:)=0.0
     CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE=1.0E8
+    CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE=0.1
+    CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=1.0E8
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=1.0E-8
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
     !!***************************************************************************                                              
@@ -1927,6 +1937,8 @@ contains
        CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT=1.001*CONTROL_instance%TRANSLATION_STEP*CONTROL_instance%TRANSLATION_SCAN_GRID/2
     end if
     CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE=LowdinParameters_configurationMaxNPDistance
+    CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE=LowdinParameters_configurationMinPPDistance
+    CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=LowdinParameters_configurationMaxPPDistance
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=LowdinParameters_configurationEquivalenceDistance
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=LowdinParameters_configurationUseSymmetry
 
@@ -2275,6 +2287,8 @@ contains
     LowdinParameters_configurationMaxDisplacement=CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT
     LowdinParameters_configurationMinDisplacement=CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT
     LowdinParameters_configurationMaxNPDistance=CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE
+    LowdinParameters_configurationMinPPDistance=CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE
+    LowdinParameters_configurationMaxPPDistance=CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE
     LowdinParameters_configurationEquivalenceDistance=CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE
     LowdinParameters_configurationUseSymmetry=CONTROL_instance%CONFIGURATION_USE_SYMMETRY
     
@@ -2597,6 +2611,8 @@ contains
     otherThis%CONFIGURATION_MAX_DISPLACEMENT=this%CONFIGURATION_MAX_DISPLACEMENT
     otherThis%CONFIGURATION_MIN_DISPLACEMENT=this%CONFIGURATION_MIN_DISPLACEMENT
     otherThis%CONFIGURATION_MAX_NP_DISTANCE=this%CONFIGURATION_MAX_NP_DISTANCE
+    otherThis%CONFIGURATION_MIN_PP_DISTANCE=this%CONFIGURATION_MIN_PP_DISTANCE
+    otherThis%CONFIGURATION_MAX_PP_DISTANCE=this%CONFIGURATION_MAX_PP_DISTANCE
     otherThis%CONFIGURATION_EQUIVALENCE_DISTANCE=this%CONFIGURATION_EQUIVALENCE_DISTANCE
     otherThis%CONFIGURATION_USE_SYMMETRY=this%CONFIGURATION_USE_SYMMETRY
 
@@ -2825,6 +2841,8 @@ contains
           CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT = CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT / AMSTRONG
           CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE = CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE / AMSTRONG
           CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE = CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE = CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE = CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE / AMSTRONG
        end if
        
        if(sum(CONTROL_instance%TRANSLATION_SCAN_GRID) .gt. 0 ) then
@@ -2854,9 +2872,15 @@ contains
        if(sum(CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT) .gt. 0.0) &
             write (*,"(T10,A,3ES15.5,A10,A)") "SKIPPING GEOMETRIES INSIDE AN ELLIPSOID OF SEMI-AXES ",  CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT,  " BOHRS", " FROM THE REFERENCE CENTER"
 
-       if(CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE .gt. 0.0) &
+       if(CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE .lt. 1.0E8) &
             write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH SEPARATION BETWEEN POSITIVE AND NEGATIVE BASIS SET CENTERS HIGHER THAN ",  CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE, " BOHRS"
 
+       if(CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH SEPARATION BETWEEN SAME CHARGE BASIS SET CENTERS LOWER THAN ",  CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE, " BOHRS"
+
+       if(CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE .lt. 1.0E8) &
+            write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH SEPARATION BETWEEN SAME CHARGE BASIS SET CENTERS HIGHER THAN ",  CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE, " BOHRS"
+       
        if(CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE .gt. 0.0) &
             write (*,"(T10,A,ES15.5,A10,A)") "GEOMETRIES WITH DISTANCE MATRIX THAT DIFFER IN LESS THAN ",  CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE, " BOHRS", " WILL BE REGARDED AS EQUIVALENT"
        
@@ -3051,14 +3075,14 @@ contains
        end select
     end if
 
-    if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 .or. CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) CONTROL_instance%ACTIVATE_LEVEL_SHIFTING=.true.
+    if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .ne. 0.0_8 .or. CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .ne. 0.0_8 ) CONTROL_instance%ACTIVATE_LEVEL_SHIFTING=.true.
        
     if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
 
-       if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+       if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .ne. 0.0_8 ) &
             write(*,"(T10,A,F10.6)") "SHIFTING ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
 
-       if ( CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+       if ( CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .ne. 0.0_8 ) &
             write(*,"(T10,A,F10.6)") "SHIFTING NON-ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
 
     end if

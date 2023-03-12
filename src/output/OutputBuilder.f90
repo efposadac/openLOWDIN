@@ -519,7 +519,7 @@ contains
                end if
   
             end do
-          end if
+         end if
           !          print *, "totalNumberOfParticles ", totalNumberOfParticles
           !         print *, "particles for specie", size(MolecularSystem_instance%species(l)%particles)
 
@@ -562,12 +562,12 @@ contains
 
              write (10,"(A11)") "Spin= Alpha"
 
-             write (10,"(A5,F15.10)") "Occup= ",fractionalOccupations(l,state)%values(j)
+             write (10,"(A6,F15.10)") "Occup= ",fractionalOccupations(l,state)%values(j)
 
              i = 0
              do k=1,size(coefficientsOfCombination(l,state)%values,dim=1)
                 i = i + 1
-                write(10,"(I4,A2,E15.8)") k,"  ", coefficientsOfCombination(l,state)%values(k,j)
+                write(10,"(I4,A2,F15.8)") k,"  ", coefficientsOfCombination(l,state)%values(k,j)
              end do
 
               if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
@@ -2003,134 +2003,143 @@ contains
    end subroutine OutputBuilder_get2DPlot
 
 
-  subroutine OutputBuilder_getDensityCube(this )
-    implicit none
-    type(OutputBuilder) :: this
-    character(50) :: outputID, auxID
-    real(8):: cubeSize
+   subroutine OutputBuilder_getDensityCube(this )
+     implicit none
+     type(OutputBuilder) :: this
+     character(50) :: outputID, auxID
+     real(8):: cubeSize
 
-    integer :: i, j, k, n, w, natom
-    integer :: atomicCharge
-    integer :: speciesID
-    integer :: numberOfSteps
-    real(8) :: step
-    real(8) :: lowerLimit(3)
-    real(8), allocatable :: val(:)
-    real(8) :: coordinate(3)
+     integer :: l, i, j, k, n, w, natom
+     integer :: atomicCharge
+     integer :: speciesID
+     integer :: numberOfSteps
+     real(8) :: step
+     real(8) :: lowerLimit(3)
+     real(8), allocatable :: val(:)
+     real(8) :: coordinate(3)
 
-    integer :: wfnunit, occupationsUnit 
-    integer :: numberOfOrbitals
-    type(matrix) :: densityMatrix
+     integer :: wfnunit, occupationsUnit 
+     integer :: numberOfOrbitals, numberOfSpecies
+     type(matrix) :: densityMatrix
 
-    character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
-    logical :: existFile
+     character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
+     logical :: existFile
 
-    !Writes Gaussian Cube 
-    
-    speciesID = MolecularSystem_getSpecieIDFromSymbol( trim(this%species) )
+     !Writes Gaussian Cube 
 
-    nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
-    numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
+     numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
 
-    outputID=String_convertIntegerToString(this%outputID)
-    auxID=String_convertIntegerToString(this%auxID)
-  
-    ! Check if there are CI density matrices and read those or the HF matrix
-    occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-    inquire(FILE = occupationsFile, EXIST = existFile )
+     l=0
+     do speciesID=1, numberOfSpecies
+        nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+        if(trim(this%species) .eq. trim(nameOfSpecies) .or. trim(this%species) .eq. "ALL" ) then
+           l=l+1   
+           numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
 
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE"  .and. existFile ) then
-       print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
+           outputID=String_convertIntegerToString(this%outputID)
+           auxID=String_convertIntegerToString(this%auxID)
 
-       occupationsUnit = 29
+           ! Check if there are CI density matrices and read those or the HF matrix
+           occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+           inquire(FILE = occupationsFile, EXIST = existFile )
 
-       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+           if ( CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 .and. existFile) then
+              print *, "We are printing a density file for ", trim(nameOfSpecies), " in the CI state No. ", this%state
+
+              occupationsUnit = 29
+
+              open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+
+              write(auxstring,*) this%state
+              arguments(2) = nameOfSpecies
+              arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+
+              densityMatrix= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,4), &
+                   columns= int(numberOfOrbitals,4), binary=.false., arguments=arguments(1:2))
 
 
-       write(auxstring,*) this%state
-       arguments(2) = nameOfSpecies
-       arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+              close(occupationsUnit)     
+           else
 
-       densityMatrix= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,4), &
-            columns= int(numberOfOrbitals,4), binary=.false., arguments=arguments(1:2))
+              !! Read density matrix
+              !! Open file for wavefunction
+              wfnFile = "lowdin.wfn"
+              wfnUnit = 20
+              open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+              arguments(2) = nameOfSpecies
+              arguments(1) = "DENSITY"
+
+              densityMatrix = &
+                   Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
+                   columns=int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
+
+              close (wfnUnit)
+
+           end if
 
 
-       close(occupationsUnit)     
-    else
+           if( this%auxID .eq. 1) then
+              this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".dens.cub"
+           else
+              this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//"."//trim(auxID)//".dens.cub"
+           end if
+      
+           open(10,file=this%fileName(l),status='replace',action='write')
 
-       !! Read density matrix
-       !! Open file for wavefunction
-       wfnFile = "lowdin.wfn"
-       wfnUnit = 20
-       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+           lowerLimit(:)=this%point1%values(:)-this%cubeSize/2
+           numberOfSteps=CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
+           step= this%cubeSize/numberOfSteps
 
-       arguments(2) = nameOfSpecies
-       arguments(1) = "DENSITY"
+           allocate (val (numberOfSteps) )
 
-       densityMatrix = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
-            columns=int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
+           ! do n=1, size(MolecularSystem_instance%particlesPtr)
+           !    if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-" .or. &
+           !         trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-ALPHA" .and. &
+           !         MolecularSystem_instance%particlesPtr(k)%isQuantum ) then
+           !       natom = natom +1
+           !    end if
+           ! end do
+           natom=1
 
-       close (wfnUnit)
+           write (10,"(A)") "Gaussian Cube generated with Lowdin Software"
+           write (10,"(A)") this%fileName(l)
+           write (10,"(I8,F20.8,F20.8,F20.8,I8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3), 1
+           write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, step, 0.0, 0.0
+           write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, 0.0, step, 0.0
+           write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, 0.0, 0.0, step
 
-    end if
+           write (10, "(I8,I8,F20.8,F20.8,F20.8)") &
+                1, 1, this%point1%values
+           ! do n=1, size(MolecularSystem_instance%particlesPtr)
+           !    if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-" .or. &
+           !         trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-ALPHA" .and. &
+           !         MolecularSystem_instance%particlesPtr(n)%isQuantum ) then
+           !       atomicCharge=-MolecularSystem_instance%particlesPtr(n)%totalCharge
+           !       write (10, "(I8,F20.8,F20.8,F20.8,F20.8)") &
+           !            atomicCharge, 0.0, MolecularSystem_instance%particlesPtr(n)%origin(1:3)
+           !    end if
+           ! end do
 
-    
-    this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".dens.cub"
-    open(10,file=this%fileName(1),status='replace',action='write')
+           do i=1,numberOfSteps
+              coordinate(1)=lowerLimit(1)+(i-1)*step
+              do j=1, numberOfSteps
+                 coordinate(2)=lowerLimit(2)+(j-1)*step
+                 do k=1, numberOfSteps
+                    coordinate(3)=lowerLimit(3)+(k-1)*step
 
-    lowerLimit(:)=this%point1%values(:)-this%cubeSize/2
-    numberOfSteps=CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
-    step= this%cubeSize/numberOfSteps
+                    val(k)=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )
+                 end do
+                 write(10,*) ( val(w) , w=1,numberOfSteps )
+                 write(10,*) ( "" )
+              end do
+           end do
 
-    allocate (val (numberOfSteps) )
-
-    ! do n=1, size(MolecularSystem_instance%particlesPtr)
-    !    if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-" .or. &
-    !         trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-ALPHA" .and. &
-    !         MolecularSystem_instance%particlesPtr(k)%isQuantum ) then
-    !       natom = natom +1
-    !    end if
-    ! end do
-    natom=1
-    
-    write (10,"(A)") "Gaussian Cube generated with Lowdin Software"
-    write (10,"(A)") this%fileName(1)
-    write (10,"(I8,F20.8,F20.8,F20.8,I8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3), 1
-    write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, step, 0.0, 0.0
-    write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, 0.0, step, 0.0
-    write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, 0.0, 0.0, step
-
-    write (10, "(I8,I8,F20.8,F20.8,F20.8)") &
-         1, 1, this%point1%values
-    ! do n=1, size(MolecularSystem_instance%particlesPtr)
-    !    if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-" .or. &
-    !         trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-ALPHA" .and. &
-    !         MolecularSystem_instance%particlesPtr(n)%isQuantum ) then
-    !       atomicCharge=-MolecularSystem_instance%particlesPtr(n)%totalCharge
-    !       write (10, "(I8,F20.8,F20.8,F20.8,F20.8)") &
-    !            atomicCharge, 0.0, MolecularSystem_instance%particlesPtr(n)%origin(1:3)
-    !    end if
-    ! end do
-
-    do i=1,numberOfSteps
-       coordinate(1)=lowerLimit(1)+(i-1)*step
-       do j=1, numberOfSteps
-          coordinate(2)=lowerLimit(2)+(j-1)*step
-          do k=1, numberOfSteps
-             coordinate(3)=lowerLimit(3)+(k-1)*step
-
-             val(k)=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )
-          end do
-          write(10,*) ( val(w) , w=1,numberOfSteps )
-          write(10,*) ( "" )
-       end do
-    end do
-
-    deallocate (val)
-    close(10)
-    
-  end subroutine OutputBuilder_getDensityCube
+           deallocate (val)
+           close(10)
+        end if
+     end do
+   end subroutine OutputBuilder_getDensityCube
 
   subroutine OutputBuilder_getDensityPlot(this)
      type(OutputBuilder) :: this

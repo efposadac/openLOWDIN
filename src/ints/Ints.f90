@@ -85,12 +85,12 @@ Program Ints
 
      ! !!Calculate overlap integrals
      ! call Libint2Interface_compute1BodyInts(1)
-     call IntegralManager_getOverlapIntegrals()
-     !call IntegralManager_getThreeCenterIntegrals()
+     call IntegralManager_writeOverlapIntegrals()
+     !call IntegralManager_writeThreeCenterIntegrals()
 
      ! !!Calculate kinetic integrals
      ! call Libint2Interface_compute1BodyInts(2)
-     call IntegralManager_getKineticIntegrals()
+     call IntegralManager_writeKineticIntegrals()
 
      if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
        call IntegralManager_getFirstDerivativeIntegrals()
@@ -102,15 +102,15 @@ Program Ints
 
      ! !!Calculate attraction integrals
      ! call Libint2Interface_compute1BodyInts(3)
-     call IntegralManager_getAttractionIntegrals()
+     call IntegralManager_writeAttractionIntegrals()
 
      ! !!Calculate moment integrals
-     call IntegralManager_getMomentIntegrals()
+     call IntegralManager_writeMomentIntegrals()
       
      !! Calculate integrals with external potential
      if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-       call IntegralManager_getThreeCenterIntegrals()
-       !call IntegralManager_getThreeCenterIntegralsByProduct()
+       call IntegralManager_writeThreeCenterIntegrals()
+       !call IntegralManager_writeThreeCenterIntegralsByProduct()
      end if
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
@@ -135,7 +135,7 @@ Program Ints
      write(40) size(MolecularSystem_instance%species)
 
      !!Calculate cosmo integrals and charges
-     call IntegralManager_getAttractionIntegrals(surface_aux)
+     call IntegralManager_writeAttractionIntegrals(surface_aux)
 
      !stop time
      call Stopwatch_stop(lowdin_stopwatch)
@@ -190,7 +190,7 @@ Program Ints
      !! intra-species two-boy integration
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
         !!Calculate attraction integrals (intra-species)
-        call IntegralManager_getIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+        call IntegralManager_writeIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecie(speciesID)), &
              trim(CONTROL_instance%INTEGRAL_SCHEME))
      end do
 
@@ -210,7 +210,7 @@ Program Ints
      if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
 
         !!Calculate attraction integrals (inter-species)
-        call IntegralManager_getInterRepulsionIntegrals(trim(CONTROL_instance%INTEGRAL_SCHEME))
+        call IntegralManager_writeInterRepulsionIntegrals(trim(CONTROL_instance%INTEGRAL_SCHEME))
 
         !stop time
         call Stopwatch_stop(lowdin_stopwatch)

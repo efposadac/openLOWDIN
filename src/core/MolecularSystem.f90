@@ -93,6 +93,7 @@ module MolecularSystem_
        MolecularSystem_getParticlesFraction, &
        MolecularSystem_getFactorOfInterchangeIntegrals, &
        MolecularSystem_getNameOfSpecie, &
+       MolecularSystem_getNameOfSpecies, &
        MolecularSystem_getSpecieID, &
        MolecularSystem_getSpecieIDFromSymbol, &
        MolecularSystem_getPointChargesEnergy, &
@@ -333,9 +334,7 @@ contains
   !! @author S. A. Gonzalez
   subroutine MolecularSystem_showInformation()
     implicit none
-    
-    type(Exception) :: ex
-    
+        
     print *,""
     print *," MOLECULAR SYSTEM: ",trim(MolecularSystem_instance%name)
     print *,"-----------------"
@@ -388,11 +387,11 @@ contains
     print *,""
     print *,"                  CONSTANTS OF COUPLING "
     write (6,"(T7,A60)") "------------------------------------------------------------"
-    write (6,"(T10,A8,A10,A5,A5,A4,A5,A6,A5,A9)") "Symbol", " ","kappa", " ","eta", " ","lambda","","ocupation"
+    write (6,"(T10,A8,A10,A5,A5,A4,A5,A6,A5,A10)") "Symbol", " ","kappa", " ","eta", " ","lambda","","occupation"
     write (6,"(T7,A60)") "------------------------------------------------------------"
     
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-       write (6,'(T10,A10,A5,F7.1,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)'), &
+       write (6,'(T10,A10,A5,F7.1,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)') &
        trim(MolecularSystem_instance%species(i)%symbol)," ",&
             MolecularSystem_instance%species(i)%kappa, " ", &
             MolecularSystem_instance%species(i)%eta, " ",&
@@ -508,47 +507,56 @@ contains
 
   !>
   !! @brief Muestra una matriz cartesianas de las particulas del sistema
-  subroutine MolecularSystem_showCartesianMatrix(fragmentNumber,unit)
+  subroutine MolecularSystem_showCartesianMatrix(this,fragmentNumber,unit)
     implicit none
+    type(MolecularSystem), optional, target :: this
     integer,optional :: fragmentNumber
     integer,optional :: unit
     
+    type(MolecularSystem), pointer :: system
+
     integer :: i, j, outUnit
     real(8) :: origin(3)
 
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
+    
+    
     outUnit=6
     if(present(unit)) outUnit=unit
 
-    
     write (outUnit,"(A10,A16,A20,A20)") " ","<x>","<y>","<z>"
     
     !! Print quatum species information
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do i = 1, system%numberOfQuantumSpecies
        
        !! Avoid print twice basis in open-shell case
-       if(trim(MolecularSystem_instance%species(i)%name) == "E-BETA" ) cycle
+       if(trim(system%species(i)%name) == "E-BETA" ) cycle
 
-       do j = 1, size(MolecularSystem_instance%species(i)%particles)
+       do j = 1, size(system%species(i)%particles)
 
-          origin = MolecularSystem_instance%species(i)%particles(j)%origin * AMSTRONG
+          origin = system%species(i)%particles(j)%origin * AMSTRONG
 
-          if(present(fragmentNumber) .and. (MolecularSystem_instance%species(i)%particles(j)%subsystem .ne. fragmentNumber )) cycle
+          if(present(fragmentNumber) .and. (system%species(i)%particles(j)%subsystem .ne. fragmentNumber )) cycle
           
-          if(MolecularSystem_instance%species(i)%isElectron) then
-             write (outUnit,"(A10,3F20.10)") trim( MolecularSystem_instance%species(i)%particles(j)%symbol )//trim(MolecularSystem_instance%species(i)%particles(j)%nickname),&
+          if(system%species(i)%isElectron) then
+             write (outUnit,"(A10,3F20.10)") trim( system%species(i)%particles(j)%symbol )//trim(system%species(i)%particles(j)%nickname),&
                   origin(1), origin(2), origin(3)
           else
-             write (outUnit,"(A10,3F20.10)") trim(MolecularSystem_instance%species(i)%particles(j)%nickname), origin(1), origin(2), origin(3)
+             write (outUnit,"(A10,3F20.10)") trim(system%species(i)%particles(j)%nickname), origin(1), origin(2), origin(3)
           end if
           
        end do
     end do
     
     !! Print Point charges information
-    do i = 1, MolecularSystem_instance%numberOfPointCharges
+    do i = 1, system%numberOfPointCharges
        
-       origin = MolecularSystem_instance%pointCharges(i)%origin * AMSTRONG
-       write (outUnit,"(A10,3F20.10)") trim(MolecularSystem_instance%pointCharges(i)%nickname), origin(1), origin(2), origin(3)
+       origin = system%pointCharges(i)%origin * AMSTRONG
+       write (outUnit,"(A10,3F20.10)") trim(system%pointCharges(i)%nickname), origin(1), origin(2), origin(3)
        
     end do
     
@@ -1004,7 +1012,7 @@ contains
     integer :: specieID
     integer :: output
     
-    integer :: i, j, k
+    integer :: i, j
 
     output = 0
 
@@ -1034,7 +1042,7 @@ contains
 
     type(MolecularSystem), pointer :: system
     integer :: output
-    integer :: i, j, k
+    integer :: j, k
 
     output = 0
 
@@ -1292,6 +1300,19 @@ contains
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
+   function MolecularSystem_getNameOfSpecies(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     character(30) :: output
+     
+     output = MolecularSystem_instance%species(speciesID)%name
+          
+   end function MolecularSystem_getNameOfSpecies
+   
+   !> @brief Returns the name of a species
+   !! @author E. F. Posada, 2013
+   !! @version 1.0
    function MolecularSystem_getSpecieID( nameOfSpecie ) result(output)
      implicit none
      
@@ -1334,7 +1355,6 @@ contains
      integer :: i
      integer :: j
      real(8) :: deltaOrigin(3)
-     real(8) :: tmp
      
      output =0.0_8
      
@@ -1360,7 +1380,6 @@ contains
      integer :: i
      integer :: j
      real(8) :: deltaOrigin(3)
-     real(8) :: tmp
 
      output =0.0_8
      
@@ -1450,7 +1469,7 @@ contains
         !! Swap some columns according to the molden format
         do k=1,numberOfContractions
            !! Take the shellcode
-           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)"), counter, space, nickname, space, shellcode 
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
 
            !! Reorder the D functions
            !! counter:  0,  1,  2,  3,  4,  5
@@ -1511,7 +1530,7 @@ contains
         !! Swap some columns according to the Gamess format
         do k=1,numberOfContractions
            !! Take the shellcode
-           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)"), counter, space, nickname, space, shellcode 
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
 
            !! Reorder the D functions
            !! counter:  1,  2,  3,  4,  5,  6
@@ -1561,7 +1580,7 @@ contains
         !! Swap some columns according to the molden format
         do k=1,numberOfContractions
            !! Take the shellcode
-           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)"), counter, space, nickname, space, shellcode 
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
 
            !! Reorder the D functions
            !! counter:  1,  2,  3,  4,  5,  6
@@ -2323,38 +2342,48 @@ contains
   !! @brief Computes the displacement between equivalent particles (basis set centers) of two molecular systems
   !! @param thisA,thisB: molecular system, distanceVector: displacement of each species particles
   !! @author F. M. Moncada 2022
-  subroutine MolecularSystem_getTwoSystemsDisplacement(thisA,thisB,distanceVector)
+  subroutine MolecularSystem_getTwoSystemsDisplacement(thisA,thisB,displacementVector)
     type(MolecularSystem), intent(in) :: thisA, thisB
-    type(Vector) :: distanceVector(*)
+    type(Vector) :: displacementVector(*)
+    real(8) :: distance
+
+    type(IVector1) :: skip !avoid computing distance to the same particle of B
+    real(8) :: minDistance
+    integer :: minIndex
     
+    integer :: nparticles
     integer :: speciesID, i, j
-    integer :: closestParticle
-    real(8) :: distance, minDistance
-    integer, allocatable :: notCommonParticles(:), notCommonBasisSize(:)
 
     
     ! print *, "max distance between equivalent particles of systems", thisA%description, thisB%description
     do speciesID=1, thisA%numberOfQuantumSpecies
-       call Vector_constructor(distanceVector(speciesID), size(thisA%species(speciesID)%particles) , 0.0_8)
+       nparticles=size(thisA%species(speciesID)%particles)
+       call Vector_constructor(displacementVector(speciesID),nparticles,0.0_8)
+       call Vector_constructorInteger1(skip,int(nparticles,8),0_1)
        do i=1, size(thisA%species(speciesID)%particles) !ParticlesSystemA          
           minDistance=1.0E8
+          minIndex=0
           do j=1, size(thisB%species(speciesID)%particles) !ParticlesSystemB 
-             !Check if the particles from both systems are equivalent
-             if (thisA%species(speciesID)%particles(i)%nickname .eq. thisB%species(speciesID)%particles(j)%nickname .and. &
-                  thisA%species(speciesID)%particles(i)%basisSetName .eq. thisB%species(speciesID)%particles(j)%basisSetName ) then 
+             if(skip%values(j) .eq. 1) cycle
+             
+             if (thisA%species(speciesID)%particles(i)%nickname .ne. thisB%species(speciesID)%particles(j)%nickname .and. &
+                  thisA%species(speciesID)%particles(i)%basisSetName .ne. thisB%species(speciesID)%particles(j)%basisSetName ) cycle
+             
+             distance= sqrt((thisA%species(speciesID)%particles(i)%origin(1) - thisB%species(speciesID)%particles(j)%origin(1))**2+&
+                  (thisA%species(speciesID)%particles(i)%origin(2) - thisB%species(speciesID)%particles(j)%origin(2))**2+&
+                  (thisA%species(speciesID)%particles(i)%origin(3) - thisB%species(speciesID)%particles(j)%origin(3))**2)
 
-                distance= sqrt((thisA%species(speciesID)%particles(i)%origin(1) - thisB%species(speciesID)%particles(j)%origin(1))**2+&
-                     (thisA%species(speciesID)%particles(i)%origin(2) - thisB%species(speciesID)%particles(j)%origin(2))**2+&
-                     (thisA%species(speciesID)%particles(i)%origin(3) - thisB%species(speciesID)%particles(j)%origin(3))**2)
-
-                if(distance .lt. minDistance) minDistance=distance
+             if(distance .lt. minDistance) then
+                minDistance=distance
+                minIndex=j
              end if
           end do
-          distanceVector(speciesID)%values(i)=minDistance
+          ! print *, "speciesID, i, closestParticle, distance", speciesID, i, minIndex, minDistance
+          displacementVector(speciesID)%values(i)=minDistance
+          skip%values(minIndex)=1
        end do
-       ! print *, "speciesID", speciesID , "distanceVector", distanceVector%values(speciesID)
+       ! print *, "speciesID", speciesID , "displacementVector", displacementVector(speciesID)%values
     end do
-    
   end subroutine MolecularSystem_GetTwoSystemsDisplacement
 
   !>

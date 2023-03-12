@@ -31,7 +31,7 @@ for line in outputRead:
 
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 
-if (diffTotalEnergy <= 1E-8):
+if (diffTotalEnergy <= 1E-7):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

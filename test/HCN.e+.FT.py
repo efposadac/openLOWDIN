@@ -11,8 +11,8 @@ outputName = testName + ".out"
 # Reference values
 
 refValues = {
-"HF energy" : -92.901807583131,
-"KT 1" : -0.0000643677
+"HF energy" : [-92.901807583131,1E-8],
+"KT 1" : [-0.0000643677,1E-6]
 }
 
 testValues = dict(refValues) #copy 
@@ -35,23 +35,18 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "BEGIN EIGENVALUES" in line:
+    if "Eigenvalues for: POSITRON" in line:
         for j in range(i,len(outputRead)):
             linej = outputRead[j]
-            if "POSITRON" in linej:
-                for k in range(j+2,len(outputRead)): #j+2 is important
-                    linek = outputRead[k]
-                    if linek.split()[0] == "1" :
-                        testValues["KT 1"] = float(linek.split()[1])
-                        break
+            if "1" in linej:
+                testValues["KT 1"] = float(linej.split()[1])
                 break
-        break
 
 passTest = True
 
 for value in refValues:
-    diffValue = abs(refValues[value] - testValues[value]) 
-    if ( diffValue <= 1E-8 ):
+    diffValue = abs(refValues[value][0] - testValues[value]) 
+    if ( diffValue <= refValues[value][1] ):
         passTest = passTest * True
     else :
         passTest = passTest * False

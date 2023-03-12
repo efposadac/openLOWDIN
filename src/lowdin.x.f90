@@ -33,7 +33,6 @@ program lowdin_
  implicit none
 
  character(50) :: strAuxNumber
- integer :: statusSystem
  
  !! Time Control
  call Stopwatch_constructor( lowdin_stopwatch )
@@ -103,7 +102,7 @@ program lowdin_
     write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
     write (6,"(T18,A35)") "------------------------------------------"
  
-    call MolecularSystem_showCartesianMatrix()
+    call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
  
  end if 
 
@@ -116,7 +115,7 @@ program lowdin_
     call MolecularSystem_rotateOnPrincipalAxes()
     write (6,"(T20,A30)") " GEOMETRY IN C.M. : AMSTRONG"
     write (6,"(T18,A35)") "------------------------------------------"
-    call MolecularSystem_showCartesianMatrix()
+    call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
     
  end if
  

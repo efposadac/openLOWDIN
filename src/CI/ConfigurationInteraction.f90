@@ -31,7 +31,7 @@ module ConfigurationInteraction_
   use Exception_
   use Matrix_
   use Vector_
-!  use MolecularSystem_
+  use MolecularSystem_
   use Configuration_
   use ReadTransformedIntegrals_
   use MolecularSystem_
@@ -4249,15 +4249,16 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
         !        ConfigurationInteraction_instance%energyofmolecularorbitals(i)%values(m) 
         !end do
 
-        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-          arguments(1) = "EXTERNAL_POTENTIAL"
+        ! Already saved in hcore
+        ! if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+        !   arguments(1) = "EXTERNAL_POTENTIAL"
 
-          externalPotential = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+        !   externalPotential = &
+        !     Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+        !     columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-          hcoreMatrix%values = hcoreMatrix%values + externalPotential%values
-        end if
+        !   hcoreMatrix%values = hcoreMatrix%values + externalPotential%values
+        ! end if
         !print *, "fock matrix for species", i
         !call matrix_show ( ConfigurationInteraction_instance%fockMatrix(i) )
 

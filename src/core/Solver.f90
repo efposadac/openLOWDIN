@@ -68,6 +68,9 @@ contains
             "At Solver module in run function")
     end select
 
+    !!calculate HF/KS HF/KS properties
+    call system ("lowdin-CalcProp.x")
+    
     !Post SCF corrections
     if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION /= 0 .or. &
          CONTROL_instance%EPSTEIN_NESBET_CORRECTION /= 0 .or. &
@@ -87,10 +90,14 @@ contains
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
        write(auxString,"(I10)") Input_instance%numberOfSpeciesInCI
        call system("lowdin-CI.x" //trim(auxString))
+       !!calculate CI density properties
+       call system ("lowdin-CalcProp.x")
     end if
 
     if ( CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION ) then
-       call system("lowdin-CI.x NOCI")
+       call system("lowdin-NOCI.x POSTSCF")
+       !!calculate CI density properties
+       call system ("lowdin-CalcProp.x")
     end if
 
     if ( CONTROL_instance%PT_ORDER /= 0 ) then

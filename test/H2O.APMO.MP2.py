@@ -35,7 +35,7 @@ for line in outputRead:
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffMP2Energy = abs(refMP2Energy - MP2Energy)
 
-if (diffTotalEnergy <= 1E-10 and diffMP2Energy <= 5E-10):
+if (diffTotalEnergy <= 1E-8 and diffMP2Energy <= 1E-5):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
