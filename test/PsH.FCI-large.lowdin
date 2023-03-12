@@ -11,7 +11,8 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCIstates=1
+readCoefficients=F
+numberOfCIstates=1
 	CIStatesToPrint = 1
 	!CIdiagonalizationMethod = "DSYEVX"
 	CIdiagonalizationMethod = "JADAMILU"

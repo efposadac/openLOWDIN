@@ -14,7 +14,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralStorage="direct"
+readCoefficients=F
+integralStorage="direct"
 	integralsTransformationMethod = "C"
 	integralStackSize = 1024
 END CONTROL

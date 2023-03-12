@@ -781,6 +781,11 @@ contains
                electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
                energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
 
+       case ("psnap")
+          call Functional_PSNAPEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+          
        case ("none")
 
        case ("NONE")

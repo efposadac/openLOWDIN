@@ -1354,6 +1354,7 @@ contains
 
     !! OpenMP related variables
     integer :: otherSsize
+    character(50) :: fileName
     character(50) :: fileid
     integer :: nthreads
     integer :: threadid
@@ -1494,6 +1495,15 @@ contains
  
 
     !! Read integrals
+    if ( trim(nameOfSpecie) == "E-ALPHA" .and. trim(nameOfOtherSpecie) == "E-BETA" ) then
+       fileName = "E-ALPHA.E-BETA"
+    else if( trim(nameOfOtherSpecie) == "E-BETA" ) then
+       fileName = trim(nameOfSpecie)//".E-ALPHA"
+    else if(trim(nameOfSpecie) == "E-BETA") then
+       fileName = "E-ALPHA."//trim(nameOfOtherSpecie)
+    else 
+       fileName = trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+    end if
 
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, pp, qq, rr, ss, p, shellIntegrals, i, index2, filesize, pq, rs)
     nthreads = OMP_GET_NUM_THREADS()
@@ -1506,7 +1516,7 @@ contains
 
     unittmp = 2000
     !! open file for integrals
-    open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".ints", &
+    open(UNIT=unitid,FILE=trim(fileid)//trim(fileName)//".ints", &
          STATUS='OLD', ACCESS='stream', FORM='Unformatted')
 
     !! get size

@@ -12,10 +12,9 @@ pipelines:
         caches:
           - node
         script:
-          - export TZ=Europe/Paris
-          - ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+          - export DEBIAN_FRONTEND=noninteractive
           - apt-get update
-          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev 
+          - apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev python2-pip-whl python2-setuptools-whl virtualenv
           - # Define work directories
           - WORKDIR=$PWD/dependencies
           - mkdir $WORKDIR
@@ -70,6 +69,9 @@ pipelines:
           - ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
           - make -j 4
           - make install
+          - # Create virtual Environment for Python 2
+          - virtualenv -p $(which python2) test
+          - source test/bin/activate
           - # Perform tests
           - make test
 

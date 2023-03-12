@@ -28,6 +28,7 @@ TASKS
 END TASKS
 
 CONTROL
+readCoefficients=F
 END CONTROL
 
 

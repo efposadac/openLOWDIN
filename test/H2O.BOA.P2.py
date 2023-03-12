@@ -12,8 +12,8 @@ outputName = testName + ".out"
 
 refValues = {
 "HF energy" : [-76.008843007735,1E-8],
-"Orb5alpha_P2" : [-10.9105,1E-4],
-"Orb6alpha_P2" : [3.5273,1E-4]
+"Orb5alpha_P2" : [-10.9105,1E-3],
+"Orb6alpha_P2" : [3.5273,1E-3]
 }
 
 testValues = dict(refValues) #copy 

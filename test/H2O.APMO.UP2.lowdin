@@ -28,7 +28,8 @@ TASKS
 END TASKS
 
 CONTROL
-	ptFactorSS = 1.000
+readCoefficients=F
+ptFactorSS = 1.000
 	ptFactorOS = 1.000
 	integralsTransformationMethod = "C"
 END CONTROL

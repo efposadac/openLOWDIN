@@ -9,6 +9,7 @@ END TASKS
 
 
 CONTROL
+readCoefficients=F
 electronExchangeCorrelationFunctional="LDA"
 END CONTROL
 

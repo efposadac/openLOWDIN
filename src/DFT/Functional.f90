@@ -58,6 +58,7 @@ module Functional_
        Functional_expCSEvaluate, &
        Functional_expCSGGAEvaluate, &
        Functional_PSNEvaluate, &
+       Functional_PSNAPEvaluate, &
        Functional_lowLimitEvaluate, &
        Functional_getBeta, &
        padevwn, &
@@ -546,9 +547,11 @@ contains
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
 
     real(8) :: a,b,c, q
-    real(8), allocatable :: denominator(:)
+    real(8) :: denominator, densityThreshold
     real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
     integer :: i
+
+    densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD !TODO: add to other functionals
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
     if(this%name .eq. "correlation:epc17-2" ) then
@@ -563,42 +566,36 @@ contains
        print *, this%name
        STOP "The nuclear electron functional chosen is not implemented"
     end if
-       
-    allocate(denominator(n))
 
-    denominator(1:n)=a-b*sqrt(rhoE(1:n)*rhoN(1:n))+c*rhoE(1:n)*rhoN(1:n)
-    ! denominator(1:n)=a
+    !$omp parallel private(denominator)
+    !$omp do schedule (dynamic)
+    do i = 1, n
 
-    
+       denominator=a-b*sqrt(rhoE(i)*rhoN(i))+c*rhoE(i)*rhoN(i)
+
 !!!Energy density
-    ! ec(1:n)= -rhoE(1:n)*rhoN(1:n)/denominator(1:n)
-    ec(1:n)= -rhoN(1:n)/denominator(1:n)
-    
+       ! ec(i)= -rhoE(1:n)*rhoN(1:n)/denominator(1:n)
+       ec(i)= -rhoN(i)/denominator
+
 !!!Potential  
-    ! vcE(1:n)=vcE(1:n) -rhoN(1:n)/denominator(1:n)! + (c*rhoE(1:n)*rhoN(1:n)**2 - b/2*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2))/denominator(1:n)**2
-    ! vcN(1:n)=vcN(1:n) -rhoE(1:n)/denominator(1:n)! + (c*rhoN(1:n)*rhoE(1:n)**2 - b/2*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2))/denominator(1:n)**2
 
-!    vcE(1:n)= (b*sqrt(rhoE(1:n))*rhoN(1:n)**(3/2)-2*a*rhoN(1:n))/denominator(1:n)**2/2 !vcE(1:n) +
-!    vcN(1:n)= (b*sqrt(rhoN(1:n))*rhoE(1:n)**(3/2)-2*a*rhoE(1:n))/denominator(1:n)**2/2 !vcN(1:n) +
-
-    vcE(1:n)= (rhoE(1:n)*rhoN(1:n)*(c*rhoN(1:n)-b*rhoN(1:n)/(2*sqrt(rhoE(1:n)*rhoN(1:n))))-rhoN(1:n)*denominator)/denominator**2
-    vcN(1:n)= (rhoN(1:n)*rhoE(1:n)*(c*rhoE(1:n)-b*rhoE(1:n)/(2*sqrt(rhoE(1:n)*rhoN(1:n))))-rhoE(1:n)*denominator)/denominator**2
-    ! do i = 1, n
-    !    if(denominator(i) .lt. 1E-6 .or. rhoE(i) .lt. 1E-6 .or. rhoN(i) .lt. 1E-6) then
-    !       ec(i)=0.0
-    !       vcE(i)=0.0
-    !       vcN(i)=0.0
-    !    end if
-    ! end do
-
-
+       if( rhoE(i)+rhoN(i) .gt. densityThreshold ) then !
+          vcE(i)= (rhoE(i)*rhoN(i)*(c*rhoN(i)-b*rhoN(i)/(2*sqrt(rhoE(i)*rhoN(i))))-rhoN(i)*denominator)/denominator**2
+          vcN(i)= (rhoN(i)*rhoE(i)*(c*rhoE(i)-b*rhoE(i)/(2*sqrt(rhoE(i)*rhoN(i))))-rhoE(i)*denominator)/denominator**2
+       else
+          vcE(i)=0.0
+          vcN(i)=0.0
+       end if
+       
+    end do
+    !$omp end do 
+    !$omp end parallel
+    
     ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
     ! do i = 1, n
     !    write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i),  ec(i), vcE(i), vcN(i)
     ! end do
 
-    deallocate(denominator)
-    
   end subroutine Functional_EPCEvaluate
 
   subroutine Functional_IKNEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
@@ -1758,7 +1755,7 @@ contains
   end subroutine Functional_getBeta
   
   subroutine Functional_PSNEvaluate( this, mass, n, rhoE, rhoP, ec, vcE, vcP )
-    ! Evaluates Hamess-Schiffer's Colle Salvetti nuclear electron correlation functional
+    ! Evaluates Puska-Seitsonen-Nieminen electron-positron correlation functional
     ! Felix Moncada, 2017
     implicit none
     type(Functional):: this !!type of functional
@@ -1769,8 +1766,7 @@ contains
     real(8) :: vcE(*), vcP(*) !! Potentials - output   
 
     real(8) :: Aa,Ba,Ca,Bb,Cb,Cc,rse,rsp,drho_rse,drho_rsp
-    real(8), allocatable :: denominator(:)
-    real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
+    real(8) :: denominator
     integer :: i
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
@@ -1786,85 +1782,182 @@ contains
        print *, this%name
        STOP "The nuclear electron functional chosen is not implemented"
     end if
-           
-    allocate(denominator(n))
+    
+    ! densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD    
 
     ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
     do i = 1, n
 
        rse= (3.0/(4.0*Math_PI*rhoE(i)))**(1.0/3.0)
        rsp= (3.0/(4.0*Math_PI*rhoP(i)))**(1.0/3.0)
-
-       drho_rse= -0.206783/rhoE(i)**(4.0/3.0)
-       drho_rsp= -0.206783/rhoP(i)**(4.0/3.0)
+       
+       drho_rse= -1/(rhoE(i)**(4.0/3.0)*6.0**(2.0/3.0)*Math_PI**(1.0/3.0))
+       drho_rsp= -1/(rhoP(i)**(4.0/3.0)*6.0**(2.0/3.0)*Math_PI**(1.0/3.0))
        !(1.0/3.0)*(3.0/(4.0*Math_PI))**(1.0/3.0)
 
-       !Energy
-       
+       !Energy and potential
+
        !This should be a parameter in CONTROL
-       if( rse .ge. 8.0 .and. rsp .ge. 8.0) then
-          denominator(i)= 4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse) + 4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)
-
-          ec(i)=ec(i) + 1/denominator(i)
-
-          
-       else
-          denominator(i)= Aa+Ba*(rse+rsp)+Ca*(rse**2+rsp**2) &
+       if( rse .lt. 8.0 .and. rsp .lt. 8.0) then
+          denominator= Aa+Ba*(rse+rsp)+Ca*(rse**2+rsp**2) &
                +Bb*rse*rsp+Cb*(rse**2 *rsp + rse*rsp**2) + Cc*rse**2 *rsp**2 &
                +4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse) + 4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)
-          ec(i)=ec(i) + 1/denominator(i)
 
+          !Filter positive values that may be problematic
+          if(denominator .lt. 0.0 ) then
+             ec(i)=ec(i) + 1/denominator
+
+             vcE(i)=vcE(i) - drho_rse/denominator**2*(-dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2 &
+                  +4*Math_PI*rse**2/eap_homogeneus(rsp)&
+                  +Ba+2*Ca*rse+Bb*rsp+Cb*(2*rse*rsp + rsp**2)+2*Cc*rse*rsp**2)
+             vcP(i)=vcP(i) - drho_rsp/denominator**2*(-dr_eap_homogeneus(rsp)*4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)**2 &
+                  +4*Math_PI*rsp**2/eap_homogeneus(rse)&
+                  +Ba+2*Ca*rsp+Bb*rse+Cb*(rse**2 + 2*rse*rsp)+2*Cc*rse**2*rsp)
+          end if
+       else if( rse .lt. 20 .or. rsp .lt. 20) then            
+          denominator= 4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse) + 4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)
+
+          if(denominator .lt. 0.0 ) then
+             ec(i)=ec(i) + 1/denominator
+             vcE(i)=vcE(i) - drho_rse/denominator**2*(-dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2 &
+                  +4*Math_PI*rse**2/eap_homogeneus(rsp))
+             vcP(i)=vcP(i) - drho_rsp/denominator**2*(-dr_eap_homogeneus(rsp)*4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)**2 &
+                  +4*Math_PI*rsp**2/eap_homogeneus(rse))                  
+          end if
        end if
 
+       !We multiply again by rhoE in grid manager
+       if(rhoE(i) .gt. 0.0) then
+          ec(i)=ec(i)/rhoE(i)
+       else
+          ec(i)=0.0
+       end if
+
+       ! print *, i, rhoE(i), rhoP(i), rse, rsp, ec(i)*rhoE(i), vcE(i), vcP(i)
+       
        !Potential
        
-       if( rse .ge. 8.0 .and. rsp .ge. 8.0) then
-
-          vcE(i)=vcE(i)
-          vcP(i)=vcP(i)
-          ! denominator(i)= 4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse) + 4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)
-          
-          ! if( rse .ge. 50) then            
-          !    vcE(i)=vcE(i) - drho_rse/denominator(i)**2*(-dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2)
-          ! else
-          !    vcE(i)=vcE(i) - drho_rse/denominator(i)**2*(-dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2+4*Math_PI*rse**2/eap_homogeneus(rsp))
-          ! end if
-
-          ! if( rsp .ge. 50) then            
-          !   vcP(i)=vcP(i) - drho_rsp/denominator(i)**2*(-dr_eap_homogeneus(rsp)*4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)**2)
-          ! else
-          !    vcP(i)=vcP(i) - drho_rsp/denominator(i)**2*(-dr_eap_homogeneus(rsp)*4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)**2+4*Math_PI*rsp**2/eap_homogeneus(rse))
-          ! end if
-          
-       else
-
-          denominator(i)= Aa+Ba*(rse+rsp)+Ca*(rse**2+rsp**2) &
-               +Bb*rse*rsp+Cb*(rse**2 *rsp + rse*rsp**2) + Cc*rse**2 *rsp**2 &
-               +4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse) + 4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)
-
-          vcE(i)=vcE(i) - drho_rse/denominator(i)**2*(-dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2 &
-               +4*Math_PI*rse**2/eap_homogeneus(rsp)&
-               +Ba+2*Ca*rse+Bb*rsp+Cb*(2*rse*rsp + rsp**2)+2*Cc*rse*rsp**2)
-          vcP(i)=vcP(i) - drho_rsp/denominator(i)**2*(-dr_eap_homogeneus(rsp)*4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)**2 &
-               +4*Math_PI*rsp**2/eap_homogeneus(rse)&
-               +Ba+2*Ca*rsp+Bb*rse+Cb*(rse**2 + 2*rse*rsp)+2*Cc*rse**2*rsp)
-          
-       end if
+       ! denominator= 4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse) + 4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)
+                    
+       ! print *, i, rse, rsp , ec(i), vcE(i), vcP(i) !, vcE(i), - drho_rse/denominator**2*(4*Math_PI*rse**2/eap_homogeneus(rsp)), rse**2, eap_homogeneus(rsp)
+     !drho_rse, denominator**2, dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2, 4*Math_PI*rse**2/eap_homogeneus(rsp)
        
-     !print *, i, rse, rsp , ec(i), vcE(i), vcP(i) !, vcE(i), - drho_rse/denominator(i)**2*(4*Math_PI*rse**2/eap_homogeneus(rsp)), rse**2, eap_homogeneus(rsp)
-     !drho_rse, denominator(i)**2, dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2, 4*Math_PI*rse**2/eap_homogeneus(rsp)
-       
-       ! if(denominator(i) .ge. 0.0) then
+       ! if(denominator .ge. 0.0) then
        !    print *, "no jodas, en serio?"
-       !    print *, i, rse, rsp, eap_homogeneus(rse), eap_homogeneus(rsp), denominator(i)
+       !    print *, i, rse, rsp, eap_homogeneus(rse), eap_homogeneus(rsp), denominator
        ! end if
                  
     end do
     
-    deallocate(denominator)
-    
   end subroutine Functional_PSNEvaluate
 
+  subroutine Functional_PSNAPEvaluate( this, mass, n, rhoE, rhoP, ec, vcE, vcP )
+    ! Evaluates Puska-Seitsonen-Nieminen electron-positron correlation functional for high re and rp values
+    ! Evaluates Arponen-Pajanne single particle limit, as interpolated by Boronsky and Nieminen of the electron-positron correlation for low  re or rp values
+    ! Includes a smooth switch function at a r cutoff
+    ! Felix Moncada, 2022
+    implicit none
+    type(Functional):: this !!type of functional
+    real(8) :: mass !!nuclear mass
+    integer :: n !!nuclear gridSize
+    real(8) :: rhoE(*), rhoP(*) !! electron and positron Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcE(*), vcP(*) !! Potentials - output   
+
+    real(8) :: Aa,Ba,Ca,Bb,Cb,Cc,rse,rsp,drho_rse,drho_rsp
+    real(8) :: rcut, xcut !switch parameters
+    real(8) :: f, dfde, dfdp !switch results
+    real(8) :: denominatorPSN, EPSN, vcEPSN, vcPPSN !PSN results     
+    real(8) :: denominatorAP, EAP, vcEAP, vcPAP !AP results     
+    real(8) :: densityThreshold
+    integer :: i
+
+    !!The idea is that the parameters are a functional of the nuclear mass and charge
+    if(this%name .eq. "correlation:psnap" ) then
+       !*2 to convert from Rydbergs to a.u.
+        Aa=69.7029*2.0_8
+        Ba=-107.4927*2.0_8
+        Bb=141.8458*2.0_8
+        Ca=23.7182*2.0_8
+        Cb=-33.6472*2.0_8
+        Cc=5.21152*2.0_8
+        rcut=8.0
+        xcut=6.0
+    else
+       print *, this%name
+       STOP "The nuclear electron functional chosen is not implemented"
+    end if
+    
+    densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD    
+
+    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
+    do i = 1, n
+
+       EPSN=0.0
+       vcEPSN=0.0
+       vcPPSN=0.0
+       
+       if(rhoE(i) .gt. densityThreshold .and. rhoP(i) .gt. densityThreshold) then
+          rse= (3.0/(4.0*Math_PI*rhoE(i)))**(1.0/3.0)
+          rsp= (3.0/(4.0*Math_PI*rhoP(i)))**(1.0/3.0)
+
+          drho_rse= -1/(rhoE(i)**(4.0/3.0)*6.0**(2.0/3.0)*Math_PI**(1.0/3.0))
+          drho_rsp= -1/(rhoP(i)**(4.0/3.0)*6.0**(2.0/3.0)*Math_PI**(1.0/3.0))
+
+          !switch function
+          f=exp(-(rse**xcut+rsp**xcut)/rcut**xcut)
+          dfde =drho_rse*( -(xcut*(rse/rcut)**xcut)/rse)*f
+          dfdp =drho_rsp*( -(xcut*(rsp/rcut)**xcut)/rsp)*f
+
+          !Energy and potential
+
+          !PSN part
+          !This should be a parameter in CONTROL
+          denominatorPSN= Aa+Ba*(rse+rsp)+Ca*(rse**2+rsp**2) &
+               +Bb*rse*rsp+Cb*(rse**2 *rsp + rse*rsp**2) + Cc*rse**2 *rsp**2 &
+               +4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse) + 4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)
+
+          !Filter positive values that may be problematic
+          if(denominatorPSN .lt. 0.0 ) then
+             EPSN=1/denominatorPSN
+
+             vcEPSN=-drho_rse/denominatorPSN**2*(-dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2 &
+                  +4*Math_PI*rse**2/eap_homogeneus(rsp)&
+                  +Ba+2*Ca*rse+Bb*rsp+Cb*(2*rse*rsp + rsp**2)+2*Cc*rse*rsp**2)
+             vcPPSN=-drho_rsp/denominatorPSN**2*(-dr_eap_homogeneus(rsp)*4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)**2 &
+                  +4*Math_PI*rsp**2/eap_homogeneus(rse)&
+                  +Ba+2*Ca*rsp+Bb*rse+Cb*(rse**2 + 2*rse*rsp)+2*Cc*rse**2*rsp)
+          end if
+
+          !AP part
+          denominatorAP= 4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse) + 4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)
+
+          if(denominatorAP .lt. 0.0 ) then
+             EAP=1/denominatorAP
+             vcEAP= - drho_rse/denominatorAP**2*(-dr_eap_homogeneus(rse)*4.0/3.0*Math_PI*rsp**3/eap_homogeneus(rse)**2 &
+                  +4*Math_PI*rse**2/eap_homogeneus(rsp))
+             vcPAP= - drho_rsp/denominatorAP**2*(-dr_eap_homogeneus(rsp)*4.0/3.0*Math_PI*rse**3/eap_homogeneus(rsp)**2 &
+                  +4*Math_PI*rsp**2/eap_homogeneus(rse))                  
+          end if
+
+          ec(i)=ec(i) + EPSN*f + EAP*(1-f)
+          vcE(i)=vcE(i) + vcEPSN*f + vcEAP*(1-f) + EPSN*dfde - EAP*dfde
+          vcP(i)=vcP(i) + vcPPSN*f + vcPAP*(1-f) + EPSN*dfdp - EAP*dfdp
+
+       end if
+       !We multiply again by rhoE in grid manager
+       if(rhoE(i) .gt. 0.0) then
+          ec(i)=ec(i)/rhoE(i)
+       else
+          ec(i)=0.0
+       end if
+
+       ! print *, i, rhoE(i), rhoP(i), rse, rsp, ec(i)*rhoE(i), vcE(i), vcP(i)
+       
+    end do
+    
+  end subroutine Functional_PSNAPEvaluate
+  
 
   subroutine Functional_lowLimitEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )
     ! Evaluates E/sqrt(PePn)
@@ -2088,13 +2181,15 @@ contains
 
 
   real(8) function eap_homogeneus(rs)
+    ! Evaluates Boronsky and Nieminen positron-electron correlation single particle limit energy
+    ! Felix Moncada, 2017
     implicit none
     real(8) rs
 
     !!This expressions are in rydbergs
     if(rs .lt. 0.302) eap_homogeneus=-1.56/sqrt(rs)+(0.051*log(rs)-0.081)*log(rs)+1.14
     if(rs .ge. 0.302 .and. rs .lt. 0.56) eap_homogeneus=-0.92305-0.05459/rs**2.0
-    if(rs .ge. 0.25 .and. rs .lt. 8.0) eap_homogeneus=-13.15111/(rs+2.5)**2.0 + 2.8655/(rs+2.5) - 0.6298
+    if(rs .ge. 0.56 .and. rs .lt. 8.0) eap_homogeneus=-13.15111/(rs+2.5)**2.0 + 2.8655/(rs+2.5) - 0.6298
     if(rs .ge. 8.0) eap_homogeneus=-10250.57860/rs**6.0  + 44.50466/rs**3.0-0.524
 
     !!changing to a.u.
@@ -2102,13 +2197,15 @@ contains
   end function eap_homogeneus
 
   real(8) function dr_eap_homogeneus(rs)
+    ! Evaluates Boronsky and Nieminen positron-electron correlation single particle limit potential
+    ! Felix Moncada, 2017
     implicit none
     real(8) rs
 
     !!This expressions are in rydbergs
     if(rs .lt. 0.302) dr_eap_homogeneus=0.78/rs**(3.0/2.0)+(0.102*log(rs)-0.081)/rs
     if(rs .ge. 0.302 .and. rs .lt. 0.56) dr_eap_homogeneus=0.10918/rs**3.0
-    if(rs .ge. 0.25 .and. rs .lt. 8.0) dr_eap_homogeneus=26.30222/(rs+2.5)**3.0 - 2.8655/(rs+2.5)**2.0
+    if(rs .ge. 0.56 .and. rs .lt. 8.0) dr_eap_homogeneus=26.30222/(rs+2.5)**3.0 - 2.8655/(rs+2.5)**2.0
     if(rs .ge. 8.0) dr_eap_homogeneus=61503.4716/rs**7.0  -133.51399/rs**4.0
 
     !!changing to a.u.

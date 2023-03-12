@@ -28,7 +28,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralsTransformationMethod = "C"
+readCoefficients=F
+integralsTransformationMethod = "C"
 	moldenFileFormat = "MIXED"
 END CONTROL
 OUTPUTS

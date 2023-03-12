@@ -244,10 +244,11 @@ private:
   std::vector<libint2::Atom> atoms;
   std::vector<libint2::Shell> shells;
   std::vector<double> norma;
-  Matrix compute_shellblock_norm(const Matrix &A);
+  Matrix compute_shellblock_norm(const Matrix &A);  
+  std::string name;
 
 public:
-  LibintInterface(const int stack_size, const int id, const bool el);
+  LibintInterface(const int stack_size, const int id, const bool el, const bool parallel);
 
   ~LibintInterface() { libint2::finalize(); };
 
@@ -299,6 +300,41 @@ public:
                                          const double *exponents,
                                          const int pot_size);
 
+  Matrix compute_g12_direct(const Matrix &D,
+			    double &factor,
+			    const double *coefficients,
+			    const double *exponents,
+			    const int pot_size);
+
+  Matrix compute_g12inter_direct(LibintInterface &other,
+				 const Matrix &D,
+				 const bool permuted,
+				 const double *coefficients,
+				 const double *exponents,
+				 const int pot_size);
+
+  void compute_2body_directAll(
+      const Matrix &D, const Matrix &Schwartz, double *A,
+      double precision = std::numeric_limits<double>::epsilon());
+
+  void compute_coupling_directAll(
+      LibintInterface &other, const Matrix &D, double *A, const bool permuted,
+      double precision = std::numeric_limits<double>::epsilon());
+
+  void compute_g12_directAll(const Matrix &D,
+			     double *results,
+			     const double *coefficients,
+			     const double *exponents,
+			     const int pot_size);
+
+  void compute_g12inter_directAll(LibintInterface &other,
+				  const Matrix &D,
+				  double *results,
+				  const bool permuted,
+				  const double *coefficients,
+				  const double *exponents,
+				  const int pot_size);
+  
   std::vector<size_t> map_shell_to_basis_function();
 
   std::vector<libint2::Shell> get_shells() { return shells; };
@@ -308,6 +344,7 @@ public:
   size_t get_nbasis() { return nbasis; };
   int get_max_l() { return max_l; };
   int get_speciesID() { return speciesID; };
+  std::string get_name() { return name; };
 };
 
 #ifdef __cplusplus
@@ -318,7 +355,7 @@ extern "C" {
 Fortran interface routines.
 */
 LibintInterface *LibintInterface_new(const int stack_size, const int id,
-                                     const bool el);
+                                     const bool el, const bool parallel);
 
 void LibintInterface_del(LibintInterface *lint);
 
@@ -371,6 +408,39 @@ void libintinterface_compute_g12inter_disk(LibintInterface *lint,
                                       const double *coefficients,
                                       const double *exponents,
                                       const int pot_size);
+void libintinterface_compute_g12_direct(LibintInterface *lint,
+					double *dens,
+					double *result,
+					double &factor,
+					const double *coefficients,
+					const double *exponents,
+					const int pot_size);
+void libintinterface_compute_g12inter_direct(LibintInterface *lint,
+					     LibintInterface *olint,
+					     double *dens,
+					     double *result,
+					     const double *coefficients,
+					     const double *exponents,
+					     const int pot_size);
+  
+void LibintInterface_compute_2body_directAll(LibintInterface *lint, double *dens,
+                                          double *result);
+void LibintInterface_compute_coupling_directAll(LibintInterface *lint,
+                                             LibintInterface *olint,
+                                             double *dens, double *result);
+void libintinterface_compute_g12_directAll(LibintInterface *lint,
+					double *dens,
+					double *result,
+					const double *coefficients,
+					const double *exponents,
+					const int pot_size);
+void libintinterface_compute_g12inter_directAll(LibintInterface *lint,
+					     LibintInterface *olint,
+					     double *dens,
+					     double *result,
+					     const double *coefficients,
+					     const double *exponents,
+					     const int pot_size);
 
   
 void libintinterface_buildg12_(int *, int *, int *, int *, int *, int *,

@@ -12,7 +12,8 @@ TASKS
 END TASKS
 
 CONTROL
-	convergenceMethod=1
+readCoefficients=F
+convergenceMethod=1
 	iterationScheme=3
 	overlapEigenThreshold=1E-6
 	totalEnergyTolerance = 1E-8

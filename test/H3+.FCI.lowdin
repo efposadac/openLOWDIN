@@ -13,7 +13,8 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCIstates=3
+readCoefficients=F
+numberOfCIstates=3
 	CIStatesToPrint = 1
 	CIdiagonalizationMethod = "JADAMILU"
 	CIPrintEigenVectorsFormat = "OCCUPIED"

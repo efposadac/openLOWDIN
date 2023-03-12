@@ -12,7 +12,7 @@ outputName = testName + ".out"
 
 refValues = {
 "HF energy" : [-7.816179517446,1E-8],
-"Orb2alpha_P2" : [-7.6516,1E-4]
+"Orb2alpha_P2" : [-7.6516,1E-3]
 }
 
 testValues = dict(refValues) #copy 

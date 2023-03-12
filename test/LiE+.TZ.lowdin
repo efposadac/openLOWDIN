@@ -17,7 +17,8 @@ TASKS
 END TASKS
 
 CONTROL
-	!numberOfCores=1
+readCoefficients=F
+!numberOfCores=1
 	scfelectronicenergytolerance=1E-8
         !CIdiagonalizationMethod="DSYEVX"
         !CIdiagonalizationMethod="ARPACK"

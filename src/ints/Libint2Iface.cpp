@@ -15,25 +15,26 @@ LibintInterface class implementation
 */
 
 LibintInterface::LibintInterface(const int stack_size, const int id,
-                                 const bool el)
+                                 const bool el, const bool parallel)
     : max_nprim(0), nbasis(0), s_size(stack_size), max_l(0), speciesID(id),
       is_electron(el) {
   // set up thread pool
-  {
-    using libint2::nthreads;
+  using libint2::nthreads;
+  nthreads = 1;
+  if (parallel) {
     auto nthreads_cstr = getenv("OMP_NUM_THREADS");
-    nthreads = 1;
     if (nthreads_cstr && strcmp(nthreads_cstr, "")) {
       std::istringstream iss(nthreads_cstr);
       iss >> nthreads;
       if (nthreads > 1 << 16 || nthreads <= 0)
         nthreads = 1;
     }
-
+  }
+  {
 #if defined(_OPENMP)
     omp_set_num_threads(nthreads);
 #endif
-    //     std::cout << "Will scale over " << nthreads
+    // std::cout << "Will scale over " << nthreads
     // #if defined(_OPENMP)
     //               << " OpenMP"
     // #else
@@ -44,6 +45,10 @@ LibintInterface::LibintInterface(const int stack_size, const int id,
 
   // initializes the Libint integrals library ... now ready to compute
   libint2::initialize();
+  name = "Thread:"+(std::to_string(omp_get_thread_num()+1))+"Species"+(std::to_string(id));
+
+  // std::cout << "libint2::initialized() in constructor" << libint2::initialized() << "with name" << name << std::endl;
+  // std::cout << std::flush;
 };
 
 void LibintInterface::init_2body_ints() {
@@ -113,8 +118,9 @@ void LibintInterface::add_shell(double *alpha, double *coeff, double *origin,
   // Renormalize
   const auto &shell = shells.back();
 
-  // std::cout << shell << std::endl;
-
+  // std::cout << "libint2::initialized() in add shell" << libint2::initialized() << "with name" << name << std::endl;
+  // std::cout << std::flush;
+ 
   libint2::Engine engine(libint2::Operator::overlap, shell.nprim(), max_l, 0);
   const auto &buf = engine.results();
   engine.compute(shell, shell);
@@ -568,8 +574,8 @@ Matrix LibintInterface::compute_2body_direct(const Matrix &D,
                     const auto value = buf[0][f1234];
 
                     const auto value_scal_by_deg = value * s1234_deg *
-                                                   norma[bf1] * norma[bf2] *
-                                                   norma[bf3] * norma[bf4];
+		      norma[bf1] * norma[bf2] *
+		      norma[bf3] * norma[bf4];
 
                     g(bf1, bf2) += D(bf3, bf4) * value_scal_by_deg;
                     g(bf3, bf4) += D(bf1, bf2) * value_scal_by_deg;
@@ -678,6 +684,9 @@ void LibintInterface::compute_2body_directIT(const Matrix &D, const Matrix &C,
   // construct the 2-electron repulsion integrals engine pool
   using libint2::Engine;
   std::vector<Engine> engines(nthreads);
+  // std::cout << "libint2::initialized() in compute_2body" << libint2::initialized() << "with name" << name << std::endl;
+  // std::cout << std::flush;
+
   engines[0] = Engine(libint2::Operator::coulomb, max_nprim, max_l, 0);
   engines[0].set_precision(engine_precision); // shellset-dependentprecision
                                               // control will likely break
@@ -2184,6 +2193,1057 @@ void LibintInterface::compute_g12inter_disk(LibintInterface &other,
   std::cout << " Number of unique integrals for species: " << speciesID << " / "
             << other.get_speciesID() << " = " << num_ints_computed << std::endl;
 }
+Matrix LibintInterface::compute_g12_direct(const Matrix &D,
+					   double &factor, 
+					   const double *coefficients,
+					   const double *exponents,
+					   const int pot_size) {
+
+  const auto n = nbasis;
+  const auto nshells = shells.size();
+
+  using libint2::nthreads;
+
+  std::vector<Matrix> G(nthreads, Matrix::Zero(n, n));
+
+  auto fock_precision = std::numeric_limits<double>::epsilon();
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // Setting CGTG params
+  std::vector<std::pair<double, double>> cgtg_params;
+  cgtg_params.reserve(pot_size);
+
+  for (int i = 0; i < pot_size; ++i) {
+    cgtg_params.push_back({exponents[i], coefficients[i]});
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::cgtg, max_nprim, max_l, 0);
+  // engines[0].set_precision(engine_precision); // shellset-dependentprecision
+  // control will likely break
+  // positive definiteness
+  // stick with this simple recipe
+  engines[0].set_params(cgtg_params);
+
+  // std::cout << "compute_2body_direct:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    auto &g = G[thread_id];
+    const auto &buf = engines[thread_id].results();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (const auto &s2 : obs_shellpair_list[s1]) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto s3 = 0; s3 <= s1; ++s3) {
+          auto bf3_first = shell2bf[s3];
+          auto n3 = shells[s3].size();
+
+          const auto s4_max = (s1 == s3) ? s2 : s3;
+          for (const auto &s4 : obs_shellpair_list[s3]) {
+            if (s4 > s4_max)
+              break; // for each s3, s4 are stored in monotonically increasing
+                     // order
+
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto bf4_first = shell2bf[s4];
+            auto n4 = shells[s4].size();
+
+            num_ints_computed += n1 * n2 * n3 * n4;
+
+            // compute the permutational degeneracy (i.e. # of equivalents) of
+            // the given shell set
+            auto s12_deg = (s1 == s2) ? 1.0 : 2.0;
+            auto s34_deg = (s3 == s4) ? 1.0 : 2.0;
+            auto s12_34_deg = (s1 == s3) ? (s2 == s4 ? 1.0 : 2.0) : 2.0;
+            auto s1234_deg = s12_deg * s34_deg * s12_34_deg;
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute(shells[s1], shells[s2], shells[s3], shells[s4]);
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            // printf("(%2d %2d| %2d %2d)\n", s1, s2, s3, s4);
+
+            for (auto f1 = 0, f1234 = 0; f1 != n1; ++f1) {
+              const auto bf1 = f1 + bf1_first;
+              for (auto f2 = 0; f2 != n2; ++f2) {
+                const auto bf2 = f2 + bf2_first;
+                for (auto f3 = 0; f3 != n3; ++f3) {
+                  const auto bf3 = f3 + bf3_first;
+                  for (auto f4 = 0; f4 != n4; ++f4, ++f1234) {
+                    const auto bf4 = f4 + bf4_first;
+
+                    const auto value = buf[0][f1234];
+
+                    const auto value_scal_by_deg = value * s1234_deg *
+		      norma[bf1] * norma[bf2] *
+		      norma[bf3] * norma[bf4];
+
+                    g(bf1, bf2) += D(bf3, bf4) * value_scal_by_deg;
+                    g(bf3, bf4) += D(bf1, bf2) * value_scal_by_deg;
+                    g(bf1, bf3) += 0.5 * factor * D(bf2, bf4) * value_scal_by_deg;
+                    g(bf2, bf4) += 0.5 * factor * D(bf1, bf3) * value_scal_by_deg;
+                    g(bf1, bf4) += 0.5 * factor * D(bf2, bf3) * value_scal_by_deg;
+                    g(bf2, bf3) += 0.5 * factor * D(bf1, bf4) * value_scal_by_deg;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+  // accumulate contributions from all threads
+  for (size_t i = 1; i != nthreads; ++i) {
+    G[0] += G[i];
+  }
+  
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for intra-species G12 integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  // std::cout << " Number of unique integrals for species: " << speciesID << "
+  // = "
+  //           << num_ints_computed << std::endl;
+  // symmetrize the result and return
+  Matrix GG = 0.25 * (G[0] + G[0].transpose());
+  return GG;
+}
+
+Matrix LibintInterface::compute_g12inter_direct(LibintInterface &other,
+						const Matrix &D,
+                                                const bool permuted,
+						const double *coefficients,
+						const double *exponents,
+						const int pot_size) {
+
+  const auto n = permuted ? other.get_nbasis() : get_nbasis();
+
+  const auto nshells = shells.size();
+  const auto oshells = other.get_shells();
+  const auto onshells = oshells.size();
+
+  using libint2::nthreads;
+
+  std::vector<Matrix> B(nthreads, Matrix::Zero(n, n));
+
+  auto fock_precision = std::numeric_limits<double>::epsilon();
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto aux = std::max(max_nprim, other.max_nprim);
+  auto max_nprim = aux;
+  auto aux2 = std::max(max_l, other.max_l);
+  auto max_l = aux2;
+
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // Setting CGTG params
+  std::vector<std::pair<double, double>> cgtg_params;
+  cgtg_params.reserve(pot_size);
+
+  for (int i = 0; i < pot_size; ++i) {
+    cgtg_params.push_back({exponents[i], coefficients[i]});
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::cgtg, max_nprim, max_l, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+  engines[0].set_params(cgtg_params);
+
+  // std::cout << "compute_2body_direct:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+  // setting buffers
+  using libint2::QuartetBuffer;
+  std::vector<QuartetBuffer> buffers(nthreads);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+  auto oshell2bf = other.map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    const auto &buf = engines[thread_id].results();
+    auto &b = B[thread_id];
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (auto s2 = s1; s2 != nshells; ++s2) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto os1 = 0l; os1 != onshells; ++os1) {
+          auto obf1_first = oshell2bf[os1];
+          auto on1 = oshells[os1].size();
+
+          for (auto os2 = os1; os2 != onshells; ++os2) {
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto obf2_first = oshell2bf[os2];
+            auto on2 = oshells[os2].size();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute(shells[s1], shells[s2], oshells[os1], oshells[os2]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
+              const auto bf1 = f1 + bf1_first;
+
+              for (auto f2 = 0; f2 != n2; ++f2) {
+                const auto bf2 = f2 + bf2_first;
+
+                for (auto of1 = 0; of1 != on1; ++of1) {
+                  const auto obf1 = of1 + obf1_first;
+
+                  for (auto of2 = 0; of2 != on2; ++of2, ++f1212) {
+                    const auto obf2 = of2 + obf2_first;
+
+                    if (bf1 <= bf2 && obf1 <= obf2) {
+                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                        continue;
+
+                      ++num_ints_computed;
+                      if (permuted) {
+                        auto coulomb = D(bf1, bf2) * buf[0][f1212] *
+                                       get_norma(bf1) * get_norma(bf2) *
+                                       other.get_norma(obf1) *
+                                       other.get_norma(obf2);
+
+                        b(obf2, obf1) += coulomb;
+                        if (bf1 != bf2)
+                          b(obf2, obf1) += coulomb;
+                      } else {
+                        auto coulomb = D(obf1, obf2) * buf[0][f1212] *
+                                       get_norma(bf1) * get_norma(bf2) *
+                                       other.get_norma(obf1) *
+                                       other.get_norma(obf2);
+
+                        // printf("%lf\n", coulomb);
+                        b(bf2, bf1) += coulomb;
+                        if (obf1 != obf2)
+                          b(bf2, bf1) += coulomb;
+                      }
+                    }
+                  }
+                }
+              }
+            } // end cartesian loop
+          }
+        }
+      }
+    } // end shells loop
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    B[0] += B[i];
+  }
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for inter-species G12 integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  return B[0];
+}
+
+void LibintInterface::compute_2body_directAll(const Matrix &D, 
+					      const Matrix &Schwartz,
+					      double *A,
+					      double precision) {
+  const auto n = nbasis;
+  const auto nshells = shells.size();
+
+  using libint2::nthreads;
+
+  bool do_schwartz_screen = is_electron;
+  if (is_electron) {
+    do_schwartz_screen = Schwartz.cols() != 0 && Schwartz.rows() != 0;
+  }
+
+  Matrix D_shblk_norm; // matrix of infty-norms of shell blocks
+  if (do_schwartz_screen) {
+    D_shblk_norm = compute_shellblock_norm(D);
+  }
+
+  auto fock_precision = precision;
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision = 0.0;
+  if (do_schwartz_screen) {
+    engine_precision = std::min(fock_precision / D_shblk_norm.maxCoeff(),
+                                std::numeric_limits<double>::epsilon()) /
+                       max_nprim4;
+  } else {
+    engine_precision =
+        std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+        max_nprim4;
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+  std::vector<Engine> engines(nthreads);
+  // std::cout << "libint2::initialized() in compute_2body" << libint2::initialized() << "with name" << name << std::endl;
+  // std::cout << std::flush;
+
+  engines[0] = Engine(libint2::Operator::coulomb, max_nprim, max_l, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+
+  // std::cout << "compute_2body_direct:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() <<
+  // std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+  std::atomic<size_t> num_ints_computed{0};
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  int m = 0;
+  auto shell2bf = map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    // auto &g = G[thread_id];
+    const auto &buf = engines[thread_id].results();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (const auto &s2 : obs_shellpair_list[s1]) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        const auto Dnorm12 = do_schwartz_screen ? D_shblk_norm(s1, s2) : 0.;
+
+        for (auto s3 = 0; s3 <= s1; ++s3) {
+          auto bf3_first = shell2bf[s3];
+          auto n3 = shells[s3].size();
+
+          const auto Dnorm123 =
+              do_schwartz_screen
+                  ? std::max(D_shblk_norm(s1, s3),
+                             std::max(D_shblk_norm(s2, s3), Dnorm12))
+                  : 0.;
+
+          const auto s4_max = (s1 == s3) ? s2 : s3;
+          for (const auto &s4 : obs_shellpair_list[s3]) {
+            if (s4 > s4_max)
+              break; // for each s3, s4 are stored in monotonically increasing
+                     // order
+
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            const auto Dnorm1234 =
+                do_schwartz_screen
+                    ? std::max(
+                          D_shblk_norm(s1, s4),
+                          std::max(D_shblk_norm(s2, s4),
+                                   std::max(D_shblk_norm(s3, s4), Dnorm123)))
+                    : 0.;
+
+            if (do_schwartz_screen &&
+                Dnorm1234 * Schwartz(s1, s2) * Schwartz(s3, s4) <
+                    fock_precision)
+              continue;
+
+            auto bf4_first = shell2bf[s4];
+            auto n4 = shells[s4].size();
+
+            num_ints_computed += n1 * n2 * n3 * n4;
+
+            // compute the permutational degeneracy (i.e. # of equivalents) of
+            // the given shell set
+            //auto s12_deg = (s1 == s2) ? 1.0 : 2.0;
+            //auto s34_deg = (s3 == s4) ? 1.0 : 2.0;
+            //auto s12_34_deg = (s1 == s3) ? (s2 == s4 ? 1.0 : 2.0) : 2.0;
+            //auto s1234_deg = s12_deg * s34_deg * s12_34_deg;
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute2<libint2::Operator::coulomb, libint2::BraKet::xx_xx,
+                            0>(shells[s1], shells[s2], shells[s3], shells[s4]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
+                                       bf3_first, bf4_first);
+
+            for (intIter.first(); intIter.is_done() == false; intIter.next()) {
+              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+                auto bf1 = intIter.i() ;
+                auto bf2 = intIter.j() ;
+                auto bf3 = intIter.k() ;
+                auto bf4 = intIter.l() ;
+                const auto value_scal_by_norm = buf[0][intIter.index()] *
+		  norma[intIter.i()] * norma[intIter.j()] *
+		  norma[intIter.k()] * norma[intIter.l()];
+
+		A[bf1*n*n*n+bf2*n*n+bf3*n+bf4] = value_scal_by_norm;
+		A[bf2*n*n*n+bf1*n*n+bf3*n+bf4] = value_scal_by_norm;
+		A[bf1*n*n*n+bf2*n*n+bf4*n+bf3] = value_scal_by_norm;
+		A[bf2*n*n*n+bf1*n*n+bf4*n+bf3] = value_scal_by_norm;
+		A[bf3*n*n*n+bf4*n*n+bf1*n+bf2] = value_scal_by_norm;
+		A[bf3*n*n*n+bf4*n*n+bf2*n+bf1] = value_scal_by_norm;
+		A[bf4*n*n*n+bf3*n*n+bf1*n+bf2] = value_scal_by_norm;
+		A[bf4*n*n*n+bf3*n*n+bf2*n+bf1] = value_scal_by_norm;
+		  
+	      } //end if >10
+	    } //end for
+	    
+          }
+        }
+      }
+    }
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+ 
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for intras-pecies integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+}
+
+void LibintInterface::compute_coupling_directAll(LibintInterface &other,
+                                                const Matrix &D, double *A, 
+                                                const bool permuted,
+                                                double precision) {
+  const auto n = permuted ? other.get_nbasis() : get_nbasis();
+  const auto on = permuted ? get_nbasis() : other.get_nbasis()  ;
+  
+	//if ( permuted ) {
+	//	printf ("permuted\n");
+	//}
+	//printf ("second n: %i on: %i \n", n, on);
+  //printf ("p index: %i \n", p);
+
+  const auto nshells = shells.size();
+  const auto oshells = other.get_shells();
+  const auto onshells = oshells.size();
+
+  using libint2::nthreads;
+
+  auto fock_precision = precision;
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto nprim_max = std::max(max_nprim, other.max_nprim);
+  auto l_max = std::max(max_l, other.max_l);
+
+  auto max_nprim4 = nprim_max * nprim_max * nprim_max * nprim_max;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::coulomb, nprim_max, l_max, 0);
+  engine_precision = 1.0e-40;
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+
+  // std::cout << "compute_coupling_direct:precision = " << precision <<
+  // std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() <<
+  // std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+  auto oshell2bf = other.map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    const auto &buf = engines[thread_id].results();
+    // auto &b = B[thread_id];
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (auto s2 = s1; s2 != nshells; ++s2) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto os1 = 0l; os1 != onshells; ++os1) {
+          auto obf1_first = oshell2bf[os1];
+          auto on1 = oshells[os1].size();
+
+          for (auto os2 = os1; os2 != onshells; ++os2) {
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto obf2_first = oshell2bf[os2];
+            auto on2 = oshells[os2].size();
+
+// printf("(%ld %ld | %ld %ld) \n", s1, s2, os1, os2);
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute2<libint2::Operator::coulomb, libint2::BraKet::xx_xx,
+                            0>(shells[s1], shells[s2], oshells[os1],
+                               oshells[os2]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
+              const auto bf1 = f1 + bf1_first;
+
+              for (auto f2 = 0; f2 != n2; ++f2) {
+                const auto bf2 = f2 + bf2_first;
+
+                for (auto of1 = 0; of1 != on1; ++of1) {
+                  const auto obf1 = of1 + obf1_first;
+
+                  for (auto of2 = 0; of2 != on2; ++of2, ++f1212) {
+                    const auto obf2 = of2 + obf2_first;
+
+                    if (bf1 <= bf2 && obf1 <= obf2) {
+                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                        continue;
+
+                      ++num_ints_computed;
+
+                      auto coulomb = buf[0][f1212] *
+			get_norma(bf1) * get_norma(bf2) *
+			other.get_norma(obf1) *
+			other.get_norma(obf2);
+
+		      // printf ("%i %i %i %i %f\n", obf2, obf1, bf1, bf2 , coulomb);
+		      // fflush(stdout);
+		      A[bf1*n*on*on+bf2*on*on+obf1*on+obf2]=coulomb;
+		      A[bf2*n*on*on+bf1*on*on+obf1*on+obf2]=coulomb;
+		      A[bf1*n*on*on+bf2*on*on+obf2*on+obf1]=coulomb;
+		      A[bf2*n*on*on+bf1*on*on+obf2*on+obf1]=coulomb;
+
+                    } // end if
+                  }
+                }
+              }
+            } // end cartesian loop
+
+          }
+        }
+      }
+    } // end shells loop
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for inter-species integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+}
+
+void LibintInterface::compute_g12_directAll(const Matrix &D,
+					    double *A,
+					    const double *coefficients,
+					    const double *exponents,
+					    const int pot_size) {
+
+  const auto n = nbasis;
+  const auto nshells = shells.size();
+
+  using libint2::nthreads;
+
+  auto fock_precision = std::numeric_limits<double>::epsilon();
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // Setting CGTG params
+  std::vector<std::pair<double, double>> cgtg_params;
+  cgtg_params.reserve(pot_size);
+
+  for (int i = 0; i < pot_size; ++i) {
+    cgtg_params.push_back({exponents[i], coefficients[i]});
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::cgtg, max_nprim, max_l, 0);
+  // engines[0].set_precision(engine_precision); // shellset-dependentprecision
+  // control will likely break
+  // positive definiteness
+  // stick with this simple recipe
+  engines[0].set_params(cgtg_params);
+
+  // std::cout << "compute_2body_direct:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    const auto &buf = engines[thread_id].results();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (const auto &s2 : obs_shellpair_list[s1]) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto s3 = 0; s3 <= s1; ++s3) {
+          auto bf3_first = shell2bf[s3];
+          auto n3 = shells[s3].size();
+
+          const auto s4_max = (s1 == s3) ? s2 : s3;
+          for (const auto &s4 : obs_shellpair_list[s3]) {
+            if (s4 > s4_max)
+              break; // for each s3, s4 are stored in monotonically increasing
+                     // order
+
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto bf4_first = shell2bf[s4];
+            auto n4 = shells[s4].size();
+
+            num_ints_computed += n1 * n2 * n3 * n4;
+
+            // compute the permutational degeneracy (i.e. # of equivalents) of
+            // the given shell set
+            // auto s12_deg = (s1 == s2) ? 1.0 : 2.0;
+            // auto s34_deg = (s3 == s4) ? 1.0 : 2.0;
+            // auto s12_34_deg = (s1 == s3) ? (s2 == s4 ? 1.0 : 2.0) : 2.0;
+            // auto s1234_deg = s12_deg * s34_deg * s12_34_deg;
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute(shells[s1], shells[s2], shells[s3], shells[s4]);
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            auto intIter = IntraIntsIt(n1, n2, n3, n4, bf1_first, bf2_first,
+                                       bf3_first, bf4_first);
+	    
+            for (intIter.first(); intIter.is_done() == false; intIter.next()) {
+              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+                auto bf1 = intIter.i() ;
+                auto bf2 = intIter.j() ;
+                auto bf3 = intIter.k() ;
+                auto bf4 = intIter.l() ;
+                const auto value_scal_by_norm = buf[0][intIter.index()] *
+		  norma[intIter.i()] * norma[intIter.j()] *
+		  norma[intIter.k()] * norma[intIter.l()];
+
+		A[bf1*n*n*n+bf2*n*n+bf3*n+bf4] = value_scal_by_norm;
+		A[bf2*n*n*n+bf1*n*n+bf3*n+bf4] = value_scal_by_norm;
+		A[bf1*n*n*n+bf2*n*n+bf4*n+bf3] = value_scal_by_norm;
+		A[bf2*n*n*n+bf1*n*n+bf4*n+bf3] = value_scal_by_norm;
+		A[bf3*n*n*n+bf4*n*n+bf1*n+bf2] = value_scal_by_norm;
+		A[bf3*n*n*n+bf4*n*n+bf2*n+bf1] = value_scal_by_norm;
+		A[bf4*n*n*n+bf3*n*n+bf1*n+bf2] = value_scal_by_norm;
+		A[bf4*n*n*n+bf3*n*n+bf2*n+bf1] = value_scal_by_norm;
+		  
+	      } //end if >10
+	    } //end for
+            // printf("(%2d %2d| %2d %2d)\n", s1, s2, s3, s4);
+
+          }
+        }
+      }
+    }
+    
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+  
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for intra-species G12 integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+  // std::cout << " Number of unique integrals for species: " << speciesID << "
+  // = "
+  //           << num_ints_computed << std::endl;
+  // symmetrize the result and return
+}
+
+void LibintInterface::compute_g12inter_directAll(LibintInterface &other,
+						 const Matrix &D,
+						 double *A,
+						 const bool permuted,
+						 const double *coefficients,
+						 const double *exponents,
+						 const int pot_size) {
+
+  const auto n = permuted ? other.get_nbasis() : get_nbasis();
+  const auto on = permuted ? get_nbasis() : other.get_nbasis()  ;
+
+  const auto nshells = shells.size();
+  const auto oshells = other.get_shells();
+  const auto onshells = oshells.size();
+
+  using libint2::nthreads;
+
+  auto fock_precision = std::numeric_limits<double>::epsilon();
+
+  // engine precision controls primitive truncation, assume worst-casescenario
+  // (all primitive combinations add up constructively)
+  auto aux = std::max(max_nprim, other.max_nprim);
+  auto max_nprim = aux;
+  auto aux2 = std::max(max_l, other.max_l);
+  auto max_l = aux2;
+
+  auto max_nprim4 = max_nprim * max_nprim * max_nprim * max_nprim;
+
+  auto engine_precision =
+      std::min(fock_precision, std::numeric_limits<double>::epsilon()) /
+      max_nprim4;
+
+  // Setting CGTG params
+  std::vector<std::pair<double, double>> cgtg_params;
+  cgtg_params.reserve(pot_size);
+
+  for (int i = 0; i < pot_size; ++i) {
+    cgtg_params.push_back({exponents[i], coefficients[i]});
+  }
+
+  // construct the 2-electron repulsion integrals engine pool
+  using libint2::Engine;
+
+  std::vector<Engine> engines(nthreads);
+  engines[0] = Engine(libint2::Operator::cgtg, max_nprim, max_l, 0);
+  engines[0].set_precision(engine_precision); // shellset-dependentprecision
+                                              // control will likely break
+                                              // positive definiteness
+                                              // stick with this simple recipe
+  engines[0].set_params(cgtg_params);
+
+  // std::cout << "compute_2body_direct:precision = " << precision << std::endl;
+  // std::cout << "Engine::precision = " << engines[0].precision() << std::endl;
+
+  for (size_t i = 1; i != nthreads; ++i) {
+    engines[i] = engines[0];
+  }
+
+  std::atomic<size_t> num_ints_computed{0};
+
+  // setting buffers
+  using libint2::QuartetBuffer;
+  std::vector<QuartetBuffer> buffers(nthreads);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  std::vector<libint2::Timers<1>> timers(nthreads);
+#endif
+
+  auto shell2bf = map_shell_to_basis_function();
+  auto oshell2bf = other.map_shell_to_basis_function();
+
+  auto lambda = [&](int thread_id) {
+
+    auto &engine = engines[thread_id];
+    const auto &buf = engines[thread_id].results();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+    auto &timer = timers[thread_id];
+    timer.clear();
+    timer.set_now_overhead(25);
+#endif
+
+    // loop over permutationally-unique set of shells
+    for (auto s1 = 0l, s1234 = 0l; s1 != nshells; ++s1) {
+      auto bf1_first = shell2bf[s1]; // first basis function in this shell
+      auto n1 = shells[s1].size();   // number of basis functions in this shell
+
+      for (auto s2 = s1; s2 != nshells; ++s2) {
+        auto bf2_first = shell2bf[s2];
+        auto n2 = shells[s2].size();
+
+        for (auto os1 = 0l; os1 != onshells; ++os1) {
+          auto obf1_first = oshell2bf[os1];
+          auto on1 = oshells[os1].size();
+
+          for (auto os2 = os1; os2 != onshells; ++os2) {
+            if ((s1234++) % nthreads != thread_id)
+              continue;
+
+            auto obf2_first = oshell2bf[os2];
+            auto on2 = oshells[os2].size();
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.start(0);
+#endif
+
+            engine.compute(shells[s1], shells[s2], oshells[os1], oshells[os2]);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+            timer.stop(0);
+#endif
+
+            if (buf[0] == nullptr)
+              continue; // all screened out
+
+            for (auto f1 = 0, f1212 = 0; f1 != n1; ++f1) {
+              const auto bf1 = f1 + bf1_first;
+
+              for (auto f2 = 0; f2 != n2; ++f2) {
+                const auto bf2 = f2 + bf2_first;
+
+                for (auto of1 = 0; of1 != on1; ++of1) {
+                  const auto obf1 = of1 + obf1_first;
+
+                  for (auto of2 = 0; of2 != on2; ++of2, ++f1212) {
+                    const auto obf2 = of2 + obf2_first;
+
+                    if (bf1 <= bf2 && obf1 <= obf2) {
+                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                        continue;
+
+                      ++num_ints_computed;
+
+                      auto coulomb = buf[0][f1212] *
+			get_norma(bf1) * get_norma(bf2) *
+			other.get_norma(obf1) *
+			other.get_norma(obf2);
+
+		      // printf ("%i %i %i %i %f\n", obf2, obf1, bf1, bf2 , coulomb);
+		      // fflush(stdout);
+		      A[bf1*n*on*on+bf2*on*on+obf1*on+obf2]=coulomb;
+		      A[bf2*n*on*on+bf1*on*on+obf1*on+obf2]=coulomb;
+		      A[bf1*n*on*on+bf2*on*on+obf2*on+obf1]=coulomb;
+		      A[bf2*n*on*on+bf1*on*on+obf2*on+obf1]=coulomb;
+		      
+                    } // end if
+                  }
+                }
+              }
+            } // end cartesian loop
+          }
+        }
+      }
+    } // end shells loop
+
+  }; // end of lambda
+
+  libint2::parallel_do(lambda);
+
+#if defined(REPORT_INTEGRAL_TIMINGS)
+  double time_for_ints = 0.0;
+  for (auto &t : timers) {
+    time_for_ints += t.read(0);
+  }
+  std::cout << " Time for inter-species G12 integrals = " << time_for_ints
+            << std::endl;
+  for (int t = 0; t != nthreads; ++t)
+    engines[t].print_timers();
+#endif
+
+}
 
 /*
 Auxiliary functions
@@ -2201,7 +3261,12 @@ shellpair_list_t compute_shellpair_list(const std::vector<libint2::Shell> &bs1,
   // construct the 2-electron repulsion integrals engine
   using libint2::Engine;
   std::vector<Engine> engines;
+
   engines.reserve(nthreads);
+
+  // std::cout << "libint2::initialized() in add compute_shellpair" << libint2::initialized() << "in thread" << omp_get_thread_num()+1 << std::endl;
+  // std::cout << std::flush;
+
   engines.emplace_back(libint2::Operator::overlap,
                        std::max(max_nprim(bs1), max_nprim(bs2)),
                        std::max(max_l(bs1), max_l(bs2)), 0);
@@ -2390,14 +3455,15 @@ Fortran interface
 */
 
 LibintInterface *LibintInterface_new(const int stack_size, const int id,
-                                     const bool el) {
-  return new LibintInterface(stack_size, id, el);
+                                     const bool el, const bool parallel) {
+  return new LibintInterface(stack_size, id, el, parallel);
   // printf("%s\n", "LibintInterface_new");
 }
 
 void LibintInterface_del(LibintInterface *lint) {
   // printf("%s\n", "LibintInterface_del");
   // lint->~LibintInterface();
+  // std::cout << "deleting object with name" << lint->get_name() << std::endl;
   delete(lint);
 }
 
@@ -2484,8 +3550,6 @@ void LibintInterface_compute_2body_directIT(LibintInterface *lint, double *dens,
   //  result[i] = G.array()(i);
   //}
 }
-
-
 
 void LibintInterface_compute_2body_disk(LibintInterface *lint,
                                         const char *filename, double *dens) {
@@ -2621,6 +3685,136 @@ void libintinterface_compute_g12inter_disk(
 
   lint->compute_g12inter_disk(*olint, filename, coefficients, exponents,
                               pot_size);
+}
+
+void libintinterface_compute_g12_direct(LibintInterface *lint,
+					double *dens,
+					double *result,
+					double &factor,
+					const double *coefficients,
+					const double *exponents,
+					const int pot_size) {
+  auto n = lint->get_nbasis();
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  auto G = lint->compute_g12_direct(D, factor, coefficients, exponents, pot_size); 
+  
+  for (int i = 0; i < G.size(); ++i) {
+    result[i] = G.array()(i);
+  }
+}
+
+void libintinterface_compute_g12inter_direct(LibintInterface *lint,
+					     LibintInterface *olint,
+					     double *dens,
+					     double *result,
+					     const double *coefficients,
+					     const double *exponents,
+					     const int pot_size) {
+  auto sid = lint->get_speciesID();
+  auto osid = olint->get_speciesID();
+
+  auto permuted = sid > osid;
+
+  auto n = olint->get_nbasis();
+
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  auto B = permuted ? olint->compute_g12inter_direct(*lint, D, permuted, coefficients, exponents, pot_size)
+                    : lint->compute_g12inter_direct(*olint, D, permuted, coefficients, exponents, pot_size);
+  
+  for (int i = 0; i < B.size(); ++i) {
+    result[i] = B.array()(i);
+  }
+}
+
+void LibintInterface_compute_2body_directAll(LibintInterface *lint, double *dens,
+                                          double *results) {
+  // printf("%s\n", "LibintInterface_compute_2body_direct");
+  auto n = lint->get_nbasis();
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  auto K = compute_schwartz_ints<>(lint->get_shells());
+
+  lint->compute_2body_directAll(D, K, results);
+
+}
+
+void LibintInterface_compute_coupling_directAll(LibintInterface *lint,
+                                             LibintInterface *olint,
+                                             double *dens, double *results) {
+  // printf("%s\n", "LibintInterface_compute_coupling_direct");
+  auto sid = lint->get_speciesID();
+  auto osid = olint->get_speciesID();
+
+  auto permuted = sid > osid;
+
+  auto n = lint->get_nbasis();
+  auto on = olint->get_nbasis();
+
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+  
+  permuted ? olint->compute_coupling_directAll(*lint, D, results, permuted)
+    : lint->compute_coupling_directAll(*olint, D, results, permuted);
+
+}
+
+void libintinterface_compute_g12_directAll(LibintInterface *lint,
+					double *dens,
+					double *result,
+					const double *coefficients,
+					const double *exponents,
+					const int pot_size) {
+  auto n = lint->get_nbasis();
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  lint->compute_g12_directAll(D, result, coefficients, exponents, pot_size); 
+  
+}
+
+void libintinterface_compute_g12inter_directAll(LibintInterface *lint,
+					     LibintInterface *olint,
+					     double *dens,
+					     double *results,
+					     const double *coefficients,
+					     const double *exponents,
+					     const int pot_size) {
+  auto sid = lint->get_speciesID();
+  auto osid = olint->get_speciesID();
+
+  auto permuted = sid > osid;
+
+  auto n = olint->get_nbasis();
+
+  Matrix D(n, n);
+
+  for (int i = 0; i < D.size(); ++i) {
+    D.array()(i) = dens[i];
+  }
+
+  permuted ? olint->compute_g12inter_directAll(*lint, D, results, permuted, coefficients, exponents, pot_size)
+    : lint->compute_g12inter_directAll(*olint, D, results, permuted, coefficients, exponents, pot_size);
+  
 }
 
 void libintinterface_buildg12_(int *nd, int *nc, int *nb, int *na, int *max_am,

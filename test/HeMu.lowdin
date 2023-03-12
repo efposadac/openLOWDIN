@@ -9,7 +9,7 @@ TASKS
 END TASKS
 
 CONTROL
-	readCoefficients=T
+readCoefficients=T
 	!iterationScheme = 3
 END CONTROL
 

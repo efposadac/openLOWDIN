@@ -36,7 +36,7 @@ usage(){
 #            SET DEFAULTS
 ###########################################
 FC="gfortran"
-FLAGS="2"
+FLAGS="1"
 PREFIX="/usr/local"
 SCRATCH='/scratch'
 CUDAFLAGS="no"
@@ -174,7 +174,7 @@ else
         if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
         else
-    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -Wunused -g -D gfortran $addflagsCuda"
         fi
     fi
 
@@ -270,7 +270,7 @@ echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 
 TOPDIR=`pwd`
 SRCDIR="src utilities"
-SUBDIRS="core ints DFT scf integralsTransformation MBPT PT CalcProp aduw gepol cosmo output CI MM molden2aim jadamilu"
+SUBDIRS="core ints DFT scf integralsTransformation MBPT PT CalcProp aduw gepol cosmo output CI NOCI MM molden2aim jadamilu"
 
 for DIR in $SRCDIR ; do
     cd $DIR

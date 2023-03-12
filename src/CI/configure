@@ -15,8 +15,7 @@ TARGET=lowdin-CI.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 INCI=-I\$(TOPDIR)src/integralsTransformation/
-INCII=-I\$(TOPDIR)src/ints/
-LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a \$(TOPDIR)lib/libjadamilu.a \$(TOPDIR)lib/lowdincore.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o \$(TOPDIR)src/ints/IntegralManager.o \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o
+LDPATH=\$(TOPDIR)lib/libtransform.a \$(TOPDIR)lib/libjadamilu.a \$(TOPDIR)lib/lowdincore.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
@@ -26,6 +25,7 @@ OBJECTS=$(for file in $SRCMOD
           done
           ) 
 EOF
+#INCII=-I\$(TOPDIR)src/ints/ \$(TOPDIR)lib/lowdincore.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o  \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o
 echo -e "\n\$(TARGET) : \$(OBJECTS)" >> makefile
 echo -e "\t\$(LDR) \$(FLAGS) -o \$(TARGET) \$(OBJECTS) \$(LDPATH) \$(LIBS)" >> makefile
 echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
@@ -49,14 +49,14 @@ do
         echo -e "$ifile \c" >> makefile
       fi
    done
-   for ifile in $INCII 
-   do
-      incii=$(grep $ifile $file)
-      if [[ -n $incii ]]
-      then
-        echo -e "$ifile \c" >> makefile
-      fi
-   done
+   # for ifile in $INCII 
+   # do
+   #    incii=$(grep $ifile $file)
+   #    if [[ -n $incii ]]
+   #    then
+   #      echo -e "$ifile \c" >> makefile
+   #    fi
+   # done
 
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
    do
@@ -70,7 +70,7 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(INCII) \$(FLAGS) ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(FLAGS) ${file}\n" >> makefile #\$(INCII) 
 done
 #
 cat >> makefile << EOF

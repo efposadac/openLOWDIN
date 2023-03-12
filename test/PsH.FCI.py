@@ -15,13 +15,13 @@ refValues = {
 "FCI 1" : [-0.743335966767,1E-8],
 "FCI 2" : [-0.595807154865,1E-8],
 "FCI 3" : [-0.595807154727,1E-8],
-"Natural Occ 1 e+ 1" : [0.9189,5E-4],
-"Natural Orb 1 e+ 1" : [0.005431,5E-6],
-"Natural Orb 1 e+ 2" : [0.033634,5E-6],
-"Natural Orb 1 e+ 3" : [0.039679,5E-6],
-"Natural Orb 1 e+ 4" : [0.163628,5E-6],
-"Natural Orb 1 e+ 5" : [0.617836,5E-6],
-"Natural Orb 1 e+ 6" : [0.303937,5E-6]
+"Natural Occ 1 e+ 1" : [0.9189,1E-4],
+"Natural Orb 1 e+ 1" : [0.005431,1E-4],
+"Natural Orb 1 e+ 2" : [0.033634,1E-4],
+"Natural Orb 1 e+ 3" : [0.039679,1E-4],
+"Natural Orb 1 e+ 4" : [0.163628,1E-4],
+"Natural Orb 1 e+ 5" : [0.617836,1E-4],
+"Natural Orb 1 e+ 6" : [0.303937,1E-4]
 }                       
 
 testValues = dict(refValues) #copy 

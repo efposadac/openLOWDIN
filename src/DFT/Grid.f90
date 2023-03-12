@@ -292,15 +292,15 @@ contains
 
     integer :: iang,irad, n, i, j
     real(8) :: solida, switch
-    integer :: lebedevNumbers(32)
+    integer :: lebedevNumbers(10) !(32)
     integer :: maxLebedev
     integer, allocatable :: shellAng(:), shellRadialChange(:)
 
     
     ! Get angular points, for numberOfShells different distributions
-    lebedevNumbers(1:32)=(/6,14,26,38,50,74,86,110,146,170,194,230,266,302,350,434,590,770,974,1202,1454,1730,2030,2354,2702,3074,3470,3890,4334,4802,5294,5810/)
+    ! lebedevNumbers(1:32)=(/6,14,26,38,50,74,86,110,146,170,194,230,266,302,350,434,590,770,974,1202,1454,1730,2030,2354,2702,3074,3470,3890,4334,4802,5294,5810/)
 
-    ! lebedevNumbers(1:10)=(/6,14,26,50,110,194,302,434,590,770/)
+    lebedevNumbers(1:10)=(/6,14,26,50,110,194,302,434,590,770/)
 
     maxLebedev=0
     do i=1, size(lebedevNumbers)

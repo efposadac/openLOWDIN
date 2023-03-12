@@ -28,6 +28,7 @@ module CalculateProperties_
   use Units_
   use Exception_
   use ContractedGaussian_
+  use DirectIntegralManager_
   implicit none
 
   !>
@@ -126,84 +127,86 @@ contains
     character(50) :: occupationsFile, auxstring
     integer :: occupationsUnit
     integer :: numberOfSpecies, speciesID, numberOfContractions
-    logical :: existFile
-
-    integralsFile = "lowdin.opints"
-    integralsUnit = 30
-
-    wfnFile = trim(fileName)//".wfn"
-    wfnUnit = 20
-
-    !! Open file for wavefunction
+    logical :: existFile, existCIFile
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    allocate(this%overlapMatrix(numberOfSpecies))
     allocate(this%densityMatrix(numberOfSpecies))
+    allocate(this%overlapMatrix(numberOfSpecies))
     allocate(this%momentMatrices(numberOfSpecies,3))
 
-    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-    open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted") 
-
-    do speciesID=1, numberOfSpecies
-       numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
-
-       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-       inquire(FILE = occupationsFile, EXIST = existFile )
-
-       ! Check if there are CI density matrices and read those or the HF matrix
-       if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" .and. existFile ) then
-
+    !! Open file for HF wavefunction   
+    wfnFile = trim(fileName)//".wfn"
+    wfnUnit = 20
+    inquire(FILE = wfnFile, EXIST = existFile )
+    !! Open file for CI wavefunction   
+    occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+    occupationsUnit = 29
+    inquire(FILE = occupationsFile, EXIST = existCIFile )
+    if ( existCIFile ) then
+       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+       do speciesID=1, numberOfSpecies
+          numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
           print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
                " in the CI ground state"
-
-          occupationsUnit = 29
-          open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
-
           auxstring="1" !ground state
           arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
           arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
-
           this%densityMatrix(speciesID)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfcontractions,4), &
                columns= int(numberOfcontractions,4), binary=.false., arguments=arguments(1:2))
-
-          close(occupationsUnit)     
-
-       else
-
+       end do
+       close(occupationsUnit)     
+    else if( existFile) then
+       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+       do speciesID=1, numberOfSpecies
+          numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
           print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
                " in the HF/KS ground state"
-
-          !! Read density matrix
           arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
           arguments(1) = "DENSITY"
-
           this%densityMatrix(speciesID) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+       end do
+       close(wfnUnit)     
+    else
+       call CalculateProperties_exception( ERROR, "I did not find the file "//trim(wfnFile)//" or "//trim(occupationsFile), "in CalculatateProperties constructor")
+       ! Check if there are CI density matrices and read those or the HF matrix
+    end if
+    
+    integralsFile = "lowdin.opints"
+    integralsUnit = 30
+    inquire(FILE = integralsFile, EXIST = existFile )
+    if( existFile) then
+       open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted") 
+       do speciesID=1, numberOfSpecies
+          numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
+          ! Overlap matrix
+          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(1) = "OVERLAP"
+          this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), &
+               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          !! Load moment Matrices
+          arguments(1) = "MOMENTX"    
+          this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       end if
+          arguments(1) = "MOMENTY"    
+          this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       ! Overlap matrix
-       arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-       arguments(1) = "OVERLAP"
-
-       this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), &
-            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-
-       !! Load moment Matrices
-       arguments(1) = "MOMENTX"    
-       this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-
-       arguments(1) = "MOMENTY"    
-       this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-
-       arguments(1) = "MOMENTZ"    
-       this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-
-    end do
+          arguments(1) = "MOMENTZ"    
+          this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+       end do
+       close(integralsUnit)
+    else
+       do speciesID=1, numberOfSpecies
+          call DirectIntegralManager_getOverlapIntegrals(molecularSystem_instance,speciesID,this%overlapMatrix(speciesID))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,1,this%momentMatrices(speciesID,1))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,2,this%momentMatrices(speciesID,2))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,3))
+       end do
+    end if
 
   end subroutine CalculateProperties_constructor
 
@@ -433,10 +436,7 @@ contains
   subroutine CalculateProperties_showExpectedPositions(this)
     implicit none
     type(CalculateProperties) :: this
-    character(30) :: nameOfSpecieSelected
-    integer :: i,j
-    integer :: numberOfSpecies
-    real(8) :: output(3)
+    integer :: i, numberOfSpecies
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     print *,""
