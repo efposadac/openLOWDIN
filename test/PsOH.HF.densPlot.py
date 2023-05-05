@@ -1,27 +1,21 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import os
+import numpy as np
 import sys
 from colorstring import *
 
 testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
-
+plot1Name = testName + ".E-.3D.dens"                                                                      
+plot2Name = testName + ".POSITRON.3D.dens"                                                                
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-0.666783062050,1E-8],
-"FCI 1" : [-0.743335966767,1E-8],
-"FCI 2" : [-0.595807154865,1E-8],
-"FCI 3" : [-0.595807154727,1E-8],
-"Natural Occ 1 e+ 1" : [0.9189,1E-4],
-"Natural Orb 1 e+ 1" : [0.005431,1E-4],
-"Natural Orb 1 e+ 2" : [0.033634,1E-4],
-"Natural Orb 1 e+ 3" : [0.039679,1E-4],
-"Natural Orb 1 e+ 4" : [0.163628,1E-4],
-"Natural Orb 1 e+ 5" : [0.617836,1E-4],
-"Natural Orb 1 e+ 6" : [0.303937,1E-4]
+"HF energy" : [-75.587683637788,1E-8],
+"Num e- in plot" : [10.45449875,1E-1],
+"Num e+ in plot" : [0.99246436,1E-2],
 }                       
 
 testValues = dict(refValues) #copy 
@@ -44,19 +38,34 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "STATE:   1 ENERGY =" in line:
-        testValues["FCI 1"] = float(line.split()[4])
-    if "STATE:   2 ENERGY =" in line:
-        testValues["FCI 2"] = float(line.split()[4])
-    if "STATE:   3 ENERGY =" in line:
-        testValues["FCI 3"] = float(line.split()[4])
 
-    if "  Natural Orbitals in state:            1  for: POSITRON" in line:
-        testValues["Natural Occ 1 e+ 1"] = float(outputRead[i+2].split()[0])
-        for j in range(1,6+1):
-            linej = outputRead[i+3+j]
-            testValues["Natural Orb 1 e+ "+str(j)] = abs(float(linej.split()[3]))
-            
+output.close()
+
+plot1 = open(plot1Name, "r")
+plot1Read = plot1.readlines()
+sumE=0
+for i in range(0,len(plot1Read)):
+    line = plot1Read[i]
+    if i > 1:
+        values = line.split()
+        if i == 3: x1=float(values[1])
+        if i == 4: x2=float(values[1])
+        if len(values) > 1: sumE+=np.sqrt(float(values[0])**2+float(values[1])**2)*float(values[2])
+testValues["Num e- in plot"]=2.0*sumE*(x2-x1)**2
+plot1.close()
+
+plot2 = open(plot2Name, "r")
+plot2Read = plot2.readlines()
+sumP=0
+for i in range(0,len(plot2Read)):
+    line = plot2Read[i]
+    if i > 1:
+        values = line.split()
+        if i == 3: x1=float(values[1])
+        if i == 4: x2=float(values[1])
+        if len(values) > 1: sumP+=np.sqrt(float(values[0])**2+float(values[1])**2)*float(values[2])
+testValues["Num e+ in plot"]=2.0*sumP*(x2-x1)**2
+plot2.close()
 
 passTest = True
 
@@ -74,4 +83,3 @@ else:
     print(testName + str_red(" ... NOT OK"))
     sys.exit(1)
 
-output.close()

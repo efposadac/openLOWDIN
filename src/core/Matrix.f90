@@ -82,6 +82,11 @@ module Matrix_
      integer(1), allocatable :: values(:,:)
   end type IMatrix1
   
+  type, public :: FourIndexMatrix
+     real(8), allocatable :: values(:,:,:,:)
+     logical :: isInstanced
+  end type FourIndexMatrix
+
   interface assignment(=)
      module procedure Matrix_copyConstructor
   end interface
@@ -184,7 +189,8 @@ module Matrix_
        diagonalize_matrix, & ! Copiada de Parakata
        Matrix_constructorInteger8, &
        Matrix_constructorInteger, &
-       Matrix_constructorInteger1
+       Matrix_constructorInteger1, &
+       Matrix_fourIndexConstructor
 
   private
 
@@ -211,7 +217,7 @@ contains
     this%isInstanced = .true.
 
   end subroutine Matrix_constructor
-
+  
   !>
   !! @brief Constructor
   !! Constructor por omision
@@ -279,6 +285,29 @@ contains
 
   end subroutine Matrix_constructorInteger1
 
+  !>
+  !! @brief Constructor
+  !! Constructor por omision
+  subroutine Matrix_fourIndexConstructor( this, dim1, dim2, dim3, dim4, value)
+    implicit none
+    type(FourIndexMatrix), intent(inout) :: this
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
+    integer(8), intent(in) :: dim3
+    integer(8), intent(in) :: dim4
+    real(8), optional, intent(in) :: value
+
+    real(8) :: valueTmp
+    this%isInstanced = .true.
+    valueTmp = 0.0_8
+    if( present(value) ) valueTmp = value
+    if (allocated(this%values)) deallocate(this%values)
+    allocate( this%values( dim1, dim2, dim3, dim4 ) )
+
+    this%values = valueTmp
+    this%isInstanced = .true.
+
+  end subroutine Matrix_fourIndexConstructor
 
   !>
   !! @brief Constructor de copia
@@ -1732,6 +1761,98 @@ contains
 
   end subroutine Matrix_eigen
 
+ subroutine Matrix_eigen2stage( this, eigenValues, eigenVectors, flags, m, dm )
+    implicit none
+    type(Matrix), intent(in) :: this
+    type(Vector), intent(inout) :: eigenValues
+    type(Matrix), intent(inout), optional :: eigenVectors
+    integer, intent(in), optional :: flags
+    integer, intent(in), optional :: dm
+    real(8), intent(in), optional :: m(:,:)
+
+    integer :: lengthWorkSpace
+    integer :: matrixSize
+    integer :: infoProcess
+    real(8), allocatable :: workSpace(:)
+    type(Matrix) :: eigenVectorsTmp
+    integer :: i
+
+    
+    matrixSize = size( this%values, DIM=1 )
+
+    if( flags == SYMMETRIC ) then
+
+       !! Determina la longitud adecuada del vector de trabajo
+       lengthWorkSpace=3*matrixSize-1
+
+       !! Crea el vector de trabajo
+       allocate( workSpace( lengthWorkSpace ) )
+
+       if( present( eigenVectors ) ) then
+
+          if (present ( dm ) ) then
+             eigenvectors%values = m
+          else	
+
+             eigenVectors%values=this%values
+             
+          end if
+
+          !! Calcula valores propios de la matriz de entrada
+          call dsyev_2stage( &
+               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               eigenVectors%values, &
+               matrixSize, &
+               eigenValues%values, &
+               workSpace, &
+               lengthWorkSpace, &
+               infoProcess )
+
+       else
+          !! Crea la matriz que almacenara los vectores propios
+          call Matrix_copyConstructor( eigenVectorsTmp, this )
+
+          !! Calcula valores propios de la matriz de entrada
+          call dsyev_2stage( &
+               COMPUTE_EIGENVALUES, &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               eigenVectorsTmp%values, &
+               matrixSize, &
+               eigenValues%values, &
+               workSpace, &
+               lengthWorkSpace, &
+               infoProcess )
+
+          call Matrix_destructor( eigenVectorsTmp )
+
+       end if
+
+       !! Determina la ocurrencia de errores
+       if ( infoProcess /= 0 )  then
+
+          call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+          print *, "Info Process: ", infoProcess
+
+       end if
+
+       do i=1,size(eigenValues%values)
+          if( eigenValues%values(i) == Math_NaN ) then
+
+             call Matrix_exception(WARNING, "Diagonalization failed, Math_NaN", "Class object Matrix in the getEigen() function")
+          end if
+       end do
+
+
+       !! libera memoria separada para vector de trabajo
+       deallocate(workSpace)
+
+    end if
+
+  end subroutine Matrix_eigen2stage
+  
 !>
 !! @brief Matrix_eigen_select
 !!  -- LAPACK driver routine (version 3.2) --

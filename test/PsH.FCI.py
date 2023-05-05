@@ -53,7 +53,7 @@ for i in range(0,len(outputRead)):
 
     if "  Natural Orbitals in state:            1  for: POSITRON" in line:
         testValues["Natural Occ 1 e+ 1"] = float(outputRead[i+2].split()[0])
-        for j in xrange(1,6+1):
+        for j in range(1,6+1):
             linej = outputRead[i+3+j]
             testValues["Natural Orb 1 e+ "+str(j)] = abs(float(linej.split()[3]))
             

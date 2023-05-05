@@ -1,0 +1,25 @@
+
+SYSTEM_DESCRIPTION='Molecula de H2O'
+
+GEOMETRY
+	e-[He]   STO-3G     0.000000      0.000000      0.0000 addParticles=-1
+	e-[H]    STO-3G     0.000000      0.000000      0.7740 rotateAround=1
+	He        dirac     0.000000      0.000000      0.0000 rotationPoint=1
+	H_1	 1S1P       0.000000      0.000000      0.7740 rotateAround=1
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+	nonOrthogonalConfigurationInteraction=.T.
+END TASKS
+
+CONTROL
+	integralStorage="MEMORY"
+	rotationalScanGrid=302
+	numberOfCIstates=20
+END CONTROL
+
+
+
+
+

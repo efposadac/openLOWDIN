@@ -7,21 +7,14 @@ from colorstring import *
 testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
-
+cube1Name = testName + ".E-.dens.cub"                                                                      
+cube2Name = testName + ".POSITRON.dens.cub"                                                                
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-0.666783062050,1E-8],
-"FCI 1" : [-0.743335966767,1E-8],
-"FCI 2" : [-0.595807154865,1E-8],
-"FCI 3" : [-0.595807154727,1E-8],
-"Natural Occ 1 e+ 1" : [0.9189,1E-4],
-"Natural Orb 1 e+ 1" : [0.005431,1E-4],
-"Natural Orb 1 e+ 2" : [0.033634,1E-4],
-"Natural Orb 1 e+ 3" : [0.039679,1E-4],
-"Natural Orb 1 e+ 4" : [0.163628,1E-4],
-"Natural Orb 1 e+ 5" : [0.617836,1E-4],
-"Natural Orb 1 e+ 6" : [0.303937,1E-4]
+"HF energy" : [-188.362545831570,1E-8],
+"Num e- in cube" : [23.98744049,1E-1],
+"Num e+ in cube" : [0.96711581,1E-2],
 }                       
 
 testValues = dict(refValues) #copy 
@@ -44,19 +37,34 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "STATE:   1 ENERGY =" in line:
-        testValues["FCI 1"] = float(line.split()[4])
-    if "STATE:   2 ENERGY =" in line:
-        testValues["FCI 2"] = float(line.split()[4])
-    if "STATE:   3 ENERGY =" in line:
-        testValues["FCI 3"] = float(line.split()[4])
 
-    if "  Natural Orbitals in state:            1  for: POSITRON" in line:
-        testValues["Natural Occ 1 e+ 1"] = float(outputRead[i+2].split()[0])
-        for j in range(1,6+1):
-            linej = outputRead[i+3+j]
-            testValues["Natural Orb 1 e+ "+str(j)] = abs(float(linej.split()[3]))
-            
+output.close()
+
+cube1 = open(cube1Name, "r")
+cube1Read = cube1.readlines()
+sumE=0
+for i in range(0,len(cube1Read)):
+    line = cube1Read[i]
+    if i == 3: step=float(line.split()[1])
+    if i > 10:
+        values = line.split()
+        for j in range(0,len(values)):
+            sumE+=float(values[j])
+testValues["Num e- in cube"]=sumE*step**3
+cube1.close()
+
+cube2 = open(cube2Name, "r")
+cube2Read = cube2.readlines()
+sumP=0
+for i in range(0,len(cube2Read)):
+    line = cube2Read[i]
+    if i == 3: step=float(line.split()[1])
+    if i > 10:
+        values = line.split()
+        for j in range(0,len(values)):
+            sumP+=float(values[j])
+testValues["Num e+ in cube"]=sumP*step**3
+cube2.close()
 
 passTest = True
 
@@ -74,4 +82,3 @@ else:
     print(testName + str_red(" ... NOT OK"))
     sys.exit(1)
 
-output.close()

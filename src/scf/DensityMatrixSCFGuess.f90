@@ -76,6 +76,7 @@ contains
        return
 
     else if ( CONTROL_instance%READ_COEFFICIENTS ) then
+       wfnUnit = 30
        wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
        inquire(FILE = wfnFile, EXIST = existPlain )
        if ( existPlain ) then

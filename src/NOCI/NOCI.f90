@@ -73,13 +73,8 @@ program NOCI
      !!stop time
      call Stopwatch_stop(lowdin_stopwatch)
 
-
-     if ( CONTROL_instance%IS_THERE_OUTPUT ) then
-        call MolecularSystem_saveToFile()
-        ! write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
-        ! call system("lowdin-output.x" //trim(strAuxNumber))
-     end if
-     
+     call MolecularSystem_saveToFile()
+    
      write(*, *) ""
      write(*,"(A,F10.3,A4)") "** TOTAL CPU Time NOCI : ", lowdin_stopwatch%enlapsetTime ," (s)"
      write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time NOCI : ", lowdin_stopwatch%elapsetWTime ," (s)"
@@ -206,11 +201,12 @@ program NOCI
         call NonOrthogonalCI_generateDensities(NonOrthogonalCI_instance)
      end if
 
+     call MolecularSystem_saveToFile()
+     
      !!calculate CI density properties
      call system ("lowdin-CalcProp.x")
 
      if ( CONTROL_instance%IS_THERE_OUTPUT ) then
-        call MolecularSystem_saveToFile()
         write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
         call system("lowdin-output.x" //trim(strAuxNumber))
         ! statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))

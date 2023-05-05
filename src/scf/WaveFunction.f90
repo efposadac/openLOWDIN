@@ -66,6 +66,7 @@ module WaveFunction_
      type(Matrix) :: beforeDensityMatrix
      type(Matrix) :: waveFunctionCoefficients
      type(Vector) :: molecularOrbitalsEnergy     
+     type(FourIndexMatrix), allocatable :: fourCenterIntegrals(:) !!Coulomb Interaction between species
 
      !! Cosmo Things
 
@@ -123,7 +124,7 @@ contains
     type(WaveFunction) :: these(*)
 
     integer :: speciesID, otherSpeciesID
-    integer(8) :: numberOfContractions
+    integer(8) :: numberOfContractions, otherNumberOfContractions
     character(50) :: labels(2)
     character(50) :: dftFile
     integer :: dftUnit
@@ -168,12 +169,6 @@ contains
        these(speciesID)%hartreeEnergy(:) = 0.0_8
        these(speciesID)%exchangeCorrelationEnergy(:) = 0.0_8
 
-       !! Cosmo things
-       call Matrix_constructor( these(speciesID)%cosmo1, numberOfContractions, numberOfContractions, 0.0_8 )     
-       call Matrix_constructor( these(speciesID)%cosmo4,numberOfContractions, numberOfContractions, 0.0_8 )
-
-       call Matrix_constructor( these(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
-
        !! Build some matrices
        call Matrix_constructor( these(speciesID)%overlapMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( these(speciesID)%transformationMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
@@ -186,7 +181,7 @@ contains
        call Matrix_constructor( these(speciesID)%twoParticlesMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( these(speciesID)%exchangeHFMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( these(speciesID)%couplingMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
-
+       call Matrix_constructor( these(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
 
        do otherSpeciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
          call Matrix_constructor( these(speciesID)%hartreeMatrix(otherSpeciesID), numberOfContractions, numberOfContractions, 0.0_8 )
@@ -197,15 +192,28 @@ contains
        call Matrix_constructor( these(speciesID)%waveFunctionCoefficients,numberOfContractions, numberOfContractions, 0.0_8 )
        call Vector_constructor( these(speciesID)%molecularOrbitalsEnergy, int(numberOfContractions) )
 
-       !!cosmo things
+       !! Cosmo things
+       call Matrix_constructor( these(speciesID)%cosmo1, numberOfContractions, numberOfContractions, 0.0_8 )     
        call Matrix_constructor( these(speciesID)%cosmo2, numberOfContractions, numberOfContractions, 0.0_8 )
+       call Matrix_constructor( these(speciesID)%cosmo4, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( these(speciesID)%cosmoCoupling, numberOfContractions, numberOfContractions, 0.0_8 )
 
        these(speciesID)%exactExchangeFraction = 1.0_8
        these(speciesID)%particlesInGrid = 0.0
        these(speciesID)%removedOrbitals = 0
-             
+
+       !!Allocate arrays for integrals memory
+       if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
+          allocate(these(speciesID)%fourCenterIntegrals(MolecularSystem_instance%numberOfQuantumSpecies))
+          !its not necessary to allocate all the species
+          do otherSpeciesID=speciesID, MolecularSystem_instance%numberOfQuantumSpecies
+             otherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
+             call Matrix_fourIndexConstructor(these(speciesID)%fourCenterIntegrals(otherSpeciesID),&
+                  otherNumberOfContractions,otherNumberOfContractions,numberOfContractions,numberOfContractions,0.0_8)
+          end do
+       end if
     end do
+    
     !!Initialize DFT: Calculate Grids and build functionals
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
 
@@ -801,7 +809,7 @@ contains
     integer :: ss(CONTROL_instance%INTEGRAL_STACK_SIZE)
     integer :: totalNumberOfContractions
     integer :: status
-    integer :: u, v, i
+    integer :: u, v, r, s, i
 
     type(Matrix) :: densityMatrix
     type(Matrix) :: twoParticlesMatrix
@@ -832,7 +840,7 @@ contains
     !! This matrix is only calculated if there are more than one particle for this%species or if the user want to calculate it.
     if ( MolecularSystem_getNumberOfParticles(this%species) > 1 .or.  CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
 
-       if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
+       if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) then
 
           !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, rr, ss, shellIntegrals, i, coulomb, exchange, tmpArray)
           nthreads = OMP_GET_NUM_THREADS()
@@ -1010,7 +1018,49 @@ contains
 
              end do
           end do
+          
+       else if ( CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
 
+          !coulomb loop
+          do s = 1 , totalNumberOfContractions
+             !diagonal p2
+             do v = 1 , totalNumberOfContractions
+                !triangular unique p1
+                do u = v , totalNumberOfContractions
+                   twoParticlesMatrix%values(u,v)=twoParticlesMatrix%values(u,v)+&
+                        densityMatrix%values(s,s)*this%fourCenterIntegrals(this%species)%values(u,v,s,s)
+                end do
+             end do
+             !off diagonal p2
+             do r = s+1 , totalNumberOfContractions
+                do v = 1 , totalNumberOfContractions
+                   !triangular unique p1
+                   do u = v , totalNumberOfContractions
+                      twoParticlesMatrix%values(u,v)=twoParticlesMatrix%values(u,v)+&
+                           2.0*densityMatrix%values(r,s)*this%fourCenterIntegrals(this%species)%values(u,v,r,s)
+                   end do
+                end do
+             end do
+          end do
+          !exchange loop
+          do v = 1 , totalNumberOfContractions
+             do r = 1 , totalNumberOfContractions
+                do s = 1 , totalNumberOfContractions
+                   !triangular unique p1
+                   do u = v , totalNumberOfContractions
+                      twoParticlesMatrix%values(u,v)=twoParticlesMatrix%values(u,v)+&
+                           factor*densityMatrix%values(r,s)*this%fourCenterIntegrals(this%species)%values(u,s,r,v)
+                   end do
+                end do
+             end do
+          end do
+          !symmetrize
+          do v = 1 , totalNumberOfContractions
+             do u = v+1 , totalNumberOfContractions
+                twoParticlesMatrix%values(v,u)=twoParticlesMatrix%values(u,v)
+             end do
+          end do
+          
        else !! Direct
 
           if ( .not. InterPotential_instance%isInstanced) then !!regular integrals
@@ -1067,11 +1117,9 @@ contains
     integer :: numberOfSpecies
     integer :: numberOfContractions
     integer :: otherNumberOfContractions
-    integer :: currentSpeciesID
     integer :: otherSpeciesID
     integer :: speciesIterator
-    integer :: ssize
-    integer :: i, j, u
+    integer :: i, j, u, v, rr, ss
     real(8), allocatable, target :: auxMatrix(:,:)
     real(8) :: coulomb
 
@@ -1092,11 +1140,10 @@ contains
     integer :: unitid
     integer :: status
 
-    currentSpeciesID=these(speciesID)%species
     nameOfSpecies=these(speciesID)%name
 
     numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
-    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(currentSpeciesID)
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
     allocate(densityMatrices(numberOfSpecies))
     allocate(hartreeMatrices(numberOfSpecies))
@@ -1117,9 +1164,7 @@ contains
 
     if( numberOfSpecies > 1 ) then
        
-       ssize = size(couplingMatrix%values,dim=1)
-
-       if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
+       if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) then
 
           !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, a, b, r, s, integral, u, i, j, coulomb, auxMatrix, speciesIterator, &
           !$OMP& otherSpeciesID, nameofOtherSpecies, otherNumberOfContractions)
@@ -1131,7 +1176,7 @@ contains
           write(fileid,*) threadid
           fileid = trim(adjustl(fileid))
 
-          allocate(auxMatrix(ssize, ssize))
+          allocate(auxMatrix(numberOfContractions, numberOfContractions))
           auxMatrix=0.0_8                
 
           do otherSpeciesID = 1, numberOfSpecies
@@ -1140,24 +1185,24 @@ contains
              OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
 
              !! Restringe suma de terminos repulsivos de la misma especie.
-             if ( otherSpeciesID .eq. currentSpeciesID ) cycle
+             if ( otherSpeciesID .eq. speciesID ) cycle
                 
              ! hartreeMatrices(otherSpeciesID)%values = 0.0_8             
-             if( currentSpeciesID > otherSpeciesID) then  
+             if( speciesID > otherSpeciesID) then  
 
                 auxMatrix = 0.0_8
 
 
                 !! open file for integrals
                 if(CONTROL_instance%IS_OPEN_SHELL .and. &
-                     MolecularSystem_instance%species(currentSpeciesID)%isElectron .and. &
+                     MolecularSystem_instance%species(speciesID)%isElectron .and. &
                      MolecularSystem_instance%species(otherSpeciesID)%isElectron ) then
                    open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
                 else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(otherSpeciesID)%isElectron) then
                    open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA."//trim(nameOfSpecies)//".ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-                else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(currentSpeciesID)%isElectron) then
+                else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(speciesID)%isElectron) then
                    open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfOtherSpecies)//".E-ALPHA.ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
                 else
@@ -1193,10 +1238,10 @@ contains
 
                 close(unitid)
 
-                auxMatrix = auxMatrix * MolecularSystem_getCharge(currentSpeciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+                auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
 
-                do i = 1 , ssize
-                   do j = i , ssize
+                do i = 1 , numberOfContractions
+                   do j = i , numberOfContractions
                       !$OMP ATOMIC
                       hartreeMatrices(otherSpeciesID)%values(i,j) = &
                            hartreeMatrices(otherSpeciesID)%values(i,j) + auxMatrix(i,j)
@@ -1209,14 +1254,14 @@ contains
 
                 !! open file for integrals
                 if(CONTROL_instance%IS_OPEN_SHELL .and. &
-                     MolecularSystem_instance%species(currentSpeciesID)%isElectron .and. &
+                     MolecularSystem_instance%species(speciesID)%isElectron .and. &
                      MolecularSystem_instance%species(otherSpeciesID)%isElectron ) then
                    open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
                 else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(otherSpeciesID)%isElectron) then
                    open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecies)//".E-ALPHA.ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-                else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(currentSpeciesID)%isElectron) then
+                else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(speciesID)%isElectron) then
                    open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA."//trim(nameOfOtherSpecies)//".ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
                 else
@@ -1238,7 +1283,6 @@ contains
                    end if
 
                    do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
-
                       if (a(u) == -1) exit readIntegrals2
 
                       coulomb = densityMatrices(otherSpeciesID)%values(r(u),s(u))*integral(u)
@@ -1253,10 +1297,10 @@ contains
 
                 close(unitid)
 
-                auxMatrix = auxMatrix * MolecularSystem_getCharge(currentSpeciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+                auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
 
-                do i = 1 , ssize
-                   do j = i , ssize
+                do i = 1 , numberOfContractions
+                   do j = i , numberOfContractions
                       !$OMP ATOMIC
                       hartreeMatrices(otherSpeciesID)%values(i,j) = &
                            hartreeMatrices(otherSpeciesID)%values(i,j) + auxMatrix(i,j)
@@ -1271,25 +1315,78 @@ contains
 
           !$OMP END PARALLEL
 
+       else if ( CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
+          do otherSpeciesID = 1, numberOfSpecies
+             if ( otherSpeciesID .eq. speciesID ) cycle
+             OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
+             !integral storage order
+             if( speciesID < otherSpeciesID) then  
+                do v = 1 , numberOfContractions
+                   !triangular unique species
+                   do u = v , numberOfContractions
+                      do ss = 1 , OtherNumberOfContractions
+                         !diagonal other species
+                         hartreeMatrices(otherSpeciesID)%values(u,v)=hartreeMatrices(otherSpeciesID)%values(u,v)+&
+                              densityMatrices(otherSpeciesID)%values(ss,ss)*these(speciesID)%fourCenterIntegrals(otherSpeciesID)%values(ss,ss,u,v)
+                         !off diagonal other species
+                         do rr = ss+1 , OtherNumberOfContractions
+                            hartreeMatrices(otherSpeciesID)%values(u,v)=hartreeMatrices(otherSpeciesID)%values(u,v)+&
+                                 2.0*densityMatrices(otherSpeciesID)%values(rr,ss)*these(speciesID)%fourCenterIntegrals(otherSpeciesID)%values(rr,ss,u,v)
+                         end do
+                      end do
+                   end do
+                end do
+             else
+                do ss = 1 , OtherNumberOfContractions
+                   !diagonal other species
+                   do v = 1 , numberOfContractions
+                      !triangular unique species
+                      do u = v , numberOfContractions
+                         hartreeMatrices(otherSpeciesID)%values(u,v)=hartreeMatrices(otherSpeciesID)%values(u,v)+&
+                              densityMatrices(otherSpeciesID)%values(ss,ss)*these(otherSpeciesID)%fourCenterIntegrals(speciesID)%values(u,v,ss,ss)
+                      end do
+                   end do
+                   !off diagonal other species
+                   do rr = ss+1 , OtherNumberOfContractions
+                      do v = 1 , numberOfContractions
+                         !triangular unique species
+                         do u = v , numberOfContractions
+                            hartreeMatrices(otherSpeciesID)%values(u,v)=hartreeMatrices(otherSpeciesID)%values(u,v)+&
+                                 2.0*densityMatrices(otherSpeciesID)%values(rr,ss)*these(otherSpeciesID)%fourCenterIntegrals(speciesID)%values(u,v,rr,ss)
+                         end do
+                      end do
+                   end do
+                end do
+             end if
+             !symmetrize
+             do v = 1 , numberOfContractions
+                do u = v+1 , numberOfContractions
+                   hartreeMatrices(otherSpeciesID)%values(v,u)=hartreeMatrices(otherSpeciesID)%values(u,v)
+                end do
+             end do
+             hartreeMatrices(otherSpeciesID)%values=hartreeMatrices(otherSpeciesID)%values*MolecularSystem_getCharge(speciesID)*MolecularSystem_getCharge(otherSpeciesID)
+          end do
+
+          
        else !! Direct
 
           do otherSpeciesID = 1, numberOfSpecies
 
              !! Restringe suma de terminos repulsivos de la misma especie.
-             if ( otherSpeciesID .eq. currentSpeciesID ) cycle
+             if ( otherSpeciesID .eq. speciesID ) cycle
 
              if ( .not. InterPotential_instance%isInstanced) then !!regular integrals
                 call DirectIntegralManager_getDirectInterRepulsionMatrix(&
-                     currentSpeciesID, OtherSpeciesID, &
+                     speciesID, OtherSpeciesID, &
                      trim(CONTROL_instance%INTEGRAL_SCHEME), &
                      densityMatrices(otherSpeciesID), &
                      auxMatrix )
 
-                auxMatrix = auxMatrix * MolecularSystem_getCharge(currentSpeciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+                auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
 
              else !! G12 integrals
                 call DirectIntegralManager_getDirectInterRepulsionG12Matrix(&
-                     currentSpeciesID, OtherSpeciesID, &
+                     speciesID, OtherSpeciesID, &
                      densityMatrices(otherSpeciesID), &
                      auxMatrix )
              end if
@@ -1307,10 +1404,10 @@ contains
        do otherSpeciesID = 1, numberOfSpecies
 
           !! Restringe suma de terminos repulsivos de la misma especie.
-          if ( otherSpeciesID .eq. currentSpeciesID ) cycle
+          if ( otherSpeciesID .eq. speciesID ) cycle
           
-          do i = 1 , ssize
-             do j = i , ssize
+          do i = 1 , numberOfContractions
+             do j = i , numberOfContractions
                 hartreeMatrices(otherSpeciesID)%values(j,i) = &
                      hartreeMatrices(otherSpeciesID)%values(i,j)
              end do
@@ -1328,13 +1425,13 @@ contains
     if ( .not. ( present(hartreeMatricesOUT) .or. present(couplingMatrixOUT) ) ) then
        these(speciesID)%couplingMatrix%values=couplingMatrix%values
        do otherSpeciesID = 1, numberOfSpecies
-          if ( otherSpeciesID .eq. currentSpeciesID ) cycle
+          if ( otherSpeciesID .eq. speciesID ) cycle
           these(speciesID)%hartreeMatrix(otherSpeciesID)%values=hartreeMatrices(otherSpeciesID)%values
        end do
     else
        couplingMatrixOUT%values=couplingMatrix%values
        do otherSpeciesID = 1, numberOfSpecies
-          if ( otherSpeciesID .eq. currentSpeciesID ) cycle
+          if ( otherSpeciesID .eq. speciesID ) cycle
           hartreeMatricesOUT(otherSpeciesID)%values=hartreeMatrices(otherSpeciesID)%values
        end do
     end if
@@ -1342,7 +1439,8 @@ contains
     
     if (  CONTROL_instance%DEBUG_SCFS) then
        do otherSpeciesID = 1, numberOfSpecies
-          if ( otherSpeciesID .eq. currentSpeciesID ) cycle
+          if ( otherSpeciesID .eq. speciesID ) cycle
+          nameOfOtherSpecies = MolecularSystem_getNameOfSpecies( otherSpeciesID )          
           write(*,*) "Hartree Matrix for: ", trim(nameOfSpecies), trim(nameOfOtherSpecies)
           call Matrix_show( these(speciesID)%hartreeMatrix(otherSpeciesID) )
        end do
@@ -1764,7 +1862,7 @@ contains
 !              !Restringe la suma a solo electrones
 !              if(trim(nameOfSpecie)=="E-ALPHA" .and. trim(nameOfOtherSpecie)=="E-BETA") then
 
-!               if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
+!               if ( .not. CONTROL_instance%INTEGRAL_STORAGE == "DIRECT" ) then
                
 !                !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, auxValue, m, a, b, r, s, integral, u)
 

@@ -31,7 +31,7 @@ program SCF
   use OrbitalLocalizer_
   implicit none
 
-  integer :: speciesID
+  integer :: speciesID, otherSpeciesID
   integer :: wfnUnit
   character(50) :: job
   character(50) :: wfnFile
@@ -70,7 +70,7 @@ program SCF
   call MultiSCF_constructor(MultiSCF_instance,WaveFunction_instance,CONTROL_instance%ITERATION_SCHEME)
 
   !! Calculate one-particle integrals  
-  if ( trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DISK" ) &
+  if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) &
        call system("lowdin-ints.x ONE_PARTICLE")
 
   !! Build hcore operators and use them to get guess (or read previous coefficients)
@@ -81,7 +81,7 @@ program SCF
   !!**************************************************************************************************************************
   !! Calculate two-particle integrals (not building 2 particles and coupling matrix... those matrices updated at each SCF cycle)
   !!
-  if ( trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DISK" ) then
+  if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) then
      !! Save matrices to lowdin.wfn file required by ints program
      wfnUnit = 300
      wfnFile = "lowdin.wfn"
@@ -103,6 +103,27 @@ program SCF
      else        
         call system(" lowdin-ints.x TWO_PARTICLE_R12")
      end if
+  else if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
+     allocate(Libint2Instance(MolecularSystem_instance%numberOfQuantumSpecies))
+     call DirectIntegralManager_constructor(Libint2Instance,MolecularSystem_instance)
+     do speciesID=1, MolecularSystem_instance%numberOfQuantumSpecies
+        call DirectIntegralManager_getDirectIntraRepulsionIntegralsAll(&
+             speciesID, &
+             WaveFunction_instance(speciesID)%densityMatrix, & 
+             WaveFunction_instance(speciesID)%fourCenterIntegrals(speciesID)%values, &
+             MolecularSystem_instance,Libint2Instance(speciesID))
+     end do
+
+     do speciesID=1, MolecularSystem_instance%numberOfQuantumSpecies-1
+        do otherSpeciesID=speciesID+1, MolecularSystem_instance%numberOfQuantumSpecies
+           call DirectIntegralManager_getDirectInterRepulsionIntegralsAll(&
+                speciesID, otherSpeciesID, &
+                WaveFunction_instance(speciesID)%densityMatrix, & 
+                WaveFunction_instance(speciesID)%fourCenterIntegrals(otherSpeciesID)%values, &
+                MolecularSystem_instance,Libint2Instance(speciesID),Libint2Instance(otherSpeciesID))
+        end do
+     end do
+
   end if
 
   !!**********************************************************
