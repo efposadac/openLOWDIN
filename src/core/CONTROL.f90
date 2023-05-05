@@ -1040,6 +1040,7 @@ contains
     implicit none
 
     character(50) :: aux
+    integer:: i, nthreads, proc
     !! Set defaults for namelist
 
     !!***************************************************************************
@@ -1234,7 +1235,7 @@ contains
     LowdinParameters_configurationMaxDisplacement(:)=0.0
     LowdinParameters_configurationMinDisplacement(:)=0.0
     LowdinParameters_configurationMaxNPDistance=1.0E8
-    LowdinParameters_configurationMinPPDistance=0.1
+    LowdinParameters_configurationMinPPDistance=0.0
     LowdinParameters_configurationMaxPPDistance=1.0E8
     LowdinParameters_configurationEquivalenceDistance=1.0E-8
     LowdinParameters_configurationUseSymmetry=.false.
@@ -1563,7 +1564,7 @@ contains
     CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT(:)=0.0
     CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(:)=0.0
     CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE=1.0E8
-    CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE=0.1
+    CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE=0.0
     CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=1.0E8
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=1.0E-8
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
@@ -1674,7 +1675,15 @@ contains
     CONTROL_instance%IONIZE_MO = 0
     CONTROL_instance%IONIZE_SPECIE = "NONE"
     CONTROL_instance%EXCITE_SPECIE = "NONE"                                                            
-
+    !$OMP PARALLEL private(nthreads, proc)
+    proc = OMP_GET_THREAD_NUM()
+    if(proc == 0) then
+      nthreads = OMP_GET_NUM_THREADS()
+      CONTROL_instance%NUMBER_OF_CORES=nthreads
+    end if
+    !$OMP END PARALLEL
+    
+    
     !!*****************************************************
     !! Integrals transformation options
     !!
@@ -2748,13 +2757,7 @@ contains
 
     write (*,"(T10,A)") "METHOD TYPE:  "//trim(CONTROL_instance%METHOD)
 
-    !$OMP PARALLEL private(nthreads, proc)
-    proc = OMP_GET_THREAD_NUM()
-    if(proc == 0) then
-      nthreads = OMP_GET_NUM_THREADS()
-      write (*,"(T10,A,I5)") "NUMBER OF CORES: ", nthreads
-    end if
-    !$OMP END PARALLEL
+    write (*,"(T10,A,I5)") "NUMBER OF CORES: ", CONTROL_instance%NUMBER_OF_CORES
 
     if(CONTROL_instance%METHOD=="RKS" .or. CONTROL_instance%METHOD=="UKS" .or. CONTROL_instance%METHOD=="ROKS" ) then
 

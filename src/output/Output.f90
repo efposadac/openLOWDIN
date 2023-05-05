@@ -38,6 +38,7 @@ program Output_
   use Matrix_
   use InputOutput_
   use OutputBuilder_
+  use Stopwatch_
   implicit none
 
   character(50) :: job
@@ -46,6 +47,10 @@ program Output_
   job = ""
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
+
+  !!Start time
+  call Stopwatch_constructor(lowdin_stopwatch)
+  call Stopwatch_start(lowdin_stopwatch)
 
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
@@ -88,7 +93,12 @@ program Output_
 
   end do
 
+  call Stopwatch_stop(lowdin_stopwatch)
   
+  write(*, *) ""
+  write(*,"(A,F10.3,A4)") "** TOTAL CPU Time Outputs : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Outputs : ", lowdin_stopwatch%elapsetWTime ," (s)"
+  write(*, *) ""
 
 end program Output_
 

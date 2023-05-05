@@ -1185,14 +1185,23 @@ contains
    !> @brief Returns the eta parameter of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getEta(speciesID) result(output)
+   function MolecularSystem_getEta(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
+
+     type(MolecularSystem), pointer :: system
+
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
      
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%eta
+     output = system%species(speciesID)%eta
           
    end function MolecularSystem_getEta
 

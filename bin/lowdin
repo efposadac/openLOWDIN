@@ -436,7 +436,7 @@ if [ $extFile="lowdin" ]; then
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2

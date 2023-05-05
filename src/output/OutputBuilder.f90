@@ -233,6 +233,7 @@ contains
     if (this%state /= 1) write (*,"(A20,I10)") "for excited state: ", this%state
     if (this%dimensions /= 0) write (*,"(A20,I2)") "dimensions: ", this%dimensions
     if (this%cubeSize /= 0.0_8) write (*,"(A20,F15.5)") "cube size (a.u.): ", this%cubeSize
+    if (this%cubeSize /= 0.0_8) write (*,"(A20,F15.5)") "cube center (a.u.): ", this%point1%values(1)
     if (this%dimensions >= 1) write (*,"(A20,F10.5,F10.5,F10.5)") "Point 1 (a.u.): ", this%point1%values(1), this%point1%values(2), this%point1%values(3)
     if (this%dimensions >= 2) write (*,"(A20,F10.5,F10.5,F10.5)") "Point 2 (a.u.): ", this%point2%values(1), this%point2%values(2), this%point2%values(3)
     if (this%dimensions >= 3) write (*,"(A20,F10.5,F10.5,F10.5)") "Point 3 (a.u.): ", this%point3%values(1), this%point3%values(2), this%point3%values(3)
@@ -318,7 +319,6 @@ contains
   subroutine OutputBuilder_writeMoldenFile(this)
     implicit none
     type(OutputBuilder) :: this
-    type(MolecularSystem) :: MolecularSystemInstance
 
     integer :: i
     integer :: j
@@ -327,7 +327,6 @@ contains
     integer :: m
     integer :: numberOfSpecies
     integer :: state,numberOfStates
-    real :: occupation
     integer :: occupationTotal
     logical :: wasPress
     character(50) :: auxString
@@ -341,13 +340,9 @@ contains
     type(Vector),allocatable :: fractionalOccupations(:,:)
     character(10),allocatable :: labels(:)
     integer :: wfnUnit, occupationsUnit
-    character(100) :: wfnFile, occupationsFile, fileName
+    character(100) :: wfnFile, occupationsFile
     integer :: numberOfContractions
     character(50) :: arguments(2)
-    integer :: counter, auxcounter
-    character(6) :: nickname
-    character(4) :: shellCode
-    character(2) :: space
     integer :: totalNumberOfParticles, n
     logical :: existFile
     
@@ -599,34 +594,19 @@ contains
   subroutine OutputBuilder_VecGamessFile(this)
     implicit none
     type(OutputBuilder) :: this
-    type(MolecularSystem) :: MolecularSystemInstance
 
     integer :: i
     integer :: j
-    integer :: k
     integer :: l
     integer :: m
     integer :: specieID
-    logical :: wasPress
     character(10) :: auxString
-    character(10) :: symbol
-    real(8) :: origin(3)
-    real(8), allocatable :: charges(:)
-    type(Matrix) :: localizationOfCenters
-    type(Matrix) :: auxMatrix
     type(Matrix) :: coefficientsOfcombination
-    character(10),allocatable :: labels(:)
     integer :: wfnUnit
     character(100) :: wfnFile
     integer :: numberOfContractions
     character(50) :: arguments(2)
-    character(19) , allocatable :: labelsOfContractions(:)
-    integer :: counter, auxcounter
-    character(6) :: nickname
-    character(4) :: shellCode
-    character(2) :: space
-    integer :: totalNumberOfParticles, n
-
+    
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
@@ -1222,36 +1202,21 @@ contains
    subroutine OutputBuilder_writeEigenvalues(this)
     implicit none
     type(OutputBuilder) :: this
-    type(MolecularSystem) :: MolecularSystemInstance
 
-    integer :: i
     integer :: j
-    integer :: k
     integer :: l
-    integer :: m
     integer :: specieID
-    real :: occupation
-    integer :: occupationTotal
-    logical :: wasPress
     character(10) :: auxString
-    character(10) :: symbol
-    real(8) :: origin(3)
     real(8), allocatable :: charges(:)
     type(Matrix) :: localizationOfCenters
     type(Matrix) :: auxMatrix
     type(Vector) :: energyOfMolecularOrbital
-    type(Matrix) :: coefficientsOfcombination
     character(10),allocatable :: labels(:)
     integer :: wfnUnit
     character(100) :: wfnFile
     integer :: numberOfContractions
     character(50) :: arguments(2)
-    character(19) , allocatable :: labelsOfContractions(:)
-    integer :: counter, auxcounter
-    character(6) :: nickname
-    character(4) :: shellCode
-    character(2) :: space
-    integer :: totalNumberOfParticles, n
+    integer :: totalNumberOfParticles
 
     ! auxString="speciesName"
 
@@ -1309,24 +1274,19 @@ contains
    subroutine OutputBuilder_writeFchkFile(this)
     implicit none
     type(OutputBuilder) :: this
-    type(MolecularSystem) :: MolecularSystemInstance
 
-    integer :: h,i,j,k,l,n,m
+    integer :: h,i,j,k,l
     integer :: numberOfSpecies
-    integer :: state,numberOfStates
-    character(50) :: auxString
     real(8) :: origin(3)
     real(8), allocatable :: charges(:)
     type(Matrix) :: localizationOfCenters
     type(Matrix) :: auxMatrix
     type(Vector) :: energyOfMolecularOrbital
     type(Matrix) :: coefficientsOfcombination
-    type(Matrix),allocatable :: fractionalOccupations(:)
     character(10),allocatable :: labels(:)
 
-    integer :: wfnUnit, occupationsUnit
-    character(100) :: wfnFile, occupationsFile, fileName
-    integer :: numberOfBetaElectrons
+    integer :: wfnUnit
+    character(100) :: wfnFile
     integer :: numberOfPrimitives
     integer :: numberOfContractions
     integer :: numberOfShells
@@ -1339,7 +1299,6 @@ contains
     character(50) :: nameOfSpecies
     character(40) :: header
     character(50) :: arguments(2)
-    logical :: existFile
 
 
     localizationOfCenters=ParticleManager_getCartesianMatrixOfCentersOfOptimization()
@@ -1708,7 +1667,6 @@ contains
   subroutine OutputBuilder_generateAIMFiles (this)
     implicit none
     type(OutputBuilder) :: this
-    type(MolecularSystem) :: MolecularSystemInstance
     character(50) :: auxString
     character(100) :: initialSettingsFile
     character(100) :: moldenFileName
@@ -1716,7 +1674,6 @@ contains
     character(100) :: wfnFile
     character(2) :: wfnStatus, wfxStatus, nboStatus
     character(10) :: extension
-    character(50) :: arguments(2)
     integer :: wfnUnit
     real(8) :: totalEnergy, virial
 
@@ -1806,7 +1763,6 @@ contains
     implicit none
     type(OutputBuilder) :: this
     integer :: l
-    character(50) :: initialWfnFile
     character(50) :: auxString
 
     do l=1,MolecularSystem_getNumberOfQuantumSpecies()
@@ -1822,14 +1778,14 @@ contains
 
      integer :: speciesID
      character(50) :: nameOfSpecies
-     integer :: i,j
+     integer :: i,j,n
      integer :: numberOfSteps
      type(vector) :: step1
      type(vector) :: step2
-     real(8) :: val, val2
      real(8) :: maxValue, maxValue2
      real(8) :: minValue, minValue2
-     real(8) :: coordinate(3)
+     Type(Vector) :: val, val2
+     Type(Matrix) :: coordinate
 
      character(50) :: title, title2
      character(50) :: x_title
@@ -1876,32 +1832,41 @@ contains
 
      end select
 
-     val=0.0_8     
-     val2=0.0_8     
      maxValue=0.0_8
      minValue=0.0_8 
      maxValue2=0.0_8
      minValue2=0.0_8 
+     call Matrix_constructor(coordinate,int((numberOfSteps+1)**2,8),int(3,8),0.0_8)
+     n=0
+     do i=0,numberOfSteps
+        do j=0,numberOfSteps
+           n=n+1
+           coordinate%values(n,:)=i*step1%values(:)+j*step2%values(:)+this%point1%values(:)
+        end do
+     end do
+
+     select case( this%type )
+     case ( "orbitalPlot") 
+        call CalculateWaveFunction_getOrbitalValueAt( speciesID, this%orbital, coordinate, val )  
+     case ( "fukuiPlot") 
+        !!              val=CalculateProperties_getFukuiAt( this%species, "positive", coordinate )  
+        !!              val2=CalculateProperties_getFukuiAt( this%species, "negative", coordinate )  
+     case default
+     end select
+     
+     n=0
      do i=0,numberOfSteps
         write (10,*) ""
         if (this%type .eq. "fukuiPlot") write(11,*) ""
         do j=0,numberOfSteps
-           coordinate(:)=i*step1%values(:)+j*step2%values(:)+this%point1%values(:)
-           select case( this%type )
-           case ( "orbitalPlot") 
-              val=CalculateWaveFunction_getOrbitalValueAt(nameOfSpecies, this%orbital, coordinate )  
-           case ( "fukuiPlot") 
-!!              val=CalculateProperties_getFukuiAt( this%species, "positive", coordinate )  
-!!              val2=CalculateProperties_getFukuiAt( this%species, "negative", coordinate )  
-           case default
-           end select
-           write (10,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val 
-           if (val > maxValue) maxValue = val
-           if (val < minValue) minValue = val
+           n=n+1
+           write (10,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val%values(n) 
+           if (val%values(n) > maxValue) maxValue = val%values(n) 
+           if (val%values(n) < minValue) minValue = val%values(n) 
            if (this%type .eq. "fukuiPlot" ) then
-              write (11,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val2 
-              if (val2 > maxValue2) maxValue2 = val2
-              if (val2 < minValue2) minValue2 = val2
+              write (11,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val2%values(n) 
+              if (val2%values(n) > maxValue2) maxValue2 = val2%values(n) 
+              if (val2%values(n) < minValue2) minValue2 = val2%values(n) 
            end if
            ! print *, coordinate, val
         end do
@@ -1915,9 +1880,6 @@ contains
         close(11)
      end if
 
-     call Vector_Destructor(step1)
-     call Vector_Destructor(step2)
-
    end subroutine OutputBuilder_get3DPlot
 
    subroutine OutputBuilder_get2DPlot(this)
@@ -1926,13 +1888,13 @@ contains
      character(50) :: outputID, auxID
      character(50) :: orbitalNum
 
-     integer :: i, speciesID
+     integer :: i, n, speciesID
      character(50) :: nameOfSpecies
 
      integer :: numberOfSteps
      type(vector) :: step
-     real(8) :: val, val2
-     real(8) :: coordinate(3)
+     type(vector) :: val, val2
+     Type(Matrix) :: coordinate
 
      character(50) :: title
      character(50) :: x_title
@@ -1976,18 +1938,25 @@ contains
 
      end select
 
+     call Matrix_constructor(coordinate,int((numberOfSteps+1),8),int(3,8),0.0_8)
      do i=0,numberOfSteps
-        coordinate(:)=i*step%values(:)+this%point1%values(:)
-        select case( this%type )
-        case ( "orbitalPlot") 
-           val=CalculateWaveFunction_getOrbitalValueAt(nameOfSpecies, this%orbital, coordinate )  
-        case ( "fukuiPlot") 
-!!           val=CalculateProperties_getFukuiAt( this%species, "positive", coordinate )  
-!!           val2=CalculateProperties_getFukuiAt( this%species, "negative", coordinate )  
-        case default
-        end select
-        write (10,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val 
-        if (this%type .eq. "fukuiPlot") write (11,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val2 
+        coordinate%values(i+1,:)=i*step%values(:)+this%point1%values(:)
+     end do
+
+     select case( this%type )
+     case ( "orbitalPlot") 
+        call CalculateWaveFunction_getOrbitalValueAt( speciesID, this%orbital, coordinate, val )  
+     case ( "fukuiPlot") 
+        !!           val=CalculateProperties_getFukuiAt( this%species, "positive", coordinate )  
+        !!           val2=CalculateProperties_getFukuiAt( this%species, "negative", coordinate )  
+     case default
+     end select
+
+     n=0
+     do i=0,numberOfSteps
+        n=n+1
+        write (10,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val%values(n) 
+        if (this%type .eq. "fukuiPlot") write (11,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val2%values(n) 
      end do
 
      close(10)
@@ -2007,16 +1976,14 @@ contains
      implicit none
      type(OutputBuilder) :: this
      character(50) :: outputID, auxID
-     real(8):: cubeSize
 
      integer :: l, i, j, k, n, w, natom
-     integer :: atomicCharge
      integer :: speciesID
      integer :: numberOfSteps
      real(8) :: step
      real(8) :: lowerLimit(3)
-     real(8), allocatable :: val(:)
-     real(8) :: coordinate(3)
+     Type(Vector) :: val
+     Type(Matrix) :: coordinate
 
      integer :: wfnunit, occupationsUnit 
      integer :: numberOfOrbitals, numberOfSpecies
@@ -2091,51 +2058,42 @@ contains
            numberOfSteps=CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
            step= this%cubeSize/numberOfSteps
 
-           allocate (val (numberOfSteps) )
-
-           ! do n=1, size(MolecularSystem_instance%particlesPtr)
-           !    if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-" .or. &
-           !         trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-ALPHA" .and. &
-           !         MolecularSystem_instance%particlesPtr(k)%isQuantum ) then
-           !       natom = natom +1
-           !    end if
-           ! end do
-           natom=1
+           natom=MolecularSystem_instance%numberOfPointCharges
 
            write (10,"(A)") "Gaussian Cube generated with Lowdin Software"
            write (10,"(A)") this%fileName(l)
-           write (10,"(I8,F20.8,F20.8,F20.8,I8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3), 1
+           if(natom .gt. 0) then
+              write (10,"(I8,F20.8,F20.8,F20.8,I8)") natom, lowerLimit(1), lowerLimit(2), lowerLimit(3), 1
+           else
+              write (10,"(I8,F20.8,F20.8,F20.8,I8)") 1, lowerLimit(1), lowerLimit(2), lowerLimit(3), 1
+           end if
            write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, step, 0.0, 0.0
            write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, 0.0, step, 0.0
            write (10,"(I8,F20.8,F20.8,F20.8)") numberOfSteps, 0.0, 0.0, step
 
-           write (10, "(I8,I8,F20.8,F20.8,F20.8)") &
-                1, 1, this%point1%values
-           ! do n=1, size(MolecularSystem_instance%particlesPtr)
-           !    if ( trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-" .or. &
-           !         trim(MolecularSystem_instance%particlesPtr(n)%symbol) == "E-ALPHA" .and. &
-           !         MolecularSystem_instance%particlesPtr(n)%isQuantum ) then
-           !       atomicCharge=-MolecularSystem_instance%particlesPtr(n)%totalCharge
-           !       write (10, "(I8,F20.8,F20.8,F20.8,F20.8)") &
-           !            atomicCharge, 0.0, MolecularSystem_instance%particlesPtr(n)%origin(1:3)
-           !    end if
-           ! end do
-
+           if(natom .gt. 0) then
+              do n = 1, MolecularSystem_instance%numberOfPointCharges
+                 write (10, "(I8,F20.8,F20.8,F20.8,F20.8)") &
+                      int(MolecularSystem_instance%pointCharges(n)%charge), 0.0, MolecularSystem_instance%pointCharges(n)%origin(1:3)
+              end do
+           else
+              write (10, "(I8,I8,F20.8,F20.8,F20.8)") &
+                   1, 0, this%point1%values
+           end if
+           
            do i=1,numberOfSteps
-              coordinate(1)=lowerLimit(1)+(i-1)*step
               do j=1, numberOfSteps
-                 coordinate(2)=lowerLimit(2)+(j-1)*step
+                 call Matrix_constructor(coordinate,int(numberOfSteps,8),int(3,8),0.0_8)
                  do k=1, numberOfSteps
-                    coordinate(3)=lowerLimit(3)+(k-1)*step
-
-                    val(k)=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )
+                    coordinate%values(k,1)=lowerLimit(1)+(i-1)*step
+                    coordinate%values(k,2)=lowerLimit(2)+(j-1)*step
+                    coordinate%values(k,3)=lowerLimit(3)+(k-1)*step
                  end do
-                 write(10,*) ( val(w) , w=1,numberOfSteps )
+                 call CalculateWaveFunction_getDensityAt( speciesID, coordinate, densityMatrix, val )
+                 write(10,*) ( val%values(w) , w=1,numberOfSteps )
                  write(10,*) ( "" )
               end do
            end do
-
-           deallocate (val)
            close(10)
         end if
      end do
@@ -2144,16 +2102,17 @@ contains
   subroutine OutputBuilder_getDensityPlot(this)
      type(OutputBuilder) :: this
      character(50) :: outputID, auxID
-     character(50) :: orbitalNum
 
-     integer :: i,j,l, speciesID, wfnunit, occupationsUnit 
+     integer :: i,j,l,n, speciesID, wfnunit, occupationsUnit 
      integer :: numberOfSteps, numberOfOrbitals
      integer :: numberOfSpecies
      type(vector) :: step1, step2
-     type(matrix) :: densityMatrix, auxMatrix
-     real(8) :: val, maxValue, minValue
-     real(8) :: coordinate(3), plotDistance1, plotDistance2
-
+     type(matrix) :: densityMatrix
+     real(8) :: maxValue, minValue
+     real(8) :: plotDistance1, plotDistance2
+     Type(Vector) :: val
+     Type(Matrix) :: coordinate
+     
      character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
      character(50) :: title, x_title, y_title, z_title
      logical :: existFile
@@ -2224,7 +2183,6 @@ contains
            write(auxstring,*) this%state
            title=trim(nameOfSpecies)//" state "//auxstring//" density" 
 
-           val=0.0_8     
            maxValue=0.0_8
            minValue=0.0_8 
 
@@ -2241,15 +2199,25 @@ contains
               z_title=""
               open(10,file=this%fileName(l),status='replace',action='write')
               write (10,"(A10,A20,A20,A20)") "#","X","Y","Density"
+              call Matrix_constructor(coordinate,int((numberOfSteps+1)**2,8),int(3,8),0.0_8)
+              n=0
+              do i=0,numberOfSteps
+                 do j=0,numberOfSteps
+                    n=n+1
+                    coordinate%values(n,:)=this%point1%values(:)+i*step1%values(:)+j*step2%values(:)
+                 end do
+              end do
+
+              call CalculateWaveFunction_getDensityAt( speciesID, coordinate, densityMatrix, val )  
+              n=0
               do i=0,numberOfSteps
                  write (10,*) ""
                  do j=0,numberOfSteps
-                    coordinate(:)=this%point1%values(:)+i*step1%values(:)+j*step2%values(:)
-                    val=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )  
-
-                    write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1), -plotDistance2*0.5+j*Vector_norm(step2),val 
-                    if (val > maxValue) maxValue = val
-                    if (val < minValue) minValue = val
+                    n=n+1
+                    write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1), -plotDistance2*0.5+j*Vector_norm(step2), &
+                         val%values(n) 
+                    if (val%values(n) > maxValue) maxValue = val%values(n) 
+                    if (val%values(n) < minValue) minValue = val%values(n) 
                     ! print *, coordinate, val
                  end do
               end do
@@ -2273,11 +2241,18 @@ contains
               open(10,file=this%fileName(l),status='replace',action='write')
 
               write (10,"(A10,A20,A20)") "#","X","Density"
-              do i=0,numberOfSteps
-                 coordinate(:)=this%point1%values(:)+i*step1%values(:)
-                 val=CalculateWaveFunction_getDensityAt( nameOfSpecies, coordinate, densityMatrix )  
 
-                 write (10,"(T10,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1),val 
+              call Matrix_constructor(coordinate,int(numberOfSteps+1,8),int(3,8),0.0_8)
+              do i=0,numberOfSteps
+                 coordinate%values(i+1,:)=this%point1%values(:)+i*step1%values(:)
+              end do
+
+              call CalculateWaveFunction_getDensityAt( speciesID, coordinate, densityMatrix, val )  
+
+              n=0
+              do i=0,numberOfSteps
+                 n=n+1
+                 write (10,"(T10,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1),val%values(n) 
                  ! print *, coordinate, val
               end do
 
@@ -2308,7 +2283,7 @@ contains
      character(*), optional :: y_range
      integer, optional :: numOfGraphs
 
-     integer :: i,status
+     integer :: i
      character(20) :: charNumOfGraph
      character(20) :: auxXformat
      character(20) :: auxYformat
@@ -2372,7 +2347,6 @@ contains
      real(8) :: maxValue
      real(8) :: maxMinDiff
      
-     integer :: status
      integer :: levels
 
      maxMinDiff=maxValue-minValue

@@ -1,0 +1,22 @@
+
+GEOMETRY
+E-(F) AUG-CC-PVTZ 0.0 0.0 0.000	 addParticles=1 
+E+    PSX-TZ	  0.0 0.0 0.000
+F     dirac 	  0.0 0.0 0.000
+END GEOMETRY
+
+TASKS
+        method = "RHF"
+END TASKS
+
+CONTROL
+	readCoefficients=F
+	numberOfPointsPerDimension=1000	
+	totalEnergyTolerance=1E-12
+END CONTROL
+
+OUTPUTS
+        densityPlot  dimensions=2 point1=0.0 0.0 -10.0 point2= 0.0 0.0 10.0
+END OUTPUTS
+
+
