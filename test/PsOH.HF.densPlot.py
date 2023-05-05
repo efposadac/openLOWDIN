@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import os
-import numpy as np
 import sys
 from colorstring import *
 
@@ -50,7 +49,7 @@ for i in range(0,len(plot1Read)):
         values = line.split()
         if i == 3: x1=float(values[1])
         if i == 4: x2=float(values[1])
-        if len(values) > 1: sumE+=np.sqrt(float(values[0])**2+float(values[1])**2)*float(values[2])
+        if len(values) > 1: sumE+=(float(values[0])**2+float(values[1])**2)**(1/2)*float(values[2])
 testValues["Num e- in plot"]=2.0*sumE*(x2-x1)**2
 plot1.close()
 
@@ -63,7 +62,7 @@ for i in range(0,len(plot2Read)):
         values = line.split()
         if i == 3: x1=float(values[1])
         if i == 4: x2=float(values[1])
-        if len(values) > 1: sumP+=np.sqrt(float(values[0])**2+float(values[1])**2)*float(values[2])
+        if len(values) > 1: sumP+=(float(values[0])**2+float(values[1])**2)**(1/2)*float(values[2])
 testValues["Num e+ in plot"]=2.0*sumP*(x2-x1)**2
 plot2.close()
 
