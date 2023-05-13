@@ -9,7 +9,7 @@ on:
   
 jobs:
   build:
-    name: Compiles and Check Lowdin
+    name: Compiles and Tests Lowdin
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -57,22 +57,16 @@ jobs:
         make -j 4
         make install
         cd -
-          
-    - name: Prepare test environment (UPDATE)
-      run: |
+        # Prepare test environment (UPDATE)
         virtualenv -p $(which python2) test
-        source test/bin/activate
-          
-    - name: Configure Lowdin
-      run: ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
-
-    - name: Build Lowdin
-      run: make -j 4
-    
-    - name: Install Lowdin
-      run: make install
-        
-    - name: Run check
-      run: make test
+        source test/bin/activate  
+        # Configure Lowdin
+        ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
+        # Build Lowdin
+        make -j 4
+        # Install Lowdin
+        make install
+        # Run Tests
+        make test
 
     
