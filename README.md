@@ -10,7 +10,7 @@ This program has been developed under direction of:
 © All rights reserved, 2014.
 
 
-Build status
+[![Makefile CI](https://github.com/efposadac/OpenLowdin/actions/workflows/makefile.yml/badge.svg?branch=master)](https://github.com/efposadac/OpenLowdin/actions/workflows/makefile.yml)
 
 
 Welcome to LOWDIN Quantum Chemistry Package 2.0.
@@ -18,7 +18,7 @@ Welcome to LOWDIN Quantum Chemistry Package 2.0.
 Installation notes.
 =============
 
-###Prerequisites: ###
+### Prerequisites: ###
 
 * A standard FORTRAN compiler. gfortran and intel FORTRAN compiler have been tested.
 * Lapack or MKL libraries.
