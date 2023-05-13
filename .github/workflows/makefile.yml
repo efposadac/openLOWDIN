@@ -12,9 +12,10 @@ jobs:
     name: Compiles and Check Lowdin
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
     - name: Compile and install dependencies
-      uses: actions/checkout@v3
-      with: 
+      uses: actions/github-script@v6
+      with:
         script: |
           apt-get update
           apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev python2-pip-whl python2-setuptools-whl virtualenv
@@ -60,6 +61,7 @@ jobs:
           cd -
           
     - name: Prepare test environment (UPDATE)
+      uses: actions/github-script@v6
       with: 
         script: |
           virtualenv -p $(which python2) test
