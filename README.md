@@ -1,19 +1,19 @@
-# LOWDIN 2 Quantum chemistry package #
+# openLOWDIN Quantum chemistry package #
 
 This program has been developed under direction of:
 
 * [Prof. A REYES' Lab](http://www.qcc.unal.edu.co). Universidad Nacional de Colombia.
 
-* [Prof. R. FLORES' Lab](http://www.cucei.udg.mx/~robertof). Universidad de Guadalajara.
 
 
-© All rights reserved, 2014.
+
+© All rights reserved, 2023.
 
 
 [![Makefile CI](https://github.com/efposadac/OpenLowdin/actions/workflows/makefile.yml/badge.svg?branch=master)](https://github.com/efposadac/OpenLowdin/actions/workflows/makefile.yml)
 
 
-Welcome to LOWDIN Quantum Chemistry Package 2.0.
+Welcome to openLOWDIN Quantum Chemistry Package.
 
 Installation notes.
 =============
