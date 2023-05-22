@@ -2,9 +2,9 @@ name: Makefile CI
 
 on:
   push:
-    branches: [ "master", "apmo-nc-2" ]
+    branches: [ "master", "apmo-nc-2", "apmo-nc-3" ]
   pull_request:
-    branches: [ "master", "apmo-nc-2" ]
+    branches: [ "master", "apmo-nc-2", "apmo-nc-3" ]
   workflow_dispatch:
   
 jobs:
