@@ -9,5 +9,3 @@
 *.dSYM
 CONFIG
 makefile
-__pycache__
-

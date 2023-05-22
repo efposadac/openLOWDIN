@@ -44,10 +44,10 @@ pipelines:
           - #export OPENMPFLAGS=-fopenmp
           - #export CXXFLAGS="-std=c++11 -Wno-enum-compare $OPENMPFLAGS"
           - #export LDFLAGS=$OPENMPFLAGS
-          - #git checkout master
+          - #git checkout 668b10c4bdca5876984058742d4212675eb93f3f
           - #aclocal -I lib/autoconf
           - #autoconf
-          - #./configure --prefix=$WORKDIR CPPFLAGS='-I/usr/include/eigen3'
+          - #./configure --enable-g12 --prefix=$WORKDIR CPPFLAGS='-I/usr/include/eigen3'
           - #make -j 4
           - #make install
           - cd ..

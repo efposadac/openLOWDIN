@@ -1,0 +1,100 @@
+  Def2-TZVPPD  EMSL  Basis Set Exchange Library   7/22/12 8:46 PM 
+ Elements                             References 
+ H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn: Dmitrij Rappoport and F. Furche, Property-optimized Gaussian basis sets for molecular response calculations, J. Chem. Phys. 133, 134105 (2010). 
+  
+ Elements                             References 
+ --------                             ---------- 
+ Y-Cd(ecp-28), Hf-Hg(ecp-46): D. Andrae,U. Haeussermann, M.Dolg, H.Stoll, H.Preuss, Theor.Chim.Acta, 1990, 77, 123?141. 
+ In-Sb(ecp-28), Tl-Bi(ecp-46): B. Metz, H. Stoll, M. Dolg, J. Chem. Phys., 2000, 113, 2563?2569. 
+ Te-Xe(ecp-28), Po-Rn(ecp-46): K. A. Peterson, D. Figgen, E. Goll, H. Stoll, M. Dolg, J. Chem. Phys., 2003, 119, 11113?11123. 
+ Rb(ecp-28), Cs(ecp-46): T.Leininger, A.Nicklass, W.Kuechle, H.Stoll, M.Dolg, A.Bergner, Chem. Phys. Lett., 1996, 255, 274?280. 
+ Sr(ecp-28), Ba(ecp-46): M. Kaupp, P. V. Schleyer, H. Stoll and H. Preuss, J. Chem. Phys., 1991, 94, 1360?1366. 
+  
+O-HYDROGEN H (DEF2-TZVPPD) BASIS TYPE: 1
+# 
+9
+1 0 3
+34.06134100 0.00602520
+5.12357460 0.04502109
+1.16466260 0.20189726
+2 0 1
+0.32723041 1.00000000
+3 0 1
+0.10307241 1.00000000
+1	   0	1
+0.032594358	1.0
+2		0	1
+0.010307241	1.0
+3		0	1
+0.003259436	1.0
+4		0	1
+0.0010307241	1.0
+5		0	1
+0.0003259436	1.0
+6		0	1
+0.00010307241	1.0
+
+O-LITHIUM LI (DEF2-TZVPPD) BASIS TYPE: 1
+# 
+11
+1 0 6
+6269.26280100 0.00020541
+940.31612431 0.00159166
+214.22107528 0.00828698
+60.75984018 0.03385637
+19.91515203 0.11103226
+7.31715098 0.27449383
+2 0 2
+2.97246742 0.23792456
+1.26398523 0.30765412
+3 0 1
+0.51427490 1.00000000
+4 0 1
+0.07703089 1.00000000
+5 0 1
+0.02893890 1.00000000
+1	   0	1
+0.009151283	1.0
+2		0	1
+0.002893890	1.0
+3	   0	1
+0.0009151283	1.0
+4		0	1
+0.0002893890	1.0
+5	   0	1
+0.00009151283	1.0
+6		0	1
+0.00002893890	1.0
+
+O-BERYLLIUM BE (DEF2-TZVPPD) BASIS TYPE: 1
+# 
+8
+1 0 6
+4700.23656260 0.00023584
+704.82845622 0.00182438
+160.43110478 0.00939661
+45.42534734 0.03690892
+14.79833413 0.10897561
+5.35124525 0.21694285
+2 0 2
+2.15420448 0.44695409
+0.93363744 0.20866986
+3 0 1
+0.18791433 1.00000000
+4 0 1
+0.07464827 1.00000000
+5 0 1
+0.03265048 1.00000000
+1	   0	1
+0.010324990	1.0
+2		0	1
+0.003265048	1.0
+3		0	1
+0.001032499	1.0
+4		0	1
+0.0003265048	1.0
+5		0	1
+0.0001032499	1.0
+6		0	1
+0.00003265048	1.0
+
