@@ -39,6 +39,7 @@ module SingleSCF_
   use Convergence_
   use WaveFunction_
   use MolecularSystem_
+  use OrbitalLocalizer_
   implicit none
 
   !< enum Matrix_type {
@@ -160,7 +161,7 @@ contains
     integer :: totales
     integer :: search, trial
     integer :: ii, jj, astrayOrbitals, startIteration
-    integer :: i
+    integer :: i,j, mu, nu, index
     logical :: existFile
 
     character(50) :: wfnFile
@@ -397,8 +398,7 @@ contains
        !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
        if ( CONTROL_instance%NO_SCF )  then !.or. SingleSCF_getNumberOfIterations(wfObject%species) == 0 
 
-          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-          arguments(1) = "COEFFICIENTS"
+          if (CONTROL_instance%READ_FCHK) then
 
              call Matrix_constructor (auxiliaryMatrix, numberOfContractions, numberOfContractions)
              call MolecularSystem_readFchk( trim(CONTROL_instance%INPUT_FILE)//trim(wfObject%name)//".fchk", &
@@ -409,21 +409,11 @@ contains
              arguments(2) = MolecularSystem_getNameOfSpecie(wfObject%species)
              arguments(1) = "COEFFICIENTS"
 
-          if ( existFile) then
-             open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-
-             WaveFunction_instance(speciesID)%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-                  rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
-                  arguments=arguments(1:2))
-
-             close(wfnUnit)
-
-          else 
-             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
+             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
              inquire(FILE = wfnFile, EXIST = existFile )
 
              if ( existFile) then
-                open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+                open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
 
                 wfObject%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
                      rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
@@ -450,48 +440,11 @@ contains
 
              end if
 
-          end if
-       end if
-
-       !! If NO SCF cicle is desired, read the coefficients from the ".vec" file again
-       if ( (CONTROL_instance%NO_SCF .and. CONTROL_instance%READ_EIGENVALUES) .or. &
-            (SingleSCF_getNumberOfIterations(speciesID) == 0 .and. CONTROL_instance%READ_EIGENVALUES) ) then
-
-          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-          arguments(1) = "ORBITALS"
-
-          wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
-          inquire(FILE = wfnFile, EXIST = existFile )
-
-          if ( existFile) then
-             open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-
-                call Vector_getFromFile(unit=wfnUnit, &
-                          output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
-                          elementsNum= int(numberOfContractions,4), binary=.true., & 
-                          arguments=arguments(1:2))
-
-             close(wfnUnit)
-
-          else 
-             wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
-             inquire(FILE = wfnFile, EXIST = existFile )
-
-             if ( existFile) then
-                open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-
-                call Vector_getFromFile(unit=wfnUnit, &
-                          output = WaveFunction_instance(speciesID)%molecularOrbitalsEnergy, &
-                          elementsNum= int(numberOfContractions,4), binary=.false., & 
-                          arguments=arguments(1:2))
-
-                close(wfnUnit)
-
-             else
-                call  SingleSCF_exception( ERROR, "I did not find any .vec coefficients file", "At SCF program, at SingleSCF_Iterate")
-             end if
+          else
+             call  SingleSCF_exception( ERROR, "I did not find any coefficients file for the noSCF procedure", "At SCF program, at SingleSCF_Iterate")
 
           end if
+          !! Calculate orbital energies from density matrix contributions
 
           wfObject%molecularOrbitalsEnergy%values=0.0
           !molecular orbital energy

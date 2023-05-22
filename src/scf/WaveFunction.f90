@@ -51,6 +51,9 @@ module WaveFunction_
      !! Matrices requeridas y alteradas en la realizacion del ciclo SCF
      !!
      type(Matrix) :: overlapMatrix     
+     type(Matrix) :: transformationMatrix
+     type(Matrix) :: kineticMatrix
+     type(Matrix) :: puntualInteractionMatrix
      type(Matrix) :: fockMatrix     
      type(Matrix) :: densityMatrix
      type(Matrix) :: hcoreMatrix
@@ -61,7 +64,6 @@ module WaveFunction_
      type(Matrix) :: exchangeCorrelationMatrix !!Kohn-Sham contributions. Felix: Separate this into exchange and correlation contributions
      type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: beforeDensityMatrix
-     type(Matrix) :: transformationMatrix
      type(Matrix) :: waveFunctionCoefficients
      type(Vector) :: molecularOrbitalsEnergy     
      type(FourIndexMatrix), allocatable :: fourCenterIntegrals(:) !!Coulomb Interaction between species
@@ -72,6 +74,8 @@ module WaveFunction_
      type(Matrix) :: cosmo2
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
+     type(Matrix) :: electricField(3)
+     real(8) :: cosmoCharge
      real(8) :: cosmoChargeValue
 
      !!**************************************************************
@@ -807,6 +811,9 @@ contains
     integer :: status
     integer :: u, v, r, s, i
 
+    type(Matrix) :: densityMatrix
+    type(Matrix) :: twoParticlesMatrix
+
     !! OpenMP related variables
     character(50) :: fileid
     integer :: nthreads
@@ -834,7 +841,6 @@ contains
     if ( MolecularSystem_getNumberOfParticles(this%species) > 1 .or.  CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
 
        if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) then
-
 
           !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, rr, ss, shellIntegrals, i, coulomb, exchange, tmpArray)
           nthreads = OMP_GET_NUM_THREADS()
@@ -871,7 +877,7 @@ contains
 
                 if( ss(i) == -1 ) exit loadintegrals
                 ! print*, ss(i), rr(i),  bb(i), aa(i), shellIntegrals(i)
-                coulomb = wavefunction_instance(speciesID)%densityMatrix%values(rr(i),ss(i)) * shellIntegrals(i)
+                coulomb = densityMatrix%values(rr(i),ss(i)) * shellIntegrals(i)
 
                 !!*****************************************************************************
                 !! Adds coulomb operator contributions
@@ -896,7 +902,7 @@ contains
 
                    end if
 
-                   coulomb = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),bb(i))*shellIntegrals(i)
+                   coulomb = densityMatrix%values(aa(i),bb(i))*shellIntegrals(i)
 
                    tmpArray(rr(i),ss(i)) = tmpArray(rr(i),ss(i)) + coulomb
 
@@ -914,11 +920,11 @@ contains
                 !!*****************************************************************************
                 !! Adds exchange operator contributions
                 !! 
-                if ( WaveFunction_instance(speciesID)%exactExchangeFraction .gt. 0.0_8 ) then
+                if ( abs(factor) .gt. 0.0_8 ) then
 
                    if( rr(i) /= ss(i) ) then
 
-                      exchange =wavefunction_instance(speciesID)%densityMatrix%values(bb(i),ss(i)) * shellIntegrals(i) * factor
+                      exchange =densityMatrix%values(bb(i),ss(i)) * shellIntegrals(i) * factor
 
                       tmpArray( aa(i), rr(i) ) = tmpArray( aa(i), rr(i) ) + exchange
 
@@ -932,7 +938,7 @@ contains
 
                    if ( aa(i) /= bb(i) ) then
 
-                      exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),rr(i)) * shellIntegrals(i) * factor
+                      exchange = densityMatrix%values(aa(i),rr(i)) * shellIntegrals(i) * factor
 
                       if( bb(i) > ss(i) ) then
 
@@ -952,7 +958,7 @@ contains
 
                       if ( rr(i) /= ss(i) ) then
 
-                         exchange = wavefunction_instance(speciesID)%densityMatrix%values(aa(i),ss(i)) * shellIntegrals(i) * factor
+                         exchange = densityMatrix%values(aa(i),ss(i)) * shellIntegrals(i) * factor
 
                          if( bb(i) <= rr(i) ) then
 
@@ -976,7 +982,7 @@ contains
 
                    end if
 
-                   exchange = wavefunction_instance(speciesID)%densityMatrix%values(bb(i),rr(i))*shellIntegrals(i) * factor
+                   exchange = densityMatrix%values(bb(i),rr(i))*shellIntegrals(i) * factor
 
                    tmpArray( aa(i), ss(i) ) = tmpArray( aa(i), ss(i) ) + exchange
 
@@ -993,8 +999,8 @@ contains
           do u = 1, totalNumberOfContractions
              do v = 1, totalNumberOfContractions
                 !$OMP ATOMIC
-                wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) = &
-                     wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v) + tmpArray(u,v) 
+                twoParticlesMatrix%values(u,v) = &
+                     twoParticlesMatrix%values(u,v) + tmpArray(u,v) 
              end do
           end do
 
@@ -1005,8 +1011,8 @@ contains
           do u = 1 , totalNumberOfContractions
              do v = u + 1 , totalNumberOfContractions
 
-                wavefunction_instance(speciesID)%twoParticlesMatrix%values(v,u) = wavefunction_instance(speciesID)%twoParticlesMatrix%values(v,u) + &
-                     wavefunction_instance(speciesID)%twoParticlesMatrix%values(u,v)
+                twoParticlesMatrix%values(v,u) = twoParticlesMatrix%values(v,u) + &
+                     twoParticlesMatrix%values(u,v)
 
                 twoParticlesMatrix%values(u,v) = twoParticlesMatrix%values(v,u)
 
@@ -1441,8 +1447,6 @@ contains
        write(*,*) "Coupling Matrix: ", trim(nameOfSpecies)
        call Matrix_show( these(speciesID)%couplingMatrix )
     end if
-
-
 
  end subroutine WaveFunction_buildCouplingMatrix
 
@@ -2180,8 +2184,8 @@ contains
     real(8) :: cosmo_int
 
 
-    integer :: currentSpecieID
-    integer :: otherSpecieID
+    integer :: currentSpeciesID
+    integer :: otherSpeciesID
     integer :: numberOfContractions
     integer :: otherNumberOfContractions
     integer :: speciesIterator
@@ -2199,7 +2203,7 @@ contains
     specieSelected=MolecularSystem_instance%species(currentSpeciesID)
 
     if(allocated(labels)) deallocate(labels)
-    allocate(labels(MolecularSystem_instance%species(currentSpecieID)%basisSetSize))
+    allocate(labels(MolecularSystem_instance%species(currentSpeciesID)%basisSetSize))
 
     this%cosmoCoupling%values(:,:)=0.0_8
 
@@ -2234,11 +2238,11 @@ contains
           OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
           otherSpecieSelected=MolecularSystem_instance%species(otherSpeciesID)
 
-          if ( otherSpecieID /= currentSpecieID ) then
+          if ( otherSpeciesID /= currentSpeciesID ) then
 
-             ! write(*,*)"hola other and current", otherSpecieID,currentSpecieID 
+             ! write(*,*)"hola other and current", otherSpeciesID,currentSpeciesID 
 
-             !      wavefunction_instance(currentSpecieID)%cosmoCoupling%values = 0.0_8
+             !      wavefunction_instance(currentSpeciesID)%cosmoCoupling%values = 0.0_8
 
              open(unit=110, file=trim(nameOfOtherSpecie)//trim(this%name)//"_qq.cup", status='old', form="unformatted")
              ! open(unit=110, file=trim(this%name)//trim(nameOfOtherSpecie)//"_qq.cup", status='old', form="unformatted")
@@ -2249,7 +2253,7 @@ contains
 
 
              if(allocated(otherLabels)) deallocate(otherLabels)
-             allocate(otherLabels(MolecularSystem_instance%species(otherSpecieID)%basisSetSize))
+             allocate(otherLabels(MolecularSystem_instance%species(otherSpeciesID)%basisSetSize))
 
              otherAuxLabelsOfContractions=1
 
@@ -2270,53 +2274,53 @@ contains
 
 
              if(allocated(ints_mat_aux)) deallocate(ints_mat_aux)
-             allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(otherSpecieID), MolecularSystem_getTotalNumberOfContractions(otherSpecieID)))
+             allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(otherSpeciesID), MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)))
 
              ints_mat_aux=0.0_8                
 
 
              if(allocated(cosmoCoup_aux)) deallocate(cosmoCoup_aux)
-             allocate(cosmoCoup_aux(MolecularSystem_getTotalNumberOfContractions(currentSpecieID), MolecularSystem_getTotalNumberOfContractions(currentSpecieID)))
+             allocate(cosmoCoup_aux(MolecularSystem_getTotalNumberOfContractions(currentSpeciesID), MolecularSystem_getTotalNumberOfContractions(currentSpeciesID)))
 
 
              m = 0
 
              ii = 0
-             do g = 1, size(MolecularSystem_instance%species(currentSpecieID)%particles)
-                do h = 1, size(MolecularSystem_instance%species(currentSpecieID)%particles(g)%basis%contraction)
+             do g = 1, size(MolecularSystem_instance%species(currentSpeciesID)%particles)
+                do h = 1, size(MolecularSystem_instance%species(currentSpeciesID)%particles(g)%basis%contraction)
 
                    hh = h
                    ii = ii + 1
                    jj = ii - 1
 
-                   do i = g, size(MolecularSystem_instance%species(currentSpecieID)%particles)
-                      do j = hh, size(MolecularSystem_instance%species(currentSpecieID)%particles(i)%basis%contraction)
+                   do i = g, size(MolecularSystem_instance%species(currentSpeciesID)%particles)
+                      do j = hh, size(MolecularSystem_instance%species(currentSpeciesID)%particles(i)%basis%contraction)
 
                          jj = jj + 1
 
                          !!saving integrals on Matrix
-                         do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(currentSpecieID)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                            do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(currentSpecieID)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(currentSpeciesID)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                            do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(currentSpeciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                                iii=0
-                               do gg = 1, size(MolecularSystem_instance%species(otherSpecieID)%particles)
-                                  do ll = 1, size(MolecularSystem_instance%species(otherSpecieID)%particles(gg)%basis%contraction)
+                               do gg = 1, size(MolecularSystem_instance%species(otherSpeciesID)%particles)
+                                  do ll = 1, size(MolecularSystem_instance%species(otherSpeciesID)%particles(gg)%basis%contraction)
 
                                      hhh = ll
                                      iii = iii + 1
                                      jjj = iii - 1
 
-                                     do p = gg, size(MolecularSystem_instance%species(otherSpecieID)%particles)
-                                        do o = hhh, size(MolecularSystem_instance%species(otherSpecieID)%particles(p)%basis%contraction)
+                                     do p = gg, size(MolecularSystem_instance%species(otherSpeciesID)%particles)
+                                        do o = hhh, size(MolecularSystem_instance%species(otherSpeciesID)%particles(p)%basis%contraction)
                                            jjj = jjj + 1
 
                                            !!saving integrals on Matrix
-                                           do pp = otherlabels(iii), otherlabels(iii) + (MolecularSystem_instance%species(otherSpecieID)%particles(gg)%basis%contraction(ll)%numCartesianOrbital - 1)
-                                              do oo = otherlabels(jjj), otherlabels(jjj) + (MolecularSystem_instance%species(otherSpecieID)%particles(p)%basis%contraction(o)%numCartesianOrbital - 1)
+                                           do pp = otherlabels(iii), otherlabels(iii) + (MolecularSystem_instance%species(otherSpeciesID)%particles(gg)%basis%contraction(ll)%numCartesianOrbital - 1)
+                                              do oo = otherlabels(jjj), otherlabels(jjj) + (MolecularSystem_instance%species(otherSpeciesID)%particles(p)%basis%contraction(o)%numCartesianOrbital - 1)
                                                  m = m + 1
 
-                                                 ! write(*,*)"m,cosmo_int(m),P_element,pp,oo",m,cosmo_int(m),wavefunction_instance(otherSpecieID)%densityMatrix%values(pp,oo),pp,oo
+                                                 ! write(*,*)"m,cosmo_int(m),P_element,pp,oo",m,cosmo_int(m),wavefunction_instance(otherSpeciesID)%densityMatrix%values(pp,oo),pp,oo
                                                  read(110)cosmo_int
-                                                 ints_mat_aux(pp, oo) =(wavefunction_instance(otherSpecieID)%densityMatrix%values(pp,oo))* cosmo_int
+                                                 ints_mat_aux(pp, oo) =(wavefunction_instance(otherSpeciesID)%densityMatrix%values(pp,oo))* cosmo_int
                                                  ints_mat_aux(oo, pp) = ints_mat_aux(pp, oo)
 
                                               end do
@@ -2344,8 +2348,8 @@ contains
              end do
              do k=1,size(cosmoCoup_aux,DIM=1)
                 do l=k,size(cosmoCoup_aux,DIM=1)
-                   wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)=cosmoCoup_aux(k,l)+wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
-                   wavefunction_instance(currentSpecieID)%cosmoCoupling%values(l,k)=wavefunction_instance(currentSpecieID)%cosmoCoupling%values(k,l)
+                   wavefunction_instance(currentSpeciesID)%cosmoCoupling%values(k,l)=cosmoCoup_aux(k,l)+wavefunction_instance(currentSpeciesID)%cosmoCoupling%values(k,l)
+                   wavefunction_instance(currentSpeciesID)%cosmoCoupling%values(l,k)=wavefunction_instance(currentSpeciesID)%cosmoCoupling%values(k,l)
                 end do
              end do
 
@@ -2357,11 +2361,11 @@ contains
 
                 write(*,*)"cosmo Coupling = "//trim(this%name)
 
-                call Matrix_show(wavefunction_instance(currentSpecieID)%cosmoCoupling)
+                call Matrix_show(wavefunction_instance(currentSpeciesID)%cosmoCoupling)
 
                 write(*,*)"cosmo density matrix used = "//trim(nameOfOtherSpecie)
 
-                call Matrix_show(wavefunction_instance(otherSpecieID)%densityMatrix)
+                call Matrix_show(wavefunction_instance(otherSpeciesID)%densityMatrix)
 
              end if
              close(unit=110)

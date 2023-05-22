@@ -38,7 +38,8 @@ module IntegralManager_
   use CosmoCore_
   use Stopwatch_
   use ExternalPotential_
-
+  use HarmonicIntegrals_
+  use FirstDerivativeIntegrals_
 
   implicit none
 
@@ -147,7 +148,7 @@ contains
 
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -218,7 +219,7 @@ contains
 
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -289,7 +290,7 @@ contains
 
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -374,7 +375,7 @@ contains
 
        if(allocated(labels)) deallocate(labels)
        allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = IntegralManager_getLabels(MolecularSystem_instance%species(f))
+       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
        allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
@@ -726,7 +727,7 @@ contains
     integer :: f
     integer :: component
     Type(Matrix) :: integralsMatrix
-    character(10) :: coordinate(3)
+    character(10) :: coordinate(9)
     character(100) :: arguments(2)
 
     coordinate = ["X0", "Y0", "Z0","XX","YY","ZZ","XY","XZ","YZ"]

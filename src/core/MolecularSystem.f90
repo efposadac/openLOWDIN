@@ -91,7 +91,7 @@ module MolecularSystem_
        MolecularSystem_getKappa, &
        MolecularSystem_getMultiplicity, &
        MolecularSystem_getParticlesFraction, &
-       MolecularSystem_getFactorOfInterchangeIntegrals, &
+       MolecularSystem_getFactorOfExchangeIntegrals, &
        MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getNameOfSpecies, &
        MolecularSystem_getSpecieID, &
@@ -742,10 +742,12 @@ contains
   !>
   !! @brief loads all system information from file
   !! @author E. F. Posada, 2013
-  subroutine MolecularSystem_loadFromFile( form )
+  subroutine MolecularSystem_loadFromFile( form, targetFile )
     implicit none
     
     character(*) :: form
+    character(*), optional :: targetFile
+    character(50) :: fileName
 
     integer :: auxValue
     integer :: counter
@@ -754,6 +756,9 @@ contains
     character(20) :: name
     character(50) :: species
     character(50) :: otherSpecies
+
+    fileName="lowdin"
+    if ( present( targetFile ) ) fileName=trim(targetFile)
 
     select case (trim(form))
        
@@ -1280,10 +1285,10 @@ contains
      
    end function MolecularSystem_getMass
    
-   !> @brief Returns the Factor Of Interchange Integrals
+   !> @brief Returns the Factor Of Exchange Integrals
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getFactorOfInterchangeIntegrals( speciesID ) result( output )
+   function MolecularSystem_getFactorOfExchangeIntegrals( speciesID ) result( output )
      implicit none
      integer :: speciesID
      
@@ -1291,7 +1296,7 @@ contains
      
      output = MolecularSystem_instance%species(speciesID)%kappa / MolecularSystem_instance%species(speciesID)%eta
      
-   end function MolecularSystem_getFactorOfInterchangeIntegrals
+   end function MolecularSystem_getFactorOfExchangeIntegrals
 
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013

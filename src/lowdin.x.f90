@@ -180,8 +180,6 @@ program lowdin_
  !!
  !!******************************************************************************
 
-  statusSystem = system ("lowdin-CalcProp.x")
-
   if ( CONTROL_instance%IS_THERE_OUTPUT ) then
     write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
     call system("lowdin-output.x" //trim(strAuxNumber))

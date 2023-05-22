@@ -26,6 +26,8 @@ module Functional_
   type, public :: Functional
      character(30) :: species1
      character(30) :: species2
+     real(8) :: mass1
+     real(8) :: mass2
      character(50) :: name
      character(50) :: exchangeName
      character(50) :: correlationName
@@ -54,9 +56,11 @@ module Functional_
        Functional_MLCSANEvaluate, &
        Functional_myCSEvaluate, &
        Functional_expCSEvaluate, &
+       Functional_expCSGGAEvaluate, &
        Functional_PSNEvaluate, &
        Functional_PSNAPEvaluate, &
        Functional_lowLimitEvaluate, &
+       Functional_getBeta, &
        padevwn, &
        dpadevwn, &
        ecvwn, &
@@ -119,7 +123,10 @@ contains
     this%species1=MolecularSystem_getNameOfSpecie(speciesID)
     this%species2=MolecularSystem_getNameOfSpecie(otherSpeciesID)
     this%exactExchangeFraction=1.0_8
+    this%mass1=MolecularSystem_getMass(speciesID)
+    this%mass2=MolecularSystem_getMass(otherSpeciesID)
 
+    
     if((this%species1 == "E-" .and. this%species2 == "E-") .or. &
          (this%species1 == "E-ALPHA" .and. this%species2 == "E-ALPHA") .or. &
          (this%species1 == "E-ALPHA" .and. this%species2 == "E-BETA") .or. &
@@ -148,7 +155,8 @@ contains
                 call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)
                 this%info1 = xc_f03_func_get_info(this%xc1)
                           
-                if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA ) this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
+                !if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA )
+                this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
              
              end if
              
@@ -219,15 +227,16 @@ contains
           case default
 
              this%name="exchange-correlation:"//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
-             this%exchangeName=trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
-             this%correlationName=trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
+             this%exchangeName="XC_"//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
+             this%correlationName="NONE"
 
              call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)
              this%info1 = xc_f03_func_get_info(this%xc1)
 
              this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
 
-             if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA) this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
+             !if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA)
+             this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
 
              ! stop "ERROR: Please select an electronic functional to call LIBXC (LDA, PBE, BLYP, PBE0, B3LYP, or choose one from their web page)"
              
@@ -281,7 +290,8 @@ contains
     implicit none
     type(Functional) :: this 
     integer :: i
-
+    real(8) :: p,qe,qn,qen,q2en,q3en,Eab,Ea2b,Eab2,a0,q0,q2,q4
+    
     if( CONTROL_instance%CALL_LIBXC) then
        print *, "--------------------------------------------------------------------------------------"
        print *, "LIBXC library, Fermann, Miguel A. L. Marques, Micael J. T. Oliveira, and Tobias Burnus"
@@ -327,16 +337,93 @@ contains
           end if
        else 
           write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
-          if(this%name .ne. "NONE" .and. CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
-             print *, "q", CONTROL_instance%DUMMY_REAL_A
-             print *, "p", CONTROL_instance%DUMMY_REAL_B
-             print *, "r", CONTROL_instance%DUMMY_REAL_C
-          end if
 
           if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3") print *, "Using as correlation length: beta=q*rhoE^(1/3)"
           if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE6rhoN6") print *, "Using as correlation length: beta=q*rhoE^(1/6)*rhoN^(1/6)"
           if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN") print *, "Using as correlation length: beta=1/(q*rhoE^(-1/3)+r*rhoN^(-1))"
           if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3As") print *, "Using as correlation length: beta=qe*rhoE^(1/3)+qn*rhoN^(1/3)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3rhoEN6") print *, "Using as correlation length: beta=q*rhoE^(1/3)+p*rhoN^(1/3)+r*rhoE^(1/6)*rhoN^(1/6)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "newBeta") print *, "beta=(qe*rhoE(i)+qn*rhoN(i)+q2en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3en*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**2)**(1.0/3.0)"
+
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") print *, "beta=(q0*(rhoE(i)+rhoN(i))+q2*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3*(rhoE(i)-rhoN(i))**4/(rhoE(i)+rhoN(i))**3)**(1.0/3.0)"
+
+          if(CONTROL_instance%BETA_FUNCTION .eq. "newBeta") then
+
+             if(this%mass2 .gt. 2.0) then !hydrogen
+                print *, "electron-hydrogen correlation parameters"
+                a0=4.5839773752240566113
+                Ea2b=0.527444
+                Eab2=0.597139 
+             else !positron
+                print *, "electron-positron correlation parameters"
+                a0=2.2919886876120283056
+                Ea2b=0.262005
+                Eab2=0.262005
+             end if
+
+             p=1.0
+
+             if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) then
+                Ea2b=CONTROL_instance%DUMMY_REAL(1)
+                Eab2=CONTROL_instance%DUMMY_REAL(2)
+                p=CONTROL_instance%DUMMY_REAL(3)
+             end if
+                          
+             print *, "Ea2b=", Ea2b
+             print *, "Eab2=", Eab2
+             qe=a0*(11.0/8.0/Ea2b-3.0/4.0/Eab2)
+             qn=a0*(11.0/8.0/Eab2-3.0/4.0/Ea2b)
+             q2en=a0*3.0/16.0*(1.0/Ea2b+1.0/Eab2)
+             q3en=a0*9.0/16.0*(1.0/Eab2-1.0/Ea2b)
+             print *, "qe=", qe
+             print *, "qn=", qn
+             print *, "q2en=", q2en
+             print *, "q3en=", q3en
+
+             print *, "p", CONTROL_instance%DUMMY_REAL(3)
+
+          else if(CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") then
+
+             if(this%mass2 .gt. 2.0) then !hydrogen
+                STOP "this beta function only works for electron-positron"
+             else !positron
+                a0=2.2919886876120283056
+                Eab=0.25
+                Eab2=0.2620050702329801
+             end if
+
+
+             if (this%name .eq. "correlation:expCS-GGA-noA") a0=4.5839773752240566113                 
+
+             p=1.0
+
+             if(CONTROL_instance%BETA_PARAMETER_A .ne. 0 .or. CONTROL_instance%BETA_PARAMETER_B .ne. 0 .or. CONTROL_instance%BETA_PARAMETER_C .ne. 0) then
+                Eab=CONTROL_instance%BETA_PARAMETER_A
+                Eab2=CONTROL_instance%BETA_PARAMETER_B
+                p=CONTROL_instance%BETA_PARAMETER_C
+             end if
+                          
+             print *, "Eab=", Eab
+             print *, "Eab2=", Eab2
+             q0=a0/2/Eab
+             q2=a0*(-5/Eab+53/Eab2/8)
+             q4=a0*(9/Eab/2-45/Eab2/8)
+             print *, "q0=", q0
+             print *, "q2=", q2
+             print *, "q4=", q4
+
+             print *, "p", CONTROL_instance%DUMMY_REAL(3)
+
+
+          else 
+             if(this%name .ne. "NONE" .and. (CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) ) then
+                print *, "q", CONTROL_instance%DUMMY_REAL(1)
+                print *, "p", CONTROL_instance%DUMMY_REAL(2)
+                print *, "r", CONTROL_instance%DUMMY_REAL(3)
+             end if
+
+          end if
+
        end if
     end do
 
@@ -411,18 +498,18 @@ contains
 
     select case ( xc_f03_func_info_get_family(this%info1))
     case(XC_FAMILY_LDA)
-       call xc_f03_lda_exc_vxc(this%xc1, n, rho, e_exchange, v_exchange)
-    case(XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-       call xc_f03_gga_exc_vxc(this%xc1, n, rho, sigma, e_exchange, v_exchange, vs_exchange)
+       call xc_f03_lda_exc_vxc(this%xc1, int(n,8), rho, e_exchange, v_exchange)
+    case(XC_FAMILY_GGA)
+       call xc_f03_gga_exc_vxc(this%xc1, int(n,8), rho, sigma, e_exchange, v_exchange, vs_exchange)
     end select
 
     if( this%correlationName .ne. "NONE" ) then
 
        select case ( xc_f03_func_info_get_family(this%info2))
        case(XC_FAMILY_LDA)
-          call xc_f03_lda_exc_vxc(this%xc2, n, rho, e_correlation, v_correlation)
-       case(XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
-          call xc_f03_gga_exc_vxc(this%xc2, n, rho, sigma, e_correlation, v_correlation, vs_correlation )
+          call xc_f03_lda_exc_vxc(this%xc2, int(n,8), rho, e_correlation, v_correlation)
+       case(XC_FAMILY_GGA)
+          call xc_f03_gga_exc_vxc(this%xc2, int(n,8), rho, sigma, e_correlation, v_correlation, vs_correlation )
        end select
     
     end if
@@ -534,8 +621,8 @@ contains
     a4=-2.256758334191025
        
     if(this%name .eq. "correlation:ikn-nsf" ) then
-       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
-          q=CONTROL_instance%DUMMY_REAL_A
+       if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .and. CONTROL_instance%DUMMY_REAL(2) .ne. 0) then
+          q=CONTROL_instance%DUMMY_REAL(1)
        else
           q=4.971
        end if
@@ -557,7 +644,8 @@ contains
 
              F=numerator/denominator
 
-             ec(i)=rhoE(i)*rhoN(i)*F
+             ec(i)=rhoN(i)*F
+             ! ec(i)=rhoE(i)*rhoN(i)*F
 
 !!!Potential
              dFdbeta=a2/denominator-4*numerator/denominator/beta+(2*a3/beta**3+a4/beta**2)*numerator/denominator
@@ -602,9 +690,9 @@ contains
        a2=2.849869774919022
        r1=0.7607437033951782
        r2=0.433750315318239
-       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
-          q=CONTROL_instance%DUMMY_REAL_A
-          p=CONTROL_instance%DUMMY_REAL_B
+       if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .and. CONTROL_instance%DUMMY_REAL(2) .ne. 0) then
+          q=CONTROL_instance%DUMMY_REAL(1)
+          p=CONTROL_instance%DUMMY_REAL(2)
        else
           q=1.2
           p=0.5
@@ -623,7 +711,8 @@ contains
           attractiveExp=exp(-a2*(beta**2))
           repulsiveExp=exp(-r2/beta)
           F=a1*attractiveExp/beta**2-r1*repulsiveExp/beta**3
-          ec(i)= -p*rhoE(i)*rhoN(i)*F
+          ! ec(i)= -p*rhoE(i)*rhoN(i)*F
+          ec(i)= -p*rhoN(i)*F
 
           !!!Potential
           dFdbeta= -2*a1*(a2*beta**2+1)*attractiveExp/beta**3 - r1*(r2-3*beta)*repulsiveExp/beta**5
@@ -673,9 +762,9 @@ contains
        a2=2.849869774919022
        r1=0.0
        r2=0.433750315318239
-       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
-          q=CONTROL_instance%DUMMY_REAL_A
-          p=CONTROL_instance%DUMMY_REAL_B
+       if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .and. CONTROL_instance%DUMMY_REAL(2) .ne. 0) then
+          q=CONTROL_instance%DUMMY_REAL(1)
+          p=CONTROL_instance%DUMMY_REAL(2)
        else
           q=1.2
           p=0.5
@@ -694,7 +783,8 @@ contains
           attractiveExp=exp(-a2*(beta**2))
           repulsiveExp=exp(-r2/beta)
           F=a1*attractiveExp/beta**2-r1*repulsiveExp/beta**3
-          ec(i)= -p*rhoE(i)*rhoN(i)*F
+          ! ec(i)= -p*rhoE(i)*rhoN(i)*F
+          ec(i)= -p*rhoN(i)*F
 
           !!!Potential
           dFdbeta= -2*a1*(a2*beta**2+1)*attractiveExp/beta**3 - r1*(r2-3*beta)*repulsiveExp/beta**5
@@ -744,9 +834,9 @@ contains
        a2=2.849869774919022
        r1=0.0
        r2=0.433750315318239
-       if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
-          q=CONTROL_instance%DUMMY_REAL_A
-          p=CONTROL_instance%DUMMY_REAL_B
+       if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .and. CONTROL_instance%DUMMY_REAL(2) .ne. 0) then
+          q=CONTROL_instance%DUMMY_REAL(1)
+          p=CONTROL_instance%DUMMY_REAL(2)
        else
           q=1.2
           p=0.5
@@ -765,7 +855,8 @@ contains
           attractiveExp=exp(-a2*(beta**2))
           repulsiveExp=exp(-r2/beta)
           F=a1*attractiveExp/beta**2-r1*repulsiveExp/beta**3
-          ec(i)= -p*rhoE(i)*rhoN(i)*F
+          ! ec(i)= -p*rhoE(i)*rhoN(i)*F
+          ec(i)= -p*rhoN(i)*F
 
           !!!Potential
           dFdbeta= -2*a1*(a2*beta**2+1)*attractiveExp/beta**3 - r1*(r2-3*beta)*repulsiveExp/beta**5
@@ -911,10 +1002,10 @@ contains
        STOP "The nuclear electron functional chosen is not implemented"
     end if
 
-    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .and. CONTROL_instance%DUMMY_REAL_B .ne. 0) then
-       q=CONTROL_instance%DUMMY_REAL_A
-       p=CONTROL_instance%DUMMY_REAL_B
-       r=CONTROL_instance%DUMMY_REAL_C
+    if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .and. CONTROL_instance%DUMMY_REAL(2) .ne. 0) then
+       q=CONTROL_instance%DUMMY_REAL(1)
+       p=CONTROL_instance%DUMMY_REAL(2)
+       r=CONTROL_instance%DUMMY_REAL(3)
     else
        q=1.0
        p=1.0
@@ -961,7 +1052,8 @@ contains
           bExp=(1-exp(-bz*beta**bn))
           
           F=aPoly*aExp/beta**2+bPoly*bExp/beta**3
-          ec(i)= -p*rhoE(i)*rhoN(i)*F
+          ! ec(i)= -p*rhoE(i)*rhoN(i)*F
+          ec(i)= -p*rhoN(i)*F
 
           !!!Potential
           daPolydbeta=a1+2*a2*beta+3*a3*beta**2+4*a4*beta**3+5*a5*beta**4+6*a6*beta**5+7*a7*beta**6+8*a8*beta**7
@@ -1009,31 +1101,73 @@ contains
     
     !!The idea is that the parameters are a functional of the nuclear mass and charge
     if(this%name .eq. "correlation:expCS-A" ) then
-       a0=4.5840
-       a1=37.810
-       a2=126.39
-       a3=330.10
-       a4=1.0
-       b0=1.0
-       b1=10.225
-       b2=39.661
-       b3=216.79
-       b4=0.65725
+       if(mass .gt. 2.0) then !nuclear- adiabatic
+          a4=1.0
+          a3=330.096328569496899372
+          a2=126.389946461302141674
+          a1=37.8099831062836374483
+          a0=4.5839773752240566113
+          b4=0.6572515786440476772
+          b3=216.7870644040942790
+          b2=39.66058188679972412
+          b1=10.22481338790345212
+          b0=1.0
+       else  !positron-adiabatic
+          ! a4=1.0
+          ! a3=1303.3072101399865635
+          ! a2=249.92864475592566026
+          ! a1=37.282895111835410721
+          ! a0=2.2919886876120283056
+          ! b4=1.3145031572880953546
+          ! b3=1712.8945795597543538
+          ! b2=156.85114166883440203
+          ! b1=20.216312587194126413
+          ! b0=1.0
+          a4=1.0
+          a3=1151.5935487650133
+          a2=223.8321298117117
+          a1=32.8929178106386
+          a0=2.2919886876120283056
+          b4=1.3145031572880953546
+          b3=1513.5873924109194
+          b2=141.52688227410547
+          b1=18.267727642586607
+          b0=1.0
+       end if
+    else if(this%name .eq. "correlation:expCS-noA" ) then
+       if(mass .gt. 2.0) then !nuclear- no adiabatic
+          a4=1.0
+          a3=259.74684041327130047
+          a2=118.92498372366549632
+          a1=40.237074092688264982
+          a0=9.1679547504481132225
+          b4=0.3286257893220238386
+          b3=85.2776888283076625
+          b2=12.8341294979177963
+          b1=5.45967946556013866
+          b0=1.0
+       else  !positron-no adiabatic
+          a4=1.0
+          a3=1043.1272348010363592
+          a2=238.60672146759363273
+          a1=40.579167476742475919
+          a0=4.5839773752240566113
+          b4=0.6572515786440476772
+          b3=685.58251729720346024
+          b2=51.522539301737416155
+          b1=10.995665380524416865
+          b0=1.0
+       end if          
     else
        print *, this%name
        STOP "The nuclear electron functional chosen is not implemented"
     end if
 
     p=1.0
-    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 ) then
-       p=CONTROL_instance%DUMMY_REAL_A 
+    if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 ) then
+       p=CONTROL_instance%DUMMY_REAL(1) 
     end if
     
-    !$omp parallel & 
-    !$omp& private(i,beta, dbetaE, dbetaN, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta),&
-    !$omp& shared(mass, n, rhoE, rhoN, ec, vcE, vcN)
-    n = omp_get_thread_num() + 1
-    !$omp do schedule (dynamic) 
     
     time1=omp_get_wtime()
     !$omp parallel private(beta, dbetaE, dbetaP, d2BdE2, d2BdP2, d2BdEP, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta)
@@ -1048,11 +1182,7 @@ contains
           bPoly=b0*beta**3+b1*beta**4+b2*beta**5+b3*beta**6+b4*beta**7
           F=aPoly/bPoly
 
-          ec(i)= -p*rhoE(i)*rhoN(i)*F
-
-          ! write(*,"(I0.1,3F16.6)") i, beta, F, ec(i)
-
-!!!Potential
+         !!!Potential
           daPolydbeta=a1+2*a2*beta+3*a3*beta**2+4*a4*beta**3
           dbPolydbeta=3.0*b0*beta**2+4.0*b1*beta**3+5.0*b2*beta**4+6.0*b3*beta**5+7.0*b4*beta**6
           dFdbeta=(daPolydbeta*bPoly-aPoly*dbPolydbeta)/bPoly**2
@@ -1077,7 +1207,7 @@ contains
        ! write(*,"(I0.1,6E20.10)") i, beta, dFdbeta, dbetaE, dbetaN, vcE(i), vcN(i)
        ! write(*,"(I0.1,5F16.6)") i, aPoly, bPoly, daPolydbeta, dbPolydbeta, dFdbeta
     end do
-    !$omp end do nowait
+    !$omp end do 
     !$omp end parallel
 
     time2=omp_get_wtime()
@@ -1145,10 +1275,10 @@ contains
     g1=1.0
     g2=1.0
     
-    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
-       g1=CONTROL_instance%DUMMY_REAL_A !coefficient 
-       g2=CONTROL_instance%DUMMY_REAL_B !exponent
-       p=CONTROL_instance%DUMMY_REAL_C
+    if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) then
+       g1=CONTROL_instance%DUMMY_REAL(1) !coefficient 
+       g2=CONTROL_instance%DUMMY_REAL(2) !exponent
+       p=CONTROL_instance%DUMMY_REAL(3)
     end if
 
     
@@ -1563,14 +1693,14 @@ contains
 
     end select
 
-    ! if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
-    !    qe=CONTROL_instance%DUMMY_REAL_A
-    !    qn=CONTROL_instance%DUMMY_REAL_B
+    ! if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) then
+    !    qe=CONTROL_instance%DUMMY_REAL(1)
+    !    qn=CONTROL_instance%DUMMY_REAL(2)
     !    if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3rhoEN6") then
-    !       qen=CONTROL_instance%DUMMY_REAL_C
+    !       qen=CONTROL_instance%DUMMY_REAL(3)
     !       p=1
     !    else
-    !       p=CONTROL_instance%DUMMY_REAL_C
+    !       p=CONTROL_instance%DUMMY_REAL(3)
     !    end if
     ! else
     !    qe=1.1487573585337585
@@ -1589,10 +1719,10 @@ contains
     !    end if
     !    p=1.0
        
-    !    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
-    !       Ea2b=CONTROL_instance%DUMMY_REAL_A
-    !       Eab2=CONTROL_instance%DUMMY_REAL_B
-    !       p=CONTROL_instance%DUMMY_REAL_C
+    !    if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) then
+    !       Ea2b=CONTROL_instance%DUMMY_REAL(1)
+    !       Eab2=CONTROL_instance%DUMMY_REAL(2)
+    !       p=CONTROL_instance%DUMMY_REAL(3)
     !    end if
 
     !    qe=a0*(11.0/8.0/Ea2b-3.0/4.0/Eab2)
@@ -1611,10 +1741,10 @@ contains
 
     !    p=1.0
 
-    !    if(CONTROL_instance%DUMMY_REAL_A .ne. 0 .or. CONTROL_instance%DUMMY_REAL_B .ne. 0 .or. CONTROL_instance%DUMMY_REAL_C .ne. 0) then
-    !       Eab=CONTROL_instance%DUMMY_REAL_A
-    !       Eab2=CONTROL_instance%DUMMY_REAL_B
-    !       p=CONTROL_instance%DUMMY_REAL_C
+    !    if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) then
+    !       Eab=CONTROL_instance%DUMMY_REAL(1)
+    !       Eab2=CONTROL_instance%DUMMY_REAL(2)
+    !       p=CONTROL_instance%DUMMY_REAL(3)
     !    end if
 
     !    q0=a0/2/Eab

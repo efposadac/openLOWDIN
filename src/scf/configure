@@ -15,7 +15,7 @@ TARGET=lowdin-SCF.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 INCI=-I\$(TOPDIR)src/ints/
-LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o \$(TOPDIR)src/ints/IntegralManager.o \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o
+LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o \$(TOPDIR)src/ints/IntegralManager.o \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o  \$(TOPDIR)src/ints/HarmonicIntegrals.o  \$(TOPDIR)src/ints/FirstDerivativeIntegrals.o
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 

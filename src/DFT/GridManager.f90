@@ -31,9 +31,12 @@ module GridManager_
        GridManager_writeGrids, &
        GridManager_readGrids, &
        GridManager_getDensityGradientAtGrid, &
-       GridManager_getEnergyAndPotentialAtGrid, & !, &       GridManager_getEnergyFromGrid
-       GridManager_writeAtomicOrbitals, &
-       GridManager_buildExchangeCorrelationMatrix!, &
+       GridManager_getElectronicEnergyAndPotentialAtGrid, & !, &       GridManager_getEnergyFromGrid
+       GridManager_getInterspeciesEnergyAndPotentialAtGrid, & !, &       GridManager_getEnergyFromGrid
+       GridManager_atomicOrbitals, &
+       GridManager_buildExchangeCorrelationMatrix, &
+       GridManager_findCommonPoints, &
+       GridManager_getContactDensity
   ! GridManager_getOrbitalGradientAtPoint, &
   ! GridManager_getOrbitalGradientMatrix!, &
   ! GridManager_getOrbitalMatrix
@@ -61,14 +64,23 @@ contains
 
     !! Allocate memory.
     allocate(Grid_instance(numberOfSpecies))
+    allocate(GridsCommonPoints(numberOfSpecies,numberOfSpecies))
 
     !! Build and write species grids
     do speciesID = 1, numberOfSpecies
 
        call Grid_constructor(Grid_instance(speciesID), speciesID , type )
-
+       
     end do
 
+    do speciesID = 1, numberOfSpecies-1
+       do otherSpeciesID = speciesID+1, numberOfSpecies
+
+          call GridManager_findCommonPoints(Grid_instance(speciesID)%points,Grid_instance(speciesID)%totalSize,&
+               Grid_instance(otherSpeciesID)%points,Grid_instance(otherSpeciesID)%totalSize,&
+               GridsCommonPoints(speciesID,otherSpeciesID)%points,GridsCommonPoints(speciesID,otherSpeciesID)%totalSize)
+       end do
+    end do
 
   end subroutine GridManager_buildGrids
   !>
@@ -167,6 +179,7 @@ contains
 
     !! Allocate memory.
     allocate(Grid_instance(numberOfSpecies))
+    allocate(GridsCommonPoints(numberOfSpecies,numberOfSpecies))
 
     !! Build and write species grids
     do speciesID = 1, numberOfSpecies
@@ -246,21 +259,19 @@ contains
     integer :: speciesID
     integer :: gridSize
     integer :: mu,nu, point, index
-    type(Matrix) :: grid
-    type(Matrix) :: orbitalAndGradientInGrid
 
     character(50) :: labels(2)
     character(100) ::   orbsFile
     integer :: orbsUnit
 
     type(Matrix) :: auxMatrix(4)
-    integer :: i, j, k, g
+    integer :: i, j, k, g, u
     integer :: numberOfCartesiansOrbitals
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    do speciesID = 1, numberOfSpecies
-
+    do speciesID = 1 , numberOfSpecies
+       gridSize = Grid_instance(speciesID)%totalSize
        totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
        orbsUnit = 78
        if( trim(type) .eq. "INITIAL" ) then
@@ -271,10 +282,10 @@ contains
           STOP "ERROR At DFT program, requested an unknown grid type to orbitals at GridManager"
        end if
 
-       k=1
-       do g = 1, size(MolecularSystem_instance%species(speciesID)%particles)
-          do i = 1, size(MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction)
-             numberOfCartesiansOrbitals = MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i)%numCartesianOrbital
+       allocate(Grid_instance(speciesID)%orbitalsWithGradient(totalNumberOfContractions))
+       do u=1, totalNumberOfContractions
+          call Matrix_Constructor( Grid_instance(speciesID)%orbitalsWithGradient(u), int(gridSize,8), int(4,8), 0.0_8)
+       end do
 
        if( trim(action) .eq. "READ") then
           open(unit = orbsUnit, file=trim(orbsFile), status="old", form="unformatted")
@@ -296,7 +307,10 @@ contains
              do i = 1, size(MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction)
                 numberOfCartesiansOrbitals = MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i)%numCartesianOrbital
 
-             do j = 1, numberOfCartesiansOrbitals
+                call Matrix_constructor( auxMatrix(1), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8) !orbital
+                call Matrix_constructor( auxMatrix(2), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8) !d orbital/dx
+                call Matrix_constructor( auxMatrix(3), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8) !d orbital/dy
+                call Matrix_constructor( auxMatrix(4), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8) !d orbital/dz
 
                 call ContractedGaussian_getGradientAtGrid( MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i), &
                      Grid_instance(speciesID)%points, gridSize, auxMatrix(1), auxMatrix(2), auxMatrix(3), auxMatrix(4))
@@ -325,26 +339,8 @@ contains
                    call Matrix_writeToFile(Grid_instance(speciesID)%orbitalsWithGradient(k), unit=orbsUnit, binary=.true., arguments = labels(1:2) )
 
                 end do
-
-                ! print *, "viveee"
-                ! call Matrix_show(orbitalAndGradientInGrid)
-
-                dftUnit = 77
-
-                write( dftFile, "(A,I0.4)") trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".orbital_", k
-
-                open(unit = dftUnit, file=trim(dftFile), status="replace", form="unformatted")
-
-                write( labels(1), "(A,I0.4)") "ORBITAL_", k
-                labels(2) = Grid_instance(speciesID)%nameOfSpecies
-
-                call Matrix_writeToFile(orbitalAndGradientInGrid, unit=dftUnit, binary=.true., arguments = labels(1:2) )
-
-                close(unit=dftUnit)
-                k=k+1
              end do
           end do
-       end do
 
           call Matrix_destructor(auxMatrix(1))
           call Matrix_destructor(auxMatrix(2))
@@ -357,7 +353,7 @@ contains
 
     end do
 
-    ! close(unit=dftUnit)
+  end subroutine GridManager_atomicOrbitals
 
   !>
   !! @brief Returns the values of the density in a set of coordinates
@@ -373,7 +369,6 @@ contains
     integer :: gridSize
     integer :: numberOfCartesiansOrbitalsU
     integer :: numberOfCartesiansOrbitalsV
-    type(Matrix) :: orbitalUAndGradientInGrid, orbitalVAndGradientInGrid
     integer :: point
     integer :: i, j, u, g
     integer :: ii, jj, v, gg
@@ -381,79 +376,81 @@ contains
     real(8) :: sum
     integer :: numberOfContractions
 
+    integer :: n, nproc
+    real :: time1,time2
+    type(Vector),allocatable :: nodeDensityInGrid(:)
+    type(Vector),allocatable :: nodeGradientInGrid(:,:)
+
+    
     gridSize = Grid_instance(speciesID)%totalSize
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
+    nproc=omp_get_max_threads()
 
+    allocate( nodeDensityInGrid(nproc),nodeGradientInGrid(nproc,3) )
+
+    do n=1, nproc
+       call Vector_Constructor( nodeDensityInGrid(n), gridSize, 0.0_8)
+       call Vector_Constructor( nodeGradientInGrid(n,1), gridSize, 0.0_8)
+       call Vector_Constructor( nodeGradientInGrid(n,2), gridSize, 0.0_8)
+       call Vector_Constructor( nodeGradientInGrid(n,3), gridSize, 0.0_8)
+    end do
+
+
+    time1=omp_get_wtime()
+    !$omp parallel private(n,u,v,point)
+    n = omp_get_thread_num() +1
+    !$omp do schedule (dynamic)
     do u = 1, numberOfContractions
-
-       call Stopwatch_constructor(lowdin_stopwatch)
-       call Stopwatch_start(lowdin_stopwatch)
-
-       dftUnit = 77
-       write( dftFile, "(A,I0.4)") trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".orbital_", u
-
-       open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
-
-       write( labels(1), "(A,I0.4)") "ORBITAL_", u
-       labels(2) = Grid_instance(speciesID)%nameOfSpecies
-
-       orbitalUAndGradientInGrid= Matrix_getFromFile(unit=dftUnit, rows= int(gridSize,4), &
-            columns= int(4,4), binary=.true., arguments=labels)
-
-       ! print *, "orbital", u
-       ! call Matrix_show( orbitalUAndGradientInGrid)
-
-       close(unit=dftUnit)
-
        do point = 1 , gridSize
 
-          densityInGrid%values(point)=densityInGrid%values(point)+densityMatrix%values(u,u)*orbitalUAndGradientInGrid%values(point,1)**2
-          gradientInGrid(1)%values(point)=gradientInGrid(1)%values(point)+2*densityMatrix%values(u,u)&
-               *orbitalUAndGradientInGrid%values(point,1)*orbitalUAndGradientInGrid%values(point,2)
-          gradientInGrid(2)%values(point)=gradientInGrid(2)%values(point)+2*densityMatrix%values(u,u)&
-               *orbitalUAndGradientInGrid%values(point,1)*orbitalUAndGradientInGrid%values(point,3)
-          gradientInGrid(3)%values(point)=gradientInGrid(3)%values(point)+2*densityMatrix%values(u,u)&
-               *orbitalUAndGradientInGrid%values(point,1)*orbitalUAndGradientInGrid%values(point,4)
+          nodeDensityInGrid(n)%values(point)=nodeDensityInGrid(n)%values(point)+densityMatrix%values(u,u)*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)**2
+          nodeGradientInGrid(n,1)%values(point)=nodeGradientInGrid(n,1)%values(point)+2*densityMatrix%values(u,u)&
+               *Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,2)
+          nodeGradientInGrid(n,2)%values(point)=nodeGradientInGrid(n,2)%values(point)+2*densityMatrix%values(u,u)&
+               *Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,3)
+          nodeGradientInGrid(n,3)%values(point)=nodeGradientInGrid(n,3)%values(point)+2*densityMatrix%values(u,u)&
+               *Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,4)
 
        end do
 
-
        do v = u+1, numberOfContractions
-
-          dftUnit = 77
-          write( dftFile, "(A,I0.4)") trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".orbital_", v
-
-          open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
-
-          write( labels(1), "(A,I0.4)") "ORBITAL_", v
-          labels(2) = Grid_instance(speciesID)%nameOfSpecies
-
-          orbitalVAndGradientInGrid= Matrix_getFromFile(unit=dftUnit, rows= int(gridSize,4), &
-               columns= int(4,4), binary=.true., arguments=labels(1:2))
-
-          close(unit=dftUnit)
-
           do point = 1 , gridSize
 
-             densityInGrid%values(point)=densityInGrid%values(point)+2*densityMatrix%values(u,v)*&
-                  orbitalUAndGradientInGrid%values(point,1)*orbitalVAndGradientInGrid%values(point,1)
+             nodeDensityInGrid(n)%values(point)=nodeDensityInGrid(n)%values(point)+2*densityMatrix%values(u,v)*&
+                  Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,1)
 
-             gradientInGrid(1)%values(point)=gradientInGrid(1)%values(point)+2*densityMatrix%values(u,v)*&
-                  (orbitalUAndGradientInGrid%values(point,1)*orbitalVAndGradientInGrid%values(point,2)+&
-                  orbitalUAndGradientInGrid%values(point,2)*orbitalVAndGradientInGrid%values(point,1))
+             nodeGradientInGrid(n,1)%values(point)=nodeGradientInGrid(n,1)%values(point)+2*densityMatrix%values(u,v)*&
+                  (Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,2)+&
+                  Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,2)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,1))
 
-             gradientInGrid(2)%values(point)=gradientInGrid(2)%values(point)+2*densityMatrix%values(u,v)*&
-                  (orbitalUAndGradientInGrid%values(point,1)*orbitalVAndGradientInGrid%values(point,3)+&
-                  orbitalUAndGradientInGrid%values(point,3)*orbitalVAndGradientInGrid%values(point,1))
+             nodeGradientInGrid(n,2)%values(point)=nodeGradientInGrid(n,2)%values(point)+2*densityMatrix%values(u,v)*&
+                  (Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,3)+&
+                  Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,3)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,1))
 
-             gradientInGrid(3)%values(point)=gradientInGrid(3)%values(point)+2*densityMatrix%values(u,v)*&
-                  (orbitalUAndGradientInGrid%values(point,1)*orbitalVAndGradientInGrid%values(point,4)+&
-                  orbitalUAndGradientInGrid%values(point,4)*orbitalVAndGradientInGrid%values(point,1))
+             nodeGradientInGrid(n,3)%values(point)=nodeGradientInGrid(n,3)%values(point)+2*densityMatrix%values(u,v)*&
+                  (Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,4)+&
+                  Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,4)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,1))
 
           end do
        end do
     end do
+    !$omp end do 
+    !$omp end parallel
 
+    do n=1, nproc
+       densityInGrid%values=densityInGrid%values+nodeDensityInGrid(n)%values
+       gradientInGrid(1)%values=gradientInGrid(1)%values+nodeGradientInGrid(n,1)%values
+       gradientInGrid(2)%values=gradientInGrid(2)%values+nodeGradientInGrid(n,2)%values
+       gradientInGrid(3)%values=gradientInGrid(3)%values+nodeGradientInGrid(n,3)%values
+       call Vector_Destructor( nodeDensityInGrid(n))
+       call Vector_Destructor( nodeGradientInGrid(n,1))
+       call Vector_Destructor( nodeGradientInGrid(n,2))
+       call Vector_Destructor( nodeGradientInGrid(n,3))
+    end do
+
+    time2=omp_get_wtime()
+    ! write(*,"(A,F10.3,A4)") "**getDensityGradientAtGrid:", time2-time1 ," (s)"
+    
     ! call Vector_show(gradientInGrid(1))
     ! call Vector_show(gradientInGrid(2))
     ! call Vector_show(gradientInGrid(3))
@@ -464,43 +461,39 @@ contains
   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
 !!! Felix Moncada, 2017
   !<
-  subroutine GridManager_getEnergyAndPotentialAtGrid( speciesID, exchangeCorrelationEnergy, potentialInGrid, sigmaPotentialInGrid,&
-       otherSpeciesID, otherExchangeCorrelationEnergy, otherPotentialInGrid, otherSigmaPotentialInGrid)
+  subroutine GridManager_getElectronicEnergyAndPotentialAtGrid( speciesID, exchangeCorrelationEnergy, &
+    otherSpeciesID, otherExchangeCorrelationEnergy)
     implicit none
     integer :: speciesID
     real(8) :: exchangeCorrelationEnergy
-    type(Vector) :: potentialInGrid
-    type(Vector) :: sigmaPotentialInGrid
     integer, optional :: otherSpeciesID
     real(8), optional :: otherExchangeCorrelationEnergy
-    type(Vector), optional :: otherPotentialInGrid
-    type(Vector), optional :: otherSigmaPotentialInGrid
 
     character(50) :: nameOfSpecies, otherNameOfSpecies
-    integer :: gridSize, otherGridSize
+    integer :: gridSize
     type(Vector) :: energyDensity
-    type(Vector) :: sigma
+    type(Vector) :: sigma, sigmaPotential
     type(Vector) :: densityAB, potentialAB, sigmaAB, sigmaPotentialAB
-    type(Vector) :: commonPoints, electronicDensityAtOtherGrid, electronicPotentialAtOtherGrid, holdNuclearPotential
-    integer :: i, index
-    real(8) :: nuclearElectronCorrelationEnergy
+    integer :: i, index, dir
 
+    
     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
-    if( present(otherSpeciesID) )     otherNameOfSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )
+    if( present(otherSpeciesID) )  otherNameOfSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )
 
     gridSize = Grid_instance(speciesID)%totalSize
 
     call Vector_Constructor(energyDensity, gridSize, 0.0_8)
 
-    !Closed Shell
-    if (nameOfSpecies=="E-" .and. .not. present(otherSpeciesID) ) then
-
-       if (CONTROL_instance%CALL_LIBXC) then
+    if (CONTROL_instance%CALL_LIBXC) then
+       !Closed Shell
+       if (nameOfSpecies=="E-" .and. .not. present(otherSpeciesID) ) then
 
           index=Functional_getIndex(speciesID)
 
-          !libxc works with the gradient squared - sigma
           call Vector_Constructor(sigma, gridSize, 0.0_8)         
+          call Vector_Constructor(sigmaPotential, gridSize, 0.0_8)
+          !$omp parallel private(i)
+          !$omp do schedule (dynamic)
           do i=1, gridSize
 
              if(Grid_instance(speciesID)%density%values(i) .gt. CONTROL_instance%ELECTRON_DENSITY_THRESHOLD) then !
@@ -532,27 +525,22 @@ contains
 
           end do
 
-          call Functional_libxcEvaluate(Functionals(index), gridSize, Grid_instance(speciesID)%density%values, sigma%values, energyDensity%values , potentialInGrid%values, sigmaPotentialInGrid%values )
-
-          ! print *, "sigma"
-          ! call Vector_Show(sigma)
           call Vector_Destructor(sigma)
 
           call Vector_Destructor(sigmaPotential)
 
           ! print *, "electronicEXC RKS", exchangeCorrelationEnergy
-       end if
-
-    elseif (nameOfSpecies=="E-ALPHA" .and. otherNameOfSpecies=="E-BETA") then
-
-       if (CONTROL_instance%CALL_LIBXC) then
+       elseif (nameOfSpecies=="E-ALPHA" .and. otherNameOfSpecies=="E-BETA") then
 
           call Vector_Constructor(densityAB, 2*gridSize, 0.0_8)         
           call Vector_Constructor(sigmaAB, 3*gridSize, 0.0_8)         
           call Vector_Constructor(potentialAB, 2*gridSize, 0.0_8)         
           call Vector_Constructor(sigmaPotentialAB, 3*gridSize, 0.0_8)         
 
+          index=Functional_getIndex(speciesID)
 
+          !$omp parallel private(i)
+          !$omp do schedule (dynamic)
           do i=1, gridSize
 
              if(Grid_instance(speciesID)%density%values(i)+Grid_instance(otherSpeciesID)%density%values(i) .gt. CONTROL_instance%ELECTRON_DENSITY_THRESHOLD) then
@@ -621,55 +609,48 @@ contains
           ! call Vector_show(sigmaAB)
           call Vector_Destructor(sigmaAB)
 
-          
-          do i=1, gridSize
-             potentialInGrid%values(i)=potentialInGrid%values(i)+potentialAB%values(2*i-1)
-             
-             otherPotentialInGrid%values(i)=otherPotentialInGrid%values(i)+potentialAB%values(2*i)
-             
-             sigmaPotentialInGrid%values(i)=sigmaPotentialInGrid%values(i)+sigmaPotentialAB%values(3*i-2)!+sigmaPotentialAB%values(3*i-1)
-             
-             otherSigmaPotentialInGrid%values(i)=otherSigmaPotentialInGrid%values(i)+sigmaPotentialAB%values(3*i)!+sigmaPotentialAB%values(3*i-1)
-
-             exchangeCorrelationEnergy=exchangeCorrelationEnergy+energyDensity%values(i)*Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4)
-             
-             otherExchangeCorrelationEnergy=otherExchangeCorrelationEnergy+energyDensity%values(i)*Grid_instance(otherSpeciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4) 
-          end do
-
           ! print *, "electronicEXC UKS", exchangeCorrelationEnergy, otherExchangeCorrelationEnergy
           call Vector_Destructor(potentialAB)         
           call Vector_Destructor(sigmaPotentialAB)         
-          
-       else
-          index=Functional_getIndex(speciesID)
 
-          if ( Functionals(index)%name .eq. "exchange:Slater-correlation:VWN5") then
+       end if
+    else
+
+       index=Functional_getIndex(speciesID)
+       if ( Functionals(index)%name .eq. "exchange:Slater-correlation:VWN5") then
+
+          if (nameOfSpecies=="E-" .and. .not. present(otherSpeciesID) ) then
+
+             call Functional_LDAEvaluate(gridSize, Grid_instance(speciesID)%density%values/2, Grid_instance(speciesID)%density%values/2, &
+                  energyDensity%values, Grid_instance(speciesID)%potential%values )
+             do i=1, gridSize
+                exchangeCorrelationEnergy=exchangeCorrelationEnergy+energyDensity%values(i)*Grid_instance(speciesID)%points%values(i,4) 
+             end do
+
+             ! print *, "electronicEXC RKS", exchangeCorrelationEnergy
+          elseif (nameOfSpecies=="E-ALPHA" .and. otherNameOfSpecies=="E-BETA") then
 
              call Functional_LDAEvaluate(gridSize, Grid_instance(speciesID)%density%values, Grid_instance(otherSpeciesID)%density%values, &
-                  energyDensity%values, potentialInGrid%values, otherPotentialInGrid%values )
+                  energyDensity%values, Grid_instance(speciesID)%potential%values, Grid_instance(otherSpeciesID)%potential%values )
 
              do i=1, gridSize
                 exchangeCorrelationEnergy=exchangeCorrelationEnergy+energyDensity%values(i)*Grid_instance(speciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4) 
                 otherExchangeCorrelationEnergy=otherExchangeCorrelationEnergy+energyDensity%values(i)*Grid_instance(otherSpeciesID)%density%values(i)*Grid_instance(speciesID)%points%values(i,4) 
              end do
 
-             ! exchangeCorrelationEnergy=exchangeCorrelationEnergy*(MolecularSystem_getNumberOfParticles( speciesID ))/(MolecularSystem_getNumberOfParticles( speciesID )+MolecularSystem_getNumberOfParticles( otherSpeciesID ))
-             ! otherExchangeCorrelationEnergy=exchangeCorrelationEnergy*(MolecularSystem_getNumberOfParticles( otherSpeciesID ))/(MolecularSystem_getNumberOfParticles( speciesID )+MolecularSystem_getNumberOfParticles( otherSpeciesID ))
-             ! exchangeCorrelationEnergy=exchangeCorrelationEnergy/2
-             ! otherExchangeCorrelationEnergy=exchangeCorrelationEnergy/2
-
              ! print *, "electronicEXC UKS", exchangeCorrelationEnergy, otherExchangeCorrelationEnergy
           end if
 
        end if
+    end if
+ 
+    call Vector_Destructor(energyDensity)
 
-       !Closed shell nuclear electron correlation
-    elseif ( (nameOfSpecies=="E-") .and. present(otherSpeciesID)  ) then
+    ! do i=1, gridSize
+    !    print *, densityInGrid%values(i), exchange%values(i), correlationA%values(i)
+    ! end do
 
-       index=Functional_getIndex(speciesID, otherSpeciesID)
-       
-       if(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL .ne. "NONE" &
-            .and. .not. (otherNameOfSpecies=="E-" .or. otherNameOfSpecies=="E-ALPHA" .or. otherNameOfSpecies=="E-BETA")) then
+  end subroutine GridManager_getElectronicEnergyAndPotentialAtGrid
 
   !>
   !! @brief Returns the values of the exchange correlation potential for a specie in a set of coordinates
@@ -685,37 +666,33 @@ contains
     integer, optional :: otherElectronID
     real(8), optional :: otherElectronExchangeCorrelationEnergy
 
-          select case (trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL) )
-             
-          case ("epc17-1")
-             call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+    character(50) :: nameOfSpecies, otherNameOfSpecies
+    integer :: gridSize, otherGridSize
+    type(Vector) :: energyDensity
+    type(Vector) :: sigma
+    type(Vector) :: densityAB, potentialAB, sigmaAB, sigmaPotentialAB
+    type(Vector) :: electronicDensityAtOtherGrid, electronicGradientAtOtherGrid(3), electronicPotentialAtOtherGrid, electronicGradientPotentialAtOtherGrid(3)
+    integer :: i, j, k, index, dir
 
-          case ("epc17-2")
-             call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+    nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
+    otherNameOfSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )
 
-          case ("ikn-nsf")
-             call Functional_IKNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+    gridSize = Grid_instance(speciesID)%totalSize
+    otherGridSize = Grid_instance(otherSpeciesID)%totalSize
 
-          case ("mlcs-fit")
-             call Functional_MLCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+    index=Functional_getIndex(speciesID, otherSpeciesID)
 
-          case ("mlcs-a")
-             call Functional_MLCSAEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+    !Nuclear electron correlation
+    !"E-BETA" is treated at the same time as E-ALPHA
+    if ( (nameOfSpecies=="E-" .or. nameOfSpecies=="E-ALPHA") ) then
 
-          case ("mlcs-an")
-             call Functional_MLCSANEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-                  electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-                  energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+       call Vector_constructor(energyDensity, otherGridSize, 0.0_8)
+       call Vector_constructor(electronicDensityAtOtherGrid, otherGridSize, 0.0_8)
+       call Vector_constructor(electronicPotentialAtOtherGrid, otherGridSize, 0.0_8)
+       do dir=1,3
+          call Vector_constructor(electronicGradientAtOtherGrid(dir), otherGridSize, 0.0_8)
+          call Vector_constructor(electronicGradientPotentialAtOtherGrid(dir), otherGridSize, 0.0_8)
+       end do
 
        !!This adds E-BETA density and gradient
        call GridManager_getElectronicDensityInOtherGrid(speciesID, otherSpeciesID, &
@@ -742,42 +719,42 @@ contains
        case ("epc17-1")
           call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
                electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
-             
-          case ("Imamura-myfit")
-             call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
 
-          case ("Mejia-myfit")
-             call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+       case ("epc17-2")
+          call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
                electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
 
-          case ("MejiaA-myfit")
-             call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+       case ("ikn-nsf")
+          call Functional_IKNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
                electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
-             
-          case ("expCS-A")
-             call Functional_expCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
-             
-          case ("psn")
-             call Functional_PSNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
 
-          case default
-             ! print *, trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
-             STOP "The nuclear electron functional chosen is not implemented"
+       case ("mlcs-fit")
+          call Functional_MLCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
 
-          end select
-          
-          ! call Functional_lowLimitEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-          !      electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-          !      energyDensity%values, electronicPotentialAtOtherGrid%values, otherPotentialInGrid%values  )
+       case ("mlcs-a")
+          call Functional_MLCSAEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+       case ("mlcs-an")
+          call Functional_MLCSANEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+       case ("CS-myfit")
+          call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+       case ("Imamura-myfit")
+          call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
 
        case ("Mejia-myfit")
           call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
@@ -848,15 +825,18 @@ contains
              end do
 
           end if
-          ! STOP "trolololoooooo"
 
-       end if
-       
+       end do
+
     end if
 
-
     call Vector_Destructor(energyDensity)
-
+    call Vector_destructor(electronicDensityAtOtherGrid)
+    call Vector_destructor(electronicPotentialAtOtherGrid)
+    do dir=1,3
+       call Vector_destructor(electronicGradientAtOtherGrid(dir))
+       call Vector_destructor(electronicGradientPotentialAtOtherGrid(dir))
+    end do
     ! do i=1, gridSize
     !    print *, densityInGrid%values(i), exchange%values(i), correlationA%values(i)
     ! end do
@@ -865,12 +845,12 @@ contains
     ! call Vector_Destructor(correlationB)
 
 
-  end subroutine GridManager_getEnergyAndPotentialAtGrid
+  end subroutine GridManager_getInterspeciesEnergyAndPotentialAtGrid
 
   !>
   !! @brief Builds the exchange correlation for a species
   ! Felix Moncada, 2017
-  subroutine GridManager_buildExchangeCorrelationMatrix( speciesID, exchangeCorrelationMatrix  )
+  subroutine GridManager_buildExchangeCorrelationMatrix( speciesID, exchangeCorrelationMatrix)
     implicit none
     integer :: speciesID
     type(Matrix) :: exchangeCorrelationMatrix
@@ -878,114 +858,85 @@ contains
     integer :: gridSize
     integer :: numberOfContractions
 
-    type(Matrix) :: orbitalUAndGradientInGrid, orbitalVAndGradientInGrid
     integer :: numberOfCartesiansOrbitalsU
     integer :: numberOfCartesiansOrbitalsV
     integer :: u, v, point
 
     real(8) :: time1, time2
-
-    time1=0.0_8
-    time2=0.0_8
+    integer :: n, nproc
+    type(Matrix),allocatable :: nodeExchangeCorrelationMatrix(:)
 
     gridSize = Grid_instance(speciesID)%totalSize
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
 
+    nproc=omp_get_max_threads()
+
+    allocate( nodeExchangeCorrelationMatrix(nproc) )
+
+    do n=1, nproc
+       call Matrix_Constructor( nodeExchangeCorrelationMatrix(n), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
+    end do
+
+    ! time1=omp_get_wtime()
+    !$omp parallel private(n,u,v,point)
+    n = omp_get_thread_num() +1
+    !$omp do schedule (dynamic)
     do u = 1, numberOfContractions
 
-       ! call Stopwatch_constructor(lowdin_stopwatch)
-       ! call Stopwatch_start(lowdin_stopwatch)
-
-       dftUnit = 77
-       write( dftFile, "(A,I0.4)") trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".orbital_", u
-
-       open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
-
-       write( labels(1), "(A,I0.4)") "ORBITAL_", u
-       labels(2) = Grid_instance(speciesID)%nameOfSpecies
-
-       orbitalUAndGradientInGrid= Matrix_getFromFile(unit=dftUnit, rows= int(gridSize,4), &
-            columns= int(4,4), binary=.true., arguments=labels)
-
-       ! print *, "orbital", u
-       ! call Matrix_show( orbitalUAndGradientInGrid)
-
-       close(unit=dftUnit)
-
-       ! call Stopwatch_stop(lowdin_stopwatch)     
-       ! time1=time1+lowdin_stopwatch%enlapsetTime
-
-       ! call Stopwatch_constructor(lowdin_stopwatch)
-       ! call Stopwatch_start(lowdin_stopwatch)
-
        do point = 1 , gridSize
-          exchangeCorrelationMatrix%values(u,u)=&
-               exchangeCorrelationMatrix%values(u,u)&
-               +(Grid_instance(speciesID)%potential%values(point)*orbitalUAndGradientInGrid%values(point,1)**2&
-               +4*Grid_instance(speciesID)%sigmaPotential%values(point)*orbitalUAndGradientInGrid%values(point,1)&
-               *(Grid_instance(speciesID)%densityGradient(1)%values(point)*orbitalUAndGradientInGrid%values(point,2)&
-               +Grid_instance(speciesID)%densityGradient(2)%values(point)*orbitalUAndGradientInGrid%values(point,3)&
-               +Grid_instance(speciesID)%densityGradient(3)%values(point)*orbitalUAndGradientInGrid%values(point,4))&
+          nodeExchangeCorrelationMatrix(n)%values(u,u)=&
+               nodeExchangeCorrelationMatrix(n)%values(u,u)&
+               +(Grid_instance(speciesID)%potential%values(point)*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)**2&
+               +2.0*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)&
+               *(Grid_instance(speciesID)%gradientPotential(1)%values(point)*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,2)&
+               +Grid_instance(speciesID)%gradientPotential(2)%values(point)*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,3)&
+               +Grid_instance(speciesID)%gradientPotential(3)%values(point)*Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,4))&
                )*Grid_instance(speciesID)%points%values(point,4)
        end do
 
-       call Stopwatch_stop(lowdin_stopwatch)     
-       ! time2=time2+lowdin_stopwatch%enlapsetTime
-
        do v = u+1, numberOfContractions
 
-          call Stopwatch_constructor(lowdin_stopwatch)
-          call Stopwatch_start(lowdin_stopwatch)
-
-          dftUnit = 77
-          write( dftFile, "(A,I0.4)") trim(CONTROL_instance%INPUT_FILE)//trim(Grid_instance(speciesID)%nameOfSpecies)//".orbital_", v
-
-          open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
-
-          write( labels(1), "(A,I0.4)") "ORBITAL_", v
-          labels(2) = Grid_instance(speciesID)%nameOfSpecies
-
-          orbitalVAndGradientInGrid= Matrix_getFromFile(unit=dftUnit, rows= int(gridSize,4), &
-               columns= int(4,4), binary=.true., arguments=labels(1:2))
-
-          close(unit=dftUnit)
-
-          ! call Stopwatch_stop(lowdin_stopwatch)     
-          ! time1=time1+lowdin_stopwatch%enlapsetTime
-
-          ! call Stopwatch_constructor(lowdin_stopwatch)
-          ! call Stopwatch_start(lowdin_stopwatch)
-
           do point = 1 , gridSize
-             exchangeCorrelationMatrix%values(u,v)=&
-                  exchangeCorrelationMatrix%values(u,v)&
+             nodeExchangeCorrelationMatrix(n)%values(u,v)=&
+                  nodeExchangeCorrelationMatrix(n)%values(u,v)&
                   +(Grid_instance(speciesID)%potential%values(point)&
-                  *orbitalUAndGradientInGrid%values(point,1)*orbitalVAndGradientInGrid%values(point,1)&
-                  +2*Grid_instance(speciesID)%sigmaPotential%values(point)*&
-                  (Grid_instance(speciesID)%densityGradient(1)%values(point)&
-                  *(orbitalUAndGradientInGrid%values(point,1)*orbitalVAndGradientInGrid%values(point,2)&
-                  +orbitalUAndGradientInGrid%values(point,2)*orbitalVAndGradientInGrid%values(point,1))&
-                  +Grid_instance(speciesID)%densityGradient(2)%values(point)&
-                  *(orbitalUAndGradientInGrid%values(point,1)*orbitalVAndGradientInGrid%values(point,3)&
-                  +orbitalUAndGradientInGrid%values(point,3)*orbitalVAndGradientInGrid%values(point,1))&
-                  +Grid_instance(speciesID)%densityGradient(3)%values(point)&
-                  *(orbitalUAndGradientInGrid%values(point,1)*orbitalVAndGradientInGrid%values(point,4)&
-                  +orbitalUAndGradientInGrid%values(point,4)*orbitalVAndGradientInGrid%values(point,1))&
-                  ))*Grid_instance(speciesID)%points%values(point,4)
+                  *Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,1)&
+                  +Grid_instance(speciesID)%gradientPotential(1)%values(point)&
+                  *(Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,2)&
+                  +Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,2)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,1))&
+                  +Grid_instance(speciesID)%gradientPotential(2)%values(point)&
+                  *(Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,3)&
+                  +Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,3)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,1))&
+                  +Grid_instance(speciesID)%gradientPotential(3)%values(point)&
+                  *(Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,1)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,4)&
+                  +Grid_instance(speciesID)%orbitalsWithGradient(u)%values(point,4)*Grid_instance(speciesID)%orbitalsWithGradient(v)%values(point,1))&
+                  )*Grid_instance(speciesID)%points%values(point,4)
 
           end do
+
 
           ! call Stopwatch_stop(lowdin_stopwatch)     
           ! time2=time2+lowdin_stopwatch%enlapsetTime
 
        end do
+       
     end do
+    !$omp end do 
+    !$omp end parallel
 
+    do n=1, nproc
+       exchangeCorrelationMatrix%values=exchangeCorrelationMatrix%values+nodeExchangeCorrelationMatrix(n)%values
+       call Matrix_Destructor( nodeExchangeCorrelationMatrix (n))
+    end do
+    
     do u=1, numberOfContractions
        do v=u+1, numberOfContractions
           exchangeCorrelationMatrix%values(v,u)=exchangeCorrelationMatrix%values(u,v)
        end do
     end do
+
+    ! time2=omp_get_wtime()
+    ! write(*,"(A,F10.3,A4)") "**buildExchangeCorrelationMatrix:", time2-time1 ," (s)"
 
     ! call Stopwatch_stop(lowdin_stopwatch)     
     ! write(*,"(A,F10.3,A4)") "** reading orbital files:", time1 ," (s)"
@@ -1005,17 +956,17 @@ contains
     character(50) :: nameOfElectron
     integer :: otherElectronicID
     integer :: electronicGridSize, otherGridSize
-    integer :: i,j
+    integer :: i,j,k
+    real :: time1,time2
 
     electronicGridSize=Grid_instance(electronicID)%totalSize
-    otherGridSize= Grid_instance(otherSpeciesID)%totalSize
+    otherGridSize=Grid_instance(otherSpeciesID)%totalSize
 
     nameOfElectron=MolecularSystem_getNameOfSpecie(electronicID)
     if (nameOfElectron .eq. "E-ALPHA") otherElectronicID=MolecularSystem_getSpecieID( "E-BETA" )
     if (nameOfElectron .eq. "E-BETA") otherElectronicID=MolecularSystem_getSpecieID( "E-ALPHA" )
        
     
-    call Vector_constructor(commonPoints, otherGridSize, 0.0_8)
     call Vector_constructor(electronicDensityAtOtherGrid, otherGridSize, 1.0E-12_8)
     
     time1=omp_get_wtime()
@@ -1038,21 +989,41 @@ contains
     time2=omp_get_wtime()
     ! write(*,"(A,F10.3,A4)") "**getElectronicDensityInOtherGrid:", time2-time1 ," (s)"
 
-    !The other grid must be a subset of the electronic grid
-    !FELIX: This is a problem for positron calculations
-    do i=1, electronicGridSize
+  end subroutine GridManager_getElectronicDensityInOtherGrid
+
+  subroutine GridManager_findCommonPoints(grid,gridSize,otherGrid,otherGridSize,commonPoints,commonSize)
+    type(Matrix) :: grid,otherGrid
+    integer :: gridSize,otherGridSize,commonSize
+    type(Matrix) :: commonPoints
+
+    type(Matrix) :: auxFinder
+    integer :: i,j, k,last, point
+    real :: time1,time2
+
+    !The two grids must have been generated from the same amount of atomic angular and radial points
+    call Matrix_constructor(auxFinder, int(max(gridSize,otherGridSize),8), int(2,8), 0.0_8)
+
+    ! print *, "matrix 1 size is", size(grid%values,1), gridSize
+    ! print *, "matrix 2 size is", size(otherGrid%values,1), otherGridSize
+    ! print *, "auxFinder size is", size(auxFinder%values,1), max(gridSize,otherGridSize)
+    
+    time1=omp_get_wtime()
+    point=0
+    k=0
+    do i=1, gridSize
        do j=1, otherGridSize
-          if(Grid_instance(electronicID)%points%values(i,1) .eq. Grid_instance(otherSpeciesID)%points%values(j,1) .and. &
-               Grid_instance(electronicID)%points%values(i,2) .eq. Grid_instance(otherSpeciesID)%points%values(j,2) .and. &
-               Grid_instance(electronicID)%points%values(i,3) .eq. Grid_instance(otherSpeciesID)%points%values(j,3) ) then 
-             commonPoints%values(j)=i
-             if(nameOfElectron .eq. "E-ALPHA" .or. nameOfElectron .eq. "E-BETA") then
-                electronicDensityAtOtherGrid%values(j)=Grid_instance(electronicID)%density%values(i)+Grid_instance(otherElectronicID)%density%values(i)
-             else
-                electronicDensityAtOtherGrid%values(j)=Grid_instance(electronicID)%density%values(i)
-             end if
+          k=k+1
+          if(  (grid%values(i,1) .eq. otherGrid%values(k,1)) .and. (grid%values(i,2) .eq. otherGrid%values(k,2)) .and. (grid%values(i,3) .eq. otherGrid%values(k,3)) ) then
+             point=point+1
+             auxFinder%values(point,1)=i
+             auxFinder%values(point,2)=k
+             ! print *, i, j, k
+             ! print *, grid%values(i,1:3), otherGrid%values(k,1:3)
+             exit
           end if
+          if(k.ge.otherGridSize) k=0
        end do
+       if(point .ge. max(gridSize,otherGridSize)) exit
     end do
 
     call Matrix_constructor(commonPoints, int(point,8), int(2,8), 0.0_8)
@@ -1283,7 +1254,7 @@ end module GridManager_
   ! end subroutine GridManager_getOrbitalAtGrid
 
 !   >
-!   @brief Returns the values of all atomic orbitals in a set of coordinates
+!   @brief Returns the values of all atomic orbital isn a set of coordinates
 ! Felix Moncada, 2017
 !   <
   ! subroutine GridManager_getOrbitalMatrix( speciesID, grid, gridSize, orbitalsInGrid)

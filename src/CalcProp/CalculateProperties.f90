@@ -26,7 +26,6 @@ module CalculateProperties_
   use Vector_
   use Units_
   use Exception_
-  use WaveFunction_
   use ContractedGaussian_
   use DirectIntegralManager_
   implicit none
@@ -114,9 +113,11 @@ contains
   !<
   !! @brief Constructor para la clase
   !>
-  subroutine CalculateProperties_constructor( this )
+  subroutine CalculateProperties_constructor( this,fileName )
     implicit none
     type(CalculateProperties) :: this
+    character(*) :: fileName
+    
     character(50) :: wfnFile
     integer :: wfnUnit
     character(50) :: arguments(20)
@@ -131,7 +132,7 @@ contains
 
     allocate(this%densityMatrix(numberOfSpecies))
     allocate(this%overlapMatrix(numberOfSpecies))
-    allocate(this%momentMatrices(numberOfSpecies,3))
+    allocate(this%momentMatrices(numberOfSpecies,9))
 
     !! Open file for HF wavefunction   
     wfnFile = trim(fileName)//".wfn"
@@ -184,16 +185,42 @@ contains
           this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), &
                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
           !! Load moment Matrices
-          arguments(1) = "MOMENTX"    
+          arguments(1) = "MOMENTX0"    
           this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-          arguments(1) = "MOMENTY"    
+          arguments(1) = "MOMENTY0"    
           this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-          arguments(1) = "MOMENTZ"    
+          arguments(1) = "MOMENTZ0"    
           this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+          !! Load moment Matrices
+          arguments(1) = "MOMENTXX"    
+          this%momentMatrices(speciesID,4) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+          arguments(1) = "MOMENTYY"    
+          this%momentMatrices(speciesID,5) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+          arguments(1) = "MOMENTZZ"    
+          this%momentMatrices(speciesID,6) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+          !! Load moment Matrices
+          arguments(1) = "MOMENTXY"    
+          this%momentMatrices(speciesID,7) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+          arguments(1) = "MOMENTXZ"    
+          this%momentMatrices(speciesID,8) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+
+          arguments(1) = "MOMENTYZ"    
+          this%momentMatrices(speciesID,9) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
        end do
        close(integralsUnit)
@@ -203,6 +230,13 @@ contains
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,1,this%momentMatrices(speciesID,1))
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,2,this%momentMatrices(speciesID,2))
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,3))
+          !NOT YET IMPLEMENTED. DUMMY ARRAYS
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,4))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,5))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,6))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,7))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,8))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,9))
        end do
     end if
 
@@ -243,32 +277,6 @@ contains
     implicit none
     type (CalculateProperties) :: this ! por medio de este this accedo a todo lo que este en la estructura o type
     ! calculate properties 
-
-       print *,""
-       print *, " Mulliken Population: for ", specieName
-       print *,"---------------------"
-       print *,""
-       call Vector_show( CalculateProperties_getPopulation(this, "MULLIKEN", specieID, total), &
-            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
-
-       write (6,"(T25,A10)") "__________"
-       write (6,"(T10,A15,F10.6)") "Total = ", total
-       print *,""
-       print *,"...end of Mulliken Population"
-       print *,""
-       print *, " Lowdin Population: for ", specieName
-       print *,"---------------------"
-       print *,""
-       call Vector_show( CalculateProperties_getPopulation( this, "LOWDIN", specieID, total),&
-            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
-       write (6,"(T25,A10)") "__________"
-       write (6,"(T10,A15,F10.6)") "Total = ", total
-       print *,""
-       print *,"...end of Lowdin Population"
-       print *,""
-       print *,"END POPULATION ANALYSES "
-       print *,""
-=======
     real(8) :: total(2), atomSum, atomSpin
     character(10) :: speciesName
     character(10) :: speciesNickname
@@ -599,8 +607,32 @@ contains
   ! !>
   function CalculateProperties_getQuadrupoleOfPuntualCharges() result( output )
     implicit none
-    type(CalculateProperties) :: this
-    integer :: i !speciesID
+    real(8) :: output(6)
+    integer :: i
+
+    output = 0.0_8
+
+    
+    do i=1, size( MolecularSystem_instance%pointCharges )      
+       output(1) = output(1) + MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%charge
+       output(2) = output(2) + MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%charge
+       output(3) = output(3) + MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%charge
+       output(4) = output(4) + MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%charge
+       output(5) = output(5) + MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%charge
+       output(6) = output(6) + MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%charge
+    end do
+
+    
+  end function CalculateProperties_getQuadrupoleOfPuntualCharges
+
+
+  !<
+  !! @brief calcula el aporte al dipolo debido a particulas no fijas
+  !>
+  function calculateproperties_getdipoleofquantumspecie( this, i ) result( output )
+    implicit none
+    type(calculateproperties) :: this
+    integer :: i !specieid
     real(8) :: output(3)
 
     output(1) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,1)%values )
@@ -631,8 +663,6 @@ contains
     output = output * molecularsystem_getcharge( i )
 
   end function calculateproperties_getquadrupoleofquantumspecie
-
-
 
   subroutine CalculateProperties_exception( typeMessage, description, debugDescription)
     implicit none

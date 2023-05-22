@@ -610,126 +610,78 @@ contains
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
-!! Open file for wavefunction                                                                                     
-        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+    !! Open file for wavefunction                                                                                     
+    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-        do l=1,MolecularSystem_getNumberOfQuantumSpecies()
+    do l=1,MolecularSystem_getNumberOfQuantumSpecies()
 
-           auxString=MolecularSystem_getNameOfSpecie( l )
+       auxString=MolecularSystem_getNameOfSpecie( l )
 
        this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".vec"
 
        open(29,file=this%fileName(l),status='replace',action='write')
 
-           !! Build a vector of labels of contractions
-     if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
-           allocate(labelsOfContractions(numberOfContractions))
+       specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
+       arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
 
-           labelsOfContractions =  MolecularSystem_getlabelsofcontractions( specieID )
+       arguments(1) = "COEFFICIENTS"
+       coefficientsOfcombination = &
+            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-           !! Swap some columns according to the molden format
-           do k=1,size(coefficientsOfCombination%values,dim=1)
-    !! Take the shellcode
-                read (labelsOfContractions(k), "(I5,A2,A6,A2,A4)"), counter, space, nickname, space, shellcode 
+       !! Build a vector of labels of contractions
+       call MolecularSystem_changeOrbitalOrder(coefficientsOfcombination,l,"LOWDIN","GAMESS")
 
-    !! Reorder the D functions
-                !! counter:  1,  2,  3,  4,  5,  6
-                !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
-                !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
-                !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
-                !!  2-4, 3-5, 5-6
+       do i =1, numberOfContractions
+          j =1
+          !if (mod(numberOfContractions,2)) then
+          if (mod(numberOfContractions,2) == 1 ) then
+!!!Se activa cuando el numberOfContractions es impar                                  
+             write (29,"(I2,I3)",advance='no') mod(i,100),j
+             do m=1,numberOfContractions
 
-    if ( shellcode == "Dxx" ) then 
-        auxcounter = counter
-        !! Swap XY and YY
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
-        !! Swap XZ and ZZ
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
-        !! Swap YZ and XZ'
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
-                end if
-
-    !! Reorder the F functions
-                !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
-                !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
-                !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
-                !! Gamess:  XXX, YYY, ZZZ, XXY, XXZ, XYY, YYZ, XZZ, YZZ, XYZ
-                
-              if ( shellcode == "Fxxx" ) then 
-        auxcounter = counter
-                    call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
-                  call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+4)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+6)
-              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
-                end if
-
-      end do
-
-
-     
-     do i =1, numberOfContractions
-                j =1
-     !if (mod(numberOfContractions,2)) then
-     if (mod(numberOfContractions,2) == 1 ) then
- !!!Se activa cuando el numberOfContractions es impar                                  
-                write (29,"(I2,I3)",advance='no') mod(i,100),j
-                do m=1,numberOfContractions
-
-                   if (mod(m,5)==0) then
-                      write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
-                      j=j+1
-                      if (m<numberOfContractions) then
-                         write (29,"(I2,I3)",advance='no') mod(i,100),j
-                      end if
-                   else
-                      write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
+                if (mod(m,5)==0) then
+                   write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
+                   j=j+1
+                   if (m<numberOfContractions) then
+                      write (29,"(I2,I3)",advance='no') mod(i,100),j
                    end if
-                end do
-                !write (29, "(A)", advance='yes')" "
-                if (m<numberOfContractions) then
-                    write (29,"(A)", advance='no')" "
-                    !write (29,"(A)")" "
+                else
+                   write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
                 end if
-
-     else
- ! !!!Se activa cuando el numberOfContractions es par                                  
-                       write (29,"(I2,I3)",advance='no') mod(i,100),j
-                do m=1,numberOfContractions
-
-                   if (mod(m,5)==0) then
-                      write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
-                      j=j+1
-                      if (m<numberOfContractions) then
-                         write (29,"(I2,I3)",advance='no') mod(i,100),j
-                      end if
-                   else
-                      write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
-                   end if
-                end do
-                 !write (29, "(A)", advance='yes')" "
-                if (m<numberOfContractions) then
-                      write (29,"(A)", advance='no')" "
-                    !write (29,"(A)")" "
-                end if
-
-    end if
-             
-                if (.not. mod(m-1,5)==0)write (29,"(A)", advance='yes')" "
              end do
+             !write (29, "(A)", advance='yes')" "
+             if (m<numberOfContractions) then
+                write (29,"(A)", advance='no')" "
+                !write (29,"(A)")" "
+             end if
 
-           close(29)
-        end do
+          else
+             ! !!!Se activa cuando el numberOfContractions es par                                  
+             write (29,"(I2,I3)",advance='no') mod(i,100),j
+             do m=1,numberOfContractions
 
-        
-!        call Matrix_destructor( localizationOfCenters )
-!        call Matrix_destructor( auxMatrix )
-!        deallocate(labels)
+                if (mod(m,5)==0) then
+                   write (29,"(ES15.8)") coefficientsOfCombination%values(m,i)
+                   j=j+1
+                   if (m<numberOfContractions) then
+                      write (29,"(I2,I3)",advance='no') mod(i,100),j
+                   end if
+                else
+                   write (29,"(ES15.8)",advance='no') coefficientsOfCombination%values(m,i)
+                end if
+             end do
+             !write (29, "(A)", advance='yes')" "
+             if (m<numberOfContractions) then
+                write (29,"(A)", advance='no')" "
+                !write (29,"(A)")" "
+             end if
+
+          end if
+
+          if (.not. mod(m-1,5)==0)write (29,"(A)", advance='yes')" "
+       end do
 
        close(29)
     end do
@@ -788,7 +740,7 @@ contains
  
 
     this%fileName = trim(CONTROL_instance%INPUT_FILE)//"casino"
-    open(29,file=this%fileName,status='replace',action='write')
+    open(29,file=this%fileName(1),status='replace',action='write')
 
     select case ( MolecularSystem_getNumberOfQuantumSpecies() ) 
       case (1) 
