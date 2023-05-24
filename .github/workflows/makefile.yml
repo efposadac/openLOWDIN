@@ -16,7 +16,7 @@ jobs:
     - name: Compile and install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev python2-pip-whl python2-setuptools-whl virtualenv
+        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev
         # Define ENV Variables
         export WORKDIR=$PWD/dependencies
         export PATH=$PATH:$WORKDIR/bin
@@ -33,7 +33,7 @@ jobs:
         # wget https://www.dropbox.com/s/f34pbzmvcoms000/libint2.0-beta-codeship.tgz # minimal G12, fPIC, old distro
         # wget https://www.dropbox.com/s/0e6ov2fxo7pdafb/libint2.0-beta-full.tgz # full G12, no fPIC, new distro
         # wget https://www.dropbox.com/s/tzmqzt3n0trpayf/libint2.0-beta.tgz # minimal G12, fPIC, new distro
-        wget https://www.dropbox.com/s/d3d44j238lkfwcr/libint-master-SEP052019.tgz # minimal (default am), G12, fPIC, new distro, gcc 9.1.0, Linux Kernel 5.2.9
+        wget https://www.dropbox.com/s/d3d44j238lkfwcr/libint-master-SEP052019.tgz # minimal (default am), G12, fPIC, new distro, gcc 9.1.0, Linux Kernel 5.2.9, libint2 commit 668b10c4bdca5876984058742d4212675eb93f3f
         tar xzvf libint-master-SEP052019.tgz
         cd -
         # Build libint1
@@ -49,16 +49,16 @@ jobs:
         make distclean
         cd -
         # Build libxc
-        git clone https://gitlab.com/libxc/libxc.git
-        cd libxc
-        git checkout 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
-        autoreconf -i
-        ./configure --enable-shared --prefix=$WORKDIR
-        make -j 4
-        make install
+        #git clone https://gitlab.com/libxc/libxc.git
+        #cd libxc
+        #git checkout 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
+        #autoreconf -i
+        #./configure --enable-shared --prefix=$WORKDIR
+        #make -j 4
+        #make install
+        wget https://www.dropbox.com/s/6cja3zzhl1cq46i/libxc-master-MAY242023.tgz # default options,libxc commit 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
+        tar xzvf libxc-master-MAY242023.tgz
         cd -
-        # Prepare test environment (UPDATE)
-        virtualenv -p $(which python2) test
         source test/bin/activate  
         # Configure Lowdin
         ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
