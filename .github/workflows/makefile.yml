@@ -56,9 +56,10 @@ jobs:
         #./configure --enable-shared --prefix=$WORKDIR
         #make -j 4
         #make install
+        cd $WORKDIR        
         wget https://www.dropbox.com/s/6cja3zzhl1cq46i/libxc-master-MAY242023.tgz # default options,libxc commit 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
         tar xzvf libxc-master-MAY242023.tgz
-        cd -
+        cd ..
         # Configure Lowdin
         ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
         # Build Lowdin
