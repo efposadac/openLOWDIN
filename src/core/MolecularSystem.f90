@@ -91,13 +91,20 @@ module MolecularSystem_
        MolecularSystem_getKappa, &
        MolecularSystem_getMultiplicity, &
        MolecularSystem_getParticlesFraction, &
-       MolecularSystem_getFactorOfInterchangeIntegrals, &
+       MolecularSystem_getFactorOfExchangeIntegrals, &
        MolecularSystem_getNameOfSpecie, &
+       MolecularSystem_getNameOfSpecies, &
        MolecularSystem_getSpecieID, &
        MolecularSystem_getSpecieIDFromSymbol, &
        MolecularSystem_getPointChargesEnergy, &
        MolecularSystem_getMMPointChargesEnergy, &
-       MolecularSystem_getlabelsofcontractions
+       MolecularSystem_getlabelsofcontractions, &
+       MolecularSystem_changeOrbitalOrder, &
+       MolecularSystem_readFchk, &
+       MolecularSystem_copyConstructor, &
+       MolecularSystem_mergeTwoSystems, &
+       MolecularSystem_GetTwoSystemsDisplacement, &
+       MolecularSystem_checkParticleEquivalence
   
   !>Singleton
   type(MolecularSystem), public, target :: MolecularSystem_instance
@@ -188,7 +195,13 @@ contains
           MolecularSystem_instance%numberOfQuantumParticles = MolecularSystem_instance%numberOfQuantumParticles + MolecularSystem_instance%species(i)%internalSize
           
        end if
-       
+
+       !!Check for input errors in the number of particles
+       if( (abs(int(MolecularSystem_instance%species(i)%ocupationNumber)-MolecularSystem_instance%species(i)%ocupationNumber) &
+            .gt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD) .and. (CONTROL_instance%MO_FRACTION_OCCUPATION .eq. 1.0_8) ) then
+          print *, "species ", trim(MolecularSystem_getNameOfSpecie(i)) , "has fractional ocupation number ", MolecularSystem_instance%species(i)%ocupationNumber, "please check your input addParticles and multiplicity"
+          call MolecularSystem_exception(ERROR, "Fractional ocupation number, imposible combination of charge and multiplicity","MolecularSystem module at build function.")
+       end if
     end do
     
     do i = 1, MolecularSystem_instance%numberOfPointCharges
@@ -321,9 +334,7 @@ contains
   !! @author S. A. Gonzalez
   subroutine MolecularSystem_showInformation()
     implicit none
-    
-    type(Exception) :: ex
-    
+        
     print *,""
     print *," MOLECULAR SYSTEM: ",trim(MolecularSystem_instance%name)
     print *,"-----------------"
@@ -376,11 +387,11 @@ contains
     print *,""
     print *,"                  CONSTANTS OF COUPLING "
     write (6,"(T7,A60)") "------------------------------------------------------------"
-    write (6,"(T10,A8,A10,A5,A5,A4,A5,A6,A5,A9)") "Symbol", " ","kappa", " ","eta", " ","lambda","","ocupation"
+    write (6,"(T10,A8,A10,A5,A5,A4,A5,A6,A5,A10)") "Symbol", " ","kappa", " ","eta", " ","lambda","","occupation"
     write (6,"(T7,A60)") "------------------------------------------------------------"
     
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-       write (6,'(T10,A10,A5,F7.1,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)'), &
+       write (6,'(T10,A10,A5,F7.1,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)') &
        trim(MolecularSystem_instance%species(i)%symbol)," ",&
             MolecularSystem_instance%species(i)%kappa, " ", &
             MolecularSystem_instance%species(i)%eta, " ",&
@@ -496,43 +507,58 @@ contains
 
   !>
   !! @brief Muestra una matriz cartesianas de las particulas del sistema
-  subroutine MolecularSystem_showCartesianMatrix()
+  subroutine MolecularSystem_showCartesianMatrix(this,fragmentNumber,unit)
     implicit none
+    type(MolecularSystem), optional, target :: this
+    integer,optional :: fragmentNumber
+    integer,optional :: unit
     
-    integer :: i, j
+    type(MolecularSystem), pointer :: system
+
+    integer :: i, j, outUnit
     real(8) :: origin(3)
+
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
     
-    write (6,"(A10,A16,A20,A20)") " ","<x>","<y>","<z>"
+    
+    outUnit=6
+    if(present(unit)) outUnit=unit
+
+    write (outUnit,"(A10,A16,A20,A20)") " ","<x>","<y>","<z>"
     
     !! Print quatum species information
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do i = 1, system%numberOfQuantumSpecies
        
        !! Avoid print twice basis in open-shell case
-       if(trim(MolecularSystem_instance%species(i)%name) == "E-BETA" ) cycle
+       if(trim(system%species(i)%name) == "E-BETA" ) cycle
 
-       do j = 1, size(MolecularSystem_instance%species(i)%particles)
-       
-          origin = MolecularSystem_instance%species(i)%particles(j)%origin * AMSTRONG
+       do j = 1, size(system%species(i)%particles)
+
+          origin = system%species(i)%particles(j)%origin * AMSTRONG
+
+          if(present(fragmentNumber) .and. (system%species(i)%particles(j)%subsystem .ne. fragmentNumber )) cycle
           
-          if(MolecularSystem_instance%species(i)%isElectron) then
-             write (6,"(A10,3F20.10)") trim( MolecularSystem_instance%species(i)%particles(j)%symbol )//trim(MolecularSystem_instance%species(i)%particles(j)%nickname),&
+          if(system%species(i)%isElectron) then
+             write (outUnit,"(A10,3F20.10)") trim( system%species(i)%particles(j)%symbol )//trim(system%species(i)%particles(j)%nickname),&
                   origin(1), origin(2), origin(3)
           else
-             write (6,"(A10,3F20.10)") trim(MolecularSystem_instance%species(i)%particles(j)%nickname), origin(1), origin(2), origin(3)
+             write (outUnit,"(A10,3F20.10)") trim(system%species(i)%particles(j)%nickname), origin(1), origin(2), origin(3)
           end if
           
        end do
     end do
     
     !! Print Point charges information
-    do i = 1, MolecularSystem_instance%numberOfPointCharges
+    do i = 1, system%numberOfPointCharges
        
-       origin = MolecularSystem_instance%pointCharges(i)%origin * AMSTRONG
-       write (6,"(A10,3F20.10)") trim(MolecularSystem_instance%pointCharges(i)%nickname), origin(1), origin(2), origin(3)
+       origin = system%pointCharges(i)%origin * AMSTRONG
+       write (outUnit,"(A10,3F20.10)") trim(system%pointCharges(i)%nickname), origin(1), origin(2), origin(3)
        
     end do
-    
-    print *," "
     
   end subroutine MolecularSystem_showCartesianMatrix
 
@@ -598,7 +624,7 @@ contains
     
     !! Saving general information.
     write(40,*) MolecularSystem_instance%name
-    write(40,*) MolecularSystem_instance%description    
+    write(40,'(A100)') MolecularSystem_instance%description    
     write(40,*) MolecularSystem_instance%charge
     
     !! Saving quantum species.
@@ -716,10 +742,12 @@ contains
   !>
   !! @brief loads all system information from file
   !! @author E. F. Posada, 2013
-  subroutine MolecularSystem_loadFromFile( form )
+  subroutine MolecularSystem_loadFromFile( form, targetFile )
     implicit none
     
     character(*) :: form
+    character(*), optional :: targetFile
+    character(50) :: fileName
 
     integer :: auxValue
     integer :: counter
@@ -728,6 +756,9 @@ contains
     character(20) :: name
     character(50) :: species
     character(50) :: otherSpecies
+
+    fileName="lowdin"
+    if ( present( targetFile ) ) fileName=trim(targetFile)
 
     select case (trim(form))
        
@@ -744,17 +775,21 @@ contains
        if(existFile) then
 
           !! Destroy the molecular system if any
-          call MolecularSystem_destroy()
+          ! call MolecularSystem_destroy()
+          if(allocated(MolecularSystem_instance%pointCharges)) deallocate(MolecularSystem_instance%pointCharges)
+          if(allocated(MolecularSystem_instance%allParticles)) deallocate(MolecularSystem_instance%allParticles)
 
           open(unit=40, file="lowdin.bas", status="old", form="formatted")
           
           read(40,*) MolecularSystem_instance%numberOfQuantumSpecies
-          allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
+          if(.not. allocated(MolecularSystem_instance%species)) allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
 
           MolecularSystem_instance%numberOfQuantumParticles = 0
 
           do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
              
+             if(allocated(MolecularSystem_instance%species(i)%particles)) deallocate(MolecularSystem_instance%species(i)%particles)
+
              read(40,*) MolecularSystem_instance%species(i)%name             
              read(40,*) auxValue
              
@@ -789,28 +824,22 @@ contains
           
           counter = 1          
           do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-             
              do j = 1, size(MolecularSystem_instance%species(i)%particles)
-                                
                 molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%species(i)%particles(j)
-                
                 counter = counter + 1
-                
              end do
           end do
 
           do i = 1, MolecularSystem_instance%numberOfPointCharges
-             
              molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%pointCharges(i)
              counter = counter + 1
-             
           end do
           
           particleManager_instance => molecularSystem_instance%allParticles
 
        else
           
-          call MolecularSystem_exception(ERROR, "The file: lowdin.bas  was not found!","MolecularSystem module at LoadFromFile function.")
+          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".bas was not found!","MolecularSystem module at LoadFromFile function.")
           
        end if
        
@@ -835,7 +864,7 @@ contains
           
        else
 
-          call MolecularSystem_exception(ERROR, "The file: lowdin.dat  was not found!","MolecularSystem module at LoadFromFile function.")
+          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".dat was not found!","MolecularSystem module at LoadFromFile function.")
           
        end if
        
@@ -858,7 +887,7 @@ contains
           
           !! read general information.
           read(40,*) MolecularSystem_instance%name
-          read(40,*) MolecularSystem_instance%description    
+          read(40,'(A100)') MolecularSystem_instance%description    
           read(40,*) MolecularSystem_instance%charge
           
           !! load quantum species.
@@ -947,7 +976,7 @@ contains
 
        else
           
-          call MolecularSystem_exception(ERROR, "The file: lowdin.sys  was not found!","MolecularSystem module at LoadFromFile function.")
+          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".sys was not found!","MolecularSystem module at LoadFromFile function.")
           
        end if
           
@@ -988,7 +1017,7 @@ contains
     integer :: specieID
     integer :: output
     
-    integer :: i, j, k
+    integer :: i, j
 
     output = 0
 
@@ -1011,21 +1040,28 @@ contains
   !>
   !! @brief Returns the number of cartesian shells for specie.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getTotalNumberOfContractions( specieID ) result( output )
+  function MolecularSystem_getTotalNumberOfContractions( specieID, this ) result( output )
     implicit none
     integer :: specieID
+    type(MolecularSystem), optional, target :: this
+
+    type(MolecularSystem), pointer :: system
     integer :: output
-    
-    integer :: i, j, k
+    integer :: j, k
 
     output = 0
 
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
     
-    do j = 1, size(MolecularSystem_instance%species(specieID)%particles)
+    do j = 1, size(system%species(specieID)%particles)
 
-       do k = 1, size(MolecularSystem_instance%species(specieID)%particles(j)%basis%contraction)
+       do k = 1, size(system%species(specieID)%particles(j)%basis%contraction)
           
-          output = output + MolecularSystem_instance%species(specieID)%particles(j)%basis%contraction(k)%numCartesianOrbital
+          output = output + system%species(specieID)%particles(j)%basis%contraction(k)%numCartesianOrbital
           
        end do
        
@@ -1132,28 +1168,45 @@ contains
    !> @brief Returns the occupation number of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getOcupationNumber(speciesID) result(output)
+   function MolecularSystem_getOcupationNumber(speciesID,this) result(output)
      implicit none
-     
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
-     
+
+     type(MolecularSystem), pointer :: system
+
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%ocupationNumber
+     output = system%species(speciesID)%ocupationNumber
           
    end function MolecularSystem_getOcupationNumber
 
    !> @brief Returns the eta parameter of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getEta(speciesID) result(output)
+   function MolecularSystem_getEta(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
+
+     type(MolecularSystem), pointer :: system
+
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
      
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%eta
+     output = system%species(speciesID)%eta
           
    end function MolecularSystem_getEta
 
@@ -1232,10 +1285,10 @@ contains
      
    end function MolecularSystem_getMass
    
-   !> @brief Returns the Factor Of Interchange Integrals
+   !> @brief Returns the Factor Of Exchange Integrals
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getFactorOfInterchangeIntegrals( speciesID ) result( output )
+   function MolecularSystem_getFactorOfExchangeIntegrals( speciesID ) result( output )
      implicit none
      integer :: speciesID
      
@@ -1243,7 +1296,7 @@ contains
      
      output = MolecularSystem_instance%species(speciesID)%kappa / MolecularSystem_instance%species(speciesID)%eta
      
-   end function MolecularSystem_getFactorOfInterchangeIntegrals
+   end function MolecularSystem_getFactorOfExchangeIntegrals
 
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
@@ -1258,6 +1311,19 @@ contains
           
    end function MolecularSystem_getNameOfSpecie
 
+   !> @brief Returns the name of a species
+   !! @author E. F. Posada, 2013
+   !! @version 1.0
+   function MolecularSystem_getNameOfSpecies(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     character(30) :: output
+     
+     output = MolecularSystem_instance%species(speciesID)%name
+          
+   end function MolecularSystem_getNameOfSpecies
+   
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
@@ -1303,7 +1369,6 @@ contains
      integer :: i
      integer :: j
      real(8) :: deltaOrigin(3)
-     real(8) :: tmp
      
      output =0.0_8
      
@@ -1329,7 +1394,6 @@ contains
      integer :: i
      integer :: j
      real(8) :: deltaOrigin(3)
-     real(8) :: tmp
 
      output =0.0_8
      
@@ -1379,8 +1443,8 @@ contains
            
            do k = 1, MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
               
-              write (output(counter),"(I5,A2,A6,A2,A4)") counter, "  ", &
-                   trim(MolecularSystem_instance%species(speciesID)%particles(i)%nickname), "  ", &
+              write (output(counter),"(I5,A1,A6,A1,A6)") counter, " ", &
+                   trim(MolecularSystem_instance%species(speciesID)%particles(i)%nickname), " ", &
                    trim(shellCode(k))//" "
 
               counter = counter + 1 
@@ -1393,6 +1457,969 @@ contains
    end function MolecularSystem_getlabelsofcontractions
 
    !>
+   !! @brief  Change from Lowdin order to Molden/Gaussian or Gamess order
+   !! 
+   subroutine MolecularSystem_changeOrbitalOrder( coefficientsOfCombination, speciesID, actualFormat, desiredFormat )
+     implicit none
+     type(Matrix), intent(inout) :: coefficientsOfCombination
+     integer, intent(in) :: speciesID
+     character(*), intent(in) :: actualFormat
+     character(*), intent(in) :: desiredFormat
+     character(19) , allocatable :: labelsOfContractions(:)
+     integer :: numberOfContractions
+     character(6) :: nickname
+     character(6) :: shellCode
+     character(1) :: space
+     integer :: k, counter, auxcounter
+
+     numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID)
+     !! Build a vector of labels of contractions
+     if(allocated(labelsOfContractions)) deallocate(labelsOfContractions)
+     allocate(labelsOfContractions(numberOfContractions))
+
+     labelsOfContractions =  MolecularSystem_getlabelsofcontractions(speciesID)
+
+     if( (actualFormat.eq."LOWDIN" .and. desiredFormat.eq."MOLDEN") ) then
+        !! Swap some columns according to the molden format
+        do k=1,numberOfContractions
+           !! Take the shellcode
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
+
+           !! Reorder the D functions
+           !! counter:  0,  1,  2,  3,  4,  5
+           !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+           !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+           !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+           !!  2-4, 3-5, 5-6
+
+           if ( adjustl(shellcode) == "Dxx" ) then 
+              auxcounter = counter
+              !! Swap XY and YY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+              !! Swap XZ and ZZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+              !! Swap YZ and XZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+           end if
+
+           !! Reorder the F functions
+           !! counter:   0,   1,   2,   3,   4,   5,   6,   7,   8    9
+           !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+           !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+
+           if ( adjustl(shellcode) == "Fxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+
+           end if
+
+           !! Reorder the G functions
+           !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14
+           !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
+           !! erkale-FCHK:  ZZZZ,YZZZ,YYZZ,YYYZ,YYYY,XZZZ,XYZZ,XYYZ,XYYY,XXZZ,XXYZ,XXYY,XXXZ,XXXY,XXXX
+           if ( adjustl(shellcode) == "Gxxxx" ) then
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter   , auxcounter+14)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+13)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+12)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+11)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+10)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+8)
+
+           end if
+
+           if ( adjustl(shellcode) == "Hxxxxx" ) then 
+              call MolecularSystem_exception(WARNING, "The order of the coefficients only works until G orbitals", "MolecularSystem_changeOrbitalOrder" )
+           end if
+
+        end do
+
+     else if( ( actualFormat.eq."LOWDIN" .and. desiredFormat.eq."GAMESS") ) then
+        !! Swap some columns according to the Gamess format
+        do k=1,numberOfContractions
+           !! Take the shellcode
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
+
+           !! Reorder the D functions
+           !! counter:  1,  2,  3,  4,  5,  6
+           !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+           !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+           !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+           !!  2-4, 3-5, 5-6
+
+           if ( adjustl(shellcode) == "Dxx" ) then 
+              auxcounter = counter
+              !! Swap XY and YY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+              !! Swap XZ and ZZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+              !! Swap YZ and XZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+           end if
+
+           !! Reorder the F functions
+           !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+           !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+           !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+           !! Gamess:  XXX, YYY, ZZZ, XXY, XXZ, XYY, YYZ, XZZ, YZZ, XYZ
+
+           if ( adjustl(shellcode) == "Fxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+4)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+           end if
+
+           if ( adjustl(shellcode) == "Gxxxx" ) then 
+              call MolecularSystem_exception(WARNING, "The order of the coefficients only works until F orbitals", "MolecularSystem_changeOrbitalOrder" )
+           end if
+
+           
+        end do
+
+     else if( actualFormat.eq."MOLDEN" .and. desiredFormat.eq."LOWDIN") then
+        !! Swap some columns according to the molden format
+        do k=1,numberOfContractions
+           !! Take the shellcode
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
+
+           !! Reorder the D functions
+           !! counter:  1,  2,  3,  4,  5,  6
+           !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+           !! Lowdin:  XX, XY, XZ, YY, ZZ, YZ
+           !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+           !!  2-4, 3-5, 5-6
+
+           if ( adjustl(shellcode) == "Dxx" ) then 
+              auxcounter = counter
+              !! Swap YY and XY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+              !! Swap ZZ and XZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+4)
+              !! Swap ZZ and YZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+           end if
+
+           !! Reorder the F functions
+           !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+           !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+           !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+
+           if ( adjustl(shellcode) == "Fxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+4)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)             
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+           end if
+           !! Reorder the G functions
+           !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14
+           !! erkale-FCHK:  ZZZZ,YZZZ,YYZZ,YYYZ,YYYY,XZZZ,XYZZ,XYYZ,XYYY,XXZZ,XXYZ,XXYY,XXXZ,XXXY,XXXX
+           !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
+           if ( adjustl(shellcode) == "Gxxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter   , auxcounter+14)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+13)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+12)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+11)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+10)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+8)
+
+           end if
+
+           if ( adjustl(shellcode) == "Hxxxxx" ) then 
+              call MolecularSystem_exception(WARNING, "The order of the coefficients only works until G orbitals", "MolecularSystem_changeOrbitalOrder" )
+           end if
+
+           
+        end do
+
+     else
+
+        call MolecularSystem_exception(ERROR, "The desired format change from "//actualFormat//" to "//desiredFormat//"has not been implemented","MolecularSystem module at changeOrbitalOrder function.")
+
+     end if
+
+   end subroutine MolecularSystem_changeOrbitalOrder
+
+   
+
+  !>
+  !! @brief Lee la matriz de densidad y los orbitales de un archivo fchk tipo Gaussian
+  subroutine MolecularSystem_readFchk( fileName, coefficients, densityMatrix, nameOfSpecies )
+    implicit none
+
+    character(*), intent(in) :: fileName
+    type(Matrix), intent(inout) :: coefficients
+    type(Matrix), intent(inout) :: densityMatrix
+    character(*) :: nameOfSpecies
+
+    integer :: speciesID
+    integer :: numberOfContractions
+    integer :: i, j, k
+    character(100) :: info
+    character(40) :: object
+    character(4) :: type
+    character(6) :: array
+    integer :: size
+    integer :: fchkUnit, io
+    integer :: auxInteger(6)
+    integer, allocatable :: integerArray(:)
+    real(8) :: auxReal(5)
+    real(8), allocatable :: realArray(:)
+    logical :: existFchk
+    
+
+    speciesID=MolecularSystem_getSpecieID(nameOfSpecies)
+    numberOfContractions=MolecularSystem_getTotalnumberOfContractions( speciesID )
+    inquire(FILE = trim(fileName), EXIST = existFchk )
+    if ( .not. existFchk ) call MolecularSystem_exception( ERROR, "I did not find any .fchk coefficients file", "At MolecularSystem_readFchk")
+    
+
+    fchkUnit = 50
+
+    open(unit=fchkUnit, file=filename, status="old", form="formatted", access='sequential', action='read')
+
+    print *, ""
+    print *, "reading FCHK orbitals from ", fileName
+    !The first two lines don't matter
+    read(fchkUnit,"(A100)",iostat=io) info
+    print *, info
+    read(fchkUnit,"(A100)",iostat=io) info
+    print *, info
+
+    !Read line by line, the first 40 characters determine what's being read
+    do 
+       read(fchkUnit,"(A40,A4,A6,I14)",iostat=io) object,type,array,size
+       if (io.ne.0) exit
+       ! print *, object,type,array,size
+       if( trim(adjustl(array)).eq."N=" .and. trim(adjustl(type)).eq."I") then
+          ! print *, "voy a leer el arreglo ", object , " de enteros de ", size, "en lineas ", ceiling( size/6.0 )
+          allocate(integerArray(size))
+          k=0
+          do i=1, ceiling( size/6.0 )
+             read(fchkUnit,"(6I12)") auxInteger(1:6)
+             do j=1,6
+                k=k+1
+                if(k.gt.size)exit
+                integerArray(k)=auxInteger(j)
+             end do
+          end do
+          ! print *, integerArray   
+          deallocate(integerArray)
+
+       else if( trim(adjustl(array)).eq."N=" .and. trim(adjustl(type)).eq."R") then
+          ! print *, "voy a leer el arreglo ", object , " de reales", size, "en lineas ", ceiling( size/5.0 )
+          allocate(realArray(size))
+          k=0
+          do i=1, ceiling( size/5.0 )
+             read(fchkUnit,"(5E16.8)") auxReal(1:5)
+             do j=1,5
+                k=k+1
+                if(k.gt.size)exit
+                realArray(k)=auxReal(j)
+             end do
+          end do
+          ! if(trim(adjustl(object)).eq."Total SCF Density") then
+          !    k=0
+          !    do i=1, numberOfContractions
+          !       do j=1,i
+          !          k=k+1
+          !          densityMatrix%values(i,j)=realArray(k)
+          !          densityMatrix%values(j,i)=realArray(k)
+          !       end do
+          !    end do
+          !    print *, "density matrix read"
+          !    call Matrix_show(densityMatrix)
+          ! end if
+          if(trim(adjustl(object)).eq."Alpha MO coefficients") then
+             k=0
+             do i=1, numberOfContractions
+                do j=1, numberOfContractions
+                   k=k+1
+                   coefficients%values(j,i)=realArray(k)
+                end do
+             end do
+          end if
+          ! print *, realArray   
+          deallocate(realArray)
+       end if
+    end do
+
+    call MolecularSystem_changeOrbitalOrder( coefficients, speciesID, "MOLDEN", "LOWDIN" )
+    ! print *, "coefficients read"
+    ! call Matrix_show(coefficients)
+
+    !Build density matrix with the new order
+    densityMatrix%values=0.0
+    do i=1, numberOfContractions
+       do j=1, numberOfContractions
+          do k=1, MolecularSystem_getOcupationNumber(speciesID)
+             densityMatrix%values(i,j) =  &
+                  densityMatrix%values( i,j ) + &
+                  coefficients%values(i,k)*coefficients%values(j,k)*MolecularSystem_getEta(speciesID)
+          end do
+       end do
+    end do
+    ! print *, "density matrix from orbitals read"
+    ! call Matrix_show(densityMatrix)
+
+    
+    close(fchkUnit)
+    
+  end subroutine MolecularSystem_readFchk
+
+   
+  !>
+  !! @brief Copies a molecular system into another molecular system object
+  !! @author F. M. Moncada 2022
+  subroutine MolecularSystem_copyConstructor(this,originalThis)
+    implicit none
+
+    type(MolecularSystem), intent(out), target :: this
+    type(MolecularSystem), intent(in) :: originalThis
+
+    integer :: i, j
+    integer :: counter
+
+    !! Destroy the molecular system if any
+    ! call MolecularSystem_destroy()
+    if(allocated(this%pointCharges)) deallocate(this%pointCharges)
+    if(allocated(this%allParticles)) deallocate(this%allParticles)
+
+    !! Start copy atribute by atribute
+    !! Non structured information 
+    this%name=originalThis%name 
+    this%description=originalThis%description
+    this%numberOfParticles=originalThis%numberOfParticles
+    this%numberOfPointCharges=originalThis%numberOfPointCharges 
+    this%numberOfQuantumParticles=originalThis%numberOfQuantumParticles
+    this%numberOfQuantumSpecies=originalThis%numberOfQuantumSpecies
+    this%charge=originalThis%charge
+
+    !! Allocate memory for species and particles
+    allocate(this%species(originalThis%numberOfQuantumSpecies))
+
+    !!Copies species information
+    do i = 1, originalThis%numberOfQuantumSpecies
+       allocate(this%species(i)%particles( size(originalThis%species(i)%particles)))
+       this%species(i)%name = originalThis%species(i)%name
+       this%species(i)%symbol = originalThis%species(i)%symbol
+       this%species(i)%statistics = originalThis%species(i)%statistics
+       this%species(i)%charge = originalThis%species(i)%charge
+       this%species(i)%mass = originalThis%species(i)%mass
+       this%species(i)%spin = originalThis%species(i)%spin
+       this%species(i)%totalCharge = originalThis%species(i)%totalCharge
+       this%species(i)%kappa = originalThis%species(i)%kappa
+       this%species(i)%eta = originalThis%species(i)%eta
+       this%species(i)%lambda = originalThis%species(i)%lambda
+       this%species(i)%particlesFraction = originalThis%species(i)%particlesFraction
+       this%species(i)%ocupationNumber = originalThis%species(i)%ocupationNumber
+       this%species(i)%multiplicity = originalThis%species(i)%multiplicity
+       this%species(i)%internalSize = originalThis%species(i)%internalSize
+       this%species(i)%basisSetSize = originalThis%species(i)%basisSetSize
+       this%species(i)%speciesID = originalThis%species(i)%speciesID
+       this%species(i)%isElectron = originalThis%species(i)%isElectron
+    end do
+
+    allocate(this%pointCharges(originalThis%numberOfPointCharges))
+    allocate(this%allParticles(originalThis%numberOfParticles))
+       
+    !! Set the particles manager (all pointers)        
+    counter = 1
+    do i = 1, originalThis%numberOfQuantumSpecies
+       do j = 1, size(originalThis%species(i)%particles)        
+          this%allParticles(counter)%particlePtr => this%species(i)%particles(j)
+          counter = counter + 1
+       end do
+    end do
+
+    do i = 1, originalThis%numberOfPointCharges       
+       this%allParticles(counter)%particlePtr => this%pointCharges(i)
+       counter = counter + 1
+    end do
+    
+    
+    !!Copies particles information
+    do i = 1, originalThis%numberOfParticles
+       this%allParticles(i)%particlePtr%name=originalThis%allParticles(i)%particlePtr%name
+       this%allParticles(i)%particlePtr%symbol=originalThis%allParticles(i)%particlePtr%symbol
+       this%allParticles(i)%particlePtr%nickname=originalThis%allParticles(i)%particlePtr%nickname
+       this%allParticles(i)%particlePtr%statistics=originalThis%allParticles(i)%particlePtr%statistics
+       this%allParticles(i)%particlePtr%basisSetName=originalThis%allParticles(i)%particlePtr%basisSetName
+       this%allParticles(i)%particlePtr%origin=originalThis%allParticles(i)%particlePtr%origin
+       this%allParticles(i)%particlePtr%charge=originalThis%allParticles(i)%particlePtr%charge
+       this%allParticles(i)%particlePtr%mass=originalThis%allParticles(i)%particlePtr%mass
+       this%allParticles(i)%particlePtr%spin=originalThis%allParticles(i)%particlePtr%spin
+       this%allParticles(i)%particlePtr%totalCharge=originalThis%allParticles(i)%particlePtr%totalCharge
+       this%allParticles(i)%particlePtr%klamt=originalThis%allParticles(i)%particlePtr%klamt
+       this%allParticles(i)%particlePtr%vanderWaalsRadio=originalThis%allParticles(i)%particlePtr%vanderWaalsRadio
+       this%allParticles(i)%particlePtr%isQuantum=originalThis%allParticles(i)%particlePtr%isQuantum
+       this%allParticles(i)%particlePtr%isDummy=originalThis%allParticles(i)%particlePtr%isDummy
+       this%allParticles(i)%particlePtr%fixComponent=originalThis%allParticles(i)%particlePtr%fixComponent
+       this%allParticles(i)%particlePtr%isCenterOfOptimization=originalThis%allParticles(i)%particlePtr%isCenterOfOptimization
+       this%allParticles(i)%particlePtr%multiplicity=originalThis%allParticles(i)%particlePtr%multiplicity
+       this%allParticles(i)%particlePtr%subsystem=originalThis%allParticles(i)%particlePtr%subsystem
+       this%allParticles(i)%particlePtr%translationCenter=originalThis%allParticles(i)%particlePtr%translationCenter
+       this%allParticles(i)%particlePtr%rotationPoint=originalThis%allParticles(i)%particlePtr%rotationPoint
+       this%allParticles(i)%particlePtr%rotateAround=originalThis%allParticles(i)%particlePtr%rotateAround
+       this%allParticles(i)%particlePtr%id=originalThis%allParticles(i)%particlePtr%id
+       this%allParticles(i)%particlePtr%internalSize=originalThis%allParticles(i)%particlePtr%internalSize
+       this%allParticles(i)%particlePtr%owner=originalThis%allParticles(i)%particlePtr%owner
+       this%allParticles(i)%particlePtr%basisSetSize=originalThis%allParticles(i)%particlePtr%basisSetSize
+
+       if ( allocated(originalThis%allParticles(i)%particlePtr%childs) ) then
+          allocate(this%allParticles(i)%particlePtr%childs( size(originalThis%allParticles(i)%particlePtr%childs)))
+          this%allParticles(i)%particlePtr%childs=originalThis%allParticles(i)%particlePtr%childs
+       end if
+
+       !! Copies basis set information
+       if ( this%allParticles(i)%particlePtr%isQuantum ) then
+
+          this%allParticles(i)%particlePtr%basis%name=originalThis%allParticles(i)%particlePtr%basis%name
+          this%allParticles(i)%particlePtr%basis%origin=originalThis%allParticles(i)%particlePtr%basis%origin
+          this%allParticles(i)%particlePtr%basis%length=originalThis%allParticles(i)%particlePtr%basis%length
+          this%allParticles(i)%particlePtr%basis%ttype=originalThis%allParticles(i)%particlePtr%basis%ttype
+          this%allParticles(i)%particlePtr%basis%contractionLength=originalThis%allParticles(i)%particlePtr%basis%contractionLength
+          this%allParticles(i)%particlePtr%basis%numberOfPrimitives=originalThis%allParticles(i)%particlePtr%basis%numberOfPrimitives
+
+          allocate(this%allParticles(i)%particlePtr%basis%contraction(originalThis%allParticles(i)%particlePtr%basis%length))
+          
+          do j=1, originalThis%allParticles(i)%particlePtr%basis%length
+             this%allParticles(i)%particlePtr%basis%contraction(j)%id=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%id
+             this%allParticles(i)%particlePtr%basis%contraction(j)%length=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%length
+             this%allParticles(i)%particlePtr%basis%contraction(j)%angularMoment=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%angularMoment
+             this%allParticles(i)%particlePtr%basis%contraction(j)%numCartesianOrbital=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%numCartesianOrbital
+             this%allParticles(i)%particlePtr%basis%contraction(j)%owner=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%owner
+             this%allParticles(i)%particlePtr%basis%contraction(j)%subsystem=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%subsystem
+             this%allParticles(i)%particlePtr%basis%contraction(j)%origin=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%origin
+
+             allocate(this%allParticles(i)%particlePtr%basis%contraction(j)%orbitalExponents(&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%length))
+             allocate(this%allParticles(i)%particlePtr%basis%contraction(j)%contractionCoefficients(&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%length))
+
+             this%allParticles(i)%particlePtr%basis%contraction(j)%orbitalExponents=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%orbitalExponents
+             this%allParticles(i)%particlePtr%basis%contraction(j)%contractionCoefficients=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%contractionCoefficients
+
+             allocate(this%allParticles(i)%particlePtr%basis%contraction(j)%contNormalization(&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%numCartesianOrbital))
+             allocate(this%allParticles(i)%particlePtr%basis%contraction(j)%primNormalization(&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%length,&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%numCartesianOrbital))
+
+             this%allParticles(i)%particlePtr%basis%contraction(j)%contNormalization=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%contNormalization
+             this%allParticles(i)%particlePtr%basis%contraction(j)%primNormalization=&
+                  originalThis%allParticles(i)%particlePtr%basis%contraction(j)%primNormalization                  
+
+          end do
+       end if
+
+    end do
+    ! particleManager_instance => this%allParticles
+    
+  end subroutine MolecularSystem_copyConstructor
+
+  !>
+  !! @brief Stack together the basis sets of two molecular systems for Non Orthogonal CI calculations
+  !! Adds system B particles to system A, sysBasisList indicate the position shifts of the basis functions in the merged molecular system
+  !! @author F. M. Moncada 2022
+  subroutine MolecularSystem_mergeTwoSystems(mergedThis,thisA,thisB,sysAbasisList, sysBbasisList, reorder)
+    type(MolecularSystem), intent(out), target :: mergedThis
+    type(MolecularSystem), intent(in) :: thisA, thisB
+    type(IVector) :: sysAbasisList(*), sysBbasisList(*) !length = numberOfSpecies
+    logical, optional :: reorder !reorder system A to put common basis functions first
+    
+    integer :: i, j, k, l, jj, speciesID, mu, nu
+    integer :: counter, common
+    integer, allocatable :: notCommonParticles(:), notCommonBasisSize(:), auxMuPositions(:), auxNuPositions(:)
+    type(IVector1), allocatable :: notCommonListA(:), notCommonListB(:) !1=not common, 0=common
+    logical :: reorderA
+    
+    !! Destroy the molecular system if any
+    ! call MolecularSystem_destroy()
+    if(allocated(mergedThis%pointCharges)) deallocate(mergedThis%pointCharges)
+    if(allocated(mergedThis%allParticles)) deallocate(mergedThis%allParticles)
+
+    reorderA=.true.
+    if(present(reorder)) reorderA=reorder
+
+    !! Start copy atribute by atribute
+    !! Non structured information 
+    mergedThis%name=thisA%name 
+    mergedThis%description=thisA%description
+    mergedThis%charge=thisA%charge
+    mergedThis%numberOfPointCharges=thisA%numberOfPointCharges 
+    mergedThis%numberOfQuantumParticles=thisA%numberOfQuantumParticles
+    mergedThis%numberOfQuantumSpecies=thisA%numberOfQuantumSpecies
+    mergedThis%numberOfParticles=thisA%numberOfPointCharges 
+
+    !! Allocate memory for particles
+    allocate(mergedThis%species(mergedThis%numberOfQuantumSpecies))
+
+    !! Count the number of basis functions of A that are also in B
+    !! a comparison of origin, basis set names etc    
+    allocate(notCommonParticles(mergedThis%numberOfQuantumSpecies),&
+         notCommonBasisSize(mergedThis%numberOfQuantumSpecies),&
+         notCommonListA(mergedThis%numberOfQuantumSpecies),&
+         notCommonListB(mergedThis%numberOfQuantumSpecies))
+
+    do i = 1, mergedThis%numberOfQuantumSpecies
+       notCommonParticles(i)=0
+       notCommonBasisSize(i)=0
+       call Vector_constructorInteger1(notCommonListA(i), int(size(thisA%species(i)%particles),8) , 1_1) 
+       call Vector_constructorInteger1(notCommonListB(i), int(size(thisB%species(i)%particles),8) , 0_1) 
+       Bloop: do j = 1, size(thisB%species(i)%particles)        
+          Aloop: do k= 1, size(thisA%species(i)%particles)
+          ! if( thisA%species(i)%particles(j)%translationCenter .ne. 0 .or. thisA%species(i)%particles(j)%rotateAround .ne. 0) then
+          !    notCommonParticles(i)=notCommonParticles(i)+1
+          !    notCommonBasisSize(i)=notCommonBasisSize(i)+thisA%species(i)%particles(j)%basisSetSize
+          ! end if
+             if ( MolecularSystem_checkParticleEquivalence(thisA%species(i)%particles(k),thisB%species(i)%particles(j)) .eqv. .true.) then
+                notCommonListA(i)%values(k)=0
+                cycle Bloop
+             end if
+          end do Aloop
+          notCommonParticles(i)=notCommonParticles(i)+1
+          notCommonBasisSize(i)=notCommonBasisSize(i)+thisB%species(i)%particles(j)%basisSetSize
+          notCommonListB(i)%values(j)=1 
+       end do Bloop
+       ! print *, "species", i, "has", notCommonParticles(i), "notCommonParticles and", notCommonBasisSize(i), "notCommonBasisSize"
+       ! print *, notCommonListB(i)%values(:)
+       if(.not. reorderA) notCommonListA(i)%values=0
+    end do
+
+    
+    !!Copies species information
+    !!A basis set plus B basis functions not included in A
+    do i = 1, mergedThis%numberOfQuantumSpecies
+       allocate(mergedThis%species(i)%particles( size(thisA%species(i)%particles) + notCommonParticles(i) ))
+       mergedThis%species(i)%name = thisA%species(i)%name
+       mergedThis%species(i)%symbol = thisA%species(i)%symbol
+       mergedThis%species(i)%statistics = thisA%species(i)%statistics
+       mergedThis%species(i)%charge = thisA%species(i)%charge
+       mergedThis%species(i)%mass = thisA%species(i)%mass
+       mergedThis%species(i)%spin = thisA%species(i)%spin
+       mergedThis%species(i)%totalCharge = thisA%species(i)%totalCharge
+       mergedThis%species(i)%kappa = thisA%species(i)%kappa
+       mergedThis%species(i)%eta = thisA%species(i)%eta
+       mergedThis%species(i)%lambda = thisA%species(i)%lambda
+       mergedThis%species(i)%particlesFraction = thisA%species(i)%particlesFraction
+       mergedThis%species(i)%ocupationNumber = thisA%species(i)%ocupationNumber+thisB%species(i)%ocupationNumber
+       mergedThis%species(i)%multiplicity = thisA%species(i)%multiplicity
+       mergedThis%species(i)%internalSize = thisA%species(i)%internalSize
+       mergedThis%species(i)%basisSetSize = thisA%species(i)%basisSetSize+notCommonBasisSize(i)
+       mergedThis%species(i)%speciesID = thisA%species(i)%speciesID
+       mergedThis%species(i)%isElectron = thisA%species(i)%isElectron
+       mergedThis%numberOfParticles=mergedThis%numberOfParticles+size(mergedThis%species(i)%particles)
+    end do
+
+    allocate(mergedThis%pointCharges(mergedThis%numberOfPointCharges))
+    allocate(mergedThis%allParticles(mergedThis%numberOfParticles))
+       
+    !! Set the particles manager (all pointers)        
+    counter = 1
+    do i = 1, mergedThis%numberOfQuantumSpecies
+       do j = 1, size(mergedThis%species(i)%particles)        
+          mergedThis%allParticles(counter)%particlePtr => mergedThis%species(i)%particles(j)
+          counter = counter + 1
+       end do
+    end do
+
+    do i = 1, mergedThis%numberOfPointCharges       
+       mergedThis%allParticles(counter)%particlePtr => mergedThis%pointCharges(i)
+       counter = counter + 1
+    end do
+
+    !!Copies point charges particles information
+    do i = 1, mergedThis%numberOfPointCharges
+       mergedThis%pointCharges(i)%name=thisA%pointCharges(i)%name
+       mergedThis%pointCharges(i)%symbol=thisA%pointCharges(i)%symbol
+       mergedThis%pointCharges(i)%nickname=thisA%pointCharges(i)%nickname
+       mergedThis%pointCharges(i)%statistics=thisA%pointCharges(i)%statistics
+       mergedThis%pointCharges(i)%basisSetName=thisA%pointCharges(i)%basisSetName
+       mergedThis%pointCharges(i)%origin=thisA%pointCharges(i)%origin
+       mergedThis%pointCharges(i)%charge=thisA%pointCharges(i)%charge
+       mergedThis%pointCharges(i)%mass=thisA%pointCharges(i)%mass
+       mergedThis%pointCharges(i)%spin=thisA%pointCharges(i)%spin
+       mergedThis%pointCharges(i)%totalCharge=thisA%pointCharges(i)%totalCharge
+       mergedThis%pointCharges(i)%klamt=thisA%pointCharges(i)%klamt
+       mergedThis%pointCharges(i)%vanderWaalsRadio=thisA%pointCharges(i)%vanderWaalsRadio
+       mergedThis%pointCharges(i)%isQuantum=thisA%pointCharges(i)%isQuantum
+       mergedThis%pointCharges(i)%isDummy=thisA%pointCharges(i)%isDummy
+       mergedThis%pointCharges(i)%fixComponent=thisA%pointCharges(i)%fixComponent
+       mergedThis%pointCharges(i)%isCenterOfOptimization=thisA%pointCharges(i)%isCenterOfOptimization
+       mergedThis%pointCharges(i)%multiplicity=thisA%pointCharges(i)%multiplicity
+       mergedThis%pointCharges(i)%subsystem=thisA%pointCharges(i)%subsystem
+       mergedThis%pointCharges(i)%translationCenter=thisA%pointCharges(i)%translationCenter
+       mergedThis%pointCharges(i)%rotationPoint=thisA%pointCharges(i)%rotationPoint
+       mergedThis%pointCharges(i)%rotateAround=thisA%pointCharges(i)%rotateAround
+       mergedThis%pointCharges(i)%id=thisA%pointCharges(i)%id
+       mergedThis%pointCharges(i)%internalSize=thisA%pointCharges(i)%internalSize
+       mergedThis%pointCharges(i)%owner=thisA%pointCharges(i)%owner
+       mergedThis%pointCharges(i)%basisSetSize=thisA%pointCharges(i)%basisSetSize
+
+       if ( allocated(thisA%pointCharges(i)%childs) ) then
+          allocate(mergedThis%pointCharges(i)%childs( size(thisA%pointCharges(i)%childs)))
+          mergedThis%pointCharges(i)%childs=thisA%pointCharges(i)%childs
+       end if
+
+    end do
+
+    do i = 1, mergedThis%numberOfQuantumSpecies
+       j=0
+       !!Copies common quantum particles information first
+       do common=0,1
+          !!Copies quantum particles information from system A
+          do jj = 1, size(thisA%species(i)%particles)
+             if( notCommonListA(i)%values(jj) .eq. common) then
+                j=j+1
+                mergedThis%species(i)%particles(j)%name=thisA%species(i)%particles(jj)%name
+                mergedThis%species(i)%particles(j)%symbol=thisA%species(i)%particles(jj)%symbol
+                mergedThis%species(i)%particles(j)%nickname=thisA%species(i)%particles(jj)%nickname
+                mergedThis%species(i)%particles(j)%statistics=thisA%species(i)%particles(jj)%statistics
+                mergedThis%species(i)%particles(j)%basisSetName=thisA%species(i)%particles(jj)%basisSetName
+                mergedThis%species(i)%particles(j)%origin=thisA%species(i)%particles(jj)%origin
+                mergedThis%species(i)%particles(j)%charge=thisA%species(i)%particles(jj)%charge
+                mergedThis%species(i)%particles(j)%mass=thisA%species(i)%particles(jj)%mass
+                mergedThis%species(i)%particles(j)%spin=thisA%species(i)%particles(jj)%spin
+                mergedThis%species(i)%particles(j)%totalCharge=thisA%species(i)%particles(jj)%totalCharge
+                mergedThis%species(i)%particles(j)%klamt=thisA%species(i)%particles(jj)%klamt
+                mergedThis%species(i)%particles(j)%vanderWaalsRadio=thisA%species(i)%particles(jj)%vanderWaalsRadio
+                mergedThis%species(i)%particles(j)%isQuantum=thisA%species(i)%particles(jj)%isQuantum
+                mergedThis%species(i)%particles(j)%isDummy=thisA%species(i)%particles(jj)%isDummy
+                mergedThis%species(i)%particles(j)%fixComponent=thisA%species(i)%particles(jj)%fixComponent
+                mergedThis%species(i)%particles(j)%isCenterOfOptimization=thisA%species(i)%particles(jj)%isCenterOfOptimization
+                mergedThis%species(i)%particles(j)%multiplicity=thisA%species(i)%particles(jj)%multiplicity
+                mergedThis%species(i)%particles(j)%subsystem=thisA%species(i)%particles(jj)%subsystem
+                mergedThis%species(i)%particles(j)%translationCenter=thisA%species(i)%particles(jj)%translationCenter
+                mergedThis%species(i)%particles(j)%rotationPoint=thisA%species(i)%particles(jj)%rotationPoint
+                mergedThis%species(i)%particles(j)%rotateAround=thisA%species(i)%particles(jj)%rotateAround
+                mergedThis%species(i)%particles(j)%id=thisA%species(i)%particles(jj)%id
+                mergedThis%species(i)%particles(j)%internalSize=thisA%species(i)%particles(jj)%internalSize
+                mergedThis%species(i)%particles(j)%owner=thisA%species(i)%particles(jj)%owner
+                mergedThis%species(i)%particles(j)%basisSetSize=thisA%species(i)%particles(jj)%basisSetSize
+
+                if ( allocated(thisA%species(i)%particles(jj)%childs) ) then
+                   allocate(mergedThis%species(i)%particles(j)%childs( size(thisA%species(i)%particles(jj)%childs)))
+                   mergedThis%species(i)%particles(j)%childs=thisA%species(i)%particles(jj)%childs
+                end if
+
+                !!Basis information 
+                mergedThis%species(i)%particles(j)%basis%name=thisA%species(i)%particles(jj)%basis%name
+                mergedThis%species(i)%particles(j)%basis%origin=thisA%species(i)%particles(jj)%basis%origin
+                mergedThis%species(i)%particles(j)%basis%length=thisA%species(i)%particles(jj)%basis%length
+                mergedThis%species(i)%particles(j)%basis%ttype=thisA%species(i)%particles(jj)%basis%ttype
+                mergedThis%species(i)%particles(j)%basis%contractionLength=thisA%species(i)%particles(jj)%basis%contractionLength
+                mergedThis%species(i)%particles(j)%basis%numberOfPrimitives=thisA%species(i)%particles(jj)%basis%numberOfPrimitives
+
+                allocate(mergedThis%species(i)%particles(j)%basis%contraction(thisA%species(i)%particles(jj)%basis%length))
+
+                do k=1, thisA%species(i)%particles(jj)%basis%length
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%id=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%id
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%length=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%length
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%angularMoment=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%angularMoment
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%numCartesianOrbital=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%owner=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%owner
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%subsystem=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%subsystem
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%origin=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%origin
+
+                   allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%orbitalExponents(&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%length))
+                   allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients(&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%length))
+
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%orbitalExponents=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%orbitalExponents
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%contractionCoefficients
+
+                   allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%contNormalization(&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital))
+                   allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%primNormalization(&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%length,&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital))
+
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%contNormalization=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%contNormalization
+                   mergedThis%species(i)%particles(j)%basis%contraction(k)%primNormalization=&
+                        thisA%species(i)%particles(jj)%basis%contraction(k)%primNormalization                  
+                end do
+             end if
+          end do
+       end do
+
+       !!Copies quantum particles information from system B if the particle coordinates were displaced
+       do jj=1, size(thisB%species(i)%particles)        
+          ! if( thisB%species(i)%particles(jj)%translationCenter .ne. 0 .or. thisB%species(i)%particles(jj)%rotateAround .ne. 0) then
+          if( notCommonListB(i)%values(jj) .eq. 1) then
+             j=j+1
+             mergedThis%species(i)%particles(j)%name=thisB%species(i)%particles(jj)%name
+             mergedThis%species(i)%particles(j)%symbol=thisB%species(i)%particles(jj)%symbol
+             mergedThis%species(i)%particles(j)%nickname=thisB%species(i)%particles(jj)%nickname
+             mergedThis%species(i)%particles(j)%statistics=thisB%species(i)%particles(jj)%statistics
+             mergedThis%species(i)%particles(j)%basisSetName=thisB%species(i)%particles(jj)%basisSetName
+             mergedThis%species(i)%particles(j)%origin=thisB%species(i)%particles(jj)%origin
+             mergedThis%species(i)%particles(j)%charge=thisB%species(i)%particles(jj)%charge
+             mergedThis%species(i)%particles(j)%mass=thisB%species(i)%particles(jj)%mass
+             mergedThis%species(i)%particles(j)%spin=thisB%species(i)%particles(jj)%spin
+             mergedThis%species(i)%particles(j)%totalCharge=thisB%species(i)%particles(jj)%totalCharge
+             mergedThis%species(i)%particles(j)%klamt=thisB%species(i)%particles(jj)%klamt
+             mergedThis%species(i)%particles(j)%vanderWaalsRadio=thisB%species(i)%particles(jj)%vanderWaalsRadio
+             mergedThis%species(i)%particles(j)%isQuantum=thisB%species(i)%particles(jj)%isQuantum
+             mergedThis%species(i)%particles(j)%isDummy=thisB%species(i)%particles(jj)%isDummy
+             mergedThis%species(i)%particles(j)%fixComponent=thisB%species(i)%particles(jj)%fixComponent
+             mergedThis%species(i)%particles(j)%isCenterOfOptimization=thisB%species(i)%particles(jj)%isCenterOfOptimization
+             mergedThis%species(i)%particles(j)%multiplicity=thisB%species(i)%particles(jj)%multiplicity
+             mergedThis%species(i)%particles(j)%subsystem=thisB%species(i)%particles(jj)%subsystem
+             mergedThis%species(i)%particles(j)%translationCenter=thisB%species(i)%particles(jj)%translationCenter
+             mergedThis%species(i)%particles(j)%rotationPoint=thisB%species(i)%particles(jj)%rotationPoint
+             mergedThis%species(i)%particles(j)%rotateAround=thisB%species(i)%particles(jj)%rotateAround
+             mergedThis%species(i)%particles(j)%id=thisB%species(i)%particles(jj)%id
+             mergedThis%species(i)%particles(j)%internalSize=thisB%species(i)%particles(jj)%internalSize
+             mergedThis%species(i)%particles(j)%owner=thisB%species(i)%particles(jj)%owner
+             mergedThis%species(i)%particles(j)%basisSetSize=thisB%species(i)%particles(jj)%basisSetSize
+
+             if ( allocated(thisB%species(i)%particles(jj)%childs) ) then
+                allocate(mergedThis%species(i)%particles(j)%childs( size(thisB%species(i)%particles(jj)%childs)))
+                mergedThis%species(i)%particles(j)%childs=thisB%species(i)%particles(jj)%childs
+             end if
+
+             !!Basis information 
+             mergedThis%species(i)%particles(j)%basis%name=thisB%species(i)%particles(jj)%basis%name
+             mergedThis%species(i)%particles(j)%basis%origin=thisB%species(i)%particles(jj)%basis%origin
+             mergedThis%species(i)%particles(j)%basis%length=thisB%species(i)%particles(jj)%basis%length
+             mergedThis%species(i)%particles(j)%basis%ttype=thisB%species(i)%particles(jj)%basis%ttype
+             mergedThis%species(i)%particles(j)%basis%contractionLength=thisB%species(i)%particles(jj)%basis%contractionLength
+             mergedThis%species(i)%particles(j)%basis%numberOfPrimitives=thisB%species(i)%particles(jj)%basis%numberOfPrimitives
+
+             allocate(mergedThis%species(i)%particles(j)%basis%contraction(thisB%species(i)%particles(jj)%basis%length))
+
+             do k=1, thisB%species(i)%particles(jj)%basis%length
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%id=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%id
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%length=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%length
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%angularMoment=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%angularMoment
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%numCartesianOrbital=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%owner=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%owner
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%subsystem=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%subsystem
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%origin=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%origin
+
+                allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%orbitalExponents(&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%length))
+                allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients(&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%length))
+
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%orbitalExponents=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%orbitalExponents
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%contractionCoefficients=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%contractionCoefficients
+
+                allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%contNormalization(&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital))
+                allocate(mergedThis%species(i)%particles(j)%basis%contraction(k)%primNormalization(&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%length,&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%numCartesianOrbital))
+
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%contNormalization=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%contNormalization
+                mergedThis%species(i)%particles(j)%basis%contraction(k)%primNormalization=&
+                     thisB%species(i)%particles(jj)%basis%contraction(k)%primNormalization                  
+             end do
+          end if
+       end do
+    end do
+
+    particleManager_instance => mergedThis%allParticles
+
+    ! if( (.not. present(sysAbasisList)) .and. (.not. present(sysBbasisList)) ) return
+    
+    !!Fill the basis set lists
+    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+       call Vector_constructorInteger(sysAbasisList(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 0 )
+       call Vector_constructorInteger(sysBbasisList(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 0 )
+       
+       if(allocated(auxMuPositions)) deallocate(auxMuPositions)
+       allocate(auxMuPositions(size(mergedThis%species(speciesID)%particles)+1))
+       auxMuPositions(:)=0
+       !saving merged system basis lengths
+       do i = 1, size(mergedThis%species(speciesID)%particles)
+          auxMuPositions(i+1)=auxMuPositions(i)
+          do l = 1, size(mergedThis%species(speciesID)%particles(i)%basis%contraction)
+             auxMuPositions(i+1)=auxMuPositions(i+1)+mergedThis%species(speciesID)%particles(i)%basis%contraction(l)%numCartesianOrbital
+          end do
+          ! print *, "merged particle", i, "start", auxMuPositions(i), "end", auxMuPositions(i+1)
+       end do
+
+       !SysI loop
+       if(allocated(auxNuPositions)) deallocate(auxNuPositions)
+       allocate(auxNuPositions(size(thisA%species(speciesID)%particles)+1))
+       auxNuPositions(:)=0
+       do i = 1, size(thisA%species(speciesID)%particles)
+          auxNuPositions(i+1)=auxNuPositions(i)
+          do l = 1, size(thisA%species(speciesID)%particles(i)%basis%contraction)
+             auxNuPositions(i+1)=auxNuPositions(i+1)+thisA%species(speciesID)%particles(i)%basis%contraction(l)%numCartesianOrbital
+          end do
+          ! print *, "sysA particle", i, "start", auxNuPositions(i), "end", auxNuPositions(i+1)
+       end do
+
+       !Assign equivalence positions
+       do i = 1, size(mergedThis%species(speciesID)%particles)
+          do j = 1, size(thisA%species(speciesID)%particles)
+             if ( MolecularSystem_checkParticleEquivalence( &
+                  mergedThis%species(speciesID)%particles(i), thisA%species(speciesID)%particles(j)) .eqv. .true. ) then
+                mu=auxMuPositions(i)
+                do nu=auxNuPositions(j)+1,auxNuPositions(j+1)
+                   mu=mu+1
+                   sysAbasisList(speciesID)%values(mu)=nu
+                   ! print *, "sysA", nu, "is equivalent to merged", mu
+                end do
+             end if
+          end do
+       end do
+
+       !SysII loop
+       if(allocated(auxNuPositions)) deallocate(auxNuPositions)
+       allocate(auxNuPositions(size(thisB%species(speciesID)%particles)+1))
+       auxNuPositions(:)=0
+       do i = 1, size(thisB%species(speciesID)%particles)
+          auxNuPositions(i+1)=auxNuPositions(i)
+          do l = 1, size(thisB%species(speciesID)%particles(i)%basis%contraction)
+             auxNuPositions(i+1)=auxNuPositions(i+1)+thisB%species(speciesID)%particles(i)%basis%contraction(l)%numCartesianOrbital
+          end do
+          ! print *, "sysB particle", i, "start", auxNuPositions(i), "end", auxNuPositions(i+1)
+       end do
+
+       !Assign equivalence positions
+       do i = 1, size(mergedThis%species(speciesID)%particles)
+          do j = 1, size(thisB%species(speciesID)%particles)
+             if ( MolecularSystem_checkParticleEquivalence( &
+                  mergedThis%species(speciesID)%particles(i), thisB%species(speciesID)%particles(j)) .eqv. .true. ) then
+                mu=auxMuPositions(i)
+                do nu=auxNuPositions(j)+1,auxNuPositions(j+1)
+                   mu=mu+1
+                   sysBbasisList(speciesID)%values(mu)=nu
+                   ! print *, "sysB", nu, "is equivalent to merged", mu
+                end do
+             end if
+          end do
+       end do
+
+       ! print *, "species", speciesID, "systemA list"
+       ! print *, sysAbasisList(speciesID)%values
+       ! print *, "species", speciesID, "systemB list"
+       ! print *, sysBbasisList(speciesID)%values
+    end do
+    
+  end subroutine MolecularSystem_mergeTwoSystems
+
+  !>
+  !! @brief Computes the displacement between equivalent particles (basis set centers) of two molecular systems
+  !! @param thisA,thisB: molecular system, distanceVector: displacement of each species particles
+  !! @author F. M. Moncada 2022
+  subroutine MolecularSystem_getTwoSystemsDisplacement(thisA,thisB,displacementVector)
+    type(MolecularSystem), intent(in) :: thisA, thisB
+    type(Vector) :: displacementVector(*)
+    real(8) :: distance
+
+    type(IVector1) :: skip !avoid computing distance to the same particle of B
+    real(8) :: minDistance
+    integer :: minIndex
+    
+    integer :: nparticles
+    integer :: speciesID, i, j
+
+    
+    ! print *, "max distance between equivalent particles of systems", thisA%description, thisB%description
+    do speciesID=1, thisA%numberOfQuantumSpecies
+       nparticles=size(thisA%species(speciesID)%particles)
+       call Vector_constructor(displacementVector(speciesID),nparticles,0.0_8)
+       call Vector_constructorInteger1(skip,int(nparticles,8),0_1)
+       do i=1, size(thisA%species(speciesID)%particles) !ParticlesSystemA          
+          minDistance=1.0E8
+          minIndex=0
+          do j=1, size(thisB%species(speciesID)%particles) !ParticlesSystemB 
+             if(skip%values(j) .eq. 1) cycle
+             
+             if (thisA%species(speciesID)%particles(i)%nickname .ne. thisB%species(speciesID)%particles(j)%nickname .and. &
+                  thisA%species(speciesID)%particles(i)%basisSetName .ne. thisB%species(speciesID)%particles(j)%basisSetName ) cycle
+             
+             distance= sqrt((thisA%species(speciesID)%particles(i)%origin(1) - thisB%species(speciesID)%particles(j)%origin(1))**2+&
+                  (thisA%species(speciesID)%particles(i)%origin(2) - thisB%species(speciesID)%particles(j)%origin(2))**2+&
+                  (thisA%species(speciesID)%particles(i)%origin(3) - thisB%species(speciesID)%particles(j)%origin(3))**2)
+
+             if(distance .lt. minDistance) then
+                minDistance=distance
+                minIndex=j
+             end if
+          end do
+          ! print *, "speciesID, i, closestParticle, distance", speciesID, i, minIndex, minDistance
+          displacementVector(speciesID)%values(i)=minDistance
+          skip%values(minIndex)=1
+       end do
+       ! print *, "speciesID", speciesID , "displacementVector", displacementVector(speciesID)%values
+    end do
+  end subroutine MolecularSystem_GetTwoSystemsDisplacement
+
+  !>
+  !! @brief Check if two particles are in the same position, are of the same speciers and have the same basis set
+  !! @author F. M. Moncada, 2022
+  function MolecularSystem_checkParticleEquivalence(ParticleI,ParticleII) result( output )
+    implicit none
+    logical :: output
+    Type(Particle) :: ParticleI,ParticleII
+
+    output =.false.
+    if((ParticleI%origin(1) .eq. ParticleII%origin(1)) .and. &
+         (ParticleI%origin(2) .eq. ParticleII%origin(2)) .and. &
+         (ParticleI%origin(3) .eq. ParticleII%origin(3)) .and. &
+         (ParticleI%basisSetName .eq. ParticleII%basisSetName) .and. &
+         (ParticleI%basisSetSize .eq. ParticleII%basisSetSize) .and. &
+         (ParticleI%symbol .eq. ParticleII%symbol) .and. &
+         (ParticleI%nickname .eq. ParticleII%nickname) ) output =.true.
+
+  end function MolecularSystem_checkParticleEquivalence
+
+  !>
    !! @brief  Maneja excepciones de la clase
    subroutine MolecularSystem_exception( typeMessage, description, debugDescription)
      implicit none

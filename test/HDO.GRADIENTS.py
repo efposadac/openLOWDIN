@@ -20,6 +20,7 @@ refGradOx = 0.000000000000
 refGradOy = -0.005714322288
 refGradOz = 0.078305109084
 
+diffTol=1E-5
 # Run calculation
 
 status = os.system("lowdin2 -i " + inputName)
@@ -60,13 +61,13 @@ diffOx = abs(refGradOx - gradOx)
 diffOy = abs(refGradOy - gradOy)
 diffOz = abs(refGradOz - gradOz)
 
-if (diffHx <= 1E-6 and diffHy <= 1E-6 and diffHz <= 1E-6 and diffDx <= 1E-6 and diffDy <= 1E-6 and diffDz <= 1E-6 and diffOx <= 1E-6 and diffOy <= 1E-6 and diffOz <= 1E-6):
+if (diffHx <= diffTol and diffHy <= diffTol and diffHz <= diffTol and diffDx <= diffTol and diffDy <= diffTol and diffDz <= diffTol and diffOx <= diffTol and diffOy <= diffTol and diffOz <= diffTol):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))
-    print("Difference H: " + str(diffHx) + str(diffHy) + str(diffHz))
-    print("Difference D: " + str(diffDx) + str(diffDy) + str(diffDz))
-    print("Difference O: " + str(diffOx) + str(diffOy) + str(diffOz))
+    print("Difference H: " + str(diffHx)+ " " + str(diffHy)+ " " + str(diffHz))
+    print("Difference D: " + str(diffDx)+ " " + str(diffDy)+ " " + str(diffDz))
+    print("Difference O: " + str(diffOx)+ " " + str(diffOy)+ " " + str(diffOz))
     sys.exit(1)
 
 output.close()

@@ -28,7 +28,8 @@ TASKS
 END TASKS
 
 CONTROL
-	IonizeSpecie="E-ALPHA" "E-BETA" "H-A_1"
+readCoefficients=F
+IonizeSpecie="E-ALPHA" "E-BETA" "H-A_1"
 END CONTROL
 
 

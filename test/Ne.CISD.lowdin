@@ -14,7 +14,8 @@ TASKS
 END TASKS
 
 CONTROL
-	CIsizeOfGuessMatrix=300
+readCoefficients=F
+CIsizeOfGuessMatrix=300
 	numberOfCIStates=1
         CIdiagonalizationMethod="DSYEVX"
 	!CIdiagonalizationMethod = "JADAMILU"

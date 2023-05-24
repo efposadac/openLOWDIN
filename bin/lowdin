@@ -184,6 +184,15 @@ if [ $extFile="lowdin" ]; then
                         else if($i=="fragmentNumber"){
 				printf("\tInputParticle_fragmentNumber = %s\n",$(i+2) )
 			}
+                        else if($i=="translationCenter"){
+				printf("\tInputParticle_translationCenter = %s\n",$(i+2) )
+			}
+                        else if($i=="rotationPoint"){
+				printf("\tInputParticle_rotationPoint = %s\n",$(i+2) )
+			}
+                        else if($i=="rotateAround"){
+				printf("\tInputParticle_rotateAround = %s\n",$(i+2) )
+			}
                         else if($i=="q"){
 				printf("\tInputParticle_charge = %s\n",$(i+2) )
 			}
@@ -272,7 +281,7 @@ if [ $extFile="lowdin" ]; then
                 printf("\n&Output\n")
 		for(i=1;i<=NF;i++){
 			if($i=="specie"){
-				printf("\tOutput_specie = %s\n",$(i+2) )
+				printf("\tOutput_species = %s\n",$(i+2) )
 			}
 			else if($i=="orbital"){
 				printf("\tOutput_orbital = %s\n",$(i+2) )
@@ -427,7 +436,7 @@ if [ $extFile="lowdin" ]; then
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2

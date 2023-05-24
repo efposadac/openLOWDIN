@@ -17,6 +17,7 @@
 !! @author E. F. Posada, 2013
 !! @version 1.0
 module CONTROL_
+  use Units_
   use Exception_
   use omp_lib
   implicit none
@@ -45,12 +46,12 @@ module CONTROL_
      !!***************************************************************************
      !! Parameter to control SCF program
      !!
-     real(8) :: SCF_NONELECTRONIC_ENERGY_TOLERANCE
-     real(8) :: SCF_ELECTRONIC_ENERGY_TOLERANCE
+     real(8) :: NONELECTRONIC_ENERGY_TOLERANCE
+     real(8) :: ELECTRONIC_ENERGY_TOLERANCE
      real(8) :: NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
      real(8) :: ELECTRONIC_DENSITY_MATRIX_TOLERANCE
      real(8) :: TOTAL_ENERGY_TOLERANCE
-     real(8) :: STRONG_ENERGY_TOLERANCE!< Permite controlar la convergencia exaustiva de todas las especies
+     real(8) :: TOTAL_DENSITY_MATRIX_TOLERANCE
      real(8) :: DENSITY_FACTOR_THRESHOLD !< define cuando recalcula un elemeto Gij de acuedo con el valor de Pij
      real(8) :: DIIS_SWITCH_THRESHOLD
      real(8) :: DIIS_SWITCH_THRESHOLD_BKP
@@ -59,8 +60,7 @@ module CONTROL_
      real(8) :: WAVE_FUNCTION_SCALE
      integer :: SCF_NONELECTRONIC_MAX_ITERATIONS
      integer :: SCF_ELECTRONIC_MAX_ITERATIONS
-     integer :: SCF_MAX_ITERATIONS !< Limita el numero global de itereaciones para cualquier especie
-     integer :: SCF_GLOBAL_MAXIMUM_ITERATIONS
+     integer :: SCF_GLOBAL_MAX_ITERATIONS
      integer :: LISTS_SIZE
      integer :: CONVERGENCE_METHOD
      integer :: DIIS_DIMENSIONALITY
@@ -71,6 +71,7 @@ module CONTROL_
      logical :: DIIS_ERROR_IN_DAMPING
      logical :: ACTIVATE_LEVEL_SHIFTING
      logical :: EXCHANGE_ORBITALS_IN_SCF
+     logical :: FORCE_CLOSED_SHELL
      logical :: DEBUG_SCFS
      character(10) ::  SCF_GHOST_SPECIES
 
@@ -82,6 +83,7 @@ module CONTROL_
      logical :: FREEZE_ELECTRONIC_ORBITALS
      logical :: HARTREE_PRODUCT_GUESS
      logical :: READ_COEFFICIENTS
+     logical :: READ_FCHK
      logical :: WRITE_COEFFICIENTS_IN_BINARY
      logical :: READ_EIGENVALUES
      logical :: READ_EIGENVALUES_IN_BINARY
@@ -96,6 +98,7 @@ module CONTROL_
      logical :: IS_OPEN_SHELL
      logical :: GET_GRADIENTS
      logical :: HF_PRINT_EIGENVALUES
+     character(20) :: HF_PRINT_EIGENVECTORS
      real(8) :: OVERLAP_EIGEN_THRESHOLD
      real(8) :: ELECTRIC_FIELD(6)
      integer :: MULTIPOLE_ORDER
@@ -201,6 +204,25 @@ module CONTROL_
      integer :: CI_MADSPACE
 
      !!***************************************************************************
+     !! Non-orthogonal CI
+     !!
+     logical :: NONORTHOGONAL_CONFIGURATION_INTERACTION
+     integer :: TRANSLATION_SCAN_GRID(3)
+     integer :: ROTATIONAL_SCAN_GRID
+     integer :: NESTED_ROTATIONAL_GRIDS
+     real(8) :: TRANSLATION_STEP
+     real(8) :: NESTED_GRIDS_DISPLACEMENT
+     real(8) :: CONFIGURATION_ENERGY_THRESHOLD
+     real(8) :: CONFIGURATION_OVERLAP_THRESHOLD
+     real(8) :: CONFIGURATION_MAX_DISPLACEMENT(3)
+     real(8) :: CONFIGURATION_MIN_DISPLACEMENT(3)
+     real(8) :: CONFIGURATION_MAX_NP_DISTANCE
+     real(8) :: CONFIGURATION_MIN_PP_DISTANCE
+     real(8) :: CONFIGURATION_MAX_PP_DISTANCE
+     real(8) :: CONFIGURATION_EQUIVALENCE_DISTANCE
+     logical :: CONFIGURATION_USE_SYMMETRY
+     
+     !!***************************************************************************
      !! CCSD Parameters
      !!
      character(20) :: COUPLED_CLUSTER_LEVEL
@@ -224,6 +246,7 @@ module CONTROL_
      character(50) :: ELECTRON_EXCHANGE_FUNCTIONAL
      character(50) :: ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
      character(50) :: NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+     character(50) :: BETA_FUNCTION
      integer :: GRID_RADIAL_POINTS
      integer :: GRID_ANGULAR_POINTS
      integer :: GRID_NUMBER_OF_SHELLS
@@ -236,6 +259,22 @@ module CONTROL_
      logical :: AUXILIARY_DENSITY
      logical :: STORE_THREE_CENTER_ELECTRON_INTEGRALS
      logical :: CALL_LIBXC
+     real(8) :: NUCLEAR_ELECTRON_DENSITY_THRESHOLD
+     real(8) :: ELECTRON_DENSITY_THRESHOLD
+     real(8) :: GRID_WEIGHT_THRESHOLD
+     real(8) :: BETA_PARAMETER_A
+     real(8) :: BETA_PARAMETER_B
+     real(8) :: BETA_PARAMETER_C
+
+     !!*****************************************************
+     !! Subsystem embedding Options
+     !!
+     logical :: SUBSYSTEM_EMBEDDING
+     logical :: LOCALIZE_ORBITALS
+     real(8) :: SUBSYSTEM_LEVEL_SHIFTING
+     real(8) :: SUBSYSTEM_ORBITAL_THRESHOLD
+     real(8) :: SUBSYSTEM_BASIS_THRESHOLD
+     character(50) :: ERKALE_LOCALIZATION_METHOD
 
      !!*****************************************************
      !! External Potential Options
@@ -338,12 +377,12 @@ module CONTROL_
   !!***************************************************************************
   !! Parameter to control SCF program
   !!
-  real(8) :: LowdinParameters_scfNonelectronicEnergyTolerance
-  real(8) :: LowdinParameters_scfElectronicEnergyTolerance
+  real(8) :: LowdinParameters_nonElectronicEnergyTolerance
+  real(8) :: LowdinParameters_electronicEnergyTolerance
   real(8) :: LowdinParameters_nonelectronicDensityMatrixTolerance
   real(8) :: LowdinParameters_electronicDensityMatrixTolerance
   real(8) :: LowdinParameters_totalEnergyTolerance
-  real(8) :: LowdinParameters_strongEnergyTolerance
+  real(8) :: LowdinParameters_totalDensityMatrixTolerance
   real(8) :: LowdinParameters_densityFactorThreshold
   real(8) :: LowdinParameters_diisSwitchThreshold
   real(8) :: LowdinParameters_diisSwitchThreshold_bkp
@@ -352,7 +391,6 @@ module CONTROL_
   real(8) :: LowdinParameters_waveFunctionScale
   integer :: LowdinParameters_scfNonelectronicMaxIterations
   integer :: LowdinParameters_scfElectronicMaxIterations
-  integer :: LowdinParameters_scfMaxIterations
   integer :: LowdinParameters_scfGlobalMaxIterations
   integer :: LowdinParameters_listSize
   integer :: LowdinParameters_convergenceMethod
@@ -364,6 +402,7 @@ module CONTROL_
   logical :: LowdinParameters_diisErrorInDamping
   logical :: LowdinParameters_activateLevelShifting
   logical :: LowdinParameters_exchangeOrbitalsInSCF
+  logical :: LowdinParameters_forceClosedShell
   logical :: LowdinParameters_debugScfs
   character(10) :: LowdinParameters_scfGhostSpecies
 
@@ -375,6 +414,7 @@ module CONTROL_
   logical :: LowdinParameters_freezeElectronicOrbitals
   logical :: LowdinParameters_hartreeProductGuess
   logical :: LowdinParameters_readCoefficients
+  logical :: LowdinParameters_readFchk
   logical :: LowdinParameters_writeCoefficientsInBinary
   logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_readEigenvalues
@@ -390,6 +430,7 @@ module CONTROL_
   logical :: LowdinParameters_isOpenShell
   logical :: LowdinParameters_getGradients
   logical :: LowdinParameters_HFprintEigenvalues
+  character(20) :: LowdinParameters_HFprintEigenvectors
   real(8) :: LowdinParameters_overlapEigenThreshold
   real(8) :: LowdinParameters_electricField(6)
   integer :: LowdinParameters_multipoleOrder
@@ -493,6 +534,25 @@ module CONTROL_
   integer :: LowdinParameters_CIMadSpace
 
   !!***************************************************************************
+  !! Non-orthogonal CI
+  !!
+  logical :: LowdinParameters_nonOrthogonalConfigurationInteraction
+  integer :: LowdinParameters_translationScanGrid(3)
+  integer :: LowdinParameters_rotationalScanGrid
+  integer :: LowdinParameters_nestedRotationalGrids
+  real(8) :: LowdinParameters_translationStep
+  real(8) :: LowdinParameters_nestedGridsDisplacement
+  real(8) :: LowdinParameters_configurationEnergyThreshold
+  real(8) :: LowdinParameters_configurationOverlapThreshold
+  real(8) :: LowdinParameters_configurationMaxDisplacement(3)
+  real(8) :: LowdinParameters_configurationMinDisplacement(3)
+  real(8) :: LowdinParameters_configurationMaxNPDistance
+  real(8) :: LowdinParameters_configurationMinPPDistance
+  real(8) :: LowdinParameters_configurationMaxPPDistance
+  real(8) :: LowdinParameters_configurationEquivalenceDistance
+  logical :: LowdinParameters_configurationUseSymmetry
+  
+  !!***************************************************************************
   !! CCSD
   !! 
   character(20) :: LowdinParameters_coupledClusterLevel
@@ -516,6 +576,7 @@ module CONTROL_
   character(50) :: LowdinParameters_electronExchangeFunctional
   character(50) :: LowdinParameters_electronExchangeCorrelationFunctional
   character(50) :: LowdinParameters_nuclearElectronCorrelationFunctional
+  character(50) :: LowdinParameters_betaFunction
   integer :: LowdinParameters_gridRadialPoints
   integer :: LowdinParameters_gridAngularPoints
   integer :: LowdinParameters_gridNumberOfShells
@@ -528,6 +589,22 @@ module CONTROL_
   logical :: LowdinParameters_auxiliaryDensity
   logical :: LowdinParameters_storeThreeCenterElectronIntegrals
   logical :: LowdinParameters_callLibxc
+  real(8) :: LowdinParameters_nuclearElectronDensityThreshold
+  real(8) :: LowdinParameters_electronDensityThreshold
+  real(8) :: LowdinParameters_gridWeightThreshold
+  real(8) :: LowdinParameters_betaParameterA
+  real(8) :: LowdinParameters_betaParameterB
+  real(8) :: LowdinParameters_betaParameterC
+
+  !!*****************************************************
+  !! Subsystem embedding Options
+  !!
+  logical :: LowdinParameters_subsystemEmbedding
+  logical :: LowdinParameters_localizeOrbitals
+  real(8) :: LowdinParameters_subsystemLevelShifting
+  real(8) :: LowdinParameters_subsystemOrbitalThreshold
+  real(8) :: LowdinParameters_subsystemBasisThreshold
+  character(50) :: LowdinParameters_erkaleLocalizationMethod
 
   !!*****************************************************
   !! External Potential Options
@@ -605,16 +682,16 @@ module CONTROL_
 
 
   NAMELIST /LowdinParameters/ &
-
-    !!***************************************************************************
-    !! Dummy variables, just for debugging. 
-    !!
-    LowdinParameters_dummyReal,&
-    LowdinParameters_dummyInteger,&
-    LowdinParameters_dummyLogical,&
-    LowdinParameters_dummyCharacter,&
-
-
+       
+                                !!***************************************************************************
+                                !! Dummy variables, just for debugging. 
+                                !!
+       LowdinParameters_dummyReal,&
+       LowdinParameters_dummyInteger,&
+       LowdinParameters_dummyLogical,&
+       LowdinParameters_dummyCharacter,&
+       
+       
                                 !!***************************************************************************
                                 !! Parameter to control Integrals library
                                 !!  
@@ -629,12 +706,12 @@ module CONTROL_
                                 !!***************************************************************************
                                 !! Parameter to control SCF program
                                 !!
-       LowdinParameters_scfNonelectronicEnergyTolerance,&
-       LowdinParameters_scfElectronicEnergyTolerance,&
+       LowdinParameters_nonElectronicEnergyTolerance,&
+       LowdinParameters_electronicEnergyTolerance,&
        LowdinParameters_nonelectronicDensityMatrixTolerance,&
        LowdinParameters_electronicDensityMatrixTolerance,&
        LowdinParameters_totalEnergyTolerance,&
-       LowdinParameters_strongEnergyTolerance,&
+       LowdinParameters_totalDensityMatrixTolerance,&
        LowdinParameters_densityFactorThreshold,&
        LowdinParameters_diisSwitchThreshold,&
        LowdinParameters_diisSwitchThreshold_bkp,&
@@ -643,7 +720,6 @@ module CONTROL_
        LowdinParameters_waveFunctionScale,&
        LowdinParameters_scfNonelectronicMaxIterations,&
        LowdinParameters_scfElectronicMaxIterations,&
-       LowdinParameters_scfMaxIterations,&
        LowdinParameters_scfGlobalMaxIterations,&
        LowdinParameters_listSize,&
        LowdinParameters_convergenceMethod,&
@@ -655,6 +731,7 @@ module CONTROL_
        LowdinParameters_diisErrorInDamping,&
        LowdinParameters_activateLevelShifting,&
        LowdinParameters_exchangeOrbitalsInSCF,&
+       LowdinParameters_forceClosedShell,&
        LowdinParameters_debugScfs,&
        LowdinParameters_scfGhostSpecies, &
        
@@ -667,6 +744,7 @@ module CONTROL_
        LowdinParameters_hartreeProductGuess,&
        LowdinParameters_noSCF,&
        LowdinParameters_readCoefficients,&
+       LowdinParameters_readFchk,&
        LowdinParameters_readCoefficientsInBinary, &
        LowdinParameters_writeCoefficientsInBinary, &
        LowdinParameters_readEigenvalues,&
@@ -681,9 +759,10 @@ module CONTROL_
        LowdinParameters_isOpenShell, &
        LowdinParameters_getGradients, &
        LowdinParameters_HFprintEigenvalues, &
+       LowdinParameters_HFprintEigenvectors, &
        LowdinParameters_overlapEigenThreshold, &
        LowdinParameters_electricField, &
-       LowdinParameters_multipoleOrder, &
+       
        
                                 !!***************************************************************************
                                 !! Parameter to control geometry optimization
@@ -749,7 +828,7 @@ module CONTROL_
        LowdinParameters_ptFactorSS, &
        LowdinParameters_ptFactorOS, &
        LowdinParameters_ptP3Method, &
-
+       
        
                                 !!***************************************************************************
                                 !! Control print level and units
@@ -762,9 +841,9 @@ module CONTROL_
        LowdinParameters_units    ,&
        LowdinParameters_doubleZeroThreshold,&
        
-       !!***************************************************************************
-       !! CISD - FCI
-       !!
+                                !!***************************************************************************
+                                !! CISD - FCI
+                                !!
        LowdinParameters_configurationInteractionLevel,&
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
@@ -782,16 +861,33 @@ module CONTROL_
        LowdinParameters_CIMadSpace, &
        LowdinParameters_CIPrintEigenVectorsFormat, &
        LowdinParameters_CIPrintThreshold, &
-
-
-       !!***************************************************************************
-       !! CCSD 
-       !!
+       
+                                !!***************************************************************************
+                                !! Non-orthogonal CI
+                                !!
+       LowdinParameters_nonOrthogonalConfigurationInteraction,&
+       LowdinParameters_translationScanGrid,&
+       LowdinParameters_rotationalScanGrid,&
+       LowdinParameters_nestedRotationalGrids,&
+       LowdinParameters_translationStep,&
+       LowdinParameters_nestedGridsDisplacement,&
+       LowdinParameters_configurationEnergyThreshold,&
+       LowdinParameters_configurationOverlapThreshold,&
+       LowdinParameters_configurationMinDisplacement,&       
+       LowdinParameters_configurationMaxDisplacement,&       
+       LowdinParameters_configurationMaxNPDistance,&
+       LowdinParameters_configurationMinPPDistance,&
+       LowdinParameters_configurationMaxPPDistance,&
+       LowdinParameters_configurationEquivalenceDistance,&
+       LowdinParameters_configurationUseSymmetry,&
+                                !!***************************************************************************
+                                !! CCSD 
+                                !!
        LowdinParameters_coupledClusterLevel,&
        
-       !!*****************************************************
-       !! Parameter to general control
-       !!
+                                !!*****************************************************
+                                !! Parameter to general control
+                                !!
        LowdinParameters_method,&
        LowdinParameters_transformToCenterOfMass,&
        LowdinParameters_areThereDummyAtoms,&
@@ -808,6 +904,7 @@ module CONTROL_
        LowdinParameters_electronExchangeFunctional,&
        LowdinParameters_electronExchangeCorrelationFunctional,&
        LowdinParameters_nuclearElectronCorrelationFunctional,&
+       LowdinParameters_betaFunction,&
        LowdinParameters_gridRadialPoints,&
        LowdinParameters_gridAngularPoints,&
        LowdinParameters_gridNumberOfShells,&
@@ -820,7 +917,23 @@ module CONTROL_
        LowdinParameters_auxiliaryDensity,&
        LowdinParameters_storeThreeCenterElectronIntegrals,&
        LowdinParameters_callLibxc,&
+       LowdinParameters_nuclearElectronDensityThreshold,&
+       LowdinParameters_electronDensityThreshold,&
+       LowdinParameters_gridWeightThreshold,&
+       LowdinParameters_betaParameterA,&
+       LowdinParameters_betaParameterB,&
+       LowdinParameters_betaParameterC,&
        
+                                !!*****************************************************
+                                !! Subsystem embedding Options
+                                !!
+       LowdinParameters_subsystemEmbedding,&
+       LowdinParameters_localizeOrbitals,&
+       LowdinParameters_subsystemLevelShifting,&
+       LowdinParameters_subsystemOrbitalThreshold,&
+       LowdinParameters_subsystemBasisThreshold,&
+       LowdinParameters_erkaleLocalizationMethod,&
+
                                 !!*****************************************************
                                 !! External Potential Options
                                 !!
@@ -922,6 +1035,7 @@ contains
     implicit none
 
     character(50) :: aux
+    integer:: i, nthreads, proc
     !! Set defaults for namelist
 
     !!***************************************************************************
@@ -938,7 +1052,7 @@ contains
     LowdinParameters_tv = 1.0E-6
     LowdinParameters_integralThreshold = 1.0E-10
     LowdinParameters_integralStackSize = 30000
-    LowdinParameters_integralStorage = "MEMORY" !! "MEMORY" or "DISK" or "DIRECT"
+    LowdinParameters_integralStorage = "DISK" !! "MEMORY" or "DISK" or "DIRECT"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
     LowdinParameters_schwarzInequality = .false.
     LowdinParameters_harmonicConstant = 0.0_8
@@ -946,32 +1060,32 @@ contains
     !!***************************************************************************
     !! Parameter to control SCF program
     !!
-    LowdinParameters_scfNonelectronicEnergyTolerance = 1.0E-5
-    LowdinParameters_scfElectronicEnergyTolerance =  1.0E-6
-    LowdinParameters_nonelectronicDensityMatrixTolerance =  5.0E-4
+    LowdinParameters_nonElectronicEnergyTolerance = 1.0E-8
+    LowdinParameters_electronicEnergyTolerance =  1.0E-8
+    LowdinParameters_nonelectronicDensityMatrixTolerance =  1.0E-6
     LowdinParameters_electronicDensityMatrixTolerance = 1.0E-6
-    LowdinParameters_totalEnergyTolerance = 1.0E-7
-    LowdinParameters_strongEnergyTolerance = 1.0E-9
+    LowdinParameters_totalEnergyTolerance = 1.0E-8
+    LowdinParameters_totalDensityMatrixTolerance = 1.0E-6
     LowdinParameters_densityFactorThreshold = 1.0E-8
     LowdinParameters_diisSwitchThreshold = 0.5
     LowdinParameters_diisSwitchThreshold_bkp = 0.5 
     LowdinParameters_electronicLevelShifting = 0.0
     LowdinParameters_nonelectronicLevelShifting = 0.0
     LowdinParameters_waveFunctionScale = 1000.0
-    LowdinParameters_scfNonelectronicMaxIterations = 10000
-    LowdinParameters_scfElectronicMaxIterations = 20000
-    LowdinParameters_scfMaxIterations = 20000
-    LowdinParameters_scfGlobalMaxIterations = 5000 
+    LowdinParameters_scfNonelectronicMaxIterations = 50
+    LowdinParameters_scfElectronicMaxIterations = 50
+    LowdinParameters_scfGlobalMaxIterations = 200
     LowdinParameters_listSize = -20
     LowdinParameters_convergenceMethod = 1 !!(0) NONE, (1) DAMPING, (2) DIIS, (3) LEVEL SHIFTING (4) DAMPING/DIIS
     LowdinParameters_diisDimensionality = 10
     LowdinParameters_iterationScheme = 3 !!(0) NONELECRONIC FULLY / e- (1) ELECTRONIC FULLY (2) CONVERGED INDIVIDIALLY (3) SCHEMESIMULTANEOUS
     LowdinParameters_scfElectronicTypeGuess = "HCORE"
     LowdinParameters_scfNonelectronicTypeGuess = "HCORE"
-    LowdinParameters_scfConvergenceCriterium = "ENERGY"
+    LowdinParameters_scfConvergenceCriterium = "ENERGY" !ENERGY, DENSITY, BOTH
     LowdinParameters_diisErrorInDamping = .false.
     LowdinParameters_activateLevelShifting = .false.
     LowdinParameters_exchangeOrbitalsInSCF = .false.
+    LowdinParameters_forceClosedShell = .false.
     LowdinParameters_debugScfs = .false.
     LowdinParameters_scfGhostSpecies = "NONE"
 
@@ -982,7 +1096,8 @@ contains
     LowdinParameters_freezeNonElectronicOrbitals = .false.
     LowdinParameters_freezeElectronicOrbitals = .false.
     LowdinParameters_hartreeProductGuess = .false.
-    LowdinParameters_readCoefficients = .false.
+    LowdinParameters_readCoefficients = .true.
+    LowdinParameters_readFchk = .false.
     LowdinParameters_writeCoefficientsInBinary = .true.
     LowdinParameters_readEigenvalues = .false.
     LowdinParameters_readEigenvaluesInBinary = .true.
@@ -996,8 +1111,9 @@ contains
     LowdinParameters_electronicWaveFunctionAnalysis = .false.
     LowdinParameters_isOpenShell = .false.
     LowdinParameters_getGradients = .false.
-    LowdinParameters_HFprintEigenvalues = .false.
-    LowdinParameters_overlapEigenThreshold = 0.0_8
+    LowdinParameters_HFprintEigenvalues = .true.
+    LowdinParameters_HFprintEigenvectors = "OCCUPIED"
+    LowdinParameters_overlapEigenThreshold = 1.0E-8_8
     LowdinParameters_electricField(:) = 0.0_8
     LowdinParameters_multipoleOrder = 0
 
@@ -1037,7 +1153,7 @@ contains
     !! Parameter to control MBPn theory
     !!
     LowdinParameters_mpCorrection = 1
-    LowdinParameters_mpFrozenCoreBoundary = 1
+    LowdinParameters_mpFrozenCoreBoundary = 0
     LowdinParameters_mpOnlyElectronicCorrection = .false.
     LowdinParameters_epsteinNesbetCorrection = 1
 
@@ -1100,7 +1216,24 @@ contains
     LowdinParameters_CIPrintEigenVectorsFormat = "OCCUPIED"
     LowdinParameters_CIPrintThreshold = 1E-1
 
-
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    LowdinParameters_nonOrthogonalConfigurationInteraction=.false.
+    LowdinParameters_translationScanGrid(:)=0
+    LowdinParameters_rotationalScanGrid=0
+    LowdinParameters_nestedRotationalGrids=1
+    LowdinParameters_translationStep=0.0
+    LowdinParameters_nestedGridsDisplacement=0.0
+    LowdinParameters_configurationEnergyThreshold=1.0
+    LowdinParameters_configurationOverlapThreshold=1.0E-8
+    LowdinParameters_configurationMaxDisplacement(:)=0.0
+    LowdinParameters_configurationMinDisplacement(:)=0.0
+    LowdinParameters_configurationMaxNPDistance=1.0E8
+    LowdinParameters_configurationMinPPDistance=0.0
+    LowdinParameters_configurationMaxPPDistance=1.0E8
+    LowdinParameters_configurationEquivalenceDistance=1.0E-8
+    LowdinParameters_configurationUseSymmetry=.false.
     !!***************************************************************************
     !! CCSD
     !!
@@ -1125,6 +1258,7 @@ contains
     LowdinParameters_electronExchangeFunctional = "NONE"
     LowdinParameters_electronExchangeCorrelationFunctional = "NONE"
     LowdinParameters_nuclearElectronCorrelationFunctional = "NONE"
+    LowdinParameters_betaFunction = "NONE"
     LowdinParameters_gridRadialPoints=35
     LowdinParameters_gridAngularPoints=110
     LowdinParameters_gridNumberOfShells=5
@@ -1137,6 +1271,22 @@ contains
     LowdinParameters_auxiliaryDensity = .false.
     LowdinParameters_storeThreeCenterElectronIntegrals = .true.
     LowdinParameters_callLibxc = .true.
+    LowdinParameters_nuclearElectronDensityThreshold = 1E-10
+    LowdinParameters_electronDensityThreshold = 1E-10
+    LowdinParameters_gridWeightThreshold = 1E-10
+    LowdinParameters_betaParameterA = 0.0
+    LowdinParameters_betaParameterB = 0.0
+    LowdinParameters_betaParameterC = 0.0
+
+    !!*****************************************************
+    !! Subsystem embedding Options
+    !!
+    LowdinParameters_subsystemEmbedding = .false.
+    LowdinParameters_localizeOrbitals = .false.
+    LowdinParameters_subsystemLevelShifting = 1.0E6
+    LowdinParameters_subsystemOrbitalThreshold = 0.1
+    LowdinParameters_subsystemBasisThreshold = 0.0001
+    LowdinParameters_erkaleLocalizationMethod = "MU"
 
     !!*****************************************************
     !! External Potential Options
@@ -1242,22 +1392,21 @@ contains
     !!***************************************************************************
     !! Parameter to control SCF program
     !!
-    CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1.0E-5
-    CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE =  1.0E-6
-    CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE =  5.0E-4
+    CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE = 1.0E-8
+    CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE =  1.0E-8
+    CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE =  1.0E-6
     CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE = 1.0E-6
-    CONTROL_instance%TOTAL_ENERGY_TOLERANCE = 1.0E-7
-    CONTROL_instance%STRONG_ENERGY_TOLERANCE = 1.0E-9
+    CONTROL_instance%TOTAL_ENERGY_TOLERANCE = 1.0E-8
+    CONTROL_instance%TOTAL_DENSITY_MATRIX_TOLERANCE = 1.0E-6
     CONTROL_instance%DENSITY_FACTOR_THRESHOLD = 1.0E-8
     CONTROL_instance%DIIS_SWITCH_THRESHOLD = 0.5
     CONTROL_instance%DIIS_SWITCH_THRESHOLD_BKP = 0.5 
     CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING = 0.0
     CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING = 0.0
     CONTROL_instance%WAVE_FUNCTION_SCALE = 1000.0
-    CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS = 10000
-    CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS = 20000
-    CONTROL_instance%SCF_MAX_ITERATIONS = 20000
-    CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS = 5000 
+    CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS = 50
+    CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS = 50
+    CONTROL_instance%SCF_GLOBAL_MAX_ITERATIONS = 200 
     CONTROL_instance%LISTS_SIZE = -20
     CONTROL_instance%CONVERGENCE_METHOD = 1 !!(0) NONE, (1) DAMPING, (2) DIIS, (3) LEVEL SHIFTING (4) DAMPING/DIIS
     CONTROL_instance%DIIS_DIMENSIONALITY = 10
@@ -1268,6 +1417,7 @@ contains
     CONTROL_instance%DIIS_ERROR_IN_DAMPING = .false.
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = .false.
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = .false.
+    CONTROL_instance%FORCE_CLOSED_SHELL = .true.
     CONTROL_instance%DEBUG_SCFS = .false.
     CONTROL_instance%SCF_GHOST_SPECIES = "NONE"
     ! CONTROL_instance%DEBUG_SCFS = .true.
@@ -1279,7 +1429,8 @@ contains
     CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS = .false.
     CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS = .false.
     CONTROL_instance%HARTREE_PRODUCT_GUESS = .false.
-    CONTROL_instance%READ_COEFFICIENTS = .false.
+    CONTROL_instance%READ_COEFFICIENTS = .true.
+    CONTROL_instance%READ_FCHK=.false.
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%NO_SCF = .false.
     CONTROL_instance%FINITE_MASS_CORRECTION = .false.
@@ -1290,8 +1441,9 @@ contains
     CONTROL_instance%ELECTRONIC_WAVEFUNCTION_ANALYSIS = .false.
     CONTROL_instance%IS_OPEN_SHELL = .false.
     CONTROL_instance%GET_GRADIENTS = .false.
-    CONTROL_instance%HF_PRINT_EIGENVALUES = .false.
-    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = 0.0_8
+    CONTROL_instance%HF_PRINT_EIGENVALUES = .true.
+    CONTROL_instance%HF_PRINT_EIGENVECTORS = "OCCUPIED"
+    CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = 1.0E-8_8
     CONTROL_instance%ELECTRIC_FIELD(:) = 0.0_8
     CONTROL_instance%MULTIPOLE_ORDER = 0
     !!***************************************************************************                                              
@@ -1330,7 +1482,7 @@ contains
     !! Parameter to control MBPn theory                                                                                         
     !!                                                                                                                         
     CONTROL_instance%MOLLER_PLESSET_CORRECTION = 1
-    CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = 1
+    CONTROL_instance%MP_FROZEN_CORE_BOUNDARY = 0
     CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION = .false.
 
     CONTROL_instance%EPSTEIN_NESBET_CORRECTION = 1
@@ -1393,8 +1545,24 @@ contains
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = "OCCUPIED"
     CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
 
-
-
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION=.FALSE.
+    CONTROL_instance%TRANSLATION_SCAN_GRID(:)=0
+    CONTROL_instance%ROTATIONAL_SCAN_GRID=0
+    CONTROL_instance%NESTED_ROTATIONAL_GRIDS=1
+    CONTROL_instance%TRANSLATION_STEP=0.0
+    CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=0.0
+    CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD=1.0
+    CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD=1.0E-8
+    CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT(:)=0.0
+    CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(:)=0.0
+    CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE=1.0E8
+    CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE=0.0
+    CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=1.0E8
+    CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=1.0E-8
+    CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
     !!                                                                                                                         
@@ -1419,6 +1587,7 @@ contains
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%BETA_FUNCTION = "NONE"
     CONTROL_instance%GRID_RADIAL_POINTS= 35
     CONTROL_instance%GRID_ANGULAR_POINTS= 110
     CONTROL_instance%GRID_NUMBER_OF_SHELLS= 5
@@ -1431,6 +1600,22 @@ contains
     CONTROL_instance%AUXILIARY_DENSITY = .false.
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = .true.
     CONTROL_instance%CALL_LIBXC = .true.
+    CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD = 1E-10
+    CONTROL_instance%ELECTRON_DENSITY_THRESHOLD = 1E-10
+    CONTROL_instance%GRID_WEIGHT_THRESHOLD = 1E-10
+    CONTROL_instance%BETA_PARAMETER_A=0.0
+    CONTROL_instance%BETA_PARAMETER_B=0.0
+    CONTROL_instance%BETA_PARAMETER_C=0.0
+
+    !!*****************************************************
+    !! Subsystem embedding Options
+    !!
+    CONTROL_instance%SUBSYSTEM_EMBEDDING = .false.
+    CONTROL_instance%LOCALIZE_ORBITALS = .false.
+    CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING = 1.0E6
+    CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD = 0.1
+    CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD = 0.0001
+    CONTROL_instance%ERKALE_LOCALIZATION_METHOD = "MU"
 
     !!*****************************************************                                                                    
     !! External Potential Options                                                                                              
@@ -1485,7 +1670,15 @@ contains
     CONTROL_instance%IONIZE_MO = 0
     CONTROL_instance%IONIZE_SPECIE = "NONE"
     CONTROL_instance%EXCITE_SPECIE = "NONE"                                                            
-
+    !$OMP PARALLEL private(nthreads, proc)
+    proc = OMP_GET_THREAD_NUM()
+    if(proc == 0) then
+      nthreads = OMP_GET_NUM_THREADS()
+      CONTROL_instance%NUMBER_OF_CORES=nthreads
+    end if
+    !$OMP END PARALLEL
+    
+    
     !!*****************************************************
     !! Integrals transformation options
     !!
@@ -1516,8 +1709,9 @@ contains
     integer, optional :: unit
 
     integer :: uunit
-    integer:: stat
-
+    integer :: stat
+    character(1000) :: line
+    
     uunit = 4
     if(present(unit)) uunit = unit
 
@@ -1530,6 +1724,12 @@ contains
     !! Check the process
     if(stat > 0 ) then
 
+       write (*,'(A)') 'Error reading LowdinParameters'
+       ! write (*, '(a, i0)') 'iostat was:', stat
+       backspace(uunit)
+       read(uunit,fmt='(A)') line
+       write(*,'(A)') 'Invalid line : '//trim(line)
+         
        call CONTROL_exception( ERROR, "Class object CONTROL in the load function", &
             "check the CONTROL block in your input file")
     end if
@@ -1541,16 +1741,6 @@ contains
 
     if ( LowdinParameters_frozen(1) /= "NONE" ) then
        LowdinParameters_isThereFrozenParticle = .true.
-    end if
-
-    if ( LowdinParameters_convergenceMethod >= 2) then
-
-       LowdinParameters_electronicDensityMatrixTolerance = LowdinParameters_electronicDensityMatrixTolerance / 2.5_8
-       LowdinParameters_scfNonelectronicEnergyTolerance = LowdinParameters_scfNonelectronicEnergyTolerance / 2.5_8
-       LowdinParameters_scfElectronicEnergyTolerance = LowdinParameters_scfElectronicEnergyTolerance / 2.5_8
-       LowdinParameters_nonelectronicDensityMatrixTolerance = LowdinParameters_nonelectronicDensityMatrixTolerance / 2.5_8
-       LowdinParameters_totalEnergyTolerance = LowdinParameters_totalEnergyTolerance / 2.5_8
-
     end if
 
     !!***************************************************************************
@@ -1577,12 +1767,12 @@ contains
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
     !!                                                                                 
-    CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = LowdinParameters_scfNonelectronicEnergyTolerance
-    CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = LowdinParameters_scfElectronicEnergyTolerance
+    CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE = LowdinParameters_nonElectronicEnergyTolerance
+    CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE = LowdinParameters_electronicEnergyTolerance
     CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE = LowdinParameters_nonelectronicDensityMatrixTolerance
     CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE = LowdinParameters_electronicDensityMatrixTolerance
     CONTROL_instance%TOTAL_ENERGY_TOLERANCE = LowdinParameters_totalEnergyTolerance
-    CONTROL_instance%STRONG_ENERGY_TOLERANCE = LowdinParameters_strongEnergyTolerance
+    CONTROL_instance%TOTAL_DENSITY_MATRIX_TOLERANCE = LowdinParameters_totalDensityMatrixTolerance
     CONTROL_instance%DENSITY_FACTOR_THRESHOLD = LowdinParameters_densityFactorThreshold
     CONTROL_instance%DIIS_SWITCH_THRESHOLD = LowdinParameters_diisSwitchThreshold
     CONTROL_instance%DIIS_SWITCH_THRESHOLD_BKP = LowdinParameters_diisSwitchThreshold_bkp
@@ -1591,8 +1781,7 @@ contains
     CONTROL_instance%WAVE_FUNCTION_SCALE = LowdinParameters_waveFunctionScale
     CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS = LowdinParameters_scfNonelectronicMaxIterations
     CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS = LowdinParameters_scfElectronicMaxIterations
-    CONTROL_instance%SCF_MAX_ITERATIONS = LowdinParameters_scfMaxIterations
-    CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS = LowdinParameters_scfGlobalMaxIterations
+    CONTROL_instance%SCF_GLOBAL_MAX_ITERATIONS = LowdinParameters_scfGlobalMaxIterations
     CONTROL_instance%LISTS_SIZE = LowdinParameters_listSize
     CONTROL_instance%CONVERGENCE_METHOD = LowdinParameters_convergenceMethod
     CONTROL_instance%DIIS_DIMENSIONALITY = LowdinParameters_diisDimensionality
@@ -1603,6 +1792,7 @@ contains
     CONTROL_instance%DIIS_ERROR_IN_DAMPING = LowdinParameters_diisErrorInDamping
     CONTROL_instance%ACTIVATE_LEVEL_SHIFTING = LowdinParameters_activateLevelShifting
     CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF = LowdinParameters_exchangeOrbitalsInSCF
+    CONTROL_instance%FORCE_CLOSED_SHELL = LowdinParameters_forceClosedShell
     CONTROL_instance%DEBUG_SCFS = LowdinParameters_debugScfs
     CONTROL_instance%SCF_GHOST_SPECIES = LowdinParameters_scfGhostSpecies
 
@@ -1614,6 +1804,7 @@ contains
     CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS = LowdinParameters_freezeElectronicOrbitals
     CONTROL_instance%HARTREE_PRODUCT_GUESS = LowdinParameters_hartreeProductGuess
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
+    CONTROL_instance%READ_FCHK = LowdinParameters_readFchk
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
     CONTROL_instance%READ_EIGENVALUES = LowdinParameters_readEigenvalues
     CONTROL_instance%READ_EIGENVALUES_IN_BINARY =  LowdinParameters_readEigenvaluesInBinary
@@ -1628,6 +1819,7 @@ contains
     CONTROL_instance%IS_OPEN_SHELL = LowdinParameters_isOpenShell
     CONTROL_instance%GET_GRADIENTS = LowdinParameters_getGradients
     CONTROL_instance%HF_PRINT_EIGENVALUES = LowdinParameters_HFprintEigenvalues
+    CONTROL_instance%HF_PRINT_EIGENVECTORS = LowdinParameters_HFprintEigenvectors
     CONTROL_instance%OVERLAP_EIGEN_THRESHOLD = LowdinParameters_overlapEigenThreshold 
 
     CONTROL_instance%ELECTRIC_FIELD = LowdinParameters_electricField
@@ -1717,6 +1909,8 @@ contains
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
     CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
     CONTROL_instance%CI_STATES_TO_PRINT = LowdinParameters_CIstatesToPrint
+    if(CONTROL_instance%CI_STATES_TO_PRINT .gt. CONTROL_instance%NUMBER_OF_CI_STATES) &
+         CONTROL_instance%NUMBER_OF_CI_STATES=CONTROL_instance%CI_STATES_TO_PRINT
     CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
     CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
@@ -1730,6 +1924,28 @@ contains
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
     CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
 
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION=LowdinParameters_nonOrthogonalConfigurationInteraction
+    CONTROL_instance%TRANSLATION_SCAN_GRID=LowdinParameters_translationScanGrid
+    CONTROL_instance%ROTATIONAL_SCAN_GRID=LowdinParameters_rotationalScanGrid
+    CONTROL_instance%NESTED_ROTATIONAL_GRIDS=LowdinParameters_nestedRotationalGrids
+    CONTROL_instance%TRANSLATION_STEP=LowdinParameters_translationStep
+    CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=LowdinParameters_nestedGridsDisplacement
+    CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD=LowdinParameters_configurationEnergyThreshold
+    CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD=LowdinParameters_configurationOverlapThreshold
+    CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT=LowdinParameters_configurationMinDisplacement
+    if(sum(LowdinParameters_configurationMaxDisplacement).ne.0.0) then
+       CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT=LowdinParameters_configurationMaxDisplacement
+    else
+       CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT=1.001*CONTROL_instance%TRANSLATION_STEP*CONTROL_instance%TRANSLATION_SCAN_GRID/2
+    end if
+    CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE=LowdinParameters_configurationMaxNPDistance
+    CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE=LowdinParameters_configurationMinPPDistance
+    CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=LowdinParameters_configurationMaxPPDistance
+    CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=LowdinParameters_configurationEquivalenceDistance
+    CONTROL_instance%CONFIGURATION_USE_SYMMETRY=LowdinParameters_configurationUseSymmetry
 
 
     !!***************************************************************************      
@@ -1756,6 +1972,7 @@ contains
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = LowdinParameters_electronExchangeFunctional
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = LowdinParameters_electronExchangeCorrelationFunctional
     CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_nuclearElectronCorrelationFunctional
+    CONTROL_instance%BETA_FUNCTION = LowdinParameters_betaFunction
     CONTROL_instance%GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
     CONTROL_instance%GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
     CONTROL_instance%GRID_NUMBER_OF_SHELLS= LowdinParameters_gridNumberOfShells
@@ -1775,6 +1992,22 @@ contains
     CONTROL_instance%AUXILIARY_DENSITY = LowdinParameters_auxiliaryDensity
     CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS = LowdinParameters_storeThreeCenterElectronIntegrals
     CONTROL_instance%CALL_LIBXC = LowdinParameters_callLibxc
+    CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD = LowdinParameters_nuclearElectronDensityThreshold
+    CONTROL_instance%ELECTRON_DENSITY_THRESHOLD = LowdinParameters_electronDensityThreshold
+    CONTROL_instance%GRID_WEIGHT_THRESHOLD = LowdinParameters_gridWeightThreshold
+    CONTROL_instance%BETA_PARAMETER_A = LowdinParameters_betaParameterA
+    CONTROL_instance%BETA_PARAMETER_B = LowdinParameters_betaParameterB
+    CONTROL_instance%BETA_PARAMETER_C = LowdinParameters_betaParameterC
+
+    !!*****************************************************
+    !! Subsystem embedding Options
+    !!
+    CONTROL_instance%SUBSYSTEM_EMBEDDING = LowdinParameters_subsystemEmbedding
+    CONTROL_instance%LOCALIZE_ORBITALS = (LowdinParameters_localizeOrbitals .or. LowdinParameters_subsystemEmbedding)
+    CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING = LowdinParameters_subsystemLevelShifting
+    CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD = LowdinParameters_subsystemOrbitalThreshold
+    CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD = LowdinParameters_subsystemBasisThreshold
+    CONTROL_instance%ERKALE_LOCALIZATION_METHOD = LowdinParameters_erkaleLocalizationMethod
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -1886,12 +2119,12 @@ contains
     !!***************************************************************************      
     !! Parameter to control SCF program                                                
     !!                                                                                 
-    LowdinParameters_scfNonelectronicEnergyTolerance = CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE
-    LowdinParameters_scfElectronicEnergyTolerance = CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE
+    LowdinParameters_nonElectronicEnergyTolerance = CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE
+    LowdinParameters_electronicEnergyTolerance = CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE
     LowdinParameters_nonelectronicDensityMatrixTolerance = CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
     LowdinParameters_electronicDensityMatrixTolerance = CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE
     LowdinParameters_totalEnergyTolerance = CONTROL_instance%TOTAL_ENERGY_TOLERANCE
-    LowdinParameters_strongEnergyTolerance = CONTROL_instance%STRONG_ENERGY_TOLERANCE
+    LowdinParameters_totalDensityMatrixTolerance = CONTROL_instance%TOTAL_DENSITY_MATRIX_TOLERANCE
     LowdinParameters_densityFactorThreshold = CONTROL_instance%DENSITY_FACTOR_THRESHOLD
     LowdinParameters_diisSwitchThreshold = CONTROL_instance%DIIS_SWITCH_THRESHOLD
     LowdinParameters_diisSwitchThreshold_bkp = CONTROL_instance%DIIS_SWITCH_THRESHOLD_BKP
@@ -1900,8 +2133,7 @@ contains
     LowdinParameters_waveFunctionScale = CONTROL_instance%WAVE_FUNCTION_SCALE
     LowdinParameters_scfNonelectronicMaxIterations = CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
     LowdinParameters_scfElectronicMaxIterations = CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
-    LowdinParameters_scfMaxIterations = CONTROL_instance%SCF_MAX_ITERATIONS
-    LowdinParameters_scfGlobalMaxIterations = CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS
+    LowdinParameters_scfGlobalMaxIterations = CONTROL_instance%SCF_GLOBAL_MAX_ITERATIONS
     LowdinParameters_listSize = CONTROL_instance%LISTS_SIZE
     LowdinParameters_convergenceMethod = CONTROL_instance%CONVERGENCE_METHOD
     LowdinParameters_diisDimensionality = CONTROL_instance%DIIS_DIMENSIONALITY
@@ -1912,6 +2144,7 @@ contains
     LowdinParameters_diisErrorInDamping = CONTROL_instance%DIIS_ERROR_IN_DAMPING
     LowdinParameters_activateLevelShifting = CONTROL_instance%ACTIVATE_LEVEL_SHIFTING
     LowdinParameters_exchangeOrbitalsInSCF = CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF
+    LowdinParameters_forceClosedShell = CONTROL_instance%FORCE_CLOSED_SHELL 
     LowdinParameters_debugScfs = CONTROL_instance%DEBUG_SCFS
 
     LowdinParameters_scfGhostSpecies = CONTROL_instance%SCF_GHOST_SPECIES
@@ -1924,6 +2157,7 @@ contains
     LowdinParameters_freezeElectronicOrbitals = CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS
     LowdinParameters_hartreeProductGuess = CONTROL_instance%HARTREE_PRODUCT_GUESS
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
+    LowdinParameters_readFchk = CONTROL_instance%READ_FCHK
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
     LowdinParameters_readEigenvalues = CONTROL_instance%READ_EIGENVALUES
     LowdinParameters_readEigenvaluesInBinary = CONTROL_instance%READ_EIGENVALUES_IN_BINARY
@@ -1938,6 +2172,7 @@ contains
     LowdinParameters_isOpenShell = CONTROL_instance%IS_OPEN_SHELL
     LowdinParameters_getGradients = CONTROL_instance%GET_GRADIENTS
     LowdinParameters_HFprintEigenvalues = CONTROL_instance%HF_PRINT_EIGENVALUES 
+    LowdinParameters_HFprintEigenvectors = CONTROL_instance%HF_PRINT_EIGENVECTORS
     LowdinParameters_overlapEigenThreshold = CONTROL_instance%OVERLAP_EIGEN_THRESHOLD 
     LowdinParameters_electricField = CONTROL_instance%ELECTRIC_FIELD 
     LowdinParameters_multipoleOrder = CONTROL_instance%MULTIPOLE_ORDER 
@@ -2044,6 +2279,25 @@ contains
     LowdinParameters_CIPrintEigenVectorsFormat = CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT 
     LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
 
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    LowdinParameters_nonOrthogonalConfigurationInteraction=CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION
+    LowdinParameters_translationScanGrid=CONTROL_instance%TRANSLATION_SCAN_GRID
+    LowdinParameters_rotationalScanGrid=CONTROL_instance%ROTATIONAL_SCAN_GRID
+    LowdinParameters_nestedRotationalGrids=CONTROL_instance%NESTED_ROTATIONAL_GRIDS
+    LowdinParameters_translationStep=CONTROL_instance%TRANSLATION_STEP
+    LowdinParameters_nestedGridsDisplacement=CONTROL_instance%NESTED_GRIDS_DISPLACEMENT
+    LowdinParameters_configurationEnergyThreshold=CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD
+    LowdinParameters_configurationOverlapThreshold=CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
+    LowdinParameters_configurationMaxDisplacement=CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT
+    LowdinParameters_configurationMinDisplacement=CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT
+    LowdinParameters_configurationMaxNPDistance=CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE
+    LowdinParameters_configurationMinPPDistance=CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE
+    LowdinParameters_configurationMaxPPDistance=CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE
+    LowdinParameters_configurationEquivalenceDistance=CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE
+    LowdinParameters_configurationUseSymmetry=CONTROL_instance%CONFIGURATION_USE_SYMMETRY
+    
     !!***************************************************************************      
     !! CCSD                                                                      
     !!                                                                                 
@@ -2068,6 +2322,7 @@ contains
     LowdinParameters_electronExchangeFunctional = CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
     LowdinParameters_electronExchangeCorrelationFunctional = CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
     LowdinParameters_nuclearElectronCorrelationFunctional = CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+    LowdinParameters_betaFunction = CONTROL_instance%BETA_FUNCTION
     LowdinParameters_gridRadialPoints = CONTROL_instance%GRID_RADIAL_POINTS
     LowdinParameters_gridAngularPoints = CONTROL_instance%GRID_ANGULAR_POINTS
     LowdinParameters_gridNumberOfShells = CONTROL_instance%GRID_NUMBER_OF_SHELLS
@@ -2080,6 +2335,22 @@ contains
     LowdinParameters_auxiliaryDensity = CONTROL_instance%AUXILIARY_DENSITY
     LowdinParameters_storeThreeCenterElectronIntegrals = CONTROL_instance%STORE_THREE_CENTER_ELECTRON_INTEGRALS
     LowdinParameters_callLibxc = CONTROL_instance%CALL_LIBXC
+    LowdinParameters_nuclearElectronDensityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD
+    LowdinParameters_electronDensityThreshold=CONTROL_instance%ELECTRON_DENSITY_THRESHOLD
+    LowdinParameters_gridWeightThreshold=CONTROL_instance%GRID_WEIGHT_THRESHOLD
+    LowdinParameters_betaParameterA=CONTROL_instance%BETA_PARAMETER_A 
+    LowdinParameters_betaParameterB=CONTROL_instance%BETA_PARAMETER_B
+    LowdinParameters_betaParameterC=CONTROL_instance%BETA_PARAMETER_C
+
+    !!*****************************************************
+    !! Subsystem embedding Options
+    !!
+    LowdinParameters_subsystemEmbedding=CONTROL_instance%SUBSYSTEM_EMBEDDING
+    LowdinParameters_localizeOrbitals=CONTROL_instance%LOCALIZE_ORBITALS
+    LowdinParameters_subsystemLevelShifting=CONTROL_instance%SUBSYSTEM_LEVEL_SHIFTING
+    LowdinParameters_subsystemOrbitalThreshold=CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD
+    LowdinParameters_subsystemBasisThreshold=CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD
+    LowdinParameters_erkaleLocalizationMethod=CONTROL_instance%ERKALE_LOCALIZATION_METHOD
 
     !!*****************************************************                            
     !! External Potential Options                                                      
@@ -2190,12 +2461,12 @@ contains
     !! Parametros para control de proceso de minizacion de energia mediante
     !! metodo SCF
     !!
-    otherThis%SCF_NONELECTRONIC_ENERGY_TOLERANCE = this%SCF_NONELECTRONIC_ENERGY_TOLERANCE 
-    otherThis%SCF_ELECTRONIC_ENERGY_TOLERANCE = this%SCF_ELECTRONIC_ENERGY_TOLERANCE 
+    otherThis%NONELECTRONIC_ENERGY_TOLERANCE = this%NONELECTRONIC_ENERGY_TOLERANCE 
+    otherThis%ELECTRONIC_ENERGY_TOLERANCE = this%ELECTRONIC_ENERGY_TOLERANCE 
     otherThis%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE = this%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE 
     otherThis%ELECTRONIC_DENSITY_MATRIX_TOLERANCE = this%ELECTRONIC_DENSITY_MATRIX_TOLERANCE 
     otherThis%TOTAL_ENERGY_TOLERANCE = this%TOTAL_ENERGY_TOLERANCE 
-    otherThis%STRONG_ENERGY_TOLERANCE = this%STRONG_ENERGY_TOLERANCE 
+    otherThis%TOTAL_DENSITY_MATRIX_TOLERANCE = this%TOTAL_DENSITY_MATRIX_TOLERANCE 
     otherThis%DENSITY_FACTOR_THRESHOLD = this%DENSITY_FACTOR_THRESHOLD 
     otherThis%DIIS_SWITCH_THRESHOLD = this%DIIS_SWITCH_THRESHOLD 
     otherThis%DIIS_SWITCH_THRESHOLD_BKP = this%DIIS_SWITCH_THRESHOLD_BKP 
@@ -2204,8 +2475,7 @@ contains
     otherThis%WAVE_FUNCTION_SCALE= this%WAVE_FUNCTION_SCALE
     otherThis%SCF_NONELECTRONIC_MAX_ITERATIONS = this%SCF_NONELECTRONIC_MAX_ITERATIONS 
     otherThis%SCF_ELECTRONIC_MAX_ITERATIONS = this%SCF_ELECTRONIC_MAX_ITERATIONS 
-    otherThis%SCF_MAX_ITERATIONS= this%SCF_MAX_ITERATIONS
-    otherThis%SCF_GLOBAL_MAXIMUM_ITERATIONS = this%SCF_GLOBAL_MAXIMUM_ITERATIONS 
+    otherThis%SCF_GLOBAL_MAX_ITERATIONS = this%SCF_GLOBAL_MAX_ITERATIONS 
     otherThis%LISTS_SIZE = this%LISTS_SIZE 
     otherThis%CONVERGENCE_METHOD = this%CONVERGENCE_METHOD 
     otherThis%DIIS_DIMENSIONALITY = this%DIIS_DIMENSIONALITY 
@@ -2216,6 +2486,7 @@ contains
     otherThis%DIIS_ERROR_IN_DAMPING = this%DIIS_ERROR_IN_DAMPING 
     otherThis%ACTIVATE_LEVEL_SHIFTING = this%ACTIVATE_LEVEL_SHIFTING 
     otherThis%EXCHANGE_ORBITALS_IN_SCF = this%EXCHANGE_ORBITALS_IN_SCF 
+    otherThis%FORCE_CLOSED_SHELL = this%FORCE_CLOSED_SHELL
     otherThis%DEBUG_SCFS = this%DEBUG_SCFS 
     otherThis%SCF_GHOST_SPECIES = this%SCF_GHOST_SPECIES 
     !!***************************************************************************
@@ -2226,6 +2497,7 @@ contains
     otherThis%FREEZE_ELECTRONIC_ORBITALS = this%FREEZE_ELECTRONIC_ORBITALS 
     otherThis%HARTREE_PRODUCT_GUESS = this%HARTREE_PRODUCT_GUESS 
     otherThis%READ_COEFFICIENTS = this%READ_COEFFICIENTS 
+    otherThis%READ_FCHK = this%READ_FCHK
     otherThis%WRITE_COEFFICIENTS_IN_BINARY = this%WRITE_COEFFICIENTS_IN_BINARY
     otherThis%NO_SCF = this%NO_SCF 
     otherThis%FINITE_MASS_CORRECTION = this%FINITE_MASS_CORRECTION 
@@ -2237,6 +2509,7 @@ contains
     otherThis%IS_OPEN_SHELL = this%IS_OPEN_SHELL    
     otherThis%GET_GRADIENTS = this%GET_GRADIENTS    
     otherThis%HF_PRINT_EIGENVALUES = this%HF_PRINT_EIGENVALUES 
+    otherThis%HF_PRINT_EIGENVECTORS = this%HF_PRINT_EIGENVECTORS
     otherThis%OVERLAP_EIGEN_THRESHOLD = this%OVERLAP_EIGEN_THRESHOLD 
     otherThis%ELECTRIC_FIELD = this%ELECTRIC_FIELD 
     otherThis%MULTIPOLE_ORDER = this%MULTIPOLE_ORDER 
@@ -2332,6 +2605,25 @@ contains
     otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
 
     !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    otherThis%NONORTHOGONAL_CONFIGURATION_INTERACTION = this%NONORTHOGONAL_CONFIGURATION_INTERACTION
+    otherThis%TRANSLATION_SCAN_GRID = this%TRANSLATION_SCAN_GRID
+    otherThis%ROTATIONAL_SCAN_GRID = this%ROTATIONAL_SCAN_GRID
+    otherThis%NESTED_ROTATIONAL_GRIDS = this%NESTED_ROTATIONAL_GRIDS
+    otherThis%TRANSLATION_STEP = this%TRANSLATION_STEP
+    otherThis%NESTED_GRIDS_DISPLACEMENT = this%NESTED_GRIDS_DISPLACEMENT
+    otherThis%CONFIGURATION_ENERGY_THRESHOLD=this%CONFIGURATION_ENERGY_THRESHOLD
+    otherThis%CONFIGURATION_OVERLAP_THRESHOLD=this%CONFIGURATION_OVERLAP_THRESHOLD
+    otherThis%CONFIGURATION_MAX_DISPLACEMENT=this%CONFIGURATION_MAX_DISPLACEMENT
+    otherThis%CONFIGURATION_MIN_DISPLACEMENT=this%CONFIGURATION_MIN_DISPLACEMENT
+    otherThis%CONFIGURATION_MAX_NP_DISTANCE=this%CONFIGURATION_MAX_NP_DISTANCE
+    otherThis%CONFIGURATION_MIN_PP_DISTANCE=this%CONFIGURATION_MIN_PP_DISTANCE
+    otherThis%CONFIGURATION_MAX_PP_DISTANCE=this%CONFIGURATION_MAX_PP_DISTANCE
+    otherThis%CONFIGURATION_EQUIVALENCE_DISTANCE=this%CONFIGURATION_EQUIVALENCE_DISTANCE
+    otherThis%CONFIGURATION_USE_SYMMETRY=this%CONFIGURATION_USE_SYMMETRY
+
+    !!***************************************************************************
     !! CCSD
     !!
     otherThis%COUPLED_CLUSTER_LEVEL = this%COUPLED_CLUSTER_LEVEL 
@@ -2354,6 +2646,7 @@ contains
     otherThis%ELECTRON_EXCHANGE_FUNCTIONAL = this%ELECTRON_EXCHANGE_FUNCTIONAL 
     otherThis%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = this%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL 
     otherThis%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = this%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL 
+    otherThis%BETA_FUNCTION = this%BETA_FUNCTION
     otherThis%GRID_RADIAL_POINTS=this%GRID_RADIAL_POINTS
     otherThis%GRID_ANGULAR_POINTS=this%GRID_ANGULAR_POINTS
     otherThis%GRID_NUMBER_OF_SHELLS=this%GRID_NUMBER_OF_SHELLS
@@ -2364,6 +2657,19 @@ contains
     otherThis%POLARIZATION_ORDER = this%POLARIZATION_ORDER 
     otherThis%FUKUI_FUNCTIONS = this%FUKUI_FUNCTIONS 
     otherThis%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS = this%NUMBER_OF_BLOCKS_IN_AUXILIARY_FUNCTIONS 
+    otherThis%NUCLEAR_ELECTRON_DENSITY_THRESHOLD= this%NUCLEAR_ELECTRON_DENSITY_THRESHOLD
+    otherThis%ELECTRON_DENSITY_THRESHOLD= this%ELECTRON_DENSITY_THRESHOLD
+    otherThis%GRID_WEIGHT_THRESHOLD= this%GRID_WEIGHT_THRESHOLD
+    !!*****************************************************
+    !! Subsystem embedding Options
+    !!
+    otherThis%SUBSYSTEM_EMBEDDING = this%SUBSYSTEM_EMBEDDING
+    otherThis%LOCALIZE_ORBITALS = this%LOCALIZE_ORBITALS
+    otherThis%SUBSYSTEM_LEVEL_SHIFTING = this%SUBSYSTEM_LEVEL_SHIFTING
+    otherThis%SUBSYSTEM_ORBITAL_THRESHOLD = this%SUBSYSTEM_ORBITAL_THRESHOLD
+    otherThis%SUBSYSTEM_BASIS_THRESHOLD = this%SUBSYSTEM_BASIS_THRESHOLD
+    otherThis%ERKALE_LOCALIZATION_METHOD = this%ERKALE_LOCALIZATION_METHOD
+
     !!*****************************************************
     !! External Potential Options
     !!
@@ -2449,13 +2755,7 @@ contains
 
     write (*,"(T10,A)") "METHOD TYPE:  "//trim(CONTROL_instance%METHOD)
 
-    !$OMP PARALLEL private(nthreads, proc)
-    proc = OMP_GET_THREAD_NUM()
-    if(proc == 0) then
-      nthreads = OMP_GET_NUM_THREADS()
-      write (*,"(T10,A,I5)") "NUMBER OF CORES: ", nthreads
-    end if
-    !$OMP END PARALLEL
+    write (*,"(T10,A,I5)") "NUMBER OF CORES: ", CONTROL_instance%NUMBER_OF_CORES
 
     if(CONTROL_instance%METHOD=="RKS" .or. CONTROL_instance%METHOD=="UKS" .or. CONTROL_instance%METHOD=="ROKS" ) then
 
@@ -2518,11 +2818,79 @@ contains
 
     end if
 
+    
     if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
-      
-      write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
-      ! CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE = 1E-08
-      ! CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
+
+       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+       ! CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE = 1E-08
+       ! CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
+
+    end if
+
+    !!***************************************************************************
+    !! Non-orthogonal CI
+    !!
+    if(CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION ) then
+       print *, ""
+       write (*,"(T10,A)") "PERFORMING A NONORTHOGONAL CONFIGURATION INTERACTION CALCULATION"
+       write (*,"(T10,A)") "THAT MIXES HF CALCULATIONS WITH DIFFERENT BASIS SET CENTERS "
+
+       if(CONTROL_instance%UNITS .eq. "ANGS") then
+          CONTROL_instance%TRANSLATION_STEP = CONTROL_instance%TRANSLATION_STEP / AMSTRONG
+          CONTROL_instance%NESTED_GRIDS_DISPLACEMENT = CONTROL_instance%NESTED_GRIDS_DISPLACEMENT / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT = CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT = CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT / AMSTRONG
+          CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE = CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE = CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE = CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE / AMSTRONG
+          CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE = CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE / AMSTRONG
+       end if
+       
+       if(sum(CONTROL_instance%TRANSLATION_SCAN_GRID) .gt. 0 ) then
+          write (*,"(T10,A,I6,A)") "THE BASIS FUNCTIONS AT EACH TRANSLATION CENTER WILL BE DISPLACED FORMING ", CONTROL_instance%TRANSLATION_SCAN_GRID(1)*CONTROL_instance%TRANSLATION_SCAN_GRID(2)*CONTROL_instance%TRANSLATION_SCAN_GRID(3) ," BODY-CENTERED-CUBIC CELLS"
+          write (*,"(T10,A,I3,I3,I3,A)") "IN A RECTANGULAR ARRAY OF", CONTROL_instance%TRANSLATION_SCAN_GRID(1:3), " CELLS ALONG THE X,Y,Z AXIS"
+          write (*,"(T10,A,F6.3,A10)") "WITH A SEPARATION BETWEEN POINTS OF", CONTROL_instance%TRANSLATION_STEP, " BOHRS"
+       end if
+
+       if(CONTROL_instance%ROTATIONAL_SCAN_GRID .gt. 0 ) then
+          if(CONTROL_instance%NESTED_ROTATIONAL_GRIDS .gt. 1 ) then
+             write (*,"(T10,I3,A,I6,A)") CONTROL_instance%NESTED_ROTATIONAL_GRIDS, " LEBEDEV GRIDS OF", CONTROL_instance%ROTATIONAL_SCAN_GRID, " BASIS FUNCTIONS WILL BE PLACED AROUND EACH ROTATIONAL CENTER"
+             write (*,"(T10,A,F6.3,A10)") "WITH A RADIAL SEPARATION  OF", CONTROL_instance%NESTED_GRIDS_DISPLACEMENT,  " BOHRS"
+          else
+             write (*,"(T10,A,I6,A)") "A LEBEDEV GRID OF", CONTROL_instance%ROTATIONAL_SCAN_GRID, " BASIS FUNCTIONS WILL BE PLACED AROUND EACH ROTATIONAL CENTER"
+          end if
+       end if
+
+       if(CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,A)") "GEOMETRIES WITH ENERGY HIGHER THAN ", CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD," A.U. COMPARED TO THE HF REFERENCE WILL NOT BE INCLUDED IN THE CONFIGURATION SPACE"  
+       
+       if(CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD .gt. 0.0) &
+            write (*,"(T10,A,ES15.5)") "SKIPPING HAMILTONIAN MATRIX ELEMENTS FROM CONFIGURATIONS WITH OVERLAP LOWER THAN ",  CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD
+
+       if(sum(CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT) .gt. 0.0) &
+            write (*,"(T10,A,3ES15.5,A10,A)") "SKIPPING GEOMETRIES OUTSIDE AN ELLIPSOID OF SEMI-AXES ",  CONTROL_instance%CONFIGURATION_MAX_DISPLACEMENT,  " BOHRS", " FROM THE REFERENCE CENTER"
+
+       if(sum(CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT) .gt. 0.0) &
+            write (*,"(T10,A,3ES15.5,A10,A)") "SKIPPING GEOMETRIES INSIDE AN ELLIPSOID OF SEMI-AXES ",  CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT,  " BOHRS", " FROM THE REFERENCE CENTER"
+
+       if(CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE .lt. 1.0E8) &
+            write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH SEPARATION BETWEEN POSITIVE AND NEGATIVE BASIS SET CENTERS HIGHER THAN ",  CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE, " BOHRS"
+
+       if(CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH SEPARATION BETWEEN SAME CHARGE BASIS SET CENTERS LOWER THAN ",  CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE, " BOHRS"
+
+       if(CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE .lt. 1.0E8) &
+            write (*,"(T10,A,ES15.5,A10,A)") "SKIPPING GEOMETRIES WITH SEPARATION BETWEEN SAME CHARGE BASIS SET CENTERS HIGHER THAN ",  CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE, " BOHRS"
+       
+       if(CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE .gt. 0.0) &
+            write (*,"(T10,A,ES15.5,A10,A)") "GEOMETRIES WITH DISTANCE MATRIX THAT DIFFER IN LESS THAN ",  CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE, " BOHRS", " WILL BE REGARDED AS EQUIVALENT"
+       
+       if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY) &
+            write (*,"(T10,A)") "CONFIGURATION PAIRS WILL BE CLASSIFIED ACCORDING TO THEIR MIXED GEOMETRY DISTANCE MATRIX AND ONLY UNIQUE ELEMENTS WILL BE COMPUTED"
+
+       print *, ""
+
+
 
     end if
 
@@ -2626,31 +2994,64 @@ contains
     end if
 
     if(CONTROL_instance%METHOD/="MM") then
-       write (*,"(T10,A,E15.5)") "NONELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%SCF_NONELECTRONIC_ENERGY_TOLERANCE
-       write (*,"(T10,A,E15.5)") "NONELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
-       write (*,"(T10,A,E15.5)") "ELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%SCF_ELECTRONIC_ENERGY_TOLERANCE
-       write (*,"(T10,A,E15.5)") "ELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE
-       write (*,"(T10,A,E15.5)") "TOTAL ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%TOTAL_ENERGY_TOLERANCE
-       write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - NONELECTRONICS : ",CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
-       write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - ELECTRONICS : ",CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
-       write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - INTERSPECIES : ",CONTROL_instance%SCF_GLOBAL_MAXIMUM_ITERATIONS
-       write (*,"(T10,A)") "CRITERIUM OF CONVERGENCE: "//trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM)
        write (*,"(T10,A)") "NONELECTRONIC DENSITY GUESS: "//trim(CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS)
        write (*,"(T10,A)") "ELECTRONIC DENSITY GUESS: "//trim(CONTROL_instance%SCF_ELECTRONIC_TYPE_GUESS)
-    end if
 
-    if (CONTROL_instance%NO_SCF) write (*,"(T10,A)") "NO SCF WILL BE PERFORMED"
+       write (*,"(T10,A)") "CRITERIUM OF CONVERGENCE: "//trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM)
+       
+       select case(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM)
+       case("ENERGY")
+          write (*,"(T10,A,E15.5)") "NONELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE
+          write (*,"(T10,A,E15.5)") "ELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE
+          write (*,"(T10,A,E15.5)") "TOTAL ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%TOTAL_ENERGY_TOLERANCE
+          CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE=1.0
+          CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE=1.0
+          CONTROL_instance%TOTAL_DENSITY_MATRIX_TOLERANCE=1.0
+       case("DENSITY")
+          write (*,"(T10,A,E15.5)") "NONELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
+          write (*,"(T10,A,E15.5)") "ELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE
+          write (*,"(T10,A,E15.5)") "TOTAL DENSITY TOLERANCE IN SCFs: ",CONTROL_instance%TOTAL_DENSITY_MATRIX_TOLERANCE
+          CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE=1.0
+          CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE=1.0
+          CONTROL_instance%TOTAL_ENERGY_TOLERANCE=1.0
+       case ("BOTH")
+          write (*,"(T10,A,E15.5)") "NONELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE
+          write (*,"(T10,A,E15.5)") "NONELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%NONELECTRONIC_DENSITY_MATRIX_TOLERANCE
+          write (*,"(T10,A,E15.5)") "ELECTRONIC ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE
+          write (*,"(T10,A,E15.5)") "ELECTRONIC DENSITY MATRIX TOLERANCE IN SCFs: ",CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE
+          write (*,"(T10,A,E15.5)") "TOTAL ENERGY TOLERANCE IN SCFs: ",CONTROL_instance%TOTAL_ENERGY_TOLERANCE
+          write (*,"(T10,A,E15.5)") "TOTAL DENSITY TOLERANCE IN SCFs: ",CONTROL_instance%TOTAL_DENSITY_MATRIX_TOLERANCE
+       case default
+          call CONTROL_exception( ERROR, "unknown convergence criterium chosen", "at core program, CONTROL module")
+       end select
 
-    if (CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS) write (*,"(T10,A)") "Electrons will be frozen during SCF calculation"
+       select case(CONTROL_instance%ITERATION_SCHEME)          
+       case(0)
+          write (*,"(T10,A)") "SCHEME OF ITERATION: NONELECTRONIC FULLY PER GLOBAL ITERATION"
+          CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS=1
+       case(1)
+          write (*,"(T10,A)") "SCHEME OF ITERATION: ELECTRONIC FULLY PER GLOBAL ITERATION"
+          CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS=1
+       case(2)
+          write (*,"(T10,A)") "SCHEME OF ITERATION: EACH SPECIES FULLY PER GLOBAL ITERATION"
+       case(3)
+          write (*,"(T10,A)") "SCHEME OF ITERATION: GLOBAL ITERATIONS"
+          CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS=1
+          CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS=1
+       end select
 
-    if ( CONTROL_instance%HARTREE_PRODUCT_GUESS) then
+       write (*,"(T10,A,I5)") "SCF MAX. SUBITERATIONS - NONELECTRONS : ",CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
+       write (*,"(T10,A,I5)") "SCF MAX. SUBITERATIONS - ELECTRONS : ",CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
+       write (*,"(T10,A,I5)") "SCF MAX. ITERATIONS - INTERSPECIES : ",CONTROL_instance%SCF_GLOBAL_MAX_ITERATIONS
 
-       write (*,"(T10,A)") "HARTREE PRODUCT GUESS: T"
+       if (CONTROL_instance%NO_SCF) write (*,"(T10,A)") "COEFFICIENTS WILL BE READ AND NO SCF WILL BE PERFORMED"
 
-    end if
+       if (CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS) write (*,"(T10,A)") "Electrons will be frozen during SCF calculation"
 
-    if(CONTROL_instance%METHOD/="MM") then
-       write (*,"(T10,A,I5)") "SCHEME OF ITERATION: ",CONTROL_instance%ITERATION_SCHEME
+       if ( CONTROL_instance%HARTREE_PRODUCT_GUESS) write (*,"(T10,A)") "HARTREE PRODUCT GUESS: T"
+
+
+
        write (*,"(T10,A)") "INTEGRAL STORAGE: "//trim(CONTROL_instance%INTEGRAL_STORAGE)
        write (*,"(T10,A,I5)") "STACK SIZE FOR ERIS : ", CONTROL_instance%INTEGRAL_STACK_SIZE
 
@@ -2675,16 +3076,46 @@ contains
        end select
     end if
 
-    if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
+    if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .ne. 0.0_8 .or. CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .ne. 0.0_8 ) CONTROL_instance%ACTIVATE_LEVEL_SHIFTING=.true.
        
-       if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+    if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
+
+       if ( CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING .ne. 0.0_8 ) &
             write(*,"(T10,A,F10.6)") "SHIFTING ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
 
-       if ( CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .gt. 0.0_8 ) &
+       if ( CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING .ne. 0.0_8 ) &
             write(*,"(T10,A,F10.6)") "SHIFTING NON-ELECTRONIC VIRTUAL ORBITALS IN SCF BY:", CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
 
     end if
 
+    if(CONTROL_instance%LOCALIZE_ORBITALS) then
+       select case (trim(CONTROL_instance%ERKALE_LOCALIZATION_METHOD))
+       case("MU")
+          write (*,"(T10,A)") "OCCUPIED ORBITALS WILL BE LOCALIZED WITH THE PIPEK-MEZEY SCHEME WITH MULLIKEN CHARGES"
+       case("IAO")
+          write (*,"(T10,A)") "OCCUPIED ORBITALS WILL BE LOCALIZED WITH THE PIPEK-MEZEY SCHEME WITH IBO CHARGES"
+       case default
+          write (*,"(T10,A)") "OCCUPIED ORBITALS WILL BE LOCALIZED WITH THE ", trim(CONTROL_instance%ERKALE_LOCALIZATION_METHOD) ," SCHEME"
+       end select
+    end if
+       
+         
+    
+    if(CONTROL_instance%SUBSYSTEM_EMBEDDING) then
+       print *, "  "
+       write (*,"(T10,A,A)") "TWO SCF CALCULATIONS WILL BE PERFORMED, FIRST FOR THE COMPLETE SYSTEM WITH ", CONTROL_instance%METHOD
+       write (*,"(T10,A)") "THEN WITH HF FOR FRAGMENT ONE IN THE INPUT (SUBSYSTEM A)"
+       write (*,"(T10,A)") "EMBEDDED IN THE POTENTIAL GENERATED BY THE OTHER FRAGMENTS (SUBSYSTEM B)."
+       write (*,"(T10,A)") "POST-SCF CORRECTIONS ONLY WILL BE PERFORMED IN THE SECOND CALCULATION"
+       print *, "  "
+
+       write (*,"(T10,A,E6.1,A)") "SUBSYSTEM B IS BUILT FROM ORBITALS WITH POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD ," OVER FRAGMENT ONE ATOMS"
+       if(CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD .gt. 0.0) &
+            write (*,"(T10,A,E6.1,A)") "SHELLS WITH MULLIKEN POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD ," WILL BE REMOVED FROM SUBSYSTEM A BASIS SET"
+            
+    end if
+
+    
   end subroutine CONTROL_show
 
   !>

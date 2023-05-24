@@ -22,6 +22,7 @@ TASKS
 END TASKS
 
 CONTROL
+readCoefficients=F
 !	integralScheme="rys"
 	schwarzInequality=true
 END CONTROL

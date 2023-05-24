@@ -9,8 +9,7 @@ This program has been developed under direction of:
 
 © All rights reserved, 2023.
 
-
-[![Makefile CI](https://github.com/efposadac/OpenLowdin/actions/workflows/makefile.yml/badge.svg?branch=master)](https://github.com/efposadac/OpenLowdin/actions/workflows/makefile.yml)
+© All rights reserved, 2023.
 
 
 Welcome to openLOWDIN Quantum Chemistry Package.

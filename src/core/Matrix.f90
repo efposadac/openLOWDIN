@@ -82,6 +82,11 @@ module Matrix_
      integer(1), allocatable :: values(:,:)
   end type IMatrix1
   
+  type, public :: FourIndexMatrix
+     real(8), allocatable :: values(:,:,:,:)
+     logical :: isInstanced
+  end type FourIndexMatrix
+
   interface assignment(=)
      module procedure Matrix_copyConstructor
   end interface
@@ -184,7 +189,8 @@ module Matrix_
        diagonalize_matrix, & ! Copiada de Parakata
        Matrix_constructorInteger8, &
        Matrix_constructorInteger, &
-       Matrix_constructorInteger1
+       Matrix_constructorInteger1, &
+       Matrix_fourIndexConstructor
 
   private
 
@@ -204,7 +210,6 @@ contains
     this%isInstanced = .true.
     valueTmp = 0.0_8
     if( present(value) ) valueTmp = value
-
     if (allocated(this%values)) deallocate(this%values)
     allocate( this%values( dim1, dim2 ) )
 
@@ -212,7 +217,7 @@ contains
     this%isInstanced = .true.
 
   end subroutine Matrix_constructor
-
+  
   !>
   !! @brief Constructor
   !! Constructor por omision
@@ -247,7 +252,7 @@ contains
     integer, optional, intent(in) :: value
 
     integer :: valueTmp
-    this%isInstanced = .true.
+
     valueTmp = 0.0_8
     if( present(value) ) valueTmp = value
 
@@ -280,6 +285,29 @@ contains
 
   end subroutine Matrix_constructorInteger1
 
+  !>
+  !! @brief Constructor
+  !! Constructor por omision
+  subroutine Matrix_fourIndexConstructor( this, dim1, dim2, dim3, dim4, value)
+    implicit none
+    type(FourIndexMatrix), intent(inout) :: this
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
+    integer(8), intent(in) :: dim3
+    integer(8), intent(in) :: dim4
+    real(8), optional, intent(in) :: value
+
+    real(8) :: valueTmp
+    this%isInstanced = .true.
+    valueTmp = 0.0_8
+    if( present(value) ) valueTmp = value
+    if (allocated(this%values)) deallocate(this%values)
+    allocate( this%values( dim1, dim2, dim3, dim4 ) )
+
+    this%values = valueTmp
+    this%isInstanced = .true.
+
+  end subroutine Matrix_fourIndexConstructor
 
   !>
   !! @brief Constructor de copia
@@ -631,7 +659,7 @@ contains
   !>
   !! @brief Obtiene una matriz del lugar especificado
   !! @warning The arguments options are only available with unit option
-  function Matrix_getFromFile(rows, columns, unit, file, binary, arguments) result( output )
+  function Matrix_getFromFile(rows, columns, unit, file, binary, arguments, failContinue) result( output )
     implicit none
     integer, intent(in) :: rows
     integer, intent(in) :: columns
@@ -639,9 +667,11 @@ contains
     character(*), optional :: file
     logical, optional :: binary
     character(*), optional :: arguments(:)
+    logical, optional :: failContinue
 
     type(Matrix) :: output
 
+    integer :: failAction
     character(5000) :: line
     character(20) :: auxSize
     real(8), allocatable :: values(:)
@@ -658,7 +688,12 @@ contains
     bbinary = .false.
     if(present(binary)) bbinary = binary
 
-    
+    if(present(failContinue)) then
+       failAction=WARNING
+    else
+       failAction=ERROR
+    end if
+
     if(bbinary) then
        
        !! it is assumed that if you want to load a file for unit parameter, that file must be connected to unit "unit".
@@ -680,9 +715,9 @@ contains
                    read(unit, iostat = status) line (1:len_trim(arguments(1)))
                 
                    if(status == -1) then
-                      
-                      call Matrix_exception( ERROR, "End of file!",&
+                      call Matrix_exception( failAction, "End of file!",&
                            "Class object Matrix in the getfromFile() function "//trim(arguments(1))//" "//trim(arguments(2)) )
+                      return
                    end if
                    
                    if(trim(line) == trim(arguments(1))) then
@@ -751,15 +786,16 @@ contains
 
              else
                 
-                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
-                
+                return
              end if
              
           else
-             call Matrix_exception( ERROR, "Unit file no connected!",&
+             call Matrix_exception( failAction, "Unit file no connected!",&
                   "Class object Matrix  in the getFromFile() function" )
-             
+             return
+
           end if
           
        else if ( present(file) ) then
@@ -797,15 +833,17 @@ contains
                 
                 close(4)
                 
-                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
-                
+                return
+
              end if
              
           else
-             call Matrix_exception( ERROR, "The file "//trim(file)//" don't exist ",&
+             call Matrix_exception( failAction, "The file "//trim(file)//" don't exist ",&
                   "Class object Matrix  in the getFromFile() function" )
-             
+             return
+                                   
           end if
        end if
        
@@ -830,8 +868,10 @@ contains
                 
                    if(status == -1) then
                       
-                      call Matrix_exception( ERROR, "End of file!",&
+                      call Matrix_exception( failAction, "End of file!",&
                            "Class object Matrix in the getfromFile() function" )
+                      return
+
                    end if
                    
                    if(trim(line) == trim(arguments(1))) then
@@ -897,14 +937,18 @@ contains
 
             else
                 
-                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
+                return
+
                 
              end if
              
           else
-             call Matrix_exception( ERROR, "Unit file no connected!",&
+             call Matrix_exception( failAction, "Unit file no connected!",&
                   "Class object Matrix  in the getFromFile() function" )
+             return
+
              
           end if
 
@@ -926,8 +970,10 @@ contains
                 
                 close(4)
                 
-                call Matrix_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
-                     "Class object Matrix  in the getFromFile() function" )
+                call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
+                     "Class object Matrix  in the getFromFile() function"  )
+                return
+
                 
              else
                 
@@ -940,8 +986,10 @@ contains
              
           else
              
-             call Matrix_exception( ERROR, "The file "//trim(file)//" don't exist ",&
+             call Matrix_exception( failAction, "The file "//trim(file)//" don't exist ",&
                   "Class object Matrix  in the getFromFile() function" )
+             return
+
              
           end if
           
@@ -1293,19 +1341,58 @@ contains
 
   !>
   !! @brief Retorna el determinante de la matriz
-  !! @param flags Indica las propiedades adicionales de la matriz que
-  !!              permite optimizar el calculo
-  !! @todo Falta implementar
-  function Matrix_getDeterminant( this, method, flags ) result ( output )
+  !! @param method se calcula a partir de una descomposicion SVD (valor absoluto) o LU
+  subroutine Matrix_getDeterminant( this, determinant, method)
     implicit none
     type(Matrix), intent(inout) :: this
-    integer, intent(in), optional :: method
-    integer, intent(in), optional :: flags
-    real(8) :: output
+    real(8) :: determinant
+    character(*), optional :: method
 
-    output = 0.0_8
+    type(Matrix) :: range, nullSpace, singular
+    type(Matrix) :: U, auxMatrix
+    integer :: dim, i
+    integer, allocatable :: pivotIndices(:)
+    character(10) :: selectedMethod
 
-  end function Matrix_getDeterminant
+    if( present ( method ) ) then
+       selectedMethod=trim(method)
+    else
+       selectedMethod="LU"
+    end if
+    dim=size(this%values, dim=1)
+    
+    select case( trim(selectedMethod) )
+    case("SVD")
+
+       call Matrix_constructor(range, int(dim,8), int(dim,8), 0.0_8)
+       call Matrix_constructor(nullSpace, int(dim,8), int(dim,8), 0.0_8)
+       call Matrix_constructor(singular, int(dim,8), int(dim,8), 0.0_8)
+
+       call Matrix_svd( this, range, nullSpace, singular )
+
+       determinant=1.0
+       do i=1,dim
+          determinant=determinant*singular%values(i,i)
+       end do
+
+    case("LU")
+
+       call Matrix_constructor(U, int(dim,8), int(dim,8), 0.0_8)
+       allocate( pivotIndices( dim ))
+       
+       auxMatrix=Matrix_factorizeLU( this, pivotIndices=pivotIndices, U=U )
+       
+       determinant=1.0
+       do i=1,dim
+          determinant=determinant*U%values(i,i)
+          if(pivotIndices(i) .ne. i) determinant=-determinant
+       end do
+
+    case default
+       call Matrix_exception(ERROR, "The selected method to compute the determinant is not implemented", "Class object Matrix in the getDeterminant() function")
+    end select
+
+  end subroutine Matrix_getDeterminant
 
   !>
   !! @brief Retorna la matriz inversa de la matriz
@@ -1674,6 +1761,98 @@ contains
 
   end subroutine Matrix_eigen
 
+ subroutine Matrix_eigen2stage( this, eigenValues, eigenVectors, flags, m, dm )
+    implicit none
+    type(Matrix), intent(in) :: this
+    type(Vector), intent(inout) :: eigenValues
+    type(Matrix), intent(inout), optional :: eigenVectors
+    integer, intent(in), optional :: flags
+    integer, intent(in), optional :: dm
+    real(8), intent(in), optional :: m(:,:)
+
+    integer :: lengthWorkSpace
+    integer :: matrixSize
+    integer :: infoProcess
+    real(8), allocatable :: workSpace(:)
+    type(Matrix) :: eigenVectorsTmp
+    integer :: i
+
+    
+    matrixSize = size( this%values, DIM=1 )
+
+    if( flags == SYMMETRIC ) then
+
+       !! Determina la longitud adecuada del vector de trabajo
+       lengthWorkSpace=3*matrixSize-1
+
+       !! Crea el vector de trabajo
+       allocate( workSpace( lengthWorkSpace ) )
+
+       if( present( eigenVectors ) ) then
+
+          if (present ( dm ) ) then
+             eigenvectors%values = m
+          else	
+
+             eigenVectors%values=this%values
+             
+          end if
+
+          !! Calcula valores propios de la matriz de entrada
+          call dsyev_2stage( &
+               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               eigenVectors%values, &
+               matrixSize, &
+               eigenValues%values, &
+               workSpace, &
+               lengthWorkSpace, &
+               infoProcess )
+
+       else
+          !! Crea la matriz que almacenara los vectores propios
+          call Matrix_copyConstructor( eigenVectorsTmp, this )
+
+          !! Calcula valores propios de la matriz de entrada
+          call dsyev_2stage( &
+               COMPUTE_EIGENVALUES, &
+               UPPER_TRIANGLE_IS_STORED, &
+               matrixSize, &
+               eigenVectorsTmp%values, &
+               matrixSize, &
+               eigenValues%values, &
+               workSpace, &
+               lengthWorkSpace, &
+               infoProcess )
+
+          call Matrix_destructor( eigenVectorsTmp )
+
+       end if
+
+       !! Determina la ocurrencia de errores
+       if ( infoProcess /= 0 )  then
+
+          call Matrix_exception(WARNING, "Diagonalization failed", "Class object Matrix in the getEigen() function")
+          print *, "Info Process: ", infoProcess
+
+       end if
+
+       do i=1,size(eigenValues%values)
+          if( eigenValues%values(i) == Math_NaN ) then
+
+             call Matrix_exception(WARNING, "Diagonalization failed, Math_NaN", "Class object Matrix in the getEigen() function")
+          end if
+       end do
+
+
+       !! libera memoria separada para vector de trabajo
+       deallocate(workSpace)
+
+    end if
+
+  end subroutine Matrix_eigen2stage
+  
 !>
 !! @brief Matrix_eigen_select
 !!  -- LAPACK driver routine (version 3.2) --
@@ -2063,7 +2242,6 @@ contains
     end if
 
   end subroutine Matrix_eigen_dsyevr
-
 
 ! #endif
 

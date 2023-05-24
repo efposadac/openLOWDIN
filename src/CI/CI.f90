@@ -41,8 +41,7 @@ program CI
   job = ""  
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
-  read(job,"(I10)") numberOfSpeciesInCI
-
+  
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
   call Stopwatch_start(lowdin_stopwatch)
@@ -50,19 +49,29 @@ program CI
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
+  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  ! else
+  !    !!Load the system in lowdin.sys format
+  !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
+  ! end if
+
+  read(job,"(I10)") numberOfSpeciesInCI
 
   call InputCI_constructor( )
-  call InputCI_load( numberOfSpeciesInCI )
-
+  if(numberOfSpeciesInCI .ne. 0) then
+     call InputCI_load( numberOfSpeciesInCI )
+  else
+     call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
+  end if
   call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
   call ConfigurationInteraction_run()
   call ConfigurationInteraction_show()
   call ConfigurationInteraction_showEigenVectors()
   call ConfigurationInteraction_densityMatrices()
   call ConfigurationInteraction_destructor()
-
+  
   !!stop time
   call Stopwatch_stop(lowdin_stopwatch)
   
@@ -70,7 +79,6 @@ program CI
   write(*,"(A,F10.3,A4)") "** TOTAL CPU Time CI : ", lowdin_stopwatch%enlapsetTime ," (s)"
   write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time CI : ", lowdin_stopwatch%elapsetWTime ," (s)"
   write(*, *) ""
-  close(30)
 
 
 end program CI

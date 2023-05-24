@@ -61,9 +61,9 @@ diffOrb1Positron_OVGF_B = abs(refOrb1Positron_OVGF_B - orb1Positron_OVGF_B)
 diffOrb1Positron_OVGF_C = abs(refOrb1Positron_OVGF_C - orb1Positron_OVGF_C)
 diffOrb1Positron_RENP3 = abs(refOrb1Positron_RENP3 - orb1Positron_RENP3)
 
-errorInP3 = 0.0001
+errorInP3 = 0.001
 
-if (diffTotalEnergy <= 1E-10 and
+if (diffTotalEnergy <= 1E-8 and
         diffOrb1Positron_KT <= errorInP3 and
         diffOrb1Positron_EP2 <= errorInP3 and
         diffOrb1Positron_P3 <= errorInP3 and

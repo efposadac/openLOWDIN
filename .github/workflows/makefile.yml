@@ -2,9 +2,9 @@ name: Makefile CI
 
 on:
   push:
-    branches: [ "master", "apmo-nc-2" ]
+    branches: [ "master", "apmo-nc-2", "apmo-nc-3" ]
   pull_request:
-    branches: [ "master", "apmo-nc-2" ]
+    branches: [ "master", "apmo-nc-2", "apmo-nc-3" ]
   workflow_dispatch:
   
 jobs:
@@ -51,7 +51,7 @@ jobs:
         # Build libxc
         git clone https://gitlab.com/libxc/libxc.git
         cd libxc
-        git checkout 724fe21518a34433dee327ec2232ff26b8d1142e
+        git checkout 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
         autoreconf -i
         ./configure --enable-shared --prefix=$WORKDIR
         make -j 4

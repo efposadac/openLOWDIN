@@ -26,8 +26,8 @@ module CalculateProperties_
   use Vector_
   use Units_
   use Exception_
-  use WaveFunction_
   use ContractedGaussian_
+  use DirectIntegralManager_
   implicit none
 
   !>
@@ -113,9 +113,11 @@ contains
   !<
   !! @brief Constructor para la clase
   !>
-  subroutine CalculateProperties_constructor( this )
+  subroutine CalculateProperties_constructor( this,fileName )
     implicit none
     type(CalculateProperties) :: this
+    character(*) :: fileName
+    
     character(50) :: wfnFile
     integer :: wfnUnit
     character(50) :: arguments(20)
@@ -124,110 +126,119 @@ contains
     character(50) :: occupationsFile, auxstring
     integer :: occupationsUnit
     integer :: numberOfSpecies, speciesID, numberOfContractions
-    logical :: existFile
-
-    integralsFile = "lowdin.opints"
-    integralsUnit = 30
-
-    wfnFile = "lowdin.wfn"
-    wfnUnit = 20
-
-    !! Open file for wavefunction
+    logical :: existFile, existCIFile
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    allocate(this%overlapMatrix(numberOfSpecies))
     allocate(this%densityMatrix(numberOfSpecies))
+    allocate(this%overlapMatrix(numberOfSpecies))
     allocate(this%momentMatrices(numberOfSpecies,9))
 
-    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-    open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted") 
-
-    do speciesID=1, numberOfSpecies
-       numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
-
-       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-       inquire(FILE = occupationsFile, EXIST = existFile )
-
-       ! Check if there are CI density matrices and read those or the HF matrix
-       if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" .and. existFile ) then
-
+    !! Open file for HF wavefunction   
+    wfnFile = trim(fileName)//".wfn"
+    wfnUnit = 20
+    inquire(FILE = wfnFile, EXIST = existFile )
+    !! Open file for CI wavefunction   
+    occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+    occupationsUnit = 29
+    inquire(FILE = occupationsFile, EXIST = existCIFile )
+    if ( existCIFile ) then
+       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+       do speciesID=1, numberOfSpecies
+          numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
           print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
                " in the CI ground state"
-
-          occupationsUnit = 29
-          open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
-
           auxstring="1" !ground state
           arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
           arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
-
           this%densityMatrix(speciesID)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfcontractions,4), &
                columns= int(numberOfcontractions,4), binary=.false., arguments=arguments(1:2))
-
-          close(occupationsUnit)     
-
-       else
-
+       end do
+       close(occupationsUnit)     
+    else if( existFile) then
+       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+       do speciesID=1, numberOfSpecies
+          numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
           print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
                " in the HF/KS ground state"
-
-          !! Read density matrix
           arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
           arguments(1) = "DENSITY"
-
           this%densityMatrix(speciesID) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+       end do
+       close(wfnUnit)     
+    else
+       call CalculateProperties_exception( ERROR, "I did not find the file "//trim(wfnFile)//" or "//trim(occupationsFile), "in CalculatateProperties constructor")
+       ! Check if there are CI density matrices and read those or the HF matrix
+    end if
+    
+    integralsFile = "lowdin.opints"
+    integralsUnit = 30
+    inquire(FILE = integralsFile, EXIST = existFile )
+    if( existFile) then
+       open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted") 
+       do speciesID=1, numberOfSpecies
+          numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
+          ! Overlap matrix
+          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(1) = "OVERLAP"
+          this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), &
+               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          !! Load moment Matrices
+          arguments(1) = "MOMENTX0"    
+          this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       end if
+          arguments(1) = "MOMENTY0"    
+          this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       ! Overlap matrix
-       arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
-       arguments(1) = "OVERLAP"
+          arguments(1) = "MOMENTZ0"    
+          this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), &
-            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          !! Load moment Matrices
+          arguments(1) = "MOMENTXX"    
+          this%momentMatrices(speciesID,4) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       !! Load moment Matrices
-       arguments(1) = "MOMENTX0"    
-       this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+          arguments(1) = "MOMENTYY"    
+          this%momentMatrices(speciesID,5) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       arguments(1) = "MOMENTY0"    
-       this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+          arguments(1) = "MOMENTZZ"    
+          this%momentMatrices(speciesID,6) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       arguments(1) = "MOMENTZ0"    
-       this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+          !! Load moment Matrices
+          arguments(1) = "MOMENTXY"    
+          this%momentMatrices(speciesID,7) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       !! Load moment Matrices
-       arguments(1) = "MOMENTXX"    
-       this%momentMatrices(speciesID,4) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+          arguments(1) = "MOMENTXZ"    
+          this%momentMatrices(speciesID,8) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
-       arguments(1) = "MOMENTYY"    
-       this%momentMatrices(speciesID,5) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-
-       arguments(1) = "MOMENTZZ"    
-       this%momentMatrices(speciesID,6) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-
-       !! Load moment Matrices
-       arguments(1) = "MOMENTXY"    
-       this%momentMatrices(speciesID,7) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-
-       arguments(1) = "MOMENTXZ"    
-       this%momentMatrices(speciesID,8) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-
-       arguments(1) = "MOMENTYZ"    
-       this%momentMatrices(speciesID,9) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
-            unit=integralsUnit, binary=.true., arguments=arguments(1:2))
-
-    end do
+          arguments(1) = "MOMENTYZ"    
+          this%momentMatrices(speciesID,9) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+               unit=integralsUnit, binary=.true., arguments=arguments(1:2))
+       end do
+       close(integralsUnit)
+    else
+       do speciesID=1, numberOfSpecies
+          call DirectIntegralManager_getOverlapIntegrals(molecularSystem_instance,speciesID,this%overlapMatrix(speciesID))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,1,this%momentMatrices(speciesID,1))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,2,this%momentMatrices(speciesID,2))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,3))
+          !NOT YET IMPLEMENTED. DUMMY ARRAYS
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,4))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,5))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,6))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,7))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,8))
+          call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,9))
+       end do
+    end if
 
   end subroutine CalculateProperties_constructor
 
@@ -266,55 +277,99 @@ contains
     implicit none
     type (CalculateProperties) :: this ! por medio de este this accedo a todo lo que este en la estructura o type
     ! calculate properties 
+    real(8) :: total(2), atomSum, atomSpin
+    character(10) :: speciesName
+    character(10) :: speciesNickname
+    character(10) :: analysis(2)
+    character(10) :: header(2)
+    integer :: speciesID, i, j, k, l, type
+    type(Matrix) :: populations
 
-    real(8) :: total
-    character(10) :: specieName
-    integer :: specieID
-
+    analysis(1)="MULLIKEN"
+    analysis(2)="LOWDIN"
+    
     !Felix: Vamos a hacer el analisis de poblaciones para todas las especies
 
-    do specieID = 1, MolecularSystem_getNumberOfQuantumSpecies()
-       specieName = trim(MolecularSystem_getNameOfSpecie( specieID ))
+    do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
 
-       !!Obtiene Poblaciones de Mulliken
-       print *,""
-       print *," POPULATION ANALYSES: "
-       print *,"===================="
-       print *,""
-       print *, " Mulliken Population: for ", specieName
-       print *,"---------------------"
-       print *,""
-       call Vector_show( CalculateProperties_getPopulation(this, "MULLIKEN", specieID, total), &
-            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
+       do type= 1, size(analysis)
 
-       write (6,"(T25,A10)") "__________"
-       write (6,"(T10,A15,F10.6)") "Total = ", total
-       print *,""
-       print *,"...end of Mulliken Population"
-       print *,""
-       print *, " Lowdin Population: for ", specieName
-       print *,"---------------------"
-       print *,""
-       call Vector_show( CalculateProperties_getPopulation( this, "LOWDIN", specieID, total),&
-            flags = VERTICAL+WITH_KEYS, keys=MolecularSystem_getlabelsofcontractions( specieID ) )
-       write (6,"(T25,A10)") "__________"
-       write (6,"(T10,A15,F10.6)") "Total = ", total
-       print *,""
-       print *,"...end of Lowdin Population"
-       print *,""
-       print *,"END POPULATION ANALYSES "
-       print *,""
+          speciesName = trim(MolecularSystem_getNameOfSpecie( speciesID ))
+
+          if(trim(speciesName) .eq. "E-ALPHA") then
+             speciesNickname="E-"
+             header(1)="total"
+             header(2)="spin"
+          else if(trim(speciesName) .eq. "E-BETA") then
+             cycle
+          else
+             speciesNickname=speciesName
+             header(1)=""
+             header(2)=""
+          end if
+
+          populations = CalculateProperties_getPopulation(this, trim(analysis(type) ), speciesID, total)
+
+          !!Obtiene Poblaciones de Mulliken
+          print *,""
+          print *," POPULATION ANALYSES: "
+          print *,"===================="
+          print *,""
+          print *, trim(analysis(type)), " Population: for ", speciesNickname
+          print *,"---------------------"
+          print *,""
+          call Matrix_show( populations, &
+               rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
+               columnkeys = header,&
+               flags=WITH_BOTH_KEYS)
+          if(trim(speciesName) .eq. "E-ALPHA") then
+             write (*,"(T28,A25)") "__________     __________"
+             write (*,"(T13,A10,F15.6,F15.6)") "Total = ", total(1), total(2)
+          else
+             write (*,"(T28,A10)") "__________"
+             write (*,"(T13,A10,F15.6)") "Total = ", total(1)
+          end if
+          print *,""
+          print *, " Atomic ", trim(analysis(type) ), " Population: for ", speciesNickname
+          l=0
+          do i=1, size(MolecularSystem_instance%species(speciesID)%particles)
+             atomSum=0
+             atomSpin=0
+             do j=1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
+                do k=1, MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
+                   l=l+1
+                   atomSum=atomSum+populations%values(l,1)
+                   if(trim(speciesName) .eq. "E-ALPHA") atomSpin=atomSpin+populations%values(l,2)
+
+                end do
+             end do
+
+             if(trim(speciesName) .eq. "E-ALPHA") then
+                write(*,"(T13,A10,F15.6,F15.6)") ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner), atomSum, atomSpin
+             else
+                write(*,"(T13,A10,F15.6)") ParticleManager_getSymbol(MolecularSystem_instance%species(speciesID)%particles(i)%owner), atomSum
+             end if
+          end do
+
+          print *,""
+          print *,"...end of ", trim(analysis(type) )," Population"
+          print *,""
+
+          print *,""
+          print *,"END POPULATION ANALYSES "
+          print *,""
+       end do
     end do
 
     ! specieID=1
     !! Antes: Recorre las especies buscando electrones
 
     ! search_specie: do i = 1, MolecularSystem_getNumberOfQuantumSpecies()
-    !   specieName=""
-    !   specieName = trim(MolecularSystem_getNameOfSpecie(i))
+    !   speciesName=""
+    !   speciesName = trim(MolecularSystem_getNameOfSpecie(i))
 
-    !   if( scan(trim(specieName),"E")==1 ) then
-    !     if( scan(trim(specieName),"-")>1 ) then
+    !   if( scan(trim(speciesName),"E")==1 ) then
+    !     if( scan(trim(speciesName),"-")>1 ) then
     !       showPopulations=.true.
     !       specieID=i
     !       exit search_specie
@@ -331,51 +386,84 @@ contains
   !<
   !! @brief Retorna la poblacion de Mulliken o Lowdin del sistema molecular
   !>
-  function CalculateProperties_getPopulation( this, typeOfPopulation, specieID, totalSum, fukuiType )  result( output )
+  function CalculateProperties_getPopulation( this, typeOfPopulation, speciesID, totalSum, fukuiType )  result( output )
     implicit none
     type (CalculateProperties) :: this 
     character(*) :: typeOfPopulation
-    integer  :: specieID
-    real(8), optional, intent(out) :: totalSum
+    integer  :: speciesID
+    real(8), optional, intent(out) :: totalSum(2)
     character(*), optional :: fukuiType
-    type(Vector) :: output
+    type(Matrix) :: output
 
     type(Matrix) :: auxMatrix
     type(Matrix) :: auxMatrixB
+    type(Matrix) :: otherAuxMatrix
+    type(Matrix) :: otherAuxMatrixB
     integer :: numberOfcontractions
     integer :: i
+    integer  :: otherSpeciesID
+    character(10) :: speciesName
 
-    numberOfcontractions=MolecularSystem_getTotalNumberOfContractions (specieID )
+    numberOfcontractions=MolecularSystem_getTotalNumberOfContractions (speciesID )
 
     call Matrix_constructor( auxMatrix, int( numberOfcontractions, 8), int( numberOfcontractions, 8) )
-    call Vector_constructor( output, numberOfcontractions   )
 
+    speciesName=trim(MolecularSystem_getNameOfSpecie( speciesID ))
+    if(trim(speciesName) .eq. "E-ALPHA") then
+       call Matrix_constructor( output, int( numberOfcontractions, 8), 2_8 )
+       otherSpeciesID=speciesID+1
+       call Matrix_constructor( otherAuxMatrix, int( numberOfcontractions, 8), int( numberOfcontractions, 8) )
+       call Matrix_constructor( otherAuxMatrixB, int( numberOfcontractions, 8), int( numberOfcontractions, 8) )
+    else
+       call Matrix_constructor( output, int( numberOfcontractions, 8), 1_8 )
+    end if
+    
     select case( typeOfPopulation )
 
     case("MULLIKEN")
-       auxMatrix%values = matmul(this%densityMatrix(specieID)%values, this%overlapMatrix(specieID)%values )
+       auxMatrix%values = matmul(this%densityMatrix(speciesID)%values, this%overlapMatrix(speciesID)%values )
+
+       if(trim(speciesName) .eq. "E-ALPHA") otherAuxMatrix%values = matmul(this%densityMatrix(otherSpeciesID)%values, this%overlapMatrix(otherSpeciesID)%values )
 
     case ("LOWDIN")
 
-       auxMatrix%values = matmul(this%densityMatrix(specieID)%values, this%overlapMatrix(specieID)%values )
+       auxMatrix%values = matmul(this%densityMatrix(speciesID)%values, this%overlapMatrix(speciesID)%values )
 
-       auxMatrix = Matrix_pow( this%overlapMatrix(specieID), 0.5_8 )
+       auxMatrix = Matrix_pow( this%overlapMatrix(speciesID), 0.5_8 )
        auxMatrixB = auxMatrix
-       auxMatrix%values = matmul( matmul( auxMatrixB%values , this%densityMatrix(specieID)%values), auxMatrixB%values )
+       auxMatrix%values = matmul( matmul( auxMatrixB%values , this%densityMatrix(speciesID)%values), auxMatrixB%values )
 
+       if(trim(speciesName) .eq. "E-ALPHA") then
+          otherAuxMatrix%values = matmul(this%densityMatrix(otherSpeciesID)%values, this%overlapMatrix(otherSpeciesID)%values )
+
+          otherAuxMatrix = Matrix_pow( this%overlapMatrix(otherSpeciesID), 0.5_8 )
+          otherAuxMatrixB = otherAuxMatrix
+          otherAuxMatrix%values = matmul( matmul( otherAuxMatrixB%values , this%densityMatrix(otherSpeciesID)%values), otherAuxMatrixB%values )
+       end if
+       
     case default
 
     end select
 
-    do i=1, numberOfcontractions
-       output%values(i) = auxMatrix%values(i,i)
-    end do
+    if(trim(speciesName) .eq. "E-ALPHA") then
+       do i=1, numberOfcontractions
+          output%values(i,1) = auxMatrix%values(i,i)+otherAuxMatrix%values(i,i)
+          output%values(i,2) = auxMatrix%values(i,i)-otherAuxMatrix%values(i,i)
+       end do
 
+    else
+       do i=1, numberOfcontractions
+          output%values(i,1) = auxMatrix%values(i,i)
+       end do
+    end if
     !print*,"auxMatrix%values", auxMatrix%values      
-    if ( present( totalSum ) ) totalSum = sum(output%values)
+    if( present( totalSum ) ) totalSum(1) = sum(output%values(:,1))
+    if( present( totalSum ) .and. trim(speciesName) .eq. "E-ALPHA") totalSum(2) = sum(output%values(:,2))
 
     call Matrix_destructor(auxMatrix)
     call Matrix_destructor(auxMatrixB)
+    call Matrix_destructor(otherAuxMatrix)
+    call Matrix_destructor(otherAuxMatrixB)
 
   end function CalculateProperties_getPopulation
 
@@ -385,10 +473,7 @@ contains
   subroutine CalculateProperties_showExpectedPositions(this)
     implicit none
     type(CalculateProperties) :: this
-    character(30) :: nameOfSpecieSelected
-    integer :: i,j
-    integer :: numberOfSpecies
-    real(8) :: output(3)
+    integer :: i, numberOfSpecies
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     print *,""
@@ -407,18 +492,18 @@ contains
     print *,""
   end subroutine CalculateProperties_showExpectedPositions
 
-  function CalculateProperties_getExpectedPosition( this , specieID) result(output)
+  function CalculateProperties_getExpectedPosition( this , speciesID) result(output)
     implicit none
     type(CalculateProperties) :: this
-    integer :: specieID
+    integer :: speciesID
     real(8) :: output(3)
 
     !! Open file for wavefunction                                                                                                          
     output=0.0_8
 
-    output(1)=sum( this%densityMatrix(specieID)%values * this%momentMatrices(specieID,1)%values ) * 0.52917720859
-    output(2)=sum( this%densityMatrix(specieID)%values * this%momentMatrices(specieID,2)%values ) * 0.52917720859
-    output(3)=sum( this%densityMatrix(specieID)%values * this%momentMatrices(specieID,3)%values ) * 0.52917720859
+    output(1)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,1)%values ) * 0.52917720859
+    output(2)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,2)%values ) * 0.52917720859
+    output(3)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,3)%values ) * 0.52917720859
 
   end function CalculateProperties_getExpectedPosition
 
@@ -579,8 +664,6 @@ contains
 
   end function calculateproperties_getquadrupoleofquantumspecie
 
-
-
   subroutine CalculateProperties_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
@@ -663,7 +746,7 @@ end module CalculateProperties_
 !      R2Operator(1)%gaussianComponents(1)=dxx
 !      R2Operator(1)%gaussianComponents(2)=dyy
 !      R2Operator(1)%gaussianComponents(3)=dzz
-!      R2Matrix=IntegralManager_getInteractionWithPotentialMatrix(R2Operator, sspecieID=i )
+!      R2Matrix=IntegralManager_getInteractionWithPotentialMatrix(R2Operator, sspecieIDOA=i )
 !      this%expectedR2%values(i)= sum( densityMatrix%values * R2Matrix%values )
 !      call Matrix_destructor( densityMatrix )
 !      call Matrix_destructor( R2Matrix )

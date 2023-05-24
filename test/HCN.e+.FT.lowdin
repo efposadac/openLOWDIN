@@ -15,12 +15,12 @@ TASKS
 END TASKS
 
 CONTROL
-	convergenceMethod=1
+readCoefficients=F
+convergenceMethod=1
 	iterationScheme=3
 	SCFGhostSpecies="POSITRON"
 	HFprintEigenvalues=T
 	overlapEigenThreshold=1E-6
-	scfNonelectronicEnergyTolerance = 1E-8
-	scfElectronicEnergyTolerance = 1E-8	
+	totalEnergyTolerance = 1E-8
 END CONTROL
 

@@ -10,6 +10,7 @@ TASKS
 END TASKS
 
 CONTROL
-	!buildTwoParticlesMatrixForOneParticle=T
+readCoefficients=F
+!buildTwoParticlesMatrixForOneParticle=T
 END CONTROL
 

@@ -48,6 +48,8 @@ module TransformIntegralsD_
      integer :: r_lowerOrbital, r_upperOrbital
      integer :: s_lowerOrbital, s_upperOrbital
 
+     character(50) :: partialTransform
+
   end type TransformIntegralsD
 
   interface
@@ -111,13 +113,16 @@ contains
   !>
   !! @brief Contructor de la clase
   !<
-  subroutine TransformIntegralsD_constructor(this)
+  subroutine TransformIntegralsD_constructor(this,partial)
     implicit none
     type(TransformIntegralsD) :: this
-
+    character(*) :: partial
+    
     this%unidOfOutputForCoefficients = CONTROL_instance%UNIT_FOR_MOLECULAR_ORBITALS_FILE
     this%unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
     this%fileForIntegrals = trim(CONTROL_INSTANCE%INPUT_FILE)//".ints"
+
+    this%partialTransform=trim(partial)
 
   end subroutine TransformIntegralsD_constructor
 
@@ -609,7 +614,7 @@ contains
 
 
     !! only the (ia|jb) integrals will be transformed
-    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2  ) then
+    if ( trim(this%partialTransform)=="MP2"  ) then
 
        this%p_lowerOrbital = 0
        this%p_upperOrbital = totalOccupation - 1
@@ -635,6 +640,13 @@ contains
     !!      this%s_upperOrbital = totalNumberOfContractions
     !!
     !!    end if
+    write(*,"(T15,A)") "Transformation boundaries "
+    write(*,"(T15,A10,A6,A6)") "orbital","lower", "upper"
+    write(*,"(T20,A5,I6,I6)") "p", this%p_lowerOrbital, this%p_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "q", this%q_lowerOrbital, this%q_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "r", this%r_lowerOrbital, this%r_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "s", this%s_lowerOrbital, this%s_upperOrbital
+    print *, ""
 
   end subroutine TransformIntegralsD_checkMOIntegralType
 
@@ -664,7 +676,7 @@ contains
 
 
     !! only the (ia|jb) integrals will be transformed
-    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION == 2  ) then
+    if ( trim(this%partialTransform) .eq. "MP2"  ) then
 
        this%p_lowerOrbital = 1
        this%p_upperOrbital = totalOccupation
@@ -677,6 +689,14 @@ contains
 
     end if
 
+    write(*,"(T15,A)") "Transformation boundaries "
+    write(*,"(T15,A10,A6,A6)") "orbital","lower", "upper"
+    write(*,"(T20,A5,I6,I6)") "p", this%p_lowerOrbital, this%p_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "q", this%q_lowerOrbital, this%q_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "r", this%r_lowerOrbital, this%r_upperOrbital
+    write(*,"(T20,A5,I6,I6)") "s", this%s_lowerOrbital, this%s_upperOrbital
+    print *, ""
+    
   end subroutine TransformIntegralsD_checkInterMOIntegralType
 
 

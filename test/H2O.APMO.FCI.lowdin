@@ -30,7 +30,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralsTransformationMethod = "C"
+readCoefficients=F
+integralsTransformationMethod = "C"
 	numberOfCIstates=1
 	CIdiagonalizationMethod = "JADAMILU"
 END CONTROL

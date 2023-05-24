@@ -35,6 +35,7 @@
 program MBPT
   use CONTROL_
   use MolecularSystem_
+  use InputCI_
   use Exception_
   use Vector_
   use MPFunctions_
@@ -54,8 +55,17 @@ program MBPT
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
 
-  !!Load the system in lowdin.sys format
+  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+     !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  ! else
+  !    !!Load the system in lowdin.sys format
+  !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
+  ! end if
+  
+  call InputCI_constructor( )
+  call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
+  
   if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION > 1 ) then
     call MollerPlesset_constructor( CONTROL_instance%MOLLER_PLESSET_CORRECTION )
     call MollerPlesset_run()

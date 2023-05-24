@@ -28,7 +28,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralsTransformationMethod = "D"
+readCoefficients=F
+integralsTransformationMethod = "D"
 END CONTROL
 
 

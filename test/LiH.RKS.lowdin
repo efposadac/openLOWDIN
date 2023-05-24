@@ -14,10 +14,10 @@
 SYSTEM_DESCRIPTION='Molecula de H2'
 
 GEOMETRY
-e-(Li) CC-PVTZ  0.0000  0.00000 0
-e-(H)  CC-PVTZ 0.0000  0.00000 1.6
+e-(Li) 6-311G.D.P  0.0000  0.00000 0
+e-(H)  6-311G.D.P 0.0000  0.00000 1.5996
 Li   dirac  0.0000  0.00000 0
-H_1  dirac 0.0000  0.00000 1.6
+H_1  dirac 0.0000  0.00000 1.5996
 END GEOMETRY
 
 TASKS
@@ -25,7 +25,9 @@ method = "RKS"
 END TASKS
 
 CONTROL
+readCoefficients=F
 electronExchangeCorrelationFunctional="BLYP"
+debugSCFS=.F.
 END CONTROL
 
 

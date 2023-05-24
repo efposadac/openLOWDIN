@@ -46,7 +46,7 @@ module InputOutput_
   !<
   type, public :: InputOutput
      character(50) :: type
-     character(50) :: specie
+     character(50) :: species
      integer :: state
      integer :: orbital
      integer :: dimensions
@@ -58,7 +58,7 @@ module InputOutput_
   end type InputOutput
 
   character(50) :: Output_type
-  character(50) :: Output_specie
+  character(50) :: Output_species
   integer :: Output_state
   integer :: Output_orbital
   integer :: Output_dimensions
@@ -69,7 +69,7 @@ module InputOutput_
 
   NAMELIST /Output/ &
        Output_type, &
-       Output_specie, &
+       Output_species, &
        Output_state, &
        Output_orbital, &
        Output_dimensions, &
@@ -105,7 +105,7 @@ contains
     if(.not.allocated(InputOutput_Instance)) then
        allocate(InputOutput_Instance(ssize))
        InputOutput_Instance%type=""
-       InputOutput_Instance%specie=""
+       InputOutput_Instance%species="ALL"
        InputOutput_Instance%state=1
        InputOutput_Instance%orbital=0
        InputOutput_Instance%dimensions=0
@@ -167,7 +167,7 @@ contains
        rewind(4)
        do i=1, size(InputOutput_Instance)
           Output_type=""
-          Output_specie=""
+          Output_species="ALL"
           Output_state=1
           Output_orbital=0
           Output_dimensions=0
@@ -184,7 +184,7 @@ contains
           end if
 
           InputOutput_Instance(i)%type = trim(Output_type)
-          InputOutput_Instance(i)%specie = trim(Output_specie)
+          InputOutput_Instance(i)%species = trim(Output_species)
           InputOutput_Instance(i)%state = Output_state
           InputOutput_Instance(i)%orbital = Output_orbital
           InputOutput_Instance(i)%dimensions = Output_dimensions
@@ -205,20 +205,6 @@ contains
     close(4)
     
   end subroutine InputOutput_load
-
-
-  !!>
-  !! @brief Indica si el objeto ha sido instanciado o no
-  !!
-  !<
-  function InputOutput_isInstanced( this ) result( output )
-    implicit  none
-    type(InputOutput), intent(in) :: this
-    logical :: output
-
-    output = this%isInstanced
-
-  end function InputOutput_isInstanced
 
   !>
   !! @brief  Maneja excepciones de la clase

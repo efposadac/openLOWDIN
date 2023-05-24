@@ -10,6 +10,7 @@ TASKS
 END TASKS
 
 CONTROL
+readCoefficients=F
 !	integralsTransformationMethod = "A"
 !	ptP3Method = "REN-P3" "TROLOLO"
 !	ptP3Method = "OVGF"
