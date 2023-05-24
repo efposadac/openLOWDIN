@@ -4,13 +4,9 @@ This program has been developed under direction of:
 
 * [Prof. A REYES' Lab](http://www.qcc.unal.edu.co). Universidad Nacional de Colombia.
 
-
-
-
-© All rights reserved, 2023.
+[![Makefile CI](https://github.com/efposadac/openLOWDIN/actions/workflows/makefile.yml/badge.svg)](https://github.com/efposadac/openLOWDIN/actions/workflows/makefile.yml)
 
 © All rights reserved, 2023.
-
 
 Welcome to openLOWDIN Quantum Chemistry Package.
 
@@ -63,4 +59,4 @@ To visualize the html documentation use:
 * run `make clean` and then `make distclean`
 
 ### Further info: ###
-efposadac@unal.edu.co
+fernando.posada@temple.edu
