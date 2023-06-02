@@ -1584,16 +1584,17 @@ contains
          twoIndexArray, fourIndexArray, fourCenterIntegrals, Libint2LocalInstance)
 
 !!!Add charges
-    do i=1, mergedMolecularSystem%numberOfQuantumSpecies
-       fourCenterIntegrals(i,i)%values = &
-            fourCenterIntegrals(i,i)%values * mergedMolecularSystem%species(i)%charge**2.0
+    if ( .not. InterPotential_instance%isInstanced) then
+       do i=1, mergedMolecularSystem%numberOfQuantumSpecies
+          fourCenterIntegrals(i,i)%values = &
+               fourCenterIntegrals(i,i)%values * mergedMolecularSystem%species(i)%charge**2.0
 
-       do j = i+1 , MolecularSystem_instance%numberOfQuantumSpecies
-          fourCenterIntegrals(i,j)%values = &
-               fourCenterIntegrals(i,j)%values * mergedMolecularSystem%species(i)%charge * mergedMolecularSystem%species(j)%charge
+          do j = i+1 , MolecularSystem_instance%numberOfQuantumSpecies
+             fourCenterIntegrals(i,j)%values = &
+                  fourCenterIntegrals(i,j)%values * mergedMolecularSystem%species(i)%charge * mergedMolecularSystem%species(j)%charge
+          end do
        end do
-    end do
-    
+    end if
 !!!Compute Hamiltonian Matrix element between displaced geometries
 
     ! !!Point charge-Point charge repulsion
@@ -2076,105 +2077,107 @@ contains
     write(*,*) " NATURAL ORBITALS OF THE SUPERPOSED SYSTEMS: "
     write(*,*) ""
 
-    do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+    if (CONTROL_instance%CI_NATURAL_ORBITALS) then
+       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
-       write(*,*) " STATE: ", state
+          write(*,*) " STATE: ", state
 
-       do speciesID=1, molecularSystem_instance%numberOfQuantumSpecies
-             
-          write(*,*) ""
-          write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(speciesID)%name )
-          write(*,*) "-----------------"
+          do speciesID=1, molecularSystem_instance%numberOfQuantumSpecies
 
-          call Vector_constructor ( densityEigenValues, &
-                                   int(MolecularSystem_getTotalNumberOfContractions(speciesID),4),  0.0_8 )
-          call Matrix_constructor ( densityEigenVectors, &
-                                   int(MolecularSystem_getTotalNumberOfContractions(speciesID),8), &
-                                   int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),  0.0_8 )
+             write(*,*) ""
+             write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+             write(*,*) "-----------------"
 
-          call Vector_constructor ( auxdensityEigenValues, &
-                                   int(MolecularSystem_getTotalNumberOfContractions(speciesID),4),  0.0_8 )
-          call Matrix_constructor ( auxdensityEigenVectors, &
-                                   int(MolecularSystem_getTotalNumberOfContractions(speciesID),8), &
-                                   int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),  0.0_8 )
+             call Vector_constructor ( densityEigenValues, &
+                  int(MolecularSystem_getTotalNumberOfContractions(speciesID),4),  0.0_8 )
+             call Matrix_constructor ( densityEigenVectors, &
+                  int(MolecularSystem_getTotalNumberOfContractions(speciesID),8), &
+                  int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),  0.0_8 )
 
-          ! print *,"Matriz de overlap "
-          ! call Matrix_show( overlapMatrix(speciesID) )
+             call Vector_constructor ( auxdensityEigenValues, &
+                  int(MolecularSystem_getTotalNumberOfContractions(speciesID),4),  0.0_8 )
+             call Matrix_constructor ( auxdensityEigenVectors, &
+                  int(MolecularSystem_getTotalNumberOfContractions(speciesID),8), &
+                  int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),  0.0_8 )
 
-          !! Lowdin orthogonalization of the density matrix
-          auxMatrix = Matrix_pow( overlapMatrix(speciesID), 0.5_8 )
+             ! print *,"Matriz de overlap "
+             ! call Matrix_show( overlapMatrix(speciesID) )
 
-          auxMatrix%values=matmul(matmul(auxMatrix%values,mergedDensityMatrix(state,speciesID)%values),auxMatrix%values)
-          
-          ! print *, "Diagonalizing non orthogonal CI density Matrix..."
+             !! Lowdin orthogonalization of the density matrix
+             auxMatrix = Matrix_pow( overlapMatrix(speciesID), 0.5_8 )
 
-          !! Calcula valores y vectores propios de matriz de densidad CI ortogonal.
-          call Matrix_eigen(auxMatrix , auxdensityEigenValues, auxdensityEigenVectors, SYMMETRIC )
+             auxMatrix%values=matmul(matmul(auxMatrix%values,mergedDensityMatrix(state,speciesID)%values),auxMatrix%values)
 
-          !! Transform back to the atomic basis
-          auxMatrix = Matrix_pow( overlapMatrix(speciesID), -0.5_8 )
-         
-          auxdensityEigenVectors%values=matmul(auxMatrix%values,auxdensityEigenVectors%values)
-          
-          ! reorder and count significant occupations
-          k=0
-          do i = 1, MolecularSystem_getTotalNumberOfContractions(speciesID)
-             densityEigenValues%values(i) =  auxdensityEigenValues%values(MolecularSystem_getTotalNumberOfContractions(speciesID) - i + 1)
-             densityEigenVectors%values(:,i) = auxdensityEigenVectors%values(:,MolecularSystem_getTotalNumberOfContractions(speciesID) - i + 1)
-             if(densityEigenValues%values(i) .ge. 0.01 ) k=k+1
-          end do
-          if(k .eq. 0) k=1
-          ! Print eigenvectors with occupation larger than 0.01
-          call Matrix_constructor(auxMatrix,int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),int(k,8),0.0_8)
-          do i=1, MolecularSystem_getTotalNumberOfContractions(speciesID)
-             do j=1, k
-                auxMatrix%values(i,j)=densityEigenVectors%values(i,j)
+             ! print *, "Diagonalizing non orthogonal CI density Matrix..."
+
+             !! Calcula valores y vectores propios de matriz de densidad CI ortogonal.
+             call Matrix_eigen(auxMatrix , auxdensityEigenValues, auxdensityEigenVectors, SYMMETRIC )
+
+             !! Transform back to the atomic basis
+             auxMatrix = Matrix_pow( overlapMatrix(speciesID), -0.5_8 )
+
+             auxdensityEigenVectors%values=matmul(auxMatrix%values,auxdensityEigenVectors%values)
+
+             ! reorder and count significant occupations
+             k=0
+             do i = 1, MolecularSystem_getTotalNumberOfContractions(speciesID)
+                densityEigenValues%values(i) =  auxdensityEigenValues%values(MolecularSystem_getTotalNumberOfContractions(speciesID) - i + 1)
+                densityEigenVectors%values(:,i) = auxdensityEigenVectors%values(:,MolecularSystem_getTotalNumberOfContractions(speciesID) - i + 1)
+                if(densityEigenValues%values(i) .ge. 0.01 ) k=k+1
              end do
+             if(k .eq. 0) k=1
+             ! Print eigenvectors with occupation larger than 0.01
+             call Matrix_constructor(auxMatrix,int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),int(k,8),0.0_8)
+             do i=1, MolecularSystem_getTotalNumberOfContractions(speciesID)
+                do j=1, k
+                   auxMatrix%values(i,j)=densityEigenVectors%values(i,j)
+                end do
+             end do
+             !densityEigenVectors
+             call Matrix_show( auxMatrix , &
+                  rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
+                  columnkeys = string_convertvectorofrealstostring( densityEigenValues ),&
+                  flags=WITH_BOTH_KEYS)
+
+             write(*,"(A10,A10,A20,I5,A15,F17.12)") "number of ", trim(MolecularSystem_getNameOfSpecie( speciesID )) ," particles in state", state , &
+                  " density matrix: ", sum( transpose(mergedDensityMatrix(state,speciesID)%values)*overlapMatrix(speciesID)%values)
+             write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_getNameOfSpecie( speciesID )) , "natural orbital occupations", sum(densityEigenValues%values)
+
+             ! density matrix check
+             ! auxMatrix%values=0.0
+             ! do mu=1, MolecularSystem_getTotalNumberOfContractions(speciesID)
+             !    do nu=1, MolecularSystem_getTotalNumberOfContractions(speciesID)
+             !       do k=1, MolecularSystem_getTotalNumberOfContractions(speciesID)
+             !          auxMatrix%values(mu,nu)=auxMatrix%values(mu,nu)+densityEigenValues%values(k)*&
+             !               densityEigenVectors%values(mu,k)*densityEigenVectors%values(nu,k)
+             !       end do
+             !    end do
+             ! end do          
+             ! print *, "atomicDensityMatrix again"
+             ! call Matrix_show(auxMatrix)
+
+             write(auxString,*) state
+
+             arguments(2) = trim( MolecularSystem_instance%species(speciesID)%name )
+             arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
+
+             call Matrix_writeToFile ( densityEigenVectors, densUnit , arguments=arguments(1:2) )
+
+             arguments(2) = trim( MolecularSystem_instance%species(speciesID)%name )
+             arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
+
+             call Vector_writeToFile( densityEigenValues, densUnit, arguments=arguments(1:2) )
+
+             write(*,*) " End of natural orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(speciesID)%name )
           end do
-          !densityEigenVectors
-          call Matrix_show( auxMatrix , &
-             rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
-             columnkeys = string_convertvectorofrealstostring( densityEigenValues ),&
-             flags=WITH_BOTH_KEYS)
-
-          write(*,"(A10,A10,A20,I5,A15,F17.12)") "number of ", trim(MolecularSystem_getNameOfSpecie( speciesID )) ," particles in state", state , &
-               " density matrix: ", sum( transpose(mergedDensityMatrix(state,speciesID)%values)*overlapMatrix(speciesID)%values)
-          write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_getNameOfSpecie( speciesID )) , "natural orbital occupations", sum(densityEigenValues%values)
-
-          ! density matrix check
-          ! auxMatrix%values=0.0
-          ! do mu=1, MolecularSystem_getTotalNumberOfContractions(speciesID)
-          !    do nu=1, MolecularSystem_getTotalNumberOfContractions(speciesID)
-          !       do k=1, MolecularSystem_getTotalNumberOfContractions(speciesID)
-          !          auxMatrix%values(mu,nu)=auxMatrix%values(mu,nu)+densityEigenValues%values(k)*&
-          !               densityEigenVectors%values(mu,k)*densityEigenVectors%values(nu,k)
-          !       end do
-          !    end do
-          ! end do          
-          ! print *, "atomicDensityMatrix again"
-          ! call Matrix_show(auxMatrix)
-          
-          write(auxString,*) state
-          
-          arguments(2) = trim( MolecularSystem_instance%species(speciesID)%name )
-          arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
-             
-          call Matrix_writeToFile ( densityEigenVectors, densUnit , arguments=arguments(1:2) )
-
-          arguments(2) = trim( MolecularSystem_instance%species(speciesID)%name )
-          arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
-
-          call Vector_writeToFile( densityEigenValues, densUnit, arguments=arguments(1:2) )
-
-          write(*,*) " End of natural orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(speciesID)%name )
        end do
-    end do
 
-    write(*,*) ""
-    write(*,*) " END OF NATURAL ORBITALS"
-    write(*,*) "=============================="
-    write(*,*) ""
-      
+       write(*,*) ""
+       write(*,*) " END OF NATURAL ORBITALS"
+       write(*,*) "=============================="
+       write(*,*) ""
+    end if
+    
     close(densUnit)
 
      

@@ -29,6 +29,6 @@ convergenceMethod=1
 	!SCFblindSpecies="E-" "NONE"
 	SCFGhostSpecies="POSITRON"
 	HFprintEigenvalues=T
-	totalEnergyTolerance = 1E-8
+	totalEnergyTolerance = 1E-9
 END CONTROL
 

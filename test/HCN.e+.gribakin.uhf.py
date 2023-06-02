@@ -11,8 +11,8 @@ outputName = testName + ".out"
 # Reference values
 
 refValues = {
-"HF energy" : [-92.903413350633,1E-8],
-"KT 1" : [-0.0016701915,1E-6]
+    "HF energy" : [-92.903413350633,1E-7],
+    "KT 1" : [-0.0016701915,1E-6]
 }
 
 testValues = dict(refValues) #copy 

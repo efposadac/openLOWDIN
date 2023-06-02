@@ -202,6 +202,7 @@ module CONTROL_
      logical :: CI_JACOBI
      logical :: CI_BUILD_FULL_MATRIX
      integer :: CI_MADSPACE
+     logical :: CI_NATURAL_ORBITALS
 
      !!***************************************************************************
      !! Non-orthogonal CI
@@ -532,6 +533,7 @@ module CONTROL_
   logical :: LowdinParameters_CIJacobi
   logical :: LowdinParameters_CIBuildFullMatrix
   integer :: LowdinParameters_CIMadSpace
+  logical :: LowdinParameters_CINaturalOrbitals
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -859,6 +861,7 @@ module CONTROL_
        LowdinParameters_CIJacobi, &
        LowdinParameters_CIBuildFullMatrix, &
        LowdinParameters_CIMadSpace, &
+       LowdinParameters_CINaturalOrbitals, &
        LowdinParameters_CIPrintEigenVectorsFormat, &
        LowdinParameters_CIPrintThreshold, &
        
@@ -1213,6 +1216,7 @@ contains
     LowdinParameters_CIJacobi = .false.
     LowdinParameters_CIBuildFullMatrix = .false. 
     LowdinParameters_CIMadSpace = 5
+    LowdinParameters_CINaturalOrbitals = .false.
     LowdinParameters_CIPrintEigenVectorsFormat = "OCCUPIED"
     LowdinParameters_CIPrintThreshold = 1E-1
 
@@ -1542,6 +1546,7 @@ contains
     CONTROL_instance%CI_JACOBI = .False.
     CONTROL_instance%CI_BUILD_FULL_MATRIX = .FALSE. 
     CONTROL_instance%CI_MADSPACE = 5
+    CONTROL_instance%CI_NATURAL_ORBITALS=.FALSE.
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = "OCCUPIED"
     CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
 
@@ -1921,6 +1926,7 @@ contains
     CONTROL_instance%CI_JACOBI = LowdinParameters_CIJacobi
     CONTROL_instance%CI_BUILD_FULL_MATRIX = LowdinParameters_CIBuildFullMatrix 
     CONTROL_instance%CI_MADSPACE = LowdinParameters_CIMadSpace
+    CONTROL_instance%CI_NATURAL_ORBITALS= LowdinParameters_CINaturalOrbitals
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
     CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
 
@@ -2275,6 +2281,7 @@ contains
     LowdinParameters_CIJacobi = CONTROL_instance%CI_JACOBI
     LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
     LowdinParameters_CIMadSpace = CONTROL_instance%CI_MADSPACE
+    LowdinParameters_CINaturalOrbitals = CONTROL_instance%CI_NATURAL_ORBITALS
 
     LowdinParameters_CIPrintEigenVectorsFormat = CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT 
     LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
@@ -2601,6 +2608,7 @@ contains
     otherThis%CI_JACOBI = this%CI_JACOBI
     otherThis%CI_BUILD_FULL_MATRIX = this%CI_BUILD_FULL_MATRIX
     otherThis%CI_MADSPACE = this%CI_MADSPACE
+    otherThis%CI_NATURAL_ORBITALS = this%CI_NATURAL_ORBITALS
     otherThis%CI_PRINT_EIGENVECTORS_FORMAT = this%CI_PRINT_EIGENVECTORS_FORMAT 
     otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
 
