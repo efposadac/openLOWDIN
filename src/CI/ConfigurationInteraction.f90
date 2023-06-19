@@ -1569,98 +1569,102 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
       !! Natural orbitals
 
-      write(*,*) ""
-      write(*,*) "=============================="
-      write(*,*) " NATURAL ORBITALS: "
-      write(*,*) ""
-
-      do state=1, CONTROL_instance%CI_STATES_TO_PRINT
-
-        write(*,*) " STATE: ", state
-
-        do species=1, numberOfSpecies
+       if (CONTROL_instance%CI_NATURAL_ORBITALS) then
 
           write(*,*) ""
-          write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(species)%name )
-          write(*,*) "-----------------"
+          write(*,*) "=============================="
+          write(*,*) " NATURAL ORBITALS: "
+          write(*,*) ""
 
-          numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-          speciesName = MolecularSystem_getNameOfSpecie(species)
+          do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+
+             write(*,*) " STATE: ", state
+
+             do species=1, numberOfSpecies
+
+                write(*,*) ""
+                write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(species)%name )
+                write(*,*) "-----------------"
+
+                numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
+                speciesName = MolecularSystem_getNameOfSpecie(species)
 
 
-          call Vector_constructor ( auxdensityEigenValues, &
-                                   int(numberOfContractions,4),  0.0_8 )
+                call Vector_constructor ( auxdensityEigenValues, &
+                     int(numberOfContractions,4),  0.0_8 )
 
-          call Matrix_constructor ( auxdensityEigenVectors, &
-                                   int(numberOfContractions,8), &
-                                   int(numberOfContractions,8),  0.0_8 )
+                call Matrix_constructor ( auxdensityEigenVectors, &
+                     int(numberOfContractions,8), &
+                     int(numberOfContractions,8),  0.0_8 )
 
-          call Vector_constructor ( densityEigenValues, &
-                                   int(numberOfContractions,4),  0.0_8 )
+                call Vector_constructor ( densityEigenValues, &
+                     int(numberOfContractions,4),  0.0_8 )
 
-          call Matrix_constructor ( densityEigenVectors, &
-                                   int(numberOfContractions,8), &
-                                   int(numberOfContractions,8),  0.0_8 )
+                call Matrix_constructor ( densityEigenVectors, &
+                     int(numberOfContractions,8), &
+                     int(numberOfContractions,8),  0.0_8 )
 
-          call Matrix_eigen ( ciDensityMatrix(species,state), auxdensityEigenValues, auxdensityEigenVectors, SYMMETRIC )  
+                call Matrix_eigen ( ciDensityMatrix(species,state), auxdensityEigenValues, auxdensityEigenVectors, SYMMETRIC )  
 
-          ! reorder and count significant occupations
-          k=0
-          do u = 1, numberOfContractions
-             densityEigenValues%values(u) =  auxdensityEigenValues%values(numberOfContractions - u + 1)
-             densityEigenVectors%values(:,u) = auxdensityEigenVectors%values(:,numberOfContractions - u + 1)
-             if(densityEigenValues%values(u) .ge. 5.0E-5 ) k=k+1
-          end do
-          
-          !! Transform to atomic basis
-          densityEigenVectors%values = matmul( coefficients(species)%values, densityEigenVectors%values )
+                ! reorder and count significant occupations
+                k=0
+                do u = 1, numberOfContractions
+                   densityEigenValues%values(u) =  auxdensityEigenValues%values(numberOfContractions - u + 1)
+                   densityEigenVectors%values(:,u) = auxdensityEigenVectors%values(:,numberOfContractions - u + 1)
+                   if(densityEigenValues%values(u) .ge. 5.0E-5 ) k=k+1
+                end do
 
-          ! Print eigenvectors with occupation larger than 5.0E-5
-          call Matrix_constructor(auxdensityEigenVectors,int(numberOfContractions,8),int(k,8),0.0_8)
-          do u=1, numberOfContractions
-             do j=1, k
-                auxdensityEigenVectors%values(u,j)=densityEigenVectors%values(u,j)
+                !! Transform to atomic basis
+                densityEigenVectors%values = matmul( coefficients(species)%values, densityEigenVectors%values )
+
+                ! Print eigenvectors with occupation larger than 5.0E-5
+                call Matrix_constructor(auxdensityEigenVectors,int(numberOfContractions,8),int(k,8),0.0_8)
+                do u=1, numberOfContractions
+                   do j=1, k
+                      auxdensityEigenVectors%values(u,j)=densityEigenVectors%values(u,j)
+                   end do
+                end do
+                call Matrix_show( auxdensityEigenVectors, &
+                     rowkeys = MolecularSystem_getlabelsofcontractions( species ), &
+                     columnkeys = string_convertvectorofrealstostring( densityEigenValues ),&
+                     flags=WITH_BOTH_KEYS)
+
+                write(auxstring,*) state
+                arguments(2) = speciesName
+                arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
+
+                call Matrix_writeToFile ( densityEigenVectors, unit , arguments=arguments(1:2) )
+                arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
+
+                call Vector_writeToFile( densityEigenValues, unit, arguments=arguments(1:2) )
+                !! it's the same
+                !!auxdensityEigenVectors%values = 0
+
+                !!do mu=1, numberOfContractions
+                !!  do nu=1, numberOfContractions
+                !!    do k=1, numberOfContractions
+                !!      auxdensityEigenVectors%values(mu,nu) = auxdensityEigenVectors%values(mu,nu) + &
+                !!                              densityEigenVectors%values(mu,k) *  densityEigenVectors%values(nu,k)*densityEigenValues%values(k) 
+                !!    end do
+                !!  end do
+                !!end do
+                !!print *, "atomic density matrix from natural orbitals"
+                !!call Matrix_show ( auxdensityEigenVectors)
+                write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(speciesName) , "natural orbital occupations", sum(densityEigenValues%values)
+
+                write(*,*) " End of natural orbitals in state: ", state, " for: ", trim(speciesName)
              end do
           end do
-          call Matrix_show( auxdensityEigenVectors, &
-             rowkeys = MolecularSystem_getlabelsofcontractions( species ), &
-             columnkeys = string_convertvectorofrealstostring( densityEigenValues ),&
-             flags=WITH_BOTH_KEYS)
-
-          write(auxstring,*) state
-          arguments(2) = speciesName
-          arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
-             
-          call Matrix_writeToFile ( densityEigenVectors, unit , arguments=arguments(1:2) )
-          arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
-          
-          call Vector_writeToFile( densityEigenValues, unit, arguments=arguments(1:2) )
-          !! it's the same
-         !!auxdensityEigenVectors%values = 0
-
-         !!do mu=1, numberOfContractions
-         !!  do nu=1, numberOfContractions
-         !!    do k=1, numberOfContractions
-         !!      auxdensityEigenVectors%values(mu,nu) = auxdensityEigenVectors%values(mu,nu) + &
-         !!                              densityEigenVectors%values(mu,k) *  densityEigenVectors%values(nu,k)*densityEigenValues%values(k) 
-         !!    end do
-         !!  end do
-         !!end do
-         !!print *, "atomic density matrix from natural orbitals"
-         !!call Matrix_show ( auxdensityEigenVectors)
-          write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(speciesName) , "natural orbital occupations", sum(densityEigenValues%values)
-
-        write(*,*) " End of natural orbitals in state: ", state, " for: ", trim(speciesName)
-        end do
-     end do
 
 
 
-      write(*,*) ""
-      write(*,*) " END OF NATURAL ORBITALS"
-      write(*,*) "=============================="
-      write(*,*) ""
+          write(*,*) ""
+          write(*,*) " END OF NATURAL ORBITALS"
+          write(*,*) "=============================="
+          write(*,*) ""
 
+       end if
+   
       close(unit)
 
       deallocate ( jj )

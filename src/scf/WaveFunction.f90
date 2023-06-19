@@ -995,7 +995,7 @@ contains
           end do loadintegrals
 
           close(unitid)
-          
+         
           do u = 1, totalNumberOfContractions
              do v = 1, totalNumberOfContractions
                 !$OMP ATOMIC
@@ -1003,7 +1003,7 @@ contains
                      twoParticlesMatrix%values(u,v) + tmpArray(u,v) 
              end do
           end do
-
+          
           deallocate(tmpArray)
 
           !$OMP END PARALLEL
@@ -1018,6 +1018,9 @@ contains
 
              end do
           end do
+          
+          if ( .not. InterPotential_instance%isInstanced) &
+               twoParticlesMatrix%values=twoParticlesMatrix%values*(MolecularSystem_getCharge(speciesID=this%species))**2.0_8
           
        else if ( CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
 
@@ -1060,6 +1063,8 @@ contains
                 twoParticlesMatrix%values(v,u)=twoParticlesMatrix%values(u,v)
              end do
           end do
+          if ( .not. InterPotential_instance%isInstanced) &
+               twoParticlesMatrix%values=twoParticlesMatrix%values*(MolecularSystem_getCharge(speciesID=this%species))**2.0_8
           
        else !! Direct
 
@@ -1238,7 +1243,8 @@ contains
 
                 close(unitid)
 
-                auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+                if ( .not. InterPotential_instance%isInstanced) &
+                     auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
 
                 do i = 1 , numberOfContractions
                    do j = i , numberOfContractions
@@ -1297,7 +1303,8 @@ contains
 
                 close(unitid)
 
-                auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+                if ( .not. InterPotential_instance%isInstanced) &
+                     auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
 
                 do i = 1 , numberOfContractions
                    do j = i , numberOfContractions
@@ -1364,7 +1371,8 @@ contains
                    hartreeMatrices(otherSpeciesID)%values(v,u)=hartreeMatrices(otherSpeciesID)%values(u,v)
                 end do
              end do
-             hartreeMatrices(otherSpeciesID)%values=hartreeMatrices(otherSpeciesID)%values*MolecularSystem_getCharge(speciesID)*MolecularSystem_getCharge(otherSpeciesID)
+             if ( .not. InterPotential_instance%isInstanced) &
+                  hartreeMatrices(otherSpeciesID)%values=hartreeMatrices(otherSpeciesID)%values*MolecularSystem_getCharge(speciesID)*MolecularSystem_getCharge(otherSpeciesID)
           end do
 
           

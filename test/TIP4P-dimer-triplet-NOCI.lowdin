@@ -1,0 +1,35 @@
+SYSTEM_DESCRIPTION='H'
+
+GEOMETRY
+N0	dirac 0 0 0  
+X0.5+  H2O-1S1P1D   -0.151399    0.000276    1.807200 translationCenter=1
+X0.5+  H2O-1S1P1D   -1.715032    0.000843   -0.589570 translationCenter=2
+N0	dirac      0.0	0.0	6.0		
+X1.1-	dirac      0.0	0.0	6.292152	
+X0.5+	dirac      0.0	1.430429	7.107157
+X0.5+	dirac      0.0	-1.430429	7.107157
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	nonOrthogonalConfigurationInteraction=.T.
+END TASKS
+
+CONTROL
+	units="BOHRS"
+	integralStorage="MEMORY"
+	readCoefficients=.T.
+	totalEnergyTolerance=1E-12
+	scfGlobalMaxIterations=5000
+	translationScanGrid=1 1 3
+	translationStep=0.36
+	numberOfCIstates=9
+END CONTROL
+
+EXTERPOTENTIAL
+	X0.5+ VOH-CCSDT
+END EXTERPOTENTIAL
+
+INTERPOTENTIAL
+	X0.5+ X0.5+	VHH-CCSDT
+END INTERPOTENTIAL

@@ -4,16 +4,19 @@ import os
 import sys
 from colorstring import *
 
-testName = "HCN.e+.gribakin"
+testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
-# Reference values
+# Reference values and tolerance
 
 refValues = {
-    "HF energy" : [-92.903413346616,1E-7],
-    "KT 1" : [-0.0016701317,1E-6]
-}
+    "HF energy" : [-0.651377261423,1E-8],
+    "HA-TIP Ext Pot" : [0.010606635479,1E-6],
+    "HA-TIP/HA-TIP Hartree" : [1.217813835967,1E-6],
+    "HA-TIP Exchange" : [-1.214419735313,1E-6],
+    "HA-TIP/Fixed interact." : [-0.035396418562,1E-6]
+}                       
 
 testValues = dict(refValues) #copy 
 for value in testValues: #reset
@@ -35,12 +38,15 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "Eigenvalues for: POSITRON" in line:
-        for j in range(i,len(outputRead)):
-            linej = outputRead[j]
-            if "1" in linej:
-                testValues["KT 1"] = float(linej.split()[1])
-                break
+    if "HA-TIP Ext Pot" in line:
+        testValues["HA-TIP Ext Pot"] = float(line.split()[5])
+    if "HA-TIP/HA-TIP Hartree" in line:
+        testValues["HA-TIP/HA-TIP Hartree"] = float(line.split()[4])
+    if "HA-TIP Exchange" in line:
+        testValues["HA-TIP Exchange"] = float(line.split()[4])
+    if "HA-TIP/Fixed interact." in line:
+        testValues["HA-TIP/Fixed interact."] = float(line.split()[4])
+        
 
 passTest = True
 
@@ -50,7 +56,7 @@ for value in refValues:
         passTest = passTest * True
     else :
         passTest = passTest * False
-        print(value + " " + str(refValues[value]) +" " +  str(testValues[value]) + " "+ str(diffValue))
+        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
 
 if passTest :
     print(testName + str_green(" ... OK"))
