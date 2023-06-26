@@ -11,7 +11,9 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCIstates=3
+readCoefficients=F
+numberOfCIstates=3
+CINaturalOrbitals=T
 	CIStatesToPrint = 1
 	!CIdiagonalizationMethod = "DSYEVX"
 	CIdiagonalizationMethod = "JADAMILU"

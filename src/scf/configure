@@ -15,7 +15,7 @@ TARGET=lowdin-SCF.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 INCI=-I\$(TOPDIR)src/ints/
-LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Iterators.o
+LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o \$(TOPDIR)src/ints/IntegralManager.o \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o  \$(TOPDIR)src/ints/HarmonicIntegrals.o  \$(TOPDIR)src/ints/FirstDerivativeIntegrals.o
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
@@ -28,34 +28,34 @@ OBJECTS=$(for file in $SRCMOD
 
 TOPDIR=../..
 INCIPATH=$TOPDIR/src/ints/
-INCI=$INCIPATH/*.f90
-INCI2=$INCIPATH/*.cpp
+# INCI=$INCIPATH/*.f90
+# INCI2=$INCIPATH/*.cpp
 
-for file in $SRCMOD 
-do
-   for ifile in $INCI 
-   do
-      ifilename=$(echo `basename "$ifile"`)
-      auxifile="${ifilename%.*}"
-      inci=$(grep "use "\\$auxifile $file)
-      if [[ -n $inci ]]
-      then
-        #echo -e "$INCIPATH$auxifile.o \c" >> makefile
-        OBJECTS=$OBJECTS$INCIPATH$auxifile.o" "  
-      fi
-   done
-   for ifile in $INCI2 
-   do
-      ifilename=$(echo `basename "$ifile"`)
-      auxifile="${ifilename%.*}"
-      inci=$(grep "\!# use "\\$auxifile $file)
-      if [[ -n $inci ]]
-      then
-        #echo -e "$INCIPATH$auxifile.o \c" >> makefile
-        OBJECTS=$OBJECTS$INCIPATH$auxifile.o" "  
-      fi
-   done
-done
+# for file in $SRCMOD 
+# do
+#    for ifile in $INCI 
+#    do
+#       ifilename=$(echo `basename "$ifile"`)
+#       auxifile="${ifilename%.*}"
+#       inci=$(grep "use "\\$auxifile $file)
+#       if [[ -n $inci ]]
+#       then
+#         #echo -e "$INCIPATH$auxifile.o \c" >> makefile
+#         OBJECTS=$OBJECTS$INCIPATH$auxifile.o" "  
+#       fi
+#    done
+#    for ifile in $INCI2 
+#    do
+#       ifilename=$(echo `basename "$ifile"`)
+#       auxifile="${ifilename%.*}"
+#       inci=$(grep "\!# use "\\$auxifile $file)
+#       if [[ -n $inci ]]
+#       then
+#         #echo -e "$INCIPATH$auxifile.o \c" >> makefile
+#         OBJECTS=$OBJECTS$INCIPATH$auxifile.o" "  
+#       fi
+#    done
+# done
 
 echo -e "OBJECTS=$OBJECTS" >> makefile
 

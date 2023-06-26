@@ -12,9 +12,12 @@ TASKS
 END TASKS
 
 CONTROL
-	integralsTransformationMethod = "C"
-	overlapEigenThreshold = 1E-6	
-	scfnonelectronicenergytolerance=1E-10
-	scfelectronicenergytolerance=1E-10
+readCoefficients=F
+integralsTransformationMethod = "C"
+!	overlapEigenThreshold = 1E-6	
+!	scfnonelectronicenergytolerance=1E-10
+!	scfelectronicenergytolerance=1E-10
+	totalenergytolerance=1E-10
+	debugSCFS=.F.
 END CONTROL
 

@@ -38,16 +38,19 @@ program Output_
   use Matrix_
   use InputOutput_
   use OutputBuilder_
+  use Stopwatch_
   implicit none
 
   character(50) :: job
   integer :: numberOfOutputs, i
-  type(OutputBuilder), allocatable :: outputs(:)
-  
+
   job = ""
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
-  read(job,"(I10)"), numberOfOutputs
+
+  !!Start time
+  call Stopwatch_constructor(lowdin_stopwatch)
+  call Stopwatch_start(lowdin_stopwatch)
 
   !!Load CONTROL Parameters
   call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
@@ -55,29 +58,47 @@ program Output_
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-  call InputOutput_constructor( numberOfOutputs )
-  call InputOutput_load( )
+  if(job.eq."FCHK") then
 
-  allocate(outputs(numberOfOutputs) )
-  
-  do i=1, numberOfOutputs
-     call OutputBuilder_constructor( outputs(i), i, &
-          InputOutput_Instance(i)%type, &
-          InputOutput_Instance(i)%specie, & 
-          InputOutput_Instance(i)%state, &
-          InputOutput_Instance(i)%orbital, &
-          InputOutput_Instance(i)%dimensions, &
-          InputOutput_Instance(i)%cubeSize, &
-          InputOutput_Instance(i)%point1, & 
-          InputOutput_Instance(i)%point2, &
-          InputOutput_Instance(i)%point3  )
+     allocate(outputs_instance(1) )
 
-     call OutputBuilder_buildOutput(outputs(i))
-     call OutputBuilder_show(outputs(i))
+     call OutputBuilder_constructor( outputs_instance(1), 1, &
+          "fchkFile", "ALL")
 
-  end do
+     call OutputBuilder_buildOutput(outputs_instance(1))
+     call OutputBuilder_show(outputs_instance(1))
 
-  
+  else
+     read(job,"(I10)") numberOfOutputs
+
+     call InputOutput_constructor( numberOfOutputs )
+     call InputOutput_load( )
+
+     allocate(outputs_instance(numberOfOutputs) )
+
+     do i=1, numberOfOutputs
+        call OutputBuilder_constructor( outputs_instance(i), i, &
+             InputOutput_Instance(i)%type, &
+             InputOutput_Instance(i)%species, & 
+             InputOutput_Instance(i)%state, &
+             InputOutput_Instance(i)%orbital, &
+             InputOutput_Instance(i)%dimensions, &
+             InputOutput_Instance(i)%cubeSize, &
+             InputOutput_Instance(i)%point1, & 
+             InputOutput_Instance(i)%point2, &
+             InputOutput_Instance(i)%point3  )
+
+        call OutputBuilder_buildOutput(outputs_instance(i))
+        call OutputBuilder_show(outputs_instance(i))
+     end do
+  end if
+
+  call Stopwatch_stop(lowdin_stopwatch)
+
+  write(*, *) ""
+  write(*,"(A,F10.3,A4)") "** TOTAL CPU Time Outputs : ", lowdin_stopwatch%enlapsetTime ," (s)"
+  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Outputs : ", lowdin_stopwatch%elapsetWTime ," (s)"
+  write(*, *) ""
 
 end program Output_
 

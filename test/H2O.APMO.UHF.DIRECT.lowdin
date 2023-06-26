@@ -13,7 +13,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralStorage = "DIRECT"
+readCoefficients=F
+integralStorage = "DIRECT"
 END CONTROL
 
 

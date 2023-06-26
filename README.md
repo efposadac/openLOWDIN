@@ -1,24 +1,19 @@
-# LOWDIN 2 Quantum chemistry package #
+# openLOWDIN Quantum chemistry package #
 
 This program has been developed under direction of:
 
 * [Prof. A REYES' Lab](http://www.qcc.unal.edu.co). Universidad Nacional de Colombia.
 
-* [Prof. R. FLORES' Lab](http://www.cucei.udg.mx/~robertof). Universidad de Guadalajara.
+[![Makefile CI](https://github.com/efposadac/openLOWDIN/actions/workflows/makefile.yml/badge.svg)](https://github.com/efposadac/openLOWDIN/actions/workflows/makefile.yml)
 
+© All rights reserved, 2023.
 
-© All rights reserved, 2014.
-
-
-Build status
-
-
-Welcome to LOWDIN Quantum Chemistry Package 2.0.
+Welcome to openLOWDIN Quantum Chemistry Package.
 
 Installation notes.
 =============
 
-###Prerequisites: ###
+### Prerequisites: ###
 
 * A standard FORTRAN compiler. gfortran and intel FORTRAN compiler have been tested.
 * Lapack or MKL libraries.
@@ -64,4 +59,4 @@ To visualize the html documentation use:
 * run `make clean` and then `make distclean`
 
 ### Further info: ###
-efposadac@unal.edu.co
+fernando.posada@temple.edu

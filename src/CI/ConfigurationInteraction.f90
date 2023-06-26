@@ -31,7 +31,7 @@ module ConfigurationInteraction_
   use Exception_
   use Matrix_
   use Vector_
-!  use MolecularSystem_
+  use MolecularSystem_
   use Configuration_
   use ReadTransformedIntegrals_
   use MolecularSystem_
@@ -987,13 +987,13 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
        write (6,"(T8,A30, A5)") "LEVEL = ", ConfigurationInteraction_instance%level
        write (6,"(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", ConfigurationInteraction_instance%numberOfConfigurations
        do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-        write (6,"(T8,A17,I3,A10, F18.12)") "STATE: ", i, " ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(i)
+        write (6,"(T8,A17,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", ConfigurationInteraction_instance%eigenvalues%values(i)
        end do
        write(*,"(A)") ""
        CIcorrection = ConfigurationInteraction_instance%eigenvalues%values(1) - &
                 HartreeFock_instance%totalEnergy
 
-       write (6,"(T4,A34, F20.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
+       write (6,"(T4,A34, F25.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
 
        if (  ConfigurationInteraction_instance%level == "CISD" ) then
          write(*,"(A)") ""
@@ -1006,15 +1006,15 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
          davidsonCorrection = ( 1 - HFcoefficient*HFcoefficient) * CIcorrection / (HFcoefficient*HFcoefficient)
   
   
-         write (6,"(T8,A19, F20.12)") "HF COEFFICIENT = ", HFcoefficient
-         write (6,"(T8,A19, F20.12)") "\delta E(Q) = ", davidsonCorrection
-         write (6,"(T8,A19, F20.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
+         write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
+         write (6,"(T8,A19, F25.12)") "\delta E(Q) = ", davidsonCorrection
+         write (6,"(T8,A19, F25.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
             CIcorrection + davidsonCorrection
        else 
 
          write(*,"(A)") ""
          HFcoefficient = ConfigurationInteraction_instance%eigenVectors%values(1,1) 
-         write (6,"(T8,A19, F20.12)") "HF COEFFICIENT = ", HFcoefficient
+         write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
 
        end if
 
@@ -1074,7 +1074,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     write (*,*) ""
 
     do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-      write (*, "(T1,A,I4,A,F18.10)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
+      write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
       write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
       write (*,*) ""
       do a = 1, numberOfConfigurations
@@ -1101,7 +1101,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     write (*,*) ""
 
     do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-      write (*, "(T1,A,I4,A,F18.10)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
+      write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", ConfigurationInteraction_instance%eigenValues%values(c) 
       write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
       write (*,*) ""
       do a = 1, numberOfConfigurations
@@ -1506,8 +1506,10 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
          do species=1, numberOfSpecies
             do n=1, ConfigurationInteraction_instance%nproc
                ciDensityMatrix(species,state)%values = ciDensityMatrix(species,state)%values + auxDensMatrix(species,n)%values
+               auxDensMatrix(species,n)%values=0.0
             end do
          end do
+
       end do
 
 
@@ -1520,9 +1522,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
      !! Building the CI reduced density matrix in the atomic orbital representation       
      do species=1, numberOfSpecies
        speciesName = MolecularSystem_getNameOfSpecie(species)
-       ! numberOfOrbitals = ConfigurationInteraction_instance%numberOfOrbitals%values(species)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-       numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(species)
 
        do state=1, CONTROL_instance%CI_STATES_TO_PRINT
           
@@ -1534,31 +1534,28 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
                                    int(numberOfContractions,8),  0.0_8 )
 
          do mu=1, numberOfContractions
-           do nu=1, numberOfContractions
-             do k=1, numberOfContractions
-               do l=k, numberOfContractions
+            do nu=1, numberOfContractions
+               do k=1, numberOfContractions
+                  atomicDensityMatrix(species,state)%values(mu,nu) =  &
+                       atomicDensityMatrix(species,state)%values(mu,nu) + &
+                       ciDensityMatrix(species,state)%values(k,k) *&
+                       coefficients(species)%values(mu,k)*coefficients(species)%values(nu,k)
 
-                 if(l .eq. k) then
-                   atomicDensityMatrix(species,state)%values(mu,nu) =  &
-                     atomicDensityMatrix(species,state)%values(mu,nu) + &
-                     ciDensityMatrix(species,state)%values(k,k) *&
-                     coefficients(species)%values(mu,k)*coefficients(species)%values(nu,k)
+                  do l=k+1, numberOfContractions
 
-                 else
-                   atomicDensityMatrix(species,state)%values(mu,nu) =  &
-                     atomicDensityMatrix(species,state)%values(mu,nu) + &
-                     ciDensityMatrix(species,state)%values(k,l) *&
-                     (coefficients(species)%values(mu,k)*coefficients(species)%values(nu,l) + & 
-                     coefficients(species)%values(mu,l)*coefficients(species)%values(nu,k))
-                            
-                 end if
+                     atomicDensityMatrix(species,state)%values(mu,nu) =  &
+                          atomicDensityMatrix(species,state)%values(mu,nu) + &
+                          ciDensityMatrix(species,state)%values(k,l) *&
+                          (coefficients(species)%values(mu,k)*coefficients(species)%values(nu,l) + & 
+                          coefficients(species)%values(mu,l)*coefficients(species)%values(nu,k))
+
+                  end do
                end do
-             end do
-           end do
+            end do
          end do
-             
-         !!print *, "atomic density matrix  ", trim(speciesName), state
-         !!call Matrix_show ( atomicDensityMatrix(species,state))
+       
+         ! print *, "atomic density matrix  ", trim(speciesName), state
+         ! call Matrix_show ( atomicDensityMatrix(species,state))
 
          write(auxstring,*) state
          arguments(2) = speciesName
@@ -1572,87 +1569,102 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
       !! Natural orbitals
 
-      write(*,*) ""
-      write(*,*) "=============================="
-      write(*,*) " NATURAL ORBITALS: "
-      write(*,*) ""
-
-      do state=1, CONTROL_instance%CI_STATES_TO_PRINT
-
-        write(*,*) " STATE: ", state
-
-        do species=1, numberOfSpecies
+       if (CONTROL_instance%CI_NATURAL_ORBITALS) then
 
           write(*,*) ""
-          write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(species)%name )
-          write(*,*) "-----------------"
+          write(*,*) "=============================="
+          write(*,*) " NATURAL ORBITALS: "
+          write(*,*) ""
 
-          numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-          speciesName = MolecularSystem_getNameOfSpecie(species)
+          do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+
+             write(*,*) " STATE: ", state
+
+             do species=1, numberOfSpecies
+
+                write(*,*) ""
+                write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(species)%name )
+                write(*,*) "-----------------"
+
+                numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
+                speciesName = MolecularSystem_getNameOfSpecie(species)
 
 
-          call Vector_constructor ( auxdensityEigenValues, &
-                                   int(numberOfContractions,4),  0.0_8 )
+                call Vector_constructor ( auxdensityEigenValues, &
+                     int(numberOfContractions,4),  0.0_8 )
 
-          call Matrix_constructor ( auxdensityEigenVectors, &
-                                   int(numberOfContractions,8), &
-                                   int(numberOfContractions,8),  0.0_8 )
+                call Matrix_constructor ( auxdensityEigenVectors, &
+                     int(numberOfContractions,8), &
+                     int(numberOfContractions,8),  0.0_8 )
 
-          call Vector_constructor ( densityEigenValues, &
-                                   int(numberOfContractions,4),  0.0_8 )
+                call Vector_constructor ( densityEigenValues, &
+                     int(numberOfContractions,4),  0.0_8 )
 
-          call Matrix_constructor ( densityEigenVectors, &
-                                   int(numberOfContractions,8), &
-                                   int(numberOfContractions,8),  0.0_8 )
+                call Matrix_constructor ( densityEigenVectors, &
+                     int(numberOfContractions,8), &
+                     int(numberOfContractions,8),  0.0_8 )
 
-          call Matrix_eigen ( ciDensityMatrix(species,state), auxdensityEigenValues, auxdensityEigenVectors, SYMMETRIC )  
+                call Matrix_eigen ( ciDensityMatrix(species,state), auxdensityEigenValues, auxdensityEigenVectors, SYMMETRIC )  
 
-          !! reorder
-          do u = 1, numberOfContractions
-            densityEigenValues%values(u) =  auxdensityEigenValues%values(numberOfContractions - u + 1)
-            densityEigenVectors%values(:,u) = auxdensityEigenVectors%values(:,numberOfContractions - u + 1)
+                ! reorder and count significant occupations
+                k=0
+                do u = 1, numberOfContractions
+                   densityEigenValues%values(u) =  auxdensityEigenValues%values(numberOfContractions - u + 1)
+                   densityEigenVectors%values(:,u) = auxdensityEigenVectors%values(:,numberOfContractions - u + 1)
+                   if(densityEigenValues%values(u) .ge. 5.0E-5 ) k=k+1
+                end do
+
+                !! Transform to atomic basis
+                densityEigenVectors%values = matmul( coefficients(species)%values, densityEigenVectors%values )
+
+                ! Print eigenvectors with occupation larger than 5.0E-5
+                call Matrix_constructor(auxdensityEigenVectors,int(numberOfContractions,8),int(k,8),0.0_8)
+                do u=1, numberOfContractions
+                   do j=1, k
+                      auxdensityEigenVectors%values(u,j)=densityEigenVectors%values(u,j)
+                   end do
+                end do
+                call Matrix_show( auxdensityEigenVectors, &
+                     rowkeys = MolecularSystem_getlabelsofcontractions( species ), &
+                     columnkeys = string_convertvectorofrealstostring( densityEigenValues ),&
+                     flags=WITH_BOTH_KEYS)
+
+                write(auxstring,*) state
+                arguments(2) = speciesName
+                arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
+
+                call Matrix_writeToFile ( densityEigenVectors, unit , arguments=arguments(1:2) )
+                arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
+
+                call Vector_writeToFile( densityEigenValues, unit, arguments=arguments(1:2) )
+                !! it's the same
+                !!auxdensityEigenVectors%values = 0
+
+                !!do mu=1, numberOfContractions
+                !!  do nu=1, numberOfContractions
+                !!    do k=1, numberOfContractions
+                !!      auxdensityEigenVectors%values(mu,nu) = auxdensityEigenVectors%values(mu,nu) + &
+                !!                              densityEigenVectors%values(mu,k) *  densityEigenVectors%values(nu,k)*densityEigenValues%values(k) 
+                !!    end do
+                !!  end do
+                !!end do
+                !!print *, "atomic density matrix from natural orbitals"
+                !!call Matrix_show ( auxdensityEigenVectors)
+                write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(speciesName) , "natural orbital occupations", sum(densityEigenValues%values)
+
+                write(*,*) " End of natural orbitals in state: ", state, " for: ", trim(speciesName)
+             end do
           end do
 
 
-          !! Transform to atomic basis
-          densityEigenVectors%values = matmul( coefficients(species)%values, densityEigenVectors%values )
 
-          call Matrix_show( densityEigenVectors, &
-             rowkeys = MolecularSystem_getlabelsofcontractions( species ), &
-             columnkeys = string_convertvectorofrealstostring( densityEigenValues ),&
-             flags=WITH_BOTH_KEYS)
+          write(*,*) ""
+          write(*,*) " END OF NATURAL ORBITALS"
+          write(*,*) "=============================="
+          write(*,*) ""
 
-          write(auxstring,*) state
-          arguments(2) = speciesName
-          arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
-             
-          call Matrix_writeToFile ( atomicDensityMatrix(species,state), unit , arguments=arguments(1:2) )
-
-         !! it's the same
-         !!auxdensityEigenVectors%values = 0
-
-         !!do mu=1, numberOfContractions
-         !!  do nu=1, numberOfContractions
-         !!    do k=1, numberOfContractions
-         !!      auxdensityEigenVectors%values(mu,nu) = auxdensityEigenVectors%values(mu,nu) + &
-         !!                              densityEigenVectors%values(mu,k) *  densityEigenVectors%values(nu,k)*densityEigenValues%values(k) 
-         !!    end do
-         !!  end do
-         !!end do
-         !!print *, "atomic density matrix from natural orbitals"
-         !!call Matrix_show ( auxdensityEigenVectors)
-
-        write(*,*) " End of natural orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(species)%name )
-        end do
-      end do
-
-
-
-      write(*,*) ""
-      write(*,*) " END OF NATURAL ORBITALS"
-      write(*,*) "=============================="
-      write(*,*) ""
-
+       end if
+   
       close(unit)
 
       deallocate ( jj )
@@ -4241,15 +4253,16 @@ recursive  function ConfigurationInteraction_getIndexSize(s, c, auxcilevel) resu
         !        ConfigurationInteraction_instance%energyofmolecularorbitals(i)%values(m) 
         !end do
 
-        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-          arguments(1) = "EXTERNAL_POTENTIAL"
+        ! Already saved in hcore
+        ! if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+        !   arguments(1) = "EXTERNAL_POTENTIAL"
 
-          externalPotential = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+        !   externalPotential = &
+        !     Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+        !     columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-          hcoreMatrix%values = hcoreMatrix%values + externalPotential%values
-        end if
+        !   hcoreMatrix%values = hcoreMatrix%values + externalPotential%values
+        ! end if
         !print *, "fock matrix for species", i
         !call matrix_show ( ConfigurationInteraction_instance%fockMatrix(i) )
 

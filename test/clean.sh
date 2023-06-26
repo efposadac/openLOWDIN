@@ -1,4 +1,4 @@
-#!/bin/bash/
+#!/bin/bash
 
 find . -name "*.out" -exec rm -f {} \;
 find . -name "*.vec" -exec rm -f {} \;
@@ -18,3 +18,5 @@ find . -name "*.vec" -exec rm -f {} \;
 find . -name "*.ci" -exec rm -f {} \;
 find . -name "*.pyc" -exec rm -f {} \;
 find . -name "*.ints" -exec rm -f {} \;
+find . -name "*.dens" -exec rm -f {} \;
+find . -name "*.cub" -exec rm -f {} \;

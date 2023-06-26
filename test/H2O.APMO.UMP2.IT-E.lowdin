@@ -14,7 +14,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralsTransformationMethod = "E"
+readCoefficients=F
+integralsTransformationMethod = "E"
 	ITbufferSize = 1024
 	integralStackSize = 1024
 END CONTROL

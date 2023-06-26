@@ -13,15 +13,16 @@ TASKS
 END TASKS
 
 CONTROL
-	numberOfCIstates=3
+readCoefficients=F
+numberOfCIstates=3
+CINaturalOrbitals=T
 	CIStatesToPrint = 1
 	CIdiagonalizationMethod = "JADAMILU"
 	CIPrintEigenVectorsFormat = "OCCUPIED"
 	!CIPrintEigenVectorsFormat = "ORBITALS"
 	overlapEigenThreshold=1E-6	
 	CIPrintThreshold = 5e-2
-	scfNonelectronicEnergyTolerance = 1E-8
-	scfElectronicEnergyTolerance = 1E-8
+	totalEnergyTolerance = 1E-8
 END CONTROL
 
 INPUT_CI

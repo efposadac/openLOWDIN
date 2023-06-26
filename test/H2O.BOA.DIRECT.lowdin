@@ -23,7 +23,8 @@ TASKS
 END TASKS
 
 CONTROL
-	integralStorage="direct"
+readCoefficients=F
+integralStorage="direct"
 END CONTROL
 !OUTPUTS
 !	wfnFile	

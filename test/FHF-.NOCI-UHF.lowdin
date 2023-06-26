@@ -1,0 +1,32 @@
+
+SYSTEM_DESCRIPTION='Molecula de H2O'
+
+GEOMETRY
+	e-[F]   6-31G     0.000000      0.000000     -1.140079 addParticles=1
+	e-[H]   6-31G     0.000000      0.000000      0.000000 translationCenter=1
+	e-[F]   6-31G     0.000000      0.000000      1.140079
+	F        dirac    0.000000      0.000000     -1.140079
+	H_1   Nakai-3-s   0.000000      0.000000      0.000000 translationCenter=1
+	F        dirac    0.000000      0.000000      1.140079
+END GEOMETRY
+
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	nonOrthogonalConfigurationInteraction=.T.
+END TASKS
+
+CONTROL
+	readCoefficients=.F.
+	translationScanGrid=3 3 3
+	translationStep=0.1
+	integralStorage="MEMORY"
+	numberOfCIstates=10
+	totalEnergyTolerance=1E-12
+END CONTROL
+
+
+
+
+

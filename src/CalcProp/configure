@@ -14,8 +14,8 @@ include \$(TOPDIR)/CONFIG
 TARGET=lowdin-CalcProp.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
-WHF=-I\$(TOPDIR)src/HF/
-LDPATH=\$(TOPDIR)lib/lowdincore.a
+INCI=-I\$(TOPDIR)src/ints/
+LDPATH=\$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o \$(TOPDIR)src/scf/Convergence.o \$(TOPDIR)src/scf/DensityMatrixSCFGuess.o \$(TOPDIR)src/scf/MultiSCF.o \$(TOPDIR)src/scf/OrbitalLocalizer.o \$(TOPDIR)src/scf/SingleSCF.o \$(TOPDIR)src/scf/StackMatrices.o \$(TOPDIR)src/scf/WaveFunction.o \$(TOPDIR)lib/lowdincore.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
@@ -31,36 +31,37 @@ echo -e "\tmv \$(TARGET) \$(TOPDIR)bin/\n" >> makefile
 #
 for file in $SRCMOD 
 do
-  echo -e "${file%.f90}.o:\t${file} \c" >> makefile
-   for ifile in $INC
-   do
-      inc=$(grep $ifile $file)
-      if [[ -n $inc ]]
-      then
-        echo -e "$ifile \c" >> makefile
-      fi
-   done
- for ifile in $WHF
-   do
-      whf=$(grep $ifile $file)
-      if [[ -n $whf ]]
-      then
-        echo -e "$ifile \c" >> makefile
-      fi
-   done
-  for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
-   do
-     name=$(echo $mod)
-     
-     for jfile in $SRCMOD
-     do
-       if [[ $jfile == $name.f90 ]]
-       then
-         echo -e "$name.o \c" >> makefile
-       fi
-     done
-   done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) \$(WHF)  ${file}\n" >> makefile
+    echo -e "${file%.f90}.o:\t${file} \c" >> makefile
+    for ifile in $INC
+    do
+	inc=$(grep $ifile $file)
+	if [[ -n $inc ]]
+	then
+            echo -e "$ifile \c" >> makefile
+	fi
+    done
+    # for ifile in $WHF
+    #   do
+    #      whf=$(grep $ifile $file)
+    #      if [[ -n $whf ]]
+    #      then
+    #        echo -e "$ifile \c" >> makefile
+    #      fi
+    #   done
+    for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
+    do
+	name=$(echo $mod)
+	
+	for jfile in $SRCMOD
+	do
+	    if [[ $jfile == $name.f90 ]]
+	    then
+		echo -e "$name.o \c" >> makefile
+	    fi
+	done
+    done
+    # echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) \$(WHF)  ${file}\n" >> makefile
+    echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(FLAGS) ${file}\n" >> makefile
 done
 #
 cat >> makefile << EOF

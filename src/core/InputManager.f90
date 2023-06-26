@@ -44,11 +44,13 @@ module InputManager_
      character(50) :: method
      integer :: mollerPlessetCorrection
      integer :: epsteinNesbetCorrection
-     character(20) :: configurationInteractionLevel
      integer :: propagatorTheoryCorrection
+     character(20) :: configurationInteractionLevel
+     logical :: nonOrthogonalConfigurationInteraction
      logical :: optimizeGeometry
      logical :: TDHF
      logical :: cosmo
+     logical :: subsystemEmbedding
 
   end type InputManager
 
@@ -176,6 +178,7 @@ contains
     implicit none
     
     integer :: stat
+    character(1000) :: line
 
     !! Namelist definition
     character(50):: InputTasks_method
@@ -183,9 +186,11 @@ contains
     integer:: InputTasks_mollerPlessetCorrection
     integer:: InputTasks_epsteinNesbetCorrection
     integer:: InputTasks_propagatorTheoryCorrection
+    logical:: InputTasks_nonOrthogonalConfigurationInteraction
     logical:: InputTasks_optimizeGeometry
     logical:: InputTasks_TDHF
     logical:: InputTasks_cosmo
+    logical:: InputTasks_subsystemEmbedding
 
     
     NAMELIST /InputTasks/ &
@@ -194,9 +199,11 @@ contains
          InputTasks_mollerPlessetCorrection, &
          InputTasks_epsteinNesbetCorrection, &
          InputTasks_propagatorTheoryCorrection, &
+         InputTasks_nonOrthogonalConfigurationInteraction, &
          InputTasks_optimizeGeometry, &
          InputTasks_TDHF, &
-         InputTasks_cosmo		
+         InputTasks_cosmo, &
+         InputTasks_subsystemEmbedding
 
     
     !! Setting defaults    
@@ -205,9 +212,11 @@ contains
     InputTasks_epsteinNesbetCorrection = 0
     InputTasks_configurationInteractionLevel = "NONE"
     InputTasks_propagatorTheoryCorrection = 0
+    InputTasks_nonOrthogonalConfigurationInteraction = .false.
     InputTasks_optimizeGeometry = .false.
     InputTasks_TDHF = .false.
     InputTasks_cosmo= .false.
+    InputTasks_subsystemEmbedding=.false.
     
     !! reload input file
     rewind(4)
@@ -216,6 +225,10 @@ contains
     read(4,NML=InputTasks, iostat=stat)
     
     if( stat > 0 ) then       
+       write (*,'(A)') 'Error reading InputTasks'
+       backspace(4)
+       read(4,fmt='(A)') line
+       write(*,'(A)') 'Invalid line : '//trim(line)
        call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
     end if
     
@@ -225,9 +238,11 @@ contains
     Input_instance%epsteinNesbetCorrection = InputTasks_epsteinNesbetCorrection 
     Input_instance%configurationInteractionLevel = trim(String_getUppercase(trim(InputTasks_configurationInteractionLevel)))
     Input_instance%propagatorTheoryCorrection = InputTasks_propagatorTheoryCorrection
+    Input_instance%nonOrthogonalConfigurationInteraction = InputTasks_nonOrthogonalConfigurationInteraction
     Input_instance%optimizeGeometry = InputTasks_optimizeGeometry
     Input_instance%TDHF = InputTasks_TDHF
     Input_instance%cosmo = InputTasks_cosmo
+    Input_instance%subsystemEmbedding = InputTasks_subsystemEmbedding
     
     !! If the method is for open shell systems
     if ( trim(Input_instance%method) == "UHF" .or. trim(Input_instance%method) == "ROHF" .or. & 
@@ -248,22 +263,27 @@ contains
     CONTROL_instance%EPSTEIN_NESBET_CORRECTION = input_instance%epsteinNesbetCorrection
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = input_instance%configurationInteractionLevel
     CONTROL_instance%PT_ORDER = input_instance%propagatorTheoryCorrection
+    
+    ! if ( input_instance%mollerPlessetCorrection /= 0 ) then
+    !    CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-MP2"
+    ! end if
 
-    if ( input_instance%mollerPlessetCorrection /= 0 ) then
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-MP2"
-    end if
-
-    if ( input_instance%epsteinNesbetCorrection /= 0 ) then
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-EN2"
-    end if
+    ! if ( input_instance%epsteinNesbetCorrection /= 0 ) then
+    !    CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-EN2"
+    ! end if
         
-    if ( input_instance%configurationInteractionLevel /= "NONE" ) then
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-CI"
+    ! if ( input_instance%configurationInteractionLevel /= "NONE" ) then
+    !    CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-CI"
+    ! end if
+
+    ! if ( input_instance%propagatorTheoryCorrection /= 0 ) then
+    !    CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-PT"
+    ! end if
+
+    if(Input_instance%nonOrthogonalConfigurationInteraction) then
+       CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION=.true.
     end if
 
-    if ( input_instance%propagatorTheoryCorrection /= 0 ) then
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-PT"
-    end if
     
     if ( input_instance%optimizeGeometry ) then 
        CONTROL_instance%OPTIMIZE = .true.
@@ -275,7 +295,11 @@ contains
     
     if (input_instance%cosmo) then
        CONTROL_instance%cosmo = .true.
-       CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
+       ! CONTROL_instance%METHOD=trim(CONTROL_instance%METHOD)//"-COSMO"
+    end if
+
+    if (input_instance%subsystemEmbedding) then
+       CONTROL_instance%SUBSYSTEM_EMBEDDING = .true.
     end if
     
     if( Input_instance%numberOfExternalPots > 0) then    
@@ -323,6 +347,10 @@ contains
     character(3):: InputParticle_fixedCoordinates
     integer:: InputParticle_addParticles
     real(8):: InputParticle_multiplicity    
+    integer:: InputParticle_fragmentNumber
+    integer:: InputParticle_translationCenter
+    integer:: InputParticle_rotationPoint
+    integer:: InputParticle_rotateAround
     
     NAMELIST /InputParticle/ &
          InputParticle_name, &
@@ -332,6 +360,10 @@ contains
          InputParticle_origin, &
          InputParticle_fixedCoordinates, &
          InputParticle_multiplicity, &
+         InputParticle_fragmentNumber, &
+         InputParticle_translationCenter, &
+         InputParticle_rotationPoint, &
+         InputParticle_rotateAround, &
          InputParticle_addParticles
     
 
@@ -505,7 +537,11 @@ contains
        InputParticle_origin=0.0_8
        InputParticle_fixedCoordinates = "NON"
        InputParticle_multiplicity = 1.0_8
+       InputParticle_fragmentNumber = 0
        InputParticle_addParticles = 0
+       InputParticle_translationCenter = 0
+       InputParticle_rotationPoint = 0
+       InputParticle_rotateAround = 0
        
        !! Reads namelist from input file
        read(4,NML = InputParticle, iostat = stat)
@@ -565,9 +601,19 @@ contains
              
              !! Loads Particle
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
-                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
-                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="ALPHA", id = particlesID(speciesID), charge = InputParticle_charge, &
+                  name = trim(InputParticle_name), &
+                  baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, &
+                  fix=trim(inputParticle_fixedCoordinates), &
+                  addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, &
+                  subsystem=inputParticle_fragmentNumber, &
+                  translationCenter=InputParticle_translationCenter, &
+                  rotationPoint=InputParticle_rotationPoint, &
+                  rotateAround=InputParticle_rotateAround,&                
+                  spin="ALPHA", &
+                  id = particlesID(speciesID), &
+                  charge = InputParticle_charge, &
                   mass = InputParticle_mass )
              
              !!BETA SET
@@ -577,11 +623,20 @@ contains
              InputParticle_name = "E-BETA-"//trim(atomName)             
              !! Loads Particle
              call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
-                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
-                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, spin="BETA", id = particlesID(speciesID), charge = InputParticle_charge, &
-                  mass = InputParticle_mass )
-             
+                  name = trim(InputParticle_name), &
+                  baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, &
+                  fix=trim(inputParticle_fixedCoordinates), &
+                  addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, &
+                  subsystem=inputParticle_fragmentNumber, &
+                  translationCenter=InputParticle_translationCenter, &
+                  rotationPoint=InputParticle_rotationPoint, &
+                  rotateAround=InputParticle_rotateAround,&                
+                  spin="BETA", &
+                  id = particlesID(speciesID), &
+                  charge = InputParticle_charge, &
+                  mass = InputParticle_mass )             
              
           else 
 
@@ -594,11 +649,20 @@ contains
              particlesID(speciesID) = particlesID(speciesID) + 1
              
              !! Loads Particle
-             call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)),&
-                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
-                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = particlesID(speciesID), charge = InputParticle_charge, &
-                  mass = InputParticle_mass )
+             call Particle_load( MolecularSystem_instance%species(speciesID)%particles(particlesID(speciesID)), &
+                  name = trim(InputParticle_name), &
+                  baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, &
+                  fix=trim(inputParticle_fixedCoordinates), &
+                  addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, &
+                  subsystem=inputParticle_fragmentNumber, &
+                  translationCenter=InputParticle_translationCenter, &
+                  rotationPoint=InputParticle_rotationPoint, &
+                  rotateAround=InputParticle_rotateAround,&                
+                  id = particlesID(speciesID), &
+                  charge = InputParticle_charge, &
+                  mass = InputParticle_mass )                         
              
           end if
 
@@ -608,16 +672,35 @@ contains
           counter = counter + 1
           !! Loads Molecular Mechanics Particle 
           if(trim(InputParticle_basisSetName) == "MM") then
-             call Particle_load( MolecularSystem_instance%pointCharges(counter),&
-                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
-                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = counter, charge = InputParticle_charge)
+             call Particle_load( MolecularSystem_instance%pointCharges(counter), &
+                  name = trim(InputParticle_name), &
+                  baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, &
+                  fix=trim(inputParticle_fixedCoordinates), &
+                  addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, &
+                  subsystem=inputParticle_fragmentNumber, &
+                  translationCenter=InputParticle_translationCenter, &
+                  rotationPoint=InputParticle_rotationPoint, &
+                  rotateAround=InputParticle_rotateAround,&                
+                  id = counter, &
+                  charge = InputParticle_charge )             
+
           else
           !! Loads Particle
-             call Particle_load( MolecularSystem_instance%pointCharges(counter),&
-                  name = trim(InputParticle_name), baseName = trim(InputParticle_basisSetName), &
-                  origin = inputParticle_origin, fix=trim(inputParticle_fixedCoordinates), addParticles=inputParticle_addParticles, &
-                  multiplicity=inputParticle_multiplicity, id = counter,  charge = InputParticle_charge)
+             call Particle_load( MolecularSystem_instance%pointCharges(counter), &
+                  name = trim(InputParticle_name), &
+                  baseName = trim(InputParticle_basisSetName), &
+                  origin = inputParticle_origin, &
+                  fix=trim(inputParticle_fixedCoordinates), &
+                  addParticles=inputParticle_addParticles, &
+                  multiplicity=inputParticle_multiplicity, &
+                  subsystem=inputParticle_fragmentNumber, &
+                  translationCenter=InputParticle_translationCenter, &
+                  rotationPoint=InputParticle_rotationPoint, &
+                  rotateAround=InputParticle_rotateAround,&                
+                  id = counter, &
+                  charge = InputParticle_charge )             
           end if
        end if
     end do

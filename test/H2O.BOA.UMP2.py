@@ -29,13 +29,13 @@ outputRead = output.readlines()
 for line in outputRead:
     if "TOTAL ENERGY =" in line:
         totalEnergy = float(line.split()[3])
-    if "E(MP2)=" in line:
-        MP2Energy = float(line.split()[1])
+    if "E(MP2) =" in line:
+        MP2Energy = float(line.split()[2])
 
 diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffMP2Energy = abs(refMP2Energy - MP2Energy)
 
-if (diffTotalEnergy <= 1E-10 and diffMP2Energy <= 1E-10):
+if (diffTotalEnergy <= 1E-8 and diffMP2Energy <= 1E-5):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

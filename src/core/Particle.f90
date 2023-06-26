@@ -57,6 +57,10 @@ module Particle_
      logical :: fixComponent(3)		!< Indica cual coordenada sera un parametro. (is fixed)
      logical :: isCenterOfOptimization	!< Especifica si la particula sera centro de optimizacion -Atributo requerido por conveniencia-
      integer :: multiplicity
+     integer :: subsystem               !< Which subsystem the particle belongs to
+     integer :: translationCenter       !< Defines if the coordinates are going to be displaced linearly in non Orthogonal CI 
+     integer :: rotationPoint          !< Defines if the coordinates of the particles around this atom are going to be rotated in non Orthogonal CI
+     integer :: rotateAround            !< Defines around which atom the coordinates are going to be rotated in non Orthogonal CI
      integer :: id			!< Indice de particula dentro del sistema
      integer :: internalSize		!< Numero de particulas si se trata de una particula estructurada
      integer :: owner			!< asocia un indice a la particula que la indentifica como un centro de referencia.
@@ -76,7 +80,8 @@ contains
   !!      -Adapted for open shell systems, 2011. E. F. Posada
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
-  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, addParticles, spin, id, charge, mass )
+  subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, &
+       addParticles, subsystem, translationCenter, rotationPoint, rotateAround, spin, id, charge, mass )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
@@ -86,6 +91,10 @@ contains
     real(8), intent(in), optional :: origin(3)
     real(8), intent(in), optional :: multiplicity
     integer, intent(in), optional :: addParticles
+    integer, intent(in), optional :: subsystem
+    integer, intent(in), optional :: translationCenter
+    integer, intent(in), optional :: rotationPoint
+    integer, intent(in), optional :: rotateAround     
     integer, intent(in) :: id
     real(8), intent(in), optional :: charge
     real(8), intent(in), optional :: mass
@@ -98,6 +107,10 @@ contains
     integer :: i
     integer :: j
     integer :: massNumber
+    integer :: auxSubsystem
+    integer :: auxTranslationCenter
+    integer :: auxRotationPoint   
+    integer :: auxRotateAround     
     integer :: auxAdditionOfParticles
     real(8) :: auxOrigin(3)
     real(8) :: auxCharge
@@ -124,6 +137,18 @@ contains
     auxAdditionOfParticles=0
     if   ( present(addParticles) ) auxAdditionOfParticles= addParticles
 
+    auxSubsystem=0
+    if   ( present(subsystem) ) auxSubsystem= subsystem
+
+    auxTranslationCenter=0
+    if   ( present(translationCenter) ) auxTranslationCenter= translationCenter
+
+    auxRotationPoint=0   
+    if   ( present(rotationPoint) ) auxRotationPoint= rotationPoint
+
+    auxRotateAround=0     
+    if   ( present(rotateAround) ) auxRotateAround= rotateAround
+    
     !! Initialize some variables
     isDummy = .false.
     isElectron = .false.
@@ -186,6 +211,10 @@ contains
                elementSymbol=trim(elementSymbol), &
                isDummy= isDummy, &
                owner=id, &
+               subsystem=auxSubsystem, &
+               translationCenter=auxTranslationCenter, &
+               rotationPoint=auxRotationPoint, &
+               rotateAround=auxRotateAround,&
                nickname=trim(element%symbol) )
           
           !! Setting remaining variables...
@@ -271,6 +300,10 @@ contains
                elementSymbol = trim(elementSymbol), &
                isDummy = isDummy, &
                owner = id, &
+               subsystem=auxSubsystem, &
+               translationCenter=auxTranslationCenter, &
+               rotationPoint=auxRotationPoint, &
+               rotateAround=auxRotateAround,&
                massNumber = int(element%massicNumber),&
                nickname = trim(name))
 
@@ -327,6 +360,10 @@ contains
                   name=trim(elementSymbol), &
                   origin=auxOrigin, &
                   owner=id, &
+                  subsystem=auxSubsystem, &
+                  translationCenter=auxTranslationCenter, &
+                  rotationPoint=auxRotationPoint, &
+                  rotateAround=auxRotateAround,&
                   nickname=trim(element%symbol))
 
              call Particle_setComponentFixed(this, varsToFix )
@@ -372,6 +409,10 @@ contains
                   name=trim(elementSymbol), &
                   origin=auxOrigin, &
                   owner=id, &
+                  subsystem=auxSubsystem, &
+                  translationCenter=auxTranslationCenter, &
+                  rotationPoint=auxRotationPoint, &
+                  rotateAround=auxRotateAround,&
                   charge=auxCharge, &
                   nickname=trim(element%symbol))
 
@@ -421,6 +462,10 @@ contains
             basisSetName = trim(baseName), &
             elementSymbol = trim(elementSymbol), &
             isDummy = isDummy, &
+            subsystem=auxSubsystem, &
+            translationCenter=auxTranslationCenter, &
+            rotationPoint=auxRotationPoint, &
+            rotateAround=auxRotateAround,&
             owner = id, &
             nickname = trim(eparticle%symbol))
        
@@ -456,6 +501,10 @@ contains
                isQuantum=.false., &
                name=trim(name), &
                origin=auxOrigin, &
+               subsystem=auxSubsystem, &
+               translationCenter=auxTranslationCenter, &
+               rotationPoint=auxRotationPoint, &
+               rotateAround=auxRotateAround,&
                owner=id, &
                nickname=trim(eparticle%symbol))
 
@@ -483,6 +532,10 @@ contains
                name=trim(name), &
                origin=auxOrigin, &
                charge=auxCharge, &
+               subsystem=auxSubsystem, &
+               translationCenter=auxTranslationCenter, &
+               rotationPoint=auxRotationPoint, &
+               rotateAround=auxRotateAround,&
                owner=id, &
                nickname=trim(eparticle%symbol))
 
@@ -517,7 +570,7 @@ contains
   !! @author S. A. Gonzalez (before known as Particle_constructor)
   subroutine Particle_build( this, name, symbol, basisSetName, elementSymbol, nickname, &
        origin, mass, charge, totalCharge, spin, &
-       owner, massNumber, isQuantum, isDummy)
+       owner, subsystem, translationCenter, rotationPoint, rotateAround, massNumber, isQuantum, isDummy)
 
     implicit none
     
@@ -533,6 +586,10 @@ contains
     real(8), optional, intent(in) :: totalCharge
     real(8), optional, intent(in) :: spin
     integer, optional, intent(in) :: owner
+    integer, optional, intent(in) :: subsystem               !< Which subsystem the particle belongs to
+    integer, optional, intent(in) :: translationCenter
+    integer, optional, intent(in) :: rotationPoint
+    integer, optional, intent(in) :: rotateAround
     integer, optional, intent(in) :: massNumber
     logical, optional, intent(in) :: isQuantum
     logical, optional, intent(in) :: isDummy
@@ -555,6 +612,11 @@ contains
     this%spin = PhysicalConstants_SPIN_ELECTRON
     this%fixComponent =.false.
     this%owner = 0
+    this%subsystem = 0
+    this%translationCenter = 0
+    this%rotationPoint = 0
+    this%rotateAround = 0
+
     this%isDummy = .false.
     this%internalSize = 0
     this%isCenterOfOptimization = .true.
@@ -575,6 +637,11 @@ contains
     if ( present(name) ) this%name=trim(name)
     if ( present(symbol) ) this%symbol=trim(symbol)
     if ( present(owner) ) this%owner=owner
+    if ( present(subsystem) ) this%subsystem=subsystem
+    if ( present(translationCenter) ) this%translationCenter=translationCenter
+    if ( present(rotationPoint) ) this%rotationPoint=rotationPoint
+    if ( present(rotateAround) ) this%rotateAround=rotateAround
+
     if ( present(basisSetName) ) this%basisSetName = trim(basisSetName)
     if ( present(nickname) ) this%nickname=trim(nickname)
     this%id = this%owner
@@ -601,6 +668,9 @@ contains
        this%basisSetSize = this%basis%length
        
        if(this%isDummy) this%isCenterOfOptimization = .false.
+
+       this%basis%contraction(:)%owner=this%owner
+       this%basis%contraction(:)%subsystem=this%subsystem
        
     end if
         
@@ -723,7 +793,6 @@ contains
     integer :: i
     logical :: childs
 
-    
     write(unit,*) this%name
     write(unit,*) this%symbol
     write(unit,*) this%nickname
@@ -743,6 +812,10 @@ contains
     write(unit,*) this%internalSize
     write(unit,*) this%owner
     write(unit,*) this%basisSetSize
+    write(unit,*) this%subsystem
+    write(unit,*) this%translationCenter
+    write(unit,*) this%rotationPoint
+    write(unit,*) this%rotateAround
     
     if ( allocated(this%childs) ) then
        childs = .true.
@@ -797,6 +870,10 @@ contains
     read(unit,*) this%internalSize
     read(unit,*) this%owner
     read(unit,*) this%basisSetSize
+    read(unit,*) this%subsystem
+    read(unit,*) this%translationCenter
+    read(unit,*) this%rotationPoint
+    read(unit,*) this%rotateAround
     read(unit,*) childs
     
     if (childs ) then
@@ -811,7 +888,7 @@ contains
     if(this%isQuantum) then
        call BasisSet_loadFromFile(this%basis, unit)
     end if
-    
+
   end subroutine Particle_loadFromFile
 
   !>

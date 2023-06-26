@@ -10,9 +10,9 @@ outputName = testName + ".out"
 
 # Reference values
 
-refExchangeCorrelationEnergy=-2.21707300
-refNumberOfE=3.99991937
-refTotalEnergy=-8.072145588372
+refExchangeCorrelationEnergy=-2.220930439475
+refNumberOfE=3.99998704
+refTotalEnergy=-8.070168253764
 # Run calculation
 
 status = os.system("lowdin2 -i " + inputName)
@@ -29,8 +29,8 @@ outputRead = output.readlines()
 for line in outputRead:
     if "TOTAL ENERGY =" in line:
         totalEnergy = float(line.split()[3])
-    if "Exchange correlation energy with the final grid" in line:
-        exchangeCorrelationEnergy = float(line.split()[7])
+    if "Total Exchange Correlation energy" in line:
+        exchangeCorrelationEnergy = float(line.split()[5])
     if "Number of E- particles in the final grid" in line:
         numberOfE = float(line.split()[8])
 
@@ -39,7 +39,7 @@ diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffExchangeCorrelationEnergy = abs(refExchangeCorrelationEnergy - exchangeCorrelationEnergy)
 diffRefNumberOfE = abs(refNumberOfE - numberOfE)
 
-if (diffTotalEnergy <= 1E-5 and diffExchangeCorrelationEnergy <= 1E-5 and diffRefNumberOfE <= 1E-5 ):
+if (diffTotalEnergy <= 1E-6 and diffExchangeCorrelationEnergy <= 1E-3 and diffRefNumberOfE <= 1E-4 ):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

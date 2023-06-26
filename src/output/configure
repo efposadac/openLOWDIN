@@ -14,7 +14,6 @@ include \$(TOPDIR)/CONFIG
 TARGET=lowdin-output.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
-WHF=-I\$(TOPDIR)src/HF/
 LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libmolden2aim.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
@@ -40,14 +39,14 @@ do
         echo -e "$ifile \c" >> makefile
       fi
    done
- for ifile in $WHF
-   do
-      whf=$(grep $ifile $file)
-      if [[ -n $whf ]]
-      then
-        echo -e "$ifile \c" >> makefile
-      fi
-   done
+ # for ifile in $WHF
+ #   do
+ #      whf=$(grep $ifile $file)
+ #      if [[ -n $whf ]]
+ #      then
+ #        echo -e "$ifile \c" >> makefile
+ #      fi
+ #   done
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
    do
      name=$(echo $mod)
@@ -60,7 +59,8 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) \$(WHF)  ${file}\n" >> makefile
+  # echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) \$(WHF)  ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC) \$(FLAGS) ${file}\n" >> makefile
 done
 #
 cat >> makefile << EOF
