@@ -72,30 +72,33 @@ program DFT
      !!Start time
      ! call Stopwatch_constructor(lowdin_stopwatch)
      ! call Stopwatch_start(lowdin_stopwatch)
-     
-     print *, ""
-     print *, "--------------------------------------------------------------------------------------"
-     print *, "|---------------------Building SCF Integration Grids---------------------------------|"
-     print *, "--------------------------------------------------------------------------------------"
-     print *, "Euler-Maclaurin radial grids - Lebedev angular grids"
-     print *, ""
 
+     if(CONTROL_instance%PRINT_LEVEL .gt. 0) then
+        print *, ""
+        print *, "--------------------------------------------------------------------------------------"
+        print *, "|---------------------Building SCF Integration Grids---------------------------------|"
+        print *, "--------------------------------------------------------------------------------------"
+        print *, "Euler-Maclaurin radial grids - Lebedev angular grids"
+        print *, ""
+     end if
 
      call GridManager_buildGrids( "INITIAL" )
      call Functional_createFunctionals( )
-     call Functional_show( )
+     if(CONTROL_instance%PRINT_LEVEL .gt. 0) call Functional_show( )
      call GridManager_writeGrids( "INITIAL" )
      call GridManager_atomicOrbitals( "WRITE","INITIAL" )
      ! call Stopwatch_stop(lowdin_stopwatch)     
      ! write(*,"(A,F10.3,A4)") "** Building and writing grids and atomic orbitals:", lowdin_stopwatch%enlapsetTime ," (s)"
 
   else if (trim(job).eq."BUILD_FINAL_GRID")  then
-     print *, ""
-     print *, "--------------------------------------------------------------------------------------"
-     print *, "|-------------------Building Final Integration Grids---------------------------------|"
-     print *, "--------------------------------------------------------------------------------------"
-     print *, "Euler-Maclaurin radial grids - Lebedev angular grids"
-     print *, ""
+     if(CONTROL_instance%PRINT_LEVEL .gt. 0) then
+        print *, ""
+        print *, "--------------------------------------------------------------------------------------"
+        print *, "|-------------------Building Final Integration Grids---------------------------------|"
+        print *, "--------------------------------------------------------------------------------------"
+        print *, "Euler-Maclaurin radial grids - Lebedev angular grids"
+        print *, ""
+     end if
      call GridManager_buildGrids( "FINAL" )
      call Functional_createFunctionals( )
      call GridManager_writeGrids( "FINAL" )
@@ -139,13 +142,15 @@ program DFT
            end do
 
            close(unit=excUnit)
-           write (*,"(A50 F15.8)") "Number of "//trim(MolecularSystem_getNameOfSpecie(speciesID))//" particles in the SCF grid: ", numberOfParticles(speciesID)
+           if(CONTROL_instance%PRINT_LEVEL .gt. 0) &
+                write (*,"(A50 F15.8)") "Number of "//trim(MolecularSystem_getNameOfSpecie(speciesID))//" particles in the SCF grid: ", numberOfParticles(speciesID)
         end do
 
-        print *, ""
-        write (*,"(A50, F15.8)") "Exchange-correlation energy with the SCF grid: ", sum(exchangeCorrelationEnergy)
-        print *, ""
-
+        if(CONTROL_instance%PRINT_LEVEL .gt. 0) then
+           print *, ""
+           write (*,"(A50, F15.8)") "Exchange-correlation energy with the SCF grid: ", sum(exchangeCorrelationEnergy)
+           print *, ""
+        end if
      else
         write(*,*) "USAGE: lowdin-DFT.x job "
         write(*,*) "Where job can be: "
@@ -195,15 +200,15 @@ program DFT
            ! end if
         end do
 
-        if(trim(job).eq."FINAL_DFT") then
+        if(CONTROL_instance%PRINT_LEVEL .gt. 0 .and. trim(job).eq."FINAL_DFT") then
            write (*,"(A50 F15.8)") "Number of "//trim(MolecularSystem_getNameOfSpecie(speciesID))//" particles in the final grid: ", numberOfParticles(speciesID)
         end if
      end do
 
      if(trim(job).eq."FINAL_DFT" .and. CONTROL_instance%BETA_FUNCTION .eq. "PsBeta" ) then
         CONTROL_instance%BETA_FUNCTION = "PsBetaMax"
-        print *, ""
-        print *, "We are changing the PsBeta with cutoff to the PsBeta with max(pe,pp)"
+        if(CONTROL_instance%PRINT_LEVEL .gt. 0 ) &
+             print *, "We are changing the PsBeta with cutoff to the PsBeta with max(pe,pp)"
      end if
 
      ! call Stopwatch_stop(lowdin_stopwatch)     
@@ -280,24 +285,26 @@ program DFT
      end do
 
      if(trim(job).eq."FINAL_DFT") then
-        print *, ""
-        write (*,"(A50, F15.8)") "Exchange-correlation energy with the final grid: ", totalExchangeCorrelationEnergy
-
-        print *, ""
-        print *, "Contact density in the final grid"
-        print *, ""
-
+        if(CONTROL_instance%PRINT_LEVEL .gt. 0 ) then
+           print *, ""
+           write (*,"(A50, F15.8)") "Exchange-correlation energy with the final grid: ", totalExchangeCorrelationEnergy
+           print *, ""
+           print *, "Contact density in the final grid"
+           print *, ""
+        end if
         do speciesID = 1 , numberOfSpecies-1
            nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
            do otherSpeciesID = speciesID+1 , numberOfSpecies
               nameOfOtherSpecies=MolecularSystem_getNameOfSpecie(otherSpeciesID)
 
-              if ( nameOfSpecies .eq. "E-" .and. nameOfOtherSpecies .eq. "POSITRON" ) then
+              if ( nameOfSpecies .eq. "E-" ) then
+              ! if ( nameOfSpecies .eq. "E-" .and. nameOfOtherSpecies .eq. "POSITRON" ) then
                  !Closed shell electron and other species terms
 
                  call GridManager_getContactDensity( speciesID, otherSpeciesID )
 
-              elseif ( nameOfSpecies .eq. "E-ALPHA" .and. nameOfOtherSpecies .eq. "POSITRON" ) then
+              elseif ( nameOfSpecies .eq. "E-ALPHA" ) then
+              ! elseif ( nameOfSpecies .eq. "E-ALPHA" .and. nameOfOtherSpecies .eq. "POSITRON" ) then
                  !Open shell Electron and other species terms
 
                  otherElectronID=MolecularSystem_getSpecieID("E-BETA")
@@ -355,7 +362,7 @@ program DFT
      
      ! call Stopwatch_stop(lowdin_stopwatch)    
      ! write(*,"(A,F10.3,A4)") "** Calculating energy and potential:", lowdin_stopwatch%enlapsetTime ," (s)"
-     if(trim(job).eq."FINAL_DFT") print *, "END DFT FINAL GRID INTEGRATION"
+     if(CONTROL_instance%PRINT_LEVEL .gt. 0 .and. trim(job).eq."FINAL_DFT") print *, "END DFT FINAL GRID INTEGRATION"
      
   end if
      

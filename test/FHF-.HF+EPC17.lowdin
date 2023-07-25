@@ -1,0 +1,21 @@
+GEOMETRY
+e-(F) AUG-CC-PVDZ 0.00 0.00 -2.18021
+e-(F) AUG-CC-PVDZ 0.00 0.00 2.18021
+e-(H) CC-PVDZ 0.00 0.00 0.00 addParticles=1
+F dirac 0.00 0.00 -2.18021
+F dirac 0.00 0.00 2.18021
+H_1 PB4-F1 0.00 0.00 0.00
+END GEOMETRY
+
+TASKS
+method = "RKS"
+END TASKS
+
+CONTROL
+readCoefficients=.F.
+electronExchangeCorrelationFunctional="NONE"
+nuclearElectronCorrelationFunctional="epc17-2"
+units="BOHRS"
+integralStorage="MEMORY"
+totalEnergyTolerance=1E-10
+END CONTROL

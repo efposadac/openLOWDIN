@@ -112,6 +112,7 @@ contains
 
 		end if
 
+                if(allocated(this%data)) deallocate(this%data)
 		allocate( this%data(1) )
 		this%data = 0.0_8
 		this%iterator = 0

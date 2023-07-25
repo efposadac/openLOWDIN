@@ -281,10 +281,11 @@ contains
       !!
        !! Interation ends
        !!**********************************************************************************************
-
-       ! print *, "Coefficients after for ", wfObject%species
-       ! call Matrix_show(wfObject%waveFunctionCoefficients)
-
+       
+       if (  CONTROL_instance%DEBUG_SCFS) then
+          print *, "Coefficients after SCF cycle for ", wfObject%species
+          call Matrix_show(wfObject%waveFunctionCoefficients)
+       end if
        
        !!**********************************************************************************************
        !! Orbital exchange for TOM calculation
