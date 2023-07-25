@@ -64,7 +64,11 @@ program NOCI
      call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
      call NonOrthogonalCI_constructor(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_displaceGeometries(NonOrthogonalCI_instance)
+     if(CONTROL_instance%READ_NOCI_GEOMETRIES) then
+        call NonOrthogonalCI_readGeometries(NonOrthogonalCI_instance)
+     else
+        call NonOrthogonalCI_displaceGeometries(NonOrthogonalCI_instance)
+     end if
      call NonOrthogonalCI_runHFs(NonOrthogonalCI_instance)
      call NonOrthogonalCI_buildOverlapAndHamiltonianMatrix(NonOrthogonalCI_instance)
      call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
@@ -72,8 +76,6 @@ program NOCI
 
      !!stop time
      call Stopwatch_stop(lowdin_stopwatch)
-
-     call MolecularSystem_saveToFile()
     
      write(*, *) ""
      write(*,"(A,F10.3,A4)") "** TOTAL CPU Time NOCI : ", lowdin_stopwatch%enlapsetTime ," (s)"

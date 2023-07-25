@@ -355,6 +355,7 @@ if [ $extFile="lowdin" ]; then
 	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.der $LOWDIN_SCRATCH/$nameFile &> /dev/null
+        cp $nameFile*.NOCI.coords $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.coup $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
@@ -436,6 +437,7 @@ if [ $extFile="lowdin" ]; then
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.coords $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2

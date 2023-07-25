@@ -126,6 +126,7 @@ contains
        labels(1) = "INTEGRATION-GRID"
        call Matrix_writeToFile(Grid_instance(speciesID)%points, unit=dftUnit, binary=.true., arguments = labels(1:2) )
 
+       ! print *, "Grid_instance(speciesID)%points", speciesID
        ! call Matrix_show (Grid_instance(speciesID)%points)
 
        close(unit=dftUnit)
@@ -1083,19 +1084,9 @@ contains
     !    call Matrix_Constructor( nodeExchangeCorrelationMatrix(n), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
     ! end do
 
-    if(MolecularSystem_getMass(otherSpeciesID) .lt. 2.0) then !positron
-       print *, ""
-       print *, "Contact density between ", trim(MolecularSystem_getNameOfSpecie(speciesID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
-       if(present(otherElectronID) )     print *, "Including contact density between ", trim(MolecularSystem_getNameOfSpecie(otherElectronID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
+    if(MolecularSystem_getMass(otherSpeciesID) .lt. 2.0 .and. (CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-A" .or. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA")) then !positron
 
-       print *, "As the integral of rhoA*rhoB(1+g[beta])"
-       if(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-A" .or. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA" ) then
-          print *, "With g[beta] from the expCS-A functional"
-          kf=2.2919886876120283056
-       else
-          print *, "With g[beta]=0.0"
-       end if
-
+       kf=2.2919886876120283056
        a0n=0.3647813291441602
        a1n=0.04801434878972582
        a2n=1.6987053215381047
@@ -1106,7 +1097,7 @@ contains
        a2d=0.8862269254527579
 
        densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD
-       
+
        !$omp parallel private(n,beta, rhoE,rhoP, rhoTot, rhoDif, point), shared(gfactor)
        n = omp_get_thread_num() +1
        !$omp do schedule (dynamic)
@@ -1127,8 +1118,6 @@ contains
        end do
        !$omp end do 
        !$omp end parallel
-    else
-       print *, "With g[beta]=0.0"
     end if
 
     do point = 1 , gridSize
@@ -1145,9 +1134,20 @@ contains
             Grid_instance(otherSpeciesID)%points%values(point,4) 
     end do
 
-    write (*,"(A10,F20.10)") "overlap=", overlapDensity
-    write (*,"(A10,F20.10)") "pep=", contactDensity
-
+    if(CONTROL_instance%PRINT_LEVEL .gt. 0) then
+       print *, ""
+       print *, "Contact density between ", trim(MolecularSystem_getNameOfSpecie(speciesID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
+       if(present(otherElectronID) ) print *, "Including contact density between ", trim(MolecularSystem_getNameOfSpecie(otherElectronID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
+       
+       print *, "As the integral of rhoA*rhoB(1+g[beta])"
+       if(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-A" .or. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA" ) then
+          print *, "With g[beta] from the expCS-A functional"
+       else
+          print *, "With g[beta]=0.0"          
+       end if
+       write (*,"(A10,F20.10)") "overlap=", overlapDensity
+       write (*,"(A10,F20.10)") "pep=", contactDensity
+    end if
     ! npos=0.0
     ! do point = 1 , gridSize
 

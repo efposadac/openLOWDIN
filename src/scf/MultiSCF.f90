@@ -86,6 +86,7 @@ module MultiSCF_
        MultiSCF_iterate, &
        MultiSCF_restart, &
        MultiSCF_solveHartreeFockRoothan, &
+       MultiSCF_obtainFinalEnergy, &
        MultiSCF_reset
 
 contains
@@ -177,6 +178,7 @@ contains
     !!Print information - only if the method requires few (one) SCF
     this%printSCFiterations=.true.
     if(CONTROL_instance%OPTIMIZE) this%printSCFiterations=.false.
+    if(CONTROL_instance%PRINT_LEVEL .eq. 0) this%printSCFiterations=.false. 
     if(CONTROL_instance%DEBUG_SCFS) this%printSCFiterations=.true.
 
     !! Start the wavefunction object   
@@ -647,6 +649,7 @@ contains
     end if
 
   end subroutine MultiSCF_getInitialGuess
+
   !>
   !! @brief solve multcomponent FC=eSC SCF equations, store the coefficients in wfObjects, use the libint2Objects to compute the integrals in direct calculations
   subroutine MultiSCF_solveHartreeFockRoothan(this,wfObjects,libint2Objects)
@@ -658,9 +661,7 @@ contains
     real(8) :: deltaEnergy
     integer :: numberOfSpecies
     integer :: wfnUnit, densUnit
-    integer :: speciesID, otherSpeciesID
     character(50) :: wfnFile, densFile
-    character(30) :: labels(2)
     character(50) :: integralsFile
     character(100) :: convergenceMessage
     integer :: integralsUnit
@@ -730,8 +731,7 @@ contains
        end if
 
        if(MultiSCF_getNumberOfIterations(this) .ge. CONTROL_instance%SCF_GLOBAL_MAX_ITERATIONS) then
-          write(*,"(A,I4,A)")  "The number of Iterations was exceded, the convergence had failed after", MultiSCF_getNumberOfIterations(this), &
-               " global iterations"
+          write(*,"(A,I4,A)")  "The number of Iterations was exceded, the convergence had failed after", MultiSCF_getNumberOfIterations(this), "global iterations"
           GLOBAL_SCF_CONTINUE=.false.
        end if
 
@@ -784,6 +784,37 @@ contains
 
     ! end if
 
+    call MultiSCF_obtainFinalEnergy(this,wfObjects,libint2Objects)
+    
+  end subroutine MultiSCF_solveHartreeFockRoothan
+
+    !>
+  !! @brief solve multcomponent FC=eSC SCF equations, store the coefficients in wfObjects, use the libint2Objects to compute the integrals in direct calculations
+  subroutine MultiSCF_obtainFinalEnergy(this,wfObjects,libint2Objects)
+    type(MultiSCF) :: this
+    type(WaveFunction) :: wfObjects(*)
+    type(Libint2Interface), optional :: libint2Objects(*)
+
+    integer :: numberOfSpecies
+    integer :: wfnUnit, densUnit
+    integer :: speciesID, otherSpeciesID
+    character(50) :: wfnFile, densFile
+    character(30) :: labels(2)
+    character(50) :: integralsFile
+    integer :: integralsUnit
+
+    !! Open file for wfn
+    wfnUnit = 300
+    wfnFile = "lowdin.wfn"
+
+    integralsUnit = 30
+    integralsFile = "lowdin.opints"
+
+    densUnit=78
+    densFile="lowdin.densmatrix"
+
+    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+
     if (CONTROL_instance%LOCALIZE_ORBITALS) then
 
        !! write coefficients and orbitals required in fchk files
@@ -818,6 +849,7 @@ contains
        end do
     end if
 
+    
     ! Final energy evaluation - larger integration grid for DFT
     do speciesID=1, numberOfSpecies
        call WaveFunction_buildDensityMatrix(wfObjects(speciesID))
@@ -878,7 +910,7 @@ contains
          this%totalCouplingEnergy, &
          this%cosmo3Energy)
 
-  end subroutine MultiSCF_solveHartreeFockRoothan
+  end subroutine MultiSCF_obtainFinalEnergy
 
   subroutine MultiSCF_showResults(this,wfObjects)
     type(MultiSCF) :: this

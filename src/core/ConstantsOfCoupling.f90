@@ -49,7 +49,6 @@ contains
 
     logical :: existFile
     integer :: stat
-    integer :: i
     
     !! Namelist definition
     character(30) :: name
@@ -91,7 +90,7 @@ contains
           
           if (stat == -1 ) then
              
-             call ConstantsOfCoupling_exception( WARNING, "Elemental particle: "//trim(symbolSelected)//" NOT found!!", "In ConstantsOfCoupling at load function.")
+             call ConstantsOfCoupling_exception( ERROR, "Elemental particle: "//trim(symbolSelected)//" NOT found!!", "In ConstantsOfCoupling at load function.")
              this%isInstanced = .false.
 
           end if

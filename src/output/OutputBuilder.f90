@@ -458,11 +458,11 @@ contains
 
           open(10,file=this%fileName(l),status='replace',action='write')
           write(10,"(A)") "[Molden Format]"
-          ! if ( CONTROL_instance%UNITS=="ANGS") then
-          !   write(10,"(A)") "[Atoms] Angs"
-          ! else 
-          write(10,"(A)") "[Atoms] AU"
-          ! end if
+          if ( CONTROL_instance%UNITS=="ANGS") then
+             write(10,"(A)") "[Atoms] Angs"
+          else 
+             write(10,"(A)") "[Atoms] AU"
+          end if
 
           auxMatrix%values=0.0
           j=0

@@ -84,7 +84,8 @@ contains
        STOP "What grid were you trying to build?"
     end if
     
-    write (*,"(A,I4,A,I2,A,A)") " Building an atomic grid with", radialSize, " radial points in ", numberOfShells, " shells for ", trim(this%nameOfSpecies)
+    if(CONTROL_instance%PRINT_LEVEL .gt. 0) &
+         write (*,"(A,I4,A,I2,A,A)") " Building an atomic grid with", radialSize, " radial points in ", numberOfShells, " shells for ", trim(this%nameOfSpecies)
     
     numberOfCenters=size(MolecularSystem_instance%species(speciesID)%particles)
     allocate(origins(numberOfCenters,3), atomicGridSize(numberOfCenters))
@@ -166,11 +167,13 @@ contains
     ! call Matrix_show(this%points)
 
 
-    write(*,"(A,ES9.3,A,ES9.3,A)") "Screening delocalized orbital(<", CONTROL_instance%ELECTRON_DENSITY_THRESHOLD,&
-         ") and low weight(<",CONTROL_instance%GRID_WEIGHT_THRESHOLD,") points ..."
-    print *, "Final molecular grid size for: ", trim(this%nameOfSpecies), Grid_instance(speciesID)%totalSize ," points"
-    print *, " "
-
+    if(CONTROL_instance%PRINT_LEVEL .gt. 0) then
+       write(*,"(A,ES9.3,A,ES9.3,A)") "Screening delocalized orbital(<", CONTROL_instance%ELECTRON_DENSITY_THRESHOLD,&
+            ") and low weight(<",CONTROL_instance%GRID_WEIGHT_THRESHOLD,") points ..."
+       print *, "Final molecular grid size for: ", trim(this%nameOfSpecies), Grid_instance(speciesID)%totalSize ," points"
+       print *, " "
+    end if
+    
     call Matrix_destructor( atomicGrid)
     call Matrix_destructor( molecularGrid)
     deallocate(origins, distance,factor, atomicGridSize)
@@ -399,7 +402,8 @@ contains
     
     initialSize=0
     do i=1, numberOfShells
-       write (*,"(A,F10.4,A,F10.4,A,I4,A)")  " Between radii ", r(shellRadialChange(i)+1), " a.u. and ", r(shellRadialChange(i+1)), " a.u. with", shellAng(i), " angular points"
+       if(CONTROL_instance%PRINT_LEVEL .gt. 0) &
+            write (*,"(A,F10.4,A,F10.4,A,I4,A)")  " Between radii ", r(shellRadialChange(i)+1), " a.u. and ", r(shellRadialChange(i+1)), " a.u. with", shellAng(i), " angular points"
        do j= shellRadialChange(i)+1 , shellRadialChange(i+1)
 
           do iang=1,shellAng(i)
@@ -409,8 +413,8 @@ contains
     end do
 
     ! print *, "Lebedev Grids Used", shellAng
-    print *, ""
-    print *, "Number of points in the atomic grid", initialSize
+    if(CONTROL_instance%PRINT_LEVEL .gt. 0) &
+         print *, "Number of points in the atomic grid", initialSize
     
     call Matrix_constructor( agrid, int(initialSize,8), int(4,8), 0.0_8 )
     ! Generate angular distributions

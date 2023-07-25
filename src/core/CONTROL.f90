@@ -222,6 +222,7 @@ module CONTROL_
      real(8) :: CONFIGURATION_MAX_PP_DISTANCE
      real(8) :: CONFIGURATION_EQUIVALENCE_DISTANCE
      logical :: CONFIGURATION_USE_SYMMETRY
+     logical :: READ_NOCI_GEOMETRIES
      
      !!***************************************************************************
      !! CCSD Parameters
@@ -553,7 +554,7 @@ module CONTROL_
   real(8) :: LowdinParameters_configurationMaxPPDistance
   real(8) :: LowdinParameters_configurationEquivalenceDistance
   logical :: LowdinParameters_configurationUseSymmetry
-  
+  logical :: LowdinParameters_readNOCIGeometries
   !!***************************************************************************
   !! CCSD
   !! 
@@ -883,6 +884,7 @@ module CONTROL_
        LowdinParameters_configurationMaxPPDistance,&
        LowdinParameters_configurationEquivalenceDistance,&
        LowdinParameters_configurationUseSymmetry,&
+       LowdinParameters_readNOCIGeometries,&
                                 !!***************************************************************************
                                 !! CCSD 
                                 !!
@@ -1037,8 +1039,7 @@ contains
   subroutine CONTROL_start()
     implicit none
 
-    character(50) :: aux
-    integer:: i, nthreads, proc
+    integer:: nthreads, proc
     !! Set defaults for namelist
 
     !!***************************************************************************
@@ -1194,7 +1195,7 @@ contains
     LowdinParameters_unitForOutputFile = 6
     LowdinParameters_unitForMolecularOrbitalsFile = 8 
     LowdinParameters_unitForMP2IntegralsFile = 7
-    LowdinParameters_printLevel =  1 !! (1) normal output, (5) method (6) metod and WF (7) method, WF and GLOBAL(8) method, WF, GLOBAL, SCF
+    LowdinParameters_printLevel =  1 !! (0) no output (1) normal output, (5) method (6) metod and WF (7) method, WF and GLOBAL(8) method, WF, GLOBAL, SCF
     LowdinParameters_units = "ANGS"
     LowdinParameters_doubleZeroThreshold = 1.0E-12
 
@@ -1238,6 +1239,7 @@ contains
     LowdinParameters_configurationMaxPPDistance=1.0E8
     LowdinParameters_configurationEquivalenceDistance=1.0E-8
     LowdinParameters_configurationUseSymmetry=.false.
+    LowdinParameters_readNOCIgeometries=.false.
     !!***************************************************************************
     !! CCSD
     !!
@@ -1524,7 +1526,7 @@ contains
     CONTROL_instance%UNIT_FOR_OUTPUT_FILE = 6
     CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE = 8 
     CONTROL_instance%UNIT_FOR_MOLECULAR_ORBITALS_FILE = 7
-    CONTROL_instance%PRINT_LEVEL =  1 !! (1) normal output, (5) method (6) metod and WF (7) method, WF and GLOBAL(8) method, WF, GLOBAL, SCF
+    CONTROL_instance%PRINT_LEVEL =  1 !! (0) no output, (1) normal output, (5) method (6) metod and WF (7) method, WF and GLOBAL(8) method, WF, GLOBAL, SCF
     CONTROL_instance%UNITS = "ANGS"
     CONTROL_instance%DOUBLE_ZERO_THRESHOLD = 1.0E-12
 
@@ -1568,6 +1570,7 @@ contains
     CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=1.0E8
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=1.0E-8
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
+    CONTROL_instance%READ_NOCI_GEOMETRIES=.false.
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
     !!                                                                                                                         
@@ -1952,6 +1955,7 @@ contains
     CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=LowdinParameters_configurationMaxPPDistance
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=LowdinParameters_configurationEquivalenceDistance
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=LowdinParameters_configurationUseSymmetry
+    CONTROL_instance%READ_NOCI_GEOMETRIES=LowdinParameters_readNOCIGeometries
 
 
     !!***************************************************************************      
@@ -2304,6 +2308,7 @@ contains
     LowdinParameters_configurationMaxPPDistance=CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE
     LowdinParameters_configurationEquivalenceDistance=CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE
     LowdinParameters_configurationUseSymmetry=CONTROL_instance%CONFIGURATION_USE_SYMMETRY
+    LowdinParameters_readNOCIGeometries=CONTROL_instance%READ_NOCI_GEOMETRIES
     
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -2443,7 +2448,6 @@ contains
     implicit none
     type(CONTROL) :: this
     type(CONTROL) :: otherThis
-    integer :: i
 
     !!***************************************************************************
     !! Dummy variables, just for debugging. 
@@ -2585,11 +2589,11 @@ contains
     !! Control parametros de formato
     !!
     otherThis%FORMAT_NUMBER_OF_COLUMNS = this%FORMAT_NUMBER_OF_COLUMNS 
+    otherThis%PRINT_LEVEL = this%PRINT_LEVEL
     otherThis%UNITS = this%UNITS 
     otherThis%UNIT_FOR_OUTPUT_FILE = this%UNIT_FOR_OUTPUT_FILE 
     otherThis%UNIT_FOR_MP2_INTEGRALS_FILE = this%UNIT_FOR_MP2_INTEGRALS_FILE 
     otherThis%UNIT_FOR_MOLECULAR_ORBITALS_FILE = this%UNIT_FOR_MOLECULAR_ORBITALS_FILE 
-    otherThis%PRINT_LEVEL = this%PRINT_LEVEL 
     !!***************************************************************************
     !! CISD - FCI
     !!
@@ -2630,7 +2634,7 @@ contains
     otherThis%CONFIGURATION_MAX_PP_DISTANCE=this%CONFIGURATION_MAX_PP_DISTANCE
     otherThis%CONFIGURATION_EQUIVALENCE_DISTANCE=this%CONFIGURATION_EQUIVALENCE_DISTANCE
     otherThis%CONFIGURATION_USE_SYMMETRY=this%CONFIGURATION_USE_SYMMETRY
-
+    otherThis%READ_NOCI_GEOMETRIES=this%READ_NOCI_GEOMETRIES
     !!***************************************************************************
     !! CCSD
     !!
@@ -2754,7 +2758,7 @@ contains
   subroutine CONTROL_show()
     implicit none
 
-    integer:: i, nthreads, proc
+    integer:: i !, nthreads, proc
 
     print *,""
     print *,"LOWDIN IS RUNNING WITH NEXT PARAMETERS: "
@@ -2895,6 +2899,9 @@ contains
        
        if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY) &
             write (*,"(T10,A)") "CONFIGURATION PAIRS WILL BE CLASSIFIED ACCORDING TO THEIR MIXED GEOMETRY DISTANCE MATRIX AND ONLY UNIQUE ELEMENTS WILL BE COMPUTED"
+
+       if(CONTROL_instance%READ_NOCI_GEOMETRIES) &
+            write (*,"(T10,A,A,A)") "GEOMETRIES FOR THE NOCI EXPANSION WILL BE READ FROM ",trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords" ," FILE"
 
        print *, ""
 

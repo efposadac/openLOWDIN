@@ -141,6 +141,10 @@ contains
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
 
+       if(allocated(these(speciesID)%hartreeMatrix)) deallocate(these(speciesID)%hartreeMatrix)
+       if(allocated(these(speciesID)%hartreeEnergy)) deallocate(these(speciesID)%hartreeEnergy)
+       if(allocated(these(speciesID)%exchangeCorrelationEnergy)) deallocate(these(speciesID)%exchangeCorrelationEnergy)
+
        allocate(these(speciesID)%hartreeMatrix( MolecularSystem_instance%numberOfQuantumSpecies))
        allocate(these(speciesID)%hartreeEnergy( MolecularSystem_instance%numberOfQuantumSpecies))
        allocate(these(speciesID)%exchangeCorrelationEnergy( MolecularSystem_instance%numberOfQuantumSpecies))
@@ -204,6 +208,8 @@ contains
 
        !!Allocate arrays for integrals memory
        if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
+          if(allocated(these(speciesID)%fourCenterIntegrals)) deallocate(these(speciesID)%fourCenterIntegrals)
+
           allocate(these(speciesID)%fourCenterIntegrals(MolecularSystem_instance%numberOfQuantumSpecies))
           !its not necessary to allocate all the species
           do otherSpeciesID=speciesID, MolecularSystem_instance%numberOfQuantumSpecies
@@ -406,7 +412,7 @@ contains
           if ( abs(eigenValues%values(i)) .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) &
                this%removedOrbitals=this%removedOrbitals+1
        end do
-       if (this%removedOrbitals .gt. 0) &
+       if (this%removedOrbitals .gt. 0 .and. CONTROL_instance%PRINT_LEVEL .gt. 0) &
             write(*,"(A,I5,A,A,A,ES9.3)") "Removed ", this%removedOrbitals , " orbitals for species ", &
             trim(MolecularSystem_getNameOfSpecies(this%species)), " with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
        !!

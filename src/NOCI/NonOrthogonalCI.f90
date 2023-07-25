@@ -71,11 +71,12 @@ module NonOrthogonalCI_
      integer :: numberOfIndividualTransformations
      integer :: numberOfUniqueSystems !sort of symmetry
      integer :: numberOfUniquePairs !sort of symmetry
+     integer :: printMatrixThreshold
      type(IVector) :: systemTypes  !sort of symmetry
      integer, allocatable :: rotationCenterList(:,:)
      type(Matrix) :: configurationOverlapMatrix, configurationHamiltonianMatrix, configurationCoefficients
      type(IMatrix) :: configurationPairTypes !, uniqueOverlapElements, uniqueHamiltonianElements
-     type(Vector) :: statesEigenvalues
+     type(Vector) :: configurationCorrelationEnergies, statesEigenvalues
      type(Matrix), allocatable :: HFCoefficients(:,:)
      type(MolecularSystem), allocatable :: MolecularSystems(:)
      type(MolecularSystem), allocatable :: uniqueMolecularSystems(:)
@@ -91,6 +92,7 @@ module NonOrthogonalCI_
   public :: &
        NonOrthogonalCI_constructor,&
        NonOrthogonalCI_displaceGeometries,&
+       NonOrthogonalCI_readGeometries,&
        NonOrthogonalCI_runHFs,&
        NonOrthogonalCI_buildOverlapAndHamiltonianMatrix,&
        NonOrthogonalCI_diagonalizeCImatrix,&
@@ -123,7 +125,7 @@ contains
     this%numberOfNPdistanceRejectedSystems=0
     this%numberOfUniqueSystems=0
     this%numberOfUniquePairs=0
-
+    this%printMatrixThreshold=10
     numberOfTranslationCenters=0
     numberOfRotationCenters=0
 
@@ -202,11 +204,10 @@ contains
        this%transformationType="ROTATION"
        this%numberOfTransformedCenters=numberOfRotationCenters
        this%numberOfIndividualTransformations=CONTROL_instance%ROTATIONAL_SCAN_GRID*CONTROL_instance%NESTED_ROTATIONAL_GRIDS
-
+    else if(CONTROL_instance%READ_NOCI_GEOMETRIES) then
+       this%transformationType="READ_GEOMETRIES"
+       write (*,"(A)") "Reading input geometries from "//trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords file"
     end if
-
-    !!Dynamically allocated through the displacement routine
-    allocate(this%MolecularSystems(0))
 
     ! call Vector_constructorInteger(this%systemTypes,this%numberOfIndividualTransformations**this%numberOfTransformedCenters,0)
     
@@ -237,6 +238,9 @@ contains
     
     call MolecularSystem_copyConstructor(originalMolecularSystem, molecularSystem_instance)
 
+    !!Dynamically allocated through the displacement routine
+    allocate(this%MolecularSystems(0))
+    
     allocate(transformationCounter(this%numberOfTransformedCenters))
 
     transformationCounter(1:this%numberOfTransformedCenters)=1
@@ -245,7 +249,7 @@ contains
     this%numberOfDisplacedSystems=0
 
     coordsUnit=333
-    coordsFile=trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords"
+    coordsFile=trim(CONTROL_instance%INPUT_FILE)//"trial.coords"
 
     print *, "generating NOCI displaced geometries and HF wavefunctions... saving coords to ", trim(coordsFile)
 
@@ -361,9 +365,6 @@ contains
     
     print *, ""
     
-    call Matrix_constructor(this%configurationHamiltonianMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
-    call Matrix_constructor(this%configurationOverlapMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
-
     if(CONTROL_instance%CONFIGURATION_USE_SYMMETRY .eqv. .true.) &
          call Matrix_constructorInteger(this%configurationPairTypes,int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0)
     
@@ -374,6 +375,95 @@ contains
     print *, ""
     
   end subroutine NonOrthogonalCI_displaceGeometries
+
+  !>
+  !! @brief Read different geometries 
+  !!
+  !! @param this
+  !<
+  subroutine NonOrthogonalCI_readGeometries(this)
+    implicit none
+    type(NonOrthogonalCI) :: this
+
+    type(MolecularSystem) :: originalMolecularSystem
+    real(8) :: origin(3)
+    character(100) :: string,coordsFile
+    integer :: coordsUnit
+    integer :: sysI,i,ii,j,mu
+    real(8) :: timeA
+    logical :: readSuccess
+
+    !$  timeA = omp_get_wtime()
+
+    call MolecularSystem_copyConstructor(originalMolecularSystem, molecularSystem_instance)
+
+    coordsUnit=333
+    coordsFile=trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords"
+    readSuccess=.false.
+
+    inquire(FILE = coordsFile, EXIST = readSuccess )
+    if(.not. readSuccess) then
+       print *, "Didn't find the file ", trim(coordsFile)
+       STOP "Please provide one or turn the readNOCIGeometries flag off!" 
+    end if
+
+    open(unit=coordsUnit, file=trim(coordsFile), status="old", form="formatted")
+
+    read(coordsUnit,*) string, this%numberOfDisplacedSystems
+    print *, "reading ", this%numberOfDisplacedSystems, " systems"
+
+    allocate(this%MolecularSystems(this%numberOfDisplacedSystems))
+    
+    do sysI = 1, this%numberOfDisplacedSystems
+       call MolecularSystem_copyConstructor(molecularSystem_instance, originalMolecularSystem)
+       write(molecularSystem_instance%description,"(I10)") sysI       
+       read(coordsUnit,*) string !skip line
+       read(coordsUnit,*) string !skip line 
+
+       !! Print quatum species information
+       do i = 1, molecularSystem_instance%numberOfQuantumSpecies
+
+          !! Copy origins in open-shell case
+          if(trim(molecularSystem_instance%species(i)%name) .eq. "E-BETA" ) then
+             do ii = 1, i-1
+                if(trim(molecularSystem_instance%species(ii)%name) .ne. "E-ALPHA" ) cycle
+                do j = 1, size(molecularSystem_instance%species(i)%particles)
+                   molecularSystem_instance%species(i)%particles(j)%origin = &
+                        molecularSystem_instance%species(ii)%particles(j)%origin
+                   do mu = 1, molecularSystem_instance%species(i)%particles(j)%basis%length
+                      molecularSystem_instance%species(i)%particles(j)%basis%contraction(mu)%origin = &
+                           molecularSystem_instance%species(i)%particles(j)%origin
+                   end do
+                end do
+             end do
+             cycle !skip the rest of the read
+          end if
+
+          do j = 1, size(molecularSystem_instance%species(i)%particles)
+             read(coordsUnit,*) string, origin(1), origin(2), origin(3)
+
+             molecularSystem_instance%species(i)%particles(j)%origin = origin/AMSTRONG
+             do mu = 1, molecularSystem_instance%species(i)%particles(j)%basis%length
+                molecularSystem_instance%species(i)%particles(j)%basis%contraction(mu)%origin = &
+                     molecularSystem_instance%species(i)%particles(j)%origin
+             end do
+          end do
+       end do
+
+       !! Point charges information       
+       do i = 1, molecularSystem_instance%numberOfPointCharges
+          read(coordsUnit,*) string, origin(1), origin(2), origin(3)
+          
+          molecularSystem_instance%pointCharges(i)%origin = origin/AMSTRONG
+       end do
+       call MolecularSystem_copyConstructor(this%MolecularSystems(sysI), molecularSystem_instance)
+
+    end do
+
+    close(unit=coordsUnit)
+
+    !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time reading coordinates : ", omp_get_wtime() - timeA ," (s)"
+  end subroutine NonOrthogonalCI_readGeometries
 
 
   !>
@@ -722,7 +812,9 @@ contains
     type(NonOrthogonalCI) :: this
 
     integer :: sysI, speciesID, otherSpeciesID
+    integer :: coordsUnit
     real(8) :: timeA
+    character(100) :: coordsFile
 
     !$  timeA = omp_get_wtime()
     !!Read HF energy of the non displaced SCF calculation 
@@ -730,20 +822,39 @@ contains
 
     allocate(this%HFCoefficients(this%numberOfDisplacedSystems,molecularSystem_instance%numberOfQuantumSpecies))
     allocate(this%systemLabels(this%numberOfDisplacedSystems))
-        
-    print *, "running HF calculations at the displaced geometries ..."
+
+    call Matrix_constructor(this%configurationHamiltonianMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
+    call Matrix_constructor(this%configurationOverlapMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
+
+    call Vector_constructor(this%configurationCorrelationEnergies, this%numberOfDisplacedSystems, 0.0_8)
+
+    coordsUnit=333
+    coordsFile=trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords"
+    open(unit=coordsUnit, file=trim(coordsFile), status="replace", form="formatted")
+
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       print *, "running KS calculations at the displaced geometries ... saving results on file ", coordsFile
+    else
+       print *, "running HF calculations at the displaced geometries ... saving results on file ", coordsFile
+    end if
+
+
+    write (coordsUnit,'(A25,I20)') "numberOfDisplacedSystems ", this%numberOfDisplacedSystems
     
     do sysI=1, this%numberOfDisplacedSystems
        write(this%systemLabels(sysI), '(A)') trim(this%MolecularSystems(sysI)%description)
 
        !!Do SCF without calling lowdin-scf.x
        call MolecularSystem_copyConstructor(molecularSystem_instance, this%MolecularSystems(sysI))
-
+       CONTROL_instance%PRINT_LEVEL=0
+       
+       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) &
+            call MolecularSystem_saveToFile()
+       
        if(allocated(WaveFunction_instance)) deallocate(WaveFunction_instance)
        allocate(WaveFunction_instance(molecularSystem_instance%numberOfQuantumSpecies))
        
        call MultiSCF_constructor(MultiSCF_instance,WaveFunction_instance,CONTROL_instance%ITERATION_SCHEME)
-       MultiSCF_instance%printSCFiterations=.false.
 
        call MultiSCF_buildHcore(MultiSCF_instance,WaveFunction_instance)
 
@@ -779,6 +890,40 @@ contains
           this%HFCoefficients(sysI,speciesID) = WaveFunction_instance(speciesID)%waveFunctionCoefficients
        end do
 
+       ! Compute HF energy with KS determinants
+       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+          if(CONTROL_instance%METHOD.eq."RKS") then
+             CONTROL_instance%METHOD="RHF"
+          else
+             CONTROL_instance%METHOD="UHF"
+          end if
+          
+          do speciesID = 1, molecularSystem_instance%numberOfQuantumSpecies
+             WaveFunction_instance(speciesID)%exchangeCorrelationEnergy=0.0_8
+             WaveFunction_instance(speciesID)%exchangeCorrelationMatrix%values=0.0_8
+             WaveFunction_instance(speciesID)%exactExchangeFraction=1.0_8
+          end do
+          call MultiSCF_obtainFinalEnergy(MultiSCF_instance,WaveFunction_instance,Libint2Instance)
+          !Difference between HF and KS energies
+          this%configurationCorrelationEnergies%values(sysI)=this%configurationHamiltonianMatrix%values(sysI,sysI)-MultiSCF_instance%totalEnergy
+
+          if(CONTROL_instance%METHOD.eq."RHF") then
+             CONTROL_instance%METHOD="RKS"
+          else
+             CONTROL_instance%METHOD="UKS"
+          end if
+       end if
+
+       write (coordsUnit,'(A10,I10,A10,ES20.12,A20,ES20.12)') "Geometry ", sysI, "Energy", this%configurationHamiltonianMatrix%values(sysI,sysI), &
+            "Correlation energy", this%configurationCorrelationEnergies%values(sysI)               
+       call MolecularSystem_showCartesianMatrix(MolecularSystem_instance,unit=coordsUnit)
+       print *, ""
+       if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) then 
+          write (*,'(A10,I10,A10,ES20.12,A20,ES20.12)') "Geometry ", sysI, "Energy", this%configurationHamiltonianMatrix%values(sysI,sysI), &
+               "Correlation energy", this%configurationCorrelationEnergies%values(sysI)               
+          call MolecularSystem_showCartesianMatrix(MolecularSystem_instance)
+       end if
+
        call DirectIntegralManager_destructor(Libint2Instance)
        call MultiSCF_destructor(MultiSCF_instance)
        
@@ -793,7 +938,8 @@ contains
        !      " geometries with energy higher than", this%refEnergy+CONTROL_instance%CONFIGURATION_ENERGY_THRESHOLD       
        
     end do
-    
+
+    close(coordsUnit)
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for HF calculations at displaced geometries : ", omp_get_wtime() - timeA ," (s)"
     
   end subroutine NonOrthogonalCI_runHFs
@@ -890,6 +1036,9 @@ contains
     ncores=CONTROL_instance%NUMBER_OF_CORES
     batchSize=this%numberOfDisplacedSystems
     print *, "ncores", ncores, "batchsize", batchSize
+    if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) then 
+       write (*,'(A10,A10,A20,A20)') "sysI", "sysII", "OverlapElement", "HamiltonianElement"
+    end if
 
     allocate(mergedMolecularSystem(batchSize),&
          mergedCoefficients(nspecies),&
@@ -926,10 +1075,6 @@ contains
 
              if( CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD .gt. 0.0 .and. &
                   overlapUpperBound .lt. CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD) then
-                ! this%configurationOverlapMatrix%values(sysI,mySysII)=0.0
-                ! this%configurationOverlapMatrix%values(mySysII,sysI)=0.0
-                ! this%configurationHamiltonianMatrix%values(sysI,mySysII)=0.0
-                ! this%configurationHamiltonianMatrix%values(mySysII,sysI)=0.0
                 ! print *, "preskipping elements", sysI, mySysII, "with overlap estimated as", overlapUpperBound
                 prescreenedElements=prescreenedElements+1
              else
@@ -984,9 +1129,7 @@ contains
                   abs(this%configurationOverlapMatrix%values(sysI,mySysII)) .lt. CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD) then
                 ! print *, "screening elements", sysI, mySysII, "with overlap", this%configurationOverlapMatrix%values(sysI,mySysII)
                 this%configurationOverlapMatrix%values(sysI,mySysII)=0.0
-                this%configurationOverlapMatrix%values(mySysII,sysI)=0.0
                 this%configurationHamiltonianMatrix%values(sysI,mySysII)=0.0
-                this%configurationHamiltonianMatrix%values(mySysII,sysI)=0.0
                 !$OMP ATOMIC
                 overlapScreenedElements=overlapScreenedElements+1
                 ! cycle systemII
@@ -1003,18 +1146,35 @@ contains
           !$omp end do nowait
           !$omp end parallel
 
-          !In serial, free memory and print
+          !In serial, symmetrize, free memory and print
           do me=1, batchSize
              mySysII=sysIIbatch(me)
-             ! if(mySysII .gt. this%numberOfDisplacedSystems) exit
+
              if(mySysII .eq. 0) exit systemII
+
+             !DFT energy correction for off diagonal elements
+             this%configurationHamiltonianMatrix%values(sysI,mySysII)=this%configurationHamiltonianMatrix%values(sysI,mySysII)+&
+                  this%configurationOverlapMatrix%values(sysI,mySysII)/2.0*&
+                  (this%configurationCorrelationEnergies%values(sysI)+&
+                  this%configurationCorrelationEnergies%values(mySysII))
+
+             !Symmetrize
+             this%configurationOverlapMatrix%values(mySysII,sysI)=this%configurationOverlapMatrix%values(sysI,mySysII)
+             this%configurationHamiltonianMatrix%values(mySysII,sysI)=this%configurationHamiltonianMatrix%values(sysI,mySysII)
+             
              write (matrixUnit,'(I10,I10,ES20.12,ES20.12)') sysI, mySysII, &
                   this%configurationOverlapMatrix%values(sysI,mySysII), this%configurationHamiltonianMatrix%values(sysI,mySysII)               
+             if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) then 
+                write (*,'(I10,I10,ES20.12,ES20.12)') sysI, mySysII, &
+                     this%configurationOverlapMatrix%values(sysI,mySysII), this%configurationHamiltonianMatrix%values(sysI,mySysII)               
+             end if
+             
              call DirectIntegralManager_destructor(Libint2ParallelInstance(1:nspecies,me))
           end do
           sysII=mySysII
           
        end do systemII
+
     end do systemI
 
     close(matrixUnit)
@@ -1421,7 +1581,6 @@ contains
     end do
 
     ! print *, "total overlap", this%configurationOverlapMatrix%values(sysI,sysII)
-    this%configurationOverlapMatrix%values(sysII,sysI)=this%configurationOverlapMatrix%values(sysI,sysII)
     
     !!Skip the rest of the evaluation if the overlap is smaller than the threshold
     if( CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD .gt. 0.0 .and. &
@@ -1665,8 +1824,6 @@ contains
     this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)*&
          this%configurationOverlapMatrix%values(sysI,sysII)
 
-    this%configurationHamiltonianMatrix%values(sysII,sysI)=this%configurationHamiltonianMatrix%values(sysI,sysII)
-
   end subroutine NonOrthogonalCI_twoParticlesContributions
 
   subroutine NonOrthogonalCI_diagonalizeCImatrix(this)
@@ -1881,6 +2038,7 @@ contains
     ! call MolecularSystem_showInformation()  
     ! call MolecularSystem_showParticlesInformation()
     call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
+    call MolecularSystem_saveToFile()
     
     ! do speciesID=1, molecularSystem_instance%numberOfQuantumSpecies
        ! write(*,*) ""

@@ -145,8 +145,19 @@ contains
 
           select case(trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL))         
 
+          case("FOCK")
+             this%name="FOCK"
+             this%exactExchangeFraction=1.0_8
+             CONTROL_instance%CALL_LIBXC=.false.
+             
           case("NONE")
 
+             if (CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL .eq. "NONE" .and. CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL .eq. "NONE") then
+                this%name="FOCK"
+                this%exactExchangeFraction=1.0_8
+                CONTROL_instance%CALL_LIBXC=.false.
+             end if
+             
              if (CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL .ne. "NONE") then
                 
                 this%name="exchange:"//CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
@@ -250,9 +261,14 @@ contains
              
           case("NONE")
              
-             this%name="NONE"
+             this%name="FOCK"
              this%exactExchangeFraction=1.0_8
 
+          case("FOCK")
+             
+             this%name="FOCK"
+             this%exactExchangeFraction=1.0_8
+             
           case("LDA")
 
              this%name="exchange:Slater-correlation:VWN5"
