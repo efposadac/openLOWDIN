@@ -115,5 +115,6 @@ To visualize the html documentation use:
         make test
 
 ### Further info: ###
-fernando.posada@temple.edu
-felix.moncada@fysik.su.se
+
+* fernando.posada@temple.edu
+* felix.moncada@fysik.su.se
