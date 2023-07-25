@@ -24,7 +24,7 @@ Installation notes.
 NOTE: If you have the libraries in your own path please be sure to export the LIBRARY_PATH environment variable. ie:
 `export LIBRARY_PATH=$LIBRARY_PATH:[your library path]`
 
-### Compile: ### (see below for a step-step example)
+### Compile: (see below for a step-by-step example) ###
 
 * run `./configure` in LOWDIN root directory. Be sure that you have permissions to write in the installation directory and have properly exported the `$PATH` environment.
 
@@ -58,8 +58,9 @@ To visualize the html documentation use:
 
 * run `make clean` and then `make distclean`
 
-##################################################################################################################3
-Step-by-step  installation example: (replace apt-get with your preferred package manager)
+---
+
+### Step-by-step  installation example: (replace apt-get with your preferred package manager) ###
 
         sudo apt-get update
         sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python3 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev
