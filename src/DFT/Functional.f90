@@ -145,8 +145,19 @@ contains
 
           select case(trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL))         
 
+          case("FOCK")
+             this%name="FOCK"
+             this%exactExchangeFraction=1.0_8
+             CONTROL_instance%CALL_LIBXC=.false.
+             
           case("NONE")
 
+             if (CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL .eq. "NONE" .and. CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL .eq. "NONE") then
+                this%name="FOCK"
+                this%exactExchangeFraction=1.0_8
+                CONTROL_instance%CALL_LIBXC=.false.
+             end if
+             
              if (CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL .ne. "NONE") then
                 
                 this%name="exchange:"//CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
@@ -250,9 +261,14 @@ contains
              
           case("NONE")
              
-             this%name="NONE"
+             this%name="FOCK"
              this%exactExchangeFraction=1.0_8
 
+          case("FOCK")
+             
+             this%name="FOCK"
+             this%exactExchangeFraction=1.0_8
+             
           case("LDA")
 
              this%name="exchange:Slater-correlation:VWN5"
@@ -315,7 +331,7 @@ contains
 
           if( CONTROL_instance%CALL_LIBXC)  then
 
-             if( this%correlationName .ne. "NONE" ) then
+             if( this%correlationName .ne. "NONE" .or. this%exchangeName .ne. "NONE" ) then
 
                 write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","exchange:", xc_f03_func_info_get_name(this%info1)
                 ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
