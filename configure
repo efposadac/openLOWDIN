@@ -52,6 +52,10 @@ LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
 LIBXC_LIBS="-lxcf03 -lxc"
 ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
 DEFAULTS='F'
+SED=sed
+if [[ $(uname -s) == Darwin ]]; then
+    SED=gsed
+fi
 
 ############################################
 # Script options
@@ -263,6 +267,8 @@ echo "LIBINT_LIBS = $LIBINT_LIBS"  >> CONFIG
 echo "LIBXC_LIBS = $LIBXC_LIBS"  >> CONFIG
 echo "CUDA_LIBS = $CUDA_LIBS" >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
+echo "SED = $SED"  >> CONFIG
+
 
 ###############################################################################
 #                       Generate makefiles
