@@ -57,6 +57,6 @@ distclean::
 	rm -rf $(TOPDIR)/doc/latex
 
 test::
-	cd $(TOPDIR)/test/ && sh runtest.sh
+	cd $(TOPDIR)/test/ && sh runtest.sh lowdin2
 
 

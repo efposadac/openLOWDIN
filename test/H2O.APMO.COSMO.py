@@ -4,6 +4,11 @@ import os
 import sys
 from colorstring import *
 
+if len(sys.argv)==2:
+    lowdinbin = sys.argv[1]
+else:
+    lowdinbin = "lowdin2"
+
 testName = "H2O.APMO.COSMO"
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
@@ -14,7 +19,7 @@ refTotalEnergy = -75.955609253261
 
 # Run calculation
 
-status = os.system("lowdin2 -i " + inputName)
+status = os.system(lowdinbin + " -i " + inputName)
 
 if status:
     print(testName + str_red(" ... NOT OK"))
