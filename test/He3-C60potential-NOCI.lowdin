@@ -1,0 +1,34 @@
+SYSTEM_DESCRIPTION='H'
+
+GEOMETRY
+N0 dirac      0.0 0.0 0.0 rotationPoint=1
+HEA3  HE2-1S  2.159 0.0 0.0 rotateAround=1
+HEA3  HE2-1S   0.0 2.159 0.0 rotateAround=1
+HEB3  HE2-1S   0.0 0.0 2.159 rotateAround=1
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	nonOrthogonalConfigurationInteraction=.T.
+END TASKS
+
+CONTROL
+	units="BOHRS"
+	integralStorage="MEMORY"
+	rotationalScanGrid=50
+	configurationMinPPDistance=3.7
+	configurationMaxPPDistance=3.8
+	numberOfCIstates=10
+END CONTROL
+
+EXTERPOTENTIAL
+	HEA3   HE2C60-IH-1P
+	HEB3   HE2C60-IH-1P
+END EXTERPOTENTIAL
+
+INTERPOTENTIAL
+	HEA3 HEA3	HE2C60-IH-2P
+	HEA3 HEB3	HE2C60-IH-2P
+	HEB3 HEB3	HE2C60-IH-2P
+END INTERPOTENTIAL
+

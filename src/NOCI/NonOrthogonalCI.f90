@@ -1,5 +1,5 @@
 !******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
+!!	This code is part of LOWDIN Quantum chemistry package                
 !!	
 !!	this program has been developed under direction of:
 !!
@@ -42,6 +42,7 @@ module NonOrthogonalCI_
   use Libint2Interface_
   use MultiSCF_
   use WaveFunction_
+  use String_
   use omp_lib
   implicit none
 
@@ -280,8 +281,6 @@ contains
        !Apply the transformation given by transformationCounter to each center, the result is saved in molecularSystemInstance
        call NonOrthogonalCI_transformCoordinates(this,transformationCounter(1:this%numberOfTransformedCenters),originalMolecularSystem,displacedMolecularSystem,skip)       
        
-       write(displacedMolecularSystem%description, '(10I6)') transformationCounter(:)
-       
        call MolecularSystem_showCartesianMatrix(displacedMolecularSystem,unit=coordsUnit)
 
        !Classify the system according to its distance matrix (symmetry) 
@@ -351,12 +350,12 @@ contains
          " geometries outside the ellipsoids area"
 
     if(this%numberOfPPdistanceRejectedSystems .gt. 0) &
-         write (*,'(A10,I10,A,F18.12,A,F18.12)') "Rejected ", this%numberOfPPdistanceRejectedSystems, &
+         write (*,'(A10,I10,A,ES18.8,A,ES18.8)') "Rejected ", this%numberOfPPdistanceRejectedSystems, &
          " geometries with separation between same charge basis sets smaller than", CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE, &
          " or larger than", CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE
 
     if(this%numberOfNPdistanceRejectedSystems .gt. 0) &
-         write (*,'(A10,I10,A,F18.12)') "Rejected ", this%numberOfNPdistanceRejectedSystems, &
+         write (*,'(A10,I10,A,ES18.8)') "Rejected ", this%numberOfNPdistanceRejectedSystems, &
          " geometries with separation between positive and negative basis sets larger than", CONTROL_instance%CONFIGURATION_MAX_NP_DISTANCE
 
     if(this%numberOfEquivalentSystems .gt. 0) &
@@ -481,14 +480,16 @@ contains
     integer :: center, displacementId
     real(8),allocatable :: X(:), Y(:), Z(:), W(:)
     integer :: i,j,k,p,q,mu
+    character(200) :: description
     
     skip=.false.
 
     call MolecularSystem_copyConstructor(displacedMolecularSystem, originalMolecularSystem)
-    
-    displacedMolecularSystem%description=""
-    do i=1,this%numberOfTransformedCenters
-       write(MolecularSystem_instance%description, '(A,I6)') trim(originalMolecularSystem%description), transformationCounter(i)
+
+    write(displacedMolecularSystem%description, '(I10)') transformationCounter(1)
+    do i=2,this%numberOfTransformedCenters
+       write(description, '(A)') adjustl(adjustr(displacedMolecularSystem%description)//"-"//adjustl(String_convertIntegerToString(transformationCounter(i))))
+       displacedMolecularSystem%description=trim(description)
     end do
 
     particleManager_instance => displacedMolecularSystem%allParticles
@@ -917,7 +918,7 @@ contains
        write (coordsUnit,'(A10,I10,A10,ES20.12,A20,ES20.12)') "Geometry ", sysI, "Energy", this%configurationHamiltonianMatrix%values(sysI,sysI), &
             "Correlation energy", this%configurationCorrelationEnergies%values(sysI)               
        call MolecularSystem_showCartesianMatrix(MolecularSystem_instance,unit=coordsUnit)
-       print *, ""
+
        if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) then 
           write (*,'(A10,I10,A10,ES20.12,A20,ES20.12)') "Geometry ", sysI, "Energy", this%configurationHamiltonianMatrix%values(sysI,sysI), &
                "Correlation energy", this%configurationCorrelationEnergies%values(sysI)               
