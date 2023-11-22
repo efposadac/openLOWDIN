@@ -221,9 +221,13 @@ module CONTROL_
      real(8) :: CONFIGURATION_MIN_PP_DISTANCE
      real(8) :: CONFIGURATION_MAX_PP_DISTANCE
      real(8) :: CONFIGURATION_EQUIVALENCE_DISTANCE
+     real(8) :: EMPIRICAL_OVERLAP_PARAMETER_A
+     real(8) :: EMPIRICAL_OVERLAP_PARAMETER_B
      logical :: CONFIGURATION_USE_SYMMETRY
      logical :: READ_NOCI_GEOMETRIES
-     
+     logical :: EMPIRICAL_OVERLAP_CORRECTION
+     logical :: ONLY_FIRST_NOCI_ELEMENTS
+
      !!***************************************************************************
      !! CCSD Parameters
      !!
@@ -244,6 +248,7 @@ module CONTROL_
      !!*****************************************************
      !! Density Functional Theory Options
      !!
+     character(50) :: GRID_STORAGE
      character(50) :: ELECTRON_CORRELATION_FUNCTIONAL
      character(50) :: ELECTRON_EXCHANGE_FUNCTIONAL
      character(50) :: ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
@@ -553,8 +558,13 @@ module CONTROL_
   real(8) :: LowdinParameters_configurationMinPPDistance
   real(8) :: LowdinParameters_configurationMaxPPDistance
   real(8) :: LowdinParameters_configurationEquivalenceDistance
+  real(8) :: LowdinParameters_empiricalOverlapParameterA
+  real(8) :: LowdinParameters_empiricalOverlapParameterB
   logical :: LowdinParameters_configurationUseSymmetry
   logical :: LowdinParameters_readNOCIGeometries
+  logical :: LowdinParameters_empiricalOverlapCorrection
+  logical :: LowdinParameters_onlyFirstNOCIelements
+
   !!***************************************************************************
   !! CCSD
   !! 
@@ -575,6 +585,7 @@ module CONTROL_
   !!*****************************************************
   !! Density Functional Theory Options
   !!
+  character(50) :: LowdinParameters_gridStorage
   character(50) :: LowdinParameters_electronCorrelationFunctional
   character(50) :: LowdinParameters_electronExchangeFunctional
   character(50) :: LowdinParameters_electronExchangeCorrelationFunctional
@@ -883,9 +894,13 @@ module CONTROL_
        LowdinParameters_configurationMinPPDistance,&
        LowdinParameters_configurationMaxPPDistance,&
        LowdinParameters_configurationEquivalenceDistance,&
+       LowdinParameters_empiricalOverlapParameterA,&
+       LowdinParameters_empiricalOverlapParameterB,&
        LowdinParameters_configurationUseSymmetry,&
        LowdinParameters_readNOCIGeometries,&
-                                !!***************************************************************************
+       LowdinParameters_empiricalOverlapCorrection,&
+       LowdinParameters_onlyFirstNOCIelements,&
+       !!***************************************************************************
                                 !! CCSD 
                                 !!
        LowdinParameters_coupledClusterLevel,&
@@ -905,6 +920,7 @@ module CONTROL_
                                 !!*****************************************************
                                 !! Density Functional Theory Options
                                 !!
+       LowdinParameters_gridStorage,&
        LowdinParameters_electronCorrelationFunctional,&
        LowdinParameters_electronExchangeFunctional,&
        LowdinParameters_electronExchangeCorrelationFunctional,&
@@ -1238,8 +1254,12 @@ contains
     LowdinParameters_configurationMinPPDistance=0.0
     LowdinParameters_configurationMaxPPDistance=1.0E8
     LowdinParameters_configurationEquivalenceDistance=1.0E-8
+    LowdinParameters_empiricalOverlapParameterA=0.0604
+    LowdinParameters_empiricalOverlapParameterB=0.492
     LowdinParameters_configurationUseSymmetry=.false.
     LowdinParameters_readNOCIgeometries=.false.
+    LowdinParameters_empiricalOverlapCorrection=.false.
+    LowdinParameters_onlyFirstNOCIelements=.false.
     !!***************************************************************************
     !! CCSD
     !!
@@ -1260,6 +1280,7 @@ contains
     !!*****************************************************
     !! Density Functional Theory Options
     !!
+    LowdinParameters_gridStorage="DISK"
     LowdinParameters_electronCorrelationFunctional = "NONE"
     LowdinParameters_electronExchangeFunctional = "NONE"
     LowdinParameters_electronExchangeCorrelationFunctional = "NONE"
@@ -1569,8 +1590,12 @@ contains
     CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE=0.0
     CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=1.0E8
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=1.0E-8
+    CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_A=0.0604
+    CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_B=0.492
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
     CONTROL_instance%READ_NOCI_GEOMETRIES=.false.
+    CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION=.false.
+    CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=.false.
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
     !!                                                                                                                         
@@ -1591,6 +1616,7 @@ contains
     !!*****************************************************                                                                    
     !! Density Functional Theory Options                                                                                       
     !!                                                                                                                         
+    CONTROL_instance%GRID_STORAGE="DISK"
     CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = "NONE"
@@ -1954,8 +1980,12 @@ contains
     CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE=LowdinParameters_configurationMinPPDistance
     CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE=LowdinParameters_configurationMaxPPDistance
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=LowdinParameters_configurationEquivalenceDistance
+    CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_A=LowdinParameters_empiricalOverlapParameterA
+    CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_B=LowdinParameters_empiricalOverlapParameterB
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=LowdinParameters_configurationUseSymmetry
     CONTROL_instance%READ_NOCI_GEOMETRIES=LowdinParameters_readNOCIGeometries
+    CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION=LowdinParameters_empiricalOverlapCorrection
+    CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=LowdinParameters_onlyFirstNOCIelements
 
 
     !!***************************************************************************      
@@ -1978,6 +2008,7 @@ contains
     !!*****************************************************                            
     !! Density Functional Theory Options                                               
     !!                                                                                 
+    CONTROL_instance%GRID_STORAGE=LowdinParameters_gridStorage
     CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_electronCorrelationFunctional
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = LowdinParameters_electronExchangeFunctional
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = LowdinParameters_electronExchangeCorrelationFunctional
@@ -2307,9 +2338,13 @@ contains
     LowdinParameters_configurationMinPPDistance=CONTROL_instance%CONFIGURATION_MIN_PP_DISTANCE
     LowdinParameters_configurationMaxPPDistance=CONTROL_instance%CONFIGURATION_MAX_PP_DISTANCE
     LowdinParameters_configurationEquivalenceDistance=CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE
+    LowdinParameters_empiricalOverlapParameterA=CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_A
+    LowdinParameters_empiricalOverlapParameterB=CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_B
     LowdinParameters_configurationUseSymmetry=CONTROL_instance%CONFIGURATION_USE_SYMMETRY
     LowdinParameters_readNOCIGeometries=CONTROL_instance%READ_NOCI_GEOMETRIES
-    
+    LowdinParameters_empiricalOverlapCorrection=CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION
+    LowdinParameters_onlyFirstNOCIelements=CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS
+
     !!***************************************************************************      
     !! CCSD                                                                      
     !!                                                                                 
@@ -2330,6 +2365,7 @@ contains
     !!*****************************************************                            
     !! Density Functional Theory Options                                               
     !!                                                                                 
+    LowdinParameters_gridStorage=CONTROL_instance%GRID_STORAGE
     LowdinParameters_electronCorrelationFunctional = CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL
     LowdinParameters_electronExchangeFunctional = CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
     LowdinParameters_electronExchangeCorrelationFunctional = CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
@@ -2654,6 +2690,7 @@ contains
     !!
     otherThis%AUXILIARY_DENSITY = this%AUXILIARY_DENSITY 
     otherThis%CALL_LIBXC = this%CALL_LIBXC
+    otherThis%GRID_STORAGE=this%GRID_STORAGE
     otherThis%ELECTRON_CORRELATION_FUNCTIONAL = this%ELECTRON_CORRELATION_FUNCTIONAL 
     otherThis%ELECTRON_EXCHANGE_FUNCTIONAL = this%ELECTRON_EXCHANGE_FUNCTIONAL 
     otherThis%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = this%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL 
@@ -2773,6 +2810,12 @@ contains
 
        if(CONTROL_instance%AUXILIARY_DENSITY) write (*,"(T10,A)") "USING AUXILIARY DENSITY"
 
+       if(CONTROL_instance%GRID_STORAGE .eq. "DISK") then
+          write (*,"(T10,A)") "STORING DENSITY GRIDS IN DISK"
+       else
+          write (*,"(T10,A)") "STORING DENSITY GRIDS IN MEMORY"          
+       end if
+       
        if(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL .ne. "NONE") then
           write (*,"(T10,A)") "ELECTRON EXCHANGE CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
        else
@@ -2903,6 +2946,17 @@ contains
        if(CONTROL_instance%READ_NOCI_GEOMETRIES) &
             write (*,"(T10,A,A,A)") "GEOMETRIES FOR THE NOCI EXPANSION WILL BE READ FROM ",trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords" ," FILE"
 
+       if(CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION) then
+          write (*,"(T10,A,F8.5,A,F8.5)") &
+               "SCALING NOCI OVERLAP AND HAMILTONIAN ELEMENTS ACCORDING TO S_I,II'=a(S_I,II)^b with a=",&
+               CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_A,&
+               " and b=",&
+               CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_B
+       end if
+       
+       if(CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) &
+            write (*,"(T10,A)") "COMPUTING NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
+       
        print *, ""
 
 

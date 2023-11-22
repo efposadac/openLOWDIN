@@ -89,8 +89,8 @@ module Convergence_
        Convergence_setMethodType, &
        Convergence_setMethod, &
        Convergence_run, &
-       Convergence_reset
-  
+       Convergence_reset, &
+       Convergence_removeLevelShifting  
   private
   
 contains
@@ -102,7 +102,7 @@ contains
     type(Convergence), intent(inout) :: this
     character(*),optional :: name
     integer, optional :: methodType
-    
+
     this%name = "undefined"
     if ( present(name) ) this%name = trim(name)
     this%methodType = SCF_CONVERGENCE_DEFAULT
@@ -125,7 +125,7 @@ contains
     this%newDensityMatrixPtr => null()
     if ( allocated(this%initialFockMatrix%values) ) call Matrix_destructor( this%initialFockMatrix)
     if ( allocated(this%initialDensityMatrix%values) ) call Matrix_destructor( this%initialDensityMatrix)
-			if ( allocated(this%overlapMatrix%values) ) call Matrix_destructor( this%overlapMatrix)
+    if ( allocated(this%overlapMatrix%values) ) call Matrix_destructor( this%overlapMatrix)
    if ( StackMatrices_isInstanced( this%fockMatrices ) ) then
       call StackMatrices_destructor( this%fockMatrices)
       call StackMatrices_destructor( this%componentsOfError)
@@ -236,13 +236,13 @@ contains
    
    this%newFockMatrixPtr => newFockMatrix
    this%newDensityMatrixPtr => newDensityMatrix
-   
-   if ( present(methodType) ) this%methodType = methodType
+   if (present(speciesID)) this%speciesID=speciesID  
+   if (present(methodType)) this%methodType = methodType
+   if (present(overlapMatrix)) call Matrix_copyConstructor(this%overlapMatrix, overlapMatrix)
+   if( present(coefficientMatrix)) call Matrix_copyConstructor(this%coefficientMatrix, coefficientMatrix)
    
    if( present(overlapMatrix) .and. ( this%methodType == 2 .or. this%methodType == 4 .or. &
         CONTROL_instance%DIIS_ERROR_IN_DAMPING ) ) then
-      
-      call Matrix_copyConstructor(this%overlapMatrix, overlapMatrix)
       
       if( .not.allocated(this%orthonormalizationMatrix%values) ) then
          
@@ -290,16 +290,6 @@ contains
          call Vector_destructor(eigenValues)
          
       end if
-      
-   end if
-
-   this%speciesID = 0
-
-   if( present(overlapMatrix) .and. present(coefficientMatrix) .and. ( this%methodType == 3 )) then
-      
-      call Matrix_copyConstructor(this%overlapMatrix, overlapMatrix)
-      call Matrix_copyConstructor(this%coefficientMatrix, coefficientMatrix)
-      this%speciesID=speciesID  
       
    end if
    
@@ -385,13 +375,15 @@ contains
    implicit none
    type(Convergence) :: this
    
-   if ( this%isInstanced ) then
+   if ( .not. this%isInstanced ) then
+      call Convergence_exception( ERROR, "The object has not beeb instanced",&
+           "Class object Convergence in run() function" )
+      return
+   end if
       
-      select case(this%methodType)
+   select case(this%methodType)
          
       case(SCF_CONVERGENCE_NONE)
-         
-         call Convergence_noneMethod( this)
          
       case(SCF_CONVERGENCE_DAMPING)
          
@@ -408,12 +400,6 @@ contains
          end if
          
          call Convergence_diisMethod( this )
-         
-      case(SCF_CONVERGENCE_LEVEL_SHIFTING)
-         
-         call Convergence_dampingMethod( this )
-         
-         call Convergence_levelShifting( this )
          
       case( SCF_CONVERGENCE_MIXED )
          
@@ -437,25 +423,13 @@ contains
          call Convergence_dampingMethod( this )
          
       end select
-      
-   else
-      
-      call Convergence_exception( ERROR, "The object has not beeb instanced",&
-           "Class object Convergence in run() function" )
-      
-   end if
+
+      !!Level shifting is additional to DIIS or Damping
+      if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING .eqv. .true. ) then
+         call Convergence_levelShifting( this )
+      end if
    
  end subroutine Convergence_run
- 
- !>
- !! @brief No realiza ninguna modificacion a la matriz de Fock o a la
- !! 		matriz de densidad asociada
- subroutine Convergence_noneMethod(  this )
-   implicit none
-   type(Convergence) :: this
-   
- end subroutine Convergence_noneMethod
- 
  
  !>
  !! @brief Calcula una nueva matriz de Fock con el metodo de amortiguamiento
@@ -498,17 +472,25 @@ contains
    !!
    !!********************************************************************************************
    
-   if ( fockAndDensityEffect <=  densityEffect ) then
+   if ( fockAndDensityEffect <=  densityEffect &
+        .or. abs(fockAndDensityEffect+densityEffect) .lt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
       
       this%initialFockMatrix%values = this%newFockMatrixPtr%values
       this%initialDensityMatrix%values = this%newDensityMatrixPtr%values
+
+      if (  CONTROL_instance%DEBUG_SCFS) then
+         write (*,*) "densityEffect", densityEffect, "fockAndDensityEffect", fockAndDensityEffect, "No damping for species", this%speciesID
+      end if
       
    else
       dampingFactor = densityEffect / fockAndDensityEffect
       this%initialFockMatrix%values = this%initialFockMatrix%values &
            + dampingFactor * ( this%newFockMatrixPtr%values &
            - this%initialFockMatrix%values )
-      !!write (*,*) "Damping Factor for species", this%speciesID, " : ", dampingFactor
+      
+      if (  CONTROL_instance%DEBUG_SCFS) then
+         write (*,*) "densityEffect", densityEffect, "fockAndDensityEffect", fockAndDensityEffect, "Damping Factor for species", this%speciesID, " : ", dampingFactor
+      end if
       !! Modifica la matrix de Fock con una matriz amortiguada
       !! Modificacion del damping factor para prueba
       !                                         dampingFactor=0.1_8
@@ -545,7 +527,6 @@ contains
    type(Matrix) :: auxMatrix
    integer :: orderOfMatrix
    integer :: i
-   integer :: j
    
    orderOfMatrix = size(this%newFockMatrixPtr%values, 1)
    
@@ -692,56 +673,68 @@ contains
  !>
  !! @brief Modifica la Matriz de Fock empleando el metodo level shifting
  !!
- !! @todo Falta la implementacion completa
  subroutine Convergence_levelShifting(this)
    implicit none
    type(Convergence) :: this
+   type(Matrix) :: fockMatrixTransformed
+   real(8) :: levelShiftingFactor
+   integer :: i
    
-   CONTROL_instance%ACTIVATE_LEVEL_SHIFTING=.true.
+   if ( .not. CONTROL_instance%ACTIVATE_LEVEL_SHIFTING) return
+
+   if ( MolecularSystem_instance%species(this%speciesID)%isElectron ) then
+      levelShiftingFactor=CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
+   else
+      levelShiftingFactor=CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
+   end if
+
+   fockMatrixTransformed%values = &
+        matmul( matmul( transpose(this%coefficientMatrix%values ) , &
+        this%newFockMatrixPtr%values), this%coefficientMatrix%values )
+
+   do i=MolecularSystem_getOcupationNumber(this%speciesID)+1, &
+        MolecularSystem_getTotalnumberOfContractions(this%speciesID)
+      fockMatrixTransformed%values(i,i) = levelShiftingFactor + fockMatrixTransformed%values(i,i)
+   end do
    
-   ! real(8) :: factor
-   ! type(Matrix) :: auxMatrix
-   ! type(Matrix) :: auxOverlapMatrix
-   ! integer :: occupiedOrbitals
-   ! integer :: totalOrbitals
-   ! integer :: i
+   fockMatrixTransformed%values = &
+        matmul( matmul(this%coefficientMatrix%values, &
+        fockMatrixTransformed%values), transpose(this%coefficientMatrix%values ))
    
-   ! if ( (this%name).ne."e-" ) then
-   !     factor=-0.1_8
-   !     else
-   !     factor=1.0_8
-   ! end if
-   
-   ! call Matrix_copyConstructor( auxMatrix, this%initialFockMatrix)
-   
-   ! auxMatrix%values = &
-   ! 	matmul( matmul( transpose( this%coefficientMatrix%values ) , &
-   ! 		auxMatrix%values), this%coefficientMatrix%values )
-   
-   ! totalOrbitals =Matrix_getNumberOfRows(auxMatrix)
-   ! occupiedOrbitals=MolecularSystem_getOcupationNumber( this%speciesID )
-   
-   ! do i= occupiedOrbitals + 1, totalOrbitals
-   !   auxMatrix%values(i,i) = factor*CONTROL_instance%LEVEL_SHIFTING + auxMatrix%values(i,i)
-   ! end do
-   
-   ! auxMatrix%values = &
-   ! 	matmul( matmul(this%coefficientMatrix%values, &
-   ! 		auxMatrix%values), transpose(this%coefficientMatrix%values ))
-   
-   ! call Matrix_copyConstructor(auxOverlapMatrix,this%overlapMatrix)
-   
-   ! auxMatrix%values = &
-   ! 	matmul( matmul(auxOverlapMatrix%values, &
-   ! 		auxMatrix%values), transpose(auxOverlapMatrix%values ))
-   
-   ! 	!! Changing the fock matrix
-   
-   ! 		this%newFockMatrixPtr%values = auxMatrix%values
+   fockMatrixTransformed%values = &
+        matmul( matmul(this%overlapMatrix%values, &
+        fockMatrixTransformed%values), transpose(this%overlapMatrix%values ))                    
+
+   this%newFockMatrixPtr%values=fockMatrixTransformed%values
+   !!
+   !! End of Level Shifting Convergence Routine       
+   !!**********************************************************************************************
    
  end subroutine Convergence_levelShifting
  
- 
+ !! @brief Remove level shifting from virtual eigenvalues
+ subroutine Convergence_removeLevelShifting(this, eigenvalues)
+   type(Convergence) :: this
+   type(Vector) :: eigenvalues
+
+   real(8) :: levelShiftingFactor
+   integer :: i
+
+   if ( .not. CONTROL_instance%ACTIVATE_LEVEL_SHIFTING) return
+
+   if ( MolecularSystem_instance%species(this%speciesID)%isElectron ) then
+      levelShiftingFactor=CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
+   else
+      levelShiftingFactor=CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
+   end if
+   
+   do i=MolecularSystem_getOcupationNumber(this%speciesID)+1, &
+        MolecularSystem_getTotalnumberOfContractions(this%speciesID)
+      eigenvalues%values(i) = eigenvalues%values(i) -levelShiftingFactor
+   end do
+
+ end subroutine Convergence_removeLevelShifting
+   
  subroutine Convergence_reset()
    implicit none
    

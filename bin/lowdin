@@ -424,7 +424,6 @@ if [ $extFile="lowdin" ]; then
 	   cp $LOWDIN_SCRATCH/$nameFile/lowdin.wfn $currentPath
 	fi
 
-	mv $LOWDIN_SCRATCH/$nameFile/lowdin-plain.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
@@ -436,6 +435,7 @@ if [ $extFile="lowdin" ]; then
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfx $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.plainvec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.coords $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2

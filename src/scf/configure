@@ -15,7 +15,8 @@ TARGET=lowdin-SCF.x
 LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 INCI=-I\$(TOPDIR)src/ints/
-LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o \$(TOPDIR)src/ints/IntegralManager.o \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o  \$(TOPDIR)src/ints/HarmonicIntegrals.o  \$(TOPDIR)src/ints/FirstDerivativeIntegrals.o
+INCII=-I\$(TOPDIR)src/DFT/
+LDPATH=\$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o \$(TOPDIR)src/ints/IntegralManager.o \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o  \$(TOPDIR)src/ints/HarmonicIntegrals.o  \$(TOPDIR)src/ints/FirstDerivativeIntegrals.o \$(TOPDIR)src/DFT/DensityFunctionalTheory.o \$(TOPDIR)src/DFT/Functional.o  \$(TOPDIR)src/DFT/Grid.o  \$(TOPDIR)src/DFT/GridManager.o  \$(TOPDIR)src/DFT/LibxcInterface.o \$(TOPDIR)lib/lowdincore.a
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS)
 
@@ -27,7 +28,8 @@ OBJECTS=$(for file in $SRCMOD
           ) 
 
 TOPDIR=../..
-INCIPATH=$TOPDIR/src/ints/
+# INCIPATH=$TOPDIR/src/ints/
+# INCIIPATH=$TOPDIR/src/DFT/
 # INCI=$INCIPATH/*.f90
 # INCI2=$INCIPATH/*.cpp
 
@@ -88,7 +90,7 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(FLAGS) ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(INCII) \$(FLAGS) ${file}\n" >> makefile
 done
 #
 cat >> makefile << EOF

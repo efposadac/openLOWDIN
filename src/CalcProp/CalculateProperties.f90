@@ -294,6 +294,8 @@ contains
 
        do type= 1, size(analysis)
 
+          if(analysis(type) .eq. "LOWDIN" .and. CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION) cycle
+          
           speciesName = trim(MolecularSystem_getNameOfSpecie( speciesID ))
 
           if(trim(speciesName) .eq. "E-ALPHA") then

@@ -30,8 +30,9 @@ TASKS
 END TASKS
 
 CONTROL
-readCoefficients=F
-integralsTransformationMethod = "C"
+	readCoefficients=F
+	totalEnergyTolerance=1E-12
+	integralsTransformationMethod = "C"
 	numberOfCIstates=1
 	CIdiagonalizationMethod = "JADAMILU"
 END CONTROL

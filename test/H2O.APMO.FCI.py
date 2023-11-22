@@ -9,9 +9,9 @@ inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
 # Reference values
-
-refTotalEnergy = -75.895908288757
-refFCIEnergy = -75.913887727427
+                 
+refTotalEnergy = -75.895908288860
+refFCIEnergy = -75.913887561202
 
 # Run calculation
 

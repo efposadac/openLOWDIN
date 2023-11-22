@@ -42,7 +42,8 @@ module MultiSCF_
   use omp_lib
   use DensityMatrixSCFGuess_
   use OrbitalLocalizer_
-
+  use Convergence_
+  
   implicit none    
 
   !< For effective Fock matrix for restricted open-shell SCF
@@ -253,8 +254,12 @@ contains
     !!DFT calculations are performed only in global iterations
     !!Save density matrices to file for DFT calculations
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-       call WaveFunction_writeDensityMatricesToFile(wfObjects, densFile)
-       call system("lowdin-DFT.x SCF_DFT "//trim(densFile))
+       if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
+          call WaveFunction_writeDensityMatricesToFile(wfObjects, densFile)
+          call system("lowdin-DFT.x SCF_DFT "//trim(densFile))
+       else
+          call WaveFunction_getDFTContributions(wfObjects,"SCF")
+       end if
     end if
 
     !Build Fock matrices and calculate energy with the initial densities
@@ -265,7 +270,7 @@ contains
 
        call WaveFunction_buildCouplingMatrix(wfObjects,i)
 
-       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       if ( (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") .and. CONTROL_instance%GRID_STORAGE .eq. "DISK") then
           call WaveFunction_readExchangeCorrelationMatrix(wfObjects(i))
        end if
 
@@ -278,6 +283,14 @@ contains
 
        call WaveFunction_obtainTotalEnergyForSpecies(wfObjects(i))
 
+       !Save initial matrices for convergence comparisons
+       if(this%numberOfIterations .eq. 0 ) then
+          call Convergence_setInitialDensityMatrix(wfObjects(i)%convergenceMethod, &
+               wfObjects(i)%densityMatrix )
+          call Convergence_setInitialFockMatrix(wfObjects(i)%convergenceMethod, &
+               wfObjects(i)%fockMatrix )
+       end if
+       
     end do
 
     !Get total energy
@@ -630,6 +643,11 @@ contains
                write(*,"(A65,F12.6)") "renormalized density matrix with deviation from number of particles", &
                MolecularSystem_getEta(speciesID)*MolecularSystem_instance%species(speciesID)%ocupationNumber
        end if
+       
+       if ( CONTROL_instance%DEBUG_SCFS ) then
+          print *, "Initial Density Matrix ", trim(MolecularSystem_getNameOfSpecie( speciesID ))
+          call Matrix_show(WaveFunction_instance(speciesID)%densityMatrix)
+       end if
 
     end do
 
@@ -870,9 +888,13 @@ contains
     end if
 
     if (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") then
-       call system("lowdin-DFT.x BUILD_FINAL_GRID "//trim(densFile))
        call WaveFunction_writeDensityMatricesToFile(wfObjects, densFile)
-       call system("lowdin-DFT.x FINAL_DFT "//trim(densFile))
+       if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
+          call system("lowdin-DFT.x BUILD_FINAL_GRID "//trim(densFile))
+          call system("lowdin-DFT.x FINAL_DFT "//trim(densFile))
+       else
+          call WaveFunction_getDFTContributions(wfObjects,"FINAL")
+       end if
     end if
 
     do speciesID = 1, numberOfSpecies
@@ -882,7 +904,7 @@ contains
           call WaveFunction_buildCosmoCoupling(wfObjects(speciesID))
        end if
 
-       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       if ( (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") .and. CONTROL_instance%GRID_STORAGE .eq. "DISK") then
           call WaveFunction_readExchangeCorrelationMatrix(wfObjects(speciesID))
        end if
 

@@ -90,11 +90,6 @@ program SCF
         labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
         labels(1) = "DENSITY"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
-
-        if ( CONTROL_instance%DEBUG_SCFS ) then
-           print *, "Initial Density Matrix ", trim(MolecularSystem_getNameOfSpecie( speciesID ))
-           call Matrix_show(WaveFunction_instance(speciesID)%densityMatrix)
-        end if
      end do
      close(wfnUnit)
 

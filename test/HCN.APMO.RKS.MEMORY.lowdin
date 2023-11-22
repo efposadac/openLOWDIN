@@ -28,6 +28,7 @@ CONTROL
 readCoefficients=.F.
 electronExchangeCorrelationFunctional="B3LYP"
 nuclearElectronCorrelationFunctional="epc17-2"
+gridStorage="MEMORY"
 END CONTROL
 
 

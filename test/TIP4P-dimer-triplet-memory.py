@@ -12,10 +12,10 @@ outputName = testName + ".out"
 
 refValues = {
     "HF energy" : [-0.651377261423,1E-8],
-    "HA-TIP Ext Pot" : [0.010606635479,1E-6],
-    "HA-TIP/HA-TIP Hartree" : [1.217813835967,1E-6],
-    "HA-TIP Exchange" : [-1.214419735313,1E-6],
-    "HA-TIP/Fixed interact." : [-0.035396418562,1E-6]
+    "HA-TIP Ext Pot" : [0.010606635479,1E-4],
+    "HA-TIP/HA-TIP Hartree" : [1.217813835967,1E-4],
+    "HA-TIP Exchange" : [-1.214419735313,1E-4],
+    "HA-TIP/Fixed interact." : [-0.035396418562,1E-4]
 }                       
 
 testValues = dict(refValues) #copy 

@@ -93,7 +93,7 @@ contains
     integer :: dftUnit
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    allocate(Functionals(numberOfSpecies+numberOfSpecies*(numberOfSpecies-1)/2))
+    if(.not.allocated(Functionals) )allocate(Functionals(numberOfSpecies+numberOfSpecies*(numberOfSpecies-1)/2))
 
     i=1
     do speciesID=1, numberOfSpecies
