@@ -80,7 +80,7 @@ contains
        wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"
        inquire(FILE = wfnFile, EXIST = existPlain )
        if ( existPlain ) then
-          open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+          open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
           orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
                columns= int(orderOfMatrix,4), binary=.false., arguments=arguments(1:2),failContinue=.true.)
           close(wfnUnit)

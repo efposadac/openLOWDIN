@@ -347,7 +347,7 @@ if [ $extFile="lowdin" ]; then
 	if [ -d "$LOWDIN_SCRATCH/$nameFile" ]
 	then
 	    echo "## WARNING ## The scratch directory $LOWDIN_SCRATCH/$nameFile"
-	    echo "              has been removed, probably it corresponds to"
+	    echo "              exists, probably it corresponds to"
 	    echo "              a calculation completed or with errors."
 	    # rm -rf $LOWDIN_SCRATCH/$nameFile
 	    mkdir $LOWDIN_SCRATCH/$nameFile
@@ -356,6 +356,7 @@ if [ $extFile="lowdin" ]; then
 	fi
 	
 	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.plainvec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
