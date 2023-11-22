@@ -354,16 +354,16 @@ contains
        else 
           write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
 
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3") print *, "Using as correlation length: beta=q*rhoE^(1/3)"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE6rhoN6") print *, "Using as correlation length: beta=q*rhoE^(1/6)*rhoN^(1/6)"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN") print *, "Using as correlation length: beta=1/(q*rhoE^(-1/3)+r*rhoN^(-1))"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3As") print *, "Using as correlation length: beta=qe*rhoE^(1/3)+qn*rhoN^(1/3)"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3rhoEN6") print *, "Using as correlation length: beta=q*rhoE^(1/3)+p*rhoN^(1/3)+r*rhoE^(1/6)*rhoN^(1/6)"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "newBeta") print *, "beta=(qe*rhoE(i)+qn*rhoN(i)+q2en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3en*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**2)**(1.0/3.0)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3") print *, "Using as correlation length: beta=q*rhoE^(1/3)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE6RHON6") print *, "Using as correlation length: beta=q*rhoE^(1/6)*rhoN^(1/6)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON") print *, "Using as correlation length: beta=1/(q*rhoE^(-1/3)+r*rhoN^(-1))"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON3AS") print *, "Using as correlation length: beta=qe*rhoE^(1/3)+qn*rhoN^(1/3)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON3RHOEN6") print *, "Using as correlation length: beta=q*rhoE^(1/3)+p*rhoN^(1/3)+r*rhoE^(1/6)*rhoN^(1/6)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "NEWBETA") print *, "beta=(qe*rhoE(i)+qn*rhoN(i)+q2en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3en*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**2)**(1.0/3.0)"
 
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") print *, "beta=(q0*(rhoE(i)+rhoN(i))+q2*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3*(rhoE(i)-rhoN(i))**4/(rhoE(i)+rhoN(i))**3)**(1.0/3.0)"
+          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "NEWNEWBETA") print *, "beta=(q0*(rhoE(i)+rhoN(i))+q2*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3*(rhoE(i)-rhoN(i))**4/(rhoE(i)+rhoN(i))**3)**(1.0/3.0)"
 
-          if(CONTROL_instance%BETA_FUNCTION .eq. "newBeta") then
+          if(CONTROL_instance%BETA_FUNCTION .eq. "NEWBETA") then
 
              if(this%mass2 .gt. 2.0) then !hydrogen
                 print *, "electron-hydrogen correlation parameters"
@@ -398,7 +398,7 @@ contains
 
              print *, "p", CONTROL_instance%DUMMY_REAL(3)
 
-          else if(CONTROL_instance%BETA_FUNCTION .eq. "newnewBeta") then
+          else if(CONTROL_instance%BETA_FUNCTION .eq. "NEWNEWBETA") then
 
              if(this%mass2 .gt. 2.0) then !hydrogen
                 STOP "this beta function only works for electron-positron"
@@ -409,7 +409,7 @@ contains
              end if
 
 
-             if (this%name .eq. "correlation:expCS-GGA-noA") a0=4.5839773752240566113                 
+             if (this%name .eq. "correlation:EXPCS-GGA-NOA") a0=4.5839773752240566113                 
 
              p=1.0
 
@@ -570,11 +570,11 @@ contains
     densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD !TODO: add to other functionals
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:epc17-2" ) then
+    if(this%name .eq. "correlation:EPC17-2" ) then
        a=2.35
        b=2.4
        c=6.6
-    else if(this%name .eq. "correlation:epc17-1" ) then
+    else if(this%name .eq. "correlation:EPC17-1" ) then
        a=2.35
        b=2.4
        c=3.2
@@ -636,7 +636,7 @@ contains
     a3=1.2732395447351628
     a4=-2.256758334191025
        
-    if(this%name .eq. "correlation:ikn-nsf" ) then
+    if(this%name .eq. "correlation:IKN-NSF" ) then
        if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .and. CONTROL_instance%DUMMY_REAL(2) .ne. 0) then
           q=CONTROL_instance%DUMMY_REAL(1)
        else
@@ -700,7 +700,7 @@ contains
     integer :: i
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:mlcs-fit" ) then
+    if(this%name .eq. "correlation:MLCS-FIT" ) then
 
        a1=2.0943951023931953
        a2=2.849869774919022
@@ -772,7 +772,7 @@ contains
     integer :: i
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:mlcs-a" ) then
+    if(this%name .eq. "correlation:MLCS-A" ) then
 
        a1=2.0943951023931953
        a2=2.849869774919022
@@ -844,7 +844,7 @@ contains
     integer :: i
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:mlcs-an" ) then
+    if(this%name .eq. "correlation:MLCS-AN" ) then
 
        a1=2.0943951023931953
        a2=2.849869774919022
@@ -919,7 +919,7 @@ contains
     integer :: i,n
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:CS-myfit" ) then
+    if(this%name .eq. "correlation:CS-MYFIT" ) then
        a0=20.799624419985    
        a1=-19.251078153683    
        a2=68.341133121032    
@@ -938,7 +938,7 @@ contains
        b4=130.813870751403   
        bz=4.357404128407      
        bn=12.297852188465    
-    else if(this%name .eq. "correlation:Imamura-myfit" ) then
+    else if(this%name .eq. "correlation:IMAMURA-MYFIT" ) then
        a0=-1.810905109364
        a1=-1.167135966502
        a2=12.330825453317
@@ -975,7 +975,7 @@ contains
        ! b4=144.122496204253
        ! bz=0.306222273912
        ! bn=21.383069425991
-    else if(this%name .eq. "correlation:Mejia-myfit" ) then
+    else if(this%name .eq. "correlation:MEJIA-MYFIT" ) then
        a0=-2.094395102394
        a1=-1.025867935018
        a2=-0.538148600474
@@ -994,7 +994,7 @@ contains
        b4=2.453311545282
        bz=2.864883246299
        bn=9.451138253283
-    else if(this%name .eq. "correlation:MejiaA-myfit" ) then
+    else if(this%name .eq. "correlation:MEJIAA-MYFIT" ) then
        a0=-2.094395102393
        a1=1.919828725183
        a2=9.666337157333
@@ -1035,21 +1035,21 @@ contains
     !$omp do schedule (dynamic) 
     
     do i = 1, npoints
-       if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3") then
+       if(CONTROL_instance%BETA_FUNCTION .eq. "RHOE3") then
           beta=q*rhoE(i)**(1.0/3.0)
           dbetaE=(1.0/3.0)*q*rhoE(i)**(-2.0/3.0)
           dbetaN=0.0
-       else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE6rhoN6") then
+       else if(CONTROL_instance%BETA_FUNCTION .eq. "RHOE6RHON6") then
           beta=q*rhoE(i)**(1.0/6.0)*rhoN(i)**(1.0/6.0)
           dbetaE=(1.0/6.0)*q*rhoE(i)**(-5.0/6.0)*rhoN(i)**(1.0/6.0)
           dbetaN=(1.0/6.0)*q*rhoN(i)**(-5.0/6.0)*rhoE(i)**(1.0/6.0)
-       else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN3As") then
+       else if(CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON3As") then
           ke=3*(3.0/(4.0*Math_PI))**(4.0/3.0)
           kn=8.0/3.0*sqrt(2.0/3.0)
           beta=q/(1/(ke*rhoE(i)**(1.0/3.0))+1/(kn*rhoN(i)**(1.0/3.0)))
           dbetaE=q/(3*ke*rhoE(i)**(4.0/3.0)*(1/(ke*rhoE(i)**(1.0/3.0))+1/(kn*rhoN(i)**(1.0/3.0)))**2.0)
           dbetaN=q/(3*kn*rhoN(i)**(4.0/3.0)*(1/(ke*rhoE(i)**(1.0/3.0))+1/(kn*rhoN(i)**(1.0/3.0)))**2.0)
-       else if(CONTROL_instance%BETA_FUNCTION .eq. "rhoE3rhoN") then
+       else if(CONTROL_instance%BETA_FUNCTION .eq. "RHOe3RHON") then
           beta=1/(q*rhoE(i)**(-1.0/3.0)+r*rhoN(i)**(-1.0))
           dbetaE=q/(3*rhoE(i)**(4.0/3.0)*(q*rhoE(i)**(-1.0/3.0)+r*rhoN(i)**(-1.0))**2.0)
           dbetaN=r/(rhoN(i)**(2.0)*(q*rhoE(i)**(-1.0/3.0)+r*rhoN(i)**(-1.0))**2.0)
@@ -1116,7 +1116,7 @@ contains
     densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD !TODO: add to other functionals
     
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:expCS-A" ) then
+    if(this%name .eq. "correlation:EXPCS-A" ) then
        if(mass .gt. 2.0) then !nuclear- adiabatic
           a4=1.0
           a3=330.096328569496899372
@@ -1150,7 +1150,7 @@ contains
           b1=18.267727642586607
           b0=1.0
        end if
-    else if(this%name .eq. "correlation:expCS-noA" ) then
+    else if(this%name .eq. "correlation:EXPCS-NOA" ) then
        if(mass .gt. 2.0) then !nuclear- no adiabatic
           a4=1.0
           a3=259.74684041327130047
@@ -1260,7 +1260,7 @@ contains
 
     densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD !TODO: add to other functionals
 
-    if(this%name .eq. "correlation:expCS-GGA-noA" ) then
+    if(this%name .eq. "correlation:EXPCS-GGA-NOA" ) then
        !positron-no adiabatic
        a4=1.0
        a3=1043.1272348010363592
@@ -1447,7 +1447,7 @@ contains
 
     select case(CONTROL_instance%BETA_FUNCTION)
 
-    case("newnewBeta")
+    case("NEWNEWBETA")
        if(CONTROL_instance%BETA_PARAMETER_A .ne. 0.0 .and. CONTROL_instance%BETA_PARAMETER_B .ne. 0.0) then
           Eab=CONTROL_instance%BETA_PARAMETER_A
           Eab2=CONTROL_instance%BETA_PARAMETER_B
@@ -1552,7 +1552,7 @@ contains
           d2BdEP=0.0
        end if
 
-    case("PsBeta")
+    case("PSBETA")
        if(CONTROL_instance%BETA_PARAMETER_A .ne. 0.0 .and. CONTROL_instance%BETA_PARAMETER_B .ne. 0.0) then
           Eab=CONTROL_instance%BETA_PARAMETER_A
           cutOff=CONTROL_instance%BETA_PARAMETER_B
@@ -1651,7 +1651,7 @@ contains
 
        ! print *, rhoE, rhoP, Sqrt(rhoDif**2), beta, dBdE, dBdP
        
-    case("PsBetaMax")
+    case("PSBETAMAX")
        if(CONTROL_instance%BETA_PARAMETER_A .ne. 0.0 ) then
           Eab=CONTROL_instance%BETA_PARAMETER_A
        else
@@ -1786,7 +1786,7 @@ contains
     integer :: i
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:psn" ) then
+    if(this%name .eq. "correlation:PSN" ) then
        !*2 to convert from Rydbergs to a.u.
         Aa=69.7029*2.0_8
         Ba=-107.4927*2.0_8
@@ -1889,7 +1889,7 @@ contains
     integer :: i
 
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:psnap" ) then
+    if(this%name .eq. "correlation:PSNAP" ) then
        !*2 to convert from Rydbergs to a.u.
         Aa=69.7029*2.0_8
         Ba=-107.4927*2.0_8
@@ -1991,7 +1991,7 @@ contains
 
     print *, this%name
     !!The idea is that the parameters are a functional of the nuclear mass and charge
-    if(this%name .eq. "correlation:lowlimit" ) then
+    if(this%name .eq. "correlation:LOWLIMIT" ) then
        energyDensity=-0.5_8*mass/(mass+1.0_8)
        b=-0.5_8
     else

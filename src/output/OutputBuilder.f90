@@ -254,47 +254,47 @@ contains
 
      select case( this%type )
 
-     case ( "moldenFile") 
+     case ( "MOLDENFILE") 
         call OutputBuilder_writeMoldenFile (this)
 
-     case ("VecGamessFile")
+     case ("VECGAMESSFILE")
         call OutputBuilder_VecGamessFile (this)
 
-     case ("casinoFile")
+     case ("CASINOFILE")
         call OutputBuilder_casinoFile (this)
 
-     case ("EigenGamessFile")
+     case ("EIGENGAMESSFILE")
         call OutputBuilder_writeEigenvalues (this)
 
-     case ("fchkFile")
+     case ("FCHKFILE")
         call OutputBuilder_writeFchkFile (this)
         
-     case ( "wfnFile") 
+     case ( "WFNFILE") 
         call OutputBuilder_writeMoldenFile (this)
         call OutputBuilder_generateAIMFiles (this)
 
-    case ( "NBO47File") 
+    case ( "NBO47FILE") 
         call OutputBuilder_writeMoldenFile (this)
         call OutputBuilder_generateAIMFiles (this)
 
-    case ( "wfxFile" ) 
+    case ( "WFXFILE" ) 
 
         call OutputBuilder_writeMoldenFile (this)
         call OutputBuilder_generateAIMFiles (this)
 
-    case ( "extendedwfnFile") 
+    case ( "EXTENDEDWFNFILE") 
         call OutputBuilder_writeMoldenFile (this)
         call OutputBuilder_generateAIMFiles (this)
         call OutputBuilder_generateExtendedWfnFile (this)
 
-    case ( "densityPlot") 
+    case ( "DENSITYPLOT") 
         if (this%dimensions == 2) call OutputBuilder_getDensityPlot(this)
         if (this%dimensions == 3) call OutputBuilder_getDensityPlot(this)
 
-   case ( "densityCube") 
+   case ( "DENSITYCUBE") 
       call OutputBuilder_getDensityCube(this)
 !
-   case ( "orbitalPlot") 
+   case ( "ORBITALPLOT") 
       if (this%dimensions == 2) call OutputBuilder_get2DPlot(this)
       if (this%dimensions == 3) call OutputBuilder_get3DPlot(this)
 !
@@ -1634,26 +1634,26 @@ contains
     initialSettingsFile = "m2a.ini"
 
     select case (this%type) 
-      case ( "wfnFile" )
-    wfnStatus="1"
-    nboStatus="-1"
-    wfxStatus="-1"
-        extension=".wfn"
-      case ( "NBO47File" )
-    wfnStatus="-1"
-    nboStatus="1"
-    wfxStatus="-1"
-    extension=".47"
-      case ( "wfxFile" ) 
-    wfnStatus="-1"
-    nboStatus="-1"
-      wfxStatus="1"
-    extension=".wfx"
-  case ( "extendedwfnFile" )
-    wfnStatus="1"
-    nboStatus="-1"
-    wfxStatus="-1"
-    extension=".wfn"
+    case ( "WFNFILE" )
+       wfnStatus="1"
+       nboStatus="-1"
+       wfxStatus="-1"
+       extension=".wfn"
+    case ( "NBO47FILE" )
+       wfnStatus="-1"
+       nboStatus="1"
+       wfxStatus="-1"
+       extension=".47"
+    case ( "WFXFILE" ) 
+       wfnStatus="-1"
+       nboStatus="-1"
+       wfxStatus="1"
+       extension=".wfx"
+    case ( "EXTENDEDWFNFILE" )
+       wfnStatus="1"
+       nboStatus="-1"
+       wfxStatus="-1"
+       extension=".wfn"
     end select
 
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
@@ -1762,14 +1762,14 @@ contains
 
      select case( this%type )
 
-     case ( "orbitalPlot") 
+     case ( "ORBITALPLOT") 
         orbitalNum=String_convertIntegerToString(this%orbital)
         this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".3D.orb"//trim(orbitalNum)
         open(10,file=this%fileName(1),status='replace',action='write')
         write (10,"(A10,A20,A20,A20)") "#", "X","Y","OrbitalValue"
         title=trim(this%species)//" Orbital Number: "//trim(orbitalNum) 
 
-     case ( "fukuiPlot") 
+     case ( "FUKUIPLOT") 
         this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".3D.fkpos"
         this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".3D.fkneg"
         open(10,file=this%fileName(1),status='replace',action='write')
@@ -1798,9 +1798,9 @@ contains
      end do
 
      select case( this%type )
-     case ( "orbitalPlot") 
+     case ( "ORBITALPLOT") 
         call CalculateWaveFunction_getOrbitalValueAt( speciesID, this%orbital, coordinate, val )  
-     case ( "fukuiPlot") 
+     case ( "FUKUIPLOT") 
         !!              val=CalculateProperties_getFukuiAt( this%species, "positive", coordinate )  
         !!              val2=CalculateProperties_getFukuiAt( this%species, "negative", coordinate )  
      case default
@@ -1809,13 +1809,13 @@ contains
      n=0
      do i=0,numberOfSteps
         write (10,*) ""
-        if (this%type .eq. "fukuiPlot") write(11,*) ""
+        if (this%type .eq. "FUKUIPLOT") write(11,*) ""
         do j=0,numberOfSteps
            n=n+1
            write (10,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val%values(n) 
            if (val%values(n) > maxValue) maxValue = val%values(n) 
            if (val%values(n) < minValue) minValue = val%values(n) 
-           if (this%type .eq. "fukuiPlot" ) then
+           if (this%type .eq. "FUKUIPLOT" ) then
               write (11,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val2%values(n) 
               if (val2%values(n) > maxValue2) maxValue2 = val2%values(n) 
               if (val2%values(n) < minValue2) minValue2 = val2%values(n) 
@@ -1827,7 +1827,7 @@ contains
      call OutputBuilder_make3DGraph( this%fileName(1), title, x_title, y_title, z_title, minValue, maxValue)
      close(10)
 
-     if (this%type .eq. "fukuiPlot" ) then
+     if (this%type .eq. "FUKUIPLOT" ) then
         call OutputBuilder_make3DGraph( this%fileName2, title2, x_title, y_title, z_title, minValue2, maxValue2)
         close(11)
      end if
@@ -1865,7 +1865,7 @@ contains
      x_title="distance/a.u."
      select case( this%type )
 
-     case ( "orbitalPlot") 
+     case ( "ORBITALPLOT") 
         orbitalNum=String_convertIntegerToString(this%orbital)
         this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".2D.orb"//trim(orbitalNum)
         open(10,file=this%fileName(1),status='replace',action='write')
@@ -1873,7 +1873,7 @@ contains
         title=trim(this%species)//" Orbital Number "//trim(orbitalNum) 
         y_title="orbitalValue/a.u.^{-3/2}"
 
-     case ( "fukuiPlot") 
+     case ( "FUKUIPLOT") 
         this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".2D.fkpos"
         this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".2D.fkneg"
 
@@ -1896,9 +1896,9 @@ contains
      end do
 
      select case( this%type )
-     case ( "orbitalPlot") 
+     case ( "ORBITALPLOT") 
         call CalculateWaveFunction_getOrbitalValueAt( speciesID, this%orbital, coordinate, val )  
-     case ( "fukuiPlot") 
+     case ( "FUKUIPLOT") 
         !!           val=CalculateProperties_getFukuiAt( this%species, "positive", coordinate )  
         !!           val2=CalculateProperties_getFukuiAt( this%species, "negative", coordinate )  
      case default
@@ -1908,13 +1908,13 @@ contains
      do i=0,numberOfSteps
         n=n+1
         write (10,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val%values(n) 
-        if (this%type .eq. "fukuiPlot") write (11,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val2%values(n) 
+        if (this%type .eq. "FUKUIPLOT") write (11,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val2%values(n) 
      end do
 
      close(10)
 
      call OutputBuilder_make2DGraph( this%fileName(1), title, x_title, y_title)
-!!     if (this%type .eq. "fukuiPlot") then
+!!     if (this%type .eq. "FUKUIPLOT") then
 !!        close(11)
 !!        title=trim(this%species)//" negative fukui" 
 !!        call OutputBuilder_make2DGraph( this%fileName2, title, x_title, y_title)

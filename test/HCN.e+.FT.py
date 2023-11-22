@@ -4,6 +4,11 @@ import os
 import sys
 from colorstring import *
 
+if len(sys.argv)==2:
+    lowdinbin = sys.argv[1]
+else:
+    lowdinbin = "lowdin2"
+
 testName = "HCN.e+.FT"
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
@@ -21,7 +26,7 @@ for value in testValues: #reset
     
 # Run calculation
 
-status = os.system("lowdin2 -i " + inputName)
+status = os.system(lowdinbin + " -i " + inputName)
 
 if status:
     print(testName + str_red(" ... NOT OK"))

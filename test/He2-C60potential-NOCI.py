@@ -9,16 +9,17 @@ if len(sys.argv)==2:
 else:
     lowdinbin = "lowdin2"
 
-testName = "HCN.e+.gribakin"
+testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
-# Reference values
+# Reference values and tolerance
 
 refValues = {
-    "HF energy" : [-92.903413346616,1E-7],
-    "KT 1" : [-0.0016701317,1E-6]
-}
+"HF energy" : [0.008213298877,1E-8],
+"NOCI 1" : [0.007629269049,1E-8],
+"NOCI 2" : [0.007658047003,1E-8]
+}                       
 
 testValues = dict(refValues) #copy 
 for value in testValues: #reset
@@ -40,12 +41,10 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "Eigenvalues for: POSITRON" in line:
-        for j in range(i,len(outputRead)):
-            linej = outputRead[j]
-            if "1" in linej:
-                testValues["KT 1"] = float(linej.split()[1])
-                break
+    if "STATE:   1 ENERGY =" in line:
+        testValues["NOCI 1"] = float(line.split()[4])
+    if "STATE:   2 ENERGY =" in line:
+        testValues["NOCI 2"] = float(line.split()[4])
 
 passTest = True
 
@@ -55,7 +54,7 @@ for value in refValues:
         passTest = passTest * True
     else :
         passTest = passTest * False
-        print(value + " " + str(refValues[value]) +" " +  str(testValues[value]) + " "+ str(diffValue))
+        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
 
 if passTest :
     print(testName + str_green(" ... OK"))

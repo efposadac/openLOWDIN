@@ -1,0 +1,17 @@
+GEOMETRY 
+e-(F) def2-tzvppd               0.0                       0.0        0.0 addParticles=1 multiplicity=1                       
+F     Dirac                     0.0                       0.0        0.0                       
+E+    PsX-TZ                    0.0                       0.0        0.0
+END GEOMETRY 
+
+TASKS
+	method = "uHF"
+	propagatorTheoryCorrection = 3
+END TASKS
+
+CONTROL
+	ptP3Method = "Ren-P3"
+	ionizeSpecie = "positron" 
+	ionizeMO= 1
+	ptJustOneOrbital=.T.
+END CONTROL

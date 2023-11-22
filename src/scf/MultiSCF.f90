@@ -749,7 +749,7 @@ contains
        end if
 
        if(MultiSCF_getNumberOfIterations(this) .ge. CONTROL_instance%SCF_GLOBAL_MAX_ITERATIONS) then
-          write(*,"(A,I4,A)")  "The number of Iterations was exceded, the convergence had failed after", MultiSCF_getNumberOfIterations(this), "global iterations"
+          write(convergenceMessage,"(A,I4,A)")  "The number of Iterations was exceded, the convergence had failed after", MultiSCF_getNumberOfIterations(this), "global iterations"
           GLOBAL_SCF_CONTINUE=.false.
        end if
 

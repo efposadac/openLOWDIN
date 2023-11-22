@@ -4,6 +4,11 @@ import os
 import sys
 from colorstring import *
 
+if len(sys.argv)==2:
+    lowdinbin = sys.argv[1]
+else:
+    lowdinbin = "lowdin2"
+
 testName = "HCN.APMO.RKS"
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
@@ -15,7 +20,7 @@ refNuclearElectronCorrelationEnergy=-0.033320942512
 refTotalEnergy=-93.367985322582
 # Run calculation
 
-status = os.system("lowdin2 -i " + inputName)
+status = os.system(lowdinbin + " -i " + inputName)
 
 if status:
     print(testName + str_red(" ... NOT OK"))

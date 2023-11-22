@@ -4,6 +4,11 @@ import os
 import sys
 from colorstring import *
 
+if len(sys.argv)==2:
+    lowdinbin = sys.argv[1]
+else:
+    lowdinbin = "lowdin2"
+
 testName = "Li2.UCISD"
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
@@ -16,7 +21,7 @@ refHFCoefficient = 0.926869142476
 
 # Run calculation
 
-status = os.system("lowdin2 -i " + inputName)
+status = os.system(lowdinbin + " -i " + inputName)
 
 if status:
     print(testName + str_red(" ... NOT OK"))

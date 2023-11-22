@@ -3,6 +3,11 @@ PID=$$
 VARS_PATH="PREFIX/.lowdin2/lowdinvars.sh"
 source ${VARS_PATH}
 
+SED=sed
+if [[ $(uname -s) == Darwin ]]; then
+	SED=gsed
+fi
+
 usage(){
 	echo "Usage:"
 	echo "   $ lowdin -i file.lowdin [-t [all] [list] [file]] [-n number] [-v number] [-p] [-s] [-h] "
@@ -148,152 +153,152 @@ if [ $extFile="lowdin" ]; then
 	if [ -e  "$nameFile" ]
 	then
 		nameFile=`echo $nameFile | gawk '{print substr($1,1,length($1)-7)}'`
-		bashDecimalSeparator=`echo " " | awk '{printf("%f \n",1.0)}' | sed "s/[10]//g"`
+		bashDecimalSeparator=`echo " " | awk '{printf("%f \n",1.0)}' | $SED "s/[10]//g"`
 	if [ $bashDecimalSeparator = "," ]
 	then
-	    grep -v "%" $nameFile.lowdin | grep -v "\!"  |  sed "/^[ tab]*$/d" | sed "s/\./\,/g" > $nameFile
+	    grep -v "%" $nameFile.lowdin | grep -v "\!"  |  $SED "/^[ tab]*$/d" | $SED "s/\./\,/g" > $nameFile
 	else
-	    grep -v "%" $nameFile.lowdin | grep -v "\!"  |  sed "/^[ tab]*$/d" | sed "s/\,/\./g" > $nameFile
+	    grep -v "%" $nameFile.lowdin | grep -v "\!"  |  $SED "/^[ tab]*$/d" | $SED "s/\,/\./g" > $nameFile
 	fi
 
 	###############################################
 	# Parse input file
 	###############################################
 
-	gawk "/CONTROL/,/END/" $nameFile | grep -v "CONTROL" | sed "s/=/ = /g" | gawk \
-	    ' BEGIN{printf("\n&LowdinParameters\n")} { printf("\tLowdinParameters_%s =",$1)
-		for (i=1;i<=NF-2;i++) {printf("%s ",$(i+2))} 
+	gawk "/CONTROL/,/END/" $nameFile | grep -v "CONTROL" | $SED "s/=/ = /g" | gawk \
+	    ' BEGIN{printf("\n&LowdinParameters\n")} { printf("\tLowdinParameters_%s =",toupper($1))
+		for (i=1;i<=NF-2;i++) {printf("%s ",toupper($(i+2)))} 
 		printf("\n") } END{printf("/\n") } ' > $nameFile.aux
 	
-	gawk "/TASKS/,/END/" $nameFile | grep -v "TASKS" | sed "s/=/ = /g" | gawk \
-	    ' BEGIN{printf("\n&InputTasks\n")} {printf("\tInputTasks_%s = %s\n",$1,$3)}  END{printf("/\n")} ' >> $nameFile.aux
+	gawk "/TASKS/,/END/" $nameFile | grep -v "TASKS" | $SED "s/=/ = /g" | gawk \
+	    ' BEGIN{printf("\n&InputTasks\n")} {printf("\tInputTasks_%s = %s\n",toupper($1),toupper($3))}  END{printf("/\n")} ' >> $nameFile.aux
 
-	gawk "/GEOMETRY/,/END/" $nameFile | grep -v "GEOMETRY" | sed "s/=/ = /g" | gawk \
+	gawk "/GEOMETRY/,/END/" $nameFile | grep -v "GEOMETRY" | $SED "s/=/ = /g" | gawk \
 	    '{
-		printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",$1,$2)
+		printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",toupper($1),toupper($2))
 		for(i=1;i<=NF;i++){
 			if($i=="addParticles"){
-				printf("\tInputParticle_addParticles = %s\n",$(i+2) )
+				printf("\tInputParticle_addParticles = %s\n",toupper($(i+2)) )
 			}
 			else if($i=="multiplicity"){
-				printf("\tInputParticle_multiplicity = %s\n",$(i+2) )
+				printf("\tInputParticle_multiplicity = %s\n",toupper($(i+2)) )
 			}
 			else if($i=="fix"){
-				printf("\tInputParticle_fixedCoordinates = %s\n",$(i+2) )
+				printf("\tInputParticle_fixedCoordinates = %s\n",toupper($(i+2)) )
                         }
                         else if($i=="fragmentNumber"){
-				printf("\tInputParticle_fragmentNumber = %s\n",$(i+2) )
+				printf("\tInputParticle_fragmentNumber = %s\n",toupper($(i+2)) )
 			}
                         else if($i=="translationCenter"){
-				printf("\tInputParticle_translationCenter = %s\n",$(i+2) )
+				printf("\tInputParticle_translationCenter = %s\n",toupper($(i+2)) )
 			}
                         else if($i=="rotationPoint"){
-				printf("\tInputParticle_rotationPoint = %s\n",$(i+2) )
+				printf("\tInputParticle_rotationPoint = %s\n",toupper($(i+2)) )
 			}
                         else if($i=="rotateAround"){
-				printf("\tInputParticle_rotateAround = %s\n",$(i+2) )
+				printf("\tInputParticle_rotateAround = %s\n",toupper($(i+2)) )
 			}
                         else if($i=="q"){
-				printf("\tInputParticle_charge = %s\n",$(i+2) )
+				printf("\tInputParticle_charge = %s\n",toupper($(i+2)) )
 			}
                         else if($i=="m"){
-				printf("\tInputParticle_mass = %s\n",$(i+2) )
+				printf("\tInputParticle_mass = %s\n",toupper($(i+2)) )
 			};
 		};
 		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
 	}
 	END{}
-'| sed "s/,/./g" >> $nameFile.aux
+'| $SED "s/,/./g" >> $nameFile.aux
 
-	systemSize=$(gawk "/GEOMETRY/,/END/" $nameFile | grep -v "GEOMETRY" | sed "s/=/ = /g" | gawk '{}END{printf(NR)}')
-	MMsystemSize=$(gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | sed "s/=/ = /g" | gawk '{}END{printf(NR)}')
+	systemSize=$(gawk "/GEOMETRY/,/END/" $nameFile | grep -v "GEOMETRY" | $SED "s/=/ = /g" | gawk '{}END{printf(NR)}')
+	MMsystemSize=$(gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | $SED "s/=/ = /g" | gawk '{}END{printf(NR)}')
 	totalSystemSize=`expr $systemSize + $MMsystemSize`
 	
-	gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | sed "s/=/ = /g" | gawk \
+	gawk "/MM_PARTICLES/,/END/" $nameFile | grep -v "MM_PARTICLES" | $SED "s/=/ = /g" | gawk \
 	    '{
-                printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",$1,$2)
+                printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",toupper($1),toupper($2))
                 if(NF==6){
             		  printf("\tInputParticle_charge = %15.12E \n",$6)                       
                          }
 		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)
 	}
 	END{ printf("\n&InputSystem\n\tInputSystem_numberOfParticles = %u\n",'$totalSystemSize') }
-' | sed "s/,/./g" >> $nameFile.aux
+' | $SED "s/,/./g" >> $nameFile.aux
 	
-	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | $SED "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfExternalPots =  %u\n",NR) }
-' | sed "s/,/./g" >> $nameFile.aux
+' | $SED "s/,/./g" >> $nameFile.aux
 
-	gawk "/INTERPOTENTIAL/,/END/" $nameFile | grep -v "INTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	gawk "/INTERPOTENTIAL/,/END/" $nameFile | grep -v "INTERPOTENTIAL" | $SED "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfInterPots =  %u\n",NR) }
-' | sed "s/,/./g" >> $nameFile.aux
+' | $SED "s/,/./g" >> $nameFile.aux
 
-	gawk "/LJPOTENTIAL/,/END/" $nameFile | grep -v "LJPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	gawk "/LJPOTENTIAL/,/END/" $nameFile | grep -v "LJPOTENTIAL" | $SED "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfLJCenters =  %u\n",NR) }
-' | sed "s/,/./g" >> $nameFile.aux
+' | $SED "s/,/./g" >> $nameFile.aux
 
-	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | sed "s/=/ = /g" | gawk \
+	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | $SED "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfOutputs =  %u\n",NR) }
-' | sed "s/,/./g" >> $nameFile.aux
+' | $SED "s/,/./g" >> $nameFile.aux
 
-	gawk "/INPUT_CI/,/END/" $nameFile | grep -v "CI" | sed "s/=/ = /g" | gawk \
+	gawk "/INPUT_CI/,/END/" $nameFile | grep -v "CI" | $SED "s/=/ = /g" | gawk \
 	    'END{ printf("\tInputSystem_numberOfSpeciesInCI =  %u\n",NR) }
-' | sed "s/,/./g" >> $nameFile.aux
+' | $SED "s/,/./g" >> $nameFile.aux
 
 
-	grep  "SYSTEM_DESCRIPTION" $nameFile | sed "s/SYSTEM_DESCRIPTION//g"  | sed "s/=//g" | gawk '{printf("\tInputSystem_description = %s\n",$0)}' >> $nameFile.aux
+	grep  "SYSTEM_DESCRIPTION" $nameFile | $SED "s/SYSTEM_DESCRIPTION//g"  | $SED "s/=//g" | gawk '{printf("\tInputSystem_description = %s\n",$0)}' >> $nameFile.aux
 	
-	gawk "/EDA/,/END/" $nameFile | grep "numberOfFragments" | sed "s/=/ = /g" | gawk \
+	gawk "/EDA/,/END/" $nameFile | grep "numberOfFragments" | $SED "s/=/ = /g" | gawk \
 	'{
-	printf("\tInputSystem_numberOfFragments =  %s",$3)
-	}'| sed "s/,/./g"  >> $nameFile.aux
+	printf("\tInputSystem_numberOfFragments =  %s",toupper($3))
+	}'| $SED "s/,/./g"  >> $nameFile.aux
 	 
-	gawk "/SYSTEM_PARAMETERS/,/END/" $nameFile | grep -v "SYSTEM_PARAMETERS" | sed "s/=/ = /g" | gawk  \
-	    ' {printf("\n\tInputSystem_%s = %s",$1,$3)} END{printf("\n/\n")} ' >> $nameFile.aux
+	gawk "/SYSTEM_PARAMETERS/,/END/" $nameFile | grep -v "SYSTEM_PARAMETERS" | $SED "s/=/ = /g" | gawk  \
+	    ' {printf("\n\tInputSystem_%s = %s",toupper($1),toupper($3))} END{printf("\n/\n")} ' >> $nameFile.aux
 	    
-	sed -i 's/(/\[/g' $nameFile.aux
-	sed -i 's/)/\]/g' $nameFile.aux
-	sed -i 's/,/./g'  $nameFile.aux
+	$SED -i 's/(/\[/g' $nameFile.aux
+	$SED -i 's/)/\]/g' $nameFile.aux
+	$SED -i 's/,/./g'  $nameFile.aux
 
 
-	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	gawk "/EXTERPOTENTIAL/,/END/" $nameFile | grep -v "EXTERPOTENTIAL" | $SED "s/=/ = /g" | gawk \
 	    '{
-                printf("\n&ExternalPot\n\tExternalPot_name = \"%s\"\n\tExternalPot_specie =  \"%s\" \n/\n",$2,$1)
+                printf("\n&ExternalPot\n\tExternalPot_name = \"%s\"\n\tExternalPot_specie =  \"%s\" \n/\n",toupper($2),toupper($1))
 	}
-	' | sed "s/,/./g" >> $nameFile.aux
+	' | $SED "s/,/./g" >> $nameFile.aux
 
 
-	gawk "/INTERPOTENTIAL/,/END/" $nameFile | grep -v "INTERPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	gawk "/INTERPOTENTIAL/,/END/" $nameFile | grep -v "INTERPOTENTIAL" | $SED "s/=/ = /g" | gawk \
 	    '{
-                printf("\n&InterPot\n\tInterPot_name = \"%s\"\n\tInterPot_specie =  \"%s\"\n\tInterPot_otherSpecie = \"%s\" \n/\n",$3,$1,$2)
+                printf("\n&InterPot\n\tInterPot_name = \"%s\"\n\tInterPot_specie =  \"%s\"\n\tInterPot_otherSpecie = \"%s\" \n/\n",toupper($3),toupper($1),toupper($2))
 	}
-	' | sed "s/,/./g" >> $nameFile.aux
+	' | $SED "s/,/./g" >> $nameFile.aux
 
-	gawk "/LJPOTENTIAL/,/END/" $nameFile | grep -v "LJPOTENTIAL" | sed "s/=/ = /g" | gawk \
+	gawk "/LJPOTENTIAL/,/END/" $nameFile | grep -v "LJPOTENTIAL" | $SED "s/=/ = /g" | gawk \
 	    '{
-                printf("\n&LJPot\n\tLJPot_particle = \"%s\"\n",$1)
+                printf("\n&LJPot\n\tLJPot_particle = \"%s\"\n",toupper($1))
                 printf("\tLJPot_origin = %15.12E %15.12E %15.12E \n/\n",$2,$3,$4)
 	}
-	' | sed "s/,/./g" >> $nameFile.aux
+	' | $SED "s/,/./g" >> $nameFile.aux
 
-	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | sed "s/=/ = /g" | gawk \
+	gawk "/OUTPUTS/,/END/" $nameFile | grep -v "OUTPUTS" | $SED "s/=/ = /g" | gawk \
 	    '{
                 printf("\n&Output\n")
 		for(i=1;i<=NF;i++){
 			if($i=="specie"){
-				printf("\tOutput_species = %s\n",$(i+2) )
+				printf("\tOutput_species = %s\n",$toupper((i+2)) )
 			}
 			else if($i=="orbital"){
-				printf("\tOutput_orbital = %s\n",$(i+2) )
+				printf("\tOutput_orbital = %s\n",$toupper((i+2)) )
 			}
 			else if($i=="state"){
-				printf("\tOutput_state = %s\n",$(i+2) )
+				printf("\tOutput_state = %s\n",$toupper((i+2)) )
 			}
 			else if($i=="dimensions"){
-				printf("\tOutput_dimensions = %s\n",$(i+2) )
+				printf("\tOutput_dimensions = %s\n",$toupper((i+2)) )
                         }
                         else if($i=="cubeSize"){
-                 		printf("\tOutput_cubeSize =  %s\n",$(i+2) )
+                 		printf("\tOutput_cubeSize =  %s\n",$toupper((i+2)) )
                         }
                         else if($i=="point1"){
                  		printf("\tOutput_point1 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
@@ -305,30 +310,30 @@ if [ $extFile="lowdin" ]; then
                  		printf("\tOutput_point3 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
 			};
 		};
-                 printf("\tOutput_type = \"%s\" \n/\n",$1)
+                 printf("\tOutput_type = \"%s\" \n/\n",toupper($1))
 	}
-	' | sed "s/,/./g" >> $nameFile.aux
+	' | $SED "s/,/./g" >> $nameFile.aux
 
-	gawk "/INPUT_CI/,/END/" $nameFile | grep -v "INPUT_CI" | sed "s/=/ = /g" | gawk \
+	gawk "/INPUT_CI/,/END/" $nameFile | grep -v "INPUT_CI" | $SED "s/=/ = /g" | gawk \
 	    '{
                 printf("\n&InputCINamelist\n")
 		for(i=1;i<=NF;i++){
 			if($i=="species"){
-				printf("\tInputCI_species = %s\n",$(i+2) )
+				printf("\tInputCI_species = %s\n",$toupper((i+2)) )
 			}
 			else if($i=="core"){
-				printf("\tInputCI_core = %s\n",$(i+2) )
+				printf("\tInputCI_core = %s\n",$toupper((i+2)) )
 			}
 			else if($i=="active"){
-				printf("\tInputCI_active = %s\n",$(i+2) )
+				printf("\tInputCI_active = %s\n",$toupper((i+2)) )
                         }
                         else if($i=="excitation"){
-                 		printf("\tInputCI_excitation =  %s\n",$(i+2) )
+                 		printf("\tInputCI_excitation =  %s\n",$toupper((i+2)) )
 			};
 		};
                  printf("/\n")
 	}
-	' | sed "s/,/./g" >> $nameFile.aux
+	' | $SED "s/,/./g" >> $nameFile.aux
 
 
 	# rm -f $nameFile
@@ -405,7 +410,7 @@ if [ $extFile="lowdin" ]; then
 	cd $LOWDIN_SCRATCH/$nameFile
 	
 	if [  $printOut = "T" ]; then
-	    lowdin$version $nameFile.aux |& tee -a $nameFile.out 
+	    lowdin$version $nameFile.aux | tee -a $nameFile.out 
 	else
 	    lowdin$version $nameFile.aux >> $nameFile.out 2> >(tee -a $nameFile.out >&2)
 	fi
