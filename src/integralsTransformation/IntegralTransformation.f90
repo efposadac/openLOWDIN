@@ -173,10 +173,10 @@ program IntegralsTransformation
         nameOfSpecies = trim( MolecularSystem_getNameOfSpecie( i ) )
 
         !! For PT = 2 there is no need to transform integrals for all species"
-        if ( partialTransform == "PT2" .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+        if ( partialTransform == "PT2" .and. CONTROL_instance%IONIZE_SPECIES(1) /= "NONE" ) then
           transformThisSpecies = .False.
-          do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
-            if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIE(z) )  then
+          do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
+            if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIES(z) )  then
               transformThisSpecies = .True.
             end if
           end do
@@ -256,11 +256,11 @@ program IntegralsTransformation
                           nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
 
                           !! For PT = 2 there is no need to transform integrals for all species"
-                          if ( partialTransform == "PT2" .and. CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+                          if ( partialTransform == "PT2" .and. CONTROL_instance%IONIZE_SPECIES(1) /= "NONE" ) then
                             transformTheseSpecies = .False.
-                            do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
-                              if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIE(z) .or. &
-                                   nameOfOtherSpecie == CONTROL_instance%IONIZE_SPECIE(z) )  then
+                            do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
+                              if ( nameOfSpecies == CONTROL_instance%IONIZE_SPECIES(z) .or. &
+                                   nameOfOtherSpecie == CONTROL_instance%IONIZE_SPECIES(z) )  then
                                 transformTheseSpecies = .True.
                               end if
                             end do

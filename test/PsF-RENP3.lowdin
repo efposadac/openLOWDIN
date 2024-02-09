@@ -11,7 +11,7 @@ END TASKS
 
 CONTROL
 	ptP3Method = "Ren-P3"
-	ionizeSpecie = "positron" 
+	ionizeSpecies = "positron" 
 	ionizeMO= 1
 	ptJustOneOrbital=.T.
 END CONTROL

@@ -125,32 +125,40 @@ contains
     ! print *, "this%type", this%type
     this%outputID=ID
     this%species=trim(String_getUppercase(species))
-    if( trim(this%species) .eq. "ALL" ) then
+    if( trim(this%species) .eq. "ALL" .and. this%type .ne. "ORBITALPLOT" ) then
        allocate(this%fileName(MolecularSystem_getNumberOfQuantumSpecies()))
+    else if( trim(this%species) .eq. "ALL" .and. this%type .eq. "ORBITALPLOT" ) then
+       allocate(this%fileName(1))
+       this%species=MolecularSystem_getNameOfSpecie(1)
     else
        allocate(this%fileName(1))
     end if
+
     this%state=1
     if( present(state)) this%state=state
-    this%orbital=0
+    this%orbital=1
     if( present(orbital)) this%orbital=orbital
-    this%dimensions=0
+    this%dimensions=2
     if( present(dimensions)) this%dimensions=dimensions
-    this%cubeSize=0
+    this%cubeSize=10
     if( present(cubeSize)) this%cubeSize=cubeSize
     
     call Vector_constructor(this%point1, 3, 0.0_8 )
     call Vector_constructor(this%point2, 3, 0.0_8 )
     call Vector_constructor(this%point3, 3, 0.0_8 )
 
+    this%point1%values(3)=-5.0
+    this%point2%values(3)=5.0
+    
     if( present(point1)) this%point1%values=point1%values
     if( present(point2)) this%point2%values=point2%values
     if( present(point3)) this%point3%values=point3%values
 
     if ( trim(CONTROL_instance%UNITS) == "ANGS") then
-       this%point1%values= this%point1%values / AMSTRONG
-       this%point2%values= this%point2%values / AMSTRONG
-       this%point3%values= this%point3%values / AMSTRONG
+       this%point1%values= this%point1%values/AMSTRONG
+       this%point2%values= this%point2%values/AMSTRONG
+       this%point3%values= this%point3%values/AMSTRONG
+       this%cubeSize=this%cubeSize/AMSTRONG
     end if
 
     this%auxID=1
@@ -228,15 +236,49 @@ contains
     end do
     ! TODO Fix this line.
     ! if (this%filename2 /= "") print *, "FileName 2: ", this%fileName2
-    if (this%species /= "ALL") write (*,"(A20,A10)") "for species: ", this%species
-    if (this%orbital /= 0) write (*,"(A20,I10)") "for orbital: ", this%orbital
+    if (this%species /= "ALL") write (*,"(A20,A)") "for species: ", trim(this%species)
     if (this%state /= 1) write (*,"(A20,I10)") "for excited state: ", this%state
-    if (this%dimensions /= 0) write (*,"(A20,I2)") "dimensions: ", this%dimensions
-    if (this%cubeSize /= 0.0_8) write (*,"(A20,F15.5)") "cube size (a.u.): ", this%cubeSize
-    if (this%cubeSize /= 0.0_8) write (*,"(A20,F15.5)") "cube center (a.u.): ", this%point1%values(1)
-    if (this%dimensions >= 1) write (*,"(A20,F10.5,F10.5,F10.5)") "Point 1 (a.u.): ", this%point1%values(1), this%point1%values(2), this%point1%values(3)
-    if (this%dimensions >= 2) write (*,"(A20,F10.5,F10.5,F10.5)") "Point 2 (a.u.): ", this%point2%values(1), this%point2%values(2), this%point2%values(3)
-    if (this%dimensions >= 3) write (*,"(A20,F10.5,F10.5,F10.5)") "Point 3 (a.u.): ", this%point3%values(1), this%point3%values(2), this%point3%values(3)
+
+    select case(trim(this%type))
+
+    case ( "MOLDENFILE") 
+
+    case ("VECGAMESSFILE")
+
+    case ("CASINOFILE")
+
+    case ("EIGENGAMESSFILE")
+
+    case ("FCHKFILE")
+
+    case ( "WFNFILE") 
+
+    case ( "NBO47FILE") 
+
+    case ( "WFXFILE" ) 
+
+    case ( "EXTENDEDWFNFILE") 
+
+    case ( "DENSITYPLOT") 
+       write (*,"(A20,I10)") "dimensions: ", this%dimensions
+       write (*,"(A20,F10.5,F10.5,F10.5)") "Point 1 (a.u.): ", this%point1%values(1), this%point1%values(2), this%point1%values(3)
+       write (*,"(A20,F10.5,F10.5,F10.5)") "Point 2 (a.u.): ", this%point2%values(1), this%point2%values(2), this%point2%values(3)
+       if (this%dimensions >= 3) write (*,"(A20,F10.5,F10.5,F10.5)") "Point 3 (a.u.): ", this%point3%values(1), this%point3%values(2), this%point3%values(3)
+
+    case ( "DENSITYCUBE") 
+       write (*,"(A20,F10.5)") "cube size (a.u.): ", this%cubeSize
+       write (*,"(A20,3F10.5)") "cube center (a.u.): ", this%point1%values(1:3)
+
+    case ( "ORBITALPLOT") 
+       write (*,"(A20,I10)") "for orbital: ", this%orbital
+       write (*,"(A20,I10)") "dimensions: ", this%dimensions
+       write (*,"(A20,F10.5,F10.5,F10.5)") "Point 1 (a.u.): ", this%point1%values(1), this%point1%values(2), this%point1%values(3)
+       write (*,"(A20,F10.5,F10.5,F10.5)") "Point 2 (a.u.): ", this%point2%values(1), this%point2%values(2), this%point2%values(3)
+       if (this%dimensions >= 3) write (*,"(A20,F10.5,F10.5,F10.5)") "Point 3 (a.u.): ", this%point3%values(1), this%point3%values(2), this%point3%values(3)
+
+    case default
+
+    end select
     print *, "--------------------------------------------------------"
     print *, ""
 
@@ -1812,11 +1854,11 @@ contains
         if (this%type .eq. "FUKUIPLOT") write(11,*) ""
         do j=0,numberOfSteps
            n=n+1
-           write (10,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val%values(n) 
+           write (10,"(T10,F20.8,F20.8,ES20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val%values(n) 
            if (val%values(n) > maxValue) maxValue = val%values(n) 
            if (val%values(n) < minValue) minValue = val%values(n) 
            if (this%type .eq. "FUKUIPLOT" ) then
-              write (11,"(T10,F20.8,F20.8,F20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val2%values(n) 
+              write (11,"(T10,F20.8,F20.8,ES20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val2%values(n) 
               if (val2%values(n) > maxValue2) maxValue2 = val2%values(n) 
               if (val2%values(n) < minValue2) minValue2 = val2%values(n) 
            end if
@@ -1907,8 +1949,8 @@ contains
      n=0
      do i=0,numberOfSteps
         n=n+1
-        write (10,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val%values(n) 
-        if (this%type .eq. "FUKUIPLOT") write (11,"(T10,F20.8,F20.8)")  i*Vector_norm(step),val2%values(n) 
+        write (10,"(T10,F20.8,ES20.8)")  i*Vector_norm(step),val%values(n) 
+        if (this%type .eq. "FUKUIPLOT") write (11,"(T10,F20.8,ES20.8)")  i*Vector_norm(step),val2%values(n) 
      end do
 
      close(10)
@@ -2166,8 +2208,13 @@ contains
                  write (10,*) ""
                  do j=0,numberOfSteps
                     n=n+1
-                    write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1), -plotDistance2*0.5+j*Vector_norm(step2), &
-                         val%values(n) 
+                    if(val%values(n)>1.0E-99_8) then
+                       write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1), -plotDistance2*0.5+j*Vector_norm(step2), &
+                            val%values(n)
+                    else
+                       write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1), -plotDistance2*0.5+j*Vector_norm(step2), &
+                            0.0
+                    end if
                     if (val%values(n) > maxValue) maxValue = val%values(n) 
                     if (val%values(n) < minValue) minValue = val%values(n) 
                     ! print *, coordinate, val
@@ -2204,7 +2251,11 @@ contains
               n=0
               do i=0,numberOfSteps
                  n=n+1
-                 write (10,"(T10,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1),val%values(n) 
+                 if(val%values(n)>1.0E-99_8) then
+                    write (10,"(T10,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1),val%values(n) 
+                 else
+                    write (10,"(T10,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1),0.0
+                 end if
                  ! print *, coordinate, val
               end do
 
@@ -2269,14 +2320,14 @@ contains
      write (10,"(A)") 'set ylabel "'//trim(y_title)//'"'
      write (10,"(A)") 'set format y "'//trim(auxYformat)//'"'
      if( auxNumOfGraphs >1) then
-        write (10,"(A$)") 'plot '//trim(auxXRange)//trim(auxYRange)//' "'//trim(fileName)//'" using 1:2 w l title "" smooth csplines'
+        write (10,"(A$)") 'plot '//trim(auxXRange)//trim(auxYRange)//' "'//trim(fileName)//'" using 1:2 w l title "" '
         do i=2, auxNumOfGraphs
            charNumOfGraph=String_convertIntegerToString(i+1)
-           write (10,"(A$)") ', "'//trim(fileName)//'.dat"'//' using 1:'//trim(charNumOfGraph)//' w l  title "" smooth csplines'
+           write (10,"(A$)") ', "'//trim(fileName)//'.dat"'//' using 1:'//trim(charNumOfGraph)//' w l  title "" '
         end do
         write (10,"(A)") ""
      else
-        write (10,"(A)") 'plot '//trim(auxXRange)//trim(auxYRange)//' "'//trim(fileName)//'" w l title "" smooth csplines'
+        write (10,"(A)") 'plot '//trim(auxXRange)//trim(auxYRange)//' "'//trim(fileName)//'" w l title "" '
      end if
      write (10,"(A)") 'set output'
      close(10)

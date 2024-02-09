@@ -88,6 +88,7 @@ contains
        print *, ""
     end if
     call GridManager_buildGrids( "FINAL" )
+    if(CONTROL_instance%GRID_STORAGE .ne. "DISK") call Functional_createFunctionals( )
     if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
        call GridManager_writeGrids( "FINAL" )
        call GridManager_atomicOrbitals( "WRITE","FINAL" )

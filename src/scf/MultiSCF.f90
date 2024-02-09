@@ -618,8 +618,8 @@ contains
     type(MultiSCF) :: this  
     type(WaveFunction) :: wfObjects(*)
 
-    integer :: speciesID, otherSpeciesID
-    real(8) :: normCheck
+    integer :: speciesID, otherSpeciesID, i
+    real(8) :: expectedOccupation,normCheck
 
     !!**********************************************************
     !! Build Guess and first density matrix
@@ -636,12 +636,20 @@ contains
             write(*,"(A15,A10,A40,F12.6)") "number of ", trim(MolecularSystem_getNameOfSpecies( speciesID )) , &
             " particles in guess density matrix: ", normCheck
 
-       if(abs(MolecularSystem_getEta(speciesID)*MolecularSystem_instance%species(speciesID)%ocupationNumber/normCheck-1.0) .gt. 1.0E-2 ) then
-          wfObjects(speciesID)%densityMatrix%values=wfObjects(speciesID)%densityMatrix%values*&
-               MolecularSystem_getEta(speciesID)*MolecularSystem_instance%species(speciesID)%ocupationNumber/normCheck
+       expectedOccupation=MolecularSystem_getEta(speciesID)*MolecularSystem_instance%species(speciesID)%ocupationNumber
+       if (trim(MolecularSystem_getNameOfSpecies( speciesID )) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1))) then
+          do i=1,size(CONTROL_instance%IONIZE_MO)
+             if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) &
+                  expectedOccupation=expectedOccupation-MolecularSystem_getEta(speciesID)*(1.0-CONTROL_instance%MO_FRACTION_OCCUPATION(i))
+          end do
+       end if
+       
+       if (abs(expectedOccupation/normCheck-1.0) .gt. 1.0E-3 ) then
+          ! wfObjects(speciesID)%densityMatrix%values=wfObjects(speciesID)%densityMatrix%values*expectedOccupation/normCheck
           if ( this%printSCFiterations ) &
-               write(*,"(A65,F12.6)") "renormalized density matrix with deviation from number of particles", &
-               MolecularSystem_getEta(speciesID)*MolecularSystem_instance%species(speciesID)%ocupationNumber
+               write(*,"(A65,F12.6)") "Warning!, density matrix with deviation from number of particles", expectedOccupation
+               ! write(*,"(A65,F12.6)") "renormalized density matrix with deviation from number of particles", &
+               ! sum( transpose(wfObjects(speciesID)%densityMatrix%values)*wfObjects(speciesID)%overlapMatrix%values)
        end if
        
        if ( CONTROL_instance%DEBUG_SCFS ) then
@@ -799,7 +807,6 @@ contains
     !    print *,""
     !    print *,"...end Second Multi-Species SCF calculation"
     !    print *,""
-
     ! end if
 
     call MultiSCF_obtainFinalEnergy(this,wfObjects,libint2Objects)
@@ -815,7 +822,7 @@ contains
 
     integer :: numberOfSpecies
     integer :: wfnUnit, densUnit
-    integer :: speciesID, otherSpeciesID
+    integer :: speciesID, otherSpeciesID, i
     character(50) :: wfnFile, densFile
     character(30) :: labels(2)
     character(50) :: integralsFile
@@ -871,6 +878,14 @@ contains
     ! Final energy evaluation - larger integration grid for DFT
     do speciesID=1, numberOfSpecies
        call WaveFunction_buildDensityMatrix(wfObjects(speciesID))
+    end do
+
+    ! Reorder coefficients after creating the last density matrix
+    do i=1,size(CONTROL_instance%IONIZE_MO)
+       if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .eq. 0.0_8) then
+          call MultiSCF_reorderIonizedCoefficients(this,wfObjects)
+          exit
+       end if
     end do
 
     !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
@@ -1305,6 +1320,16 @@ contains
        labels(1) = "DENSITY"
        call Matrix_writeToFile(wfObjects(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
+       labels(1) = "KINETIC"
+       call Matrix_writeToFile(wfObjects(speciesID)%kineticMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
+       labels(1) = "ATTRACTION"
+       call Matrix_writeToFile(wfObjects(speciesID)%puntualInteractionMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
+       labels(1) = "EXTERNAL"
+       if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+            call Matrix_writeToFile(wfObjects(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
        labels(1) = "HCORE"
        call Matrix_writeToFile(wfObjects(speciesID)%hcoreMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
@@ -1390,5 +1415,43 @@ contains
     close(wfnUnit)
 
   end subroutine MultiSCF_saveWfn
+
+!!Reorders full ionized orbitals
+  subroutine MultiSCF_reorderIonizedCoefficients(this,wfObjects)
+    implicit none
+    type(MultiSCF) :: this
+    type(WaveFunction) :: wfObjects(*)
+    type(Matrix) :: auxMatrix
+    type(Vector) :: auxVector
+    integer :: occupationNumber, newOccupationNumber, i, j, speciesID
+
+    do speciesID=1, MolecularSystem_getNumberOfQuantumSpecies()
+       if (trim(wfObjects(speciesID)%name) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
+          occupationNumber=MolecularSystem_getOcupationNumber(speciesID)
+          newOccupationNumber=occupationNumber
+          call Matrix_copyConstructor(auxMatrix,wfObjects(speciesID)%waveFunctionCoefficients)
+          call Vector_copyConstructor(auxVector,wfObjects(speciesID)%molecularOrbitalsEnergy)
+          do i= 1, size(CONTROL_instance%IONIZE_MO)
+             if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .eq. 0.0_8 ) then
+                wfObjects(speciesID)%waveFunctionCoefficients%values(:,occupationNumber)=auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i))
+                wfObjects(speciesID)%molecularOrbitalsEnergy%values(occupationNumber)=auxVector%values(CONTROL_instance%IONIZE_MO(i))
+                do j=CONTROL_instance%IONIZE_MO(i),occupationNumber-1
+                   wfObjects(speciesID)%waveFunctionCoefficients%values(:,j)=auxMatrix%values(:,j+1)
+                   wfObjects(speciesID)%molecularOrbitalsEnergy%values(j)=auxVector%values(j+1)
+                end do
+                newOccupationNumber=newOccupationNumber-1
+             end if             
+          end do
+          molecularSystem_instance%species(speciesID)%ocupationNumber=newOccupationNumber
+          if(CONTROL_instance%DEBUG_SCFS) then
+             print *, "newOccupationNumber for",  trim(wfObjects(speciesID)%name), molecularSystem_instance%species(speciesID)%ocupationNumber
+             call Matrix_show(wfObjects(speciesID)%waveFunctionCoefficients)
+          end if
+       end if
+    end do
+       
+  end subroutine MultiSCF_reorderIonizedCoefficients
+  
+  
 end module MultiSCF_
 

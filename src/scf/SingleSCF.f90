@@ -149,27 +149,12 @@ contains
 
     type(Matrix) :: fockMatrixTransformed
     type(Matrix) :: auxiliaryMatrix
-    type(Matrix) :: previousWavefunctionCoefficients, matchingMatrix, matchingMatrix2
-    type(Vector) :: deltaVector 
-    type(Matrix) :: auxOverlapMatrix
+    type(Matrix) :: previousWavefunctionCoefficients
 
-    integer(8) :: total3
     integer(8) :: numberOfContractions
-    real(8) :: threshold, hold
-    real(8) :: levelShiftingFactor, normCheck    
-    integer :: ocupados, occupatedOrbitals, prodigals
-    integer :: totales
-    integer :: search, trial
-    integer :: ii, jj, astrayOrbitals, startIteration
-    integer :: i,j, mu, nu, index
-    logical :: existFile
-
-    character(50) :: wfnFile
-    character(50) :: arguments(20)
-    integer :: wfnUnit
+    real(8) :: hold
 
     !    wfnFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
-    wfnUnit = 30
     numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species )
 
     !!**********************************************************************************************
@@ -200,7 +185,7 @@ contains
 
     call Matrix_copyConstructor( fockMatrixTransformed, wfObject%fockMatrix )
 
-    if (CONTROL_instance%MO_FRACTION_OCCUPATION < 1.0_8 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) then
+    if (CONTROL_instance%IONIZE_MO(1) > 0 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) then
        call Matrix_copyConstructor( previousWavefunctionCoefficients, wfObject%waveFunctionCoefficients )
     end if
 
@@ -224,39 +209,12 @@ contains
     ! call Matrix_show(wfObject%waveFunctionCoefficients)
 
     !! Filtra los orbitales eliminados por el umbral de solapamiento
-    ! print *, "threshold", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
-    i=0
-    do index = 1 , numberOfContractions
-       i=i+1
-       normCheck=0.0
-       if ( abs(wfObject%molecularOrbitalsEnergy%values(i)) .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
-          do mu = 1 , numberOfContractions
-             do nu = 1 , numberOfContractions
-                normCheck=normCheck+wfObject%waveFunctionCoefficients%values(mu,i)*&
-                     wfObject%waveFunctionCoefficients%values(nu,i)*&
-                     wfObject%overlapMatrix%values(mu,nu)
-             end do
-          end do
-          ! print *, "eigenvalue", i, wfObject%molecularOrbitalsEnergy%values(i), "normCheck", normCheck
-
-          if ( normCheck .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD) then
-             ! Shift orbital coefficients to the end of the matrix and Make energy a very large number
-             do j = i , numberOfContractions-1
-                wfObject%molecularOrbitalsEnergy%values(j)=wfObject%molecularOrbitalsEnergy%values(j+1)
-                wfObject%waveFunctionCoefficients%values(:,j) = wfObject%waveFunctionCoefficients%values(:,j+1)
-             end do
-             wfObject%molecularOrbitalsEnergy%values(numberOfContractions)=1/CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
-             wfObject%waveFunctionCoefficients%values(:,numberOfContractions)=0.0
-             i=i-1
-          end if
-
-       end if
-    end do
+    call Wavefunction_removeOrbitalsBelowEigenThreshold(wfObject)    
 
     if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING) &
          call Convergence_removeLevelShifting(wfObject%convergenceMethod,wfObject%molecularOrbitalsEnergy)   
     !!
-    !! Interation ends
+    !! Iteration ends
     !!**********************************************************************************************
 
     if (  CONTROL_instance%DEBUG_SCFS) then
@@ -264,14 +222,14 @@ contains
        call Matrix_show(wfObject%waveFunctionCoefficients)
     end if
 
-    if (CONTROL_instance%MO_FRACTION_OCCUPATION < 1.0_8 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) &
+    if (CONTROL_instance%IONIZE_MO(1) > 0 .or. CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF ) &
          call SingleSCF_orbitalExchange(wfObject,previousWavefunctionCoefficients)
 
     if ( CONTROL_instance%NO_SCF .or. CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS .or. CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS) &
          call SingleSCF_readFrozenOrbitals(wfObject)
 
     !! Exchanging orbitals just for calculation excited states
-    if(wfObject%name == trim(CONTROL_instance%EXCITE_SPECIE) ) then
+    if(wfObject%name == trim(CONTROL_instance%EXCITE_SPECIES) ) then
 
        call Matrix_constructor (auxiliaryMatrix, numberOfContractions, numberOfContractions)
        call Matrix_copyConstructor( auxiliaryMatrix, wfObject%waveFunctionCoefficients )
@@ -380,40 +338,59 @@ contains
   end subroutine SingleSCF_exception
   
   !! @brief  Orbital exchange for TOM calculation
-  !!
+  !! Handles two different cases of orbital exchange
+  !! When the user explicitly requires EXCHANGE_ORBITALS_IN_SCF to have a solution with max overlap to the guess function
+  !! Or when an orbital is selected for partial ionization 
+  !! Last update jan-24 Felix
   subroutine SingleSCF_orbitalExchange(wfObject,previousWavefunctionCoefficients)
     type(WaveFunction) :: wfObject
     type(Matrix) :: previousWavefunctionCoefficients
-    type(Matrix) :: fockMatrixTransformed
     type(Matrix) :: auxiliaryMatrix
     type(Matrix) :: matchingMatrix, matchingMatrix2
     type(Vector) :: deltaVector 
+    type(IVector) :: orbitalsVector
     type(Matrix) :: auxOverlapMatrix
 
-    integer(8) :: total3
     integer(8) :: numberOfContractions
-    real(8) :: threshold, hold
-    real(8) :: levelShiftingFactor, normCheck    
-    integer :: ocupados, occupatedOrbitals, prodigals
-    integer :: totales
+    real(8) :: threshold, maxOverlap, hold
+    integer :: activeOrbitals, prodigals
     integer :: search, trial
     integer :: ii, jj, astrayOrbitals, startIteration
-    integer :: i,j, mu, nu, index
-    logical :: existFile
+    integer :: i
 
-    character(50) :: wfnFile
-    character(50) :: arguments(20)
-    integer :: wfnUnit
+    startIteration=0
+    threshold=CONTROL_instance%EXCHANGE_ORBITAL_THRESHOLD
 
-    startIteration=1
-    threshold=0.8_8
-
+    !Handles two different cases of orbital exchange
+    !When the user explicitly requires EXCHANGE_ORBITALS_IN_SCF to have a solution with max overlap to the guess function
+    !Or when an orbital is selected for partial ionization 
+    if(CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF) then
+       activeOrbitals = MolecularSystem_getOcupationNumber(wfObject%species)
+       call Vector_constructorInteger(orbitalsVector,activeOrbitals)
+       do i=1,activeOrbitals
+          orbitalsVector%values(i)=i
+       end do
+    else if(CONTROL_instance%IONIZE_MO(1) .gt. 0) then
+       if (trim(wfObject%name) .ne. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) return
+       activeOrbitals = 0
+       do i= 1, size(CONTROL_instance%IONIZE_MO)
+          if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8 ) activeOrbitals=activeOrbitals+1
+       end do
+       call Vector_constructorInteger(orbitalsVector,activeOrbitals)
+       ii=0
+       do i= 1, size(CONTROL_instance%IONIZE_MO)
+          if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8 ) then
+             ii=ii+1
+             orbitalsVector%values(ii)=CONTROL_instance%IONIZE_MO(i)
+          end if
+       end do
+    end if
+    
     call Matrix_copyConstructor(auxOverlapMatrix,wfObject%overlapMatrix)
 
-    occupatedOrbitals = MolecularSystem_getOcupationNumber(wfObject%species )
-    total3 = int(occupatedOrbitals,8)
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species )
 
-    call Matrix_constructor (matchingMatrix, total3, total3)
+    call Matrix_constructor (matchingMatrix, int(activeOrbitals,8), int(activeOrbitals,8))
 
     matchingMatrix%values = &
          matmul( matmul( transpose( previousWavefunctionCoefficients%values ) , &
@@ -421,26 +398,28 @@ contains
 
     astrayOrbitals=0 !!! number of orbitals that must be reordered
 
-    do ii= 1, occupatedOrbitals
-
+    do i= 1, activeOrbitals
+       ii = orbitalsVector%values(i)
+       if ( abs(matchingMatrix%values(ii,ii)) < threshold ) astrayOrbitals=astrayOrbitals+1
        !DEBUG
-       ! print *,"Antes ","Orbital: ",ii," ",abs(matchingMatrix%values(ii,ii))," energy ",wfObject%molecularOrbitalsEnergy%values(ii)
-
-       if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
-          astrayOrbitals=astrayOrbitals+1
-       end if
-
+       if (  CONTROL_instance%DEBUG_SCFS) print *,"Antes ","Orbital: ",ii," ",abs(matchingMatrix%values(ii,ii))," energy ",wfObject%molecularOrbitalsEnergy%values(ii)
     end do
 
     !DEBUG
-    ! print *,"Number of astrayOrbitals",astrayOrbitals            
-    ! print *,"Initial MM:"
-    ! call Matrix_show (matchingMatrix)
+    if (CONTROL_instance%DEBUG_SCFS) print *,"Number of astrayOrbitals",astrayOrbitals            
 
+    if(astrayOrbitals .eq. 0 ) return
+
+    if (CONTROL_instance%DEBUG_SCFS) then
+       print *,"Initial MM:"
+       call Matrix_show (matchingMatrix)
+    end if
+    
     call Vector_constructor (deltaVector,astrayOrbitals)
-
+    
     jj=0
-    do ii= 1, occupatedOrbitals
+    do i= 1, activeOrbitals
+       ii = orbitalsVector%values(i)
        if ( abs(matchingMatrix%values(ii,ii)) < threshold ) then
           jj=jj+1
           deltaVector%values(jj)=ii
@@ -449,61 +428,60 @@ contains
 
     prodigals = astrayOrbitals
 
-    if(astrayOrbitals .ge. 1 .and. wfObject%numberOfIterations > startIteration) then
-       ! print *, "Switching orbitals..."
+    if(wfObject%numberOfIterations .lt. startIteration) return
+    
+    if (CONTROL_instance%DEBUG_SCFS) print *, "Starting switch orbitals search..."
 
-       do ii=1,astrayOrbitals
+    do ii=1,astrayOrbitals
 
-          call Matrix_copyConstructor( auxiliaryMatrix, wfObject%waveFunctionCoefficients )            
-          call Matrix_copyConstructor( matchingMatrix2, matchingMatrix )            
+       call Matrix_copyConstructor( auxiliaryMatrix, wfObject%waveFunctionCoefficients )            
+       call Matrix_copyConstructor( matchingMatrix2, matchingMatrix )            
 
-          search=deltaVector%values(ii)            
-          ! print *,"search: ",search
-
-          do jj=1, numberOfContractions
-
-             !trial=deltaVector%values(jj)
-             trial=jj
-             ! print *,"trial: ",trial
-
-             ! print *,"valor: ",abs(matchingMatrix%values(search,trial))
-
-             if ( abs(matchingMatrix%values(search,trial)) > threshold ) then
-
-                wfObject%waveFunctionCoefficients%values(:,search)=auxiliaryMatrix%values(:,trial)
-                wfObject%waveFunctionCoefficients%values(:,trial)=auxiliaryMatrix%values(:,search)
-
-                hold=wfObject%molecularOrbitalsEnergy%values(search)
-                wfObject%molecularOrbitalsEnergy%values(search)=wfObject%molecularOrbitalsEnergy%values(trial)
-                wfObject%molecularOrbitalsEnergy%values(trial)=hold
-
-                matchingMatrix%values(:,trial)=matchingMatrix2%values(:,search)
-                matchingMatrix%values(:,search)=matchingMatrix2%values(:,trial)
-
-                prodigals = prodigals - 1
-
-                print *, "Switching orbital... ",search," with ",trial, " for ", trim(wfObject%name)
-
-                exit
-
-             end if
-
-          end do
-
-          ! if (prodigals<2) then
-          !    exit
-          ! end if
-
+       search=deltaVector%values(ii)            
+       ! print *,"search: ",search
+       maxOverlap=0.0
+       do jj=1, numberOfContractions
+          if( abs(matchingMatrix%values(search,jj)) > maxOverlap ) then
+             maxOverlap = abs(matchingMatrix%values(search,jj))
+             trial = jj
+          end if
        end do
 
        if (  CONTROL_instance%DEBUG_SCFS) then
-          print *, "Coefficients after switching for ", wfObject%species
-          call Matrix_show(wfObject%waveFunctionCoefficients)
+          print *, "search", search, "trial: ",trial, "valor: ",abs(matchingMatrix%values(search,trial))
        end if
 
-       call Matrix_destructor(matchingMatrix)
-       call Vector_destructor(deltaVector)           
+       wfObject%waveFunctionCoefficients%values(:,search)=auxiliaryMatrix%values(:,trial)
+       wfObject%waveFunctionCoefficients%values(:,trial)=auxiliaryMatrix%values(:,search)
+
+       hold=wfObject%molecularOrbitalsEnergy%values(search)
+       wfObject%molecularOrbitalsEnergy%values(search)=wfObject%molecularOrbitalsEnergy%values(trial)
+       wfObject%molecularOrbitalsEnergy%values(trial)=hold
+
+       matchingMatrix%values(:,trial)=matchingMatrix2%values(:,search)
+       matchingMatrix%values(:,search)=matchingMatrix2%values(:,trial)
+
+       prodigals = prodigals - 1
+
+       if (CONTROL_instance%PRINT_LEVEL>0) print *, "Switching orbital... ",search," with ",trial, " for ", trim(wfObject%name), " overlap", maxOverlap
+
+       ! if (prodigals<2) then
+       !    exit
+       ! end if
+
+    end do
+
+    if (CONTROL_instance%DEBUG_SCFS) then
+       print *, "Coefficients after switching for ", wfObject%species
+       call Matrix_show(wfObject%waveFunctionCoefficients)
     end if
+
+    call Matrix_destructor(matchingMatrix)
+    call Matrix_destructor(matchingMatrix2)
+    call Matrix_destructor(auxiliaryMatrix)
+    call Vector_destructor(deltaVector)           
+    call Vector_destructorInteger(orbitalsVector)           
+
   end subroutine SingleSCF_OrbitalExchange
 
   !!**********************************************************************************************
@@ -511,21 +489,9 @@ contains
   subroutine SingleSCF_readFrozenOrbitals(wfObject)
     type(WaveFunction) :: wfObject
     
-    type(Matrix) :: fockMatrixTransformed
     type(Matrix) :: auxiliaryMatrix
-    type(Matrix) :: previousWavefunctionCoefficients, matchingMatrix, matchingMatrix2
-    type(Vector) :: deltaVector 
-    type(Matrix) :: auxOverlapMatrix
-
-    integer(8) :: total3
     integer(8) :: numberOfContractions
-    real(8) :: threshold, hold
-    real(8) :: levelShiftingFactor, normCheck    
-    integer :: ocupados, occupatedOrbitals, prodigals
-    integer :: totales
-    integer :: search, trial
-    integer :: ii, jj, astrayOrbitals, startIteration
-    integer :: i,j, mu, nu, index
+    integer :: i,mu, nu
     logical :: existFile
 
     character(50) :: wfnFile

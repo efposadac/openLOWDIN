@@ -1,0 +1,56 @@
+!The goal of this calculation is to compute the binding energy of a positron bound complex
+!Reported:
+!E(H-): -0.524029
+
+SYSTEM_DESCRIPTION='H- from Charry 2018 (10.1002/anie.201800914)' 
+
+GEOMETRY
+	e-(H)   AUG-CC-PVDZ 	0.00	0.00 	0.00 addParticles=1 
+	H	dirac		0.00	0.00 	0.00
+END GEOMETRY
+
+!method to solve the SCF - CI only works for unrestricted reference
+!CI level strings chooses the desired excitations to be included. FCI is all possible excitations
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="FCI"
+	!configurationInteractionLevel ="CIS","CISD","CISDT","CISDTQ"
+END TASKS
+
+!Compute only the "numberOfCIstates" states. Here we only need the ground state
+!Compute the density matrix for "CIstatesToPrint" states, for density outputs
+!Generate the natural orbitals, for visualization in molden files
+!The Davidson diagonalization implemented in JADAMILU is the recomended method.
+!For small systems, full matrix diagonalization with DSYEVX is possible
+!CI EigenVectors with coefficient higher than "CIPrintThreshold" are printed 
+!Printing format "OCCUPIED" shows the coefficients, "ORBITALS" shows the strings, "NONE" skips printing
+!Strict SCF convergence improves the quality of the CI results (not required for the FCI)
+
+CONTROL
+	numberOfCIstates=1
+	CIStatesToPrint=1
+	CINaturalOrbitals=T
+	CIdiagonalizationMethod = "JADAMILU"
+	!CIdiagonalizationMethod = "DSYEVX"
+	!CIdiagonalizationMethod = "ARPACK"
+	CIPrintEigenVectorsFormat = "OCCUPIED" !"NONE","ORBITALS"
+	CIPrintThreshold = 5e-2
+	!totalEnergyTolerance=1E-12 
+END CONTROL
+
+!INPUT_CI block help us define the frozen core and active virtuals orbitals. Here we are not restricting the excitation space 
+INPUT_CI
+	species="E-ALPHA" core=0 active=0 
+	species="E-BETA" core=0 active=0 
+END INPUT_CI
+
+!With CI, moldenFiles, 1D and 2D density slices and density cubes are good ways to visualize the density results
+OUTPUTS
+	moldenFile state=1
+	densityPlot dimensions=2 point1=0.0 0.0 -6.0 point2=0.0 0.0 6.0 state=1 
+END OUTPUTS
+
+
+
+

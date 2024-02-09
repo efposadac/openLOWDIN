@@ -169,11 +169,13 @@ contains
           Output_type=""
           Output_species="ALL"
           Output_state=1
-          Output_orbital=0
-          Output_dimensions=0
-          Output_cubeSize=0.0_8
+          Output_orbital=1
+          Output_dimensions=2
+          Output_cubeSize=5.0_8
           Output_point1(:)=0.0_8
+          Output_point1(3)=-5.0_8
           Output_point2(:)=0.0_8
+          Output_point2(3)=5.0_8
           Output_point3(:)=0.0_8
           read(4,NML=Output, iostat=stat)
 

@@ -1142,6 +1142,7 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
     character(50) :: file, wfnfile, speciesName, auxstring
     character(50) :: arguments(2)
     type(matrix), allocatable :: coefficients(:), atomicDensityMatrix(:,:), ciDensityMatrix(:,:), auxDensMatrix(:,:)
+    type(matrix), allocatable :: kineticMatrix(:), attractionMatrix(:), externalPotMatrix(:)
     integer numberOfSpecies
 
     type(matrix) :: auxdensityEigenVectors 
@@ -1213,8 +1214,13 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
       write (*,*) "=============================="
       write (*,*) ""
 
-      allocate( coefficients(numberOfSpecies), atomicDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
-               ciDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), auxDensMatrix(numberOfSpecies,ConfigurationInteraction_instance%nproc) )
+      allocate( coefficients(numberOfSpecies), &
+           kineticMatrix(numberOfSpecies), &
+           attractionMatrix(numberOfSpecies), &
+           externalPotMatrix(numberOfSpecies), &
+           atomicDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
+           ciDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
+           auxDensMatrix(numberOfSpecies,ConfigurationInteraction_instance%nproc) )
 
       wfnFile = "lowdin.wfn"
       wfnUnit = 20
@@ -1228,33 +1234,45 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
          ! numberOfOrbitals = ConfigurationInteraction_instance%numberOfOrbitals%values(species)
          numberOfOccupiedOrbitals = ConfigurationInteraction_instance%numberOfOccupiedOrbitals%values(species)
 
-        arguments(2) = speciesName
-        arguments(1) = "COEFFICIENTS"
-        ! print *, "trolo", numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
+         arguments(2) = speciesName
+         ! print *, "trolo", numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
 
-        coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-             columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+         arguments(1) = "COEFFICIENTS"
+         coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-        ! print *, "trololo"
+         arguments(1) = "KINETIC"
+         kineticMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+         
+         arguments(1) = "ATTRACTION"
+         attractionMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+
+         arguments(1) = "EXTERNAL_POTENTIAL"
+         if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+              externalPotMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
+              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+         ! print *, "trololo"
         
-        do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+         do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
-           call Matrix_constructor ( ciDensityMatrix(species,state) , &
-                int(numberOfContractions,8), &
-                int(numberOfContractions,8),  0.0_8 )
+            call Matrix_constructor ( ciDensityMatrix(species,state) , &
+                 int(numberOfContractions,8), &
+                 int(numberOfContractions,8),  0.0_8 )
 
-           do k=1, numberOfOccupiedOrbitals
-             ciDensityMatrix(species,state)%values( k, k)=1.0_8
-           end do
+            do k=1, numberOfOccupiedOrbitals
+               ciDensityMatrix(species,state)%values( k, k)=1.0_8
+            end do
 
-        end do
+         end do
 
-        do n=1, ConfigurationInteraction_instance%nproc
+         do n=1, ConfigurationInteraction_instance%nproc
 
-           call Matrix_constructor ( auxDensMatrix(species,n) , &
-                int(numberOfContractions,8), &
-                int(numberOfContractions,8),  0.0_8 )
-        end do
+            call Matrix_constructor ( auxDensMatrix(species,n) , &
+                 int(numberOfContractions,8), &
+                 int(numberOfContractions,8),  0.0_8 )
+         end do
       end do
        
       close(wfnUnit)
@@ -1566,7 +1584,25 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
          end do
        end do
 
-
+       write(*,*) ""
+       write(*,*) "==============================="
+       write(*,*) " ONE BODY ENERGY CONTRIBUTIONS:"
+       write(*,*) ""
+       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+          write(*,*) " STATE: ", state
+          do species=1, molecularSystem_instance%numberOfQuantumSpecies
+             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%name ) // &
+                  " Kinetic energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*kineticMatrix(species)%values)
+             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%name ) // &
+                  "/Fixed interact. energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*attractionMatrix(species)%values)
+             if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+                  write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%name) // &
+                  " Ext Pot energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*externalPotMatrix(species)%values)
+             print *, ""
+          end do
+          print *, ""
+       end do
+ 
       !! Natural orbitals
 
        if (CONTROL_instance%CI_NATURAL_ORBITALS) then

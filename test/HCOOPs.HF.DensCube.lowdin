@@ -21,7 +21,8 @@ CONTROL
 END CONTROL
 
 OUTPUTS
-	densityCube  cubeSize=20  point1=0.0 0.0 -2.5
+	densityCube  cubeSize=5  point1=0.0 0.0 0.0 species="E-"
+	densityCube  cubeSize=20  point1=0.0 0.0 -2.5 species="POSITRON"
 END OUTPUTS
 
 

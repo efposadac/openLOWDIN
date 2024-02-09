@@ -1951,7 +1951,7 @@ contains
     !! only the (ip|aq) integrals will be transformed
     if ( trim(this%partialTransform)=="PT2"  ) then
     
-      if ( CONTROL_instance%IONIZE_MO == 0 ) then
+      if ( CONTROL_instance%IONIZE_MO(1) == 0 ) then
           !! all
           this%q_l = coreOrbitals+1!totalOccupation     !! HOMO 
           this%q_u = totalOccupation+1 !! LUMO
@@ -1988,8 +1988,8 @@ contains
       else
 
         if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
-          this%q_l = CONTROL_instance%IONIZE_MO  
-          this%q_u = CONTROL_instance%IONIZE_MO 
+          this%q_l = CONTROL_instance%IONIZE_MO(1)  
+          this%q_u = CONTROL_instance%IONIZE_MO(1) 
           this%p_l = coreOrbitals+1
           this%p_u = totalActiveOrbitals
 
@@ -2001,8 +2001,8 @@ contains
 
         else 
 
-          this%q_l = CONTROL_instance%IONIZE_MO  
-          this%q_u = CONTROL_instance%IONIZE_MO 
+          this%q_l = CONTROL_instance%IONIZE_MO(1)  
+          this%q_u = CONTROL_instance%IONIZE_MO(1) 
           this%p_l = coreOrbitals+1
           this%p_u = totalActiveOrbitals
 
@@ -2019,7 +2019,7 @@ contains
     !for a simultaneous PT2 - MP2 calculation
     if ( trim(this%partialTransform)=="MP2-PT2" ) then
     
-      if ( CONTROL_instance%IONIZE_MO == 0 ) then
+      if ( CONTROL_instance%IONIZE_MO(1) == 0 ) then
           !! all
           this%q_l = coreOrbitals+1!totalOccupation     !! HOMO 
           this%q_u = totalOccupation + 1 !! LUMO
@@ -2035,7 +2035,7 @@ contains
 
         if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
           this%q_l = coreOrbitals+1
-          this%q_u = max(CONTROL_instance%IONIZE_MO,totalOccupation)
+          this%q_u = max(CONTROL_instance%IONIZE_MO(1),totalOccupation)
           this%p_l = coreOrbitals+1
           this%p_u = totalActiveOrbitals
 
@@ -2048,7 +2048,7 @@ contains
         else 
 
           this%q_l = coreOrbitals+1
-          this%q_u = max(CONTROL_instance%IONIZE_MO,totalOccupation)
+          this%q_u = max(CONTROL_instance%IONIZE_MO(1),totalOccupation)
           this%p_l = coreOrbitals+1
           this%p_u = totalActiveOrbitals
 
@@ -2144,7 +2144,7 @@ contains
        this%r_l = coreOrbitals+1
        this%r_u = otherTotalActiveOrbitals
 
-      if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+      if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE" ) then
 
         ionizeA = .false.
         ionizeB = .false.
@@ -2152,16 +2152,16 @@ contains
          nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
          nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
 
-         do s = 1, size(CONTROL_instance%IONIZE_SPECIE )
-           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+         do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
+           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeA = .true. 
            end if
-           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeB = .true. 
            end if
          end do
 
-        if ( CONTROL_instance%IONIZE_MO == 0 ) then
+        if ( CONTROL_instance%IONIZE_MO(1) == 0 ) then
 
           if ( ionizeA .and. ionizeB ) then
 
@@ -2199,10 +2199,10 @@ contains
 
           end if
 
-        else if ( CONTROL_instance%IONIZE_MO /= 0 ) then !!occ and vir..
+        else if ( CONTROL_instance%IONIZE_MO(1) /= 0 ) then !!occ and vir..
 
           if ( ionizeA .and. ionizeB ) then
-            if ( CONTROL_instance%IONIZE_MO <= totalOccupation .and. CONTROL_instance%IONIZE_MO <= othertotalOccupation ) then
+            if ( CONTROL_instance%IONIZE_MO(1) <= totalOccupation .and. CONTROL_instance%IONIZE_MO(1) <= othertotalOccupation ) then
               this%q_l = coreOrbitals+1
               this%q_u = totalOccupation
               this%p_l = coreOrbitals+1
@@ -2212,14 +2212,14 @@ contains
               this%r_l = otherCoreOrbitals+1
               this%r_u = otherTotalActiveOrbitals
 
-            else if ( CONTROL_instance%IONIZE_MO > totalOccupation .and. CONTROL_instance%IONIZE_MO > othertotalOccupation ) then
+            else if ( CONTROL_instance%IONIZE_MO(1) > totalOccupation .and. CONTROL_instance%IONIZE_MO(1) > othertotalOccupation ) then
 
               this%q_l = coreOrbitals+1
-              this%q_u = totalActiveOrbitals!CONTROL_instance%IONIZE_MO 
+              this%q_u = totalActiveOrbitals!CONTROL_instance%IONIZE_MO(1) 
               this%p_l = coreOrbitals+1
               this%p_u = totalActiveOrbitals
               this%s_l = otherCoreOrbitals+1
-              this%s_u = otherTotalActiveOrbitals!CONTROL_instance%IONIZE_MO 
+              this%s_u = otherTotalActiveOrbitals!CONTROL_instance%IONIZE_MO(1) 
               this%r_l = otherCoreOrbitals+1
               this%r_u = otherTotalActiveOrbitals
 
@@ -2227,8 +2227,8 @@ contains
 
           else if ( ionizeA .and. .not. ionizeB ) then
         
-            this%q_l = CONTROL_instance%IONIZE_MO
-            this%q_u = CONTROL_instance%IONIZE_MO
+            this%q_l = CONTROL_instance%IONIZE_MO(1)
+            this%q_u = CONTROL_instance%IONIZE_MO(1)
 
 
         if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
@@ -2250,8 +2250,8 @@ contains
             this%p_l = totalOccupation + 1
             this%p_u = totalActiveOrbitals
 
-            !this%s_l = CONTROL_instance%IONIZE_MO !...
-            !this%s_u = CONTROL_instance%IONIZE_MO !...
+            !this%s_l = CONTROL_instance%IONIZE_MO(1) !...
+            !this%s_u = CONTROL_instance%IONIZE_MO(1) !...
             this%s_l = otherCoreOrbitals+1
             this%s_u = otherTotalActiveOrbitals
 
@@ -2264,7 +2264,7 @@ contains
 
         end if
 
-          !if ( CONTROL_instance%IONIZE_MO /= 0 ) then
+          !if ( CONTROL_instance%IONIZE_MO(1) /= 0 ) then
       end if
 
    end if
@@ -2282,7 +2282,7 @@ contains
       this%r_l = otherCoreOrbitals+1
       this%r_u = totalActiveOrbitals
 
-      if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+      if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE" ) then
 
          ionizeA = .false.
          ionizeB = .false.
@@ -2290,16 +2290,16 @@ contains
          nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
          nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
 
-         do s = 1, size(CONTROL_instance%IONIZE_SPECIE )
-            if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+         do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
+            if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
                ionizeA = .true. 
             end if
-            if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+            if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
                ionizeB = .true. 
             end if
          end do
 
-         if ( CONTROL_instance%IONIZE_MO == 0 ) then
+         if ( CONTROL_instance%IONIZE_MO(1) == 0 ) then
 
             if ( ionizeA .and. ionizeB ) then
 
@@ -2337,10 +2337,10 @@ contains
 
             end if
 
-         else if ( CONTROL_instance%IONIZE_MO /= 0 ) then !!occ and vir..
+         else if ( CONTROL_instance%IONIZE_MO(1) /= 0 ) then !!occ and vir..
 
             if ( ionizeA .and. ionizeB ) then
-               if ( CONTROL_instance%IONIZE_MO <= totalOccupation .and. CONTROL_instance%IONIZE_MO <= othertotalOccupation ) then
+               if ( CONTROL_instance%IONIZE_MO(1) <= totalOccupation .and. CONTROL_instance%IONIZE_MO(1) <= othertotalOccupation ) then
                   this%q_l = coreOrbitals+1
                   this%q_u = totalOccupation
                   this%p_l = coreOrbitals+1
@@ -2350,14 +2350,14 @@ contains
                   this%r_l = otherCoreOrbitals+1
                   this%r_u = otherTotalActiveOrbitals
 
-               else if ( CONTROL_instance%IONIZE_MO > totalOccupation .and. CONTROL_instance%IONIZE_MO > othertotalOccupation ) then
+               else if ( CONTROL_instance%IONIZE_MO(1) > totalOccupation .and. CONTROL_instance%IONIZE_MO(1) > othertotalOccupation ) then
 
                   this%q_l = coreOrbitals+1
-                  this%q_u = totalActiveOrbitals!CONTROL_instance%IONIZE_MO 
+                  this%q_u = totalActiveOrbitals!CONTROL_instance%IONIZE_MO(1) 
                   this%p_l = coreOrbitals+1
                   this%p_u = totalActiveOrbitals
                   this%s_l = otherCoreOrbitals+1
-                  this%s_u = otherTotalActiveOrbitals!CONTROL_instance%IONIZE_MO 
+                  this%s_u = otherTotalActiveOrbitals!CONTROL_instance%IONIZE_MO(1) 
                   this%r_l = otherCoreOrbitals+1
                   this%r_u = otherTotalActiveOrbitals
 
@@ -2366,7 +2366,7 @@ contains
             else if ( ionizeA .and. .not. ionizeB ) then
 
                this%q_l = coreOrbitals+1
-               this%q_u = max(CONTROL_instance%IONIZE_MO,totalOccupation)
+               this%q_u = max(CONTROL_instance%IONIZE_MO(1),totalOccupation)
 
                if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
                   this%q_l = coreOrbitals+1
@@ -2387,8 +2387,8 @@ contains
                this%p_l = totalOccupation + 1
                this%p_u = totalActiveOrbitals
 
-               !this%s_l = CONTROL_instance%IONIZE_MO !...
-               !this%s_u = CONTROL_instance%IONIZE_MO !...
+               !this%s_l = CONTROL_instance%IONIZE_MO(1) !...
+               !this%s_u = CONTROL_instance%IONIZE_MO(1) !...
                this%s_l = otherCoreOrbitals+1
                this%s_u = otherTotalActiveOrbitals
 
@@ -2401,7 +2401,7 @@ contains
 
          end if
          
-         !if ( CONTROL_instance%IONIZE_MO /= 0 ) then
+         !if ( CONTROL_instance%IONIZE_MO(1) /= 0 ) then
       end if
 
 

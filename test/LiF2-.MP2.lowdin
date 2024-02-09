@@ -1,0 +1,21 @@
+
+GEOMETRY
+e-(F)	aug-cc-pVDZ	  0.0000	0.0000	-1.70 addParticles=1
+e-(Li)	aug-cc-pVDZ	  0.0000	0.0000	0.0
+e-(F)	aug-cc-pVDZ	  0.0000	0.0000	1.70
+e+	PSX-TZ		  0.0000	0.0000	-1.70 addParticles=-2
+e+	PSX-TZ		  0.0000	0.0000	1.70
+F	dirac		  0.0000	0.0000	-1.70
+Li	dirac		  0.0000	0.0000 0.0
+F	dirac		  0.0000	0.0000	1.70
+END GEOMETRY
+
+TASKS
+        method = "RHF" 
+	mollerPlessetCorrection=2
+END TASKS
+
+CONTROL
+	readCoefficients=.F.
+	totalEnergyTolerance=1E-12
+END CONTROL

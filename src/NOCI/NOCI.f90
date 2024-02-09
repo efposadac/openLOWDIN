@@ -74,7 +74,11 @@ program NOCI
 
      if(.not. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
         call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_generateDensities(NonOrthogonalCI_instance)
+        call NonOrthogonalCI_generateSuperposedSystem(NonOrthogonalCI_instance)
+        call NonOrthogonalCI_buildDensityMatrix(NonOrthogonalCI_instance)
+        call NonOrthogonalCI_getNaturalOrbitals(NonOrthogonalCI_instance)
+        call NonOrthogonalCI_computeFranckCondon(NonOrthogonalCI_instance)
+        call NonOrthogonalCI_saveToFile(NonOrthogonalCI_instance)
      else
         write (*,"(T10,A)") "COMPUTED NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
      end if
@@ -206,7 +210,11 @@ program NOCI
         call NonOrthogonalCI_buildOverlapAndHamiltonianMatrix(NonOrthogonalCI_instance)
         if(.not. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
            call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
-           call NonOrthogonalCI_generateDensities(NonOrthogonalCI_instance)
+           call NonOrthogonalCI_generateSuperposedSystem(NonOrthogonalCI_instance)
+           call NonOrthogonalCI_buildDensityMatrix(NonOrthogonalCI_instance)
+           call NonOrthogonalCI_getNaturalOrbitals(NonOrthogonalCI_instance)
+           call NonOrthogonalCI_computeFranckCondon(NonOrthogonalCI_instance)
+           call NonOrthogonalCI_saveToFile(NonOrthogonalCI_instance)
         else
            write (*,"(T10,A)") "COMPUTED NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
         end if

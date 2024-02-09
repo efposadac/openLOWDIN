@@ -1,0 +1,29 @@
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test RHF
+%  H2O Single Point
+%  Electronic Hartree Fock
+%  Basis sets used:
+%      6-311g e-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de H2O'
+
+GEOMETRY
+	e-[O]   6-311G     0.000000      0.000000     -0.066575 
+	e-[H]   6-311G    0.000000      0.754175      0.528381 
+	e-[H]   6-311G    0.000000     -0.754174      0.528382 
+	O        dirac     0.000000      0.000000     -0.066575
+	H_1      dirac     0.000000      0.754175      0.528381	
+	H_1      dirac     0.000000     -0.754174      0.528382  
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+END TASKS
+
+CONTROL
+readCoefficients=F
+ionizeMO=1
+ionizeSpecies="E-BETA"
+MOfractionOccupation=0.0
+END CONTROL

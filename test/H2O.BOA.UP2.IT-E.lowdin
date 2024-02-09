@@ -29,7 +29,7 @@ END TASKS
 
 CONTROL
 readCoefficients=F
-!	ionizeSpecie="E-ALPHA"
+!	ionizeSpecies="E-ALPHA"
 !	ionizeMO=2
 !	ptJustOneOrbital=T
 !	ptTransitionOperator=T

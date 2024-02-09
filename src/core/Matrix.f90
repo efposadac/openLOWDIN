@@ -2660,15 +2660,107 @@ contains
   end function Matrix_function
 
   !>
+  !! @brief  Calcula una funcion generica de la matriz this
+  function Matrix_function_svd( this, func, param ) result ( output )
+    implicit none
+    type(Matrix), intent(inout) :: this
+    character(*), intent(in) :: func
+    type(Matrix) :: output
+    real(8), intent(in), optional :: param
+
+
+    type(Matrix) :: U, VT, singular
+    integer :: i
+    integer :: dim
+
+    dim=Matrix_getNumberOfColumns(this)
+    
+    call Matrix_constructor(U, int(dim,8), int(dim,8), 0.0_8)
+    call Matrix_constructor(VT, int(dim,8), int(dim,8), 0.0_8)
+    call Matrix_constructor(singular, int(dim,8), int(dim,8), 0.0_8)
+    call Matrix_svd( this, U, VT, singular )
+    
+    ! vectorsInverted = Matrix_inverse( range )
+
+    do i=1, size( singular%values, DIM=1 )
+
+       select case ( trim(func) )
+
+       case ( "pow" )
+          singular%values(i, i) = singular%values(i, i)**param
+
+       case ( "sqrt" )
+          singular%values(i, i) = sqrt( singular%values(i, i) )
+
+       case ( "log" )
+          singular%values(i, i) = log( singular%values(i, i) )
+
+       case ( "log10" )
+          singular%values(i, i) = log10( singular%values(i, i) )
+
+       case ( "sin" )
+          singular%values(i, i) = sin( singular%values(i, i) )
+
+       case ( "cos" )
+          singular%values(i, i) = cos( singular%values(i, i) )
+
+       case ( "tan" )
+          singular%values(i, i) = tan( singular%values(i, i) )
+
+       case ( "asin" )
+          singular%values(i, i) = asin( singular%values(i, i) )
+
+       case ( "acos" )
+          singular%values(i, i) = acos( singular%values(i, i) )
+
+       case ( "atan" )
+          singular%values(i, i) = atan( singular%values(i, i) )
+
+       case ( "sinh" )
+          singular%values(i, i) = sinh( singular%values(i, i) )
+
+       case ( "cosh" )
+          singular%values(i, i) = cosh( singular%values(i, i) )
+
+       case ( "tanh" )
+          singular%values(i, i) = tanh( singular%values(i, i) )
+
+       end select
+
+    end do
+
+    output = Matrix_product( singular, VT )
+    output = Matrix_product( U, output )
+
+  end function Matrix_function_svd
+  
+  !>
   !! @brief  Calcula la potencia de la matriz this
   !! @warning La matriz tiene que ser diagonalizable
-  function Matrix_pow( this, eexponent ) result ( output )
+  function Matrix_pow( this, eexponent, method ) result ( output )
     implicit none
     type(Matrix), intent(inout) :: this
     real(8), intent(in) :: eexponent
+    character(*), optional :: method    
     type(Matrix) :: output
+    character(10) :: selectedMethod
+    
+    if( present ( method ) ) then
+       selectedMethod=trim(method)
+    else
+       selectedMethod="eigen"
+    end if
 
-    output = Matrix_function( this, "pow", eexponent )
+    select case( trim(selectedMethod) )
+    case("SVD")
+       output = Matrix_function_svd( this, "pow", eexponent )
+
+    case("eigen")
+       output = Matrix_function( this, "pow", eexponent )
+
+    case default
+       call Matrix_exception(ERROR, "The selected method to compute the matrix power is not implemented", "Class object Matrix in the Matrix_pow() function")
+    end select
 
   end function Matrix_pow
 
