@@ -104,7 +104,8 @@ module MolecularSystem_
        MolecularSystem_copyConstructor, &
        MolecularSystem_mergeTwoSystems, &
        MolecularSystem_GetTwoSystemsDisplacement, &
-       MolecularSystem_checkParticleEquivalence
+       MolecularSystem_checkParticleEquivalence,&
+       MolecularSystem_getTotalMass
   
   !>Singleton
   type(MolecularSystem), public, target :: MolecularSystem_instance
@@ -1522,6 +1523,8 @@ contains
            !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14
            !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
            !! erkale-FCHK:  ZZZZ,YZZZ,YYZZ,YYYZ,YYYY,XZZZ,XYZZ,XYYZ,XYYY,XXZZ,XXYZ,XXYY,XXXZ,XXXY,XXXX
+
+           ! Molden 15G: xxxx yyyy zzzz xxxy xxxz yyyx yyyz zzzx zzzy xxyy xxzz yyzz xxyz yyxz zzxy
            if ( adjustl(shellcode) == "Gxxxx" ) then
               auxcounter = counter
               call Matrix_swapRows(  coefficientsOfCombination, auxcounter   , auxcounter+14)
@@ -1942,6 +1945,7 @@ contains
        end if
 
     end do
+    
     ! particleManager_instance => this%allParticles
     
   end subroutine MolecularSystem_copyConstructor
@@ -2269,7 +2273,7 @@ contains
        end do
     end do
 
-    particleManager_instance => mergedThis%allParticles
+    ! particleManager_instance => mergedThis%allParticles
 
     ! if( (.not. present(sysAbasisList)) .and. (.not. present(sysBbasisList)) ) return
     
@@ -2419,6 +2423,50 @@ contains
 
   end function MolecularSystem_checkParticleEquivalence
 
+  !>
+  !! @brief Retorna la masa total del sistema en las unidades solicitadas
+  function MolecularSystem_getTotalMass( this, unid ) result( output )
+    implicit none
+
+    type(MolecularSystem), optional, target :: this
+    character(*), optional :: unid
+    real(8) :: output
+
+    type(MolecularSystem), pointer :: system
+    integer :: i
+    
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
+    
+    output = 0.0_8
+
+    do i=1, size( molecularSystem_instance%allParticles)
+       output = output + molecularSystem_instance%allParticles(i)%particlePtr%mass *  &
+            molecularSystem_instance%allParticles(i)%particlePtr%internalSize
+    end do
+
+    if ( present(unid) ) then
+
+       select case( trim(unid) )
+       case ("AU")
+
+       case("SI")
+          output = output * kg
+
+       case("AMU")
+          output = output * AMU
+
+       case default
+
+       end select
+    end if
+
+  end function MolecularSystem_getTotalMass
+
+  
   !>
    !! @brief  Maneja excepciones de la clase
    subroutine MolecularSystem_exception( typeMessage, description, debugDescription)

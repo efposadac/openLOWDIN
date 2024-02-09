@@ -2,11 +2,6 @@
 %  Test RKS
 %  HCN Single Point
 %  APMO DFT with nuclear electron correlation
-%  Results
-% refExchangeCorrelationEnergy=-10.15758267
-% refNuclearElectronCorrelationEnergy=-0.03005334
-% refTotalEnergy=-93.367393799928
-%      Author: Felix Moncada - QCC-UNAL/2018
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SYSTEM_DESCRIPTION='Molecula de H2'
@@ -28,6 +23,8 @@ CONTROL
 readCoefficients=.F.
 electronExchangeCorrelationFunctional="B3LYP"
 nuclearElectronCorrelationFunctional="epc17-2"
+electronicLevelShifting=0.1
+nonElectronicLevelShifting=0.1
 END CONTROL
 
 

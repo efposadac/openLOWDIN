@@ -1,4 +1,4 @@
-!!******************************************************************************
+!******************************************************************************
 !!	This code is part of LOWDIN Quantum chemistry package                 
 !!	
 !!	this program has been developed under direction of:
@@ -27,6 +27,7 @@ module WaveFunction_
   use MolecularSystem_
   use CosmoCore_
   use DirectIntegralManager_
+  use DensityFunctionalTheory_
 
   implicit none
 
@@ -222,24 +223,23 @@ contains
     
     !!Initialize DFT: Calculate Grids and build functionals
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
+          call system ("lowdin-DFT.x BUILD_SCF_GRID")
+          do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+             dftUnit = 77
+             dftFile = "lowdin."//trim(MolecularSystem_getNameOfSpecies(speciesID))//".grid"
+             open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
 
-       call system ("lowdin-DFT.x BUILD_SCF_GRID")
+             labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
+             labels(1) = "EXACT-EXCHANGE-FRACTION"
 
-       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
-          dftUnit = 77
-          dftFile = "lowdin."//trim(MolecularSystem_getNameOfSpecies(speciesID))//".grid"
-          open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
-
-          labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
-          labels(1) = "EXACT-EXCHANGE-FRACTION"
-
-          call Vector_getFromFile(unit=dftUnit, binary=.true., value=these(speciesID)%exactExchangeFraction, arguments=labels)
-          close(unit=dftUnit)
-
-          ! print *, "el tormento tuyo", speciesID, these(speciesID)%exactExchangeFraction
-          
-       end do
-
+             call Vector_getFromFile(unit=dftUnit, binary=.true., value=these(speciesID)%exactExchangeFraction, arguments=labels)
+             close(unit=dftUnit)
+             ! print *, "el tormento tuyo", speciesID, these(speciesID)%exactExchangeFraction
+          end do
+       else
+          call DensityFunctionalTheory_buildSCFGrid(these(1:MolecularSystem_instance%numberOfQuantumSpecies)%exactExchangeFraction)
+       end if
     end if
 
   end subroutine WaveFunction_constructor
@@ -472,7 +472,7 @@ contains
     if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
        this%kineticMatrix%values =  &
             this%kineticMatrix%values * &
-            ( 1.0_8/MolecularSystem_getMass(this%species) -1.0_8 / ParticleManager_getTotalMass() )
+            ( 1.0_8/MolecularSystem_getMass(this%species) -1.0_8 / MolecularSystem_getTotalMass() )
     else
        this%kineticMatrix%values = &
             this%kineticMatrix%values / &
@@ -840,7 +840,7 @@ contains
     else
        factor = MolecularSystem_getFactorOfExchangeIntegrals(this%species)*this%exactExchangeFraction
     end if
-
+    
     call Matrix_constructor(twoParticlesMatrix, int(totalNumberOfContractions,8), int(totalNumberOfContractions,8), 0.0_8 )
     
     !! This matrix is only calculated if there are more than one particle for this%species or if the user want to calculate it.
@@ -1519,8 +1519,9 @@ contains
     close(unit=excUnit)
 
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *, "Exc. Corr. Matrix for species ", this%name
+       print *, "Exc. Corr. Energy ", this%name
        print *, exchangeCorrelationEnergy
+       print *, "Exc. Corr. Matrix for species ", this%name
        call Matrix_show(exchangeCorrelationMatrix)
     end if
 
@@ -1538,6 +1539,117 @@ contains
     end if
   end subroutine WaveFunction_readExchangeCorrelationMatrix
 
+  !>
+  !! @brief Builds exchange correlation contributions Matrix for DFT calculations (FELIX)
+ subroutine WaveFunction_getDFTContributions( these, status, densityMatricesIN, &
+      exchangeCorrelationMatricesOUT, exchangeCorrelationEnergyOUT, particlesInGridOUT  )       
+    implicit none
+    type(WaveFunction) :: these(*)
+    character(*) :: status
+    type(Matrix), optional :: densityMatricesIN(*)
+    type(Matrix), optional :: exchangeCorrelationMatricesOUT(*)
+    type(Matrix), optional :: exchangeCorrelationEnergyOUT
+    real(8), optional :: particlesInGridOUT(*)
+
+    type(Matrix), allocatable :: densityMatrices(:), exchangeCorrelationMatrices(:)
+    real(8), allocatable :: particlesInGrid(:)
+    type(Matrix) :: energyMatrix
+    integer :: numberOfSpecies, i,j
+    
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    allocate(densityMatrices(numberOfSpecies), exchangeCorrelationMatrices(numberOfSpecies), particlesInGrid(numberOfSpecies))
+    
+    if ( present(densityMatricesIN)) then
+       do i=1, numberOfSpecies
+          call Matrix_copyConstructor(densityMatrices(i),densityMatricesIN(i))
+       end do
+    else       
+       do i=1, numberOfSpecies
+          call Matrix_copyConstructor(densityMatrices(i),these(i)%densityMatrix)
+       end do
+    end if
+
+    call Matrix_constructor(energyMatrix, int(numberOfSpecies,8), int(numberOfSpecies,8), 0.0_8 )
+    
+    if (status .eq. "SCF" ) then
+       call DensityFunctionalTheory_SCFDFT(densityMatrices, &
+            exchangeCorrelationMatrices, &
+            energyMatrix, &
+            particlesInGrid)
+    else
+       do i=1, numberOfSpecies
+          call Matrix_copyConstructor(exchangeCorrelationMatrices(i),these(i)%exchangeCorrelationMatrix)
+          particlesInGrid(i)=these(i)%particlesInGrid
+          energyMatrix%values(i,i)=these(i)%exchangeCorrelationEnergy(i)
+          do j=i+1, numberOfSpecies
+             energyMatrix%values(i,j)=these(i)%exchangeCorrelationEnergy(j)
+          end do
+       end do
+       call DensityFunctionalTheory_buildFinalGrid()
+
+       call DensityFunctionalTheory_finalDFT(densityMatrices, &
+            exchangeCorrelationMatrices, &
+            energyMatrix, &
+            particlesInGrid)
+    end if
+
+    if ( present(exchangeCorrelationMatricesOUT)) then
+       do i=1, numberOfSpecies
+          call Matrix_copyConstructor(exchangeCorrelationMatricesOUT(i),exchangeCorrelationMatrices(i))
+       end do
+    else       
+       do i=1, numberOfSpecies
+          call Matrix_copyConstructor(these(i)%exchangeCorrelationMatrix,exchangeCorrelationMatrices(i))
+       end do
+    end if
+
+    if ( present(exchangeCorrelationEnergyOUT)) then
+       do i=1, numberOfSpecies
+          exchangeCorrelationEnergyOUT%values(i,i)=energyMatrix%values(i,i)
+          do j=i+1, numberOfSpecies
+             exchangeCorrelationEnergyOUT%values(i,j)=energyMatrix%values(i,j)
+             exchangeCorrelationEnergyOUT%values(j,i)=energyMatrix%values(i,j)
+          end do
+       end do
+    else       
+       do i=1, numberOfSpecies
+          these(i)%exchangeCorrelationEnergy(i)=energyMatrix%values(i,i)
+          do j=i, numberOfSpecies
+             these(i)%exchangeCorrelationEnergy(j)=energyMatrix%values(i,j)
+             these(j)%exchangeCorrelationEnergy(i)=energyMatrix%values(i,j)
+          end do
+       end do
+    end if
+
+    if ( present(particlesInGridOUT)) then
+       do i=1, numberOfSpecies
+          particlesInGridOUT(i)=particlesInGrid(i)
+       end do
+    else       
+       do i=1, numberOfSpecies
+          these(i)%particlesInGrid=particlesInGrid(i)
+       end do
+    end if
+    
+    do i=1, numberOfSpecies
+       if (  CONTROL_instance%DEBUG_SCFS) then
+          print *, "Exc. Corr. Energy ", these(i)%name
+          print *, these(i)%exchangeCorrelationEnergy
+          print *, "Exc. Corr. Matrix for species ", these(i)%name
+          call Matrix_show(these(i)%exchangeCorrelationMatrix)
+       end if
+    end do
+
+    call Matrix_destructor(energyMatrix)
+    do i=1, numberOfSpecies
+       call Matrix_destructor(densityMatrices(i))
+       call Matrix_destructor(exchangeCorrelationMatrices(i))
+    end do
+    
+    deallocate(densityMatrices, exchangeCorrelationMatrices, particlesInGrid)
+
+  end subroutine WaveFunction_getDFTContributions
+  
   !>
   !! @brief Writes density matrices prior to a call to DFT (FELIX)
   subroutine WaveFunction_writeDensityMatricesToFile( these, densityFileOUT, densityMatricesIN )       

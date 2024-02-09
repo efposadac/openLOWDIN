@@ -71,8 +71,13 @@ program NOCI
      end if
      call NonOrthogonalCI_runHFs(NonOrthogonalCI_instance)
      call NonOrthogonalCI_buildOverlapAndHamiltonianMatrix(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_generateDensities(NonOrthogonalCI_instance)
+
+     if(.not. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
+        call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
+        call NonOrthogonalCI_generateDensities(NonOrthogonalCI_instance)
+     else
+        write (*,"(T10,A)") "COMPUTED NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
+     end if
 
      !!stop time
      call Stopwatch_stop(lowdin_stopwatch)
@@ -199,8 +204,12 @@ program NOCI
         call NonOrthogonalCI_displaceGeometries(NonOrthogonalCI_instance)
         call NonOrthogonalCI_runHFs(NonOrthogonalCI_instance)
         call NonOrthogonalCI_buildOverlapAndHamiltonianMatrix(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_generateDensities(NonOrthogonalCI_instance)
+        if(.not. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
+           call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
+           call NonOrthogonalCI_generateDensities(NonOrthogonalCI_instance)
+        else
+           write (*,"(T10,A)") "COMPUTED NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
+        end if
      end if
 
      call MolecularSystem_saveToFile()

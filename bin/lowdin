@@ -347,7 +347,7 @@ if [ $extFile="lowdin" ]; then
 	if [ -d "$LOWDIN_SCRATCH/$nameFile" ]
 	then
 	    echo "## WARNING ## The scratch directory $LOWDIN_SCRATCH/$nameFile"
-	    echo "              has been removed, probably it corresponds to"
+	    echo "              exists, probably it corresponds to"
 	    echo "              a calculation completed or with errors."
 	    # rm -rf $LOWDIN_SCRATCH/$nameFile
 	    mkdir $LOWDIN_SCRATCH/$nameFile
@@ -356,6 +356,7 @@ if [ $extFile="lowdin" ]; then
 	fi
 	
 	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.plainvec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
@@ -429,7 +430,6 @@ if [ $extFile="lowdin" ]; then
 	   cp $LOWDIN_SCRATCH/$nameFile/lowdin.wfn $currentPath
 	fi
 
-	mv $LOWDIN_SCRATCH/$nameFile/lowdin-plain.vec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
 	#mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
@@ -441,6 +441,7 @@ if [ $extFile="lowdin" ]; then
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfx $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.plainvec $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.coords $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2

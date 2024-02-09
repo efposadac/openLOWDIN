@@ -63,8 +63,8 @@ contains
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     !! Allocate memory.
-    allocate(Grid_instance(numberOfSpecies))
-    allocate(GridsCommonPoints(numberOfSpecies,numberOfSpecies))
+    if (.not. allocated(Grid_instance)) allocate(Grid_instance(numberOfSpecies))
+    if (.not. allocated(GridsCommonPoints)) allocate(GridsCommonPoints(numberOfSpecies,numberOfSpecies))
 
     !! Build and write species grids
     do speciesID = 1, numberOfSpecies
@@ -179,8 +179,8 @@ contains
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     !! Allocate memory.
-    allocate(Grid_instance(numberOfSpecies))
-    allocate(GridsCommonPoints(numberOfSpecies,numberOfSpecies))
+    if (.not. allocated(Grid_instance)) allocate(Grid_instance(numberOfSpecies))
+    if (.not. allocated(GridsCommonPoints)) allocate(GridsCommonPoints(numberOfSpecies,numberOfSpecies))
 
     !! Build and write species grids
     do speciesID = 1, numberOfSpecies
@@ -252,7 +252,7 @@ contains
   !<
   subroutine GridManager_atomicOrbitals( action, type )
     implicit none
-    character(*) action
+    character(*) action !read, compute or write
     character(*) type
 
     integer :: numberOfSpecies
@@ -283,7 +283,9 @@ contains
           STOP "ERROR At DFT program, requested an unknown grid type to orbitals at GridManager"
        end if
 
-       allocate(Grid_instance(speciesID)%orbitalsWithGradient(totalNumberOfContractions))
+       if (.not. allocated(Grid_instance(speciesID)%orbitalsWithGradient)) &
+            allocate(Grid_instance(speciesID)%orbitalsWithGradient(totalNumberOfContractions))
+
        do u=1, totalNumberOfContractions
           call Matrix_Constructor( Grid_instance(speciesID)%orbitalsWithGradient(u), int(gridSize,8), int(4,8), 0.0_8)
        end do
@@ -300,9 +302,9 @@ contains
           end do
           close(unit=orbsUnit)
 
-       else if (trim(action) .eq. "WRITE") then
+       else if (trim(action) .eq. "COMPUTE" .or. trim(action) .eq. "WRITE") then
 
-          open(unit = orbsUnit, file=trim(orbsFile), status="replace", form="unformatted")
+          if(trim(action) .eq. "WRITE") open(unit = orbsUnit, file=trim(orbsFile), status="replace", form="unformatted")
           k=0
           do g = 1, size(MolecularSystem_instance%species(speciesID)%particles)
              do i = 1, size(MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction)
@@ -333,12 +335,11 @@ contains
                    ! print *, "viveee"
                    ! call Matrix_show(orbitalAndGradientInGrid)
 
-
-                   write( labels(1), "(A,I0.4)") "ORBITAL_", k
-                   labels(2) = Grid_instance(speciesID)%nameOfSpecies
-                   
-                   call Matrix_writeToFile(Grid_instance(speciesID)%orbitalsWithGradient(k), unit=orbsUnit, binary=.true., arguments = labels(1:2) )
-
+                   if(trim(action) .eq. "WRITE") then
+                      write( labels(1), "(A,I0.4)") "ORBITAL_", k
+                      labels(2) = Grid_instance(speciesID)%nameOfSpecies                   
+                      call Matrix_writeToFile(Grid_instance(speciesID)%orbitalsWithGradient(k), unit=orbsUnit, binary=.true., arguments = labels(1:2) )
+                   end if
                 end do
              end do
           end do
@@ -387,7 +388,8 @@ contains
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
     nproc=omp_get_max_threads()
 
-    allocate( nodeDensityInGrid(nproc),nodeGradientInGrid(nproc,3) )
+    if(.not. allocated(nodeDensityInGrid) ) allocate( nodeDensityInGrid(nproc),nodeGradientInGrid(nproc,3) )
+    if(.not. allocated(nodeGradientInGrid) ) allocate( nodeGradientInGrid(nproc,3) )
 
     do n=1, nproc
        call Vector_Constructor( nodeDensityInGrid(n), gridSize, 0.0_8)
@@ -870,7 +872,7 @@ contains
 
     nproc=omp_get_max_threads()
 
-    allocate( nodeExchangeCorrelationMatrix(nproc) )
+    if(.not. allocated(nodeExchangeCorrelationMatrix))allocate( nodeExchangeCorrelationMatrix(nproc) )
 
     do n=1, nproc
        call Matrix_Constructor( nodeExchangeCorrelationMatrix(n), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
@@ -1137,11 +1139,11 @@ contains
        print *, "Contact density between ", trim(MolecularSystem_getNameOfSpecie(speciesID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
        if(present(otherElectronID) ) print *, "Including contact density between ", trim(MolecularSystem_getNameOfSpecie(otherElectronID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
        
-       print *, "As the integral of rhoA*rhoB(1+g[beta])"
        if(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-A" .or. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA" ) then
+          print *, "As the integral of rhoA*rhoB(1+g[beta])"
           print *, "With g[beta] from the expCS-A functional"
        else
-          print *, "With g[beta]=0.0"          
+          print *, "As the integral of rhoA*rhoB"
        end if
        write (*,"(A10,F20.10)") "overlap=", overlapDensity
        write (*,"(A10,F20.10)") "pep=", contactDensity
@@ -1173,7 +1175,7 @@ contains
     gridSize =Grid_instance(speciesID)%totalSize
     numberOfCenters=MolecularSystem_instance%numberOfPointCharges
 
-    allocate(distances(numberOfCenters))
+    if(.not. allocated(distances))allocate(distances(numberOfCenters))
 
     distances(:)=0.0
     do center = 1, numberOfCenters
