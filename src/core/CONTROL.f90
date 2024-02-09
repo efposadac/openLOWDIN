@@ -57,6 +57,7 @@ module CONTROL_
      real(8) :: DIIS_SWITCH_THRESHOLD_BKP
      real(8) :: ELECTRONIC_LEVEL_SHIFTING
      real(8) :: NONELECTRONIC_LEVEL_SHIFTING
+     real(8) :: EXCHANGE_ORBITAL_THRESHOLD
      real(8) :: WAVE_FUNCTION_SCALE
      integer :: SCF_NONELECTRONIC_MAX_ITERATIONS
      integer :: SCF_ELECTRONIC_MAX_ITERATIONS
@@ -332,10 +333,10 @@ module CONTROL_
      !!*****************************************************
      !! Miscelaneous Options
      !!
-     real(8) :: MO_FRACTION_OCCUPATION
-     integer :: IONIZE_MO
-     character(50) :: IONIZE_SPECIE(10)
-     character(50) :: EXCITE_SPECIE
+     real(8) :: MO_FRACTION_OCCUPATION(10)
+     integer :: IONIZE_MO(10)
+     character(50) :: IONIZE_SPECIES(10)
+     character(50) :: EXCITE_SPECIES
      integer :: NUMBER_OF_CORES
 
      !!*****************************************************
@@ -395,6 +396,7 @@ module CONTROL_
   real(8) :: LowdinParameters_diisSwitchThreshold_bkp
   real(8) :: LowdinParameters_electronicLevelShifting
   real(8) :: LowdinParameters_nonelectronicLevelShifting
+  real(8) :: LowdinParameters_exchangeOrbitalThreshold
   real(8) :: LowdinParameters_waveFunctionScale
   integer :: LowdinParameters_scfNonelectronicMaxIterations
   integer :: LowdinParameters_scfElectronicMaxIterations
@@ -669,10 +671,10 @@ module CONTROL_
   !!*****************************************************
   !! Miscelaneous Options
   !!
-  real(8) :: LowdinParameters_MOFractionOccupation
-  integer :: LowdinParameters_ionizeMO
-  character(50) :: LowdinParameters_ionizeSpecie(10)
-  character(50) :: LowdinParameters_exciteSpecie
+  real(8) :: LowdinParameters_MOFractionOccupation(10)
+  integer :: LowdinParameters_ionizeMO(10)
+  character(50) :: LowdinParameters_ionizeSpecies(10)
+  character(50) :: LowdinParameters_exciteSpecies
 
   !!*****************************************************
   !! Integrals transformation options
@@ -731,6 +733,7 @@ module CONTROL_
        LowdinParameters_diisSwitchThreshold_bkp,&
        LowdinParameters_electronicLevelShifting,&
        LowdinParameters_nonelectronicLevelShifting,&
+       LowdinParameters_exchangeOrbitalThreshold,&
        LowdinParameters_waveFunctionScale,&
        LowdinParameters_scfNonelectronicMaxIterations,&
        LowdinParameters_scfElectronicMaxIterations,&
@@ -1006,8 +1009,8 @@ module CONTROL_
                                 !!
        LowdinParameters_MOFractionOccupation,&
        LowdinParameters_ionizeMO,&
-       LowdinParameters_ionizeSpecie,&
-       LowdinParameters_exciteSpecie,&
+       LowdinParameters_ionizeSpecies,&
+       LowdinParameters_exciteSpecies,&
        
                                 !!*****************************************************
                                 !! Integrals transformation options
@@ -1091,6 +1094,7 @@ contains
     LowdinParameters_diisSwitchThreshold_bkp = 0.5 
     LowdinParameters_electronicLevelShifting = 0.0
     LowdinParameters_nonelectronicLevelShifting = 0.0
+    LowdinParameters_exchangeOrbitalThreshold = 0.8
     LowdinParameters_waveFunctionScale = 1000.0
     LowdinParameters_scfNonelectronicMaxIterations = 50
     LowdinParameters_scfElectronicMaxIterations = 50
@@ -1366,9 +1370,8 @@ contains
     !!
     LowdinParameters_MOFractionOccupation = 1.0_8
     LowdinParameters_ionizeMO = 0
-    LowdinParameters_ionizeSpecie = "NONE"
-    LowdinParameters_exciteSpecie = "NONE"
-    LowdinParameters_exciteSpecie = "NONE"     
+    LowdinParameters_ionizeSpecies = "NONE"
+    LowdinParameters_exciteSpecies = "NONE"
 
     !!*****************************************************
     !! Integrals transformation options
@@ -1430,6 +1433,7 @@ contains
     CONTROL_instance%DIIS_SWITCH_THRESHOLD_BKP = 0.5 
     CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING = 0.0
     CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING = 0.0
+    CONTROL_instance%EXCHANGE_ORBITAL_THRESHOLD = 0.8
     CONTROL_instance%WAVE_FUNCTION_SCALE = 1000.0
     CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS = 50
     CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS = 50
@@ -1702,8 +1706,8 @@ contains
     !!                                                                                                                         
     CONTROL_instance%MO_FRACTION_OCCUPATION = 1.0_8
     CONTROL_instance%IONIZE_MO = 0
-    CONTROL_instance%IONIZE_SPECIE = "NONE"
-    CONTROL_instance%EXCITE_SPECIE = "NONE"                                                            
+    CONTROL_instance%IONIZE_SPECIES = "NONE"
+    CONTROL_instance%EXCITE_SPECIES = "NONE"                                                            
     !$OMP PARALLEL private(nthreads, proc)
     proc = OMP_GET_THREAD_NUM()
     if(proc == 0) then
@@ -1812,6 +1816,7 @@ contains
     CONTROL_instance%DIIS_SWITCH_THRESHOLD_BKP = LowdinParameters_diisSwitchThreshold_bkp
     CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING = LowdinParameters_electronicLevelShifting
     CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING = LowdinParameters_nonelectronicLevelShifting
+    CONTROL_instance%EXCHANGE_ORBITAL_THRESHOLD = LowdinParameters_exchangeOrbitalThreshold
     CONTROL_instance%WAVE_FUNCTION_SCALE = LowdinParameters_waveFunctionScale
     CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS = LowdinParameters_scfNonelectronicMaxIterations
     CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS = LowdinParameters_scfElectronicMaxIterations
@@ -2101,8 +2106,8 @@ contains
     !!                                                                                 
     CONTROL_instance%MO_FRACTION_OCCUPATION = LowdinParameters_MOFractionOccupation
     CONTROL_instance%IONIZE_MO = LowdinParameters_ionizeMO
-    CONTROL_instance%IONIZE_SPECIE = LowdinParameters_ionizeSpecie
-    CONTROL_instance%EXCITE_SPECIE = LowdinParameters_exciteSpecie
+    CONTROL_instance%IONIZE_SPECIES = LowdinParameters_ionizeSpecies
+    CONTROL_instance%EXCITE_SPECIES = LowdinParameters_exciteSpecies
 
     !!*****************************************************
     !! Integrals transformation options
@@ -2171,6 +2176,7 @@ contains
     LowdinParameters_diisSwitchThreshold_bkp = CONTROL_instance%DIIS_SWITCH_THRESHOLD_BKP
     LowdinParameters_electronicLevelShifting = CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
     LowdinParameters_nonelectronicLevelShifting = CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
+    LowdinParameters_exchangeOrbitalThreshold = CONTROL_instance%EXCHANGE_ORBITAL_THRESHOLD
     LowdinParameters_waveFunctionScale = CONTROL_instance%WAVE_FUNCTION_SCALE
     LowdinParameters_scfNonelectronicMaxIterations = CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
     LowdinParameters_scfElectronicMaxIterations = CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
@@ -2449,8 +2455,8 @@ contains
     !!                                                                                 
     LowdinParameters_MOFractionOccupation = CONTROL_instance%MO_FRACTION_OCCUPATION
     LowdinParameters_ionizeMO = CONTROL_instance%IONIZE_MO
-    LowdinParameters_ionizeSpecie = CONTROL_instance%IONIZE_SPECIE
-    LowdinParameters_exciteSpecie = CONTROL_instance%EXCITE_SPECIE
+    LowdinParameters_ionizeSpecies = CONTROL_instance%IONIZE_SPECIES
+    LowdinParameters_exciteSpecies = CONTROL_instance%EXCITE_SPECIES
 
     !!*****************************************************
     !! Integrals transformation options
@@ -2519,6 +2525,7 @@ contains
     otherThis%DIIS_SWITCH_THRESHOLD_BKP = this%DIIS_SWITCH_THRESHOLD_BKP 
     otherThis%ELECTRONIC_LEVEL_SHIFTING = this%ELECTRONIC_LEVEL_SHIFTING 
     otherThis%NONELECTRONIC_LEVEL_SHIFTING = this%NONELECTRONIC_LEVEL_SHIFTING 
+    otherthis%EXCHANGE_ORBITAL_THRESHOLD = this%EXCHANGE_ORBITAL_THRESHOLD
     otherThis%WAVE_FUNCTION_SCALE= this%WAVE_FUNCTION_SCALE
     otherThis%SCF_NONELECTRONIC_MAX_ITERATIONS = this%SCF_NONELECTRONIC_MAX_ITERATIONS 
     otherThis%SCF_ELECTRONIC_MAX_ITERATIONS = this%SCF_ELECTRONIC_MAX_ITERATIONS 
@@ -2764,8 +2771,8 @@ contains
     !!
     otherThis%MO_FRACTION_OCCUPATION = this%MO_FRACTION_OCCUPATION 
     otherThis%IONIZE_MO = this%IONIZE_MO 
-    otherThis%IONIZE_SPECIE = this%IONIZE_SPECIE 
-    otherThis%EXCITE_SPECIE = this%EXCITE_SPECIE 
+    otherThis%IONIZE_SPECIES = this%IONIZE_SPECIES
+    otherThis%EXCITE_SPECIES = this%EXCITE_SPECIES
 
     !!*****************************************************
     !! Integrals transformation options
@@ -2795,7 +2802,7 @@ contains
   subroutine CONTROL_show()
     implicit none
 
-    integer:: i !, nthreads, proc
+    integer:: i,j !, nthreads, proc
 
     print *,""
     print *,"LOWDIN IS RUNNING WITH NEXT PARAMETERS: "
@@ -2975,15 +2982,17 @@ contains
 
     end if
 
-    if((CONTROL_instance%IONIZE_SPECIE(1)) /= "NONE") then 
-
-       write (*,"(T10,A,I5)") "MOLECULAR ORBITAL TO BE IONIZED: ", CONTROL_instance%IONIZE_MO
+    if((CONTROL_instance%IONIZE_SPECIES(1)) /= "NONE") then 
        ! print *, "size ionizepsecie", size(CONTROL_instance%IONIZE_SPECIE)
        ! print *, "ionizepsecie", CONTROL_instance%IONIZE_SPECIE
-       do i = 1, size(CONTROL_instance%IONIZE_SPECIE)
-          if ( trim(CONTROL_instance%IONIZE_SPECIE(i)) /= "NONE" ) then
-             write (*,"(T10,A,A)") "FOR SPECIE0: ", trim(CONTROL_instance%IONIZE_SPECIE(i))
-             write (*,"(T10,A,ES15.5)") "IONIZED MOLECULAR ORBITAL OCCUPATION: ",CONTROL_instance%MO_FRACTION_OCCUPATION
+       write (*,"(T10,A)") "MOLECULAR ORBITALS TO BE IONIZED "
+       do i = 1, size(CONTROL_instance%IONIZE_SPECIES)
+          if ( trim(CONTROL_instance%IONIZE_SPECIES(i)) /= "NONE" ) then
+             write (*,"(T15,A,A)") "FOR SPECIES: ", trim(CONTROL_instance%IONIZE_SPECIES(i))
+             do j = 1, size(CONTROL_instance%IONIZE_MO)
+                if(CONTROL_instance%IONIZE_MO(j) .gt. 0) &
+                     write (*,"(T20,A,I4,A,ES15.5)")  "ORBITAL", CONTROL_instance%IONIZE_MO(j) ," OCCUPATION:",CONTROL_instance%MO_FRACTION_OCCUPATION(j)
+             end do
           end if
        end do
     end if
@@ -3000,9 +3009,9 @@ contains
 
     end if
 
-    if(CONTROL_instance%EXCITE_SPECIE /= "NONE") then 
+    if(CONTROL_instance%EXCITE_SPECIES /= "NONE") then 
 
-       write (*,"(T10,A,T10)") "CALCULATING", trim(CONTROL_instance%EXCITE_SPECIE) ,"IN THE FIRST EXCITED STATE"
+       write (*,"(T10,A,T10)") "CALCULATING", trim(CONTROL_instance%EXCITE_SPECIES) ,"IN THE FIRST EXCITED STATE"
 
     end if
 
@@ -3157,6 +3166,12 @@ contains
 
     end if
 
+    if ( CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF .eqv. .true. ) then
+       write(*,"(T10,A)") "OCCUPIED ORBITALS IN SCF WILL BE REORDERED TO MAXIMIZE THE OVERLAP WITH RESPECT TO THE INITIAL GUESS"
+       write(*,"(T10,A,F8.3)") "OVERLAP THRESHOLD FOR ORBITAL EXCHANGE:", CONTROL_instance%EXCHANGE_ORBITAL_THRESHOLD
+    end if
+
+    
     if(CONTROL_instance%LOCALIZE_ORBITALS) then
        select case (trim(CONTROL_instance%ERKALE_LOCALIZATION_METHOD))
        case("MU")

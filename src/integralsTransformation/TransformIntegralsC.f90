@@ -1504,7 +1504,7 @@ contains
     if ( trim(this%partialTransform)=="PT2"  ) then
 
        symmetric = .false. 
-       if ( CONTROL_instance%IONIZE_MO == 0 ) then
+       if ( CONTROL_instance%IONIZE_MO(1) == 0 ) then
           !! all
           this%p_l = totalOccupation     !! HOMO 
           this%p_u = totalOccupation + 1 !! LUMO
@@ -1541,8 +1541,8 @@ contains
        else
 
           if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
-             this%p_l = CONTROL_instance%IONIZE_MO  
-             this%p_u = CONTROL_instance%IONIZE_MO 
+             this%p_l = CONTROL_instance%IONIZE_MO(1)  
+             this%p_u = CONTROL_instance%IONIZE_MO(1) 
              this%q_l = coreOrbitals+1
              this%q_u = totalActiveOrbitals
 
@@ -1552,8 +1552,8 @@ contains
              this%s_u = totalActiveOrbitals
           else 
 
-             this%p_l = CONTROL_instance%IONIZE_MO  
-             this%p_u = CONTROL_instance%IONIZE_MO 
+             this%p_l = CONTROL_instance%IONIZE_MO(1)  
+             this%p_u = CONTROL_instance%IONIZE_MO(1) 
              this%q_l = coreOrbitals+1
              this%q_u = totalActiveOrbitals
 
@@ -1571,7 +1571,7 @@ contains
     if ( trim(this%partialTransform)=="MP2-PT2" ) then
 
        symmetric = .false. 
-       if ( CONTROL_instance%IONIZE_MO == 0 ) then
+       if ( CONTROL_instance%IONIZE_MO(1) == 0 ) then
 
           this%p_l = coreOrbitals+1
           this%p_u = totalOccupation + 1
@@ -1586,7 +1586,7 @@ contains
 
           if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
              this%p_l = coreOrbitals+1
-             this%p_u = max(CONTROL_instance%IONIZE_MO,totalOccupation)
+             this%p_u = max(CONTROL_instance%IONIZE_MO(1),totalOccupation)
              this%q_l = coreOrbitals+1
              this%q_u = totalActiveOrbitals
 
@@ -1597,7 +1597,7 @@ contains
           else 
 
              this%p_l = coreOrbitals+1  
-             this%p_u = max(CONTROL_instance%IONIZE_MO,totalOccupation)
+             this%p_u = max(CONTROL_instance%IONIZE_MO(1),totalOccupation)
              this%q_l = coreOrbitals+1
              this%q_u = totalActiveOrbitals
 
@@ -1710,7 +1710,7 @@ contains
        this%s_upperOrbital = otherTotalActiveOrbitals
        symmetric = .true.
 
-      if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+      if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE" ) then
 
         symmetric = .false.
         ionizeA = .false.
@@ -1719,16 +1719,16 @@ contains
          nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
          nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
 
-         do s = 1, size(CONTROL_instance%IONIZE_SPECIE )
-           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+         do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
+           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeA = .true. 
            end if
-           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeB = .true. 
            end if
          end do
 
-        if ( CONTROL_instance%IONIZE_MO == 0 ) then
+        if ( CONTROL_instance%IONIZE_MO(1) == 0 ) then
 
           if ( ionizeA .and. ionizeB ) then
 
@@ -1766,10 +1766,10 @@ contains
 
           end if
 
-        else if ( CONTROL_instance%IONIZE_MO /= 0 ) then !!occ and vir..
+        else if ( CONTROL_instance%IONIZE_MO(1) /= 0 ) then !!occ and vir..
 
           if ( ionizeA .and. ionizeB ) then
-            if ( CONTROL_instance%IONIZE_MO <= totalOccupation .and. CONTROL_instance%IONIZE_MO <= othertotalOccupation ) then
+            if ( CONTROL_instance%IONIZE_MO(1) <= totalOccupation .and. CONTROL_instance%IONIZE_MO(1) <= othertotalOccupation ) then
               this%p_lowerOrbital = coreOrbitals+1
               this%p_upperOrbital = totalOccupation
               this%q_lowerOrbital = coreOrbitals+1
@@ -1779,14 +1779,14 @@ contains
               this%s_lowerOrbital = otherCoreOrbitals+1
               this%s_upperOrbital = otherTotalActiveOrbitals
 
-            else if ( CONTROL_instance%IONIZE_MO > totalOccupation .and. CONTROL_instance%IONIZE_MO > othertotalOccupation ) then
+            else if ( CONTROL_instance%IONIZE_MO(1) > totalOccupation .and. CONTROL_instance%IONIZE_MO(1) > othertotalOccupation ) then
 
               this%p_lowerOrbital = coreOrbitals+1
-              this%p_upperOrbital = CONTROL_instance%IONIZE_MO 
+              this%p_upperOrbital = CONTROL_instance%IONIZE_MO(1)
               this%q_lowerOrbital = coreOrbitals+1
               this%q_upperOrbital = totalActiveOrbitals
               this%r_lowerOrbital = otherCoreOrbitals+1
-              this%r_upperOrbital = CONTROL_instance%IONIZE_MO 
+              this%r_upperOrbital = CONTROL_instance%IONIZE_MO(1) 
               this%s_lowerOrbital = otherCoreOrbitals+1
               this%s_upperOrbital = otherTotalActiveOrbitals
 
@@ -1794,8 +1794,8 @@ contains
 
           else if ( ionizeA .and. .not. ionizeB ) then
         
-            this%p_lowerOrbital = CONTROL_instance%IONIZE_MO
-            this%p_upperOrbital = CONTROL_instance%IONIZE_MO
+            this%p_lowerOrbital = CONTROL_instance%IONIZE_MO(1)
+            this%p_upperOrbital = CONTROL_instance%IONIZE_MO(1)
             this%q_lowerOrbital = coreOrbitals+1
             this%q_upperOrbital = totalActiveOrbitals
   
@@ -1810,8 +1810,8 @@ contains
             this%p_upperOrbital = totalOccupation
             this%q_lowerOrbital = totalOccupation + 1
             this%q_upperOrbital = totalActiveOrbitals
-            this%r_lowerOrbital = CONTROL_instance%IONIZE_MO
-            this%r_upperOrbital = CONTROL_instance%IONIZE_MO
+            this%r_lowerOrbital = CONTROL_instance%IONIZE_MO(1)
+            this%r_upperOrbital = CONTROL_instance%IONIZE_MO(1)
             this%s_lowerOrbital = otherCoreOrbitals+1
             this%s_upperOrbital = otherTotalActiveOrbitals
 
@@ -1837,7 +1837,7 @@ contains
        this%s_upperOrbital = otherTotalActiveOrbitals
        symmetric = .true.
 
-      if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE" ) then
+      if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE" ) then
 
         symmetric = .false.
         ionizeA = .false.
@@ -1846,16 +1846,16 @@ contains
          nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
          nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
 
-         do s = 1, size(CONTROL_instance%IONIZE_SPECIE )
-           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+         do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
+           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeA = .true. 
            end if
-           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIE(s)) ) then
+           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeB = .true. 
            end if
          end do
 
-        if ( CONTROL_instance%IONIZE_MO == 0 ) then
+        if ( CONTROL_instance%IONIZE_MO(1) == 0 ) then
 
           if ( ionizeA .and. ionizeB ) then
 
@@ -1893,10 +1893,10 @@ contains
 
           end if
 
-        else if ( CONTROL_instance%IONIZE_MO /= 0 ) then !!occ and vir..
+        else if ( CONTROL_instance%IONIZE_MO(1) /= 0 ) then !!occ and vir..
 
           if ( ionizeA .and. ionizeB ) then
-            if ( CONTROL_instance%IONIZE_MO <= totalOccupation .and. CONTROL_instance%IONIZE_MO <= othertotalOccupation ) then
+            if ( CONTROL_instance%IONIZE_MO(1) <= totalOccupation .and. CONTROL_instance%IONIZE_MO(1) <= othertotalOccupation ) then
               this%p_lowerOrbital = coreOrbitals+1
               this%p_upperOrbital = totalOccupation
               this%q_lowerOrbital = coreOrbitals+1
@@ -1906,14 +1906,14 @@ contains
               this%s_lowerOrbital = otherCoreOrbitals+1
               this%s_upperOrbital = otherTotalActiveOrbitals
 
-            else if ( CONTROL_instance%IONIZE_MO > totalOccupation .and. CONTROL_instance%IONIZE_MO > othertotalOccupation ) then
+            else if ( CONTROL_instance%IONIZE_MO(1) > totalOccupation .and. CONTROL_instance%IONIZE_MO(1) > othertotalOccupation ) then
 
               this%p_lowerOrbital = coreOrbitals+1
-              this%p_upperOrbital = CONTROL_instance%IONIZE_MO 
+              this%p_upperOrbital = CONTROL_instance%IONIZE_MO(1)
               this%q_lowerOrbital = coreOrbitals+1
               this%q_upperOrbital = totalActiveOrbitals
               this%r_lowerOrbital = otherCoreOrbitals+1
-              this%r_upperOrbital =  CONTROL_instance%IONIZE_MO 
+              this%r_upperOrbital =  CONTROL_instance%IONIZE_MO(1) 
               this%s_lowerOrbital = otherCoreOrbitals+1
               this%s_upperOrbital = otherTotalActiveOrbitals
 
@@ -1922,7 +1922,7 @@ contains
           else if ( ionizeA .and. .not. ionizeB ) then
         
             this%p_lowerOrbital = coreOrbitals+1
-            this%p_upperOrbital = max(CONTROL_instance%IONIZE_MO,totalOccupation)
+            this%p_upperOrbital = max(CONTROL_instance%IONIZE_MO(1),totalOccupation)
             this%q_lowerOrbital = coreOrbitals+1
             this%q_upperOrbital = totalActiveOrbitals
   
@@ -1938,7 +1938,7 @@ contains
             this%q_lowerOrbital = totalOccupation + 1
             this%q_upperOrbital = totalActiveOrbitals
             this%r_lowerOrbital = otherCoreOrbitals+1
-            this%r_upperOrbital = max(CONTROL_instance%IONIZE_MO,otherTotalOccupation)
+            this%r_upperOrbital = max(CONTROL_instance%IONIZE_MO(1),otherTotalOccupation)
             this%s_lowerOrbital = otherCoreOrbitals+1
             this%s_upperOrbital = otherTotalActiveOrbitals
 

@@ -1,0 +1,35 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test RKS
+%  HCN Single Point
+%  APMO DFT with nuclear electron correlation
+%  Results
+% refExchangeCorrelationEnergy=-10.15758267
+% refNuclearElectronCorrelationEnergy=-0.03005334
+% refTotalEnergy=-93.367393799928
+%      Author: Felix Moncada - QCC-UNAL/2018
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='Molecula de H2'
+
+GEOMETRY
+e-(N) CC-PVDZ  0.0000  0.00000 1.156
+e-(C) CC-PVDZ  0.0000  0.00000 0.0000
+e-(H) CC-PVDZ  0.0000  0.00000 -1.064
+N   dirac          0.0000  0.00000 1.156
+C   dirac	   0.0000  0.00000 0.0000
+H_1 Nakai-3-SP     0.0000  0.00000 -1.064  
+END GEOMETRY
+
+TASKS
+method = "RKS"
+END TASKS
+
+CONTROL
+readCoefficients=.F.
+electronExchangeCorrelationFunctional="B3LYP"
+nuclearElectronCorrelationFunctional="epc17-2"
+gridStorage="MEMORY"
+END CONTROL
+
+
+

@@ -15,7 +15,7 @@ END TASKS
 CONTROL
 readCoefficients=F
 !buildTwoParticlesMatrixForOneParticle=T ! active to compare with Romero.JCP.137.74105.2012
-	ionizeSpecie="E-ALPHA" 
+	ionizeSpecies="E-ALPHA" 
  	IonizeMO=2
  	MOfractionOccupation=0.5
  	ptTransitionOperator=T

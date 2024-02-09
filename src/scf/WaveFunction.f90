@@ -1760,6 +1760,7 @@ contains
     implicit none
     type(WaveFunction) :: this
 
+    type(Matrix) :: auxMatrix
     integer :: orderMatrix
     integer :: ocupationNumber
     integer :: i
@@ -1772,32 +1773,30 @@ contains
 
     this%densityMatrix%values = 0.0_8
 
-    !! Segment for fractional occupations: 1
-    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(this%name) == trim(CONTROL_instance%IONIZE_SPECIE(1)) ) then
-       this%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO) = &
-            this%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO)*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION)
-
+    call Matrix_copyConstructor(auxMatrix, this%waveFunctionCoefficients)
+    
+    !! Segment for fractional occupations: introduce fractional occupation
+    if (trim(this%name) == trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
+       do i=1,size(CONTROL_instance%IONIZE_MO)
+          if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) &
+               auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i)) = &
+               auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i))*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION(i))
+       end do
     end if
-
+    
     do i = 1 , orderMatrix
        do j = 1 , orderMatrix
           do k = 1 , ocupationNumber
 
              this%densityMatrix%values(i,j) =  &
                   this%densityMatrix%values( i,j ) + &
-                  ( this%waveFunctionCoefficients%values(i,k) &
-                  * this%waveFunctionCoefficients%values(j,k) )
+                  ( auxMatrix%values(i,k) &
+                  * auxMatrix%values(j,k) )
           end do
        end do
     end do
 
     this%densityMatrix%values =  MolecularSystem_getEta(this%species)  * this%densityMatrix%values
-
-    !! Segment for fractional occupations: 1
-    if (CONTROL_instance%IONIZE_MO /= 0 .and. trim(this%name) == trim(CONTROL_instance%IONIZE_SPECIE(1))) then
-       this%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO) = &
-            this%waveFunctionCoefficients%values(:,CONTROL_instance%IONIZE_MO)/sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION)
-    end if
 
     !!DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
@@ -2628,6 +2627,7 @@ contains
        write(*,*) "COSMO Charges for ",MolecularSystem_getNameOfSpecies( f )," = ", sum(qiCosmo(:))
 
     end do
+    close(wfnUnit)
 
 
     charges_file="qTotalCosmo.charges"
@@ -2639,7 +2639,47 @@ contains
     ! write(*,*)"sumqTotalCosmo ", sum(qTotalCosmo(:))
 
   end subroutine WaveFunction_cosmoQuantumCharge
+  
+  !>
+  !! @brief Remove orbitals from basis functions deleted by the overlap criteria selected
+  subroutine Wavefunction_removeOrbitalsBelowEigenThreshold(this)
+    implicit none
+    type(WaveFunction) :: this
 
+    integer(8) :: numberOfContractions
+    real(8) :: normCheck    
+    integer :: i, j, mu, nu, index
+
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(this%species)
+
+    i=0
+    do index = 1 , numberOfContractions
+       i=i+1
+       normCheck=0.0
+       if ( abs(this%molecularOrbitalsEnergy%values(i)) .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
+          do mu = 1 , numberOfContractions
+             do nu = 1 , numberOfContractions
+                normCheck=normCheck+this%waveFunctionCoefficients%values(mu,i)*&
+                     this%waveFunctionCoefficients%values(nu,i)*&
+                     this%overlapMatrix%values(mu,nu)
+             end do
+          end do
+          ! print *, "eigenvalue", i, this%molecularOrbitalsEnergy%values(i), "normCheck", normCheck
+
+          if ( normCheck .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD) then
+             ! Shift orbital coefficients to the end of the matrix and Make energy a very large number
+             do j = i , numberOfContractions-1
+                this%molecularOrbitalsEnergy%values(j)=this%molecularOrbitalsEnergy%values(j+1)
+                this%waveFunctionCoefficients%values(:,j) = this%waveFunctionCoefficients%values(:,j+1)
+             end do
+             this%molecularOrbitalsEnergy%values(numberOfContractions)=1/CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
+             this%waveFunctionCoefficients%values(:,numberOfContractions)=0.0
+             i=i-1
+          end if
+
+       end if
+    end do
+  end subroutine Wavefunction_removeOrbitalsBelowEigenThreshold
 
 
 end module WaveFunction_

@@ -50,6 +50,7 @@ contains
     type(Matrix), intent(inout) :: orbitals
     logical, intent(in) :: printInfo
     
+    type(Matrix) :: auxMatrix
     character(30) :: nameOfSpecies
     integer(8) :: orderOfMatrix, occupationNumber
     logical :: existPlain, existBinnary, readSuccess
@@ -132,22 +133,37 @@ contains
           call DensityMatrixSCFGuess_exception( ERROR, "the selected guess method for "//nameOfSpecies//" is not implemented", "at program SCF module DensityMatrixSCFGuess")
 
        end select
-
     end if
 
+    if(CONTROL_instance%DEBUG_SCFS) then
+       print *, "Guess orbitals for", nameOfSpecies
+       call Matrix_show(orbitals)
+    end if
+    
+    call Matrix_copyConstructor(auxMatrix,orbitals)
+    !! Segment for fractional occupations: introduce fractional occupation
+    if (trim(nameOfSpecies) == trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
+       do i=1,size(CONTROL_instance%IONIZE_MO)
+          if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) then
+             if(printInfo) write (*,"(A,F6.2,A,I5,A,A)") "Removing ", (1.0-CONTROL_instance%MO_FRACTION_OCCUPATION(i))*100, &
+                  " % of the density associated with orbital No. ", CONTROL_instance%IONIZE_MO(i), " of ", trim(nameOfSpecies)
+             auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i)) = auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i))*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION(i))
+          end if
+       end do
+    end if
+    
     do i = 1 , orderOfMatrix
        do j = 1 , orderOfMatrix
           do k = 1 , occupationNumber
-             densityMatrix%values(i,j) = densityMatrix%values( i,j ) + orbitals%values(i,k) * orbitals%values(j,k)
+             densityMatrix%values(i,j) = densityMatrix%values( i,j ) + auxMatrix%values(i,k) * auxMatrix%values(j,k)
           end do
        end do
     end do
     densityMatrix%values=densityMatrix%values*MolecularSystem_getEta( speciesID )
-
+    
     if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX ) then
        densityMatrix%values(occupationNumber,:) = 0.1*densityMatrix%values(occupationNumber,:)*densityMatrix%values(occupationNumber+1,:)
     end if
-
 
   end subroutine DensityMatrixSCFGuess_getGuess
 

@@ -29,7 +29,7 @@ END TASKS
 
 CONTROL
 readCoefficients=F
-IonizeSpecie="H-A_1" "H-B_1"
+IonizeSpecies="H-A_1" "H-B_1"
 	IonizeMO = 1
 	integralsTransformationMethod = "E"
 END CONTROL

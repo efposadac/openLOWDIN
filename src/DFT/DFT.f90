@@ -68,10 +68,10 @@ program DFT
   select case ( job ) 
   case ("BUILD_SCF_GRID")
      call DensityFunctionalTheory_buildSCFGrid()
-     return
+     STOP
   case ("BUILD_FINAL_GRID" )
      call DensityFunctionalTheory_buildFinalGrid()
-     return
+     STOP
   end select
 
   !!!Computing energy and potential jobs  

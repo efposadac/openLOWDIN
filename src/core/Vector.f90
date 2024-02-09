@@ -110,7 +110,9 @@ module Vector_
        Vector_constructorInteger, &
        Vector_constructorInteger8, &
        Vector_destructorInteger, &
-       Vector_swapIntegerElements
+       Vector_swapIntegerElements, &
+       Vector_writeToFileInteger, &
+       Vector_getFromFileInteger
   
 contains
   
@@ -313,7 +315,7 @@ contains
 
   !>
   !! @brief Constructor de copia
-  !! Reserva la memoria necesaria para otherMatrix y le asigna los valores de this
+  !! Reserva la memoria necesaria para otherVector y le asigna los valores de this
   subroutine Vector_copyConstructorInteger( this, otherVector )
     implicit none
     type(IVector), intent(inout) :: this
@@ -330,7 +332,7 @@ contains
   
   !>
   !! @brief Constructor de copia
-  !! Reserva la memoria necesaria para otherMatrix y le asigna los valores de this
+  !! Reserva la memoria necesaria para otherVector y le asigna los valores de this
   subroutine Vector_copyConstructor( this, otherVector )
     implicit none
     type(Vector), intent(inout) :: this
@@ -345,7 +347,7 @@ contains
 
   !>
   !! @brief Constructor de copia
-  !! Reserva la memoria necesaria para otherMatrix y le asigna los valores de this
+  !! Reserva la memoria necesaria para otherVector y le asigna los valores de this
   subroutine Vector_copyConstructor8( this, otherVector )
     implicit none
     type(Vector8), intent(inout) :: this
@@ -403,7 +405,6 @@ contains
     integer :: columns
     integer :: ssize
     integer :: i
-    integer :: j
     integer :: k
     integer :: l
     integer :: u
@@ -500,7 +501,6 @@ contains
     integer :: columns
     integer :: ssize
     integer :: i
-    integer :: j
     integer :: k
     integer :: l
     integer :: u
@@ -599,7 +599,6 @@ contains
     character(*), optional :: arguments(:)
     
     integer :: elementsNum
-    integer :: status
     integer :: n
     
     character(20) :: auxSize
@@ -640,7 +639,7 @@ contains
          else
             
             call Vector_exception( ERROR, "Unit file no connected!",&
-                 "Class object Matrix  in the writeToFile() function" )
+                 "Class object Vector  in the writeToFile() function" )
                
          end if
          
@@ -694,7 +693,7 @@ contains
          else
             
             call Vector_exception( ERROR, "Unit file no connected!",&
-                 "Class object Matrix  in the writeToFile() function" )
+                 "Class object Vector  in the writeToFile() function" )
                
          end if
  
@@ -717,7 +716,6 @@ contains
     real(8), optional :: value
     type(Vector), optional, intent(out) :: output
     
-    type(Exception) :: ex
     character(5000) :: line
     character(20) :: auxSize
     integer :: status
@@ -746,11 +744,11 @@ contains
           rewind(unit)
           
           found = .false.
-          line = ""
              
           if(present(arguments)) then
 
              do                   
+                line = ""
                 read(unit, iostat = status) line (1:len_trim(arguments(1)))
 
                 if(status == -1) then
@@ -814,8 +812,8 @@ contains
                 
              else
                 
-                call Vector_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
-                     "Class object Matrix  in the getFromFile() function"  )
+                call Vector_exception( ERROR, "The dimensions of the vector "//trim(file)//" are wrong ",&
+                     "Class object Vector  in the getFromFile() function"  )
                 
              end if
 
@@ -824,7 +822,7 @@ contains
        else
 
           call Vector_exception( ERROR, "Unit file no connected!",&
-               "Class object Matrix  in the getFromFile() function" )
+               "Class object Vector  in the getFromFile() function" )
              
        end if
 
@@ -962,8 +960,8 @@ contains
                 
              else
                 
-                call Vector_exception( ERROR, "The dimensions of the matrix "//trim(file)//" are wrong ",&
-                     "Class object Matrix  in the getFromFile() function"  )
+                call Vector_exception( ERROR, "The dimensions of the vector "//trim(file)//" are wrong ",&
+                     "Class object Vector  in the getFromFile() function"  )
                 
              end if
 
@@ -972,17 +970,407 @@ contains
        else
 
           call Vector_exception( ERROR, "Unit file no connected!",&
-               "Class object Matrix  in the getFromFile() function" )
+               "Class object Vector  in the getFromFile() function" )
              
        end if
       end if
     end if
     
   end subroutine Vector_getFromFile
+
+  !>
+  !! @brief Escribe un vector en el lugar especificado (en binario o con formato)
+  subroutine Vector_writeToFileInteger(intvector, unit, file, binary, value, arguments)
+    implicit none
+    type(IVector), optional, intent(in) :: intvector
+    integer, optional :: unit
+    character(*), optional :: file
+    logical, optional :: binary
+    integer, optional :: value
+    character(*), optional :: arguments(:)
+
+    integer :: elementsNum
+    integer :: n
+
+    character(20) :: auxSize
+
+    logical :: bbinary
+    logical :: existFile
+
+    bbinary = .false.
+    if(present(binary)) bbinary = binary
+
+    if ( bbinary ) then    
+       if ( present( unit ) ) then
+          !! It is assumed that the unit y conected to any file (anyways will check)
+          inquire(unit=unit, exist=existFile)
+
+          if(existFile) then
+
+             if(present(arguments)) then
+                do n = 1, size(arguments)
+                   write(unit) arguments(n)
+                end do
+             end if
+
+             if(present(value)) then
+                write(unit) 1_8
+                write(unit) value
+
+             else
+
+                write(unit) int(size(intvector%values), 8)
+                write(unit) intvector%values
+
+             end if
+
+          else
+
+             call Vector_exception( ERROR, "Unit file no connected!",&
+                  "Class object Vector  in the writeToFile() function" )
+
+          end if
+
+
+       else if ( present(file) ) then
+          if(bbinary) then
+             open ( 4,FILE=trim(file),STATUS='REPLACE',ACTION='WRITE', FORM ='UNFORMATTED')
+             write(4) int(size(intvector%values), 8)
+             write(4) intvector%values
+             close(4)
+
+          else
+
+             open ( 4,FILE=trim(file),STATUS='REPLACE',ACTION='WRITE')
+             elementsNum = size( intvector%values )
+             write(auxSize,*) elementsNum
+             write (4,"("//trim(auxSize)//"I15)") (intvector%values(n), n=1 , elementsNum)
+             close(4)
+          end if
+
+       end if
+
+    else !! not binary
+
+       if ( present( unit ) ) then
+          !! It is assumed that the unit y conected to any file (anyways will check)
+          inquire(unit=unit, exist=existFile)
+
+          if(existFile) then
+
+             if(present(arguments)) then
+
+                do n = 1, size(arguments)
+
+                   write(unit,*) arguments(n)
+
+                end do
+             end if
+
+             if(present(value)) then
+                write(unit,*) 1_8
+                write(unit,*) value
+
+             else
+
+                write(unit,*) int(size(intvector%values), 8)
+                write(unit,*) intvector%values
+
+             end if
+
+          else
+
+             call Vector_exception( ERROR, "Unit file no connected!",&
+                  "Class object Vector  in the writeToFile() function" )
+
+          end if
+
+       end if !! unit not present
+
+
+    end if
+
+  end subroutine Vector_writeToFileInteger
+
+  !>
+  !! @brief Obtiene un vector  del lugar especificado
+  subroutine Vector_getFromFileInteger(elementsNum, unit, file, binary, value, arguments, output )
+    implicit none
+    integer, optional, intent(in) :: elementsNum
+    integer, optional :: unit
+    character(*), optional :: file
+    logical, optional :: binary
+    character(*), optional :: arguments(:)
+    integer, optional :: value
+    type(IVector), optional, intent(out) :: output
+
+    character(5000) :: line
+    character(20) :: auxSize
+    integer :: status
+    integer :: n
+    integer(8) :: totalSize
+    logical :: bbinary
+    logical :: existFile
+    logical :: found
+
+
+    if (present(elementsNum)) write(auxSize,*) elementsNum
+
+    bbinary = .false.
+    existFile = .false.
+
+    if(present(binary)) bbinary = binary
+
+    if ( bbinary ) then
+       if ( present( unit ) ) then
+
+          !! check file
+          inquire(unit=unit, exist=existFile)
+
+          if(existFile) then
+
+             rewind(unit)
+
+             found = .false.
+             line = ""
+
+             if(present(arguments)) then
+
+                do                   
+                   read(unit, iostat = status) line (1:len_trim(arguments(1)))
+
+                   if(status == -1) then
+
+                      print *, "while searching for", arguments
+                      call vector_exception( ERROR, "End of file!",&
+                           "Class object Vector in the getfromFile() function")
+                   end if
+
+                   if(trim(line) == trim(arguments(1))) then
+
+                      found = .true.                   
+
+                   end if
+
+                   if(found) then
+
+                      backspace(unit)
+
+                      do n = 1, size(arguments)
+
+                         found = .false.
+                         read(unit, iostat = status) line
+
+                         if(trim(line) == trim(arguments(n))) then
+
+                            found = .true.
+
+                         end if
+
+                      end do
+
+                   end if
+
+                   if(found) exit
+
+                end do
+
+
+             end if
+
+             !! check size
+             read(unit) totalSize
+
+             if(present(value)) then
+
+                read(unit) value
+
+             else
+
+                if(totalSize == int(elementsNum,8)) then
+
+                   if(.not. allocated(output%values)) then                   
+
+                      call Vector_constructorInteger( output, elementsNum )
+
+                   end if
+
+                   read(unit) output%values
+
+                   ! call Vector_show(output)
+
+                else
+
+                   print *, "while searching for", arguments, "totalSize was", totalSize, "and expected", int(elementsNum,8)
+                   call Vector_exception( ERROR, "The dimensions of the vector "//trim(file)//" are wrong ",&
+                        "Class object Vector  in the getFromFile() function"  )
+
+                end if
+
+             end if
+
+          else
+
+             call Vector_exception( ERROR, "Unit file no connected!",&
+                  "Class object Vector  in the getFromFile() function" )
+
+          end if
+
+       else if ( present(file) ) then
+
+          inquire( FILE = trim(file), EXIST = existFile )
+
+          if ( existFile ) then
+
+             if(bbinary) then
+                open( 4, FILE=trim(file), ACTION='read', FORM='unformatted', STATUS='old' )
+
+                read(4) totalSize
+                if(totalSize == int(elementsNum,8)) then
+
+                   call Vector_constructorInteger( output, elementsNum )
+
+                   read(4) output%values
+                   close(4)
+
+                   !! print*, output%values
+
+                else
+                   close(4)
+
+                   call Vector_exception(ERROR, "The dimensions of the vector in "//trim(file)//" are wrong ", &
+                        "Class object Vector_  in the getFromFile() function")
+                end if
+             else
+
+                call Vector_constructorInteger( output, elementsNum )
+                open ( 4,FILE=trim(file),STATUS='unknown',ACCESS='sequential' )
+                !! verifica el tamahno de las matrice
+                read (4,"(A)") line
+                if ( len_trim(line) /=elementsNum*15) then
+                   close(4)
+
+                   !! call tracebackqq(string="Probando trace ",USER_EXIT_CODE=-1,EPTR=%LOC(ExceptionInfo))
+
+                   call Vector_exception(ERROR, "The dimensions of the vector in "//trim(file)//" are wrong ", &
+                        "Class object Vector_  in the getFromFile() function" )
+
+                else
+                   rewind(4)
+                end if
+                read ( 4,"("//trim(auxSize)//"I15)") (output%values(n), n=1 ,elementsNum)
+                close(4)
+
+             end if
+          else
+
+             call Vector_exception(ERROR, "The file "//trim(file)//" don't exist " , &
+                  "Class object Vector_  in the getFromFile() function" )
+
+          end if
+       end if
+
+    else !! not binary
+
+       if ( present( unit ) ) then
+
+          !! check file
+          inquire(unit=unit, exist=existFile)
+
+          if(existFile) then
+
+             rewind(unit)
+
+             found = .false.
+             line = ""
+
+             if(present(arguments)) then
+
+                do                   
+                   read(unit, *, iostat = status) line (1:len_trim(arguments(1)))
+
+                   if(status == -1) then
+
+                      call vector_exception( ERROR, "End of file!",&
+                           "Class object Vector in the getfromFile() function" )
+                   end if
+
+                   if(trim(line) == trim(arguments(1))) then
+
+                      found = .true.                   
+
+                   end if
+
+                   if(found) then
+
+                      backspace(unit)
+
+                      do n = 1, size(arguments)
+
+                         found = .false.
+                         read(unit, *, iostat = status) line
+
+                         if(trim(line) == trim(arguments(n))) then
+
+                            found = .true.
+
+                         end if
+
+                      end do
+
+                   end if
+
+                   if(found) exit
+
+                end do
+
+
+             end if
+
+             !! check size
+             read(unit,*) totalSize
+
+             if(present(value)) then
+
+                read(unit,*) value
+
+             else
+
+                if(totalSize == int(elementsNum,8)) then
+
+                   if(.not. allocated(output%values)) then                   
+
+                      call Vector_constructorInteger( output, elementsNum )
+
+                   end if
+
+                   read(unit,*) output%values
+
+                   ! call Vector_show(output)
+
+                else
+
+                   call Vector_exception( ERROR, "The dimensions of the vector "//trim(file)//" are wrong ",&
+                        "Class object Vector  in the getFromFile() function"  )
+
+                end if
+
+             end if
+
+          else
+
+             call Vector_exception( ERROR, "Unit file no connected!",&
+                  "Class object Vector  in the getFromFile() function" )
+
+          end if
+       end if
+    end if
+
+  end subroutine Vector_getFromFileInteger
   
   !>
-  !! @brief Devuelve un apuntador a la matrix solicitada
-  !! @param this matrix de m x n
+  !! @brief Devuelve un apuntador a la vector solicitada
+  !! @param this vector de m x n
   !! @return Apuntador a la matriz solicitada.
   !! @todo No ha sido probada
   function Vector_getPtr( this ) result( output )

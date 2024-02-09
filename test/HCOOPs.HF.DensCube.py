@@ -13,13 +13,13 @@ testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 cube1Name = testName + ".E-.dens.cub"                                                                      
-cube2Name = testName + ".POSITRON.dens.cub"                                                                
+cube2Name = testName + ".POSITRON.2.dens.cub"                                                                
 # Reference values and tolerance
 
 refValues = {
 "HF energy" : [-188.362545831570,1E-8],
-"Num e- in cube" : [23.98744049,1E-1],
-"Num e+ in cube" : [0.96711581,1E-2],
+"Num e- in cube" : [24.0,1E-1],
+"Num e+ in cube" : [1.0,1E-2],
 }                       
 
 testValues = dict(refValues) #copy 

@@ -293,8 +293,6 @@ contains
     do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
 
        do type= 1, size(analysis)
-
-          if(analysis(type) .eq. "LOWDIN" .and. CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION) cycle
           
           speciesName = trim(MolecularSystem_getNameOfSpecie( speciesID ))
 
@@ -431,14 +429,14 @@ contains
 
        auxMatrix%values = matmul(this%densityMatrix(speciesID)%values, this%overlapMatrix(speciesID)%values )
 
-       auxMatrix = Matrix_pow( this%overlapMatrix(speciesID), 0.5_8 )
+       auxMatrix = Matrix_pow( this%overlapMatrix(speciesID), 0.5_8, method="SVD" )
        auxMatrixB = auxMatrix
        auxMatrix%values = matmul( matmul( auxMatrixB%values , this%densityMatrix(speciesID)%values), auxMatrixB%values )
 
        if(trim(speciesName) .eq. "E-ALPHA") then
           otherAuxMatrix%values = matmul(this%densityMatrix(otherSpeciesID)%values, this%overlapMatrix(otherSpeciesID)%values )
 
-          otherAuxMatrix = Matrix_pow( this%overlapMatrix(otherSpeciesID), 0.5_8 )
+          otherAuxMatrix = Matrix_pow( this%overlapMatrix(otherSpeciesID), 0.5_8, method="SVD"  )
           otherAuxMatrixB = otherAuxMatrix
           otherAuxMatrix%values = matmul( matmul( otherAuxMatrixB%values , this%densityMatrix(otherSpeciesID)%values), otherAuxMatrixB%values )
        end if
@@ -533,11 +531,30 @@ contains
     print *," ELECTROSTATIC MOMENTS:"
     print *,"======================"
     print *,""
+    print *,""
+    print *,"DIPOLE: (A.U.)"
+    print *,"------"
+    print *,""
+    write (6,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
+
+    do i=1, numberOfSpecies
+       dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecie(this, i)
+       totalDipole(:)=totalDipole(:)+dipole(i,:)
+       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
+    end do
+    dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()
+    totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
+    write (6,"(T5,A15,3F13.8)") "Point charges: ", dipole(numberOfSpecies+1,:)
+    write (6,"(T22,A28)") "___________________________________"
+    write (6,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
+
+    print *,""
     print *,"DIPOLE: (DEBYE)"
     print *,"------"
     print *,""
     write (6,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
 
+    totalDipole=0.0_8
     do i=1, numberOfSpecies
        dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecie(this, i)*2.54174619
        totalDipole(:)=totalDipole(:)+dipole(i,:)

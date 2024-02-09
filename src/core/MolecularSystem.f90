@@ -198,9 +198,9 @@ contains
        end if
 
        !!Check for input errors in the number of particles
-       if( (abs(int(MolecularSystem_instance%species(i)%ocupationNumber)-MolecularSystem_instance%species(i)%ocupationNumber) &
-            .gt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD) .and. (CONTROL_instance%MO_FRACTION_OCCUPATION .eq. 1.0_8) ) then
-          print *, "species ", trim(MolecularSystem_getNameOfSpecie(i)) , "has fractional ocupation number ", MolecularSystem_instance%species(i)%ocupationNumber, "please check your input addParticles and multiplicity"
+       if( (abs(int(MolecularSystem_instance%species(i)%ocupationNumber)-MolecularSystem_instance%species(i)%ocupationNumber) .gt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD)) then
+          print *, "species ", trim(MolecularSystem_getNameOfSpecie(i)) , "has fractional ocupation number ", &
+               MolecularSystem_instance%species(i)%ocupationNumber, "please check your input addParticles and multiplicity"
           call MolecularSystem_exception(ERROR, "Fractional ocupation number, imposible combination of charge and multiplicity","MolecularSystem module at build function.")
        end if
     end do
@@ -333,15 +333,23 @@ contains
   !>
   !! @brief shows general information of the molecular system.
   !! @author S. A. Gonzalez
-  subroutine MolecularSystem_showInformation()
-    implicit none
+  subroutine MolecularSystem_showInformation(this)
+    type(MolecularSystem), optional, target :: this
+    
+    type(MolecularSystem), pointer :: system
+
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
         
     print *,""
-    print *," MOLECULAR SYSTEM: ",trim(MolecularSystem_instance%name)
+    print *," MOLECULAR SYSTEM: ",trim(system%name)
     print *,"-----------------"
     print *,""
-    write (6,"(T5,A16,A)") "DESCRIPTION   : ", trim( MolecularSystem_instance%description )
-    write (6,"(T5,A16,I3)") "CHARGE        : ",MolecularSystem_instance%charge
+    write (6,"(T5,A16,A)") "DESCRIPTION   : ", trim( system%description )
+    write (6,"(T5,A16,I3)") "CHARGE        : ",system%charge
     write (6,"(T5,A16,A4)") "PUNTUAL GROUP : ", "NONE"
     print *,""
     
@@ -353,18 +361,26 @@ contains
   !! @author S. A. Gonzalez
   !! @par changes : 
   !!     - rewritten, E. F. Posada. 2013
-  subroutine MolecularSystem_showParticlesInformation()
+  subroutine MolecularSystem_showParticlesInformation(this)
     implicit none
-    integer :: i
-    integer :: j
+    type(MolecularSystem), optional, target :: this
     
+    type(MolecularSystem), pointer :: system
+    integer :: i, j
+
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
+
     print *,""
     print *," INFORMATION OF PARTICLES :"
     print *,"========================="
-    write (6,"(T10,A29,I8.0)") "Total number of particles   =", MolecularSystem_instance%numberOfQuantumParticles + MolecularSystem_instance%numberOfPointCharges
-    write (6,"(T10,A29,I8.0)") "Number of quantum particles =", MolecularSystem_instance%numberOfQuantumParticles
-    write (6,"(T10,A29,I8.0)") "Number of puntual charges   =", MolecularSystem_instance%numberOfPointCharges
-    write (6,"(T10,A29,I8.0)") "Number of quantum species   =", MolecularSystem_instance%numberOfQuantumSpecies
+    write (6,"(T10,A29,I8.0)") "Total number of particles   =", system%numberOfQuantumParticles + system%numberOfPointCharges
+    write (6,"(T10,A29,I8.0)") "Number of quantum particles =", system%numberOfQuantumParticles
+    write (6,"(T10,A29,I8.0)") "Number of puntual charges   =", system%numberOfPointCharges
+    write (6,"(T10,A29,I8.0)") "Number of quantum species   =", system%numberOfQuantumSpecies
 
     !!***********************************************************************
     !! Imprime iformacion sobre masa, carga y numero de particulas encontradas
@@ -375,29 +391,29 @@ contains
     write (6,"(T10,A2,A4,A8,A12,A4,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","spin","","multiplicity"
     write (6,"(T5,A70)") "---------------------------------------------------------------------"
 
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do i = 1, system%numberOfQuantumSpecies
        write (6,'(T8,I3.0,A5,A10,A5,F10.4,A5,F5.2,A5,F5.2,A5,F5.2)') &
             i, " ", &
-            trim(MolecularSystem_instance%species(i)%symbol)," ",&
-            MolecularSystem_instance%species(i)%mass," ",&
-            MolecularSystem_instance%species(i)%charge, " ",&
-            MolecularSystem_instance%species(i)%spin, "",&
-            MolecularSystem_instance%species(i)%multiplicity
+            trim(system%species(i)%symbol)," ",&
+            system%species(i)%mass," ",&
+            system%species(i)%charge, " ",&
+            system%species(i)%spin, "",&
+            system%species(i)%multiplicity
     end do
 
     print *,""
     print *,"                  CONSTANTS OF COUPLING "
     write (6,"(T7,A60)") "------------------------------------------------------------"
-    write (6,"(T10,A8,A10,A5,A5,A4,A5,A6,A5,A10)") "Symbol", " ","kappa", " ","eta", " ","lambda","","occupation"
+    write (6,"(T10,A11,A11,A11,A11,A11)") "Symbol", "kappa","eta","lambda","occupation"
     write (6,"(T7,A60)") "------------------------------------------------------------"
     
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-       write (6,'(T10,A10,A5,F7.1,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)') &
-       trim(MolecularSystem_instance%species(i)%symbol)," ",&
-            MolecularSystem_instance%species(i)%kappa, " ", &
-            MolecularSystem_instance%species(i)%eta, " ",&
-            MolecularSystem_instance%species(i)%lambda," ",&
-            MolecularSystem_instance%species(i)%ocupationNumber
+    do i = 1, system%numberOfQuantumSpecies
+       write (6,'(T10,A11,F11.2,F11.2,F11.2,F11.2)') &
+       trim(system%species(i)%symbol),&
+            system%species(i)%kappa,&
+            system%species(i)%eta,&
+            system%species(i)%lambda,&
+            system%species(i)%ocupationNumber
     end do
 
     print *,""
@@ -408,26 +424,26 @@ contains
     write (6,"(T7,A60)") "------------------------------------------------------------"
     
     !! Only shows the basis-set name of the first particle by specie.
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do i = 1, system%numberOfQuantumSpecies
        
-       if( MolecularSystem_instance%species(i)%isElectron .and. CONTROL_instance%IS_OPEN_SHELL ) then
+       if( system%species(i)%isElectron .and. CONTROL_instance%IS_OPEN_SHELL ) then
 
           write (6,'(T10,A10,A5,I8,A5,I12,A5,A10)') &
-               trim(MolecularSystem_instance%species(i)%symbol)," ",&
+               trim(system%species(i)%symbol)," ",&
                !MolecularSystem_getTotalNumberOfContractions(i)," ",&
-               MolecularSystem_instance%species(i)%basisSetSize," ",&
-               int(MolecularSystem_instance%species(i)%internalSize / 2), " ",&
-               trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
+               system%species(i)%basisSetSize," ",&
+               int(system%species(i)%internalSize / 2), " ",&
+               trim(system%species(i)%particles(1)%basis%name)
           ! write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        else
 
           write (6,'(T10,A10,A5,I8,A5,I12,A5,A10)') &
-               trim(MolecularSystem_instance%species(i)%symbol)," ",&
+               trim(system%species(i)%symbol)," ",&
                !MolecularSystem_getTotalNumberOfContractions(i)," ",&
-               MolecularSystem_instance%species(i)%basisSetSize," ",&
-               MolecularSystem_instance%species(i)%internalSize, " ",&
-               trim(MolecularSystem_instance%species(i)%particles(1)%basis%name)
+               system%species(i)%basisSetSize," ",&
+               system%species(i)%internalSize, " ",&
+               trim(system%species(i)%particles(1)%basis%name)
           ! write(*,*)MolecularSystem_getTotalNumberOfContractions(i)
           
        end if
@@ -440,20 +456,20 @@ contains
     write (6,"(T10,A11,A9,A20,A20)") " PRIMITIVE ", "  SHELL  "," EXPONENT "," COEFFICIENT "
     write (6,"(T10,A60)") "------------------------------------------------------------"
     
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do i = 1, system%numberOfQuantumSpecies
        
        !! Avoid print twice basis in open-shell case
-       if(trim(MolecularSystem_instance%species(i)%name) == "E-BETA" ) cycle
+       if(trim(system%species(i)%name) == "E-BETA" ) cycle
        
        write (6,*) ""
-       write( 6, "(T5,A32,A5)") "BEGIN DESCRIPTION OF BASIS FOR: ", trim(MolecularSystem_instance%species(i)%symbol)
+       write( 6, "(T5,A32,A5)") "BEGIN DESCRIPTION OF BASIS FOR: ", trim(system%species(i)%symbol)
        write (6,"(T5,A30)") "================================"
        write (6,*) ""
        
-       do j = 1, size( MolecularSystem_instance%species(i)%particles )
+       do j = 1, size( system%species(i)%particles )
           
-          call BasisSet_showInCompactForm( MolecularSystem_instance%species(i)%particles(j)%basis,&
-               trim(MolecularSystem_instance%species(i)%particles(j)%nickname ))
+          call BasisSet_showInCompactForm( system%species(i)%particles(j)%basis,&
+               trim(system%species(i)%particles(j)%nickname ))
           
        end do
        
@@ -474,9 +490,9 @@ contains
     write (6,"(T10,A10,A5,A17,A5,A10)") "ID", " ", "Occupied Orbitals", " " ,"Basis size"
     write (6,"(T5,A70)") "---------------------------------------------------------------------"
 
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do i = 1, system%numberOfQuantumSpecies
           write (6,'(T10,A10,A5,I8,A5,I12)') &
-               trim(MolecularSystem_instance%species(i)%symbol)," ",&
+               trim(system%species(i)%symbol)," ",&
                 MolecularSystem_getOcupationNumber( i )," ",&
                MolecularSystem_getTotalNumberOfContractions(i)
     end do
@@ -599,18 +615,24 @@ contains
   !>
   !! @brief Saves all system information.
   !! @author E. F. Posada, 2013
-  subroutine MolecularSystem_saveToFile()
+  subroutine MolecularSystem_saveToFile(targetFilePrefix)
     implicit none
     
-    integer i, j, k
+    character(*), optional :: targetFilePrefix
+    character(50) :: fileName, prefix    
     character(100) :: title
+    integer i, j, k
+
+    prefix="lowdin"
+    if ( present( targetFilePrefix ) ) prefix=trim(targetFilePrefix)
     
     !!****************************************************************************
     !! CONTROL parameters on file.
     !!
     
     !! open file
-    open(unit=40, file="lowdin.dat", status="replace", form="formatted")
+    filename=trim(prefix)//".dat"
+    open(unit=40, file=filename, status="replace", form="formatted")
     
     !!save all options
     call CONTROL_save(40)
@@ -621,7 +643,8 @@ contains
     !!
 
     !!Open file
-    open(unit=40, file="lowdin.sys", status="replace", form="formatted")
+    filename=trim(prefix)//".sys"
+    open(unit=40, file=filename, status="replace", form="formatted")
     
     !! Saving general information.
     write(40,*) MolecularSystem_instance%name
@@ -674,7 +697,8 @@ contains
     !!
     
     !!open file
-    open(unit=40, file="lowdin.bas", status="replace", form="formatted")
+    filename=trim(prefix)//".bas"
+    open(unit=40, file=filename, status="replace", form="formatted")
     
     write(40,*) MolecularSystem_instance%numberOfQuantumSpecies    
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
@@ -743,12 +767,12 @@ contains
   !>
   !! @brief loads all system information from file
   !! @author E. F. Posada, 2013
-  subroutine MolecularSystem_loadFromFile( form, targetFile )
+  subroutine MolecularSystem_loadFromFile( form, targetPrefix )
     implicit none
     
     character(*) :: form
-    character(*), optional :: targetFile
-    character(50) :: fileName
+    character(*), optional :: targetPrefix
+    character(50) :: filePrefix,fileName
 
     integer :: auxValue
     integer :: counter
@@ -758,91 +782,86 @@ contains
     character(50) :: species
     character(50) :: otherSpecies
 
-    fileName="lowdin"
-    if ( present( targetFile ) ) fileName=trim(targetFile)
+    filePrefix="lowdin"
+    if ( present( targetPrefix ) ) filePrefix=trim(targetPrefix)
+
+    existFile = .false.
 
     select case (trim(form))
        
     case("LOWDIN.BAS")
-       
+
        !!****************************************************************************
        !! Loading info from the lowdin.bas format
        !!
-       
+
        !!open file
-       existFile = .false.
-       inquire(file="lowdin.bas", exist=existFile)
-       
-       if(existFile) then
+       fileName=trim(filePrefix)//".bas"
+       inquire(file=fileName, exist=existFile)
+       if( .not. existFile) call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//" was not found!","MolecularSystem module at LoadFromFile function.")
 
-          !! Destroy the molecular system if any
-          ! call MolecularSystem_destroy()
-          if(allocated(MolecularSystem_instance%pointCharges)) deallocate(MolecularSystem_instance%pointCharges)
-          if(allocated(MolecularSystem_instance%allParticles)) deallocate(MolecularSystem_instance%allParticles)
+       !! Destroy the molecular system if any
+       ! call MolecularSystem_destroy()
+       if(allocated(MolecularSystem_instance%pointCharges)) deallocate(MolecularSystem_instance%pointCharges)
+       if(allocated(MolecularSystem_instance%allParticles)) deallocate(MolecularSystem_instance%allParticles)
 
-          open(unit=40, file="lowdin.bas", status="old", form="formatted")
-          
-          read(40,*) MolecularSystem_instance%numberOfQuantumSpecies
-          if(.not. allocated(MolecularSystem_instance%species)) allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
+       open(unit=40, file=fileName, status="old", form="formatted")
 
-          MolecularSystem_instance%numberOfQuantumParticles = 0
+       read(40,*) MolecularSystem_instance%numberOfQuantumSpecies
+       if(.not. allocated(MolecularSystem_instance%species)) allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
 
-          do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-             
-             if(allocated(MolecularSystem_instance%species(i)%particles)) deallocate(MolecularSystem_instance%species(i)%particles)
+       MolecularSystem_instance%numberOfQuantumParticles = 0
 
-             read(40,*) MolecularSystem_instance%species(i)%name             
-             read(40,*) auxValue
-             
-             allocate(MolecularSystem_instance%species(i)%particles(auxValue))
-             
-             do j = 1, size(MolecularSystem_instance%species(i)%particles)
-                
-                read(40,*) MolecularSystem_instance%species(i)%particles(j)%nickname
-                
-                MolecularSystem_instance%numberOfQuantumParticles = MolecularSystem_instance%numberOfQuantumParticles + 1
-                call BasisSet_load(MolecularSystem_instance%species(i)%particles(j)%basis, "LOWDIN.BAS", unit = 40)
-                
-             end do
-             
-             MolecularSystem_instance%species(i)%basisSetSize = MolecularSystem_getNumberOfContractions(i)
-             
+       do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+
+          if(allocated(MolecularSystem_instance%species(i)%particles)) deallocate(MolecularSystem_instance%species(i)%particles)
+
+          read(40,*) MolecularSystem_instance%species(i)%name             
+          read(40,*) auxValue
+
+          allocate(MolecularSystem_instance%species(i)%particles(auxValue))
+
+          do j = 1, size(MolecularSystem_instance%species(i)%particles)
+
+             read(40,*) MolecularSystem_instance%species(i)%particles(j)%nickname
+
+             MolecularSystem_instance%numberOfQuantumParticles = MolecularSystem_instance%numberOfQuantumParticles + 1
+             call BasisSet_load(MolecularSystem_instance%species(i)%particles(j)%basis, filename, unit = 40)
+
           end do
 
-          read(40,*) MolecularSystem_instance%numberOfPointCharges
-          allocate(MolecularSystem_instance%pointCharges(MolecularSystem_instance%numberOfPointCharges))
-          
-          do i = 1, MolecularSystem_instance%numberOfPointCharges
-             read(40,*) MolecularSystem_instance%pointCharges(i)%charge
-             read(40,*) MolecularSystem_instance%pointCharges(i)%origin
-          end do
-          
-          close(40)
-          
-          !! Set the particles manager (all pointers)
-          MolecularSystem_instance%numberOfParticles = MolecularSystem_instance%numberOfQuantumParticles + MolecularSystem_instance%numberOfPointCharges
-          allocate(molecularSystem_instance%allParticles(MolecularSystem_instance%numberOfParticles ))
-          
-          counter = 1          
-          do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-             do j = 1, size(MolecularSystem_instance%species(i)%particles)
-                molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%species(i)%particles(j)
-                counter = counter + 1
-             end do
-          end do
+          MolecularSystem_instance%species(i)%basisSetSize = MolecularSystem_getNumberOfContractions(i)
 
-          do i = 1, MolecularSystem_instance%numberOfPointCharges
-             molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%pointCharges(i)
+       end do
+
+       read(40,*) MolecularSystem_instance%numberOfPointCharges
+       allocate(MolecularSystem_instance%pointCharges(MolecularSystem_instance%numberOfPointCharges))
+
+       do i = 1, MolecularSystem_instance%numberOfPointCharges
+          read(40,*) MolecularSystem_instance%pointCharges(i)%charge
+          read(40,*) MolecularSystem_instance%pointCharges(i)%origin
+       end do
+
+       close(40)
+
+       !! Set the particles manager (all pointers)
+       MolecularSystem_instance%numberOfParticles = MolecularSystem_instance%numberOfQuantumParticles + MolecularSystem_instance%numberOfPointCharges
+       allocate(molecularSystem_instance%allParticles(MolecularSystem_instance%numberOfParticles ))
+
+       counter = 1          
+       do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          do j = 1, size(MolecularSystem_instance%species(i)%particles)
+             molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%species(i)%particles(j)
              counter = counter + 1
           end do
-          
-          particleManager_instance => molecularSystem_instance%allParticles
+       end do
 
-       else
-          
-          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".bas was not found!","MolecularSystem module at LoadFromFile function.")
-          
-       end if
+       do i = 1, MolecularSystem_instance%numberOfPointCharges
+          molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%pointCharges(i)
+          counter = counter + 1
+       end do
+
+       particleManager_instance => molecularSystem_instance%allParticles
        
     case("LOWDIN.DAT")
        
@@ -851,24 +870,17 @@ contains
        !!
        
        !! open file
-       existFile = .false.
-       inquire(file="lowdin.dat", exist=existFile)
+       fileName=trim(filePrefix)//".dat"
+       inquire(file=fileName, exist=existFile)
+       if( .not. existFile) call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//" was not found!","MolecularSystem module at LoadFromFile function.")
        
-       if(existFile) then
-          
-          open(unit=40, file="lowdin.dat", status="old", form="formatted")
-          
-          call CONTROL_start()
-          call CONTROL_load(unit = 40)
-        
-          close(40)
-          
-       else
-
-          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".dat was not found!","MolecularSystem module at LoadFromFile function.")
-          
-       end if
+       open(unit=40, file=fileName, status="old", form="formatted")
        
+       call CONTROL_start()
+       call CONTROL_load(unit = 40)
+       
+       close(40)
+                 
     case("LOWDIN.SYS")
        
        !!****************************************************************************
@@ -879,107 +891,101 @@ contains
        call MolecularSystem_destroy()
     
        !! open file
-       existFile = .false.
-       inquire(file="lowdin.sys", exist=existFile)
-       
-       if(existFile) then
-          !!Open file
-          open(unit=40, file="lowdin.sys", status="old", form="formatted")
-          
-          !! read general information.
-          read(40,*) MolecularSystem_instance%name
-          read(40,'(A100)') MolecularSystem_instance%description    
-          read(40,*) MolecularSystem_instance%charge
-          
-          !! load quantum species.
-          read(40,*) MolecularSystem_instance%numberOfQuantumSpecies
-          allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
+       fileName=trim(filePrefix)//".sys"
+       inquire(file=fileName, exist=existFile)
+       if( .not. existFile) call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//" was not found!","MolecularSystem module at LoadFromFile function.")
 
-          !! load particles for each species.
-          do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-             call Species_loadFromFile(MolecularSystem_instance%species(i), unit=40)       
-          end do
+       !!Open file
+       open(unit=40, file=fileName, status="old", form="formatted")
 
-          !! load Point charges
-          read(40,*) MolecularSystem_instance%numberOfPointCharges
-          allocate(MolecularSystem_instance%pointCharges(MolecularSystem_instance%numberOfPointCharges))
-          
-          !! load info of each point charge
-          do i = 1, MolecularSystem_instance%numberOfPointCharges
-             call Particle_loadFromFile(MolecularSystem_instance%pointCharges(i), unit=40)
-          end do
-          
-          !! read the total of particles on the system
-          read(40,*) MolecularSystem_instance%numberOfParticles
-          read(40,*) MolecularSystem_instance%numberOfQuantumParticles
-          
+       !! read general information.
+       read(40,*) MolecularSystem_instance%name
+       read(40,'(A100)') MolecularSystem_instance%description    
+       read(40,*) MolecularSystem_instance%charge
 
-          !! Set the particles manager (all pointers)              
-          allocate(molecularSystem_instance%allParticles(MolecularSystem_instance%numberOfParticles ))
-          
-          counter = 1
-          do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-             do j = 1, size(MolecularSystem_instance%species(i)%particles)
-                
-                molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%species(i)%particles(j)
-                counter = counter + 1
-                
-             end do
-          end do
-          
-          do i = 1, MolecularSystem_instance%numberOfPointCharges
-             
-             molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%pointCharges(i)
+       !! load quantum species.
+       read(40,*) MolecularSystem_instance%numberOfQuantumSpecies
+       allocate(MolecularSystem_instance%species(MolecularSystem_instance%numberOfQuantumSpecies))
+
+       !! load particles for each species.
+       do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          call Species_loadFromFile(MolecularSystem_instance%species(i), unit=40)       
+       end do
+
+       !! load Point charges
+       read(40,*) MolecularSystem_instance%numberOfPointCharges
+       allocate(MolecularSystem_instance%pointCharges(MolecularSystem_instance%numberOfPointCharges))
+
+       !! load info of each point charge
+       do i = 1, MolecularSystem_instance%numberOfPointCharges
+          call Particle_loadFromFile(MolecularSystem_instance%pointCharges(i), unit=40)
+       end do
+
+       !! read the total of particles on the system
+       read(40,*) MolecularSystem_instance%numberOfParticles
+       read(40,*) MolecularSystem_instance%numberOfQuantumParticles
+
+
+       !! Set the particles manager (all pointers)              
+       allocate(molecularSystem_instance%allParticles(MolecularSystem_instance%numberOfParticles ))
+
+       counter = 1
+       do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+          do j = 1, size(MolecularSystem_instance%species(i)%particles)
+
+             molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%species(i)%particles(j)
              counter = counter + 1
-             
+
           end do
-          
-          particleManager_instance => molecularSystem_instance%allParticles
+       end do
 
-          
-          !! Loading External/Inter-particle potentials information
-          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+       do i = 1, MolecularSystem_instance%numberOfPointCharges
 
-            read(40,*) auxValue
-            call ExternalPotential_constructor(auxValue)
+          molecularSystem_instance%allParticles(counter)%particlePtr => MolecularSystem_instance%pointCharges(i)
+          counter = counter + 1
 
-            !! FELIX TODO: create function to get potential ID
-            
-            do j = 1, ExternalPotential_instance%ssize 
-              read(40,*) i 
-              read(40,*) name
-              read(40,*) species
+       end do
 
-              call ExternalPotential_load(i, name, species)
+       particleManager_instance => molecularSystem_instance%allParticles
 
-            end do
 
-          end if
+       !! Loading External/Inter-particle potentials information
+       if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
 
-          if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+          read(40,*) auxValue
+          call ExternalPotential_constructor(auxValue)
 
-            read(40,*) auxValue 
-            call InterPotential_constructor(auxValue)
+          !! FELIX TODO: create function to get potential ID
 
-            do j = 1, InterPotential_instance%ssize 
-              read(40,*) i 
-              read(40,*) name
-              read(40,*) species
-              read(40,*) otherSpecies
-  
-              call InterPotential_load(i, name, species, otherSpecies)
+          do j = 1, ExternalPotential_instance%ssize 
+             read(40,*) i 
+             read(40,*) name
+             read(40,*) species
 
-            end do
+             call ExternalPotential_load(i, name, species)
 
-          end if
+          end do
 
-          close(40)
-
-       else
-          
-          call MolecularSystem_exception(ERROR, "The file: "//trim(fileName)//".sys was not found!","MolecularSystem module at LoadFromFile function.")
-          
        end if
+
+       if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
+
+          read(40,*) auxValue 
+          call InterPotential_constructor(auxValue)
+
+          do j = 1, InterPotential_instance%ssize 
+             read(40,*) i 
+             read(40,*) name
+             read(40,*) species
+             read(40,*) otherSpecies
+
+             call InterPotential_load(i, name, species, otherSpecies)
+
+          end do
+
+       end if
+
+       close(40)
           
     end select
     

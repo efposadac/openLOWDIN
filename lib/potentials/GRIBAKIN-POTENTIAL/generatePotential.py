@@ -25,7 +25,7 @@ step = 0.04 # a.u
 
 polarizabilities = [(angstromToBohr**3)*x for x in polarizabilities] # a.u.
 maxR = int(maxR/step)
-print maxR
+print(maxR)
 
 angularMoment = list()
 for i in range(0,len(exponents)) :
@@ -45,14 +45,14 @@ outFile.write("%i\n" % (len(exponents)*len(origin)))
 
 ii = 0
 for atom in range(0,len(origin)):
-    print origin[atom]
+    print(origin[atom])
     realPotentialFileName = potentialName + "."+ str(origin[atom][2]) +".data"
 
     alpha = polarizabilities[atom]
     r = origin[atom][2] 
     realPotentialFile = open (realPotentialFileName, "w")
 
-    for i in xrange(1,maxR+1,1):
+    for i in range(1,maxR+1,1):
         i = i*step
         realPotentialFile.write(str(i) + " "+ str( -1.0*alpha/(2.0*(i-r)**4) * (1 - math.exp(-((i-r)**6)/(cutoff**6))) ) + "\n" )
     realPotentialFile.close()
@@ -108,7 +108,7 @@ print """+auxcoef+"""
     gnuplotOutput.close()
 
     if len(coeff) == 0:
-        print "Fitting error, results not found"
+        print("Fitting error, results not found")
         continue
 
     coefficients = [float(k) for k in coeff]

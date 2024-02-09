@@ -274,11 +274,11 @@ contains
              write (6,"(T10,A40)") "-------------------------------------"
           end if
 
-          if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
-             do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
-               if (CONTROL_instance%IONIZE_SPECIE(z) /= "NONE" ) then
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIE(z))
+          if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
+             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+             do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
+               if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
+               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
           else
@@ -385,11 +385,11 @@ contains
           write (*,"(T10,A60)") "LOWDIN implementation: J. Chem. Phys. 138, 194108 (2013)"
           write (*,"(T10,A64)") "---------------------------------------------------------------"
 
-          if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
-             do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
-               if (CONTROL_instance%IONIZE_SPECIE(z) /= "NONE" ) then
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIE(z))
+          if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
+             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+             do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
+               if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
+               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
           else
@@ -521,8 +521,8 @@ contains
 
     !!! Defining for which species the correction will be applied
     
-!    if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
+!    if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
+!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -531,13 +531,13 @@ contains
 !       m = species2ID
 !    end if
 
-      if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
+      if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
+             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
              zz = 0 
-             do z = 1, size(CONTROL_instance%IONIZE_SPECIE )
-               if (CONTROL_instance%IONIZE_SPECIE(z) /= "NONE" ) then
+             do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
+               if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
                zz = zz + 1
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIE(z))
+               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
              m = zz 
@@ -604,16 +604,16 @@ contains
        !!! Defining the number of orbitals !!! Insert a parameter for the else option
 
        if (CONTROL_instance%PT_TRANSITION_OPERATOR.or.CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
           n = 1
-       !else if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+       !else if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE".and.CONTROL_instance%IONIZE_MO(1) /= 0) then
           !PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-          !PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
+          !PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO(1)
           !n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
-       else if ( CONTROL_instance%IONIZE_MO /= 0) then
-          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+       else if ( CONTROL_instance%IONIZE_MO(1) /= 0) then
+          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
           n = 1
        else
           PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
@@ -641,7 +641,7 @@ contains
 
        if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
           
-          occupationsOfSpeciesA%values(CONTROL_instance%IONIZE_MO)=CONTROL_instance%MO_FRACTION_OCCUPATION
+          occupationsOfSpeciesA%values(CONTROL_instance%IONIZE_MO(1))=CONTROL_instance%MO_FRACTION_OCCUPATION(1)
        
        end if
 
@@ -1347,8 +1347,8 @@ contains
 
     ! Defining for which species the correction will be applied
     
-    if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE") then
-       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE(1) )
+    if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
+       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
        species2ID= species1ID
        m=1
     else
@@ -1563,12 +1563,12 @@ contains
        ! Defining the number of orbitals !!! Insert a parameter for the else option
        
        if (CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
           n = 1
-       else if (CONTROL_instance%IONIZE_SPECIE(1) /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+       else if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE".and.CONTROL_instance%IONIZE_MO(1) /= 0) then
           PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
+          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO(1)
           n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
        else
           PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
@@ -4861,7 +4861,7 @@ end module PropagatorTheory_
   !   end if
 
   !   if (CONTROL_instance%PT_TRANSITION_OPERATOR.or.CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-  !      specie1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
+  !      specie1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
   !      specie2ID= specie1ID
   !   else
   !      specie1ID=1
@@ -4880,8 +4880,8 @@ end module PropagatorTheory_
   !      lambda = MolecularSystem_getLambda( i )
 
   !      if (CONTROL_instance%PT_TRANSITION_OPERATOR.or.CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-  !         PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-  !         PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+  !         PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+  !         PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
   !      else
   !         PropagatorTheory_instance%virtualBoundary= occupationNumber
   !         PropagatorTheory_instance%occupationBoundary = 1
@@ -4905,8 +4905,8 @@ end module PropagatorTheory_
   !      if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
   !         call Vector_constructor(occupations,occupationNumber)
   !         do k=1, occupationNumber
-  !            if (k==CONTROL_instance%IONIZE_MO) then
-  !               occupations%values(k)=CONTROL_instance%MO_FRACTION_OCCUPATION
+  !            if (k==CONTROL_instance%IONIZE_MO(1)) then
+  !               occupations%values(k)=CONTROL_instance%MO_FRACTION_OCCUPATION(1)
   !            else
   !               occupations%values(k)=1.0_8
   !            end if
@@ -4998,7 +4998,7 @@ end module PropagatorTheory_
   !            end do
   !         end do
           
-  !         if (CONTROL_instance%PT_TRANSITION_OPERATOR .and. nameOfSpecie == CONTROL_instance%IONIZE_SPECIE .and. p==CONTROL_instance%IONIZE_MO) then
+  !         if (CONTROL_instance%PT_TRANSITION_OPERATOR .and. nameOfSpecie == CONTROL_instance%IONIZE_SPECIES .and. p==CONTROL_instance%IONIZE_MO(1)) then
   !            do a=1, occupationNumber
   !               do s=occupationNumber+1, numberOfContractions
   !                  id=id+1
@@ -5046,8 +5046,8 @@ end module PropagatorTheory_
   !                  if (nameOfOtherSpecie == CONTROL_instance%IONIZE_SPECIE) then
   !                     call Vector_constructor(occupationsOfOtherSpecie,occupationNumberOfOtherSpecie)
   !                     do k=1, occupationNumberOfOtherSpecie
-  !                        if (k==CONTROL_instance%IONIZE_MO) then
-  !                           occupationsOfOtherSpecie%values(k)=CONTROL_instance%MO_FRACTION_OCCUPATION
+  !                        if (k==CONTROL_instance%IONIZE_MO(1)) then
+  !                           occupationsOfOtherSpecie%values(k)=CONTROL_instance%MO_FRACTION_OCCUPATION(1)
   !                        else
   !                           occupationsOfOtherSpecie%values(k)=1.0_8
   !                        end if
@@ -5135,7 +5135,7 @@ end module PropagatorTheory_
   !                     end do
   !                  end do
                    
-  !                  if (CONTROL_instance%PT_TRANSITION_OPERATOR .and. nameOfSpecie == CONTROL_instance%IONIZE_SPECIE .and. p==CONTROL_instance%IONIZE_MO) then
+  !                  if (CONTROL_instance%PT_TRANSITION_OPERATOR .and. nameOfSpecie == CONTROL_instance%IONIZE_SPECIES .and. p==CONTROL_instance%IONIZE_MO(1)) then
   !                     do a=1, occupationNumberOfOtherSpecie
   !                        do s=occupationNumberOfOtherSpecie+1, numberOfContractionsOfOtherSpecie
                             
@@ -5298,7 +5298,7 @@ end module PropagatorTheory_
   !   print *,"******************************************************************"
   !   print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
-  !   speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
+  !   speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
 
   !   nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
        
@@ -5315,8 +5315,8 @@ end module PropagatorTheory_
   !   lambdaOfSpecies = MolecularSystem_getLambda( speciesID )
 
   !   if ( CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-  !      PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-  !      PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+  !      PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+  !      PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
   !   else
   !      PropagatorTheory_instance%virtualBoundary= occupationNumberOfSpecies
   !      PropagatorTheory_instance%occupationBoundary = 1
@@ -5579,7 +5579,7 @@ end module PropagatorTheory_
 
   !   do pa = 1, HamiltonianSize
        
-  !      if ( pa==CONTROL_instance%IONIZE_MO ) then
+  !      if ( pa==CONTROL_instance%IONIZE_MO(1) ) then
           
   !         lastEigenvector%values(pa) = 1.0_8       
           
@@ -5591,7 +5591,7 @@ end module PropagatorTheory_
 
   !   end do
 
-  !   lastEigenvalue = eigenValuesOfSpecies%values(CONTROL_instance%IONIZE_MO)
+  !   lastEigenvalue = eigenValuesOfSpecies%values(CONTROL_instance%IONIZE_MO(1))
 
   !   print *,lastEigenvector%values
 
@@ -5715,7 +5715,7 @@ end module PropagatorTheory_
 
   !   ! Storing of corrections
     
-  !   PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(speciesID,4*CONTROL_instance%IONIZE_MO)= &
+  !   PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(speciesID,4*CONTROL_instance%IONIZE_MO(1))= &
   !        27.211396_8 * lastEigenvalue
 
   !   !!! DAVIDSON ALGORYTHM ENDS
@@ -5800,7 +5800,7 @@ end module PropagatorTheory_
 !     print *,"******************************************************************"
 !     print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
-!     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
+!     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
 !     nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )       
 !     chargeOfSpecies = MolecularSystem_getCharge( speciesID )
 !     eigenValuesOfSpecies = MolecularSystem_getEigenValues( speciesID )
@@ -6563,8 +6563,8 @@ end module PropagatorTheory_
 !     print *,"idaHf:",idaHf,"idfHf:",idfHf,"HamiltonianSize:",HamiltonianSize
 
 !     ! if ( CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-!     !    PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-!     !    PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+!     !    PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+!     !    PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
 !     ! else
 !     !    PropagatorTheory_instance%virtualBoundary= occupationNumberOfSpecies
 !     !    PropagatorTheory_instance%occupationBoundary = 1
@@ -6581,9 +6581,9 @@ end module PropagatorTheory_
 
 !     lastEigenvector%values = 0.0_8
 
-!     lastEigenvector%values(CONTROL_instance%IONIZE_MO) = 1.0_8       
+!     lastEigenvector%values(CONTROL_instance%IONIZE_MO(1)) = 1.0_8       
 
-!     lastEigenvalue = eigenValuesOfSpecies%values(CONTROL_instance%IONIZE_MO)
+!     lastEigenvalue = eigenValuesOfSpecies%values(CONTROL_instance%IONIZE_MO(1))
 
 !     print *,"Initial lastEigenvector values:"
 !     call Vector_show(lastEigenvector)
@@ -6595,10 +6595,10 @@ end module PropagatorTheory_
 
 !     call Matrix_eigen(superHamiltonian, superEigenvalues, superEigenvectors, SYMMETRIC)
 
-!     print *,"koopmans:",eigenvaluesOfSpecies%values(CONTROL_instance%IONIZE_MO)
+!     print *,"koopmans:",eigenvaluesOfSpecies%values(CONTROL_instance%IONIZE_MO(1))
 
 !     ! call Vector_show(superEigenvalues)
-!     ! print *,"superEigenvalue:",superEigenvalues%values(CONTROL_instance%IONIZE_MO)
+!     ! print *,"superEigenvalue:",superEigenvalues%values(CONTROL_instance%IONIZE_MO(1))
 
 !     do k = 1, HamiltonianSize
 !        dot=dot_product(superEigenvectors%values(:,k),lastEigenvector%values)
@@ -6862,7 +6862,7 @@ end module PropagatorTheory_
     
 !     ! Storing of corrections
     
-!     PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(speciesID,4*CONTROL_instance%IONIZE_MO)= &
+!     PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(speciesID,4*CONTROL_instance%IONIZE_MO(1))= &
 !          27.211396_8 * lastEigenvalue
     
 !     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-1))= &
@@ -6951,8 +6951,8 @@ end module PropagatorTheory_
 !
 !    !!! Defining for which species the correction will be applied
 !    
-!    if (CONTROL_instance%IONIZE_SPECIE /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
+!    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
+!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -6987,12 +6987,12 @@ end module PropagatorTheory_
 !       !!! Defining the number of orbitals !!! Insert a parameter for the else option
 !
 !       if (CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-!          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-!          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+!          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+!          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
 !          n = 1
-!       else if (CONTROL_instance%IONIZE_SPECIE /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+!       else if (CONTROL_instance%IONIZE_SPECIES /= "NONE".and.CONTROL_instance%IONIZE_MO(1) /= 0) then
 !          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-!          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
+!          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO(1)
 !          n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
 !       else
 !          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
@@ -8394,8 +8394,8 @@ end module PropagatorTheory_
 !
 !    !!! Defining for which species the correction will be applied
 !    
-!    if (CONTROL_instance%IONIZE_SPECIE /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
+!    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
+!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -8430,12 +8430,12 @@ end module PropagatorTheory_
 !       ! Defining the number of orbitals !!! Insert a parameter for the else option
 !       
 !       if (CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-!          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-!          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+!          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+!          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
 !          n = 1
-!       else if (CONTROL_instance%IONIZE_SPECIE /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+!       else if (CONTROL_instance%IONIZE_SPECIES /= "NONE".and.CONTROL_instance%IONIZE_MO(1) /= 0) then
 !          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-!          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
+!          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO(1)
 !          n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
 !       else
 !          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
@@ -10546,8 +10546,8 @@ end module PropagatorTheory_
 !
 !    !!! Defining for which species the correction will be applied
 !    
-!    if (CONTROL_instance%IONIZE_SPECIE /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
+!    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
+!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -10617,12 +10617,12 @@ end module PropagatorTheory_
 !       ! Defining the number of orbitals !!! Insert a parameter for the else option
 !       
 !       if (CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-!          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-!          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+!          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+!          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
 !          n = 1
-!       else if (CONTROL_instance%IONIZE_SPECIE /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+!       else if (CONTROL_instance%IONIZE_SPECIES /= "NONE".and.CONTROL_instance%IONIZE_MO(1) /= 0) then
 !          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-!          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
+!          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO(1)
 !          n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
 !       else
 !          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
@@ -12723,8 +12723,8 @@ end module PropagatorTheory_
 !
 !    ! Defining for which species the correction will be applied
 !    
-!    if (CONTROL_instance%IONIZE_SPECIE /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIE )
+!    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
+!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -12807,12 +12807,12 @@ end module PropagatorTheory_
 !       ! Defining the number of orbitals !!! Insert a parameter for the else option
 !       
 !       if (CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-!          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO
-!          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO
+!          PropagatorTheory_instance%virtualBoundary=CONTROL_instance%IONIZE_MO(1)
+!          PropagatorTheory_instance%occupationBoundary=CONTROL_instance%IONIZE_MO(1)
 !          n = 1
-!       else if (CONTROL_instance%IONIZE_SPECIE /= "NONE".and.CONTROL_instance%IONIZE_MO /= 0) then
+!       else if (CONTROL_instance%IONIZE_SPECIES /= "NONE".and.CONTROL_instance%IONIZE_MO(1) /= 0) then
 !          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
-!          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO
+!          PropagatorTheory_instance%occupationBoundary = CONTROL_instance%IONIZE_MO(1)
 !          n = PropagatorTheory_instance%virtualBoundary-PropagatorTheory_instance%occupationBoundary+1
 !       else
 !          PropagatorTheory_instance%virtualBoundary = occupationNumberOfSpeciesA + 1
