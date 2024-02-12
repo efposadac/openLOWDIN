@@ -31,7 +31,7 @@ install:: bin/lowdin bin/lowdin.x
 	cp -rf $(TOPDIR)/bin/*.x $(PREFIX)/.lowdin2/bin
 	cp -rf $(TOPDIR)/bin/lowdin $(TOPDIR)
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdin
-	cp -rf $(TOPDIR)/lowdin $(PREFIX)/lowdin2
+	cp -rf $(TOPDIR)/lowdin $(PREFIX)/openlowdin
 	rm -rf $(TOPDIR)/lowdin
 	rm -rf $(TOPDIR)/lowdinvars.sh
 
