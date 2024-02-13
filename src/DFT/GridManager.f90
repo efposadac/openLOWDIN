@@ -660,7 +660,7 @@ contains
 !!! Felix Moncada, 2017
   !<
   subroutine GridManager_getInterspeciesEnergyAndPotentialAtGrid( speciesID, otherSpeciesID, exchangeCorrelationEnergy, &
-    otherElectronID, otherElectronExchangeCorrelationEnergy) 
+       otherElectronID, otherElectronExchangeCorrelationEnergy) 
 
     implicit none
     integer :: speciesID
@@ -669,7 +669,7 @@ contains
     integer, optional :: otherElectronID
     real(8), optional :: otherElectronExchangeCorrelationEnergy
 
-    character(50) :: nameOfSpecies, otherNameOfSpecies
+    character(50) :: nameOfSpecies, otherNameOfSpecies, auxstring
     integer :: gridSize, otherGridSize
     type(Vector) :: energyDensity
     type(Vector) :: sigma
@@ -680,6 +680,8 @@ contains
     nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
     otherNameOfSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )
 
+    if ( (nameOfSpecies.ne."E-" .and. nameOfSpecies.ne."E-ALPHA") ) return
+
     gridSize = Grid_instance(speciesID)%totalSize
     otherGridSize = Grid_instance(otherSpeciesID)%totalSize
 
@@ -687,149 +689,153 @@ contains
 
     !Nuclear electron correlation
     !"E-BETA" is treated at the same time as E-ALPHA
-    if ( (nameOfSpecies=="E-" .or. nameOfSpecies=="E-ALPHA") ) then
 
-       call Vector_constructor(energyDensity, otherGridSize, 0.0_8)
-       call Vector_constructor(electronicDensityAtOtherGrid, otherGridSize, 0.0_8)
-       call Vector_constructor(electronicPotentialAtOtherGrid, otherGridSize, 0.0_8)
-       do dir=1,3
-          call Vector_constructor(electronicGradientAtOtherGrid(dir), otherGridSize, 0.0_8)
-          call Vector_constructor(electronicGradientPotentialAtOtherGrid(dir), otherGridSize, 0.0_8)
-       end do
+    call Vector_constructor(energyDensity, otherGridSize, 0.0_8)
+    call Vector_constructor(electronicDensityAtOtherGrid, otherGridSize, 0.0_8)
+    call Vector_constructor(electronicPotentialAtOtherGrid, otherGridSize, 0.0_8)
+    do dir=1,3
+       call Vector_constructor(electronicGradientAtOtherGrid(dir), otherGridSize, 0.0_8)
+       call Vector_constructor(electronicGradientPotentialAtOtherGrid(dir), otherGridSize, 0.0_8)
+    end do
 
-       !!This adds E-BETA density and gradient
-       call GridManager_getElectronicDensityInOtherGrid(speciesID, otherSpeciesID, &
-            GridsCommonPoints(speciesID,otherSpeciesID)%totalSize, int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values), &
-            electronicDensityAtOtherGrid, electronicGradientAtOtherGrid)
+    !!This adds E-BETA density and gradient
+    call GridManager_getElectronicDensityInOtherGrid(speciesID, otherSpeciesID, &
+         GridsCommonPoints(speciesID,otherSpeciesID)%totalSize, int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values), &
+         electronicDensityAtOtherGrid, electronicGradientAtOtherGrid)
 
-!!!These routines return the electronic energy density
-       select case (trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL) )
-
-       case ("EXPCS-GGA")
-          call Functional_expCSGGAEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid, electronicGradientAtOtherGrid, &
-               Grid_instance(otherSpeciesID)%density, Grid_instance(otherSpeciesID)%densityGradient, &
-               energyDensity, electronicPotentialAtOtherGrid, electronicGradientPotentialAtOtherGrid, &
-               Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%gradientPotential )
-
-       case ("EXPCS-GGA-NOA")
-          call Functional_expCSGGAEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid, electronicGradientAtOtherGrid, &
-               Grid_instance(otherSpeciesID)%density, Grid_instance(otherSpeciesID)%densityGradient, &
-               energyDensity, electronicPotentialAtOtherGrid, electronicGradientPotentialAtOtherGrid, &
-               Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%gradientPotential )
-
-       case ("EPC17-1")
-          call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("EPC17-2")
-          call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("IKN-NSF")
-          call Functional_IKNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("MLCS-FIT")
-          call Functional_MLCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("MLCS-A")
-          call Functional_MLCSAEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("MLCS-AN")
-          call Functional_MLCSANEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("CS-MYFIT")
-          call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("IMAMURA-MYFIT")
-          call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("MEJIA-MYFIT")
-          call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("MEJIAA-MYFIT")
-          call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("EXPCS-A")
-          call Functional_expCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("EXPCS-NOA")
-          call Functional_expCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("PSN")
-          call Functional_PSNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-
-       case ("PSNAP")
-          call Functional_PSNAPEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
-               electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
-               energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
-          
-       case ("NONE")
-
-       case default
-          print *, trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
-          STOP "The nuclear electron functional chosen is not implemented"
-
-       end select
-
-       !!Adds the nuclear electron potential to the relevant points in the electronic grid
-!!!We partition the energy considering the electronic density
-       do k=1, GridsCommonPoints(speciesID,otherSpeciesID)%totalSize
-          !electron index
-          i=int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values(k,1))
-          !nuclear index
-          j=int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values(k,2)) 
-
-          exchangeCorrelationEnergy=exchangeCorrelationEnergy+&
-               energyDensity%values(j)*Grid_instance(speciesID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(j,4)
-
-          Grid_instance(speciesID)%potential%values(i) = Grid_instance(speciesID)%potential%values(i) + electronicPotentialAtOtherGrid%values(j)
-
-          do dir=1,3
-             Grid_instance(speciesID)%gradientPotential(dir)%values(i) = Grid_instance(speciesID)%gradientPotential(dir)%values(i) + electronicGradientPotentialAtOtherGrid(dir)%values(j)
-          end do
-          
-          if(nameOfSpecies .eq. "E-ALPHA") then
-
-             otherElectronExchangeCorrelationEnergy=otherElectronExchangeCorrelationEnergy+&
-                  energyDensity%values(j)*Grid_instance(otherElectronID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(j,4)
-
-             Grid_instance(otherElectronID)%potential%values(i) = Grid_instance(otherElectronID)%potential%values(i) + electronicPotentialAtOtherGrid%values(j)
-             do dir=1,3
-                Grid_instance(otherElectronID)%gradientPotential(dir)%values(i) = Grid_instance(otherElectronID)%gradientPotential(dir)%values(i)&
-                     + electronicGradientPotentialAtOtherGrid(dir)%values(j)
-             end do
-
-          end if
-
-       end do
-
+    if (trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
+       auxstring=trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+    else if(trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
+       auxstring=trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL)
+    else
+       auxstring="NONE"
     end if
+!!!These routines return the electronic energy density
+    select case (trim(auxstring) )
+
+    case ("EXPCS-GGA")
+       call Functional_expCSGGAEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid, electronicGradientAtOtherGrid, &
+            Grid_instance(otherSpeciesID)%density, Grid_instance(otherSpeciesID)%densityGradient, &
+            energyDensity, electronicPotentialAtOtherGrid, electronicGradientPotentialAtOtherGrid, &
+            Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%gradientPotential )
+
+    case ("EXPCS-GGA-NOA")
+       call Functional_expCSGGAEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid, electronicGradientAtOtherGrid, &
+            Grid_instance(otherSpeciesID)%density, Grid_instance(otherSpeciesID)%densityGradient, &
+            energyDensity, electronicPotentialAtOtherGrid, electronicGradientPotentialAtOtherGrid, &
+            Grid_instance(otherSpeciesID)%potential, Grid_instance(otherSpeciesID)%gradientPotential )
+
+    case ("EPC17-1")
+       call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("EPC17-2")
+       call Functional_EPCEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("IKN-NSF")
+       call Functional_IKNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("MLCS-FIT")
+       call Functional_MLCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("MLCS-A")
+       call Functional_MLCSAEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("MLCS-AN")
+       call Functional_MLCSANEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("CS-MYFIT")
+       call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("IMAMURA-MYFIT")
+       call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("MEJIA-MYFIT")
+       call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("MEJIAA-MYFIT")
+       call Functional_myCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("EXPCS-A")
+       call Functional_expCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("EXPCS-NOA")
+       call Functional_expCSEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("PSN")
+       call Functional_PSNEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("PSNAP")
+       call Functional_PSNAPEvaluate(Functionals(index), MolecularSystem_getMass( otherSpeciesID ), otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values  )
+
+    case ("NONE")
+
+    case default
+       print *, trim(auxstring)
+       STOP "The "//otherNameOfSpecies//"electron functional chosen is not implemented"
+
+    end select
+
+    !!Adds the nuclear electron potential to the relevant points in the electronic grid
+!!!We partition the energy considering the electronic density
+    do k=1, GridsCommonPoints(speciesID,otherSpeciesID)%totalSize
+       !electron index
+       i=int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values(k,1))
+       !nuclear index
+       j=int(GridsCommonPoints(speciesID,otherSpeciesID)%points%values(k,2)) 
+
+       exchangeCorrelationEnergy=exchangeCorrelationEnergy+&
+            energyDensity%values(j)*Grid_instance(speciesID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(j,4)
+
+       Grid_instance(speciesID)%potential%values(i) = Grid_instance(speciesID)%potential%values(i) + electronicPotentialAtOtherGrid%values(j)
+
+       do dir=1,3
+          Grid_instance(speciesID)%gradientPotential(dir)%values(i) = Grid_instance(speciesID)%gradientPotential(dir)%values(i) + electronicGradientPotentialAtOtherGrid(dir)%values(j)
+       end do
+
+       if(nameOfSpecies .eq. "E-ALPHA") then
+
+          otherElectronExchangeCorrelationEnergy=otherElectronExchangeCorrelationEnergy+&
+               energyDensity%values(j)*Grid_instance(otherElectronID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(j,4)
+
+          Grid_instance(otherElectronID)%potential%values(i) = Grid_instance(otherElectronID)%potential%values(i) + electronicPotentialAtOtherGrid%values(j)
+          do dir=1,3
+             Grid_instance(otherElectronID)%gradientPotential(dir)%values(i) = Grid_instance(otherElectronID)%gradientPotential(dir)%values(i)&
+                  + electronicGradientPotentialAtOtherGrid(dir)%values(j)
+          end do
+
+       end if
+
+    end do
 
     call Vector_Destructor(energyDensity)
     call Vector_destructor(electronicDensityAtOtherGrid)
@@ -1059,7 +1065,7 @@ contains
 
     integer :: n, nproc
     real(8) :: contactDensity, overlapDensity
-    
+    character(50) :: auxstring
     type(Vector) :: electronicDensityAtOtherGrid, electronicGradientAtOtherGrid(3), gfactor
 
     gridSize =Grid_instance(otherSpeciesID)%totalSize
@@ -1084,7 +1090,16 @@ contains
     !    call Matrix_Constructor( nodeExchangeCorrelationMatrix(n), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
     ! end do
 
-    if(MolecularSystem_getMass(otherSpeciesID) .lt. 2.0 .and. (CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-A" .or. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA")) then !positron
+    if (trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
+       auxstring=trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+    else if(trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
+       auxstring=trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL)
+    else
+       auxstring="NONE"
+    end if
+
+    
+    if(MolecularSystem_getMass(otherSpeciesID) .lt. 2.0 .and. (auxstring.eq."expCS-A" .or. auxstring.eq."expCS-GGA")) then !positron
 
        kf=2.2919886876120283056
        a0n=0.3647813291441602
@@ -1139,7 +1154,7 @@ contains
        print *, "Contact density between ", trim(MolecularSystem_getNameOfSpecie(speciesID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
        if(present(otherElectronID) ) print *, "Including contact density between ", trim(MolecularSystem_getNameOfSpecie(otherElectronID)),"-", trim(MolecularSystem_getNameOfSpecie(otherSpeciesID))
        
-       if(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-A" .or. CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL.eq."expCS-GGA" ) then
+       if(auxstring.eq."expCS-A" .or. auxstring.eq."expCS-GGA" ) then
           print *, "As the integral of rhoA*rhoB(1+g[beta])"
           print *, "With g[beta] from the expCS-A functional"
        else

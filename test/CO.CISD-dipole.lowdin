@@ -1,0 +1,30 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Test CISD
+%  Electronic Hartree Fock
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SYSTEM_DESCRIPTION='CO'
+
+GEOMETRY
+e-(C)  6-31G.D	0.000	0.000	-0.914059
+e-(O)  6-31G.D	0.000	0.000	0.213941
+C    	dirac	0.000	0.000	-0.914059
+O    	dirac	0.000	0.000	0.213941
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="CISD"
+END TASKS
+
+CONTROL
+	readCoefficients=.F.
+	totalenergytolerance=1E-10
+        CIdiagonalizationMethod="JADAMILU"
+END CONTROL
+INPUT_CI
+	species="E-ALPHA" core = 2 active = 20
+	species="E-BETA" core = 2 active = 20
+END INPUT_CI
+
+

@@ -17,7 +17,6 @@ Installation notes.
 
 * A standard FORTRAN compiler. gfortran and intel FORTRAN compiler have been tested.
 * Lapack or MKL libraries.
-* Arpack library.
 * LIBINT library version 2.0, and version 1.1.5
 * LIBXC library
 
@@ -63,7 +62,7 @@ To visualize the html documentation use:
 ### Step-by-step  installation example: (replace apt-get with your preferred package manager) ###
 
         sudo apt-get update
-        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python3 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev
+        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python3 gawk libeigen3-dev libgmp-dev libboost-all-dev
         # Define ENV Variables
         export WORKDIR=$PWD/dependencies
         export PATH=$PATH:$WORKDIR/bin
@@ -106,7 +105,7 @@ To visualize the html documentation use:
         cd ..
 	
         # Configure Lowdin
-        ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
+        ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
         # Build Lowdin
         make -j 4
         # Install Lowdin

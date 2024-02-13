@@ -12,14 +12,18 @@ else:
 testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
-plot1Name = testName + ".E-.3D.dens"                                                                      
-plot2Name = testName + ".POSITRON.3D.dens"                                                                
+densplot1Name = testName + ".E-.3D.dens"
+densplot2Name = testName + ".POSITRON.3D.dens"
+orbplot1Name = testName + ".E-.3D.orb3"
+orbplot2Name = testName + ".POSITRON.3D.orb1"
 # Reference values and tolerance
 
 refValues = {
 "HF energy" : [-75.587683637788,1E-8],
-"Num e- in plot" : [10.45449875,1E-1],
-"Num e+ in plot" : [0.99246436,1E-2],
+"Num e- in densplot" : [10.37978910220915,1E-1],
+"Num e- in orbplot" :  [1.7211264610474177,1E-1],
+"Num e+ in densplot" : [0.9870409056582871,1E-2],
+"Num e+ in orbplot" :  [0.9870409056980444,1E-2],
 }                       
 
 testValues = dict(refValues) #copy 
@@ -45,31 +49,57 @@ for i in range(0,len(outputRead)):
 
 output.close()
 
-plot1 = open(plot1Name, "r")
-plot1Read = plot1.readlines()
+densplot1 = open(densplot1Name, "r")
+densplot1Read = densplot1.readlines()
 sumE=0
-for i in range(0,len(plot1Read)):
-    line = plot1Read[i]
+for i in range(0,len(densplot1Read)):
+    line = densplot1Read[i]
     if i > 1:
         values = line.split()
         if i == 3: x1=float(values[1])
         if i == 4: x2=float(values[1])
         if len(values) > 1: sumE+=(float(values[0])**2+float(values[1])**2)**(1.0/2.0)*float(values[2])
-testValues["Num e- in plot"]=2.0*sumE*(x2-x1)**2
-plot1.close()
+testValues["Num e- in densplot"]=2.0*sumE*(x2-x1)**2
+densplot1.close()
 
-plot2 = open(plot2Name, "r")
-plot2Read = plot2.readlines()
+densplot2 = open(densplot2Name, "r")
+densplot2Read = densplot2.readlines()
 sumP=0
-for i in range(0,len(plot2Read)):
-    line = plot2Read[i]
+for i in range(0,len(densplot2Read)):
+    line = densplot2Read[i]
     if i > 1:
         values = line.split()
         if i == 3: x1=float(values[1])
         if i == 4: x2=float(values[1])
         if len(values) > 1: sumP+=(float(values[0])**2+float(values[1])**2)**(1.0/2.0)*float(values[2])
-testValues["Num e+ in plot"]=2.0*sumP*(x2-x1)**2
-plot2.close()
+testValues["Num e+ in densplot"]=2.0*sumP*(x2-x1)**2
+densplot2.close()
+
+orbplot1 = open(orbplot1Name, "r")
+orbplot1Read = orbplot1.readlines()
+sumE=0
+for i in range(0,len(orbplot1Read)):
+    line = orbplot1Read[i]
+    if i > 1:
+        values = line.split()
+        if i == 3: x1=float(values[1])
+        if i == 4: x2=float(values[1])
+        if len(values) > 1: sumE+=(float(values[0])**2+float(values[1])**2)**(1.0/2.0)*float(values[2])**2
+testValues["Num e- in orbplot"]=2.0*sumE*(x2-x1)**2
+orbplot1.close()
+
+orbplot2 = open(orbplot2Name, "r")
+orbplot2Read = orbplot2.readlines()
+sumP=0
+for i in range(0,len(orbplot2Read)):
+    line = orbplot2Read[i]
+    if i > 1:
+        values = line.split()
+        if i == 3: x1=float(values[1])
+        if i == 4: x2=float(values[1])
+        if len(values) > 1: sumP+=(float(values[0])**2+float(values[1])**2)**(1.0/2.0)*float(values[2])**2
+testValues["Num e+ in orbplot"]=2.0*sumP*(x2-x1)**2
+orbplot2.close()
 
 passTest = True
 
