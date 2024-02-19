@@ -129,7 +129,7 @@ contains
        allocate(this%fileName(MolecularSystem_getNumberOfQuantumSpecies()))
     else if( trim(this%species) .eq. "ALL" .and. this%type .eq. "ORBITALPLOT" ) then
        allocate(this%fileName(1))
-       this%species=MolecularSystem_getNameOfSpecie(1)
+       this%species=MolecularSystem_getNameOfSpecies(1)
     else
        allocate(this%fileName(1))
     end if
@@ -164,7 +164,10 @@ contains
     this%auxID=1
     !!Check for other outputs of the same type
     do i=1, this%outputID-1
-       if( trim(outputs_instance(i)%type) .eq. trim(this%type)  ) this%auxID=this%auxID+1
+       if( trim(outputs_instance(i)%type) .eq. trim(this%type) .and. &
+       trim(outputs_instance(i)%species) .eq. trim(this%species) .and. &
+       outputs_instance(i)%dimensions .eq. this%dimensions .and. &
+       outputs_instance(i)%orbital .eq. this%orbital) this%auxID=this%auxID+1
     end do
     
   end subroutine OutputBuilder_constructor
@@ -389,7 +392,7 @@ contains
     logical :: existFile
     
     !     if ( CONTROL_instance%ARE_THERE_DUMMY_ATOMS ) then
-    !        auxString=MolecularSystem_getNameOfSpecie( 1 )
+    !        auxString=MolecularSystem_getNameOfSpecies( 1 )
     !        this%fileName=trim(CONTROL_instance%INPUT_FILE)//"mol"
     !        open(10,file=this%fileName,status='replace',action='write')
     !        write (10,"(A)") "Hola soy un archivo de molden"
@@ -425,7 +428,7 @@ contains
              write(auxstring,*) state
              
              arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
-             arguments(2) = MolecularSystem_getNameOfSpecie( l )
+             arguments(2) = MolecularSystem_getNameOfSpecies( l )
              call  Vector_getFromFile(elementsNum=MolecularSystem_getTotalNumberOfContractions(l),&
                   unit=occupationsUnit,&
                   arguments=arguments(1:2),&
@@ -461,7 +464,7 @@ contains
        do i=1, MolecularSystem_getOcupationNumber(l)
           fractionalOccupations(l,1)%values(i)=1.0_8 * MolecularSystem_getLambda(l)
        end do
-       arguments(2) = MolecularSystem_getNameOfSpecie(l)
+       arguments(2) = MolecularSystem_getNameOfSpecies(l)
        arguments(1) = "COEFFICIENTS"
        coefficientsOfcombination(l,1) = &
             Matrix_getFromFile(unit=wfnUnit, &
@@ -488,10 +491,10 @@ contains
        do l=1,numberOfSpecies
 
           if (state .eq. 1) then
-             auxString=MolecularSystem_getNameOfSpecie( l )
+             auxString=MolecularSystem_getNameOfSpecies( l )
           else
              write(auxString, "(I8)")  state
-             auxString=trim(MolecularSystem_getNameOfSpecie( l ))//"-"//trim( adjustl(auxString))
+             auxString=trim(MolecularSystem_getNameOfSpecies( l ))//"-"//trim( adjustl(auxString))
           end if
           
           this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
@@ -657,7 +660,7 @@ contains
 
     do l=1,MolecularSystem_getNumberOfQuantumSpecies()
 
-       auxString=MolecularSystem_getNameOfSpecie( l )
+       auxString=MolecularSystem_getNameOfSpecies( l )
 
        this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".vec"
 
@@ -665,7 +668,7 @@ contains
 
        specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
-       arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
+       arguments(2) = MolecularSystem_getNameOfSpecies(specieID)
 
        arguments(1) = "COEFFICIENTS"
        coefficientsOfcombination = &
@@ -742,36 +745,21 @@ contains
   subroutine OutputBuilder_casinoFile(this)
     implicit none
     type(OutputBuilder) :: this
-    type(MolecularSystem) :: MolecularSystemInstance
 
     integer :: i
     integer :: j
-    integer :: k
     integer :: l
     integer :: g, h, m
     integer :: specieID
-    logical :: wasPress
-    character(10) :: auxString
-    character(10) :: symbol
-    real(8) :: origin(3)
-    real(8), allocatable :: charges(:)
-    type(Matrix) :: localizationOfCenters
-    type(Matrix) :: auxMatrix
     type(Matrix) :: coefficientsOfcombination
     real(8), allocatable :: superMatrix(:,:)
-    character(10),allocatable :: labels(:)
     integer :: wfnUnit
     character(50) :: wfnFile
     integer :: numberOfContractions, superSize
     integer :: numberOfContractionsA, numberOfContractionsB
     integer :: numberOfShellsA, numberOfShellsB, totalShells
     character(50) :: arguments(20)
-    character(19) , allocatable :: labelsOfContractions(:)
-    integer :: counter, auxcounter
-    character(6) :: nickname
-    character(2) :: space
     integer :: i0, j0, maxl, shellCode
-    integer :: totalNumberOfParticles, n
     real(8) :: puntualInteractionEnergy
 
     wfnFile = "lowdin.wfn"
@@ -1038,7 +1026,7 @@ contains
 
       specieID = l 
       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
-      arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
+      arguments(2) = MolecularSystem_getNameOfSpecies(specieID)
       arguments(1) = "COEFFICIENTS"
       coefficientsOfcombination = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
                                     columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
@@ -1217,7 +1205,7 @@ contains
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
-        ! auxString=MolecularSystem_getNameOfSpecie( 1 )
+        ! auxString=MolecularSystem_getNameOfSpecies( 1 )
         ! this%fileName=trim(CONTROL_instance%INPUT_FILE)//".eigen"
         ! open(129,file=this%fileName,status='replace',action='write')
         ! close(129)
@@ -1237,14 +1225,14 @@ contains
 
      totalNumberOfParticles = 0
 
-           auxString=MolecularSystem_getNameOfSpecie( l )
+           auxString=MolecularSystem_getNameOfSpecies( l )
            specieID = MolecularSystem_getSpecieID(auxString)
            this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".eigen"
            open(129,file=this%fileName(l),status='replace',action='write')
 
             specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
             numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
-            arguments(2) = MolecularSystem_getNameOfSpecie(specieID)
+            arguments(2) = MolecularSystem_getNameOfSpecies(specieID)
 
            arguments(1) = "ORBITALS"
            call Vector_getFromFile( elementsNum = numberOfContractions, &
@@ -1252,7 +1240,7 @@ contains
                 output = energyOfMolecularOrbital )
 
            do j=1,size(energyOfMolecularOrbital%values)
-              write (129,"(F15.12)") ,energyOfMolecularOrbital%values(j)
+              write (129,"(F15.12)") energyOfMolecularOrbital%values(j)
            end do
             close(129)
          end do
@@ -1320,7 +1308,7 @@ contains
     !    open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
     !    do l=1,numberOfSpecies
     !       arguments(1) = "OCCUPATIONS"
-    !       arguments(2) = MolecularSystem_getNameOfSpecie( l )
+    !       arguments(2) = MolecularSystem_getNameOfSpecies( l )
     !       fractionalOccupations(l)= Matrix_getFromFile(unit=occupationsUnit,&
     !            rows=int(MolecularSystem_getTotalNumberOfContractions(l),4),&
     !            columns=int(numberOfStates,4),&
@@ -1345,7 +1333,7 @@ contains
 
     ! do state=1,numberOfStates
     do l=1,numberOfSpecies
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(l)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(l)
        particlesPerOrbital=MolecularSystem_getLambda(l)
        ! if (state .eq. 1) then
        !    auxString=nameOfSpecies
@@ -1361,7 +1349,7 @@ contains
        numberOfShells=MolecularSystem_getNumberOfContractions(l)
        numberOfContractions=MolecularSystem_getTotalNumberOfContractions(l)
 
-       arguments(2) = MolecularSystem_getNameOfSpecie(l)
+       arguments(2) = MolecularSystem_getNameOfSpecies(l)
        arguments(1) = "COEFFICIENTS"
        coefficientsOfcombination = &
             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -1741,7 +1729,7 @@ contains
     close(35)
       
     do l=1,MolecularSystem_getNumberOfQuantumSpecies()
-        auxString=MolecularSystem_getNameOfSpecie( l )
+        auxString=MolecularSystem_getNameOfSpecies( l )
         moldenFileName=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
         call Molden2AIM(moldenFileName, totalEnergy, virial)
         !! Just for printing information 
@@ -1760,7 +1748,7 @@ contains
     character(50) :: auxString
 
     do l=1,MolecularSystem_getNumberOfQuantumSpecies()
-        auxString=MolecularSystem_getNameOfSpecie( l )
+        auxString=MolecularSystem_getNameOfSpecies( l )
     end do
 
   end subroutine OutputBuilder_generateExtendedWfnFile
@@ -1778,10 +1766,11 @@ contains
      type(vector) :: step2
      real(8) :: maxValue, maxValue2
      real(8) :: minValue, minValue2
-     Type(Vector) :: val, val2
+     real(8) :: plotDistance1, plotDistance2
+     Type(Vector) :: val
      Type(Matrix) :: coordinate
 
-     character(50) :: title, title2
+     character(50) :: title
      character(50) :: x_title
      character(50) :: y_title
      character(50) :: z_title
@@ -1789,10 +1778,12 @@ contains
      call Vector_Constructor(step1, 3)
      call Vector_Constructor(step2, 3)
      speciesID = MolecularSystem_getSpecieIDFromSymbol( trim(this%species) )
-     nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+     nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
 
      this%fileName2=""
      numberOfSteps= CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
+     plotDistance1=sqrt(sum((this%point2%values(:)-this%point1%values(:))**2))
+     plotDistance2=sqrt(sum((this%point3%values(:)-this%point1%values(:))**2))
      step1%values(:)=(this%point2%values(:)-this%point1%values(:))/numberOfSteps
      step2%values(:)=(this%point3%values(:)-this%point1%values(:))/numberOfSteps
      outputID=String_convertIntegerToString(this%outputID)
@@ -1806,20 +1797,24 @@ contains
 
      case ( "ORBITALPLOT") 
         orbitalNum=String_convertIntegerToString(this%orbital)
-        this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".3D.orb"//trim(orbitalNum)
+        if( this%auxID .eq. 1) then
+           this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".3D.orb"//trim(orbitalNum)
+        else
+           this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".3D-"//trim(auxID)//".orb"//trim(orbitalNum)
+        end if
         open(10,file=this%fileName(1),status='replace',action='write')
         write (10,"(A10,A20,A20,A20)") "#", "X","Y","OrbitalValue"
         title=trim(this%species)//" Orbital Number: "//trim(orbitalNum) 
 
-     case ( "FUKUIPLOT") 
-        this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".3D.fkpos"
-        this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".3D.fkneg"
-        open(10,file=this%fileName(1),status='replace',action='write')
-        write (10,"(A10,A20,A20,A20)") "#", "X","Y","PositiveFukuiValue"
-        title=trim(this%species)//" Positive Fukui"
-        open(11,file=this%fileName2,status='replace',action='write')
-        write (11,"(A10,A20,A20,A20)") "#", "X","Y","NegativeFukuiValue"
-        title2=trim(this%species)//" Negative Fukui"
+     ! case ( "FUKUIPLOT") 
+     !    this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".3D.fkpos"
+     !    this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".3D.fkneg"
+     !    open(10,file=this%fileName(1),status='replace',action='write')
+     !    write (10,"(A10,A20,A20,A20)") "#", "X","Y","PositiveFukuiValue"
+     !    title=trim(this%species)//" Positive Fukui"
+     !    open(11,file=this%fileName2,status='replace',action='write')
+     !    write (11,"(A10,A20,A20,A20)") "#", "X","Y","NegativeFukuiValue"
+     !    title2=trim(this%species)//" Negative Fukui"
 
      case default
         call OutputBuilder_exception(ERROR, "The output plot type you requested has not been implemented yet", "OutputBuilder_get3DPlot" )
@@ -1842,7 +1837,7 @@ contains
      select case( this%type )
      case ( "ORBITALPLOT") 
         call CalculateWaveFunction_getOrbitalValueAt( speciesID, this%orbital, coordinate, val )  
-     case ( "FUKUIPLOT") 
+     ! case ( "FUKUIPLOT") 
         !!              val=CalculateProperties_getFukuiAt( this%species, "positive", coordinate )  
         !!              val2=CalculateProperties_getFukuiAt( this%species, "negative", coordinate )  
      case default
@@ -1851,28 +1846,38 @@ contains
      n=0
      do i=0,numberOfSteps
         write (10,*) ""
-        if (this%type .eq. "FUKUIPLOT") write(11,*) ""
+        ! if (this%type .eq. "FUKUIPLOT") write(11,*) ""
         do j=0,numberOfSteps
            n=n+1
-           write (10,"(T10,F20.8,F20.8,ES20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val%values(n) 
+           if(abs(val%values(n))>1.0E-99_8) then
+              write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1), -plotDistance2*0.5+j*Vector_norm(step2), &
+                   val%values(n)
+           else
+              write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1), -plotDistance2*0.5+j*Vector_norm(step2), &
+                   0.0
+           end if
            if (val%values(n) > maxValue) maxValue = val%values(n) 
            if (val%values(n) < minValue) minValue = val%values(n) 
-           if (this%type .eq. "FUKUIPLOT" ) then
-              write (11,"(T10,F20.8,F20.8,ES20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val2%values(n) 
-              if (val2%values(n) > maxValue2) maxValue2 = val2%values(n) 
-              if (val2%values(n) < minValue2) minValue2 = val2%values(n) 
-           end if
+           ! if (this%type .eq. "FUKUIPLOT" ) then
+           !    write (11,"(T10,F20.8,F20.8,ES20.8)") i*Vector_norm(step1),j*Vector_norm(step2),val2%values(n) 
+           !    if (val2%values(n) > maxValue2) maxValue2 = val2%values(n) 
+           !    if (val2%values(n) < minValue2) minValue2 = val2%values(n) 
+           ! end if
            ! print *, coordinate, val
         end do
      end do
 
+     !!large orbital values lead to bad looking plots
+     if(maxValue .gt. 1.0) maxValue=1.0
+     if(minValue .lt. -1.0) minValue=-1.0
+
      call OutputBuilder_make3DGraph( this%fileName(1), title, x_title, y_title, z_title, minValue, maxValue)
      close(10)
 
-     if (this%type .eq. "FUKUIPLOT" ) then
-        call OutputBuilder_make3DGraph( this%fileName2, title2, x_title, y_title, z_title, minValue2, maxValue2)
-        close(11)
-     end if
+     ! if (this%type .eq. "FUKUIPLOT" ) then
+     !    call OutputBuilder_make3DGraph( this%fileName2, title2, x_title, y_title, z_title, minValue2, maxValue2)
+     !    close(11)
+     ! end if
 
    end subroutine OutputBuilder_get3DPlot
 
@@ -1886,21 +1891,23 @@ contains
      character(50) :: nameOfSpecies
 
      integer :: numberOfSteps
-     type(vector) :: step
-     type(vector) :: val, val2
+     type(vector) :: step1
+     type(vector) :: val
      Type(Matrix) :: coordinate
+     real(8) :: plotDistance1
 
      character(50) :: title
      character(50) :: x_title
      character(50) :: y_title
 
-     call Vector_Constructor(step, 3)
+     call Vector_Constructor(step1, 3)
      speciesID = MolecularSystem_getSpecieIDFromSymbol( trim(this%species) )
-     nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+     nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
 
      this%fileName2=""
      numberOfSteps= CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION
-     step%values(:)=(this%point2%values(:)-this%point1%values(:))/numberOfSteps
+     plotDistance1=sqrt(sum((this%point2%values(:)-this%point1%values(:))**2))
+     step1%values(:)=(this%point2%values(:)-this%point1%values(:))/numberOfSteps
      outputID=String_convertIntegerToString(this%outputID)
      auxID=String_convertIntegerToString(this%auxID)
 
@@ -1909,23 +1916,27 @@ contains
 
      case ( "ORBITALPLOT") 
         orbitalNum=String_convertIntegerToString(this%orbital)
-        this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".2D.orb"//trim(orbitalNum)
+           if( this%auxID .eq. 1) then
+              this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".2D.orb"//trim(orbitalNum)
+           else
+              this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".2D-"//trim(auxID)//".orb"//trim(orbitalNum)
+           end if
         open(10,file=this%fileName(1),status='replace',action='write')
         write (10,"(A10,A20,A20)") "#", "X","OrbitalValue"
         title=trim(this%species)//" Orbital Number "//trim(orbitalNum) 
         y_title="orbitalValue/a.u.^{-3/2}"
 
-     case ( "FUKUIPLOT") 
-        this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".2D.fkpos"
-        this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".2D.fkneg"
+     ! case ( "FUKUIPLOT") 
+     !    this%fileName(1)=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".2D.fkpos"
+     !    this%fileName2=trim(CONTROL_instance%INPUT_FILE)//"out"//trim(outputID)//"."//trim(this%species)//".2D.fkneg"
 
-        open(10,file=this%fileName(1),status='replace',action='write')
-        write (10,"(A10,A20,A20)") "#","X","PositiveFukuiValue"
-        title=trim(this%species)//" positive fukui" 
-        y_title="density/a.u.^{-3}"
+     !    open(10,file=this%fileName(1),status='replace',action='write')
+     !    write (10,"(A10,A20,A20)") "#","X","PositiveFukuiValue"
+     !    title=trim(this%species)//" positive fukui" 
+     !    y_title="density/a.u.^{-3}"
 
-        open(11,file=this%fileName2,status='replace',action='write')
-        write (11,"(A10,A20,A20)") "#","X","NegativeFukuiValue"
+     !    open(11,file=this%fileName2,status='replace',action='write')
+     !    write (11,"(A10,A20,A20)") "#","X","NegativeFukuiValue"
      
      case default
         call OutputBuilder_exception(ERROR, "The output plot type you requested has not been implemented yet", "OutputBuilder_get3DPlot" )
@@ -1934,13 +1945,13 @@ contains
 
      call Matrix_constructor(coordinate,int((numberOfSteps+1),8),int(3,8),0.0_8)
      do i=0,numberOfSteps
-        coordinate%values(i+1,:)=i*step%values(:)+this%point1%values(:)
+        coordinate%values(i+1,:)=i*step1%values(:)+this%point1%values(:)
      end do
 
      select case( this%type )
      case ( "ORBITALPLOT") 
         call CalculateWaveFunction_getOrbitalValueAt( speciesID, this%orbital, coordinate, val )  
-     case ( "FUKUIPLOT") 
+     ! case ( "FUKUIPLOT") 
         !!           val=CalculateProperties_getFukuiAt( this%species, "positive", coordinate )  
         !!           val2=CalculateProperties_getFukuiAt( this%species, "negative", coordinate )  
      case default
@@ -1949,8 +1960,12 @@ contains
      n=0
      do i=0,numberOfSteps
         n=n+1
-        write (10,"(T10,F20.8,ES20.8)")  i*Vector_norm(step),val%values(n) 
-        if (this%type .eq. "FUKUIPLOT") write (11,"(T10,F20.8,ES20.8)")  i*Vector_norm(step),val2%values(n) 
+        if(abs(val%values(n))>1.0E-99_8) then
+           write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1),val%values(n)
+        else
+           write (10,"(T10,F20.8,F20.8,E20.8)") -plotDistance1*0.5+i*Vector_norm(step1),0.0
+        end if
+        ! if (this%type .eq. "FUKUIPLOT") write (11,"(T10,F20.8,ES20.8)")  i*Vector_norm(step),val2%values(n) 
      end do
 
      close(10)
@@ -1961,7 +1976,7 @@ contains
 !!        title=trim(this%species)//" negative fukui" 
 !!        call OutputBuilder_make2DGraph( this%fileName2, title, x_title, y_title)
 !!     end if
-     call Vector_Destructor ( step)
+     call Vector_Destructor ( step1)
 
    end subroutine OutputBuilder_get2DPlot
 
@@ -1983,7 +1998,7 @@ contains
      integer :: numberOfOrbitals, numberOfSpecies
      type(matrix) :: densityMatrix
 
-     character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
+     character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies, symbolOfSpecies
      logical :: existFile
 
      !Writes Gaussian Cube 
@@ -1992,8 +2007,9 @@ contains
 
      l=0
      do speciesID=1, numberOfSpecies
-        nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
-        if(trim(this%species) .eq. trim(nameOfSpecies) .or. trim(this%species) .eq. "ALL" ) then
+        nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
+        symbolOfSpecies=MolecularSystem_getSymbolOfSpecies(speciesID)
+        if(trim(this%species) .eq. trim(symbolOfSpecies) .or. trim(this%species) .eq. "ALL" ) then
            l=l+1   
            numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
 
@@ -2107,7 +2123,7 @@ contains
      Type(Vector) :: val
      Type(Matrix) :: coordinate
      
-     character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies
+     character(100) :: arguments(2), wfnFile, occupationsFile, auxstring, nameOfSpecies, symbolOfSpecies
      character(50) :: title, x_title, y_title, z_title
      logical :: existFile
 
@@ -2120,8 +2136,9 @@ contains
 
      l=0
      do speciesID=1, numberOfSpecies
-        nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
-        if(trim(this%species) .eq. trim(nameOfSpecies) .or. trim(this%species) .eq. "ALL" ) then
+        nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
+        symbolOfSpecies=MolecularSystem_getSymbolOfSpecies(speciesID)
+        if(trim(this%species) .eq. trim(symbolOfSpecies) .or. trim(this%species) .eq. "ALL" ) then
            l=l+1   
            numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(speciesID)
 
@@ -2222,7 +2239,7 @@ contains
               end do
 
               !!large density values lead to bad looking plots
-              if(maxValue .gt. 0.5) maxValue=0.5
+              if(maxValue .gt. 1.0) maxValue=1.0
               
               call OutputBuilder_make3DGraph( this%fileName(l), title, x_title, y_title, z_title, 0.0_8, maxValue)
               close(10)
@@ -2348,12 +2365,6 @@ contains
      character(*) :: z_title
      real(8) :: minValue
      real(8) :: maxValue
-     real(8) :: maxMinDiff
-     
-     integer :: levels
-
-     maxMinDiff=maxValue-minValue
-     levels=10
      
      open ( 100,FILE=trim(fileName)//'.gnp', STATUS='REPLACE',ACTION='WRITE')
      write (100,"(A)") 'set term post eps enh color "Helvetica" 16 size 7cm,5cm'
@@ -2364,12 +2375,15 @@ contains
      write (100,"(A)") 'splot "'//trim(fileName)//'" u 1:2:3'
      write (100,"(A)") 'unset table'
 
-     write (100,"(A,I5)") 'levels=', levels
-     write (100,"(A,I5)") 'numColors=', 5
+     if(minValue.lt.0 .and. maxValue.gt.0) then
+        write (100,"(A,I5)") 'levels=', 11
+     else
+        write (100,"(A,I5)") 'levels=', 10
+     end if
+     
      write (100,"(A,E20.8)") 'maxValue=', maxValue
      write (100,"(A,E20.8)") 'minValue=', minValue
      write (100,"(A)") 'step=(maxValue-minValue)/levels'
-     write (100,"(A)") 'colorStep=(maxValue-minValue)/numColors'
      
      write (100,"(A)") 'set contour base'
      write (100,"(A)") 'set cntrparam level incremental minValue, step , maxValue'
@@ -2384,12 +2398,22 @@ contains
 
      write (100,"(A)") 'set cbrange [minValue:maxValue]'
      write (100,"(A)") 'set palette maxcolors levels'
-     write (100,"(A)") 'set cbtics step'
+     if(minValue.lt.0 .and. maxValue.gt.0) then
+        write (100,"(A)") 'set cbtics (minValue, 0.0, maxValue)'
+     else
+        write (100,"(A)") 'set cbtics step'
+     end if
      write (100,"(A)") 'set format cb "%3.1E"'
      
-     write (100,"(A)") 'set palette defined (minValue "white",minValue+colorStep "blue",minValue+colorStep*2 "green",minValue+colorStep*3 "yellow",minValue+colorStep*4 "orange",maxValue "red")'
-     write (100,"(A)") 'set grid front'
+     if(minValue.lt.0 .and. maxValue.gt.0) then
+        write (100,"(A)") 'set palette defined (minValue "blue", 0.0 "white", maxValue "red")'
+     else if(minValue.ge.0) then
+        write (100,"(A)") 'set palette defined (minValue "white", maxValue "red")'
+     else
+        write (100,"(A)") 'set palette defined (minValue "blue", maxValue "white")'
+     end if
 
+     write (100,"(A)") 'set grid front'
      
      write (100,"(A)") 'set format x "%.0f"'
      write (100,"(A)") 'set format y "%.0f"'
@@ -2397,71 +2421,7 @@ contains
      write (100,"(A)") 'set ylabel "Y (a.u.)"'
 
      write (100,"(A)")  'plot "'//trim(fileName)//'.table" with image, "'//trim(fileName)//'.cont" w l lt -1 lw 1.5'
-     
-     
-     ! write (100,"(A)") 'set output "'//trim(fileName)//'.eps"'
-     ! write (100,"(A)") 'set xlabel "'//trim(x_title)//'"'
-     ! write (100,"(A)") 'set ylabel "'//trim(y_title)//'"'
-     ! write (100,"(A)") 'set zlabel "'//trim(z_title)//'"'
-     ! write (100,"(A)") 'set pm3d '
-
-     ! if (minValue < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. maxValue > -CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
-     ! write (100,"(A)") 'set palette model RGB defined ('//String_convertRealToString(minValue)//&
-     !      ' "violet", '//String_convertRealToString(minValue/5)//&
-     !      ' "blue", '//String_convertRealToString(minValue/25)//&
-     !      ' "green", '//String_convertRealToString(0.0_8) // &
-     !      ' "white", '//String_convertRealToString(maxValue/25)//&
-     !      ' "yellow", '//String_convertRealToString(maxValue/5)//&
-     !      ' "orange", '//String_convertRealToString(maxValue)//' "red") '
-     ! end if
-
-     ! if (minValue > -CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
-     ! write (100,"(A)") 'set palette model RGB defined ('//String_convertRealToString(maxValue/15625) // &
-     !      ' "white", '//String_convertRealToString(maxValue/3125)//&
-     !      ' "violet", '//String_convertRealToString(maxValue/625)//&
-     !      ' "blue", '//String_convertRealToString(maxValue/125)//&
-     !      ' "green", '//String_convertRealToString(maxValue/25)//&
-     !      ' "yellow", '//String_convertRealToString(maxValue/5)//&
-     !      ' "orange", '//String_convertRealToString(maxValue)//' "red") '
-     ! end if
-
-     ! if (maxValue < CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
-     ! write (100,"(A)") 'set palette model RGB defined ('//String_convertRealToString(minValue/15625) // &
-     !      ' "white", '//String_convertRealToString(minValue/3125)//&
-     !      ' "violet", '//String_convertRealToString(minValue/625)//&
-     !      ' "blue", '//String_convertRealToString(minValue/125)//&
-     !      ' "green", '//String_convertRealToString(minValue/25)//&
-     !      ' "yellow", '//String_convertRealToString(minValue/5)//&
-     !      ' "orange", '//String_convertRealToString(minValue)//' "red") '
-     ! end if
-
-     ! write (100,"(A)") 'set format "%.0f"'
-     ! write (100,"(A)") 'set format cb "%.1f"'
-     ! write (100,"(A)") 'set cbtics '//String_convertRealToString(maxValue/5)
-     ! write (100,"(A)") 'set xyplane at 0'
-     ! write (100,"(A)") 'set surface'
-     ! write (100,"(A)") 'set border 4095'
-     ! write (100,"(A)") 'set cntrparam cubicspline'
-     ! write (100,"(A)") 'set cntrparam points 20'
-     ! write (100,"(A)") 'set cntrparam levels 10'
-     ! write (100,"(A)") 'set rmargin -1'
-     ! write (100,"(A)") 'set lmargin -1'
-     ! write (100,"(A)") 'set tmargin -1'
-     ! write (100,"(A)") 'set bmargin -1'
-     ! write (100,"(A)") 'unset ztics'
-     ! write (100,"(A)") 'set multiplot title "'//trim(title)//'" layout 1,2'
-
-     ! write (100,"(A)") 'set colorbox vertical'
-     ! write (100,"(A)") 'set colorbox user origin 0.48,0.25 size 0.04,0.5'
-     ! write (100,"(A)") 'set view 50,160'
-     ! write (100,"(A)") 'splot "'//trim(fileName)//'" u 1:2:3 notitle w pm3d'
-
-     ! write (100,"(A)") 'unset colorbox'
-     ! write (100,"(A)") 'set view 0,0'
-     ! write (100,"(A)") 'splot "'//trim(fileName)//'"  u 1:2:3 notitle w pm3d'
-
-     ! write (100,"(A)") 'unset multiplot'
-
+          
      close(100)
 
 !     status= system("gnuplot "//trim(fileName)//".gnp")

@@ -46,7 +46,7 @@ CFLAGS="-g -O2 -fopenmp -D gfortran"
 CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11 "
 FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fallow-invalid-boz -fbacktrace -g -D gfortran"
 GSL_LIBS="-lgsl -lgslcblas"
-LAPACK_LIBS="-lblas -llapack -larpack"
+LAPACK_LIBS="-lblas -llapack"
 STDCPP_LIBS="-lstdc++"
 LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
 LIBXC_LIBS="-lxcf03 -lxc"
@@ -211,9 +211,9 @@ else
     ###############################################################################
 
     if [ "$FC" = "ifort" ] ; then
-        LAPACK_LIBS="-mkl -larpack"
+        LAPACK_LIBS="-mkl"
     else
-        LAPACK_LIBS="-lblas -llapack -larpack"
+        LAPACK_LIBS="-lblas -llapack"
     fi
 
     if [ "$CUDAFLAGS" = "yes" ] ; then

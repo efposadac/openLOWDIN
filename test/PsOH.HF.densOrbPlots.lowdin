@@ -1,0 +1,28 @@
+
+GEOMETRY
+E-(O) AUG-CC-PVTZ 0.0 0.0 0.000  addParticles=1
+E-(H) AUG-CC-PVTZ 0.0 0.0 0.971	 
+E+    PSX-TZ	  0.0 0.0 0.000  addParticles=-1
+E+    PSX-DZ	  0.0 0.0 0.971  
+O     dirac 	  0.0 0.0 0.000
+H     dirac 	  0.0 0.0 0.971
+END GEOMETRY
+
+TASKS
+        method = "RHF"
+END TASKS
+
+CONTROL
+	readCoefficients=F
+	numberOfPointsPerDimension=250	
+	totalEnergyTolerance=1E-12
+END CONTROL
+
+OUTPUTS
+        densityPlot  dimensions=3 point1=0.0 -1.5 -1.5 point2= 0.0 1.5 -1.5 point3= 0.0 -1.5 1.5 species="E-"
+	orbitalPlot  dimensions=3 point1=0.0 -2.0 -2.0 point2= 0.0 2.0 -2.0 point3= 0.0 -2.0 2.0 species="E-" orbital=3
+        densityPlot  dimensions=3 point1=0.0 -5.0 -5.0 point2= 0.0 5.0 -5.0 point3= 0.0 -5.0 5.0 species="E+"
+	orbitalPlot  dimensions=3 point1=0.0 -5.0 -5.0 point2= 0.0 5.0 -5.0 point3= 0.0 -5.0 5.0 species="E+" orbital=1
+END OUTPUTS
+
+

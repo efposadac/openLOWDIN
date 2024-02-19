@@ -36,7 +36,6 @@ END EXTERPOTENTIAL
 CONTROL
 readCoefficients=F
 transformToCenterOfMass=F
-        !CIdiagonalizationMethod="ARPACK"
         !CIdiagonalizationMethod="JADAMILU"
 	CISizeOfGuessMatrix=1
 	convergenceMethod=1

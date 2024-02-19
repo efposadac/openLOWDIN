@@ -39,7 +39,7 @@ module ConfigurationInteraction_
   use IndexMap_
   use InputCI_
   use omp_lib
-  use ArpackInterface_
+  ! use ArpackInterface_
   use JadamiluInterface_
   implicit none
       
@@ -1943,9 +1943,9 @@ recursive  function ConfigurationInteraction_buildCouplingOrderRecursion( s, num
 
     select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
-    case ("ARPACK")
+    ! case ("ARPACK")
 
-      write (*,*) "This method was removed"
+    !   write (*,*) "This method was removed"
 
     case ("JADAMILU")
 

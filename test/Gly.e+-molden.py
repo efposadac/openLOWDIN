@@ -12,14 +12,14 @@ else:
 testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
-cube1Name = testName + ".E-.dens.cub"                                                                      
-cube2Name = testName + ".POSITRON.dens.cub"                                                                
+molden1Name = testName + ".E-.molden"                                                                
+molden2Name = testName + ".POSITRON.molden"                                                                      
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-188.362545831570,1E-8],
-"Num e- in cube" : [24.0,1E-1],
-"Num e+ in cube" : [1.0,1E-2],
+"HF energy" : [-281.379249259318,1E-8],
+"e+HOMO" : [-3.48415E-03,1E-4],
+"e-HOMO" : [-5.40431E-01,1E-4],
 }                       
 
 testValues = dict(refValues) #copy 
@@ -45,31 +45,33 @@ for i in range(0,len(outputRead)):
 
 output.close()
 
-cube1 = open(cube1Name, "r")
-cube1Read = cube1.readlines()
-sumE=0
-for i in range(0,len(cube1Read)):
-    line = cube1Read[i]
-    if i == 3: step=float(line.split()[1])
-    if i > 10:
-        values = line.split()
-        for j in range(0,len(values)):
-            sumE+=float(values[j])
-testValues["Num e- in cube"]=sumE*step**3
-cube1.close()
+molden1 = open(molden1Name, "r")
+molden1Read = molden1.readlines()
+v=0
+eigenv=[]
+for i in range(0,len(molden1Read)):
+    line = molden1Read[i]
+    if "Ene=" in line:
+        eigenv.append(float(line.split()[1]))
+        v+=1
+    if "Occup=" in line and "0.0" in line :
+        testValues["e-HOMO"] = eigenv[v-2]
+        break
+molden1.close()
 
-cube2 = open(cube2Name, "r")
-cube2Read = cube2.readlines()
-sumP=0
-for i in range(0,len(cube2Read)):
-    line = cube2Read[i]
-    if i == 3: step=float(line.split()[1])
-    if i > 10:
-        values = line.split()
-        for j in range(0,len(values)):
-            sumP+=float(values[j])
-testValues["Num e+ in cube"]=sumP*step**3
-cube2.close()
+molden2 = open(molden2Name, "r")
+molden2Read = molden2.readlines()
+v=0
+eigenv=[]
+for i in range(0,len(molden2Read)):
+    line = molden2Read[i]
+    if "Ene=" in line:
+        eigenv.append(float(line.split()[1]))
+        v+=1
+    if "Occup=" in line and "0.0" in line :
+        testValues["e+HOMO"] = eigenv[v-2] 
+        break
+molden2.close()
 
 passTest = True
 
