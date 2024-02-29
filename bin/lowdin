@@ -335,8 +335,27 @@ if [ $extFile="lowdin" ]; then
 	}
 	' | $SED "s/,/./g" >> $nameFile.aux
 
+	###########################################
+	# Check custom basis sets in the input
+	###########################################
 
-	# rm -f $nameFile
+	BASIS_NAMES=(`gawk '($1~/BASIS/){print toupper($2)}' $nameFile`)
+	if [ ${#BASIS_NAMES[@]} -gt "0" ]
+	then
+	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
+	    do
+		if [ -e $LOWDIN_DATA/basis/$BASIS_NAME ]
+		then
+		    echo "## ERROR: ## The custom basis file already exists in " $LOWDIN_DATA/basis/$BASIS_NAME		    
+		    echo "Modify the BASIS block in your input and select a different name"
+		    exit 1
+		fi
+		gawk '($1~/BASIS/ && toupper($2)~/^'$BASIS_NAME'$/){flag=1; next}
+		      ($0~/END/){flag=0};
+		      (flag==1){print toupper($0)}' $nameFile > $LOWDIN_DATA/basis/$BASIS_NAME
+     	    done
+	fi
+
 	
 	###########################################
 	# Exec lowdin.x
@@ -466,7 +485,16 @@ if [ $extFile="lowdin" ]; then
 	if [ $keepScratch = "F" ]; then
 	   rm -rf $LOWDIN_SCRATCH/$nameFile
 	fi
-	
+
+	### Clean custom basis files
+	if [ ${#BASIS_NAMES[@]} -gt "0" ]
+	then
+	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
+	    do
+		rm $LOWDIN_DATA/basis/$BASIS_NAME
+     	    done
+	fi
+
     else
 		echo $1 ", this file does not exist. "
 		exit 1
