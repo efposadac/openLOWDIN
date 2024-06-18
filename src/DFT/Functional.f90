@@ -567,7 +567,7 @@ contains
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
 
-    real(8) :: a,b,c, q
+    real(8) :: a,b,c, prodRho
     real(8) :: denominator, densityThreshold
     real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
     integer :: i
@@ -588,35 +588,27 @@ contains
        STOP "The nuclear electron functional chosen is not implemented"
     end if
 
-    !$omp parallel private(denominator)
+    ec(1:n)=0.0
+    vcE(1:n)=0.0
+    vcN(1:n)=0.0
+
+    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
+    !$omp parallel private(denominator,prodRho)
     !$omp do schedule (dynamic)
     do i = 1, n
-
-       denominator=a-b*sqrt(rhoE(i)*rhoN(i))+c*rhoE(i)*rhoN(i)
-
+       if( rhoE(i)+rhoN(i) .lt. densityThreshold ) cycle
+       prodRho=rhoE(i)*rhoN(i)
+       denominator=a-b*sqrt(prodRho)+c*prodRho
 !!!Energy density
-       ! ec(i)= -rhoE(1:n)*rhoN(1:n)/denominator(1:n)
        ec(i)= -rhoN(i)/denominator
-
 !!!Potential  
-
-       if( rhoE(i)+rhoN(i) .gt. densityThreshold ) then !
-          vcE(i)= (rhoE(i)*rhoN(i)*(c*rhoN(i)-b*rhoN(i)/(2*sqrt(rhoE(i)*rhoN(i))))-rhoN(i)*denominator)/denominator**2
-          vcN(i)= (rhoN(i)*rhoE(i)*(c*rhoE(i)-b*rhoE(i)/(2*sqrt(rhoE(i)*rhoN(i))))-rhoE(i)*denominator)/denominator**2
-       else
-          vcE(i)=0.0
-          vcN(i)=0.0
-       end if
-       
+       vcE(i)= rhoN(i)*(prodRho*c-sqrt(prodRho)*b/2.0-denominator)/denominator**2
+       vcN(i)= rhoE(i)*(prodRho*c-sqrt(prodRho)*b/2.0-denominator)/denominator**2
+       !    write(*,"(I0.1,5ES16.6)") i, rhoE(i), rhoN(i),  ec(i), vcE(i), vcN(i)
     end do
     !$omp end do 
     !$omp end parallel
     
-    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
-    ! do i = 1, n
-    !    write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i),  ec(i), vcE(i), vcN(i)
-    ! end do
-
   end subroutine Functional_EPCEvaluate
 
   subroutine Functional_IKNEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )

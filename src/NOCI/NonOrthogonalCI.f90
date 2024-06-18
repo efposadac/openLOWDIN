@@ -74,7 +74,7 @@ module NonOrthogonalCI_
      integer, allocatable :: rotationCenterList(:,:)
      type(Matrix) :: configurationOverlapMatrix, configurationHamiltonianMatrix, configurationCoefficients
      type(Matrix), allocatable :: configurationKineticMatrix(:), configurationPuntualMatrix(:), configurationExternalMatrix(:), configurationExchangeMatrix(:)  
-     type(Matrix), allocatable :: configurationHartreeMatrix(:,:)
+     type(Matrix), allocatable :: configurationHartreeMatrix(:,:), configurationDFTcorrelationMatrix(:,:)
      type(Vector) :: configurationCorrelationEnergies, statesEigenvalues
      type(IVector), allocatable :: sysBasisList(:,:)
      type(Matrix), allocatable :: HFCoefficients(:,:)
@@ -229,7 +229,8 @@ contains
          this%configurationPuntualMatrix(molecularSystem_instance%numberOfQuantumSpecies),&
          this%configurationExternalMatrix(molecularSystem_instance%numberOfQuantumSpecies),&
          this%configurationExchangeMatrix(molecularSystem_instance%numberOfQuantumSpecies),&
-         this%configurationHartreeMatrix(molecularSystem_instance%numberOfQuantumSpecies,molecularSystem_instance%numberOfQuantumSpecies))  
+         this%configurationHartreeMatrix(molecularSystem_instance%numberOfQuantumSpecies,molecularSystem_instance%numberOfQuantumSpecies),&
+         this%configurationDFTcorrelationMatrix(molecularSystem_instance%numberOfQuantumSpecies,molecularSystem_instance%numberOfQuantumSpecies))  
     
   end subroutine NonOrthogonalCI_constructor
   !>
@@ -854,6 +855,8 @@ contains
          do otherSpeciesID=speciesID, MolecularSystem_instance%numberOfQuantumSpecies
             call Matrix_constructor(this%configurationHartreeMatrix(speciesID,otherSpeciesID), &
                  int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
+            call Matrix_constructor(this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID), &
+                 int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
          end do
     end do
 
@@ -928,7 +931,9 @@ contains
           this%configurationExchangeMatrix(speciesID)%values(sysI,sysI)=WaveFunction_instance(speciesID)%exchangeHFEnergy
           do otherSpeciesID = speciesID, molecularSystem_instance%numberOfQuantumSpecies
              this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(sysI,sysI)=&
-                  WaveFunction_instance(speciesID)%hartreeEnergy(otherSpeciesID)             
+                  WaveFunction_instance(speciesID)%hartreeEnergy(otherSpeciesID)
+             this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(sysI,sysI)=&
+                  WaveFunction_instance(speciesID)%exchangeCorrelationEnergy(otherSpeciesID)                  
           end do
        end do
 
@@ -1173,7 +1178,7 @@ contains
                   sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me),inverseOverlapMatrices)
              !$  timeB = omp_get_wtime()
              !$  timeOverlap=timeOverlap+(timeB - timeA)
-
+             
              !! SKIP ENERGY EVALUATION IF OVERLAP IS TOO LOW
 
              if( CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD .gt. 0.0 .and. &
@@ -1185,6 +1190,17 @@ contains
                 overlapScreenedElements=overlapScreenedElements+1
                 ! cycle systemII
              else
+
+                if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+                   !DFT energy correction for off diagonal elements
+                   call NonOrthogonalCI_getOffDiagonalDensityMatrix(this,sysI,mySysII,mergedCoefficients,mergedMolecularSystem(me),this%configurationOverlapMatrix%values(sysI,mySysII),&
+                        inverseOverlapMatrices,sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me))
+                   this%configurationHamiltonianMatrix%values(sysI,mySysII)=this%configurationHamiltonianMatrix%values(sysI,mySysII)+&
+                        this%configurationOverlapMatrix%values(sysI,mySysII)/2.0*&
+                        (this%configurationCorrelationEnergies%values(sysI)+&
+                        this%configurationCorrelationEnergies%values(mySysII))
+                end if
+
                 !$  timeA = omp_get_wtime()
                 call NonOrthogonalCI_twoParticlesContributions(this,sysI,mySysII,mergedMolecularSystem(me),&
                      inverseOverlapMatrices,mergedCoefficients,Libint2ParallelInstance(1:nspecies,me))
@@ -1202,15 +1218,7 @@ contains
              mySysII=sysIIbatch(me)
 
              if(mySysII .eq. 0) exit systemII
-
-             !DFT energy correction for off diagonal elements
-             if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-                this%configurationHamiltonianMatrix%values(sysI,mySysII)=this%configurationHamiltonianMatrix%values(sysI,mySysII)+&
-                     this%configurationOverlapMatrix%values(sysI,mySysII)/2.0*&
-                     (this%configurationCorrelationEnergies%values(sysI)+&
-                     this%configurationCorrelationEnergies%values(mySysII))
-             end if
-
+             
              !Yu2020 magical empirical correction
              if(CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION .and. &
                   abs(this%configurationOverlapMatrix%values(sysI,mySysII)) .gt. CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD) then
@@ -1233,6 +1241,8 @@ contains
                    do otherSpeciesID=speciesID, nspecies
                       this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(sysI,mySysII)=&
                            this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(sysI,mySysII)*empiricalScaleFactor
+                      this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(sysI,mySysII)=&
+                           this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(sysI,mySysII)*empiricalScaleFactor
                    end do
                 end do
              end if
@@ -1249,6 +1259,8 @@ contains
                 do otherSpeciesID=speciesID, nspecies
                    this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(mySysII,sysI)=&
                         this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(sysI,mySysII)
+                   this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(mySysII,sysI)=&
+                        this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(sysI,mySysII)
                 end do
              end do
              
@@ -1257,8 +1269,6 @@ contains
 
              if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) then 
                 write (*,'(I10,I10,A38,ES20.12)') sysI, mySysII, "Overlap element = ", this%configurationOverlapMatrix%values(sysI,mySysII)
-                write (*,'(I10,I10,A38,ES20.12)') sysI, mySysII, "Hamiltonian element = ", this%configurationHamiltonianMatrix%values(sysI,mySysII)
-
                 do speciesID = 1, nspecies                
                    write (*,'(I10,I10,A38,ES20.12)') sysI, mySysII, trim( this%molecularSystems(sysI)%species(speciesID)%name ) // &
                         " Kinetic element = ", this%configurationKineticMatrix(speciesID)%values(sysI,mySysII)
@@ -1277,6 +1287,19 @@ contains
                            " Hartree element = ", this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(sysI,mySysII)
                    end do
                 end do
+                if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+                   do speciesID=1, nspecies
+                      do otherSpeciesID=speciesID, nspecies
+                         write (*,'(I10,I10,A38,ES20.12)') sysI, mySysII, trim( MolecularSystem_instance%species(speciesID)%name ) // &
+                              "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
+                              " DFTcorrelation element = ", this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(sysI,mySysII)
+                      end do
+                   end do
+                   write (*,'(I10,I10,A38,ES20.12)') sysI, mySysII, "Total DFT Correlation element = ", this%configurationOverlapMatrix%values(sysI,mySysII)/2.0*&
+                        (this%configurationCorrelationEnergies%values(sysI)+&
+                        this%configurationCorrelationEnergies%values(mySysII))
+                end if
+                write (*,'(I10,I10,A38,ES20.12)') sysI, mySysII, "Hamiltonian element = ", this%configurationHamiltonianMatrix%values(sysI,mySysII)
                 print *, ""
 
              end if
@@ -1439,26 +1462,7 @@ contains
        ! print *, "Merged coefficients matrix for ", speciesID
        ! call Matrix_show(mergedCoefficients(speciesID))
 
-       ! call Matrix_writeToFile(mergedCoefficients(speciesID), unit=wfnUnit, binary=.true., arguments = arguments )
-       
-       ! arguments(1) = "DENSITY"
-       ! call Matrix_constructor(auxMatrix, int(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem),8), &
-       !      int(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem),8), 0.0_8 )
-
-       ! auxMatrix%values=1.0
-       
-       ! do i = 1 , MolecularSystem_getOcupationNumber(speciesID)*2 !!double size A+B
-       !    do mu = 1 , MolecularSystem_getTotalNumberOfContractions(speciesID)
-       !       do nu = 1 , MolecularSystem_getTotalNumberOfContractions(speciesID)
-       !          auxMatrix%values(mu,nu)=auxMatrix%values(mu,nu)&
-       !               +MolecularSystem_getEta(speciesID)*mergedCoefficients(speciesID)%values(mu,i)*mergedCoefficients(speciesID)%values(nu,i)
-       !       end do
-       !    end do
-       ! end do
-
-       ! print *, "auxDensity", speciesID
-       ! call Matrix_show(auxMatrix)
-
+       ! call Matrix_writeToFile(mergedCoefficients(speciesID), unit=wfnUnit, binary=.true., arguments = arguments      
        ! call Matrix_writeToFile(auxMatrix, unit=wfnUnit, binary=.true., arguments = arguments )
 
        ! arguments(1) = "ORBITALS"
@@ -1477,6 +1481,110 @@ contains
     ! close(wfnUnit)
     
   end subroutine NonOrthogonalCI_mergeCoefficients
+
+  !>
+  !! @brief Merges the occupied orbitals coefficients from two systems
+  !! @param occupationI and occupationII: Number of orbitals to merge from each matrix. 
+  !! sysBasisList: array indicating which basis functions of the merged molecular system belong to sysI and sysII Merged Coefficients: Matrices for output.
+  !<
+  subroutine NonOrthogonalCI_getOffDiagonalDensityMatrix(this,sysI,sysII,mergedCoefficients,mergedMolecularSystem,overlapElement,inverseOverlapMatrices,&
+       sysIbasisList,sysIIbasisList)
+    type(NonOrthogonalCI), intent(inout) :: this
+    integer, intent(in) :: sysI, sysII
+    type(Matrix), intent(in) :: mergedCoefficients(*), inverseOverlapMatrices(*)
+    type(MolecularSystem), intent(in) :: mergedMolecularSystem
+    real(8), intent(in) :: overlapElement
+    type(IVector), intent(in) :: sysIbasisList(*), sysIIbasisList(*)
+
+    type(Matrix), allocatable :: mergedDensityMatrix(:)
+    type(Matrix), allocatable :: exchangeCorrelationMatrices(:)
+    type(Matrix) :: dftEnergyMatrix
+    real(8), allocatable :: particlesInGrid(:)
+   
+    integer :: speciesID, otherSpeciesID, i, j, ii, jj, mu, nu
+    integer :: numberOfSpecies, particlesPerOrbital, occupationNumber, numberOfContractions
+
+    !!"Non Diagonal" terms - system pairs
+    if( abs(overlapElement) .lt. CONTROL_instance%CONFIGURATION_OVERLAP_THRESHOLD ) return
+
+    numberOfSpecies=mergedMolecularSystem%numberOfQuantumSpecies
+    allocate(mergedDensityMatrix(numberOfSpecies))
+
+    call MolecularSystem_copyConstructor(MolecularSystem_instance,mergedMolecularSystem)
+    
+    ! Compute density contributions
+    do speciesID=1, numberOfSpecies
+       particlesPerOrbital=MolecularSystem_getEta(speciesID,mergedMolecularSystem)
+       occupationNumber=MolecularSystem_getOcupationNumber(speciesID,mergedMolecularSystem)/2
+       numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
+       call Matrix_constructor(mergedDensityMatrix(speciesID),int(numberOfContractions,8),int(numberOfContractions,8),0.0_8)
+       do mu = 1 , numberOfContractions
+          if(sysIbasisList(speciesID)%values(mu) .eq. 0) cycle
+          do nu = 1 , numberOfContractions
+             if(sysIIbasisList(speciesID)%values(nu) .eq. 0) cycle
+             do i = 1 , occupationNumber 
+                ii= i
+                do j = 1 , occupationNumber
+                   jj=occupationNumber + j
+                   mergedDensityMatrix(speciesID)%values(mu,nu) =  mergedDensityMatrix(speciesID)%values(mu,nu) + &
+                        inverseOverlapMatrices(speciesID)%values(j,i)*&
+                        mergedCoefficients(speciesID)%values(mu,ii)*&
+                        mergedCoefficients(speciesID)%values(nu,jj)
+                   mergedDensityMatrix(speciesID)%values(nu,mu) = mergedDensityMatrix(speciesID)%values(nu,mu) + &
+                        inverseOverlapMatrices(speciesID)%values(j,i)*&
+                        mergedCoefficients(speciesID)%values(mu,ii)*&
+                        mergedCoefficients(speciesID)%values(nu,jj)
+                end do
+             end do
+          end do
+       end do
+       mergedDensityMatrix(speciesID)%values=0.5*particlesPerOrbital*mergedDensityMatrix(speciesID)%values
+       ! print *, "off diagonal matrix for", speciesID
+       ! call Matrix_show(mergedDensityMatrix(speciesID))
+    end do
+
+
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       print *, "Superposed DFT energies:"
+
+       allocate(exchangeCorrelationMatrices(numberOfSpecies), &
+            particlesInGrid(numberOfSpecies))
+       call DensityFunctionalTheory_buildFinalGrid()
+       call Matrix_constructor(dftEnergyMatrix, int(numberOfSpecies,8), &
+            int(numberOfSpecies,8), 0.0_8 )
+       do speciesID=1, numberOfSpecies
+          numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
+          call Matrix_constructor(exchangeCorrelationMatrices(speciesID), int(numberOfContractions,8), &
+               int(numberOfContractions,8), 0.0_8)
+       end do
+       call DensityFunctionalTheory_finalDFT(mergedDensityMatrix(1:numberOfSpecies), &
+            exchangeCorrelationMatrices, &
+            dftEnergyMatrix, &
+            particlesInGrid)
+
+       do speciesID = 1, numberOfSpecies
+          write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+               " Particles in grid = ", particlesInGrid(speciesID)
+       end do
+
+       do speciesID = 1, numberOfSpecies
+          do otherSpeciesID = speciesID, numberOfSpecies
+             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+                  "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
+                  " DFT Corr. energy = ", dftEnergyMatrix%values(speciesID,otherSpeciesID)
+             this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(sysI,sysII)=dftEnergyMatrix%values(speciesID,otherSpeciesID)*overlapElement
+          end do
+       end do
+    end if
+
+    
+    do speciesID=1, numberOfSpecies
+       call Matrix_destructor(mergedDensityMatrix(speciesID))
+    end do
+
+    deallocate(mergedDensityMatrix)
+    
+  end subroutine NonOrthogonalCI_getOffDiagonalDensityMatrix
 
 
   !>

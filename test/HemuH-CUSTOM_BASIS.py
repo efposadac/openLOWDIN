@@ -49,7 +49,7 @@ for i in range(0,len(outputRead)):
             checkArray[0]=1
         elif species == "H_1":
             checkArray[1]=1
-        elif species == "MUON":
+        elif species == "U-":
             checkArray[2]=1
         elif species == "HE_4":
             checkArray[3]=1

@@ -283,8 +283,13 @@ contains
           STOP "ERROR At DFT program, requested an unknown grid type to orbitals at GridManager"
        end if
 
-       if (.not. allocated(Grid_instance(speciesID)%orbitalsWithGradient)) &
-            allocate(Grid_instance(speciesID)%orbitalsWithGradient(totalNumberOfContractions))
+       if (allocated(Grid_instance(speciesID)%orbitalsWithGradient)) then
+          do u=1, size(Grid_instance(speciesID)%orbitalsWithGradient(:))
+             call Matrix_destructor(Grid_instance(speciesID)%orbitalsWithGradient(u))
+          end do
+          deallocate(Grid_instance(speciesID)%orbitalsWithGradient)
+       end if
+       allocate(Grid_instance(speciesID)%orbitalsWithGradient(totalNumberOfContractions))
 
        do u=1, totalNumberOfContractions
           call Matrix_Constructor( Grid_instance(speciesID)%orbitalsWithGradient(u), int(gridSize,8), int(4,8), 0.0_8)
@@ -314,7 +319,7 @@ contains
                 call Matrix_constructor( auxMatrix(2), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8) !d orbital/dx
                 call Matrix_constructor( auxMatrix(3), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8) !d orbital/dy
                 call Matrix_constructor( auxMatrix(4), int(gridSize,8), int(numberOfCartesiansOrbitals,8), 0.0_8) !d orbital/dz
-
+                
                 call ContractedGaussian_getGradientAtGrid( MolecularSystem_instance%species(speciesID)%particles(g)%basis%contraction(i), &
                      Grid_instance(speciesID)%points, gridSize, auxMatrix(1), auxMatrix(2), auxMatrix(3), auxMatrix(4))
 
@@ -375,8 +380,8 @@ contains
     integer :: i, j, u, g
     integer :: ii, jj, v, gg
     integer :: s, ss
-    real(8) :: sum
     integer :: numberOfContractions
+    real(8) :: auxreal
 
     integer :: n, nproc
     real :: time1,time2
@@ -451,6 +456,15 @@ contains
        call Vector_Destructor( nodeGradientInGrid(n,3))
     end do
 
+    !!Check for negative values, which should be numerical mistakes
+    auxreal=1.0E8
+    do point = 1 , gridSize
+       if(densityInGrid%values(point).lt.auxreal) auxreal=densityInGrid%values(point)
+       if(densityInGrid%values(point).lt.0.0) densityInGrid%values(point)=0.0
+    end do
+    if(-auxreal.gt.CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD) print *, "found significative negative density, up to", auxreal, ", for species", speciesID
+    
+    
     time2=omp_get_wtime()
     ! write(*,"(A,F10.3,A4)") "**getDensityGradientAtGrid:", time2-time1 ," (s)"
     
