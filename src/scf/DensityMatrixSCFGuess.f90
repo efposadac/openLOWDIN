@@ -161,8 +161,10 @@ contains
     end do
     densityMatrix%values=densityMatrix%values*MolecularSystem_getEta( speciesID )
     
-    if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX ) then
-       densityMatrix%values(occupationNumber,:) = 0.1*densityMatrix%values(occupationNumber,:)*densityMatrix%values(occupationNumber+1,:)
+    if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX .and. trim(nameOfSpecies)=="E-ALPHA" ) then
+
+       densityMatrix%values(occupationNumber,:) =  densityMatrix%values(occupationNumber,:) + 0.25*densityMatrix%values(occupationNumber,:)*densityMatrix%values(occupationNumber+1,:)
+
     end if
 
   end subroutine DensityMatrixSCFGuess_getGuess
