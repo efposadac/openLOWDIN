@@ -242,6 +242,11 @@ contains
        end if
     end if
 
+
+    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+      write (*,"(T2,A15,3F12.8)") "ELECTRIC FIELD:", CONTROL_instance%ELECTRIC_FIELD
+    end if
+
   end subroutine WaveFunction_constructor
 
   !>
@@ -348,7 +353,6 @@ contains
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
-    write (*,"(T2,A15,3F12.8)") "ELECTRIC FIELD:", CONTROL_instance%ELECTRIC_FIELD
     arguments(1) = "MOMENTX"
     this%electricField(1) = Matrix_getFromFile(rows=totalNumberOfContractions, &
          columns=totalNumberOfContractions, &
@@ -365,7 +369,7 @@ contains
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"Matrices de electric field: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+       print *,"External electric field Matrix: ", trim(MolecularSystem_getNameOfSpecies(this%species))
        call Matrix_show(this%electricField(1))
        call Matrix_show(this%electricField(2))
        call Matrix_show(this%electricField(3))

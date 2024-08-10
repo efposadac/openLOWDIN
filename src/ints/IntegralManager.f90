@@ -736,7 +736,7 @@ contains
     do f = 1, size(MolecularSystem_instance%species)
        arguments(2) = MolecularSystem_instance%species(f)%name
 
-       do component = 1, 9 !! components x, y, z
+       do component = 1, 9 !! components x, y, z, XX, YY, ZZ, XY, XZ, YZ
 
           arguments(1) = "MOMENT"//trim(coordinate(component))
 

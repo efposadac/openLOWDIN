@@ -161,7 +161,7 @@ contains
     end do
     densityMatrix%values=densityMatrix%values*MolecularSystem_getEta( speciesID )
     
-    if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX .and. trim(nameOfSpecies)=="E-ALPHA" ) then
+    if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX .and. ( trim(nameOfSpecies)=="E-ALPHA" .or. trim(nameOfSpecies)=="E+A")  ) then
 
        densityMatrix%values(occupationNumber,:) =  densityMatrix%values(occupationNumber,:) + 0.25*densityMatrix%values(occupationNumber,:)*densityMatrix%values(occupationNumber+1,:)
 

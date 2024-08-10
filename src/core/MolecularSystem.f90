@@ -1391,6 +1391,14 @@ contains
            
         end do
      end do
+    
+    !! Point charge potential with the external electric field
+    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+      do i=1, size( MolecularSystem_instance%pointCharges )      
+        output = output + sum(CONTROL_instance%ELECTRIC_FIELD(:) * MolecularSystem_instance%pointCharges(i)%origin(:) )*  MolecularSystem_instance%pointCharges(i)%charge 
+      end do
+    end if
+
      
    end function MolecularSystem_getPointChargesEnergy
 

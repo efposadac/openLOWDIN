@@ -101,7 +101,7 @@ module CONTROL_
      logical :: HF_PRINT_EIGENVALUES
      character(20) :: HF_PRINT_EIGENVECTORS
      real(8) :: OVERLAP_EIGEN_THRESHOLD
-     real(8) :: ELECTRIC_FIELD(6)
+     real(8) :: ELECTRIC_FIELD(3)
      integer :: MULTIPOLE_ORDER
 
      !!***************************************************************************
@@ -441,7 +441,7 @@ module CONTROL_
   logical :: LowdinParameters_HFprintEigenvalues
   character(20) :: LowdinParameters_HFprintEigenvectors
   real(8) :: LowdinParameters_overlapEigenThreshold
-  real(8) :: LowdinParameters_electricField(6)
+  real(8) :: LowdinParameters_electricField(3)
   integer :: LowdinParameters_multipoleOrder
 
   !!***************************************************************************

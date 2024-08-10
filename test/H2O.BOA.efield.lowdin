@@ -1,0 +1,22 @@
+GEOMETRY
+e-(O)	aug-cc-pVTZ	0.00000	0.00000	0.11285
+e-(H)	aug-cc-pVTZ	0.00000	0.75306	-0.45141
+e-(H)	aug-cc-pVTZ	0.00000	-0.75306	-0.45141
+O	dirac		0.00000	0.00000	0.11285
+H	dirac		0.00000	0.75306	-0.45141
+H	dirac		0.00000	-0.75306	-0.45141
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+END TASKS
+
+CONTROL
+	electricField = 0.00 0.00 0.001
+!	multipoleOrder = 1
+END CONTROL
+
+
+
+
+
