@@ -344,6 +344,8 @@ contains
     real(8):: InputParticle_origin(3)
     real(8) :: InputParticle_charge
     real(8) :: InputParticle_mass
+    real(8) :: InputParticle_omega
+    character(15):: InputParticle_qdoCenterOf
     character(3):: InputParticle_fixedCoordinates
     integer:: InputParticle_addParticles
     real(8):: InputParticle_multiplicity    
@@ -357,6 +359,8 @@ contains
          InputParticle_basisSetName, &
          InputParticle_charge, &
          InputParticle_mass, &
+         InputParticle_omega, &
+         InputParticle_qdoCenterOf, &
          InputParticle_origin, &
          InputParticle_fixedCoordinates, &
          InputParticle_multiplicity, &
@@ -534,6 +538,8 @@ contains
        InputParticle_basisSetName = "NONE"
        InputParticle_charge=0.0_8
        InputParticle_mass=0.0_8
+       InputParticle_omega=0.0_8
+       InputParticle_qdoCenterOf = "NONE"
        InputParticle_origin=0.0_8
        InputParticle_fixedCoordinates = "NON"
        InputParticle_multiplicity = 1.0_8
@@ -614,7 +620,8 @@ contains
                   spin="ALPHA", &
                   id = particlesID(speciesID), &
                   charge = InputParticle_charge, &
-                  mass = InputParticle_mass )
+                  mass = InputParticle_mass, & 
+                  omega = InputParticle_omega )
              
              !!BETA SET
              speciesID = speciesID + 1
@@ -636,7 +643,8 @@ contains
                   spin="BETA", &
                   id = particlesID(speciesID), &
                   charge = InputParticle_charge, &
-                  mass = InputParticle_mass )             
+                  mass = InputParticle_mass, &
+                  omega = InputParticle_omega )         
              
           else 
 
@@ -662,7 +670,8 @@ contains
                   rotateAround=InputParticle_rotateAround,&                
                   id = particlesID(speciesID), &
                   charge = InputParticle_charge, &
-                  mass = InputParticle_mass )                         
+                  mass = InputParticle_mass, &
+                  omega = InputParticle_omega )                         
              
           end if
 
@@ -684,7 +693,8 @@ contains
                   rotationPoint=InputParticle_rotationPoint, &
                   rotateAround=InputParticle_rotateAround,&                
                   id = counter, &
-                  charge = InputParticle_charge )             
+                  charge = InputParticle_charge, &
+                  qdoCenterOf = InputParticle_qdoCenterOf )
 
           else
           !! Loads Particle
@@ -700,7 +710,8 @@ contains
                   rotationPoint=InputParticle_rotationPoint, &
                   rotateAround=InputParticle_rotateAround,&                
                   id = counter, &
-                  charge = InputParticle_charge )             
+                  charge = InputParticle_charge, &
+                  qdoCenterOf = InputParticle_qdoCenterOf )
           end if
        end if
     end do

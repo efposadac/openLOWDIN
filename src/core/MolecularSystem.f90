@@ -387,16 +387,17 @@ contains
     !!
     print *,""
     print *,"                INFORMATION OF QUANTUM SPECIES "
-    write (6,"(T5,A70)") "---------------------------------------------------------------------"
-    write (6,"(T10,A2,A4,A8,A12,A4,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","spin","","multiplicity"
-    write (6,"(T5,A70)") "---------------------------------------------------------------------"
+    write (6,"(T5,A70)") "---------------------------------------------------------------------------------------------"
+    write (6,"(T10,A2,A4,A8,A12,A4,A5,A6,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","omega","","spin","","multiplicity"
+    write (6,"(T5,A70)") "---------------------------------------------------------------------------------------------"
 
     do i = 1, system%numberOfQuantumSpecies
-       write (6,'(T8,I3.0,A5,A10,A5,F10.4,A5,F5.2,A5,F5.2,A5,F5.2)') &
+       write (6,'(T8,I3.0,A5,A10,A5,F10.4,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)') &
             i, " ", &
             trim(system%species(i)%symbol)," ",&
             system%species(i)%mass," ",&
             system%species(i)%charge, " ",&
+            system%species(i)%omega," ",&
             system%species(i)%spin, "",&
             system%species(i)%multiplicity
     end do
@@ -659,6 +660,7 @@ contains
     end do    
     !! Saving Point charges
     write(40,*) MolecularSystem_instance%numberOfPointCharges
+
     !! Saving info of each point charge
     do i = 1, MolecularSystem_instance%numberOfPointCharges
        call Particle_saveToFile(MolecularSystem_instance%pointCharges(i), unit=40)
@@ -1279,6 +1281,17 @@ contains
      
    end function MolecularSystem_getCharge
 
+   !> @brief Returns the omega frequency of speciesID. Why we have these functions??
+   function MolecularSystem_getOmega( speciesID ) result( output )
+     implicit none
+     integer :: speciesID
+     
+     real(8) :: output
+     
+     output = MolecularSystem_instance%species(speciesID)%omega
+     
+   end function MolecularSystem_getOmega
+
    !> @brief Returns the mass of speciesID
    !! @author E. F. Posada, 2013
    !! @version 1.0   
@@ -1291,6 +1304,30 @@ contains
      output = MolecularSystem_instance%species(speciesID)%mass
      
    end function MolecularSystem_getMass
+
+   !> @brief Returns QDO center of quantum species
+   function MolecularSystem_getQDOcenter( speciesID ) result( origin )
+     implicit none
+     integer :: speciesID
+     integer :: i
+     logical :: centerFound
+     real(8) :: origin(3)
+
+     centerFound = .False.
+     do i = 1 , size( MolecularSystem_instance%pointCharges )
+        if ( trim(MolecularSystem_instance%pointCharges(i)%qdoCenterOf) == trim(MolecularSystem_instance%species(speciesID)%symbol) ) then 
+          origin = MolecularSystem_instance%pointCharges(i)%origin 
+          centerFound = .True.
+          exit
+        end if
+    end do
+    if ( .not. centerFound ) then
+        call MolecularSystem_exception(ERROR, "No QDO center for species: "//MolecularSystem_instance%species(speciesID)%symbol, "MolecularSystem_getQDOcenter"   )
+    end if
+ 
+     
+   end function MolecularSystem_getQDOCenter
+
    
    !> @brief Returns the Factor Of Exchange Integrals
    !! @author E. F. Posada, 2013
@@ -1841,6 +1878,7 @@ contains
        this%species(i)%statistics = originalThis%species(i)%statistics
        this%species(i)%charge = originalThis%species(i)%charge
        this%species(i)%mass = originalThis%species(i)%mass
+       this%species(i)%omega = originalThis%species(i)%omega
        this%species(i)%spin = originalThis%species(i)%spin
        this%species(i)%totalCharge = originalThis%species(i)%totalCharge
        this%species(i)%kappa = originalThis%species(i)%kappa
@@ -1883,6 +1921,8 @@ contains
        this%allParticles(i)%particlePtr%origin=originalThis%allParticles(i)%particlePtr%origin
        this%allParticles(i)%particlePtr%charge=originalThis%allParticles(i)%particlePtr%charge
        this%allParticles(i)%particlePtr%mass=originalThis%allParticles(i)%particlePtr%mass
+       this%allParticles(i)%particlePtr%omega=originalThis%allParticles(i)%particlePtr%omega
+       this%allParticles(i)%particlePtr%qdoCenterOf=originalThis%allParticles(i)%particlePtr%qdoCenterOf
        this%allParticles(i)%particlePtr%spin=originalThis%allParticles(i)%particlePtr%spin
        this%allParticles(i)%particlePtr%totalCharge=originalThis%allParticles(i)%particlePtr%totalCharge
        this%allParticles(i)%particlePtr%klamt=originalThis%allParticles(i)%particlePtr%klamt
@@ -2043,6 +2083,7 @@ contains
        mergedThis%species(i)%statistics = thisA%species(i)%statistics
        mergedThis%species(i)%charge = thisA%species(i)%charge
        mergedThis%species(i)%mass = thisA%species(i)%mass
+       mergedThis%species(i)%omega = thisA%species(i)%omega
        mergedThis%species(i)%spin = thisA%species(i)%spin
        mergedThis%species(i)%totalCharge = thisA%species(i)%totalCharge
        mergedThis%species(i)%kappa = thisA%species(i)%kappa
@@ -2085,6 +2126,8 @@ contains
        mergedThis%pointCharges(i)%origin=thisA%pointCharges(i)%origin
        mergedThis%pointCharges(i)%charge=thisA%pointCharges(i)%charge
        mergedThis%pointCharges(i)%mass=thisA%pointCharges(i)%mass
+       mergedThis%pointCharges(i)%omega=thisA%pointCharges(i)%omega
+       mergedThis%pointCharges(i)%qdoCenterOf=thisA%pointCharges(i)%qdoCenterOf
        mergedThis%pointCharges(i)%spin=thisA%pointCharges(i)%spin
        mergedThis%pointCharges(i)%totalCharge=thisA%pointCharges(i)%totalCharge
        mergedThis%pointCharges(i)%klamt=thisA%pointCharges(i)%klamt
@@ -2126,6 +2169,8 @@ contains
                 mergedThis%species(i)%particles(j)%origin=thisA%species(i)%particles(jj)%origin
                 mergedThis%species(i)%particles(j)%charge=thisA%species(i)%particles(jj)%charge
                 mergedThis%species(i)%particles(j)%mass=thisA%species(i)%particles(jj)%mass
+                mergedThis%species(i)%particles(j)%omega=thisA%species(i)%particles(jj)%omega
+                mergedThis%species(i)%particles(j)%qdoCenterOf=thisA%species(i)%particles(jj)%qdoCenterOf
                 mergedThis%species(i)%particles(j)%spin=thisA%species(i)%particles(jj)%spin
                 mergedThis%species(i)%particles(j)%totalCharge=thisA%species(i)%particles(jj)%totalCharge
                 mergedThis%species(i)%particles(j)%klamt=thisA%species(i)%particles(jj)%klamt
@@ -2213,6 +2258,8 @@ contains
              mergedThis%species(i)%particles(j)%origin=thisB%species(i)%particles(jj)%origin
              mergedThis%species(i)%particles(j)%charge=thisB%species(i)%particles(jj)%charge
              mergedThis%species(i)%particles(j)%mass=thisB%species(i)%particles(jj)%mass
+             mergedThis%species(i)%particles(j)%omega=thisB%species(i)%particles(jj)%omega
+             mergedThis%species(i)%particles(j)%qdoCenterOf=thisB%species(i)%particles(jj)%qdoCenterOf
              mergedThis%species(i)%particles(j)%spin=thisB%species(i)%particles(jj)%spin
              mergedThis%species(i)%particles(j)%totalCharge=thisB%species(i)%particles(jj)%totalCharge
              mergedThis%species(i)%particles(j)%klamt=thisB%species(i)%particles(jj)%klamt

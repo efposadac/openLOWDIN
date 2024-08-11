@@ -45,9 +45,11 @@ module Particle_
      character(50) :: nickname          !< Name in input file: e-(H), U-, He_4, etc.
      character(10) :: statistics        !< Boson / fermion
      character(20) :: basisSetName      !< basis set name
+     character(20) :: qdoCenterOf       !< qdo center of species 
      real(8) :: origin(3)		!< Posicion espacial
      real(8) :: charge 			!< Carga asociada a la particula.
      real(8) :: mass			!< Masa asociada a la particula.
+     real(8) :: omega			!< harmonic oscillator frequency 
      real(8) :: spin			!< Especifica el espin de la particula
      real(8) :: totalCharge		!< Carga total asociada a la particula.
      real(8) :: klamt			!< Radio de Klamt asociado a la particula
@@ -81,13 +83,14 @@ contains
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
   subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, &
-       addParticles, subsystem, translationCenter, rotationPoint, rotateAround, spin, id, charge, mass )
+       addParticles, subsystem, translationCenter, rotationPoint, rotateAround, spin, id, charge, mass, omega, qdoCenterOf  )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
     character(*), intent(in), optional :: baseName
     character(*), intent(in), optional :: fix
     character(*), intent(in), optional :: spin
+    character(*), intent(in), optional :: qdoCenterOf
     real(8), intent(in), optional :: origin(3)
     real(8), intent(in), optional :: multiplicity
     integer, intent(in), optional :: addParticles
@@ -98,12 +101,14 @@ contains
     integer, intent(in) :: id
     real(8), intent(in), optional :: charge
     real(8), intent(in), optional :: mass
+    real(8), intent(in), optional :: omega
     
     type(AtomicElement) :: element
     type(ElementalParticle) :: eparticle
     character(3) :: varsToFix
     character(5) :: massNumberString
     character(5) :: elementSymbol
+    character(15) :: auxqdoCenterOf
     integer :: i
     integer :: j
     integer :: massNumber
@@ -115,6 +120,7 @@ contains
     real(8) :: auxOrigin(3)
     real(8) :: auxCharge
     real(8) :: auxMass
+    real(8) :: auxOmega
     real(8) :: auxMultiplicity
     logical :: isDummy
     logical :: isElectron
@@ -130,6 +136,12 @@ contains
 
     auxMass=0.0_8
     if   ( present(mass) ) auxMass= mass
+
+    auxOmega=0.0_8
+    if   ( present(omega) ) auxOmega= omega
+
+    auxqdoCenterOf= "NONE"
+    if   ( present( qdoCenterOf ) ) auxqdoCenterOf = qdoCenterOf 
     
     auxMultiplicity=1.0_8
     if   ( present(multiplicity) ) auxMultiplicity=multiplicity
@@ -207,6 +219,7 @@ contains
                origin=auxOrigin, &
                charge=auxCharge, &
                mass=auxMass, &
+               omega=auxOmega, &
                basisSetName=trim(baseName), &
                elementSymbol=trim(elementSymbol), &
                isDummy= isDummy, &
@@ -296,6 +309,7 @@ contains
                origin = auxOrigin,&
                charge = auxCharge,&
                mass = auxMass,&
+               omega=auxOmega, &
                basisSetName = trim(baseName), &
                elementSymbol = trim(elementSymbol), &
                isDummy = isDummy, &
@@ -414,7 +428,8 @@ contains
                   rotationPoint=auxRotationPoint, &
                   rotateAround=auxRotateAround,&
                   charge=auxCharge, &
-                  nickname=trim(element%symbol))
+                  nickname=trim(element%symbol), &
+                  qdoCenterOf = auxqdoCenterOf)
 
              call Particle_setComponentFixed(this, varsToFix )
 
@@ -459,6 +474,7 @@ contains
             origin = auxOrigin, &
             charge = auxCharge, &
             mass = auxMass, &
+            omega = auxOmega, &
             basisSetName = trim(baseName), &
             elementSymbol = trim(elementSymbol), &
             isDummy = isDummy, &
@@ -537,7 +553,8 @@ contains
                rotationPoint=auxRotationPoint, &
                rotateAround=auxRotateAround,&
                owner=id, &
-               nickname=trim(eparticle%symbol))
+               nickname=trim(eparticle%symbol), &
+               qdoCenterOf = auxqdoCenterOf )
 
           call Particle_setComponentFixed(this, varsToFix )
 
@@ -569,7 +586,7 @@ contains
   !! @param this Quantum particle or point charge
   !! @author S. A. Gonzalez (before known as Particle_constructor)
   subroutine Particle_build( this, name, symbol, basisSetName, elementSymbol, nickname, &
-       origin, mass, charge, totalCharge, spin, &
+       origin, mass, omega, qdoCenterOf, charge, totalCharge, spin, &
        owner, subsystem, translationCenter, rotationPoint, rotateAround, massNumber, isQuantum, isDummy)
 
     implicit none
@@ -580,8 +597,10 @@ contains
     character(*), optional, intent(in) :: basisSetName
     character(*), optional, intent(in) :: elementSymbol
     character(*), optional, intent(in) :: nickname
+    character(*), optional, intent(in) :: qdoCenterOf
     real(8), optional, intent(in) :: origin(3)
     real(8), optional, intent(in) :: mass
+    real(8), optional, intent(in) :: omega
     real(8), optional, intent(in) :: charge
     real(8), optional, intent(in) :: totalCharge
     real(8), optional, intent(in) :: spin
@@ -602,6 +621,8 @@ contains
     this%isQuantum = .false.
     this%origin = 0.0_8
     this%mass = PhysicalConstants_ELECTRON_MASS
+    this%omega = 0.0_8
+    this%qdoCenterOf = "NONE"
     this%charge = PhysicalConstants_ELECTRON_CHARGE
     this%totalCharge = PhysicalConstants_ELECTRON_CHARGE
     this%name = "ELECTRON"
@@ -625,6 +646,8 @@ contains
     !! Loads optional information    
     if ( present(origin) ) this%origin = origin
     if ( present( mass ) ) this%mass = mass
+    if ( present( omega ) ) this%omega = omega
+    if ( present( qdoCenterOf ) ) this%qdoCenterOf = qdoCenterOf
     if ( present(charge) ) this%charge = charge    
     if ( present(totalCharge)) then
        this%totalCharge = totalCharge
@@ -695,9 +718,11 @@ contains
     this%nickname = "NONE"    
     this%statistics = "NONE"  
     this%basisSetName = "NONE"
+    this%qdoCenterOf = "NONE"
     this%origin = 0.0_8
     this%charge = 0	
     this%mass = 0.0_8	
+    this%omega = 0.0_8	
     this%spin = 0.0_8	
     this%totalCharge = 0	
     this%isQuantum = .false.
@@ -735,6 +760,8 @@ contains
     write (6,"(T10,A16,I8)") "Owner         : ",this%owner
     write (6,"(T10,A16,F8.2)") "Charge        : ",this%charge
     write (6,"(T10,A16,F8.2)") "Mass          : ",this%mass
+    write (6,"(T10,A16,F8.2)") "Omega         : ",this%omega
+    write (6,"(T10,A16,F8.2)") "QDO center of : ",this%qdoCenterOf
     write (6,"(T10,A16,F8.2)") "Spin          : ",this%spin
     write (6,"(T10,A16,F8.2)") "Klamt radius  : ",this%klamt
     write (6,"(T10,A16,F8.2)") "vanderWaals radius  : ",this%vanderWaalsRadio
@@ -801,6 +828,8 @@ contains
     write(unit,*) this%origin
     write(unit,*) this%charge
     write(unit,*) this%mass
+    write(unit,*) this%omega
+    write(unit,*) this%qdoCenterOf
     write(unit,*) this%spin
     write(unit,*) this%totalCharge
     write(unit,*) this%isQuantum
@@ -859,6 +888,8 @@ contains
     read(unit,*) this%origin
     read(unit,*) this%charge
     read(unit,*) this%mass
+    read(unit,*) this%omega
+    read(unit,*) this%qdoCenterOf
     read(unit,*) this%spin
     read(unit,*) this%totalCharge
     read(unit,*) this%isQuantum

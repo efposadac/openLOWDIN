@@ -87,6 +87,7 @@ module AttractionIntegrals_
      real(8) :: y
      real(8) :: z
      real(8) :: charge
+     character(15) :: qdoCenterOf
   end type pointCharge
 
   public ::  &
@@ -105,13 +106,16 @@ contains
   !!      -2013.02.04: E.F.Posada: change for use in opints
   !! @return  output: attraction integral of a shell (all combinations)
   !! @version 1.0
-  subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral)
+  subroutine AttractionIntegrals_computeShell(contractedGaussianA, contractedGaussianB, point, npoints, integral, speciesID, symbolOfSpecies)
     implicit none
 
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
     type(pointCharge), intent(in), allocatable :: point(:)
 
     integer, intent(in) :: npoints
+    integer, intent(in) :: speciesID
+    character(50), intent(in) :: symbolOfSpecies
+
     real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
 
     integer ::  am1(0:3)
@@ -178,7 +182,7 @@ contains
           am1(0:2) = angularMomentIndexA(1:3, p)
           am2(0:2) = angularMomentIndexB(1:3, q)
 
-          call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral)
+          call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral, speciesID, symbolOfSpecies)
 
 
           auxIntegral = auxIntegral * contractedGaussianA%contNormalization(p) &
@@ -200,7 +204,7 @@ contains
        orbitalExponentsA, orbitalExponentsB, &
        contractionCoefficientsA, contractionCoefficientsB, &
        normalizationConstantsA, normalizationConstantsB, &
-       pointCharges, integralValue )
+       pointCharges, integralValue, speciesID, symbolOfSpecies )
     implicit none
 
     integer, intent(in) :: angularMomentindexA(0:3), angularMomentindexB(0:3)
@@ -212,7 +216,8 @@ contains
     real(8), intent(in) :: normalizationConstantsA(0:lengthA), normalizationConstantsB(0:lengthB)
     type(pointCharge), intent(in) :: pointCharges(0:numberOfPointCharges-1)
     real(8), intent(inout) :: integralValue
-
+    integer, intent(in) :: speciesID
+    character(50), intent(in) :: symbolOfSpecies
 
     real(8), allocatable :: AI0(:,:,:)
     real(8) :: PA(0:3), PB(0:3), PC(0:3), P(0:3)
@@ -289,15 +294,19 @@ contains
              PC(1) = P(1) - pointCharges(atom)%y
              PC(2) = P(2) - pointCharges(atom)%z
 
-             sumAngularMoment = angularMomentA + angularMomentB + 1
+             !! Skip integral for qdo centers
+             if ( trim( pointCharges(atom)%qdoCenterOf) == "NONE" .or. trim( pointCharges(atom)%qdoCenterOf) /= trim(symbolOfSpecies)   ) then 
 
-             call AttractionIntegrals_obaraSaikaRecursion(AI0,PA,PB,PC,zeta,sumAngularMoment,angularMomentA,angularMomentB)
-
-             indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
-
-             indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
-
-             integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+                sumAngularMoment = angularMomentA + angularMomentB + 1
+  
+                call AttractionIntegrals_obaraSaikaRecursion(AI0,PA,PB,PC,zeta,sumAngularMoment,angularMomentA,angularMomentB)
+  
+                indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
+  
+                indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
+  
+                integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+              end if
 
           end do
           ! write(*,*) "se ha llamado obara-saika ",atom," veces"

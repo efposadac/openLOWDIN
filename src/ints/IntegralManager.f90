@@ -49,7 +49,8 @@ module IntegralManager_
        IntegralManager_writeAttractionIntegrals, &
        IntegralManager_writeMomentIntegrals, &
        IntegralManager_writeInterRepulsionIntegrals, &
-       IntegralManager_writeIntraRepulsionIntegrals
+       IntegralManager_writeIntraRepulsionIntegrals, &
+       IntegralManager_writeHarmonicIntegrals
   ! private :: &
 
 contains
@@ -352,7 +353,7 @@ contains
 
   end subroutine IntegralManager_getFirstDerivativeIntegrals
 
-  subroutine IntegralManager_getHarmonicIntegrals()
+  subroutine IntegralManager_writeHarmonicIntegrals()
     implicit none
 
     integer :: f, g, h, i
@@ -361,6 +362,7 @@ contains
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:)
     real(8), allocatable :: integralsMatrix(:,:)
+    real(8) :: origin(3)
     character(100) :: job
     integer :: ijob
 
@@ -370,72 +372,75 @@ contains
     !!First derivative Integrals for all species
     do f = 1, size(MolecularSystem_instance%species)
 
-       write(30) job
-       write(30) MolecularSystem_instance%species(f)%name
+      if ( MolecularSystem_getOmega(f) /= 0.0_8 ) then
+        origin = MolecularSystem_getQDOcenter( f ) 
 
-       if(allocated(labels)) deallocate(labels)
-       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
+         write(30) job
+         write(30) MolecularSystem_instance%species(f)%name
 
-       if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
-       integralsMatrix = 0.0_8
+         if(allocated(labels)) deallocate(labels)
+         allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+         labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
-       ii = 0
-       do g = 1, size(MolecularSystem_instance%species(f)%particles)
-          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+         if(allocated(integralsMatrix)) deallocate(integralsMatrix)
+         allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+         integralsMatrix = 0.0_8
 
-             hh = h
+         ii = 0
+         do g = 1, size(MolecularSystem_instance%species(f)%particles)
+            do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
 
-             ii = ii + 1
-             jj = ii - 1
+               hh = h
 
-             do i = g, size(MolecularSystem_instance%species(f)%particles)
-                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+               ii = ii + 1
+               jj = ii - 1
 
-                   jj = jj + 1
+               do i = g, size(MolecularSystem_instance%species(f)%particles)
+                  do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
 
-                   !! allocating memory Integrals for shell
-                   if(allocated(integralValue)) deallocate(integralValue)
-                   allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
-                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+                     jj = jj + 1
 
-                   !!Calculating integrals for shell
-                   call HarmonicIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), integralValue)
+                     !! allocating memory Integrals for shell
+                     if(allocated(integralValue)) deallocate(integralValue)
+                     allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                          MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
 
-                   !!saving integrals on Matrix
-                   m = 0
-                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                         m = m + 1
-                         integralsMatrix(k, l) = integralValue(m)
-                         integralsMatrix(l, k) = integralsMatrix(k, l)
+                     !!Calculating integrals for shell
+                     call HarmonicIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                          MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), integralValue, origin)
 
-                      end do
-                   end do
+                     !!saving integrals on Matrix
+                     m = 0
+                     do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                        do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                           m = m + 1
+                           integralsMatrix(k, l) = integralValue(m)
+                           integralsMatrix(l, k) = integralsMatrix(k, l)
 
-                end do
-                hh = 1
-             end do
+                        end do
+                     end do
 
-          end do
-       end do
+                  end do
+                  hh = 1
+               end do
 
-       write(*,"(A, A ,A,I6)")" Number of Harmonic Oscillator integrals for species ", &
-                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+            end do
+         end do
 
-       !!Write integrals to file (unit 30)
-       if(CONTROL_instance%LAST_STEP) then
-          ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
-       end if
-       write(30) int(size(integralsMatrix),8)
-       write(30) integralsMatrix
+         write(*,"(A, A ,A,I6)")" Number of Harmonic Oscillator integrals for species ", &
+                                trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
 
+         !!Write integrals to file (unit 30)
+         if(CONTROL_instance%LAST_STEP) then
+            ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
+            !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+         end if
+         write(30) int(size(integralsMatrix),8)
+         write(30) integralsMatrix
+      end if
     end do !done! 
 
-  end subroutine IntegralManager_getHarmonicIntegrals
+  end subroutine IntegralManager_writeHarmonicIntegrals
 
 
   !> 
@@ -576,10 +581,11 @@ contains
                          point(1)%x  =surface%xs(c)
                          point(1)%y  =surface%ys(c)
                          point(1)%z  =surface%zs(c)
+                         point(1)%qdoCenterOf = "NONE"
 
                          !Calculating integrals for shell
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue)
+                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue, f, "NONE")
                          m=0
 
                          do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)

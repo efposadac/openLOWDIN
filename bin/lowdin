@@ -203,6 +203,12 @@ if [ $extFile="lowdin" ]; then
 			}
                         else if($i=="m"){
 				printf("\tInputParticle_mass = %s\n",toupper($(i+2)) )
+			}
+                        else if($i=="omega"){
+				printf("\tInputParticle_omega = %s\n",toupper($(i+2)) )
+			}
+	                else if($i=="qdoCenterOf"){
+				printf("\tInputParticle_qdoCenterOf = \"%s\"\n",toupper($(i+2)) )
 			};
 		};
 		printf("\tInputParticle_origin = %15.12E %15.12E %15.12E \n/\n",$3,$4,$5)

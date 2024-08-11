@@ -76,6 +76,7 @@ module WaveFunction_
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
      type(Matrix) :: electricField(3)
+     type(Matrix) :: harmonic
      real(8) :: cosmoCharge
      real(8) :: cosmoChargeValue
 
@@ -377,6 +378,36 @@ contains
   end subroutine WaveFunction_readElectricFieldMatrices
 
   !>
+  !! @brief Lee la matrix de interaccion con cargas puntuales.
+  subroutine WaveFunction_readHarmonicOscillatorMatrix( this, file)
+    implicit none
+    type(WaveFunction) :: this
+    character(*), intent(in) :: file
+
+    integer :: unit
+    integer :: totalNumberOfContractions
+    character(10) :: arguments(2)
+
+    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species))
+    !! Open file
+    unit = 34
+    open(unit = unit, file=trim(file), status="old", form="unformatted")
+    !! Get number of shells and number of cartesian contractions
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
+    arguments(1) = "HARMONIC"
+    this%harmonic = Matrix_getFromFile(rows=totalNumberOfContractions, &
+         columns=totalNumberOfContractions, &
+         unit=unit, binary=.true., arguments=arguments)    
+    close(34)
+
+    !! DEBUG
+    if (  CONTROL_instance%DEBUG_SCFS) then
+       print *,"Harmonic oscillator Matrix: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+       call Matrix_show(this%harmonic )
+    end if
+
+  end subroutine WaveFunction_readHarmonicOscillatorMatrix
+
   !! @brief Contruye la matrix de de transformacion.
   !! @param nameOfSpecie nombre de la especie seleccionada.
   subroutine WaveFunction_buildTransformationMatrix(this, typeOfOrthogonalization )
@@ -465,6 +496,7 @@ contains
     integer :: numberOfCartesiansOrbitals, numberOfCartesiansOrbitals_2
     integer :: owner, owner_2
     real(8) :: auxCharge
+    real(8) :: auxOmega
     integer :: numberOfContractions
     integer :: totalNumberOfContractions
 
@@ -543,6 +575,16 @@ contains
             CONTROL_instance%ELECTRIC_FIELD(2)*this%electricField(2)%values + &
             CONTROL_instance%ELECTRIC_FIELD(3)*this%electricField(3)%values )
     end if
+
+
+    !! Add harmonic oscillator potential 1/2 m omega**2 < \mu | r**2 | \nu >
+    auxOmega = MolecularSystem_getOmega(this%species)
+
+    if ( auxOmega .ne. 0.0_8 ) then
+      this%HCoreMatrix%values = this%HCoreMatrix%values + &                                                  
+                                (1.0/2.0) * MolecularSystem_getMass( this%species ) * auxOmega**2 * this%harmonic%values      
+    end if                                                                                                        
+
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then

@@ -93,9 +93,7 @@ Program Ints
        call IntegralManager_getFirstDerivativeIntegrals()
      end if
 
-     if ( CONTROL_instance%HARMONIC_CONSTANT /= 0.0_8 ) then 
-       call IntegralManager_getHarmonicIntegrals()
-     end if
+     call IntegralManager_writeHarmonicIntegrals()
 
      ! !!Calculate attraction integrals
      ! call Libint2Interface_compute1BodyInts(3)
@@ -103,7 +101,7 @@ Program Ints
 
      ! !!Calculate moment integrals
      call IntegralManager_writeMomentIntegrals()
-      
+
      !! Calculate integrals with external potential
      if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
        call IntegralManager_writeThreeCenterIntegrals()
