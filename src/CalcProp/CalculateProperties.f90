@@ -91,7 +91,7 @@ module CalculateProperties_
        CalculateProperties_getPopulation, &
        CalculateProperties_showContributionsToElectrostaticMoment, &
        CalculateProperties_getDipoleOfPuntualCharges, &
-       CalculateProperties_getDipoleOfQuantumSpecie
+       CalculateProperties_getDipoleOfQuantumSpecies
   !     CalculateProperties_expectedR2, &
   !    CalculateProperties_polarizability, &
   !     CalculateProperties_showExpectedR2, &
@@ -538,7 +538,7 @@ contains
     write (6,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
 
     do i=1, numberOfSpecies
-       dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecie(this, i)
+       dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)
        totalDipole(:)=totalDipole(:)+dipole(i,:)
        write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
     end do
@@ -556,7 +556,7 @@ contains
 
     totalDipole=0.0_8
     do i=1, numberOfSpecies
-       dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecie(this, i)*2.54174619
+       dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)*2.54174619
        totalDipole(:)=totalDipole(:)+dipole(i,:)
        write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
     end do
@@ -577,7 +577,7 @@ contains
     write (6,"(T19,6A13)") "<xx>","<yy>", "<zz>", "<xy>","<xz>","<yz>"
 
     do i=1, numberOfSpecies
-       quadrupole(i,:)=CalculateProperties_getQuadrupoleOfQuantumSpecie(this, i)*2.54174619*0.52917720859
+       quadrupole(i,:)=CalculateProperties_getQuadrupoleOfQuantumSpecies(this, i)*2.54174619*0.52917720859
        totalQuadrupole(:)=totalQuadrupole(:)+quadrupole(i,:)
        write (6,"(T5,A15,6F14.8)") trim(MolecularSystem_getNameOfSpecie( i )), quadrupole(i,:)
     end do
@@ -648,7 +648,7 @@ contains
   !<
   !! @brief calcula el aporte al dipolo debido a particulas no fijas
   !>
-  function calculateproperties_getdipoleofquantumspecie( this, i ) result( output )
+  function CalculateProperties_getDipoleOfQuantumSpecies( this, i ) result( output )
     implicit none
     type(calculateproperties) :: this
     integer :: i !specieid
@@ -660,13 +660,13 @@ contains
 
     output = output * molecularsystem_getcharge( i )
 
-  end function calculateproperties_getdipoleofquantumspecie
+  end function CalculateProperties_getDipoleOfQuantumSpecies
 
 
   !<
   !! @brief calcula el aporte al dipolo debido a particulas no fijas
   !>
-  function calculateproperties_getquadrupoleofquantumspecie( this, i ) result( output )
+  function CalculateProperties_getQuadrupoleOfQuantumSpecies( this, i ) result( output )
     implicit none
     type(calculateproperties) :: this
     integer :: i !specieid
@@ -681,7 +681,7 @@ contains
 
     output = output * molecularsystem_getcharge( i )
 
-  end function calculateproperties_getquadrupoleofquantumspecie
+  end function CalculateProperties_getQuadrupoleOfQuantumSpecies
 
   subroutine CalculateProperties_exception( typeMessage, description, debugDescription)
     implicit none

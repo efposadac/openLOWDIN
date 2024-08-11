@@ -264,14 +264,13 @@ contains
           !! Quadrupole
           case(4) !XX
             integralValue = integralValue + (commonPreFactor*y00*z00* &
-                            (x11 + x10*(B(0)-originRC(1)) + x01*(A(0)-originRC(1)) + x00*(A(0)-originRC(1))*(B(0)-originRC(1)) ) )
+                            (x02 - 2*( x01 *( B(0) - originRC(1)) ) + ( B(0) - originRC(1))**2*x00 ))
           case(5) !YY
             integralValue = integralValue + (commonPreFactor*x00*z00* &
-                            (y11 + y10*(B(1)-originRC(2)) + y01*(A(1)-originRC(2)) + y00*(A(1)-originRC(3))*(B(1)-originRC(2)) ) )
+                            (y02 + 2*( y01 *( B(1) - originRC(2)) ) + ( B(1) - originRC(2))**2*y00 ))
           case(6) !ZZ
-            !integralValue = integralValue + (1.0/1.0)*(commonPreFactor*x00*y00*(z11))
             integralValue = integralValue + (commonPreFactor*x00*y00* &
-                            (z11 + z10*(B(2)-originRC(3)) + z01*(A(2)-originRC(3)) + z00*(A(2)-originRC(3))*(B(2)-originRC(3)) ) )
+                            (z02 + 2*( z01 *( B(2) - originRC(3)) ) + ( B(2) - originRC(3))**2*z00 ))
           case(7) !XY
              integralValue = integralValue + (commonPreFactor*(x01+x00*(B(0)-originRC(1)))*(y01+y00*(B(1)-originRC(2)))*z00)
           case(8) !XZ
@@ -279,28 +278,6 @@ contains
           case(9) !YZ
              integralValue = integralValue + (commonPreFactor*x00*(y01+y00*(B(1)-originRC(2)))*(z01+z00*(B(2)-originRC(3))))
           end select
-
-!          !! Quadrupole
-!          case(4) !XX
-!             integralValue = integralValue + (1.0/1.0)*(commonPreFactor*(x02+x00*(B(0)-originRC(1)))*y00*z00)
-!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*x00*(y02+y00*(B(1)-originRC(2)))*z00)
-!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*x00*y00*(z02+z00*(B(2)-originRC(3))))
-!          case(5) !YY
-!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*(x02+x00*(B(0)-originRC(1)))*y00*z00)
-!             integralValue = integralValue + (1.0/1.0)*(commonPreFactor*x00*(y02+y00*(B(1)-originRC(2)))*z00)
-!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*x00*y00*(z02+z00*(B(2)-originRC(3))))
-!          case(6) !ZZ
-!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*(x02+x00*(B(0)-originRC(1)))*y00*z00)
-!             integralValue = integralValue - (1.0/2.0)*(commonPreFactor*x00*(y02+y00*(B(1)-originRC(2)))*z00)
-!             integralValue = integralValue + (1.0/1.0)*(commonPreFactor*x00*y00*(z02+z00*(B(2)-originRC(3))))
-!          case(7) !XY
-!             integralValue = integralValue + (3.0/2.0)*(commonPreFactor*(x01+x00*(B(0)-originRC(1)))*(y01+y00*(B(1)-originRC(2)))*z00)
-!          case(8) !XZ
-!             integralValue = integralValue + (3.0/2.0)*(commonPreFactor*(x01+x00*(B(0)-originRC(1)))*y00*(z01+z00*(B(2)-originRC(3))))
-!          case(9) !YZ
-!             integralValue = integralValue + (3.0/2.0)*(commonPreFactor*x00*(y01+y00*(B(1)-originRC(2)))*(z01+z00*(B(2)-originRC(3))))
-!          end select
-
 
        end do
     end do

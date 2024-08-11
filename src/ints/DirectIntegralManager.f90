@@ -708,7 +708,7 @@ contains
     call Matrix_constructor(integralsMatrix, int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), &
          int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), 0.0_8)
 
-    if(component.gt.3) return
+    !if(component.gt.3) return !????
     
     ii = 0
     do g = 1, size(MolecularSystem_instance%species(speciesID)%particles)
