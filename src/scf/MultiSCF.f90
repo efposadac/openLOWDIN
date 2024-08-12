@@ -579,6 +579,10 @@ contains
           if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
              call WaveFunction_readElectricFieldMatrices(wfObjects(speciesID), trim(integralsFile))
           end if
+
+          if ( MolecularSystem_getOmega(speciesID) .ne. 0.0_8) then
+            call WaveFunction_readHarmonicOscillatorMatrix(wfObjects(speciesID), trim(integralsFile))
+          end if
           !! Builds Cosmo hcore integrals
           if(CONTROL_instance%COSMO)then
              cosmoIntegralsFile="cosmo.opints"

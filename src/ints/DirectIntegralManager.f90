@@ -606,8 +606,9 @@ contains
     real(8), allocatable :: integralValue(:)
     type(pointCharge), allocatable :: point(:)
     ! character(20) :: colNum
+    character(50) :: symbolOfSpecies
 
-    !!Attraction Integrals for one species
+    symbolOfSpecies = molSystem%species(speciesID)%symbol
 
     numberOfPointCharges = molSystem%numberOfPointCharges
 
@@ -620,6 +621,7 @@ contains
        point(p)%x  = molSystem%pointCharges(p+1)%origin(1)
        point(p)%y  = molSystem%pointCharges(p+1)%origin(2)
        point(p)%z  = molSystem%pointCharges(p+1)%origin(3)
+       point(p)%qdoCenterOf  = molSystem%pointCharges(p+1)%qdoCenterOf
     end do
 
     if(allocated(labels)) deallocate(labels)
@@ -651,7 +653,7 @@ contains
 
                 !!Calculating integrals for shell
                 call AttractionIntegrals_computeShell( molSystem%species(speciesID)%particles(g)%basis%contraction(h), &
-                     molSystem%species(speciesID)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue)
+                     molSystem%species(speciesID)%particles(i)%basis%contraction(j), point, numberOfPointCharges, integralValue, speciesID, symbolOfSpecies)
 
                 !!saving integrals on Matrix
                 m = 0
@@ -706,7 +708,7 @@ contains
     call Matrix_constructor(integralsMatrix, int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), &
          int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), 0.0_8)
 
-    if(component.gt.3) return
+    !if(component.gt.3) return !????
     
     ii = 0
     do g = 1, size(MolecularSystem_instance%species(speciesID)%particles)
