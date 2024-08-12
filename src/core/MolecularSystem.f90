@@ -1367,6 +1367,19 @@ contains
      output = MolecularSystem_instance%species(speciesID)%name
           
    end function MolecularSystem_getNameOfSpecies
+
+   !> @brief Returns the symbol of a species
+   !! @author E. F. Posada, 2013
+   !! @version 1.0
+   function MolecularSystem_getSymbolOfSpecies(speciesID) result(output)
+     implicit none
+     
+     integer :: speciesID
+     character(30) :: output
+     
+     output = MolecularSystem_instance%species(speciesID)%symbol
+          
+   end function MolecularSystem_getSymbolOfSpecies
    
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013

@@ -1,0 +1,32 @@
+GEOMETRY
+	e-(F) aug-cc-pvdz	0.00 0.00 -0.975 addParticles=1 multiplicity=2
+	e-(F) aug-cc-pvdz	0.00 0.00  0.975  
+	e+     PSX-DZ 	0.00 0.00 -0.975
+	e+     PSX-DZ 	0.00 0.00  0.975 addParticles=-1 
+	F     dirac	0.00 0.00 -0.975
+	F     dirac	0.00 0.00  0.975
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="CISD+"
+END TASKS
+
+CONTROL
+readCoefficients=F
+numberOfCIstates=1
+CINaturalOrbitals=T
+CIStatesToPrint = 1
+CIdiagonalizationMethod = "JADAMILU"
+totalEnergyTolerance=1E-10
+END CONTROL
+
+INPUT_CI
+	species="E-ALPHA" core=1 active=10 
+	species="E-BETA" core=1 active=10 
+	species="POSITRON" core=0 active=10 
+END INPUT_CI
+
+OUTPUTS
+	moldenFile
+END OUTPUTS

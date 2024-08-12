@@ -116,6 +116,7 @@ contains
     type(Functional) :: this 
     integer :: speciesID
     integer :: otherSpeciesID
+    character(50) :: auxstring
     
     this%name="NONE"
     this%correlationName="NONE"
@@ -287,16 +288,20 @@ contains
     !Provisional, only correlation between electron and other species (nuclei)
     elseif( (this%species1 .eq. "E-" .or.  this%species1 .eq. "E-ALPHA" .or.  this%species1 .eq. "E-BETA") .and. &
             (this%species2 .ne. "E-" .and. this%species2 .ne. "E-ALPHA" .and. this%species2 .ne. "E-BETA") )   then
+
+       if (trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
+          auxstring=trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+       else if(trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
+          auxstring=trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL)
+       else
+          auxstring="NONE"
+       end if
        
-       this%name="correlation:"//trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
-       this%correlationName=trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
-       this%exactExchangeFraction=1.0_8  !should be irrelevant
+       this%name="correlation:"//trim(auxstring)
+       this%correlationName=trim(auxstring)
 
     else
-
        this%name="NONE"
-       this%exactExchangeFraction=1.0_8
-
        
     end if
 

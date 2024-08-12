@@ -254,6 +254,7 @@ module CONTROL_
      character(50) :: ELECTRON_EXCHANGE_FUNCTIONAL
      character(50) :: ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
      character(50) :: NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+     character(50) :: POSITRON_ELECTRON_CORRELATION_FUNCTIONAL
      character(50) :: BETA_FUNCTION
      integer :: GRID_RADIAL_POINTS
      integer :: GRID_ANGULAR_POINTS
@@ -592,6 +593,7 @@ module CONTROL_
   character(50) :: LowdinParameters_electronExchangeFunctional
   character(50) :: LowdinParameters_electronExchangeCorrelationFunctional
   character(50) :: LowdinParameters_nuclearElectronCorrelationFunctional
+  character(50) :: LowdinParameters_positronElectronCorrelationFunctional
   character(50) :: LowdinParameters_betaFunction
   integer :: LowdinParameters_gridRadialPoints
   integer :: LowdinParameters_gridAngularPoints
@@ -928,6 +930,7 @@ module CONTROL_
        LowdinParameters_electronExchangeFunctional,&
        LowdinParameters_electronExchangeCorrelationFunctional,&
        LowdinParameters_nuclearElectronCorrelationFunctional,&
+       LowdinParameters_positronElectronCorrelationFunctional,&
        LowdinParameters_betaFunction,&
        LowdinParameters_gridRadialPoints,&
        LowdinParameters_gridAngularPoints,&
@@ -1289,6 +1292,7 @@ contains
     LowdinParameters_electronExchangeFunctional = "NONE"
     LowdinParameters_electronExchangeCorrelationFunctional = "NONE"
     LowdinParameters_nuclearElectronCorrelationFunctional = "NONE"
+    LowdinParameters_positronElectronCorrelationFunctional = "NONE"
     LowdinParameters_betaFunction = "NONE"
     LowdinParameters_gridRadialPoints=35
     LowdinParameters_gridAngularPoints=110
@@ -1625,6 +1629,7 @@ contains
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = "NONE"
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
+    CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL = "NONE"
     CONTROL_instance%BETA_FUNCTION = "NONE"
     CONTROL_instance%GRID_RADIAL_POINTS= 35
     CONTROL_instance%GRID_ANGULAR_POINTS= 110
@@ -2018,6 +2023,7 @@ contains
     CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL = LowdinParameters_electronExchangeFunctional
     CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = LowdinParameters_electronExchangeCorrelationFunctional
     CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_nuclearElectronCorrelationFunctional
+    CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL = LowdinParameters_positronElectronCorrelationFunctional
     CONTROL_instance%BETA_FUNCTION = LowdinParameters_betaFunction
     CONTROL_instance%GRID_RADIAL_POINTS= LowdinParameters_gridRadialPoints
     CONTROL_instance%GRID_ANGULAR_POINTS= LowdinParameters_gridAngularPoints
@@ -2376,6 +2382,7 @@ contains
     LowdinParameters_electronExchangeFunctional = CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL
     LowdinParameters_electronExchangeCorrelationFunctional = CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL
     LowdinParameters_nuclearElectronCorrelationFunctional = CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL
+    LowdinParameters_positronElectronCorrelationFunctional = CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL
     LowdinParameters_betaFunction = CONTROL_instance%BETA_FUNCTION
     LowdinParameters_gridRadialPoints = CONTROL_instance%GRID_RADIAL_POINTS
     LowdinParameters_gridAngularPoints = CONTROL_instance%GRID_ANGULAR_POINTS
@@ -2702,6 +2709,7 @@ contains
     otherThis%ELECTRON_EXCHANGE_FUNCTIONAL = this%ELECTRON_EXCHANGE_FUNCTIONAL 
     otherThis%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL = this%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL 
     otherThis%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL = this%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL 
+    otherThis%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL = this%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL 
     otherThis%BETA_FUNCTION = this%BETA_FUNCTION
     otherThis%GRID_RADIAL_POINTS=this%GRID_RADIAL_POINTS
     otherThis%GRID_ANGULAR_POINTS=this%GRID_ANGULAR_POINTS
@@ -2831,6 +2839,7 @@ contains
        end if
        
        write (*,"(T10,A)") "ELECTRON-NUCLEAR CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
+       write (*,"(T10,A)") "ELECTRON-POSITRON CORRELATION FUNCTIONAL: "//trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL)
        write (*,"(T10,A,I5,A,I5)") "SCF ATOMIC RADIALxANGULAR GRID SIZE:",CONTROL_instance%GRID_RADIAL_POINTS,"x",CONTROL_instance%GRID_ANGULAR_POINTS
        if( CONTROL_instance%FINAL_GRID_ANGULAR_POINTS*CONTROL_instance%FINAL_GRID_RADIAL_POINTS  .gt. &
             CONTROL_instance%GRID_ANGULAR_POINTS*CONTROL_instance%GRID_RADIAL_POINTS) then

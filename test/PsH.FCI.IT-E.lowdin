@@ -17,7 +17,6 @@ CINaturalOrbitals=T
 	CIStatesToPrint = 1
 	!CIdiagonalizationMethod = "DSYEVX"
 	CIdiagonalizationMethod = "JADAMILU"
-	!CIdiagonalizationMethod = "ARPACK"
 	!CIPrintEigenVectorsFormat = "NONE"
 	CIPrintEigenVectorsFormat = "OCCUPIED"
 	!CIPrintEigenVectorsFormat = "ORBITALS"

@@ -12,14 +12,14 @@ else:
 testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
-plot1Name = testName + ".E-.2D.dens"                                                                      
-plot2Name = testName + ".POSITRON.2D.dens"                                                                
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-99.635031860198,1E-8],
-"Num e- in plot" : [9.99830528,1E-3],
-"Num e+ in plot" : [0.99999922,1E-5],
+"HF energy" : [-343.383191892820,1E-8],
+"U-HOMO" : [-371.890049816287,1E-1],
+"H_1-HOMO" : [-1.019360160964,1E-4],
+"He_4-HOMO" : [-652.366876763392,1E-1],
+"e-HOMO" : [-0.585414450602,1E-4],
 }                       
 
 testValues = dict(refValues) #copy 
@@ -38,38 +38,37 @@ output = open(outputName, "r")
 outputRead = output.readlines()
 
 # Values
+checkArray=[0,0,0,0]
 for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
+    if "Eigenvalues for:" in line:
+        species=line.split()[2]
+        if species == "E-":
+            checkArray[0]=1
+        elif species == "H_1":
+            checkArray[1]=1
+        elif species == "MUON":
+            checkArray[2]=1
+        elif species == "HE_4":
+            checkArray[3]=1
+        
+    if "1 " in line and checkArray[0]==1:
+        checkArray[0]=0
+        testValues["e-HOMO"] = float(line.split()[1])
+    if "1 " in line and checkArray[1]==1:
+        checkArray[1]=0
+        testValues["H_1-HOMO"] = float(line.split()[1])
+    if "1 " in line and checkArray[2]==1:
+        checkArray[2]=0
+        testValues["U-HOMO"] = float(line.split()[1])
+    if "1 " in line and checkArray[3]==1:
+        checkArray[3]=0
+        testValues["He_4-HOMO"] = float(line.split()[1])
 
+        
 output.close()
-
-plot1 = open(plot1Name, "r")
-plot1Read = plot1.readlines()
-sumE=0
-for i in range(0,len(plot1Read)):
-    line = plot1Read[i]
-    if i > 1:
-        values = line.split()
-        if i == 3: x1=float(values[0])
-        if i == 4: x2=float(values[0])
-        if len(values) > 1: sumE+=float(values[0])**2*float(values[1])
-testValues["Num e- in plot"]=2.0*3.14159265359*sumE*(x2-x1)
-plot1.close()
-
-plot2 = open(plot2Name, "r")
-plot2Read = plot2.readlines()
-sumP=0
-for i in range(0,len(plot2Read)):
-    line = plot2Read[i]
-    if i > 1:
-        values = line.split()
-        if i == 3: x1=float(values[0])
-        if i == 4: x2=float(values[0])
-        if len(values) > 1: sumP+=float(values[0])**2*float(values[1])
-testValues["Num e+ in plot"]=2.0*3.14159265359*sumP*(x2-x1)
-plot2.close()
 
 passTest = True
 
