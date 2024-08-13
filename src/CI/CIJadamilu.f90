@@ -18,7 +18,7 @@ contains
   !!
   !! @param this 
   !<
-  subroutine CIcore_buildCouplingMatrix()
+  subroutine CIJadamilu_buildCouplingMatrix()
     implicit none
 
     integer(8) :: a,b,c1,c2
@@ -61,10 +61,10 @@ contains
       end do  
     end do  
 
-  end subroutine CIcore_buildCouplingMatrix
+  end subroutine CIJadamilu_buildCouplingMatrix
 
 !! Build a list with all possible combinations of number of different orbitals from all quantum species, coupling (0,1,2)
-  subroutine CIcore_buildCouplingOrderList()
+  subroutine CIJadamilu_buildCouplingOrderList()
     implicit none
 
     integer(8) :: a,b,c,c1,c2,aa,d
@@ -122,7 +122,7 @@ contains
     ciLevel = 0
 
     !! get all combinations
-    auxnumberOfSpecies = CIcore_buildCouplingOrderRecursion( s, numberOfSpecies, couplingOrder, cilevel )
+    auxnumberOfSpecies = CIJadamilu_buildCouplingOrderRecursion( s, numberOfSpecies, couplingOrder, cilevel )
 
     !! save the index for species (speciesID) just to avoid a lot of conditionals later!
 
@@ -156,11 +156,11 @@ contains
     deallocate ( ciLevel )
     deallocate ( couplingOrder ) 
 
-  end subroutine CIcore_buildCouplingOrderList
+  end subroutine CIJadamilu_buildCouplingOrderList
 
 
 !! Get all possible combinations of number of different orbitals from all quantum species.
-recursive  function CIcore_buildCouplingOrderRecursion( s, numberOfSpecies, couplingOrder, cilevel ) result (os)
+recursive  function CIJadamilu_buildCouplingOrderRecursion( s, numberOfSpecies, couplingOrder, cilevel ) result (os)
     implicit none
 
     integer(8) :: a,b,c,d
@@ -178,7 +178,7 @@ recursive  function CIcore_buildCouplingOrderRecursion( s, numberOfSpecies, coup
         do i = 1, 3 - sum ( couplingOrder ) !! 0,1,2
           couplingOrder(is) = i-1
           couplingOrder(is+1:) = 0
-          os = CIcore_buildCouplingOrderRecursion( is, numberOfSpecies, couplingOrder, cilevel )
+          os = CIJadamilu_buildCouplingOrderRecursion( is, numberOfSpecies, couplingOrder, cilevel )
         end do
       end if
     else 
@@ -219,9 +219,9 @@ recursive  function CIcore_buildCouplingOrderRecursion( s, numberOfSpecies, coup
       end if
     end if
 
-  end function CIcore_buildCouplingOrderRecursion
+  end function CIJadamilu_buildCouplingOrderRecursion
 
-  subroutine CIcore_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors)
+  subroutine CIJadamilu_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors)
     implicit none
     external DPJDREVCOM
     integer(8) :: maxnev
@@ -372,7 +372,7 @@ recursive  function CIcore_buildCouplingOrderRecursion( s, numberOfSpecies, coup
      CALL PJDCLEANUP
      if ( allocated ( x ) ) deallocate ( x )
 
-  end subroutine CIcore_jadamiluInterface
+  end subroutine CIJadamilu_jadamiluInterface
 
   subroutine matvec2 ( nx, v, w, iter)
   
@@ -445,7 +445,7 @@ recursive  function CIcore_buildCouplingOrderRecursion( s, numberOfSpecies, coup
         cilevel(:,nn) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
       end do
       s = 0 
-      auxnumberOfSpecies = CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexConf,cc, c, n, v, w, &
+      auxnumberOfSpecies = CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxindexConf,cc, c, n, v, w, &
                              cilevel, auxcilevel )
 
     end do
@@ -453,7 +453,7 @@ recursive  function CIcore_buildCouplingOrderRecursion( s, numberOfSpecies, coup
     if  ( n > 1 ) then
        do nn = 1, n-1
 
-       call CIcore_buildRow( nn, auxindexConf(:,nn), cc(nn), w, v(cc(nn)), auxcilevel(:,nn))
+       call CIJadamilu_buildRow( nn, auxindexConf(:,nn), cc(nn), w, v(cc(nn)), auxcilevel(:,nn))
       end do
     end if
     
@@ -557,7 +557,7 @@ recursive  function CIcore_buildCouplingOrderRecursion( s, numberOfSpecies, coup
     return
   end subroutine av
 
-recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexConf, cc, c, n, v, w, &
+recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxindexConf, cc, c, n, v, w, &
                                                                   cilevel, auxcilevel) result (os)
     implicit none
 
@@ -581,7 +581,7 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
 
       do a = 1, CIcore_instance%numberOfStrings(is)%values(i)
         indexConf(is,n:) = ssize + a
-        os = CIcore_buildMatrixRecursion( nproc, is, indexConf, auxindexConf, cc, c, n, v, w, cilevel, auxcilevel )
+        os = CIJadamilu_buildMatrixRecursion( nproc, is, indexConf, auxindexConf, cc, c, n, v, w, cilevel, auxcilevel )
       end do
     end do
     !else 
@@ -607,7 +607,7 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
             !$omp& shared(v,w, indexConf, cc, nproc, cilevel) 
             !$omp do schedule (static) 
             do nn = 1, nproc
-              call CIcore_buildRow( nn, indexConf(:,nn), cc(nn), w, v(cc(nn)), cilevel(:,nn))
+              call CIJadamilu_buildRow( nn, indexConf(:,nn), cc(nn), w, v(cc(nn)), cilevel(:,nn))
             end do
             !$omp end do nowait
             !$omp end parallel
@@ -628,11 +628,11 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
     !end if
 
 
-  end function CIcore_buildMatrixRecursion
+  end function CIJadamilu_buildMatrixRecursion
 
   !! Alternative option to the recursion with the same computational cost... However, it may be helpul some day. 
 
-  function CIcore_buildMatrixRecursion2(nproc, s, indexConf, auxindexConf, cc, c, n, v, w, &
+  function CIJadamilu_buildMatrixRecursion2(nproc, s, indexConf, auxindexConf, cc, c, n, v, w, &
                                                                   cilevel, auxcilevel) result (os)
     implicit none
 
@@ -694,9 +694,9 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
 
     deallocate (counter)
 
-  end function CIcore_buildMatrixRecursion2
+  end function CIJadamilu_buildMatrixRecursion2
 
-  subroutine CIcore_buildRow( nn, indexConfA, c, w, vc, cilevelA)
+  subroutine CIJadamilu_buildRow( nn, indexConfA, c, w, vc, cilevelA)
     implicit none
 
     integer(8) :: a,b,c,bb,ci,d,cj
@@ -819,7 +819,7 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
       do ci = 1,  size(CIcore_instance%numberOfStrings(i)%values, dim = 1) !! 1 is always zero
         cilevel(i) = ci - 1
 
-        auxos = CIcore_buildRowRecursionFirstOne( i, indexConfA, indexConfB, nn, cilevel )
+        auxos = CIJadamilu_buildRowRecursionFirstOne( i, indexConfA, indexConfB, nn, cilevel )
 
       end do      
       end if
@@ -853,7 +853,7 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
             uu = CIcore_instance%auxciorderlist(u)
             dd = 0
 
-            auxos = CIcore_buildRowRecursionSecondOne( i, indexConfB, w, vc, dd, nn, cilevel, uu )
+            auxos = CIJadamilu_buildRowRecursionSecondOne( i, indexConfB, w, vc, dd, nn, cilevel, uu )
             exit
 
           end if
@@ -881,9 +881,9 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
             dd = 0
 
             if ( CIcore_instance%pindexConf(i,nn) /= indexConfA(i) ) then
-              auxos = CIcore_buildRowRecursionSecondTwoCal( i, indexConfA, indexConfB, w, vc, dd, nn, cilevel, uu )
+              auxos = CIJadamilu_buildRowRecursionSecondTwoCal( i, indexConfA, indexConfB, w, vc, dd, nn, cilevel, uu )
             else
-              auxos = CIcore_buildRowRecursionSecondTwoGet( i, indexConfA, indexConfB, w, vc, dd, nn, cilevel, uu )
+              auxos = CIJadamilu_buildRowRecursionSecondTwoGet( i, indexConfA, indexConfB, w, vc, dd, nn, cilevel, uu )
             end if
 
             exit
@@ -915,7 +915,7 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
 
                 uu = CIcore_instance%auxciOrderList(u)
                 dd = 0
-                auxos = CIcore_buildRowRecursionSecondTwoDiff( i, j, indexConfB, w, vc, dd, nn, cilevel, uu )
+                auxos = CIJadamilu_buildRowRecursionSecondTwoDiff( i, j, indexConfB, w, vc, dd, nn, cilevel, uu )
                 exit
               end if
             end do
@@ -940,9 +940,9 @@ recursive  function CIcore_buildMatrixRecursion(nproc, s, indexConf, auxindexCon
     deallocate ( cilevel )
     deallocate ( indexConfB )
 
-  end subroutine CIcore_buildRow
+  end subroutine CIJadamilu_buildRow
 
-recursive  function CIcore_buildRowRecursionFirstOne( ii, indexConfA, indexConfB, nn, cilevel ) result (os)
+recursive  function CIJadamilu_buildRowRecursionFirstOne( ii, indexConfA, indexConfB, nn, cilevel ) result (os)
     implicit none
 
     integer(8) :: a, aa
@@ -959,14 +959,14 @@ recursive  function CIcore_buildRowRecursionFirstOne( ii, indexConfA, indexConfB
         a = ssize + aa
 
         indexConfB(ii) = CIcore_instance%couplingMatrix(ii,nn)%values(a, 2)
-        CIenergy = CIcore_calculateEnergyOneSame ( nn, ii, indexConfA, indexConfB )
+        CIenergy = CIJadamilu_calculateEnergyOneSame ( nn, ii, indexConfA, indexConfB )
         CIcore_instance%couplingMatrixEnergyOne(ii,nn)%values(indexConfB(ii)) = CIenergy
 
       end do
 
-  end function CIcore_buildRowRecursionFirstOne
+  end function CIJadamilu_buildRowRecursionFirstOne
  
-recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
+recursive  function CIJadamilu_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
     implicit none
 
     integer(8) :: a,d, aa
@@ -1000,7 +1000,7 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
       d = sum(dd)
 
       CIenergy = CIcore_instance%couplingMatrixEnergyOne(ii,nn)%values(indexConfB(ii)) 
-      CIenergy = CIenergy + CIcore_calculateEnergyOneDiff ( ii, indexConfB, nn )
+      CIenergy = CIenergy + CIJadamilu_calculateEnergyOneDiff ( ii, indexConfB, nn )
       CIenergy = vc*CIenergy 
 
       !$omp atomic
@@ -1008,10 +1008,10 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
       !$omp end atomic
     end do
 
-  end function CIcore_buildRowRecursionSecondOne
+  end function CIJadamilu_buildRowRecursionSecondOne
 
 
-  function CIcore_buildRowRecursionSecondTwoCal( ii, indexConfA, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
+  function CIJadamilu_buildRowRecursionSecondTwoCal( ii, indexConfA, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
     implicit none
 
     integer(8) :: a,d, aa
@@ -1045,7 +1045,7 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
       d = sum(dd)
 
       !CIenergy = CIcore_instance%couplingMatrixEnergyOne(ii,nn)%values(indexConfB(ii)) 
-      CIenergy = CIcore_calculateEnergyTwoSame ( ii, indexConfA(ii), indexConfB(ii) )
+      CIenergy = CIJadamilu_calculateEnergyTwoSame ( ii, indexConfA(ii), indexConfB(ii) )
       CIcore_instance%couplingMatrixEnergyOne(ii,nn)%values(indexConfB(ii)) = CIenergy
       CIenergy = vc*CIenergy 
 
@@ -1054,9 +1054,9 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
       !$omp end atomic
     end do
 
-  end function CIcore_buildRowRecursionSecondTwoCal
+  end function CIJadamilu_buildRowRecursionSecondTwoCal
 
-  function CIcore_buildRowRecursionSecondTwoGet( ii, indexConfA, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
+  function CIJadamilu_buildRowRecursionSecondTwoGet( ii, indexConfA, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
     implicit none
 
     integer(8) :: a,d, aa
@@ -1098,9 +1098,9 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
       !$omp end atomic
     end do
 
-  end function CIcore_buildRowRecursionSecondTwoGet
+  end function CIJadamilu_buildRowRecursionSecondTwoGet
 
- function CIcore_buildRowRecursionSecondTwoDiff( ii, jj, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
+ function CIJadamilu_buildRowRecursionSecondTwoDiff( ii, jj, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
     implicit none
 
     integer(8) :: ai,aj,d, aai, aaj
@@ -1162,10 +1162,10 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
       end do
     end do
 
-  end function CIcore_buildRowRecursionSecondTwoDiff
+  end function CIJadamilu_buildRowRecursionSecondTwoDiff
 
 
-  function CIcore_calculateEnergyOneSame( n, ii, thisA, thisB ) result (auxCIenergy)
+  function CIJadamilu_calculateEnergyOneSame( n, ii, thisA, thisB ) result (auxCIenergy)
     implicit none
     integer(8) :: thisA(:), thisB(:)
     integer(8) :: a, b
@@ -1240,9 +1240,9 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
 
     auxCIenergy= auxCIenergy * factor
 
-  end function CIcore_calculateEnergyOneSame
+  end function CIJadamilu_calculateEnergyOneSame
 
-  function CIcore_calculateEnergyOneDiff( ii, thisB, nn ) result (auxCIenergy)
+  function CIJadamilu_calculateEnergyOneDiff( ii, thisB, nn ) result (auxCIenergy)
     implicit none
     integer(8) :: thisB(:)
     integer(8) :: b
@@ -1302,10 +1302,10 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
 
     auxCIenergy= auxCIenergy * factor
 
-  end function CIcore_calculateEnergyOneDiff
+  end function CIJadamilu_calculateEnergyOneDiff
 
 
-  function CIcore_calculateEnergyTwoSame( ii, a, b ) result (auxCIenergy)
+  function CIJadamilu_calculateEnergyTwoSame( ii, a, b ) result (auxCIenergy)
     implicit none
     integer(8) :: a, b
     integer :: ii
@@ -1359,6 +1359,6 @@ recursive  function CIcore_buildRowRecursionSecondOne( ii, indexConfB, w, vc, dd
 
     auxCIenergy= auxCIenergy * factor
 
-  end function CIcore_calculateEnergyTwoSame
+  end function CIJadamilu_calculateEnergyTwoSame
 
 end module CIJadamilu_

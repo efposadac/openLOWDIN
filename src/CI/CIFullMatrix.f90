@@ -18,7 +18,7 @@ contains
   !!
   !! @param this 
   !<
-  subroutine CIcore_buildHamiltonianMatrix()
+  subroutine CIFullMatrix_buildHamiltonianMatrix()
     implicit none
 
     integer(8) :: a,b,c
@@ -120,12 +120,12 @@ contains
         else if (  coupling == 1 ) then
   
           CIcore_instance%hamiltonianMatrix%values(a,b) = &
-            CIcore_calculateEnergyOne ( n, indexConfA(:,n), indexConfB(:,n) )
+            CIFullMatrix_calculateEnergyOne ( n, indexConfA(:,n), indexConfB(:,n) )
   
         else if ( coupling  == 2 ) then
   
           CIcore_instance%hamiltonianMatrix%values(a,b) = &
-            CIcore_calculateEnergyTwo ( n, indexConfA(:,n), indexConfB(:,n) )
+            CIFullMatrix_calculateEnergyTwo ( n, indexConfA(:,n), indexConfB(:,n) )
   
         end if
 
@@ -155,9 +155,9 @@ contains
 !$  timeB = omp_get_wtime()
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
 
-  end subroutine CIcore_buildHamiltonianMatrix
+  end subroutine CIFullMatrix_buildHamiltonianMatrix
 
-  function CIcore_calculateEnergyOne( n, thisA, thisB ) result (auxCIenergy)
+  function CIFullMatrix_calculateEnergyOne( n, thisA, thisB ) result (auxCIenergy)
     implicit none
     integer(8) :: thisA(:), thisB(:)
     integer(8) :: a, b
@@ -277,9 +277,9 @@ contains
     auxCIenergy= auxCIenergy * factor
 
 
-  end function CIcore_calculateEnergyOne
+  end function CIFullMatrix_calculateEnergyOne
 
-  function CIcore_calculateEnergyTwo( n, thisA, thisB ) result (auxCIenergy)
+  function CIFullMatrix_calculateEnergyTwo( n, thisA, thisB ) result (auxCIenergy)
     implicit none
     integer(8) :: thisA(:), thisB(:)
     integer(8) :: a, b
@@ -394,7 +394,7 @@ contains
 
     auxCIenergy= auxCIenergy * factor
 
-  end function CIcore_calculateEnergyTwo
+  end function CIFullMatrix_calculateEnergyTwo
 
 
  end module CIFullMatrix_

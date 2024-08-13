@@ -168,7 +168,7 @@ contains
     !write (*,*) CIcore_instance%fourCenterIntegrals(1,1)%values(171, 1) a bug...
     write (*,*) "Setting CI level..."
 
-    call CIcore_settingCILevel()
+    call CIOrder_settingCILevel()
 
    !! write (*,*) "Total number of configurations", CIcore_instance%numberOfConfigurations
     write (*,*) ""
@@ -184,20 +184,20 @@ contains
     case ("JADAMILU")
 
       write (*,*) "Building Strings..."
-      call CIcore_buildStrings()
+      call CIStrings_buildStrings()
 
       write (*,*) "Building CI level table..."
-      call CIcore_buildCIOrderList()
+      call CIOrder_buildCIOrderList()
 
-      call CIcore_buildCouplingMatrix()
-      call CIcore_buildCouplingOrderList()
+      call CIJadamilu_buildCouplingMatrix()
+      call CIJadamilu_buildCouplingOrderList()
 
       write (*,*) "Building diagonal..."
-      call CIcore_buildDiagonal()
+      call CIDiag_buildDiagonal()
 
       write (*,*) "Building initial hamiltonian..."
-      call CIcore_buildInitialCIMatrix2()
-      !!call CIcore_buildHamiltonianMatrix() This should be  modified to build the CI matrix in memory
+      call CIInitial_buildInitialCIMatrix2()
+      !!call CIFullMatrix_buildHamiltonianMatrix() This should be  modified to build the CI matrix in memory
 
       call Matrix_constructor (CIcore_instance%eigenVectors, &
            int(CIcore_instance%numberOfConfigurations,8), &
@@ -219,7 +219,7 @@ contains
       write(*,*) "============================================================="
 
 
-      call CIcore_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
+      call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
            int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
            CIcore_instance%eigenvalues, &
            CIcore_instance%eigenVectors )
@@ -230,16 +230,16 @@ contains
     case ("DSYEVX")
 
       write (*,*) "Building Strings..."
-      call CIcore_buildStrings()
+      call CIStrings_buildStrings()
 
       write (*,*) "Building CI level table..."
-      call CIcore_buildCIOrderList()
+      call CIOrder_buildCIOrderList()
 
       write (*,*) "Building diagonal..."
-      call CIcore_buildDiagonal()
+      call CIDiag_buildDiagonal()
 
       write (*,*) "Building Hamiltonian..."
-      call CIcore_buildHamiltonianMatrix()
+      call CIFullMatrix_buildHamiltonianMatrix()
 
       call Matrix_constructor (CIcore_instance%eigenVectors, &
            int(CIcore_instance%numberOfConfigurations,8), &
@@ -266,16 +266,16 @@ contains
     case ("DSYEVR")
 
       write (*,*) "Building Strings..."
-      call CIcore_buildStrings()
+      call CIStrings_buildStrings()
 
       write (*,*) "Building CI level table..."
-      call CIcore_buildCIOrderList()
+      call CIOrder_buildCIOrderList()
 
       write (*,*) "Building diagonal..."
-      call CIcore_buildDiagonal()
+      call CIDiag_buildDiagonal()
 
       write (*,*) "Building Hamiltonian..."
-      call CIcore_buildHamiltonianMatrix()
+      call CIFullMatrix_buildHamiltonianMatrix()
 
       call Matrix_constructor (CIcore_instance%eigenVectors, &
            int(CIcore_instance%numberOfConfigurations,8), &

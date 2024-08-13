@@ -18,7 +18,7 @@ contains
   !!
   !! @param this 
   !<
-  subroutine CIcore_settingCILevel()
+  subroutine CIOrder_settingCILevel()
     implicit none
 
     integer :: numberOfSpecies
@@ -75,7 +75,7 @@ contains
 
     case ( "CISD+" )
 
-      if ( .not. numberOfSpecies == 3 ) call CIcore_exception( ERROR, "CIOrder setting CI level ", "CISD+ is specific for three quantum species")
+      if ( .not. numberOfSpecies == 3 ) call CIOrder_exception( ERROR, "CIOrder setting CI level ", "CISD+ is specific for three quantum species")
 
       do i=1, numberOfSpecies
         CIcore_instance%CILevel(i) = 2
@@ -86,7 +86,7 @@ contains
 
     case ( "CISD+2" )
 
-      if ( .not. numberOfSpecies == 4 ) call CIcore_exception( ERROR, "CIOrder setting CI level", "CISD+2 is specific for three quantum species")
+      if ( .not. numberOfSpecies == 4 ) call CIOrder_exception( ERROR, "CIOrder setting CI level", "CISD+2 is specific for three quantum species")
       do i=1, numberOfSpecies
         CIcore_instance%CILevel(i) = 2
         if ( CIcore_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
@@ -123,18 +123,18 @@ contains
 
     case default
 
-       call CIcore_exception( ERROR, "Configuration interactor constructor", "Correction level not implemented")
+       call CIOrder_exception( ERROR, "Configuration interactor constructor", "Correction level not implemented")
 
     end select
 
 
-  end subroutine CIcore_settingCILevel
+  end subroutine CIOrder_settingCILevel
 
 
 
 
 !! Build the CI table with all combinations of excitations between quantum species.
-  subroutine CIcore_buildCIOrderList()
+  subroutine CIOrder_buildCIOrderList()
     implicit none
 
     integer :: c
@@ -178,7 +178,7 @@ contains
     s = 0
     c = 0
     !! Search which combinations of excitations satifies the desired CI level.
-    auxnumberOfSpecies = CIcore_buildCIOrderRecursion( s, numberOfSpecies, c, cilevel )
+    auxnumberOfSpecies = CIOrder_buildCIOrderRecursion( s, numberOfSpecies, c, cilevel )
 
 
     !! Print list
@@ -207,7 +207,7 @@ contains
       do v = 1,  u-1
 
         auxcilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(v), :)
-        auxnumberOfSpecies = CIcore_getIndexSize(0, ssize, auxcilevel) 
+        auxnumberOfSpecies = CIOrder_getIndexSize(0, ssize, auxcilevel) 
 
       end do
 
@@ -236,10 +236,10 @@ contains
     deallocate ( auxcilevel )
     deallocate ( cilevel )
     
-  end subroutine CIcore_buildCIOrderList
+  end subroutine CIOrder_buildCIOrderList
 
     !! Search which combinations of excitations satifies the desired CI level.
-recursive  function CIcore_buildCIOrderRecursion( s, numberOfSpecies, c, cilevel ) result (os)
+recursive  function CIOrder_buildCIOrderRecursion( s, numberOfSpecies, c, cilevel ) result (os)
     implicit none
 
     integer :: u,v,c
@@ -253,7 +253,7 @@ recursive  function CIcore_buildCIOrderRecursion( s, numberOfSpecies, c, cilevel
     if ( is < numberOfSpecies ) then
       do i = 1, size(CIcore_instance%numberOfStrings(is)%values, dim = 1)
        cilevel(is) = i - 1
-       os = CIcore_buildCIOrderRecursion( is, numberOfSpecies, c, cilevel )
+       os = CIOrder_buildCIOrderRecursion( is, numberOfSpecies, c, cilevel )
       end do
       cilevel(is) = 0
     else 
@@ -302,9 +302,9 @@ recursive  function CIcore_buildCIOrderRecursion( s, numberOfSpecies, c, cilevel
       cilevel(is) = 0
     end if
 
-  end function CIcore_buildCIOrderRecursion
+  end function CIOrder_buildCIOrderRecursion
 
-recursive  function CIcore_getIndexSize(s, c, auxcilevel) result (os)
+recursive  function CIOrder_getIndexSize(s, c, auxcilevel) result (os)
     implicit none
 
     integer(8) :: a,b,c
@@ -319,7 +319,7 @@ recursive  function CIcore_getIndexSize(s, c, auxcilevel) result (os)
       i = auxcilevel(is) + 1
       ssize = CIcore_instance%numberOfStrings2(is)%values(i)
       do a = 1, CIcore_instance%numberOfStrings(is)%values(i)
-        os = CIcore_getIndexSize( is, c, auxcilevel )
+        os = CIOrder_getIndexSize( is, c, auxcilevel )
       end do
     end do
     do ss = 1, CIcore_instance%recursionVector2(is) 
@@ -329,12 +329,12 @@ recursive  function CIcore_getIndexSize(s, c, auxcilevel) result (os)
       c = c + CIcore_instance%numberOfStrings(is)%values(i)
     end do
 
-  end function CIcore_getIndexSize
+  end function CIOrder_getIndexSize
 
   !>
   !! @brief  Maneja excepciones de la clase
   !<
-  subroutine CIcore_exception( typeMessage, description, debugDescription)
+  subroutine CIOrder_exception( typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -348,7 +348,7 @@ recursive  function CIcore_getIndexSize(s, c, auxcilevel) result (os)
     call Exception_show( ex )
     call Exception_destructor( ex )
 
-  end subroutine CIcore_exception
+  end subroutine CIOrder_exception
 
 
 end module CIOrder_

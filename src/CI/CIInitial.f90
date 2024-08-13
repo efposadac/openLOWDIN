@@ -14,7 +14,7 @@ module CIInitial_
 contains
 
 
-  subroutine CIcore_buildInitialCIMatrix2()
+  subroutine CIInitial_buildInitialCIMatrix2()
     implicit none
 
     type(Configuration) :: auxConfigurationA, auxConfigurationB
@@ -53,9 +53,9 @@ contains
                                int(initialCIMatrixSize,8) , 0.0_8 ) 
 
     !! get the configurations for the initial hamiltonian matrix
-    call CIcore_getInitialIndexes()
+    call CIInitial_getInitialIndexes()
 
-    call CIcore_calculateInitialCIMatrix()
+    call CIInitial_calculateInitialCIMatrix()
 
     !! diagonalize the initial matrix
     call Vector_constructor8 ( CIcore_instance%initialEigenValues, int(CONTROL_instance%NUMBER_OF_CI_STATES,8),  0.0_8)
@@ -80,7 +80,7 @@ contains
 !$    timeB = omp_get_wtime()
 !$    write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Solving Initial CI : ", timeB - timeA ," (s)"
 
-  end subroutine CIcore_buildInitialCIMatrix2
+  end subroutine CIInitial_buildInitialCIMatrix2
 
   !>
   !! @brief Muestra informacion del objeto
@@ -88,7 +88,7 @@ contains
   !! @param this 
   !<
   !! Map the indexes of initial CI matrix to the complete matrix.
-  subroutine CIcore_getInitialIndexes()
+  subroutine CIInitial_getInitialIndexes()
     implicit none
 
     integer(8) :: a,b,c
@@ -127,7 +127,7 @@ contains
     do ci = 1,  CIcore_instance%sizeCiOrderList 
       cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
       s = 0
-      auxnumberOfSpecies = CIcore_getIndexesRecursion( s, numberOfSpecies, indexConf, c, cilevel )
+      auxnumberOfSpecies = CIInitial_getIndexesRecursion( s, numberOfSpecies, indexConf, c, cilevel )
     end do
 
     deallocate ( indexConf )
@@ -137,10 +137,10 @@ contains
 
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for getting initial indexes : ", timeB - timeA ," (s)"
 
-  end subroutine CIcore_getInitialIndexes
+  end subroutine CIInitial_getInitialIndexes
 
 
-recursive  function CIcore_getIndexesRecursion(s, numberOfSpecies, indexConf, c, cilevel) result (os)
+recursive  function CIInitial_getIndexesRecursion(s, numberOfSpecies, indexConf, c, cilevel) result (os)
     implicit none
 
     integer(8) :: a,b,c
@@ -161,7 +161,7 @@ recursive  function CIcore_getIndexesRecursion(s, numberOfSpecies, indexConf, c,
 
       do a = 1, CIcore_instance%numberOfStrings(is)%values(i)
         indexConf(is) = ssize + a
-        os = CIcore_getIndexesRecursion( is, numberOfSpecies, indexConf, c, cilevel)
+        os = CIInitial_getIndexesRecursion( is, numberOfSpecies, indexConf, c, cilevel)
       end do
     else 
       os = is
@@ -181,14 +181,14 @@ recursive  function CIcore_getIndexesRecursion(s, numberOfSpecies, indexConf, c,
       end do
     end if
 
-  end function CIcore_getIndexesRecursion
+  end function CIInitial_getIndexesRecursion
 
   !>
   !! @brief Muestra informacion del objeto
   !!
   !! @param this 
   !<
-  subroutine CIcore_calculateInitialCIMatrix()
+  subroutine CIInitial_calculateInitialCIMatrix()
     implicit none
 
     integer(8) :: a,b,aa,bb
@@ -251,12 +251,12 @@ recursive  function CIcore_getIndexesRecursion(s, numberOfSpecies, indexConf, c,
         else if (  coupling == 1 ) then
 
           CIcore_instance%initialHamiltonianMatrix%values(a,b) = &
-            CI_Initial_calculateEnergyOne ( 1, indexConfA, indexConfB )
+            CIInitial_calculateEnergyOne ( 1, indexConfA, indexConfB )
 
         else if ( coupling  == 2 ) then
 
           CIcore_instance%initialHamiltonianMatrix%values(a,b) = &
-            CI_Initial_calculateEnergyTwo ( 1, indexConfA, indexConfB )
+            CIInitial_calculateEnergyTwo ( 1, indexConfA, indexConfB )
 
         end if
  
@@ -289,9 +289,9 @@ recursive  function CIcore_getIndexesRecursion(s, numberOfSpecies, indexConf, c,
     !!close(318)
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for Calculating initial CI matrix : ", timeB1 - timeA1 ," (s)"
 
-  end subroutine CIcore_calculateInitialCIMatrix 
+  end subroutine CIInitial_calculateInitialCIMatrix 
 
-  function CI_Initial_calculateEnergyOne( n, thisA, thisB ) result (auxCIenergy)
+  function CIInitial_calculateEnergyOne( n, thisA, thisB ) result (auxCIenergy)
     implicit none
     integer(8) :: thisA(:), thisB(:)
     integer(8) :: a, b
@@ -411,9 +411,9 @@ recursive  function CIcore_getIndexesRecursion(s, numberOfSpecies, indexConf, c,
     auxCIenergy= auxCIenergy * factor
 
 
-  end function CI_Initial_calculateEnergyOne
+  end function CIInitial_calculateEnergyOne
 
-  function CI_Initial_calculateEnergyTwo( n, thisA, thisB ) result (auxCIenergy)
+  function CIInitial_calculateEnergyTwo( n, thisA, thisB ) result (auxCIenergy)
     implicit none
     integer(8) :: thisA(:), thisB(:)
     integer(8) :: a, b
@@ -528,6 +528,6 @@ recursive  function CIcore_getIndexesRecursion(s, numberOfSpecies, indexConf, c,
 
     auxCIenergy= auxCIenergy * factor
 
-  end function CI_Initial_calculateEnergyTwo
+  end function CIInitial_calculateEnergyTwo
 
 end module CIInitial_

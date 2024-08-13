@@ -13,7 +13,7 @@ module CIStrings_
 
 contains
 
-  subroutine CIcore_buildStrings()
+  subroutine CIStrings_buildStrings()
     implicit none
 
     integer(8) :: a,b,c,c1,c2,aa,d
@@ -59,7 +59,7 @@ contains
 
           !! just get the number of strings...
           ci = 0 
-          oci = CIcore_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel)
+          oci = CIStrings_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel)
 
           write (*,"(A,I4,I8)") "    ", cilevel, CIcore_instance%numberOfStrings(i)%values(cilevel+1)
 
@@ -112,7 +112,7 @@ contains
 
           !! recursion to build the strings
           ci = 0 
-          oci = CIcore_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c)
+          oci = CIStrings_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c)
 
         end if
       end do
@@ -138,10 +138,10 @@ contains
     end do
       
 
-  end subroutine CIcore_buildStrings
+  end subroutine CIStrings_buildStrings
 
 !! This is just to get the total number of strings...
-recursive  function CIcore_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ici, cilevel ) result (oci)
+recursive  function CIStrings_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ici, cilevel ) result (oci)
     implicit none
 
     integer :: i, numberOfSpecies
@@ -157,7 +157,7 @@ recursive  function CIcore_buildStringsRecursion( i, numberOfSpecies, occupiedCo
         do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOrbitals%values(i) )
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
-          oci = CIcore_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel )
+          oci = CIStrings_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel )
         end do
         unoccupiedCode(i)%values = CIcore_instance%numberOfOccupiedOrbitals%values(i) 
       end do
@@ -166,7 +166,7 @@ recursive  function CIcore_buildStringsRecursion( i, numberOfSpecies, occupiedCo
         do a = int(unoccupiedCode(i)%values(ci-1)) + 1, int(CIcore_instance%numberOfOrbitals%values(i) )
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
-          oci = CIcore_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel )
+          oci = CIStrings_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel )
         end do
       end do
 
@@ -194,10 +194,10 @@ recursive  function CIcore_buildStringsRecursion( i, numberOfSpecies, occupiedCo
       end do
     end if
 
-  end function CIcore_buildStringsRecursion
+  end function CIStrings_buildStringsRecursion
 
 !! and this is for building the strings
-recursive  function CIcore_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, &
+recursive  function CIStrings_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, &
                      ici, cilevel, order, c ) result (oci)
     implicit none
 
@@ -216,7 +216,7 @@ recursive  function CIcore_buildStringsRecursion2( i, numberOfSpecies, occupiedC
         do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOrbitals%values(i) )
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
-          oci = CIcore_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c )
+          oci = CIStrings_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c )
         end do
         unoccupiedCode(i)%values = CIcore_instance%numberOfOccupiedOrbitals%values(i) 
       end do
@@ -225,7 +225,7 @@ recursive  function CIcore_buildStringsRecursion2( i, numberOfSpecies, occupiedC
         do a = int(unoccupiedCode(i)%values(ci-1)) + 1, int(CIcore_instance%numberOfOrbitals%values(i) )
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
-          oci = CIcore_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c )
+          oci = CIStrings_buildStringsRecursion2( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c )
         end do
       end do
 
@@ -257,6 +257,6 @@ recursive  function CIcore_buildStringsRecursion2( i, numberOfSpecies, occupiedC
     end if
 
 
-  end function CIcore_buildStringsRecursion2
+  end function CIStrings_buildStringsRecursion2
 
 end module CIStrings_

@@ -18,7 +18,7 @@ contains
   !!
   !! @param this 
   !<
-  subroutine CIcore_buildDiagonal()
+  subroutine CIDiag_buildDiagonal()
     implicit none
 
     integer(8) :: a,b,c
@@ -60,7 +60,7 @@ contains
 
       cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
       s = 0
-      auxnumberOfSpecies = CIcore_numberOfConfigurationsRecursion(s, numberOfSpecies,  numberOfConfigurations, ciLevel) 
+      auxnumberOfSpecies = CIDiag_numberOfConfigurationsRecursion(s, numberOfSpecies,  numberOfConfigurations, ciLevel) 
 
     end do
 
@@ -86,7 +86,7 @@ contains
       dd = 0
 
       u = CIcore_instance%auxciOrderList(ci)
-      auxnumberOfSpecies = CIcore_buildDiagonalRecursion( s, numberOfSpecies, indexConf,  c, dd, u, cilevel, auxcilevel )
+      auxnumberOfSpecies = CIDiag_buildDiagonalRecursion( s, numberOfSpecies, indexConf,  c, dd, u, cilevel, auxcilevel )
     end do
     !stop
 
@@ -100,9 +100,9 @@ contains
 
     write (*,*) "Reference energy, H_0: ",  CIcore_instance%diagonalHamiltonianMatrix2%values(1)
 
-  end subroutine CIcore_buildDiagonal
+  end subroutine CIDiag_buildDiagonal
 
-recursive  function CIcore_numberOfConfigurationsRecursion(s, numberOfSpecies, c, cilevel) result (os)
+recursive  function CIDiag_numberOfConfigurationsRecursion(s, numberOfSpecies, c, cilevel) result (os)
     implicit none
 
     integer(8) :: a,b,c
@@ -116,7 +116,7 @@ recursive  function CIcore_numberOfConfigurationsRecursion(s, numberOfSpecies, c
     if ( is < numberOfSpecies ) then
       i = cilevel(is) + 1
       do a = 1, CIcore_instance%numberOfStrings(is)%values(i)
-        os = CIcore_numberOfConfigurationsRecursion( is, numberOfSpecies, c, cilevel )
+        os = CIDiag_numberOfConfigurationsRecursion( is, numberOfSpecies, c, cilevel )
       end do
     else 
       os = is
@@ -127,10 +127,10 @@ recursive  function CIcore_numberOfConfigurationsRecursion(s, numberOfSpecies, c
       end do
     end if
 
-  end function CIcore_numberOfConfigurationsRecursion
+  end function CIDiag_numberOfConfigurationsRecursion
 
 
-recursive  function CIcore_buildDiagonalRecursion(s, numberOfSpecies, indexConf, c, dd, u, cilevel, auxcilevel) result (os)
+recursive  function CIDiag_buildDiagonalRecursion(s, numberOfSpecies, indexConf, c, dd, u, cilevel, auxcilevel) result (os)
     implicit none
 
     integer(8) :: a,b,c,cc,d
@@ -155,7 +155,7 @@ recursive  function CIcore_buildDiagonalRecursion(s, numberOfSpecies, indexConf,
         indexConf(is) = ssize + a
 
         dd(is) =(a + CIcore_instance%ciOrderSize1(u,is))* CIcore_instance%ciOrderSize2(u,is) 
-        os = CIcore_buildDiagonalRecursion( is, numberOfSpecies, indexConf, c, dd, u, cilevel, auxcilevel )
+        os = CIDiag_buildDiagonalRecursion( is, numberOfSpecies, indexConf, c, dd, u, cilevel, auxcilevel )
       end do
     else 
       os = is
@@ -169,14 +169,14 @@ recursive  function CIcore_buildDiagonalRecursion(s, numberOfSpecies, indexConf,
         d = sum(dd)
 
         CIcore_instance%diagonalHamiltonianMatrix2%values(c) = &
-                              CIcore_calculateEnergyZero ( indexConf )
+                              CIDiag_calculateEnergyZero ( indexConf )
 
       end do
     end if
 
-  end function CIcore_buildDiagonalRecursion
+  end function CIDiag_buildDiagonalRecursion
 
-  function CIcore_calculateEnergyZero( this ) result (auxCIenergy)
+  function CIDiag_calculateEnergyZero( this ) result (auxCIenergy)
     implicit none
 
     integer(8) :: this(:)
@@ -247,7 +247,7 @@ recursive  function CIcore_buildDiagonalRecursion(s, numberOfSpecies, indexConf,
 
     auxCIenergy= auxCIenergy + HartreeFock_instance%puntualInteractionEnergy
 
-  end function CIcore_calculateEnergyZero
+  end function CIDiag_calculateEnergyZero
 
 
 end module CIDiag_
