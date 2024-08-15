@@ -1,7 +1,10 @@
 GEOMETRY
-	e-(H)   aug-cc-pvdz 	0.00	0.00 	0.00 addParticles=1 
+	e-(H)   aug-cc-pvdz 	0.00	0.00 	0.00 addParticles=2
+	e-(H)   aug-cc-pvdz 	0.00	0.00 	3.37 
 	H	dirac			0.00	0.00 	0.00
-	e+	e+aug-cc-pvdz	0.00	0.00	0.00
+	H	dirac			0.00	0.00 	3.37
+	e+	e+aug-cc-pvdz	0.00	0.00	0.00 addParticles=-1
+	e+	e+aug-cc-pvdz	0.00	0.00	3.37
 END GEOMETRY
 
 TASKS
@@ -11,17 +14,11 @@ TASKS
 END TASKS
 
 CONTROL
-readCoefficients=F
-numberOfCIstates=!
-CINaturalOrbitals=T
-	CIStatesToPrint = 1
+	readCoefficients=F
+	numberOfCIstates=1
 	CIdiagonalizationMethod = "DSYEVX"
 	!CIdiagonalizationMethod = "JADAMILU"
-	!CIPrintEigenVectorsFormat = "NONE"
-	CIPrintEigenVectorsFormat = "OCCUPIED"
-	!CIPrintEigenVectorsFormat = "ORBITALS"
-	CIPrintThreshold = 5e-2
-	buildTwoParticlesMatrixForOneParticle=T
+	CIdiagonalDressedShift = "CISD"
 END CONTROL
 
 INPUT_CI

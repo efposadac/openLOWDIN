@@ -18,7 +18,7 @@ contains
   !!
   !! @param this 
   !<
-  subroutine CIFullMatrix_buildHamiltonianMatrix()
+  subroutine CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
     implicit none
 
     integer(8) :: a,b,c
@@ -153,7 +153,6 @@ contains
     deallocate ( CIcore_instance%allIndexConf )
 
 !$  timeB = omp_get_wtime()
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
 
   end subroutine CIFullMatrix_buildHamiltonianMatrix
 
@@ -396,5 +395,49 @@ contains
 
   end function CIFullMatrix_calculateEnergyTwo
 
+!>
+  !! @brief Muestra informacion del objeto
+  !!
+  !! @param this 
+  !<
+  subroutine CIFullMatrix_PT2()
+    implicit none
+
+    integer(8) :: a,b,c
+    integer :: i, j, ii, jj
+    integer(8) :: numberOfConfigurations
+    integer :: n,nproc
+    real(8) :: timeA, timeB
+    real(8) :: CIEnergy_PT2
+    real(8) :: auxEnergy
+
+!$  timeA = omp_get_wtime()
+
+    numberOfConfigurations = CIcore_instance%numberOfConfigurations 
+    nproc = omp_get_max_threads()
+
+    CIEnergy_PT2 = 0.0_8
+!$omp parallel & 
+!$omp& private(a,b,n,auxEnergy),&
+!$omp& shared(CIcore_instance) reduction(+:CIEnergy_PT2)
+    n = omp_get_thread_num() + 1
+!$omp do schedule (dynamic) 
+    do a = 2, numberOfConfigurations
+      auxEnergy = 0.0_8 
+      do b = 1, numberOfConfigurations
+        auxEnergy = auxEnergy + CIcore_instance%hamiltonianMatrix%values(b,a) * CIcore_instance%eigenVectors%values(b,1) 
+      end do
+      print *, ( CIcore_instance%hamiltonianMatrix%values(a,a) - CIcore_instance%eigenvalues%values(1) )
+      CIEnergy_PT2 = CIEnergy_PT2 + (auxEnergy**2) / ( CIcore_instance%hamiltonianMatrix%values(a,a) - CIcore_instance%eigenvalues%values(1) )
+    end do
+!$omp end do nowait
+!$omp end parallel
+
+    print *, "PT2 ", CIEnergy_PT2
+
+!$  timeB = omp_get_wtime()
+!!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for calculating PT2 correction : ", timeB - timeA ," (s)"
+
+  end subroutine CIFullMatrix_PT2
 
  end module CIFullMatrix_
