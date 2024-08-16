@@ -190,6 +190,7 @@ module CONTROL_
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
      character(20) :: CI_PRINT_EIGENVECTORS_FORMAT
+     character(20) :: CI_DIAGONAL_DRESSED_SHIFT
      real(8) :: CI_PRINT_THRESHOLD
      integer :: CI_STATES_TO_PRINT
      integer :: CI_ACTIVE_SPACE
@@ -529,6 +530,7 @@ module CONTROL_
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
   character(20) :: LowdinParameters_CIPrintEigenVectorsFormat
+  character(20) :: LowdinParameters_CIdiagonalDressedShift 
   real(8) :: LowdinParameters_CIPrintThreshold
   integer :: LowdinParameters_CIactiveSpace
   integer :: LowdinParameters_CIstatesToPrint
@@ -866,6 +868,7 @@ module CONTROL_
        LowdinParameters_configurationInteractionLevel,&
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
+       LowdinParameters_CIdiagonalDressedShift, &
        LowdinParameters_CIactiveSpace, &
        LowdinParameters_CIstatesToPrint, &
        LowdinParameters_CImaxNCV, &
@@ -1228,6 +1231,7 @@ contains
     LowdinParameters_configurationInteractionLevel = "NONE"
     LowdinParameters_numberOfCIStates = 1
     LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
+    LowdinParameters_CIdiagonalDressedShift = "NONE"
     LowdinParameters_CIactiveSpace = 0 !! Full
     LowdinParameters_CIstatesToPrint = 1
     LowdinParameters_CImaxNCV = 30
@@ -1565,6 +1569,7 @@ contains
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "NONE"
     CONTROL_instance%NUMBER_OF_CI_STATES= 1
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
+    CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT = "NONE"
     CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
     CONTROL_instance%CI_STATES_TO_PRINT = 1
     CONTROL_instance%CI_MAX_NCV = 30 
@@ -1951,6 +1956,7 @@ contains
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
     CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
+    CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT = LowdinParameters_CIdiagonalDressedShift
     CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
     CONTROL_instance%CI_STATES_TO_PRINT = LowdinParameters_CIstatesToPrint
     if(CONTROL_instance%CI_STATES_TO_PRINT .gt. CONTROL_instance%NUMBER_OF_CI_STATES) &
@@ -2319,6 +2325,7 @@ contains
     LowdinParameters_configurationInteractionLevel = CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
     LowdinParameters_numberOfCIStates        = CONTROL_instance%NUMBER_OF_CI_STATES
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
+    LowdinParameters_CIdiagonalDressedShift = CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
 
     LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE 
     LowdinParameters_CIstatesToPrint = CONTROL_instance%CI_STATES_TO_PRINT
@@ -2650,6 +2657,7 @@ contains
     otherThis%CONFIGURATION_INTERACTION_LEVEL = this%CONFIGURATION_INTERACTION_LEVEL 
     otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
     otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
+    otherThis%CI_DIAGONAL_DRESSED_SHIFT = this%CI_DIAGONAL_DRESSED_SHIFT
     otherThis%CI_ACTIVE_SPACE =  this%CI_ACTIVE_SPACE 
     otherThis%CI_STATES_TO_PRINT =  this%CI_STATES_TO_PRINT
     otherThis%CI_MAX_NCV = this%CI_MAX_NCV
