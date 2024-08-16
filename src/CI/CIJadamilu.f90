@@ -221,7 +221,7 @@ recursive  function CIJadamilu_buildCouplingOrderRecursion( s, numberOfSpecies, 
 
   end function CIJadamilu_buildCouplingOrderRecursion
 
-  subroutine CIJadamilu_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors)
+  subroutine CIJadamilu_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors, timeA, timeB)
     implicit none
     external DPJDREVCOM
     integer(8) :: maxnev
@@ -249,7 +249,9 @@ recursive  function CIJadamilu_buildCouplingOrderRecursion( s, numberOfSpecies, 
     integer(8) :: I,J,K,ii,jj,jjj
     integer(4) :: iiter
     logical :: fullMatrix
+    real(8) :: timeA, timeB
     
+!$  timeA = omp_get_wtime()
     maxsp = CONTROL_instance%CI_MADSPACE
     !!if ( CONTROL_instance%CI_JACOBI ) then
 
@@ -371,6 +373,8 @@ recursive  function CIJadamilu_buildCouplingOrderRecursion( s, numberOfSpecies, 
 !    release internal memory and discard preconditioner
      CALL PJDCLEANUP
      if ( allocated ( x ) ) deallocate ( x )
+
+!$  timeB = omp_get_wtime()
 
   end subroutine CIJadamilu_jadamiluInterface
 

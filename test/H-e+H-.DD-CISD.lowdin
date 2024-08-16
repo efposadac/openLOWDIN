@@ -16,8 +16,8 @@ END TASKS
 CONTROL
 	readCoefficients=F
 	numberOfCIstates=1
-	CIdiagonalizationMethod = "DSYEVX"
-	!CIdiagonalizationMethod = "JADAMILU"
+	!CIdiagonalizationMethod = "DSYEVX"
+	CIdiagonalizationMethod = "JADAMILU"
 	CIdiagonalDressedShift = "CISD"
 END CONTROL
 

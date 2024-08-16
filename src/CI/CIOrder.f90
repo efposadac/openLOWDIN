@@ -127,6 +127,12 @@ contains
 
     end select
 
+    if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD" .and. trim(CIcore_instance%level)  /= "CISD" ) then
+
+       call CIOrder_exception( ERROR, "Configuration interactor constructor", "DDCISD shift are only valid for CISD level!")
+
+    end if
+
 
   end subroutine CIOrder_settingCILevel
 

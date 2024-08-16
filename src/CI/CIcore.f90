@@ -27,6 +27,7 @@
      type(vector) ::  numberOfSpatialOrbitals2 
      type(vector8) :: eigenvalues
      type(vector) :: groundStateEnergies
+     type(vector) :: DDCISDTiming
      type(vector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
      type(matrix), allocatable :: fourCenterIntegrals(:,:)
      type(matrix), allocatable :: twoCenterIntegrals(:)
