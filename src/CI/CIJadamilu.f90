@@ -33,7 +33,7 @@ contains
     integer(8), allocatable :: indexConfB(:)
     integer(1), allocatable :: couplingOrder(:)
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
     coupling = 0
 
     !! allocate arrays
@@ -79,7 +79,7 @@ contains
     integer :: ssize
     integer, allocatable :: cilevel(:)
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
     ssize = 1
     do i = 1, numberOfSpecies
@@ -428,7 +428,7 @@ recursive  function CIJadamilu_buildCouplingOrderRecursion( s, numberOfSpecies, 
        if ( abs(v(i) ) >= tol) nonzero = nonzero + 1
     end do
   
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
     allocate ( indexConf ( numberOfSpecies, nproc ) )
     allocate ( auxindexConf ( numberOfSpecies, nproc ) )
@@ -654,7 +654,7 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
     integer :: auxcilevel(:,:)
     integer, allocatable :: counter(:)
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
     
     allocate (counter(numberOfSpecies))
     counter = 0 
@@ -723,7 +723,7 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
 
     !!$ CIcore_instance%timeA(1) = omp_get_wtime()
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
     do i = 1, numberOfSpecies 
 
@@ -984,7 +984,7 @@ recursive  function CIJadamilu_buildRowRecursionSecondOne( ii, indexConfB, w, vc
     real(8) :: CIenergy
     integer :: cilevel(:)
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
     ci = cilevel(ii) + 1
     ssize = CIcore_instance%nCouplingSize(ii,nn)%values( 2,ci ) 
 
@@ -1030,7 +1030,7 @@ recursive  function CIJadamilu_buildRowRecursionSecondOne( ii, indexConfB, w, vc
     real(8) :: CIenergy
     integer :: cilevel(:)
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
     ci = cilevel(ii) + 1
     ssize = CIcore_instance%nCouplingSize(ii,nn)%values( 3,ci ) 
 
@@ -1075,7 +1075,7 @@ recursive  function CIJadamilu_buildRowRecursionSecondOne( ii, indexConfB, w, vc
     real(8) :: CIenergy
     integer :: cilevel(:)
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
     ci = cilevel(ii) + 1
     ssize = CIcore_instance%nCouplingSize(ii,nn)%values( 3,ci ) 
 
@@ -1107,20 +1107,22 @@ recursive  function CIJadamilu_buildRowRecursionSecondOne( ii, indexConfB, w, vc
  function CIJadamilu_buildRowRecursionSecondTwoDiff( ii, jj, indexConfB, w, vc, dd, nn, cilevel, u ) result (os)
     implicit none
 
+    integer, intent(in) :: ii, nn, u, jj
+    integer, intent(in) :: cilevel(:)
+    integer(8), intent(out) :: dd(:)
+    real(8), intent(in) :: vc
+    integer(8), intent(inout) :: indexConfB(:)
+    real(8), intent(inout) :: w(:)
     integer(8) :: ai,aj,d, aai, aaj
-    integer :: ii, nn, ci, u, k, jj, cj
-    integer :: ssizei, ssizej
+    integer :: ci, k, cj
+    integer(8) :: ssizei, ssizej
+    integer(8) :: dd_i_shift, dd_j_shift
     integer :: bi, bj, factor, factori
     integer :: auxIndex1, auxIndex2, auxIndex
     integer :: os,numberOfSpecies
-    integer(8) :: indexConfB(:)
-    integer(8) :: dd(:)
-    real(8) :: vc
-    real(8) :: w(:)
     real(8) :: CIenergy
-    integer :: cilevel(:)
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
     ci = cilevel(ii) + 1
     cj = cilevel(jj) + 1
     ssizei = CIcore_instance%nCouplingSize(ii,nn)%values( 2,ci ) 
@@ -1131,23 +1133,28 @@ recursive  function CIJadamilu_buildRowRecursionSecondOne( ii, indexConfB, w, vc
                 CIcore_instance%ciOrderSize1(u,k) )* CIcore_instance%ciOrderSize2(u,k) 
     end do
 
+    dd_i_shift  = - CIcore_instance%numberOfStrings2(ii)%values(ci) + &
+                CIcore_instance%ciOrderSize1(u,ii) 
+
+    dd_j_shift =  - CIcore_instance%numberOfStrings2(jj)%values(cj) + &
+                CIcore_instance%ciOrderSize1(u,jj)
+
     do aai = 1, CIcore_instance%nCouplingOneTwo(ii,nn)%values( 2,ci ) 
       ai = ssizei + aai
       indexConfB(ii) = CIcore_instance%couplingMatrix(ii,nn)%values(ai, 2)
-      dd(ii) = (indexConfB(ii) - CIcore_instance%numberOfStrings2(ii)%values(ci) + &
-                CIcore_instance%ciOrderSize1(u,ii) )* CIcore_instance%ciOrderSize2(u,ii) 
+      dd(ii) = (indexConfB(ii) + dd_i_shift )* CIcore_instance%ciOrderSize2(u,ii) 
 
       bi = indexConfB(ii)
       factori = CIcore_instance%couplingMatrixFactorOne(ii,nn)%values(bi) 
       auxIndex1 = CIcore_instance%couplingMatrixOrbOne(ii,nn)%values(bi) 
       auxIndex1 = CIcore_instance%numberOfSpatialOrbitals2%values(jj) * (auxIndex1 - 1 ) 
 
+      !$omp simd
       do aaj = 1, CIcore_instance%nCouplingOneTwo(jj,nn)%values( 2,cj ) 
         aj = ssizej + aaj
         indexConfB(jj) = CIcore_instance%couplingMatrix(jj,nn)%values(aj, 2)
 
-        dd(jj) = (indexConfB(jj) - CIcore_instance%numberOfStrings2(jj)%values(cj) + &
-                CIcore_instance%ciOrderSize1(u,jj) )* CIcore_instance%ciOrderSize2(u,jj) 
+        dd(jj) = (indexConfB(jj) + dd_j_shift )* CIcore_instance%ciOrderSize2(u,jj) 
 
         d = sum(dd)
           !CIenergy = vc*CIcore_calculateEnergyTwoDiff ( ii, jj, indexConfB, nn )
