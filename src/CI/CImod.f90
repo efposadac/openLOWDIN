@@ -44,6 +44,7 @@ module CImod_
   use CIDiag_
   use CIFullMatrix_
   use CIInitial_
+  use CISCI_
   use CIJadamilu_
   use CIOrder_
   use CIStrings_
@@ -92,13 +93,14 @@ contains
   subroutine CImod_run()
     implicit none 
     integer :: i,j,m, numberOfSpecies
-    integer :: a
+    integer :: a, ms
     real(8) :: timeA, timeB
     real(8), allocatable :: eigenValues(:) 
     real(8) :: ecorr
 
 !    select case ( trim(CIcore_instance%level) )
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    ms = CONTROL_instance%CI_MADSPACE
 
     write (*,*) ""
     write (*,*) "==============================================="
@@ -178,263 +180,323 @@ contains
     call Vector_constructor8 ( CIcore_instance%eigenvalues, &
                               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8 )
 
-    select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
-    ! case ("ARPACK")
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
 
-    !   write (*,*) "This method was removed"
+      select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
-    case ("JADAMILU")
+      ! case ("ARPACK")
 
-      write (*,*) "Building Strings..."
-      call CIStrings_buildStrings()
+      !   write (*,*) "This method was removed"
 
-      write (*,*) "Building CI level table..."
-      call CIOrder_buildCIOrderList()
+      case ("JADAMILU")
 
-      call CIJadamilu_buildCouplingMatrix()
-      call CIJadamilu_buildCouplingOrderList()
+        write (*,*) "Building Strings..."
+        call CIStrings_buildStrings()
 
-      write (*,*) "Building diagonal..."
-      call CIDiag_buildDiagonal()
+        write (*,*) "Building CI level table..."
+        call CIOrder_buildCIOrderList()
 
-      write (*,*) "Building initial hamiltonian..."
-      call CIInitial_buildInitialCIMatrix2()
+        call CIJadamilu_buildCouplingMatrix()
+        call CIJadamilu_buildCouplingOrderList()
 
-      call Matrix_constructor (CIcore_instance%eigenVectors, &
-           int(CIcore_instance%numberOfConfigurations,8), &
-           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+        write (*,*) "Building diagonal..."
+        call CIDiag_buildDiagonal()
 
-      if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
-        call CImod_loadEigenVector (CIcore_instance%eigenvalues, &
-               CIcore_instance%eigenVectors) 
-      end if 
+        write (*,*) "Building initial hamiltonian..."
+        call CIInitial_buildInitialCIMatrix2()
 
-      write(*,*) ""
-      write(*,*) "Diagonalizing hamiltonian..."
-      write(*,*) "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-      write(*,*) "============================================================="
-      write(*,*) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
-      write(*,*) " a software code for computing selected eigenvalues of "
-      write(*,*) " large sparse symmetric matrices, "
-      write(*,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
-      write(*,*) "============================================================="
+        call Matrix_constructor (CIcore_instance%eigenVectors, &
+             int(CIcore_instance%numberOfConfigurations,8), &
+             int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
-      !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
-      if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
+        if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
+          call CImod_loadEigenVector (CIcore_instance%eigenvalues, &
+                 CIcore_instance%eigenVectors) 
+        end if 
 
-      call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30, 0.0_8)
-      call Vector_constructor  (  CIcore_instance%DDCISDTiming, 30, 0.0_8)
+        write(*,*) ""
+        write(*,*) "Diagonalizing hamiltonian..."
+        write(*,*) "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+        write(*,*) "============================================================="
+        write(*,*) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
+        write(*,*) " a software code for computing selected eigenvalues of "
+        write(*,*) " large sparse symmetric matrices, "
+        write(*,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
+        write(*,*) "============================================================="
 
         write (6,*) ""
-        write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
-        write (6,"(T2,A62)")     "               ( Size-extensive correction)                   "
-        write (6,"(T2,A62)")     " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
+        write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+        float(CIcore_instance%numberOfConfigurations*( 2 + (3*ms + CONTROL_instance%NUMBER_OF_CI_STATES + 1) + 4*ms*ms)*8)/(1024**3) , " GB"
         write (6,*) ""
 
-        ecorr = 0.0_8
+        !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
+        if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
 
-        do i = 2, 31
+        call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30, 0.0_8)
+        call Vector_constructor  (  CIcore_instance%DDCISDTiming, 30, 0.0_8)
+
+          write (6,*) ""
+          write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
+          write (6,"(T2,A62)")     "               ( Size-extensive correction)                   "
+          write (6,"(T2,A62)")     " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
+          write (6,*) ""
+
+          ecorr = 0.0_8
+
+          do i = 2, 31
   
-          !! add the diagonal shift
-          do a = 2, CIcore_instance%numberOfConfigurations 
-            CIcore_instance%diagonalHamiltonianMatrix%values(a) = CIcore_instance%diagonalHamiltonianMatrix%values(a) + ecorr
+            !! add the diagonal shift
+            do a = 2, CIcore_instance%numberOfConfigurations 
+              CIcore_instance%diagonalHamiltonianMatrix%values(a) = CIcore_instance%diagonalHamiltonianMatrix%values(a) + ecorr
+            end do
+
+            call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
+               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
+               CIcore_instance%eigenvalues, &
+               CIcore_instance%eigenVectors, timeA, timeB)
+
+            !! restore the original diagonal
+            do a = 2, CIcore_instance%numberOfConfigurations 
+              CIcore_instance%diagonalHamiltonianMatrix%values(a) = CIcore_instance%diagonalHamiltonianMatrix%values(a) - ecorr
+            end do
+
+            ecorr = CIcore_instance%eigenvalues%values(1)   - HartreeFock_instance%totalEnergy
+            CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenvalues%values(1) 
+            CIcore_instance%DDCISDTiming%values(i) = timeB - timeA
+
+            write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , timeB - timeA
+
+            !! Restart ci matrix diagonalization from previous eigenvectors
+            CONTROL_instance%CI_LOAD_EIGENVECTOR = .True.
+
+            if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
+
+          end do 
+
+
+          write (6,*) ""
+          write (6,"(T2,A42 )")    "  ITERATIVE DIAGONAL DRESSED CONVERGENCE  "
+          write (6,"(T2,A95 )")    "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
+          do i = 2, 31
+            write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , CIcore_instance%DDCISDTiming%values(i)
+            if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
           end do
+
+          if ( CONTROL_instance%CI_SAVE_EIGENVECTOR ) then 
+            call CImod_saveEigenVector () 
+          end if
+
+        else !! standard CI, no diagonal correction
 
           call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
-             int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
-             CIcore_instance%eigenvalues, &
-             CIcore_instance%eigenVectors, timeA, timeB)
+               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
+               CIcore_instance%eigenvalues, &
+               CIcore_instance%eigenVectors, timeA, timeB )
+  
+          if ( CONTROL_instance%CI_SAVE_EIGENVECTOR ) then 
+            call CImod_saveEigenVector () 
+          end if
 
-          !! restore the original diagonal
-          do a = 2, CIcore_instance%numberOfConfigurations 
-            CIcore_instance%diagonalHamiltonianMatrix%values(a) = CIcore_instance%diagonalHamiltonianMatrix%values(a) - ecorr
-          end do
-
-          ecorr = CIcore_instance%eigenvalues%values(1)   - HartreeFock_instance%totalEnergy
-          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenvalues%values(1) 
-          CIcore_instance%DDCISDTiming%values(i) = timeB - timeA
-
-          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , timeB - timeA
-
-          !! Restart ci matrix diagonalization from previous eigenvectors
-          CONTROL_instance%CI_LOAD_EIGENVECTOR = .True.
-
-          if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
-
-        end do 
-
-
-        write (6,*) ""
-        write (6,"(T2,A42 )")    "  ITERATIVE DIAGONAL DRESSED CONVERGENCE  "
-        write (6,"(T2,A95 )")    "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
-        do i = 2, 31
-          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , CIcore_instance%DDCISDTiming%values(i)
-          if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
-        end do
-
-        if ( CONTROL_instance%CI_SAVE_EIGENVECTOR ) then 
-          call CImod_saveEigenVector () 
         end if
 
-      else !! standard CI, no diagonal correction
+      case ("DSYEVX")
 
-        call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
-             int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
-             CIcore_instance%eigenvalues, &
-             CIcore_instance%eigenVectors, timeA, timeB )
-  
-        if ( CONTROL_instance%CI_SAVE_EIGENVECTOR ) then 
-          call CImod_saveEigenVector () 
-        end if
+        write (*,*) "Building Strings..."
+        call CIStrings_buildStrings()
 
-      end if
+        write (*,*) "Building CI level table..."
+        call CIOrder_buildCIOrderList()
 
-    case ("DSYEVX")
+        write (*,*) "Building diagonal..."
+        call CIDiag_buildDiagonal()
 
-      write (*,*) "Building Strings..."
-      call CIStrings_buildStrings()
+        call Matrix_constructor (CIcore_instance%eigenVectors, &
+             int(CIcore_instance%numberOfConfigurations,8), &
+             int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
-      write (*,*) "Building CI level table..."
-      call CIOrder_buildCIOrderList()
-
-      write (*,*) "Building diagonal..."
-      call CIDiag_buildDiagonal()
-
-      call Matrix_constructor (CIcore_instance%eigenVectors, &
-           int(CIcore_instance%numberOfConfigurations,8), &
-           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-      write(*,*) ""
-      write(*,*) "Diagonalizing hamiltonian..."
-      write(*,*) "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-
-      !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
-      if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
-
-      call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30, 0.0_8)
+        write(*,*) ""
+        write(*,*) "Diagonalizing hamiltonian..."
+        write(*,*) "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
         write (6,*) ""
-        write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
-        write (6,"(T2,A62)")     "               ( Size-extensive correction)                   "
-        write (6,"(T2,A62)")     " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
+        write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+        float((CIcore_instance%numberOfConfigurations**2 + 2 )*8)/(1024**3) , " GB"
         write (6,*) ""
-        write (6,"(T2,A95 )")    "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
 
-        ecorr = 0.0_8
 
-        do i = 2, 31
+        !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
+        if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
+
+        call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30, 0.0_8)
+
+          write (6,*) ""
+          write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
+          write (6,"(T2,A62)")     "               ( Size-extensive correction)                   "
+          write (6,"(T2,A62)")     " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
+          write (6,*) ""
+          write (6,"(T2,A95 )")    "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
+
+          ecorr = 0.0_8
+
+          do i = 2, 31
   
-          call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
+            call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
   
-          do a = 2, CIcore_instance%numberOfConfigurations 
-            CIcore_instance%hamiltonianMatrix%values(a,a) = CIcore_instance%hamiltonianMatrix%values(a,a) + ecorr
-          end do
+            do a = 2, CIcore_instance%numberOfConfigurations 
+              CIcore_instance%hamiltonianMatrix%values(a,a) = CIcore_instance%hamiltonianMatrix%values(a,a) + ecorr
+            end do
 
+  
+            call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
+               int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
+               eigenVectors = CIcore_instance%eigenVectors, &
+               flags = int(SYMMETRIC,4))
+  
+            ecorr = CIcore_instance%eigenvalues%values(1)   - HartreeFock_instance%totalEnergy
+            CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenvalues%values(1) 
+
+            write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , timeB - timeA
+
+            if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
+
+          end do 
+
+        else !! standard CI, no diagonal correction
+
+          call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
+!$    write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
   
           call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-             int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
-             eigenVectors = CIcore_instance%eigenVectors, &
-             flags = int(SYMMETRIC,4))
-  
-          ecorr = CIcore_instance%eigenvalues%values(1)   - HartreeFock_instance%totalEnergy
-          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenvalues%values(1) 
+               int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
+               eigenVectors = CIcore_instance%eigenVectors, &
+               flags = int(SYMMETRIC,4))
 
-          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , timeB - timeA
+        end if
 
-          if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
+        !! deallocate transformed integrals
+        deallocate(CIcore_instance%twoCenterIntegrals)
+        deallocate(CIcore_instance%fourCenterIntegrals)
 
-        end do 
+      case ("DSYEVR")
 
-      else !! standard CI, no diagonal correction
+        write (*,*) "Building Strings..."
+        call CIStrings_buildStrings()
 
-        call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
-  
-        call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-             int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
-             eigenVectors = CIcore_instance%eigenVectors, &
-             flags = int(SYMMETRIC,4))
+        write (*,*) "Building CI level table..."
+        call CIOrder_buildCIOrderList()
 
-      end if
+        write (*,*) "Building diagonal..."
+        call CIDiag_buildDiagonal()
 
-      !! deallocate transformed integrals
-      deallocate(CIcore_instance%twoCenterIntegrals)
-      deallocate(CIcore_instance%fourCenterIntegrals)
+        call Matrix_constructor (CIcore_instance%eigenVectors, &
+             int(CIcore_instance%numberOfConfigurations,8), &
+             int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
-    case ("DSYEVR")
-
-      write (*,*) "Building Strings..."
-      call CIStrings_buildStrings()
-
-      write (*,*) "Building CI level table..."
-      call CIOrder_buildCIOrderList()
-
-      write (*,*) "Building diagonal..."
-      call CIDiag_buildDiagonal()
-
-      call Matrix_constructor (CIcore_instance%eigenVectors, &
-           int(CIcore_instance%numberOfConfigurations,8), &
-           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
-
-      !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
-      if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
-
-      call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30, 0.0_8)
-
+        write(*,*) ""
+        write(*,*) "Diagonalizing hamiltonian..."
+        write(*,*) "  Using : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
         write (6,*) ""
-        write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
-        write (6,"(T2,A62)")     "               ( Size-extensive correction)                   "
-        write (6,"(T2,A62)")     " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
+        write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+        float((CIcore_instance%numberOfConfigurations**2 + 2 )*8)/(1024**3) , " GB"
         write (6,*) ""
-        write (6,"(T2,A95 )")    "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
 
-        ecorr = 0.0_8
+        !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
+        if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
 
-        do i = 2, 31
+        call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30, 0.0_8)
+
+          write (6,*) ""
+          write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
+          write (6,"(T2,A62)")     "               ( Size-extensive correction)                   "
+          write (6,"(T2,A62)")     " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
+          write (6,*) ""
+          write (6,"(T2,A95 )")    "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
+
+          ecorr = 0.0_8
+
+          do i = 2, 31
   
-          call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
+            call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
   
-          do a = 2, CIcore_instance%numberOfConfigurations 
-            CIcore_instance%hamiltonianMatrix%values(a,a) = CIcore_instance%hamiltonianMatrix%values(a,a) + ecorr
-          end do
+            do a = 2, CIcore_instance%numberOfConfigurations 
+              CIcore_instance%hamiltonianMatrix%values(a,a) = CIcore_instance%hamiltonianMatrix%values(a,a) + ecorr
+            end do
 
-         call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
+           call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
+                 1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+                 eigenVectors = CIcore_instance%eigenVectors, &
+                 flags = SYMMETRIC)
+  
+            ecorr = CIcore_instance%eigenvalues%values(1)   - HartreeFock_instance%totalEnergy
+            CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenvalues%values(1) 
+
+            write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , timeB - timeA
+
+            if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
+
+          end do 
+
+        else !! standard CI, no diagonal correction
+
+          call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
+!$    write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
+  
+          call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
                1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
                eigenVectors = CIcore_instance%eigenVectors, &
                flags = SYMMETRIC)
-  
-          ecorr = CIcore_instance%eigenvalues%values(1)   - HartreeFock_instance%totalEnergy
-          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenvalues%values(1) 
 
-          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , timeB - timeA
+        end if
 
-          if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
+        !! deallocate transformed integrals
+        deallocate(CIcore_instance%twoCenterIntegrals)
+        deallocate(CIcore_instance%fourCenterIntegrals)
 
-        end do 
+      case default
 
-      else !! standard CI, no diagonal correction
-
-        call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
-  
-        call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-             1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
-             eigenVectors = CIcore_instance%eigenVectors, &
-             flags = SYMMETRIC)
-
-      end if
-
-      !! deallocate transformed integrals
-      deallocate(CIcore_instance%twoCenterIntegrals)
-      deallocate(CIcore_instance%fourCenterIntegrals)
-
-    case default
-
-      call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented")
+        call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented")
 
 
-    end select
+      end select
+
+
+    elseif ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+
+      select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+
+      case ("JADAMILU")
+
+        write (*,*) "Building Strings..."
+        call CIStrings_buildStrings()
+
+        write (*,*) "Building CI level table..."
+        call CIOrder_buildCIOrderList()
+
+        call CIJadamilu_buildCouplingMatrix()
+        call CIJadamilu_buildCouplingOrderList()
+
+        write (*,*) "Building diagonal..."
+        call CIDiag_buildDiagonal()
+
+        call CISCI_show()
+
+        write (*,*) "Allocating arrays for SCI ..."
+        call CISCI_constructor()
+
+        call Matrix_constructor (CIcore_instance%eigenVectors, &
+             int(CIcore_instance%numberOfConfigurations,8), &
+             int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+
+        call CISCI_run()
+
+      case default
+
+        call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented for SCI")
+
+      end select
+
+    end if
 
     write(*,*) ""
     write(*,*) "-----------------------------------------------"
@@ -790,6 +852,15 @@ contains
          write (6,"(T8,A19, F25.12)") "\delta E(Q) = ", davidsonCorrection
          write (6,"(T8,A19, F25.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
             CIcorrection + davidsonCorrection
+
+       else if ( CIcore_instance%level == "SCI" ) then
+
+         write(*,"(A)") ""
+         write (6,"(T2,A34)") "EPSTEIN-NESBET PT2 CORRECTION:"
+         write(*,"(A)") ""
+         write (6,"(T8,A19, F25.12)") "E_PT2 :", CISCI_instance%PT2energy 
+         write (6,"(T8,A19, F25.12)") "E_SCI + E_PT2 :",  CIcore_instance%eigenvalues%values(1) + CISCI_instance%PT2energy 
+
        else 
 
          write(*,"(A)") ""
@@ -797,8 +868,6 @@ contains
          write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
 
        end if
-
-    else 
 
     end if
 

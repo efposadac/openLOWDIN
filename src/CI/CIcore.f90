@@ -21,6 +21,7 @@
      type(vector8) :: initialEigenValues
      integer(8) :: numberOfConfigurations
      integer :: nproc
+     integer :: numberOfQuantumSpecies
      type(ivector) :: numberOfCoreOrbitals
      type(ivector) :: numberOfOccupiedOrbitals
      type(ivector) :: numberOfOrbitals
@@ -33,8 +34,8 @@
      type(matrix), allocatable :: twoCenterIntegrals(:)
      type(imatrix8), allocatable :: twoIndexArray(:)
      type(imatrix8), allocatable :: fourIndexArray(:)
-     type(imatrix), allocatable :: strings(:) !! species, conf, occupations
-     type(imatrix1), allocatable :: orbitals(:) !! species, conf, occupations
+     type(imatrix), allocatable :: strings(:) !! species, conf, occupations. index for occupied orbitals, e.g. 1 2 5 6
+     type(imatrix1), allocatable :: orbitals(:) !! species, conf, occupations. array with 1 for occupied and 0 unoccupied orb, e.g. 1 1 0 0 1 1
      integer, allocatable :: sumstrings(:) !! species
      type(ivector), allocatable :: auxstring(:,:) !! species, occupations
      type(ivector8), allocatable :: numberOfStrings(:) !! species, excitation level, number of strings
@@ -64,6 +65,13 @@
      integer :: ncouplingOrderTwoDiff
 
      type(imatrix) :: auxConfigurations !! species, configurations for initial hamiltonian
+     type(imatrix) :: coreConfigurations !! species, configurations for core SCI space
+     type(imatrix) :: targetConfigurations !! species, configurations for target SCI space
+     type(imatrix) :: fullConfigurations !! species, configurations for target SCI space
+     type(imatrix) :: coreConfigurationsLevel !! species, configurations for CI level of core SCI space
+     type(imatrix) :: targetConfigurationsLevel !! species, configurations for CI level target SCI space
+     type(imatrix) :: fullConfigurationsLevel !! species, configurations for CI level target SCI space
+
      type(configuration), allocatable :: configurations(:)
      integer(2), allocatable :: auxconfs(:,:,:) ! nconf, species, occupation
      type (Vector8) :: diagonalHamiltonianMatrix
@@ -74,7 +82,8 @@
      integer, allocatable :: recursionVector1(:)
      integer, allocatable :: recursionVector2(:)
      integer, allocatable :: CILevel(:)
-     integer, allocatable :: pindexConf(:,:)
+     integer, allocatable :: pindexConf(:,:) !! save previous configuration to avoid unneccesary calculations
+
      integer :: maxCILevel
      type (Matrix) :: initialHamiltonianMatrix
      type (Matrix) :: initialHamiltonianMatrix2
@@ -137,7 +146,8 @@ contains
     call Vector_getFromFile(unit=wfnUnit, binary=.true., value=HartreeFock_instance%puntualInteractionEnergy, &
          arguments=["PUNTUALINTERACTIONENERGY"])
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    CIcore_instance%numberOfQuantumSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
     CIcore_instance%numberOfSpecies = numberOfSpecies
 
 
@@ -287,7 +297,6 @@ contains
        !!Even occupation number = beta     
     end do
 
-
     call Configuration_globalConstructor()
 
     close(wfnUnit)
@@ -338,7 +347,7 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
     integer(8) :: output, ssize
     integer :: i,j, numberOfSpecies
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
     output = 0 
      !! simplify!!
     do i = 1, numberOfSpecies

@@ -91,6 +91,8 @@ module Vector_
        Vector_reverseSortElements, &
        Vector_reverseSortElements8, &
        Vector_reverseSortElements8Int, &
+       Vector_reverseSortElementsAbsolute8, &
+       Vector_sortElementsAbsolute8, &
        Vector_swapElements, &
        Vector_getSize, &
        Vector_getElement, &
@@ -1511,6 +1513,114 @@ contains
     end if
 
   end subroutine Vector_reverseSortElements8
+
+  subroutine Vector_reverseSortElementsAbsolute8(this,indexVector,m)
+    type(Vector8) :: this
+    type(IVector8), optional :: indexVector
+    integer(8), optional :: m
+    integer(8) i,j,n
+    
+    n = Vector_getSize8(this)
+    if ( .not. present (indexVector) ) then
+      do i=1,n
+         do j=i+1,n
+            if ( abs(this%values(j)).lt. abs(this%values(i)) ) then
+               call Vector_swapElements8( this, i, j )
+            end if
+         end do
+      end do
+    else
+    
+      if ( .not. present (m) ) then
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,n
+           do j=i+1,n
+              if ( abs(this%values(j)).lt. abs(this%values(i)) ) then
+                 call Vector_swapElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      else
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,m
+           do j=i+1,n
+              if ( abs(this%values(j)).lt.abs(this%values(i))) then
+                 call Vector_swapElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      end if
+    end if
+
+  end subroutine Vector_reverseSortElementsAbsolute8
+
+  subroutine Vector_sortElementsAbsolute8(this,indexVector,m)
+    type(Vector8) :: this
+    type(IVector8), optional :: indexVector
+    integer(8), optional :: m
+    integer(8) i,j,n
+    real(8) :: timeA, timeB
+
+!$  timeA = omp_get_wtime()
+    
+    n = Vector_getSize8(this)
+    if ( .not. present (indexVector) ) then
+      do i=1,n
+         do j=i+1,n
+            if ( abs(this%values(j)).gt. abs(this%values(i)) ) then
+               call Vector_swapElements8( this, i, j )
+            end if
+         end do
+      end do
+    else
+    
+      if ( .not. present (m) ) then
+
+        do i=1,n
+          indexVector%values(i) = i
+        end do 
+
+        do i=1,n
+           do j=i+1,n
+              if ( abs(this%values(j)).gt. abs(this%values(i)) ) then
+                 call Vector_swapElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      else
+
+        !do i=1,n
+        !  indexVector%values(i) = i
+        !end do 
+
+        do i=1,m
+           do j=i+1,n
+              if ( abs(this%values(j)).gt.abs(this%values(i))) then
+                 call Vector_swapElements8( this, i, j )
+                 call Vector_swapIntegerElements8( indexVector, i, j )
+              end if
+           end do
+        end do
+      end if
+    end if
+
+!$  timeB = omp_get_wtime()
+!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for sorting the vector : ", timeB - timeA ," (s)"
+
+  end subroutine Vector_sortElementsAbsolute8
+
+
 
   subroutine Vector_reverseSortElements8Int(this,indexVector,m)
     type(IVector8) :: this

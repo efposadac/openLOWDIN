@@ -413,6 +413,7 @@ recursive  function CIInitial_getIndexesRecursion(s, numberOfSpecies, indexConf,
 
   end function CIInitial_calculateEnergyOne
 
+
   function CIInitial_calculateEnergyTwo( n, thisA, thisB ) result (auxCIenergy)
     implicit none
     integer(8) :: thisA(:), thisB(:)
@@ -521,7 +522,7 @@ recursive  function CIInitial_getIndexesRecursion(s, numberOfSpecies, indexConf,
 
           auxCIenergy = auxCIenergy + &
                         CIcore_instance%fourCenterIntegrals(i,j)%values(auxIndex, 1)
-
+  
         end if
       end do
     end do
