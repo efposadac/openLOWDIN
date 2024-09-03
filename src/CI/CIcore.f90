@@ -65,6 +65,13 @@
      integer :: ncouplingOrderTwoDiff
 
      type(imatrix) :: auxConfigurations !! species, configurations for initial hamiltonian
+     type(imatrix) :: coreConfigurations !! species, configurations for core SCI space
+     type(imatrix) :: targetConfigurations !! species, configurations for target SCI space
+     type(imatrix) :: fullConfigurations !! species, configurations for target SCI space
+     type(imatrix) :: coreConfigurationsLevel !! species, configurations for CI level of core SCI space
+     type(imatrix) :: targetConfigurationsLevel !! species, configurations for CI level target SCI space
+     type(imatrix) :: fullConfigurationsLevel !! species, configurations for CI level target SCI space
+
      type(configuration), allocatable :: configurations(:)
      integer(2), allocatable :: auxconfs(:,:,:) ! nconf, species, occupation
      type (Vector8) :: diagonalHamiltonianMatrix
@@ -75,7 +82,7 @@
      integer, allocatable :: recursionVector1(:)
      integer, allocatable :: recursionVector2(:)
      integer, allocatable :: CILevel(:)
-     integer, allocatable :: pindexConf(:,:)
+     integer, allocatable :: pindexConf(:,:) !! save previous configuration to avoid unneccesary calculations
 
      integer :: maxCILevel
      type (Matrix) :: initialHamiltonianMatrix

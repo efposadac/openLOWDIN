@@ -709,6 +709,7 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
     integer :: numberOfSpecies, s
     integer, allocatable :: stringAinB(:)
     integer(4) :: coupling
+    integer(4) :: coupling2
     integer(4) :: ssize,auxcoupling(3) !! 0,1,2
     integer(8) :: indexConfA(:)
     integer(8), allocatable :: indexConfB(:)
@@ -746,23 +747,27 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
       do ci = 1,  size(CIcore_instance%numberOfStrings(i)%values, dim = 1)
         do b = 1 + ssize , CIcore_instance%numberOfStrings(i)%values(ci) + ssize
 
-          !b = ssize + bb
-          do p = CIcore_instance%numberOfCoreOrbitals%values(i)+1, &
-                 CIcore_instance%numberOfOccupiedOrbitals%values(i)
-          !do p = 1, &
+          !do p = CIcore_instance%numberOfCoreOrbitals%values(i)+1, &
           !       CIcore_instance%numberOfOccupiedOrbitals%values(i)
+          !  stringAinB(p) = CIcore_instance%orbitals(i)%values( &
+          !                    CIcore_instance%strings(i)%values(p,a),b) 
+          !end do
 
-            stringAinB(p) = CIcore_instance%orbitals(i)%values( &
-                              CIcore_instance%strings(i)%values(p,a),b) 
+          !coupling = CIcore_instance%numberOfOccupiedOrbitals%values(i) - sum ( stringAinB ) - CIcore_instance%numberOfCoreOrbitals%values(i) 
 
-            !stringBinA(p) = CIcore_instance%orbitals(i)%values( &
-            !                  CIcore_instance%strings(i)%values(p,b),a) 
-          end do
+          !coupling = 0
+          !!$omp simd
+          !do p = CIcore_instance%numberOfCoreOrbitals%values(i)+1, CIcore_instance%numberOfOrbitals%values(i)
+          !  coupling = coupling + CIcore_instance%orbitals(i)%values(p,a) * CIcore_instance%orbitals(i)%values(p,b)
+          !end do
+          !coupling = CIcore_instance%numberOfOccupiedOrbitals%values(i) - coupling -  CIcore_instance%numberOfCoreOrbitals%values(i) 
 
-          coupling = CIcore_instance%numberOfOccupiedOrbitals%values(i) - sum ( stringAinB ) - &
-                     CIcore_instance%numberOfCoreOrbitals%values(i) 
 
-         ! coupling = CIcore_instance%numberOfOccupiedOrbitals%values(i) - sum ( stringAinB ) 
+          coupling = CIcore_instance%numberOfOccupiedOrbitals%values(i) - sum(CIcore_instance%orbitals(i)%values(:,a) * CIcore_instance%orbitals(i)%values(:,b)) !  -  CIcore_instance%numberOfCoreOrbitals%values(i) 
+
+          !!$omp simd
+          !coupling = sum(abs(CIcore_instance%orbitals(i)%values(:,a) - CIcore_instance%orbitals(i)%values(:,b)))
+          !coupling = coupling / 2
 
           if ( coupling  <= 2 ) then
 
@@ -823,6 +828,7 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
       do ci = 1,  size(CIcore_instance%numberOfStrings(i)%values, dim = 1) !! 1 is always zero
         cilevel(i) = ci - 1
 
+        if ( CIcore_instance%nCouplingOneTwo(i,nn)%values( 2,ci ) == 0 ) cycle
         auxos = CIJadamilu_buildRowRecursionFirstOne( i, indexConfA, indexConfB, nn, cilevel )
 
       end do      
@@ -832,7 +838,6 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
     !!$ CIcore_instance%timeB(3) = omp_get_wtime()
 
     !!$ CIcore_instance%timeA(4) = omp_get_wtime()
-
     !$omp atomic
       w(c) = w(c) + vc*CIcore_instance%diagonalHamiltonianMatrix%values(c) 
     !$omp end atomic
@@ -849,7 +854,7 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
 
       do ci = 1,  size(CIcore_instance%numberOfStrings(i)%values, dim = 1) !! 1 is always zero
         cilevel(i) = ci - 1
-
+        if ( CIcore_instance%nCouplingOneTwo(i,nn)%values( 2,ci ) == 0 ) cycle
         do u = 1,  CIcore_instance%sizeciorderlist 
           if ( sum(abs(cilevel - &
                CIcore_instance%ciorderlist( CIcore_instance%auxciorderlist(u), :))) == 0 ) then
@@ -877,7 +882,7 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
 
       do ci = 1,  size(CIcore_instance%numberOfStrings(i)%values, dim = 1) !! 1 is always zero
         cilevel(i) = ci - 1
-
+        if ( CIcore_instance%nCouplingOneTwo(i,nn)%values( 3,ci ) == 0 ) cycle
         do u = 1,  CIcore_instance%sizeCiOrderList 
           if ( sum(abs(cilevel - &
                CIcore_instance%ciOrderList( CIcore_instance%auxciOrderList(u), :))) == 0 ) then
@@ -911,7 +916,9 @@ recursive  function CIJadamilu_buildMatrixRecursion(nproc, s, indexConf, auxinde
 
         do ci = 1,  size(CIcore_instance%numberOfStrings(i)%values, dim = 1) !! 1 is always zero
           cilevel(i) = ci - 1
+          if ( CIcore_instance%nCouplingOneTwo(i,nn)%values( 2,ci ) == 0 ) cycle
           do cj = 1,  size(CIcore_instance%numberOfStrings(j)%values, dim = 1) !! 1 is always zero
+            if ( CIcore_instance%nCouplingOneTwo(j,nn)%values( 2,cj ) == 0 ) cycle
             cilevel(j) = cj - 1
             do u = 1,  CIcore_instance%sizeCiOrderList 
               if ( sum(abs(cilevel - &
@@ -1149,7 +1156,6 @@ recursive  function CIJadamilu_buildRowRecursionSecondOne( ii, indexConfB, w, vc
       auxIndex1 = CIcore_instance%couplingMatrixOrbOne(ii,nn)%values(bi) 
       auxIndex1 = CIcore_instance%numberOfSpatialOrbitals2%values(jj) * (auxIndex1 - 1 ) 
 
-      !$omp simd
       do aaj = 1, CIcore_instance%nCouplingOneTwo(jj,nn)%values( 2,cj ) 
         aj = ssizej + aaj
         indexConfB(jj) = CIcore_instance%couplingMatrix(jj,nn)%values(aj, 2)

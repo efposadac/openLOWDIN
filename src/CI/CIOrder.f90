@@ -57,6 +57,14 @@ contains
 
       CIcore_instance%maxCILevel = sum(CIcore_instance%CILevel)
 
+    case ( "SCI" ) !! same as FCI
+
+      do i=1, numberOfSpecies
+        CIcore_instance%CILevel(i) = CIcore_instance%numberOfOccupiedOrbitals%values(i)
+      end do
+
+      CIcore_instance%maxCILevel = sum(CIcore_instance%CILevel)
+
     case ( "CIS" )
 
       do i=1, numberOfSpecies

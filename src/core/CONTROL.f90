@@ -205,6 +205,8 @@ module CONTROL_
      logical :: CI_BUILD_FULL_MATRIX
      integer :: CI_MADSPACE
      logical :: CI_NATURAL_ORBITALS
+     integer :: CI_SCI_CORE_SPACE
+     integer :: CI_SCI_TARGET_SPACE
 
      !!***************************************************************************
      !! Non-orthogonal CI
@@ -545,6 +547,8 @@ module CONTROL_
   logical :: LowdinParameters_CIBuildFullMatrix
   integer :: LowdinParameters_CIMadSpace
   logical :: LowdinParameters_CINaturalOrbitals
+  integer :: LowdinParameters_CISCICoreSpace 
+  integer :: LowdinParameters_CISCITargetSpace 
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -884,6 +888,10 @@ module CONTROL_
        LowdinParameters_CINaturalOrbitals, &
        LowdinParameters_CIPrintEigenVectorsFormat, &
        LowdinParameters_CIPrintThreshold, &
+       LowdinParameters_CISCICoreSpace, &
+       LowdinParameters_CISCITargetSpace, &
+
+
        
                                 !!***************************************************************************
                                 !! Non-orthogonal CI
@@ -1585,6 +1593,8 @@ contains
     CONTROL_instance%CI_NATURAL_ORBITALS=.FALSE.
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = "OCCUPIED"
     CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
+    CONTROL_instance%CI_SCI_CORE_SPACE = 100
+    CONTROL_instance%CI_SCI_TARGET_SPACE = 10000
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -1974,6 +1984,10 @@ contains
     CONTROL_instance%CI_NATURAL_ORBITALS= LowdinParameters_CINaturalOrbitals
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
     CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
+    CONTROL_instance%CI_SCI_CORE_SPACE = LowdinParameters_CISCICoreSpace
+    CONTROL_instance%CI_SCI_TARGET_SPACE = LowdinParameters_CISCITargetSpace
+
+
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2336,9 +2350,10 @@ contains
     LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
     LowdinParameters_CIMadSpace = CONTROL_instance%CI_MADSPACE
     LowdinParameters_CINaturalOrbitals = CONTROL_instance%CI_NATURAL_ORBITALS
-
     LowdinParameters_CIPrintEigenVectorsFormat = CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT 
     LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
+    LowdinParameters_CISCICoreSpace = CONTROL_instance%CI_SCI_CORE_SPACE 
+    LowdinParameters_CISCITargetSpace = CONTROL_instance%CI_SCI_TARGET_SPACE 
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2673,6 +2688,8 @@ contains
     otherThis%CI_NATURAL_ORBITALS = this%CI_NATURAL_ORBITALS
     otherThis%CI_PRINT_EIGENVECTORS_FORMAT = this%CI_PRINT_EIGENVECTORS_FORMAT 
     otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
+    otherThis%CI_SCI_CORE_SPACE = this%CI_SCI_CORE_SPACE 
+    otherThis%CI_SCI_TARGET_SPACE = this%CI_SCI_TARGET_SPACE 
 
     !!***************************************************************************
     !! Non-orthogonal CI
