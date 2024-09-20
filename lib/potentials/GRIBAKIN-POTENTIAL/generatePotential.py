@@ -23,27 +23,53 @@ species="E+"
 # molecule = atom, x, y, z, alpha_a, cutoff
 #            [string, ang, ang, ang, a.u.**3, a.u.]
 # benzene example
-molecule = """
-C  0.0000   1.4066  0.0000 10.887 2.25 
-C  1.2182   0.7033  0.0000 10.887 2.25 
-C  1.2182  -0.7033  0.0000 10.887 2.25 
-C  0.0000  -1.4066  0.0000 10.887 2.25 
-C -1.2182  -0.7033  0.0000 10.887 2.25 
-C -1.2182   0.7033  0.0000 10.887 2.25 
-H  0.0000   2.4998  0.0000 1.366  2.25 
-H  2.1649   1.2499  0.0000 1.366  2.25 
-H  2.1649  -1.2499  0.0000 1.366  2.25 
-H  0.0000  -2.4998  0.0000 1.366  2.25 
-H -2.1649  -1.2499  0.0000 1.366  2.25 
-H -2.1649   1.2499  0.0000 1.366  2.25 
-"""
+#molecule = """
+#C  0.0000   1.4066  0.0000 10.32 2.20 
+#C  1.2182   0.7033  0.0000 10.32 2.20 
+#C  1.2182  -0.7033  0.0000 10.32 2.20 
+#C  0.0000  -1.4066  0.0000 10.32 2.20 
+#C -1.2182  -0.7033  0.0000 10.32 2.20 
+#C -1.2182   0.7033  0.0000 10.32 2.20 
+#H  0.0000   2.4998  0.0000 3.37 1.57 
+#H  2.1649   1.2499  0.0000 3.37 1.57 
+#H  2.1649  -1.2499  0.0000 3.37 1.57
+#H  0.0000  -2.4998  0.0000 3.37 1.57 
+#H -2.1649  -1.2499  0.0000 3.37 1.57 
+#H -2.1649   1.2499  0.0000 3.37 1.57 
+#"""
+#molecule = """
+#C  0.0000   1.4066  0.0000 8.268 2.30
+#C  1.2182   0.7033  0.0000 8.268 2.30
+#C  1.2182  -0.7033  0.0000 8.268 2.30
+#C  0.0000  -1.4066  0.0000 8.268 2.30
+#C -1.2182  -0.7033  0.0000 8.268 2.30
+#C -1.2182   0.7033  0.0000 8.268 2.30
+#H  0.0000   2.4998  0.0000 1.383 1.86
+#H  2.1649   1.2499  0.0000 1.383 1.86
+#H  2.1649  -1.2499  0.0000 1.383 1.86
+#H  0.0000  -2.4998  0.0000 1.383 1.86
+#H -2.1649  -1.2499  0.0000 1.383 1.86
+#H -2.1649   1.2499  0.0000 1.383 1.86
+#"""
+
 # HCN example
 #            [string, ang, ang, ang, ang**3, a.u.]
+#molecule = """
+#H   0.000   0.000   0.000 0.387 2.00
+#C   0.000   0.000   1.059 1.283 2.00
+#N   0.000   0.000   2.186 0.956 2.00
+#"""
+
 molecule = """
-H   0.000   0.000   0.000 0.387 2.00
-C   0.000   0.000   1.059 1.283 2.00
-N   0.000   0.000   2.186 0.956 2.00
+Be  0.000   0.000   0.000   38  2.686
 """
+
+molecule = """
+Be  0.000   0.000   -1.226801  38  2.686
+Be  0.000   0.000   1.2268015  38  2.686
+"""
+
+
 
 # -----------------------------
 
@@ -60,8 +86,8 @@ for i in range(0,n_atoms):
     molecule[i][1] = float(molecule[i][1])*angstromToBohr
     molecule[i][2] = float(molecule[i][2])*angstromToBohr
     molecule[i][3] = float(molecule[i][3])*angstromToBohr
-    molecule[i][4] = float(molecule[i][4])*angstromToBohr**3
-#    molecule[i][4] = float(molecule[i][4])
+#    molecule[i][4] = float(molecule[i][4])*angstromToBohr**3
+    molecule[i][4] = float(molecule[i][4])
     molecule[i][5] = float(molecule[i][5])
     #molecule[i][4] = molecule[i][4]*angstromToBohr**3
 
@@ -96,8 +122,8 @@ outFile.write("%i\n" % (len(exponents)*n_atoms))
 # -----------------------------
 # Potential fitting
 ii = 0
-print "Fitting potential for: atom, x, y, z, alpha, cutoff"
-print " [string, ang, ang, ang, a.u.**3, a.u.]"
+print ("Fitting potential for: atom, x, y, z, alpha, cutoff")
+print (" [string, ang, ang, ang, a.u.**3, a.u.]")
 
 for atom in range(0,n_atoms):
     print ( "%s %.4f %.4f %.4f %.4f %.4f " % ( molecule[atom][0] , molecule[atom][1],  molecule[atom][2] , molecule[atom][3], molecule[atom][4], molecule[atom][5] ) ) 

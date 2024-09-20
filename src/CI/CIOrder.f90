@@ -81,6 +81,18 @@ contains
       end do
       CIcore_instance%maxCILevel = 2
 
+    case ( "CISD-" )
+
+      if ( .not. numberOfSpecies == 3 ) call CIOrder_exception( ERROR, "CIOrder setting CI level ", "CISD- is specific for three quantum species")
+
+      do i=1, numberOfSpecies
+        CIcore_instance%CILevel(i) = 1
+        if ( CIcore_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
+          CIcore_instance%CILevel(i) = CIcore_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+      CIcore_instance%maxCILevel = 1
+
+
     case ( "CISD+" )
 
       if ( .not. numberOfSpecies == 3 ) call CIOrder_exception( ERROR, "CIOrder setting CI level ", "CISD+ is specific for three quantum species")
@@ -94,7 +106,7 @@ contains
 
     case ( "CISD+2" )
 
-      if ( .not. numberOfSpecies == 4 ) call CIOrder_exception( ERROR, "CIOrder setting CI level", "CISD+2 is specific for three quantum species")
+      if ( .not. numberOfSpecies == 4 ) call CIOrder_exception( ERROR, "CIOrder setting CI level", "CISD+2 is specific for four quantum species")
       do i=1, numberOfSpecies
         CIcore_instance%CILevel(i) = 2
         if ( CIcore_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
@@ -261,7 +273,7 @@ recursive  function CIOrder_buildCIOrderRecursion( s, numberOfSpecies, c, cileve
     integer :: s, numberOfSpecies
     integer :: os,is,auxis, auxos
     integer :: cilevel(:)
-    integer :: plusOne(3,3) , plusTwo(4,6)
+    integer :: minusOne(3,2), plusOne(3,3) , plusTwo(4,6)
 
     is = s + 1
     if ( is < numberOfSpecies ) then
@@ -280,6 +292,20 @@ recursive  function CIOrder_buildCIOrderRecursion( s, numberOfSpecies, c, cileve
          CIcore_instance%sizeCiOrderList = CIcore_instance%sizeCiOrderList + 1
          CIcore_instance%auxciOrderList(  CIcore_instance%sizeCiOrderList  ) = c
        end if
+
+       if ( trim(CIcore_instance%level) == "CISD-" ) then !!special case. 
+         minusOne(:,1) = (/1,0,1/)
+         minusOne(:,2) = (/0,1,1/)
+       
+         do k = 1, 2
+           if ( sum(  abs(cilevel(:) - minusOne(:,k)) ) == 0 ) then
+           CIcore_instance%sizeCiOrderList = CIcore_instance%sizeCiOrderList + 1
+           CIcore_instance%auxciOrderList(  CIcore_instance%sizeCiOrderList  ) = c
+           end if
+         end do
+       
+       end if
+ 
 
        if ( trim(CIcore_instance%level) == "CISD+" ) then !!special case. 
          plusOne(:,1) = (/1,1,1/)

@@ -829,7 +829,7 @@ contains
        write (6,"(T8,A30, A5)") "LEVEL = ", CIcore_instance%level
        write (6,"(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", CIcore_instance%numberOfConfigurations
        do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-        write (6,"(T8,A17,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenvalues%values(i)
+        write (6,"(T8,A7,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenvalues%values(i)
        end do
        write(*,"(A)") ""
        CIcorrection = CIcore_instance%eigenvalues%values(1) - &
@@ -964,7 +964,7 @@ contains
             end do
             write (*, "(A1)", advance="no")  "|"
           end do
-          write (*, "(A,F11.8)") " ", CIcore_instance%eigenVectors%values(a,c) 
+          write (*, "(A1,F11.8)") " ", CIcore_instance%eigenVectors%values(a,c) 
         end if
       end do
       write (*,*) ""

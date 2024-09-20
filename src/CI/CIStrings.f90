@@ -61,7 +61,7 @@ contains
           ci = 0 
           oci = CIStrings_buildStringsRecursion( i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel)
 
-          write (*,"(A,I4,I8)") "    ", cilevel, CIcore_instance%numberOfStrings(i)%values(cilevel+1)
+          write (*,"(A,I4,I12)") "    ", cilevel, CIcore_instance%numberOfStrings(i)%values(cilevel+1)
 
         end if
       end do
