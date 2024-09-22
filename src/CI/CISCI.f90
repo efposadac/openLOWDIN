@@ -103,7 +103,6 @@ contains
   
   !! main part
   subroutine CISCI_run()
-    use fast_select
     implicit none
     integer(8) :: i, j, ii, jj
     integer :: k ! macro SCI iteration
@@ -314,22 +313,24 @@ contains
     type(imatrix) :: auxConfigurationLevel
     integer :: auxMatrixSize
     integer(8) :: a,b,c,cc
-    integer :: u,v
+    integer :: u, u1, u2 
     integer :: ci, aci
     integer :: i, j, ii, jj 
     integer :: s, ss, numberOfSpecies, auxnumberOfSpecies
     integer :: os,is
     integer :: size1, size2
     real(8) :: timeA, timeB
-    integer(8), allocatable :: indexConf(:)
-    integer, allocatable :: cilevel(:)
-    integer, allocatable :: counter(:)
+    integer(8), allocatable :: indexConf(:,:)
+    integer, allocatable :: cilevel(:,:)
+    integer, allocatable :: counter(:,:)
     integer :: ssize
     integer(8) :: x, totalsize, auxtotalsize
+    integer(8) :: nn, ncore, chunkSize
 
 !$  timeA = omp_get_wtime()
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    ncore = omp_get_max_threads()
 
     call Matrix_constructorInteger ( auxConfigurationMatrix, int( numberOfSpecies,8), &
           int(auxMatrixSize,8), 0 )
@@ -337,35 +338,47 @@ contains
           int(auxMatrixSize,8), 0 )
 
     !! call recursion
-    allocate ( cilevel ( numberOfSpecies ) )
-    allocate ( indexConf ( numberOfSpecies ) )
-    allocate ( counter(numberOfSpecies) ) 
+    allocate ( cilevel ( numberOfSpecies, ncore ) )
+    allocate ( indexConf ( numberOfSpecies, ncore ) )
+    allocate ( counter (numberOfSpecies, ncore ) ) 
 
     indexConf = 0
     cilevel = 0
+    counter = 0
 
-    do u = 1, auxMatrixSize 
+    chunkSize = ceiling ( float ( auxMatrixSize ) / float (ncore) )
+
+    !$omp parallel &
+    !$omp& private( u, u1, u2, nn ),&
+    !$omp& shared( auxConfigurationMatrix, auxConfigurationLevel, cilevel, indexConf, counter)
+    !$omp do schedule (static) 
+    do nn = 1, ncore
+      u1 = ( nn - 1)*chunkSize + 1 
+      u2 = ( nn ) * chunkSize 
+      if ( u2 > auxMatrixSize ) u2 = auxMatrixSize
+    do u = u1, u2
+!    do u = 1, auxMatrixSize 
 
       c = 0
-      indexConf = 0
-      cilevel = 0
+      indexConf(:,nn) = 0
+      cilevel(:,nn) = 0
 
       outer: do aci = 1,  CIcore_instance%sizeCiOrderList 
-        cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(aci), :)
-        counter = 0 
+        cilevel(:,nn) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(aci), :)
+        counter(:,nn) = 0 
 
         totalsize = 1
         do i = 1 , numberOfSpecies
-          totalsize = totalsize * CIcore_instance%numberOfStrings(i)%values(cilevel(i) + 1)
+          totalsize = totalsize * CIcore_instance%numberOfStrings(i)%values(cilevel(i,nn) + 1)
         end do
   
         do i = 1 , numberOfSpecies 
-          ci = cilevel(i) + 1 
+          ci = cilevel(i,nn) + 1 
           ssize = CIcore_instance%numberOfStrings2(i)%values(ci)
-          indexConf(i) = ssize  + 1
+          indexConf(i,nn) = ssize  + 1
         end do
   
-        indexConf(numberOfSpecies) = indexConf(numberOfSpecies) -1
+        indexConf(numberOfSpecies,nn) = indexConf(numberOfSpecies,nn) -1
         cc = c
 
         !! delimiting the index
@@ -375,32 +388,32 @@ contains
           do x = cc + 1 , CIcore_instance%auxIndexCIMatrix%values(u) 
             c = c + 1
 
-            indexConf(numberOfSpecies) = indexConf(numberOfSpecies) + 1
+            indexConf(numberOfSpecies,nn) = indexConf(numberOfSpecies,nn) + 1
   
             do i = numberOfSpecies, 1 + 1, -1 
               auxtotalsize = 1
               do j = i, numberOfSpecies
-                auxtotalsize = auxtotalsize * CIcore_instance%numberOfStrings(j)%values(cilevel(j) + 1)
+                auxtotalsize = auxtotalsize * CIcore_instance%numberOfStrings(j)%values(cilevel(j,nn) + 1)
               end do
-              if (counter(i) == auxtotalsize) then
+              if (counter(i,nn) == auxtotalsize) then
                 do j = i, numberOfSpecies
-                  ci = cilevel(j) + 1 
+                  ci = cilevel(j,nn) + 1 
                   ssize = CIcore_instance%numberOfStrings2(j)%values(ci)
-                  indexConf(j) = ssize + 1
+                  indexConf(j,nn) = ssize + 1
                 end do
-                counter(i) = 0
-                indexConf(i-1) = indexConf(i-1) + 1
+                counter(i,nn) = 0
+                indexConf(i-1,nn) = indexConf(i-1,nn) + 1
 
               end if
-              counter(i) = counter(i) + 1
+              counter(i,nn) = counter(i,nn) + 1
   
             end do
           end do
 
           !! saving the index 
           do i = 1, numberOfSpecies
-            auxConfigurationMatrix%values(i,u) = indexConf(i) 
-            auxConfigurationLevel%values(i,u) = cilevel(i) 
+            auxConfigurationMatrix%values(i,u) = indexConf(i,nn) 
+            auxConfigurationLevel%values(i,u) = cilevel(i,nn) 
           end do
 
           exit outer
@@ -411,6 +424,9 @@ contains
 
       end do outer
     end do
+    end do
+      !$omp end do nowait
+      !$omp end parallel
 
     deallocate (counter)
     deallocate ( indexConf )
