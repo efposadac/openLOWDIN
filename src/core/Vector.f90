@@ -1519,107 +1519,99 @@ contains
     type(IVector8), optional :: indexVector
     integer(8), optional :: m
     integer(8) i,j,n
+    real(8) :: maxValue
+    integer(8) :: maxPos
     
     n = Vector_getSize8(this)
-    if ( .not. present (indexVector) ) then
-      do i=1,n
-         do j=i+1,n
-            if ( abs(this%values(j)).lt. abs(this%values(i)) ) then
-               call Vector_swapElements8( this, i, j )
-            end if
-         end do
+
+    do i=1,m
+      maxPos = 1
+      maxValue = abs(this%values(maxPos))
+
+      do j = i+1,n
+        if ( abs(this%values(j)) .lt. maxValue )  then
+          maxValue = this%values(j)
+          maxPos = j
+        end if
       end do
-    else
-    
-      if ( .not. present (m) ) then
 
-        do i=1,n
-          indexVector%values(i) = i
-        end do 
-
-        do i=1,n
-           do j=i+1,n
-              if ( abs(this%values(j)).lt. abs(this%values(i)) ) then
-                 call Vector_swapElements8( this, i, j )
-                 call Vector_swapIntegerElements8( indexVector, i, j )
-              end if
-           end do
-        end do
-      else
-
-        do i=1,n
-          indexVector%values(i) = i
-        end do 
-
-        do i=1,m
-           do j=i+1,n
-              if ( abs(this%values(j)).lt.abs(this%values(i))) then
-                 call Vector_swapElements8( this, i, j )
-                 call Vector_swapIntegerElements8( indexVector, i, j )
-              end if
-           end do
-        end do
-      end if
-    end if
+      call Vector_swapElements8( this, i, maxPos )
+      call Vector_swapIntegerElements8( indexVector, i, maxPos )
+    end do
 
   end subroutine Vector_reverseSortElementsAbsolute8
 
-  subroutine Vector_sortElementsAbsolute8(this,indexVector,m)
+  subroutine Vector_sortElementsAbsolute8(this,indexVector,m, tol)
     type(Vector8) :: this
-    type(IVector8), optional :: indexVector
-    integer(8), optional :: m
-    integer(8) i,j,n
+    type(IVector8) :: indexVector
+    integer(8) :: m
+    integer(8) i,j,n, j1, j2
     real(8) :: timeA, timeB
+    real(8), allocatable :: maxValue(:)
+    real(8) :: maxValueCore, tol
+    integer(8), allocatable :: maxPos(:)
+    integer(8) :: maxPosCore
+    integer(8) :: nn, ncore, chunkSize, idcore
+
+    ncore = omp_get_max_threads()
+    allocate( maxValue ( ncore) )     
+    allocate( maxPos ( ncore) )     
+    n = Vector_getSize8(this)
 
 !$  timeA = omp_get_wtime()
-    
-    n = Vector_getSize8(this)
-    if ( .not. present (indexVector) ) then
-      do i=1,n
-         do j=i+1,n
-            if ( abs(this%values(j)).gt. abs(this%values(i)) ) then
-               call Vector_swapElements8( this, i, j )
-            end if
-         end do
+
+    do i=1,m
+
+      chunkSize = ceiling ( float(n-i + 1) / float(ncore) )
+      !print *, "chunk", chunkSize
+      do nn = 1, ncore
+        maxPos(nn) = (nn - 1)*chunkSize + i
+        maxValue(nn) = abs(this%values(maxPos(nn)))
       end do
-    else
-    
-      if ( .not. present (m) ) then
 
-        do i=1,n
-          indexVector%values(i) = i
-        end do 
-
-        do i=1,n
-           do j=i+1,n
-              if ( abs(this%values(j)).gt. abs(this%values(i)) ) then
-                 call Vector_swapElements8( this, i, j )
-                 call Vector_swapIntegerElements8( indexVector, i, j )
-              end if
-           end do
+      !$omp parallel &
+      !$omp& private( j, nn, j1, j2 ) 
+      !$omp& shared( maxPos, maxValue ) 
+      !$omp do schedule (static)
+      do nn = 1,ncore
+        j1 = (nn - 1)*chunkSize + i
+        j2 = (nn )*chunkSize + i - 1 
+        if ( j2 > n ) j2 = n
+       ! print *, nn, j1, j2
+        do j = j1, j2
+          if ( abs(this%values(j)) .gt. maxValue(nn) )  then
+            maxValue(nn) = abs(this%values(j))
+            maxPos(nn) = j
+          end if
         end do
-      else
+      end do
+      !$omp end do nowait
+      !$omp end parallel
 
-        !do i=1,n
-        !  indexVector%values(i) = i
-        !end do 
+      maxValueCore = maxValue(1)
+      maxPosCore = maxPos(1)
+      !print *, "max val", i, maxValue, maxPos
 
-        do i=1,m
-           do j=i+1,n
-              if ( abs(this%values(j)).gt.abs(this%values(i))) then
-                 call Vector_swapElements8( this, i, j )
-                 call Vector_swapIntegerElements8( indexVector, i, j )
-              end if
-           end do
-        end do
-      end if
-    end if
+      do nn = 1, ncore
+        if ( maxValue(nn ) .ge. maxValueCore ) then
+          maxValueCore = maxValue(nn)
+          maxPosCore = maxPos(nn)
+        endif
+      end do
+
+      if ( maxValueCore <= tol ) exit
+
+      call Vector_swapElements8( this, i, maxPosCore )
+      call Vector_swapIntegerElements8( indexVector, i, maxPosCore )
+    end do
 
 !$  timeB = omp_get_wtime()
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for sorting the vector : ", timeB - timeA ," (s)"
 
-  end subroutine Vector_sortElementsAbsolute8
+    deallocate( maxPos )     
+    deallocate( maxValue )     
 
+  end subroutine Vector_sortElementsAbsolute8
 
 
   subroutine Vector_reverseSortElements8Int(this,indexVector,m)
@@ -1627,17 +1619,24 @@ contains
     type(IVector8), optional :: indexVector
     integer(8), optional :: m
     integer(8) i,j,n
+    integer(8) :: minValueCore
+    integer(8) :: minPosCore
     
     n = size( this%values , DIM=1 )
 
     if ( .not. present (indexVector) ) then
-      do i=1,n
-         do j=i+1,n
-            if (this%values(j).lt.this%values(i)) then
-               call Vector_swapIntegerElements8( this, i, j )
-            end if
-         end do
+
+      minValueCore = this%values(1) 
+      do i = 1, n
+        do j = i + 1, n
+          if ( this%values(j) .lt. minValueCore ) then
+            minValueCore = this%values(j)
+            minPosCore = j
+          end if
+        end do
+        call Vector_swapIntegerElements8( this, i, minPosCore )
       end do
+
     else
     
       if ( .not. present (m) ) then
