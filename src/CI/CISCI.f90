@@ -82,8 +82,13 @@ contains
     end do
 
     !!  auxiliary array to get the index vector to build a configuration. get the configurations for the hamiltonian matrix in the core and target space
-    call CISCI_getInitialIndexes( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
-    call CISCI_getInitialIndexes( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
+    !call CISCI_getInitialIndexes( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
+    !call CISCI_getInitialIndexes( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
+
+    call CISCI_getInitialIndexes2( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
+    call CISCI_getInitialIndexes2( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
+
+
 
     !! arrays for CISCI
     call Vector_constructor8 ( CISCI_instance%amplitudeCore, CIcore_instance%numberOfConfigurations,  0.0_8)
@@ -98,11 +103,13 @@ contains
   
   !! main part
   subroutine CISCI_run()
+    use fast_select
     implicit none
     integer(8) :: i, j, ii, jj
     integer :: k ! macro SCI iteration
     real(8) :: timeA(15), timeB(15)
     real(8) :: timeAA, timeBB
+    real(8) :: timeAS, timeBS
     type(Vector8) :: eigenValuesTarget
     real(8) :: currentEnergy 
 
@@ -137,10 +144,14 @@ contains
 
       !! getting the target absolute largest coefficients
       call Vector_sortElementsAbsolute8( CISCI_instance%amplitudeCore, &
-            CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%targetSpaceSize ,8) )
+            CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%targetSpaceSize ,8), CONTROL_instance%CI_MATVEC_TOLERANCE )
 
+     ! do i = 1,  CISCI_instance%targetSpaceSize
+     !   print *, i, CISCI_instance%amplitudeCore%values(i), CIcore_instance%auxIndexCIMatrix%values(i)
+     ! end do
+     ! stop 
       !! recover the configurations for the hamiltonian matrix in the target space
-      call CISCI_getInitialIndexes( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
+      call CISCI_getInitialIndexes2( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
 
       !! storing only the largest diagonal elements (for jadamilu)
       do i = 1,  CISCI_instance%targetSpaceSize
@@ -191,10 +202,10 @@ contains
 
       !! getting the core absolute largest coefficients
       call Vector_sortElementsAbsolute8( CISCI_instance%auxcoefficientTarget, &
-           CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%coreSpaceSize ,8) )
+           CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%coreSpaceSize ,8), CONTROL_instance%CI_MATVEC_TOLERANCE )
 
       !! recover the configurations for the hamiltonian matrix in the core space
-      call CISCI_getInitialIndexes( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
+      call CISCI_getInitialIndexes2( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
       !! call CISCI_getInitialIndexes( CIcore_instance%fullConfigurations, CIcore_instance%fullConfigurationsLevel , int(CIcore_instance%numberOfConfigurations,4) )
 
       !! storing only the largest coefficients, and rearraing the next eigenvector guess 
@@ -296,9 +307,122 @@ contains
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for getting sorted indexes : ", timeB - timeA ," (s)"
 
   end subroutine CISCI_getInitialIndexes
+  subroutine CISCI_getInitialIndexes2( auxConfigurationMatrix, auxConfigurationLevel, auxMatrixSize )
+    implicit none
+
+    type(imatrix) :: auxConfigurationMatrix
+    type(imatrix) :: auxConfigurationLevel
+    integer :: auxMatrixSize
+    integer(8) :: a,b,c,cc
+    integer :: u,v
+    integer :: ci, aci
+    integer :: i, j, ii, jj 
+    integer :: s, ss, numberOfSpecies, auxnumberOfSpecies
+    integer :: os,is
+    integer :: size1, size2
+    real(8) :: timeA, timeB
+    integer(8), allocatable :: indexConf(:)
+    integer, allocatable :: cilevel(:)
+    integer, allocatable :: counter(:)
+    integer :: ssize
+    integer(8) :: x, totalsize, auxtotalsize
+
+!$  timeA = omp_get_wtime()
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    call Matrix_constructorInteger ( auxConfigurationMatrix, int( numberOfSpecies,8), &
+          int(auxMatrixSize,8), 0 )
+    call Matrix_constructorInteger ( auxConfigurationLevel, int( numberOfSpecies,8), &
+          int(auxMatrixSize,8), 0 )
+
+    !! call recursion
+    allocate ( cilevel ( numberOfSpecies ) )
+    allocate ( indexConf ( numberOfSpecies ) )
+    allocate ( counter(numberOfSpecies) ) 
+
+    indexConf = 0
+    cilevel = 0
+
+    do u = 1, auxMatrixSize 
+
+      c = 0
+      indexConf = 0
+      cilevel = 0
+
+      outer: do aci = 1,  CIcore_instance%sizeCiOrderList 
+        cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(aci), :)
+        counter = 0 
+
+        totalsize = 1
+        do i = 1 , numberOfSpecies
+          totalsize = totalsize * CIcore_instance%numberOfStrings(i)%values(cilevel(i) + 1)
+        end do
+  
+        do i = 1 , numberOfSpecies 
+          ci = cilevel(i) + 1 
+          ssize = CIcore_instance%numberOfStrings2(i)%values(ci)
+          indexConf(i) = ssize  + 1
+        end do
+  
+        indexConf(numberOfSpecies) = indexConf(numberOfSpecies) -1
+        cc = c
+
+        !! delimiting the index
+        if (  CIcore_instance%auxIndexCIMatrix%values(u) > c  .and.  CIcore_instance%auxIndexCIMatrix%values(u) <= c + totalSize   ) then
+
+          !! run over the selected window
+          do x = cc + 1 , CIcore_instance%auxIndexCIMatrix%values(u) 
+            c = c + 1
+
+            indexConf(numberOfSpecies) = indexConf(numberOfSpecies) + 1
+  
+            do i = numberOfSpecies, 1 + 1, -1 
+              auxtotalsize = 1
+              do j = i, numberOfSpecies
+                auxtotalsize = auxtotalsize * CIcore_instance%numberOfStrings(j)%values(cilevel(j) + 1)
+              end do
+              if (counter(i) == auxtotalsize) then
+                do j = i, numberOfSpecies
+                  ci = cilevel(j) + 1 
+                  ssize = CIcore_instance%numberOfStrings2(j)%values(ci)
+                  indexConf(j) = ssize + 1
+                end do
+                counter(i) = 0
+                indexConf(i-1) = indexConf(i-1) + 1
+
+              end if
+              counter(i) = counter(i) + 1
+  
+            end do
+          end do
+
+          !! saving the index 
+          do i = 1, numberOfSpecies
+            auxConfigurationMatrix%values(i,u) = indexConf(i) 
+            auxConfigurationLevel%values(i,u) = cilevel(i) 
+          end do
+
+          exit outer
+
+        end if
+
+        c = cc + totalsize
+
+      end do outer
+    end do
+
+    deallocate (counter)
+    deallocate ( indexConf )
+    deallocate ( cilevel )
+
+!$  timeB = omp_get_wtime()
+!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for getting sorted indexes2 : ", timeB - timeA ," (s)"
+
+  end subroutine CISCI_getInitialIndexes2
 
 
-recursive  function CISCI_getIndexesRecursion(auxConfigurationMatrix, auxConfigurationLevel, auxMatrixSize, s, numberOfSpecies, indexConf, c, cilevel) result (os)
+recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfigurationLevel, auxMatrixSize, s, numberOfSpecies, indexConf, c, cilevel) result (os)
     implicit none
 
     type(imatrix) :: auxConfigurationMatrix
@@ -330,11 +454,13 @@ recursive  function CISCI_getIndexesRecursion(auxConfigurationMatrix, auxConfigu
       i = cilevel(is) + 1
       ssize = CIcore_instance%numberOfStrings2(is)%values(i)
 
+!      print *, CIcore_instance%numberOfStrings(is)%values(i),  CIcore_instance%numberOfStrings2(is)%values(i)
       do a = 1, CIcore_instance%numberOfStrings(is)%values(i)
         c = c + 1
         indexConf(is) = ssize + a
         do u = 1, auxMatrixSize 
           if ( c ==  CIcore_instance%auxIndexCIMatrix%values(u) ) then
+!            print *, c, indexConf(:)
             do ss = 1, numberOfSpecies
               auxConfigurationMatrix%values(ss,u) = indexConf(ss) 
               auxConfigurationLevel%values(ss,u) = cilevel(ss) !? check...
@@ -346,6 +472,140 @@ recursive  function CISCI_getIndexesRecursion(auxConfigurationMatrix, auxConfigu
     end if
 
   end function CISCI_getIndexesRecursion
+
+  !! Alternative option to the recursion with the same computational cost... However, it may be helpul some day. 
+
+  function CISCI_getIndexes( sortedIndexVector, auxConfigurationMatrix, auxConfigurationLevel, auxMatrixSize,  c, counter, indexConf, cilevel) result (os)
+    implicit none
+
+    type(ivector8) :: sortedIndexVector 
+    type(imatrix) :: auxConfigurationMatrix
+    type(imatrix) :: auxConfigurationLevel
+    integer :: auxMatrixSize
+    integer(8) :: a,aa, x, u
+    integer :: i, j, ci
+    integer :: numberOfSpecies
+    integer :: os,is,ss,ssize
+    integer(8) :: indexConf(:)
+    integer :: cilevel(:)
+    integer(8) :: c, totalsize, auxtotalsize
+    integer :: counter(:)
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+    
+
+    totalsize = 1
+    do i = 1 , numberOfSpecies
+      totalsize = totalsize * CIcore_instance%numberOfStrings(i)%values(cilevel(i) + 1)
+    end do
+
+    do i = 1 , numberOfSpecies 
+      ci = cilevel(i) + 1 
+      ssize = CIcore_instance%numberOfStrings2(i)%values(ci)
+      indexConf(i) = ssize  + 1
+    end do
+
+    indexConf(numberOfSpecies) = indexConf(numberOfSpecies) -1
+
+    do x = 1, totalsize
+      c = c + 1
+      indexConf(numberOfSpecies) = indexConf(numberOfSpecies) + 1
+
+      do i = numberOfSpecies, 1 + 1, -1 
+        auxtotalsize = 1
+        do j = i, numberOfSpecies
+          auxtotalsize = auxtotalsize * CIcore_instance%numberOfStrings(j)%values(cilevel(j) + 1)
+        end do
+        if (counter(i) == auxtotalsize) then
+          do j = i, numberOfSpecies
+            ci = cilevel(j) + 1 
+            ssize = CIcore_instance%numberOfStrings2(j)%values(ci)
+            indexConf(j) = ssize + 1
+          end do
+          counter(i) = 0
+          indexConf(i-1) = indexConf(i-1) + 1
+        end if
+        counter(i) = counter(i) + 1 
+
+      end do
+
+      do u = 1, auxMatrixSize 
+          if ( c ==  sortedIndexVector%values(u) ) then
+          do i = 1, numberOfSpecies
+            auxConfigurationMatrix%values(i,u) = indexConf(i) 
+            auxConfigurationLevel%values(i,u) = cilevel(i) 
+          end do
+          exit 
+        end if
+      end do
+
+!      print *, c, indexConf
+      !print *, indexConf(:,1)
+    end do
+
+
+  end function CISCI_getIndexes
+
+!  function CISCI_buildMatrixRecursion2( c, indexConf, cilevel) result (os)
+!    implicit none
+!
+!    integer(8) :: a,aa, x
+!    integer :: i, j, ci
+!    integer :: numberOfSpecies
+!    integer :: os,is,ss,ssize
+!    integer(8) :: indexConf(:)
+!    integer :: cilevel(:)
+!    integer(8) :: c, totalsize, auxtotalsize
+!    integer, allocatable :: counter(:)
+!
+!    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+!    
+!    allocate (counter(numberOfSpecies))
+!    counter = 0 
+!
+!    totalsize = 1
+!    do i = 1 , numberOfSpecies
+!      totalsize = totalsize * CIcore_instance%numberOfStrings(i)%values(cilevel(i) + 1)
+!    end do
+!
+!    do i = 1 , numberOfSpecies 
+!      ci = cilevel(i) + 1 
+!      ssize = CIcore_instance%numberOfStrings2(i)%values(ci)
+!      indexConf(i) = ssize  + 1
+!    end do
+!
+!    indexConf(numberOfSpecies) = indexConf(numberOfSpecies) -1
+!
+!    do x = 1, totalsize
+!      c = c + 1
+!      indexConf(numberOfSpecies) = indexConf(numberOfSpecies) + 1
+!
+!      do i = numberOfSpecies, 1 + 1, -1 
+!        auxtotalsize = 1
+!        do j = i, numberOfSpecies
+!          auxtotalsize = auxtotalsize * CIcore_instance%numberOfStrings(j)%values(cilevel(j) + 1)
+!        end do
+!        if (counter(i) == auxtotalsize) then
+!          do j = i, numberOfSpecies
+!            ci = cilevel(j) + 1 
+!            ssize = CIcore_instance%numberOfStrings2(j)%values(ci)
+!            indexConf(j) = ssize + 1
+!          end do
+!          counter(i) = 0
+!          indexConf(i-1) = indexConf(i-1) + 1
+!        end if
+!        counter(i) = counter(i) + 1 
+!
+!      end do
+!        print *, c, indexConf
+!      !print *, indexConf(:,1)
+!    end do
+!
+!    deallocate (counter)
+!
+!  end function CISCI_buildMatrixRecursion2
+
+
 
 
   subroutine CISCI_core_amplitudes ( amplitudeCore, numberOfConfigurations, coefficientCore, SCICoreSpaceSize, oldEnergy )
