@@ -1547,6 +1547,8 @@ contains
     integer(8) :: m
     integer(8) i,j,n, j1, j2
     real(8) :: timeA, timeB
+    real(8) :: value1, value2
+    integer(8) :: pos1, pos2
     real(8), allocatable :: maxValue(:)
     real(8) :: maxValueCore, tol
     integer(8), allocatable :: maxPos(:)
@@ -1601,8 +1603,20 @@ contains
 
       if ( maxValueCore <= tol ) exit
 
-      call Vector_swapElements8( this, i, maxPosCore )
-      call Vector_swapIntegerElements8( indexVector, i, maxPosCore )
+      !call Vector_swapElements8( this, i, maxPosCore )
+
+      !! swap
+      value1 = this%values( i )
+      value2 = this%values( maxPosCore )
+      this%values( i ) = value2
+      this%values( maxPosCore ) = value1
+
+      !! index swap
+      pos1 = indexVector%values( i )
+      pos2 = indexVector%values( maxPosCore )
+      indexVector%values( i ) = pos2
+      indexVector%values( maxPosCore ) = pos1
+
     end do
 
 !$  timeB = omp_get_wtime()
