@@ -11,6 +11,7 @@ module CISCI_
   use CIcore_
   use CIJadamilu_
   use CIInitial_
+  use sort_
   use omp_lib
   implicit none
 
@@ -48,6 +49,15 @@ contains
         write(6,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
         write(6,*) "============================================================="
 
+        write(6,*) ""
+        write(6,*) " Modified sorting algorithm from CENCALC quicksort code "
+        write(6,*) "============================================================="
+        write(6,*) " Code available at https://github.com/dimassuarez/cencalc_quicksort  "
+        write(6,*) " E. Suárez, N. Díaz, J. Méndez and D. Suárez. "
+        write(6,*) " CENCALC: A Computational Tool for Conformational Entropy Calculations"
+        write(6,*) " from Molecular Simulations."
+        write(6,*) " J. Comput. Chem. 54, 2031. DOI: 10.1002/jcc.23350 "
+        write(6,*) "============================================================="
         write (6,*) ""
         write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", float(CIcore_instance%numberOfConfigurations*3*8)/(1024**3) , " GB"
         write (6,*) ""
@@ -103,15 +113,18 @@ contains
   
   !! main part
   subroutine CISCI_run()
+    use sort_
     implicit none
     integer(8) :: i, j, ii, jj
     integer :: k ! macro SCI iteration
+    integer :: nproc
     real(8) :: timeA(15), timeB(15)
     real(8) :: timeAA, timeBB
     real(8) :: timeAS, timeBS
     type(Vector8) :: eigenValuesTarget
     real(8) :: currentEnergy 
 
+    nproc = omp_get_max_threads()
     currentEnergy = HartreeFock_instance%totalEnergy 
     call Vector_constructor8 ( eigenValuesTarget, int(CONTROL_instance%NUMBER_OF_CI_STATES,8),  0.0_8)
 
@@ -142,13 +155,16 @@ contains
       end do
 
       !! getting the target absolute largest coefficients
-      call Vector_sortElementsAbsolute8( CISCI_instance%amplitudeCore, &
-            CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%targetSpaceSize ,8), CONTROL_instance%CI_MATVEC_TOLERANCE )
+      !call Vector_sortElementsAbsolute8( CISCI_instance%amplitudeCore, &
+      !      CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%targetSpaceSize ,8), CONTROL_instance%CI_MATVEC_TOLERANCE )
 
-     ! do i = 1,  CISCI_instance%targetSpaceSize
-     !   print *, i, CISCI_instance%amplitudeCore%values(i), CIcore_instance%auxIndexCIMatrix%values(i)
-     ! end do
-     ! stop 
+      call MTSort ( CISCI_instance%amplitudeCore%values, &
+            CIcore_instance%auxIndexCIMatrix%values, CIcore_instance%numberOfConfigurations, "D", nproc )
+
+      !do i = 1,  CISCI_instance%targetSpaceSize
+      !  print *, i, CISCI_instance%amplitudeCore%values(i), CIcore_instance%auxIndexCIMatrix%values(i)
+      !end do
+
       !! recover the configurations for the hamiltonian matrix in the target space
       call CISCI_getInitialIndexes2( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
 
@@ -200,8 +216,12 @@ contains
       end if
 
       !! getting the core absolute largest coefficients
-      call Vector_sortElementsAbsolute8( CISCI_instance%auxcoefficientTarget, &
-           CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%coreSpaceSize ,8), CONTROL_instance%CI_MATVEC_TOLERANCE )
+      !call Vector_sortElementsAbsolute8( CISCI_instance%auxcoefficientTarget, &
+      !     CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%coreSpaceSize ,8), CONTROL_instance%CI_MATVEC_TOLERANCE )
+
+      call MTSort (  CISCI_instance%auxcoefficientTarget%values, &
+           CIcore_instance%auxIndexCIMatrix%values,  int( CISCI_instance%coreSpaceSize ,8), "D", nproc )
+
 
       !! recover the configurations for the hamiltonian matrix in the core space
       call CISCI_getInitialIndexes2( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
@@ -867,6 +887,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     allocate (orbitalsA ( maxval(CIcore_instance%numberOfOrbitals%values(:)), numberOfSpecies))
     allocate (orbitalsB ( maxval(CIcore_instance%numberOfOrbitals%values(:)), numberOfSpecies))
 
+    !debug print *, "max orb num",  maxval(CIcore_instance%numberOfOrbitals%values(:))
 
     nonzero = 0
     nonzerow = 0
@@ -891,6 +912,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
       do i = 1, numberOfSpecies
         do uu = 1, CIcore_instance%numberOfOccupiedOrbitals%values(i)
           orbitalsA( CIcore_instance%strings(i)%values(uu,indexConfA(i) ), i ) = 1
+          ! debug print *, CIcore_instance%strings(i)%values(uu,indexConfA(i) )
         end do
       end do
 
