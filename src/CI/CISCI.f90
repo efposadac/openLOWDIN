@@ -17,7 +17,7 @@ module CISCI_
 
   type, public :: CISCI
     type (Vector8) :: amplitudeCore
-    type (Vector8) :: amplitudeCore2
+    type (Vector8) :: auxeigenVector
     type (Vector8) :: coefficientCore
     type (Matrix) :: coefficientTarget
     type (Vector8) :: auxcoefficientTarget
@@ -102,6 +102,7 @@ contains
 
     !! arrays for CISCI
     call Vector_constructor8 ( CISCI_instance%amplitudeCore, CIcore_instance%numberOfConfigurations,  0.0_8)
+    !call Vector_constructor8 ( CISCI_instance%auxeigenVector, CIcore_instance%numberOfConfigurations,  0.0_8)
     call Vector_constructor8 ( CISCI_instance%coefficientCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
     call Matrix_constructor ( CISCI_instance%coefficientTarget, int(CISCI_instance%targetSpaceSize,8), &
                                int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
@@ -154,19 +155,24 @@ contains
         CIcore_instance%auxIndexCIMatrix%values(i)= i
       end do
 
-      !! getting the target absolute largest coefficients
-      !call Vector_sortElementsAbsolute8( CISCI_instance%amplitudeCore, &
-      !      CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%targetSpaceSize ,8), CONTROL_instance%CI_MATVEC_TOLERANCE )
+      !! copy to keep the unsorted for getting the index later
+      CIcore_instance%eigenVectors%values(:,1) = CISCI_instance%amplitudeCore%values
 
+      !! getting the target absolute largest coefficients
       call MTSort ( CISCI_instance%amplitudeCore%values, &
             CIcore_instance%auxIndexCIMatrix%values, CIcore_instance%numberOfConfigurations, "D", nproc )
 
-      !do i = 1,  CISCI_instance%targetSpaceSize
-      !  print *, i, CISCI_instance%amplitudeCore%values(i), CIcore_instance%auxIndexCIMatrix%values(i)
-      !end do
+      !! set all target space coefficint to non zero. This is needed for getting the index, and for assigning an initial weight in the diagonalization
+      do i = 1,  CISCI_instance%targetSpaceSize
+        if ( abs (CISCI_instance%amplitudeCore%values(i) ) <= CONTROL_instance%CI_MATVEC_TOLERANCE ) then
+        ii = CIcore_instance%auxIndexCIMatrix%values(i)
+        CIcore_instance%eigenVectors%values(ii,1) = CONTROL_instance%CI_MATVEC_TOLERANCE
+        end if
+      end do
 
       !! recover the configurations for the hamiltonian matrix in the target space
-      call CISCI_getInitialIndexes2( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
+      call CISCI_getInitialIndexes3( CIcore_instance%eigenVectors%values(:,1), abs( CISCI_instance%amplitudeCore%values( CISCI_instance%targetSpaceSize )), &
+                                     CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
 
       !! storing only the largest diagonal elements (for jadamilu)
       do i = 1,  CISCI_instance%targetSpaceSize
@@ -216,15 +222,20 @@ contains
       end if
 
       !! getting the core absolute largest coefficients
-      !call Vector_sortElementsAbsolute8( CISCI_instance%auxcoefficientTarget, &
-      !     CIcore_instance%auxIndexCIMatrix, int( CISCI_instance%coreSpaceSize ,8), CONTROL_instance%CI_MATVEC_TOLERANCE )
-
       call MTSort (  CISCI_instance%auxcoefficientTarget%values, &
            CIcore_instance%auxIndexCIMatrix%values,  int( CISCI_instance%coreSpaceSize ,8), "D", nproc )
 
+      !! set all coefficient space coefficint to non zero. This is needed for getting the index
+      do i = 1,  CISCI_instance%coreSpaceSize
+        ii = CIcore_instance%auxIndexCIMatrix%values(i)
+        if ( abs (CISCI_instance%auxcoefficientTarget%values(i) ) <= CONTROL_instance%CI_MATVEC_TOLERANCE ) then
+        CIcore_instance%eigenVectors%values(ii,1) = CONTROL_instance%CI_MATVEC_TOLERANCE
+        end if
+      enddo
 
       !! recover the configurations for the hamiltonian matrix in the core space
-      call CISCI_getInitialIndexes2( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
+      call CISCI_getInitialIndexes3(  CIcore_instance%eigenVectors%values(:,1), abs( CISCI_instance%auxcoefficientTarget%values( CISCI_instance%coreSpaceSize )), & 
+                                      CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
       !! call CISCI_getInitialIndexes( CIcore_instance%fullConfigurations, CIcore_instance%fullConfigurationsLevel , int(CIcore_instance%numberOfConfigurations,4) )
 
       !! storing only the largest coefficients, and rearraing the next eigenvector guess 
@@ -456,6 +467,130 @@ contains
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for getting sorted indexes2 : ", timeB - timeA ," (s)"
 
   end subroutine CISCI_getInitialIndexes2
+
+  subroutine CISCI_getInitialIndexes3( referenceMatrix, minValue,  auxConfigurationMatrix, auxConfigurationLevel, auxMatrixSize )
+    implicit none
+
+    real(8), intent(in) :: referenceMatrix(:)
+    real(8), intent(in) :: minValue
+    type(imatrix) :: auxConfigurationMatrix
+    type(imatrix) :: sortedauxindexCIMatrix
+    type(imatrix) :: auxConfigurationLevel
+    integer :: auxMatrixSize
+    integer(8) :: a,b,c,cc
+    integer :: u, u1, u2 
+    integer :: ci, aci
+    integer :: i, j, ii, jj 
+    integer :: s, ss, numberOfSpecies, auxnumberOfSpecies
+    integer :: os,is
+    integer :: size1, size2
+    real(8) :: timeA, timeB
+    integer(8), allocatable :: indexConf(:)
+    integer, allocatable :: cilevel(:)
+    integer, allocatable :: counter(:)
+    integer :: ssize
+    integer(8) :: x, totalsize, auxtotalsize
+    integer(8) :: nn, ncore, chunkSize
+
+!$  timeA = omp_get_wtime()
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    ncore = omp_get_max_threads()
+
+    call Matrix_constructorInteger ( auxConfigurationMatrix, int( numberOfSpecies,8), &
+          int(auxMatrixSize,8), 0 )
+    call Matrix_constructorInteger ( auxConfigurationLevel, int( numberOfSpecies,8), &
+          int(auxMatrixSize,8), 0 )
+
+    call Matrix_constructorInteger ( sortedauxindexCIMatrix, int( numberOfSpecies,8), &
+          int(auxMatrixSize,8), 0 )
+
+    allocate ( cilevel ( numberOfSpecies ) )
+    allocate ( indexConf ( numberOfSpecies ) )
+    allocate ( counter (numberOfSpecies ) ) 
+
+    indexConf = 0
+    cilevel = 0
+    counter = 0
+    nn = 1
+
+    c = 0
+    indexConf = 0
+    cilevel = 0
+
+    outer: do aci = 1,  CIcore_instance%sizeCiOrderList 
+      cilevel =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(aci), :)
+      counter = 0 
+
+      totalsize = 1
+      do i = 1 , numberOfSpecies
+        totalsize = totalsize * CIcore_instance%numberOfStrings(i)%values(cilevel(i) + 1)
+      end do
+
+      do i = 1 , numberOfSpecies 
+        ci = cilevel(i) + 1 
+        ssize = CIcore_instance%numberOfStrings2(i)%values(ci)
+        indexConf(i) = ssize  + 1
+      end do
+
+      indexConf(numberOfSpecies) = indexConf(numberOfSpecies) -1
+      cc = c
+
+      !! run over the selected window
+      do x = 1, totalSize
+        c = c + 1
+
+        indexConf(numberOfSpecies) = indexConf(numberOfSpecies) + 1
+
+        do i = numberOfSpecies, 1 + 1, -1 
+          auxtotalsize = 1
+          do j = i, numberOfSpecies
+            auxtotalsize = auxtotalsize * CIcore_instance%numberOfStrings(j)%values(cilevel(j) + 1)
+          end do
+          if (counter(i) == auxtotalsize) then
+            do j = i, numberOfSpecies
+              ci = cilevel(j) + 1 
+              ssize = CIcore_instance%numberOfStrings2(j)%values(ci)
+              indexConf(j) = ssize + 1
+            end do
+            counter(i) = 0
+            indexConf(i-1) = indexConf(i-1) + 1
+
+          end if
+          counter(i) = counter(i) + 1
+
+        end do
+
+       !! search only if the configuration was selected in the auxMatrixSize 
+       if ( abs(referenceMatrix(c )) >= minValue) then
+
+          do u = 1, auxMatrixSize  
+            if (  c == CIcore_instance%auxIndexCIMatrix%values(u) ) then
+              !! saving the index 
+              do i = 1, numberOfSpecies
+                auxConfigurationMatrix%values(i,u) = indexConf(i) 
+                auxConfigurationLevel%values(i,u) = cilevel(i) 
+              end do
+              exit 
+            endif
+          end do ! u, auxMatrixSize
+        end if
+
+      end do ! x totalsize
+       
+      c = cc + totalsize
+
+    end do outer
+
+    deallocate (counter)
+    deallocate ( indexConf )
+    deallocate ( cilevel )
+
+!$  timeB = omp_get_wtime()
+!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for getting sorted indexes2 : ", timeB - timeA ," (s)"
+
+  end subroutine CISCI_getInitialIndexes3
+
 
 
 recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfigurationLevel, auxMatrixSize, s, numberOfSpecies, indexConf, c, cilevel) result (os)
