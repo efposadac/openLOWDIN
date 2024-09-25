@@ -57,6 +57,7 @@ contains
     !<
     !! @brief Transforma un indice i en una dupla i'.j'
     !! @author Edwin Posada, 2010
+    !! Based on the reverse Cantor Pairing function
     !>
     function IndexMap_vectorToMatrix( out, cont ) result ( output )
         implicit none
