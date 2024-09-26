@@ -116,13 +116,14 @@ contains
   subroutine CISCI_run()
     use sort_
     implicit none
-    integer(8) :: i, j, ii, jj
+    integer(8) :: i, j, ii, jj, m
     integer :: k ! macro SCI iteration
     integer :: nproc
     real(8) :: timeA(15), timeB(15)
     real(8) :: timeAA, timeBB
     real(8) :: timeAS, timeBS
     type(Vector8) :: eigenValuesTarget
+    real(8) :: minValue
     real(8) :: currentEnergy 
 
     nproc = omp_get_max_threads()
@@ -170,8 +171,12 @@ contains
         end if
       end do
 
+
+      minValue = abs (CISCI_instance%amplitudeCore%values(CISCI_instance%targetSpaceSize) )
+      if ( minValue <= CONTROL_instance%CI_MATVEC_TOLERANCE ) minValue = CONTROL_instance%CI_MATVEC_TOLERANCE
+
       !! recover the configurations for the hamiltonian matrix in the target space
-      call CISCI_getInitialIndexes3( CIcore_instance%eigenVectors%values(:,1), abs( CISCI_instance%amplitudeCore%values( CISCI_instance%targetSpaceSize )), &
+      call CISCI_getInitialIndexes3( CIcore_instance%eigenVectors%values(:,1), minValue, &
                                      CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
 
       !! storing only the largest diagonal elements (for jadamilu)
@@ -232,9 +237,11 @@ contains
         CIcore_instance%eigenVectors%values(ii,1) = CONTROL_instance%CI_MATVEC_TOLERANCE
         end if
       enddo
+      minValue = abs (CISCI_instance%auxcoefficientTarget%values(CISCI_instance%coreSpaceSize) )
+      if ( minValue <= CONTROL_instance%CI_MATVEC_TOLERANCE ) minValue = CONTROL_instance%CI_MATVEC_TOLERANCE
 
       !! recover the configurations for the hamiltonian matrix in the core space
-      call CISCI_getInitialIndexes3(  CIcore_instance%eigenVectors%values(:,1), abs( CISCI_instance%auxcoefficientTarget%values( CISCI_instance%coreSpaceSize )), & 
+      call CISCI_getInitialIndexes3(  CIcore_instance%eigenVectors%values(:,1), minValue, & 
                                       CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
       !! call CISCI_getInitialIndexes( CIcore_instance%fullConfigurations, CIcore_instance%fullConfigurationsLevel , int(CIcore_instance%numberOfConfigurations,4) )
 
@@ -563,7 +570,6 @@ contains
 
        !! search only if the configuration was selected in the auxMatrixSize 
        if ( abs(referenceMatrix(c )) >= minValue) then
-
           do u = 1, auxMatrixSize  
             if (  c == CIcore_instance%auxIndexCIMatrix%values(u) ) then
               !! saving the index 
@@ -587,7 +593,7 @@ contains
     deallocate ( cilevel )
 
 !$  timeB = omp_get_wtime()
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for getting sorted indexes2 : ", timeB - timeA ," (s)"
+!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for getting sorted indexes3 : ", timeB - timeA ," (s)"
 
   end subroutine CISCI_getInitialIndexes3
 
