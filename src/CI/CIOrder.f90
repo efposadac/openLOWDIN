@@ -279,6 +279,7 @@ recursive  function CIOrder_buildCIOrderRecursion( s, numberOfSpecies, c, cileve
     if ( is < numberOfSpecies ) then
       do i = 1, size(CIcore_instance%numberOfStrings(is)%values, dim = 1)
        cilevel(is) = i - 1
+       if ( CIcore_instance%numberOfStrings(is)%values(i) == 0 ) cycle
        os = CIOrder_buildCIOrderRecursion( is, numberOfSpecies, c, cilevel )
       end do
       cilevel(is) = 0
@@ -288,6 +289,9 @@ recursive  function CIOrder_buildCIOrderRecursion( s, numberOfSpecies, c, cileve
        c = c + 1
 
        CIcore_instance%ciOrderList( c, : ) = cilevel(:)
+
+       if ( CIcore_instance%numberOfStrings(is)%values(i) == 0 ) cycle
+
        if ( sum(cilevel) <= CIcore_instance%maxCIlevel ) then
          CIcore_instance%sizeCiOrderList = CIcore_instance%sizeCiOrderList + 1
          CIcore_instance%auxciOrderList(  CIcore_instance%sizeCiOrderList  ) = c
