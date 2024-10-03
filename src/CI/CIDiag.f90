@@ -208,7 +208,7 @@ recursive  function CIDiag_buildDiagonalRecursion(s, numberOfSpecies, nproc, ind
   function CIDiag_calculateEnergyZero( this ) result (auxCIenergy)
     implicit none
 
-    integer(8) :: this(:)
+    integer(8), intent(in) :: this(:)
     integer(8) :: a, b
     integer :: i,j,s
     integer :: l,k,z,kk,ll
