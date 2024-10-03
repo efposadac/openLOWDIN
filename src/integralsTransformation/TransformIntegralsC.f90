@@ -1048,6 +1048,10 @@ contains
     !! begin transformation
     m = 0
     mm = 0
+    !$OMP PARALLEL &
+    !$omp& private(p,q,r,s,j,k,l,ij,kl,tempA, tempB, tempC, index2, mu, nu,lambda, sigma, auxTransformedTwoParticlesIntegral) &
+    !$omp& shared(pp,qq,rr,ss,m,auxIntegrals) reduction(+:mm) 
+    !$omp do schedule (dynamic)
     do p = this%p_lowerOrbital, this%p_upperOrbital
 
        tempA = 0
@@ -1124,7 +1128,7 @@ contains
                 !write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) p,q,r,s, auxTransformedTwoParticlesIntegral
                 !mm = mm + 1
                 if ( abs(auxTransformedTwoParticlesIntegral ) > 1E-10 ) then
-                  !!$omp critical
+                  !$omp critical
                   m = m + 1
                   auxIntegrals(m) = auxTransformedTwoParticlesIntegral
                   pp(m) = p
@@ -1143,7 +1147,7 @@ contains
                     rr = 0
                     ss = 0
                   end if
-                  !!$omp end critical
+                  !$omp end critical
                 end if
 
 
@@ -1153,13 +1157,16 @@ contains
        end do
     end do
 
-    !!$omp critical
+    !$omp end do 
+    !$omp critical
     mm = mm + m 
     m = m + 1
     pp(m) = -1_8
 
     write (CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE) pp, qq, rr, ss, auxIntegrals
-    !!$omp end critical
+    !$omp end critical
+ 
+    !$omp end parallel
  
 !$  timeB(2) = omp_get_wtime()
 !$  write(*,"(T4,A36,E10.3)") "Integral transformation time(s): ", timeB(2) -timeA(2) 
