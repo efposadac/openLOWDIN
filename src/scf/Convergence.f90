@@ -473,7 +473,7 @@ contains
    !!********************************************************************************************
    
    if ( fockAndDensityEffect <=  densityEffect &
-        .or. abs(fockAndDensityEffect+densityEffect) .lt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+        .or. abs(fockAndDensityEffect) .lt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
       
       this%initialFockMatrix%values = this%newFockMatrixPtr%values
       this%initialDensityMatrix%values = this%newDensityMatrixPtr%values
