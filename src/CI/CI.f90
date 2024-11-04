@@ -30,9 +30,10 @@ program CI
   use CONTROL_
   use MolecularSystem_
   use Exception_
-  use ConfigurationInteraction_
+  use CIcore_
   use String_
   use InputCI_
+  use CImod_
   implicit none
 
   character(50) :: job
@@ -65,12 +66,12 @@ program CI
   else
      call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
   end if
-  call ConfigurationInteraction_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
-  call ConfigurationInteraction_run()
-  call ConfigurationInteraction_show()
-  call ConfigurationInteraction_showEigenVectors()
-  call ConfigurationInteraction_densityMatrices()
-  call ConfigurationInteraction_destructor()
+  call CIcore_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
+  call CImod_run()
+  call CImod_show()
+  call CImod_showEigenVectors()
+  call CImod_densityMatrices()
+  call CImod_destructor()
   
   !!stop time
   call Stopwatch_stop(lowdin_stopwatch)

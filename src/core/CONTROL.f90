@@ -101,7 +101,7 @@ module CONTROL_
      logical :: HF_PRINT_EIGENVALUES
      character(20) :: HF_PRINT_EIGENVECTORS
      real(8) :: OVERLAP_EIGEN_THRESHOLD
-     real(8) :: ELECTRIC_FIELD(6)
+     real(8) :: ELECTRIC_FIELD(3)
      integer :: MULTIPOLE_ORDER
 
      !!***************************************************************************
@@ -190,6 +190,7 @@ module CONTROL_
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
      character(20) :: CI_PRINT_EIGENVECTORS_FORMAT
+     character(20) :: CI_DIAGONAL_DRESSED_SHIFT
      real(8) :: CI_PRINT_THRESHOLD
      integer :: CI_STATES_TO_PRINT
      integer :: CI_ACTIVE_SPACE
@@ -204,6 +205,8 @@ module CONTROL_
      logical :: CI_BUILD_FULL_MATRIX
      integer :: CI_MADSPACE
      logical :: CI_NATURAL_ORBITALS
+     integer :: CI_SCI_CORE_SPACE
+     integer :: CI_SCI_TARGET_SPACE
 
      !!***************************************************************************
      !! Non-orthogonal CI
@@ -442,7 +445,7 @@ module CONTROL_
   logical :: LowdinParameters_HFprintEigenvalues
   character(20) :: LowdinParameters_HFprintEigenvectors
   real(8) :: LowdinParameters_overlapEigenThreshold
-  real(8) :: LowdinParameters_electricField(6)
+  real(8) :: LowdinParameters_electricField(3)
   integer :: LowdinParameters_multipoleOrder
 
   !!***************************************************************************
@@ -529,6 +532,7 @@ module CONTROL_
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
   character(20) :: LowdinParameters_CIPrintEigenVectorsFormat
+  character(20) :: LowdinParameters_CIdiagonalDressedShift 
   real(8) :: LowdinParameters_CIPrintThreshold
   integer :: LowdinParameters_CIactiveSpace
   integer :: LowdinParameters_CIstatesToPrint
@@ -543,6 +547,8 @@ module CONTROL_
   logical :: LowdinParameters_CIBuildFullMatrix
   integer :: LowdinParameters_CIMadSpace
   logical :: LowdinParameters_CINaturalOrbitals
+  integer :: LowdinParameters_CISCICoreSpace 
+  integer :: LowdinParameters_CISCITargetSpace 
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -866,6 +872,7 @@ module CONTROL_
        LowdinParameters_configurationInteractionLevel,&
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
+       LowdinParameters_CIdiagonalDressedShift, &
        LowdinParameters_CIactiveSpace, &
        LowdinParameters_CIstatesToPrint, &
        LowdinParameters_CImaxNCV, &
@@ -881,6 +888,10 @@ module CONTROL_
        LowdinParameters_CINaturalOrbitals, &
        LowdinParameters_CIPrintEigenVectorsFormat, &
        LowdinParameters_CIPrintThreshold, &
+       LowdinParameters_CISCICoreSpace, &
+       LowdinParameters_CISCITargetSpace, &
+
+
        
                                 !!***************************************************************************
                                 !! Non-orthogonal CI
@@ -1228,6 +1239,7 @@ contains
     LowdinParameters_configurationInteractionLevel = "NONE"
     LowdinParameters_numberOfCIStates = 1
     LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
+    LowdinParameters_CIdiagonalDressedShift = "NONE"
     LowdinParameters_CIactiveSpace = 0 !! Full
     LowdinParameters_CIstatesToPrint = 1
     LowdinParameters_CImaxNCV = 30
@@ -1565,6 +1577,7 @@ contains
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "NONE"
     CONTROL_instance%NUMBER_OF_CI_STATES= 1
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
+    CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT = "NONE"
     CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
     CONTROL_instance%CI_STATES_TO_PRINT = 1
     CONTROL_instance%CI_MAX_NCV = 30 
@@ -1580,6 +1593,8 @@ contains
     CONTROL_instance%CI_NATURAL_ORBITALS=.FALSE.
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = "OCCUPIED"
     CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
+    CONTROL_instance%CI_SCI_CORE_SPACE = 100
+    CONTROL_instance%CI_SCI_TARGET_SPACE = 10000
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -1951,6 +1966,7 @@ contains
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
     CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
+    CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT = LowdinParameters_CIdiagonalDressedShift
     CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace  
     CONTROL_instance%CI_STATES_TO_PRINT = LowdinParameters_CIstatesToPrint
     if(CONTROL_instance%CI_STATES_TO_PRINT .gt. CONTROL_instance%NUMBER_OF_CI_STATES) &
@@ -1968,6 +1984,10 @@ contains
     CONTROL_instance%CI_NATURAL_ORBITALS= LowdinParameters_CINaturalOrbitals
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
     CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
+    CONTROL_instance%CI_SCI_CORE_SPACE = LowdinParameters_CISCICoreSpace
+    CONTROL_instance%CI_SCI_TARGET_SPACE = LowdinParameters_CISCITargetSpace
+
+
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2319,6 +2339,7 @@ contains
     LowdinParameters_configurationInteractionLevel = CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
     LowdinParameters_numberOfCIStates        = CONTROL_instance%NUMBER_OF_CI_STATES
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
+    LowdinParameters_CIdiagonalDressedShift = CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
 
     LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE 
     LowdinParameters_CIstatesToPrint = CONTROL_instance%CI_STATES_TO_PRINT
@@ -2329,9 +2350,10 @@ contains
     LowdinParameters_CIBuildFullMatrix = CONTROL_instance%CI_BUILD_FULL_MATRIX 
     LowdinParameters_CIMadSpace = CONTROL_instance%CI_MADSPACE
     LowdinParameters_CINaturalOrbitals = CONTROL_instance%CI_NATURAL_ORBITALS
-
     LowdinParameters_CIPrintEigenVectorsFormat = CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT 
     LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
+    LowdinParameters_CISCICoreSpace = CONTROL_instance%CI_SCI_CORE_SPACE 
+    LowdinParameters_CISCITargetSpace = CONTROL_instance%CI_SCI_TARGET_SPACE 
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2650,6 +2672,7 @@ contains
     otherThis%CONFIGURATION_INTERACTION_LEVEL = this%CONFIGURATION_INTERACTION_LEVEL 
     otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
     otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
+    otherThis%CI_DIAGONAL_DRESSED_SHIFT = this%CI_DIAGONAL_DRESSED_SHIFT
     otherThis%CI_ACTIVE_SPACE =  this%CI_ACTIVE_SPACE 
     otherThis%CI_STATES_TO_PRINT =  this%CI_STATES_TO_PRINT
     otherThis%CI_MAX_NCV = this%CI_MAX_NCV
@@ -2665,6 +2688,8 @@ contains
     otherThis%CI_NATURAL_ORBITALS = this%CI_NATURAL_ORBITALS
     otherThis%CI_PRINT_EIGENVECTORS_FORMAT = this%CI_PRINT_EIGENVECTORS_FORMAT 
     otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
+    otherThis%CI_SCI_CORE_SPACE = this%CI_SCI_CORE_SPACE 
+    otherThis%CI_SCI_TARGET_SPACE = this%CI_SCI_TARGET_SPACE 
 
     !!***************************************************************************
     !! Non-orthogonal CI

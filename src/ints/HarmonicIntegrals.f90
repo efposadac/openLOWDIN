@@ -81,10 +81,11 @@ contains
   !!      -2013.02.04: E.F.Posada: change for use in opints
   !! @return  output: kinetic integral of a shell (all combinations)
   !! @version 1.0
-  subroutine HarmonicIntegrals_computeShell(contractedGaussianA, contractedGaussianB, integral)
+  subroutine HarmonicIntegrals_computeShell(contractedGaussianA, contractedGaussianB, integral, origin)
     implicit none
     
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
+    real(8), intent(in) :: origin(3)
     real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
 
     integer ::  am1(0:3)
@@ -146,7 +147,7 @@ contains
           am2(0:2) = angularMomentIndexB(1:3, q)
 
 
-          call HarmonicIntegrals_computePrimitive(am1, am2, nprim1, nprim2, A, B, exp1, exp2, coef1, coef2, nor1, nor2, auxIntegral)
+          call HarmonicIntegrals_computePrimitive(am1, am2, nprim1, nprim2, A, B, exp1, exp2, coef1, coef2, nor1, nor2, auxIntegral, origin)
 
           auxIntegral = auxIntegral * contractedGaussianA%contNormalization(p) &
                * contractedGaussianB%contNormalization(q)
@@ -163,7 +164,7 @@ contains
   !! @author Edwin Posada, 2010
   !! @return devuelve los valores de integrales de atraccion (output)
   !! @version 1.0
-  subroutine HarmonicIntegrals_computePrimitive(angularMomentIndexA, angularMomentIndexB, lengthA, lengthB, A, B, orbitalExponentsA, orbitalExponentsB, contractionCoefficientsA, contractionCoefficientsB, normalizationConstantA, normalizationConstantB, integralValue)
+  subroutine HarmonicIntegrals_computePrimitive(angularMomentIndexA, angularMomentIndexB, lengthA, lengthB, A, B, orbitalExponentsA, orbitalExponentsB, contractionCoefficientsA, contractionCoefficientsB, normalizationConstantA, normalizationConstantB, integralValue, origin)
     implicit none
 
     integer, intent(in) :: angularMomentIndexA(0:3), angularMomentIndexB(0:3)
@@ -172,6 +173,7 @@ contains
     real(8), intent(in) :: orbitalExponentsA(0:lengthA), orbitalExponentsB(0:lengthB)
     real(8), intent(in) :: contractionCoefficientsA(0:lengthA), contractionCoefficientsB(0:lengthB)
     real(8), intent(in) :: normalizationConstantA(0:lengthA), normalizationConstantB(0:lengthB)
+    real(8), intent(in) :: origin(3)
     real(8), intent(out) :: integralValue
 
     real(8), allocatable ::  x(:,:), y(:,:), z(:,:)
@@ -182,8 +184,6 @@ contains
     real(8) :: PA(0:3), PB(0:3), P(0:3)
     real(8) :: commonPreFactor
     ! real(8) :: x0, y0, z0
-    real(8) :: I1, I2, I3, I4
-    real(8) :: Ix, Iy, Iz
 
     integer :: angularMomentA, angularMomentB
     integer :: maxAngularMoment
@@ -192,6 +192,9 @@ contains
     ! integer :: ii, jj, kk, ll
     ! integer :: l1, m1, n1
     ! integer :: l2, m2, n2
+    real(8) :: x00, y00, z00
+    real(8) :: x01, y01, z01
+    real(8) :: x02, y02, z02
 
     integralValue = 0.0_8
 
@@ -233,11 +236,40 @@ contains
           !! recursion
           call HarmonicIntegrals_obaraSaikaRecursion(x, y, z, PA, PB, zeta, angularMomentA+2, angularMomentB+2)
 
-          Ix = x(angularMomentIndexA(0),angularMomentIndexB(0)+2) * y(angularMomentIndexA(1),angularMomentIndexB(1)  ) * z(angularMomentIndexA(2),angularMomentIndexB(2)  ) * commonPreFactor
-          Iy = x(angularMomentIndexA(0),angularMomentIndexB(0)  ) * y(angularMomentIndexA(1),angularMomentIndexB(1)+2) * z(angularMomentIndexA(2),angularMomentIndexB(2)  ) * commonPreFactor
-          Iz = x(angularMomentIndexA(0),angularMomentIndexB(0)  ) * y(angularMomentIndexA(1),angularMomentIndexB(1)  ) * z(angularMomentIndexA(2),angularMomentIndexB(2)+2) * commonPreFactor
+          x00 = x(angularMomentIndexA(0),angularMomentIndexB(0))
+          y00 = y(angularMomentIndexA(1),angularMomentIndexB(1))
+          z00 = z(angularMomentIndexA(2),angularMomentIndexB(2))
+          
+          x01 = x(angularMomentIndexA(0),angularMomentIndexB(0)+1)
+          y01 = y(angularMomentIndexA(1),angularMomentIndexB(1)+1)
+          z01 = z(angularMomentIndexA(2),angularMomentIndexB(2)+1)
+          
+          x02 = x(angularMomentIndexA(0),angularMomentIndexB(0)+2)
+          y02 = y(angularMomentIndexA(1),angularMomentIndexB(1)+2)
+          z02 = z(angularMomentIndexA(2),angularMomentIndexB(2)+2)
+          
+          !Ix = x(angularMomentIndexA(0),angularMomentIndexB(0)+2) * y(angularMomentIndexA(1),angularMomentIndexB(1)  ) * z(angularMomentIndexA(2),angularMomentIndexB(2)  ) * commonPreFactor
+          !Iy = x(angularMomentIndexA(0),angularMomentIndexB(0)  ) * y(angularMomentIndexA(1),angularMomentIndexB(1)+2) * z(angularMomentIndexA(2),angularMomentIndexB(2)  ) * commonPreFactor
+          !Iz = x(angularMomentIndexA(0),angularMomentIndexB(0)  ) * y(angularMomentIndexA(1),angularMomentIndexB(1)  ) * z(angularMomentIndexA(2),angularMomentIndexB(2)+2) * commonPreFactor
+          
+          integralValue = integralValue + (commonPreFactor*y00*z00* &
+                          (x02 + 2*( x01 + B(0)*x00 )*B(0) - B(0)**2*x00 &
+                          - 2*( x01 + B(0)*x00 )*origin(1) &
+                          + origin(1)**2*x00 ))
+          
+          integralValue = integralValue + (commonPreFactor*x00*z00* &
+                          !(y11) )
+                          (y02 + 2*( y01 + B(1)*y00 )*B(1) - B(1)**2*y00 &
+                          - 2*( y01 + B(1)*y00 )* origin(2) &
+                          + origin(2)**2*y00 ))
+          
+          
+          integralValue = integralValue + (commonPreFactor*x00*y00* &
+                          !(z02) )
+                          (z02 + 2*( z01 + B(2)*z00 )*B(2) - B(2)**2*z00 &
+                          - 2*( z01 + B(2)*z00 )*origin(3) &
+                          + origin(3)**2*z00 ))
 
-          integralValue = integralValue + (Ix + Iy + Iz) / 2.0
     
        end do
     end do

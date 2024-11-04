@@ -9,7 +9,7 @@ fi
 echo $lowdinbin
 
 for testfile in `ls *.py`; do
-    echo $testfile
+    #echo $testfile
 	python3 $testfile $lowdinbin
     status=$((status + $?))
 done
