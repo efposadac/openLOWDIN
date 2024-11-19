@@ -294,7 +294,7 @@ contains
              
              n=size(PropagatorTheory_instance%secondOrderCorrections(i)%values,DIM=1)
 
-             nameOfSpecies=trim(MolecularSystem_getNameOfSpecie( q ))
+             nameOfSpecies=trim(MolecularSystem_getNameOfSpecies( q ))
 
              write (6,"(T10,A8,A10)") "SPECIES: ",nameOfSpecies
 
@@ -404,7 +404,7 @@ contains
 !             i = i + 1
 !
 !             n=size(PropagatorTheory_instance%thirdOrderCorrections(i)%values,DIM=1)
-!             write (6,"(T10,A8,A10)")"SPECIE: ",trim(MolecularSystem_getNameOfSpecie( q ))
+!             write (6,"(T10,A8,A10)")"SPECIE: ",trim(MolecularSystem_getNameOfSpecies( q ))
 !             write ( 6,'(T10,A85)') "--------------------------------------------------------------------------------------------"
 !             write ( 6,'(T10,A10,A10,A10,A10,A10,A10,A10,A10)') " Orbital ","  KT (eV) ","  EP2 (eV)","  P.S  ","  P3 (eV)"&
 !                  ,"  P.S  "," OVGF (eV)","  P.S  "
@@ -590,7 +590,7 @@ contains
 
        q = q + 1
 
-       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
        chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
        occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -649,7 +649,7 @@ contains
        
 !       call TransformIntegrals_constructor( repulsionTransformer )
 
-        arguments(2) = MolecularSystem_getNameOfSpecie(i)
+        arguments(2) = MolecularSystem_getNameOfSpecies(i)
 
         arguments(1) = "ORBITALS"
 
@@ -662,7 +662,7 @@ contains
              activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
              if ( InputCI_Instance(p)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(p)%activeOrbitals
 
-             arguments(2) = trim(MolecularSystem_getNameOfSpecie(p))
+             arguments(2) = trim(MolecularSystem_getNameOfSpecies(p))
 
              arguments(1) = "ORBITALS"
              call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( p ), &
@@ -721,7 +721,7 @@ contains
              activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
              if ( InputCI_Instance(j)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(j)%activeOrbitals
 
-             arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+             arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
 
              arguments(1) = "ORBITALS"
              call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
@@ -845,7 +845,7 @@ contains
                 
              else ! interspecies
 
-                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
                 chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                 occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -990,7 +990,7 @@ contains
 
                 do j = 1 , PropagatorTheory_instance%numberOfSpecies             
 
-                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )                   
+                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )                   
 
                    E2hp = 0.0_8
                    E2ph= 0.0_8
@@ -1090,7 +1090,7 @@ contains
 
              do j = 1 , PropagatorTheory_instance%numberOfSpecies             
 
-                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )                   
+                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )                   
 
                 E2hp = 0.0_8
                 E2ph= 0.0_8
@@ -1489,7 +1489,7 @@ contains
     
     do p = 1 , PropagatorTheory_instance%numberOfSpecies
 
-       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( p ) )
+       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( p ) )
 
        if (nameOfSpeciesA=="E-ALPHA".or.nameOfSpeciesA=="E-BETA") then
 
@@ -1514,7 +1514,7 @@ contains
              
           else
              
-             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( n ) )
+             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( n ) )
              
 !JC             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !                  MolecularSystem_getEigenVectors(p), MolecularSystem_getEigenVectors(n), &
@@ -1540,7 +1540,7 @@ contains
        
        q = q + 1
        
-       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
        chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !JC       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
        occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -1549,7 +1549,7 @@ contains
        lambdaOfSpeciesA = MolecularSystem_getLambda( i )
        virtualNumberOfSpeciesA = activeOrbitalsOfSpeciesA - occupationNumberOfSpeciesA
 
-       arguments(2) = trim(MolecularSystem_getNameOfSpecie(i))
+       arguments(2) = trim(MolecularSystem_getNameOfSpecies(i))
 
        arguments(1) = "ORBITALS"
        call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( i ), &
@@ -1774,7 +1774,7 @@ contains
   
   !JC               print *,"entro al else"                
   
-                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( p ) )
+                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( p ) )
                   chargeOfSpeciesB = MolecularSystem_getCharge( p )
   !JC                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
@@ -1783,7 +1783,7 @@ contains
                   lambdaOfSpeciesB = MolecularSystem_getLambda( p )
                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
   
-                  arguments(2) = trim(MolecularSystem_getNameOfSpecie(p))
+                  arguments(2) = trim(MolecularSystem_getNameOfSpecies(p))
                   arguments(1) = "ORBITALS"
                   call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( p ), &
                        unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -2191,7 +2191,7 @@ contains
   
   !JC                      print *,"entro a r diferente de p"
   
-                        nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( r ) )
+                        nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( r ) )
                         chargeOfSpeciesC = MolecularSystem_getCharge( r )
   !                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
                         occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
@@ -2200,7 +2200,7 @@ contains
                         lambdaOfSpeciesC = MolecularSystem_getLambda( r )
                         virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
   
-                        arguments(2) = trim(MolecularSystem_getNameOfSpecie(r))
+                        arguments(2) = trim(MolecularSystem_getNameOfSpecies(r))
                         arguments(1) = "ORBITALS"
                         call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( r ), &
                              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -2646,7 +2646,7 @@ contains
                    
                 else ! interspecies
                    
-                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
                    chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                    occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -2655,7 +2655,7 @@ contains
                    lambdaOfSpeciesB = MolecularSystem_getLambda( j )
                    virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                   arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+                   arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                    arguments(1) = "ORBITALS"
                    call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                          unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -3061,7 +3061,7 @@ contains
                    
                 else ! Interspecies term
 
-                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
                    chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                    occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -3070,7 +3070,7 @@ contains
                    lambdaOfSpeciesB = MolecularSystem_getLambda( j )
                    virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                   arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+                   arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                    arguments(1) = "ORBITALS"
                    call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                         unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -3501,7 +3501,7 @@ contains
                             id1=0
                             id2=0
 
-                            nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+                            nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
                             chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !                            eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
                             occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -3510,7 +3510,7 @@ contains
                             lambdaOfSpeciesB = MolecularSystem_getLambda( k )
                             virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                            arguments(2) = trim(MolecularSystem_getNameOfSpecie(k))
+                            arguments(2) = trim(MolecularSystem_getNameOfSpecies(k))
                             arguments(1) = "ORBITALS"
                             call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( k ), &
                                      unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -3756,7 +3756,7 @@ contains
                       
                    else ! Interspecies term
                       
-                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
                       chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                       occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -3765,7 +3765,7 @@ contains
                       lambdaOfSpeciesB = MolecularSystem_getLambda( j )
                       virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                      arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+                      arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                       arguments(1) = "ORBITALS"
                       call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                            unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -4130,7 +4130,7 @@ contains
                             
 !                            print *,"ENTRO AL TERMINO DE TRES PARTICULAS:",i,j,k
                             
-                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
                             chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
                             occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -4139,7 +4139,7 @@ contains
                             lambdaOfSpeciesC = MolecularSystem_getLambda( k )
                             virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 
-                            arguments(2) = trim(MolecularSystem_getNameOfSpecie(k))
+                            arguments(2) = trim(MolecularSystem_getNameOfSpecies(k))
                             arguments(1) = "ORBITALS"
                             call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( k ), &
                                     unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -4870,7 +4870,7 @@ end module PropagatorTheory_
 
   !   do i = specie1ID , specie2ID
        
-  !      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+  !      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( i ) )
        
   !      specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
   !      charge = MolecularSystem_getCharge( specieID )
@@ -5034,7 +5034,7 @@ end module PropagatorTheory_
   !            do j = 1 , PropagatorTheory_instance%numberOfSpecies
   !               if (j.ne.i) then
                    
-  !                  nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
+  !                  nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( j ) )
   !                  otherSpecieID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
   !                  eigenValuesOfOtherSpecie = MolecularSystem_getEigenValues(j)
   !                  occupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( j )
@@ -5300,7 +5300,7 @@ end module PropagatorTheory_
 
   !   speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
 
-  !   nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
+  !   nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
        
   !   chargeOfSpecies = MolecularSystem_getCharge( speciesID )
     
@@ -5409,7 +5409,7 @@ end module PropagatorTheory_
   !      do j = 1 , PropagatorTheory_instance%numberOfSpecies
   !         if (j.ne.speciesID) then
              
-  !            nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
+  !            nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
   !            otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
   !            eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
   !            occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
@@ -5503,7 +5503,7 @@ end module PropagatorTheory_
   !         do j = 1 , PropagatorTheory_instance%numberOfSpecies
   !            if (j.ne.speciesID) then
                 
-  !               nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
+  !               nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
   !               otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
   !               eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
   !               occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
@@ -5801,7 +5801,7 @@ end module PropagatorTheory_
 !     print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
 !     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
-!     nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )       
+!     nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )       
 !     chargeOfSpecies = MolecularSystem_getCharge( speciesID )
 !     eigenValuesOfSpecies = MolecularSystem_getEigenValues( speciesID )
 !     occupationNumberOfSpecies = MolecularSystem_getOcupationNumber( speciesID )
@@ -6034,7 +6034,7 @@ end module PropagatorTheory_
 !           do j = 1 , PropagatorTheory_instance%numberOfSpecies
 !              if (j.ne.speciesID) then
                 
-!                 nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                 nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                 otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
 !                 eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !                 occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
@@ -6248,7 +6248,7 @@ end module PropagatorTheory_
 !        do j = 1 , PropagatorTheory_instance%numberOfSpecies
 !           if (j.ne.speciesID) then
              
-!              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
+!              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
 !              otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
@@ -6391,7 +6391,7 @@ end module PropagatorTheory_
 !        do j = 1 , PropagatorTheory_instance%numberOfSpecies
 !           if (j.ne.speciesID) then
              
-!              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
+!              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
 !              otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
@@ -6477,7 +6477,7 @@ end module PropagatorTheory_
 !        do i = 1 , PropagatorTheory_instance%numberOfSpecies - 1
 !           if (i.ne.speciesID) then
              
-!              nameOfOtherSpecies1= trim(  MolecularSystem_getNameOfSpecie( i ) )
+!              nameOfOtherSpecies1= trim(  MolecularSystem_getNameOfSpecies( i ) )
 !              otherSpeciesID1 =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies1 = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies1 = MolecularSystem_getOcupationNumber( i )
@@ -6495,7 +6495,7 @@ end module PropagatorTheory_
 !              do j = i+1 , PropagatorTheory_instance%numberOfSpecies
 !                 if (j.ne.speciesID) then
                    
-!                    nameOfOtherSpecies2= trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                    nameOfOtherSpecies2= trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                    otherSpeciesID2 =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
 !                    eigenValuesOfOtherSpecies2 = MolecularSystem_getEigenValues(j)
 !                    occupationNumberOfOtherSpecies2 = MolecularSystem_getOcupationNumber( j )
@@ -6972,7 +6972,7 @@ end module PropagatorTheory_
 !       
 !       q = q + 1
 !       
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -7017,7 +7017,7 @@ end module PropagatorTheory_
 !             
 !          else
 !             
-!             nameOfSpeciesB= trim(  MolecularSystem_getNameOfSpecie( p ) )
+!             nameOfSpeciesB= trim(  MolecularSystem_getNameOfSpecies( p ) )
 !             
 !!             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                  MolecularSystem_getEigenVectors(i), MolecularSystem_getEigenVectors(p), &
@@ -7136,7 +7136,7 @@ end module PropagatorTheory_
 !                               
 !                               if (k .ne. i)  then
 !                                  
-!                                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -7257,7 +7257,7 @@ end module PropagatorTheory_
 !                               
 !                               if (k .ne. i)  then
 !
-!                                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -7303,7 +7303,7 @@ end module PropagatorTheory_
 !                
 !             else ! interspecies
 !
-!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -7593,7 +7593,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -7778,7 +7778,7 @@ end module PropagatorTheory_
 !                                  
 !                                  if (k .ne. i)  then
 !                                     
-!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -7914,7 +7914,7 @@ end module PropagatorTheory_
 !                                  
 !                                  if (k .ne. i)  then
 !                                     
-!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -7975,7 +7975,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -8180,7 +8180,7 @@ end module PropagatorTheory_
 !                         
 !                         print *,"entro al manolito",k
 !                         
-!                         nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                         nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                         chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                         eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                         occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -8415,7 +8415,7 @@ end module PropagatorTheory_
 !       
 !       q = q + 1
 !       
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -8461,7 +8461,7 @@ end module PropagatorTheory_
 !             
 !          else
 !             
-!             nameOfSpeciesB= trim(  MolecularSystem_getNameOfSpecie( p ) )
+!             nameOfSpeciesB= trim(  MolecularSystem_getNameOfSpecies( p ) )
 !             
 !!             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                  MolecularSystem_getEigenVectors(i), MolecularSystem_getEigenVectors(p), &
@@ -8595,7 +8595,7 @@ end module PropagatorTheory_
 !                
 !             else
 !                
-!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
@@ -8808,7 +8808,7 @@ end module PropagatorTheory_
 !                            
 !                            if (k .ne. i)  then
 !                               
-!                               nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                               nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -8927,7 +8927,7 @@ end module PropagatorTheory_
 !                                  
 !                                  if (k .ne. i)  then
 !                                     
-!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -8973,7 +8973,7 @@ end module PropagatorTheory_
 !                   
 !                else ! interspecies
 !                   
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -9447,7 +9447,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -9687,7 +9687,7 @@ end module PropagatorTheory_
 !                                     
 !                                     if (k .ne. i)  then
 !                                        
-!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -9841,7 +9841,7 @@ end module PropagatorTheory_
 !                                     
 !                                     if (k .ne. i)  then
 !                                        
-!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -9910,7 +9910,7 @@ end module PropagatorTheory_
 !                      
 !                   else ! Interspecies term
 !                      
-!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -10163,7 +10163,7 @@ end module PropagatorTheory_
 !                            
 !                            print *,"entro al manolito",k
 !                            
-!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -10565,7 +10565,7 @@ end module PropagatorTheory_
 !    
 !    do p = 1 , PropagatorTheory_instance%numberOfSpecies
 !
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !
 !       do n = 1 , PropagatorTheory_instance%numberOfSpecies
 !          
@@ -10579,7 +10579,7 @@ end module PropagatorTheory_
 !             
 !          else
 !             
-!             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( n ) )
+!             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( n ) )
 !             
 !!             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                  MolecularSystem_getEigenVectors(p), MolecularSystem_getEigenVectors(n), &
@@ -10602,7 +10602,7 @@ end module PropagatorTheory_
 !       
 !       q = q + 1
 !       
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -10796,7 +10796,7 @@ end module PropagatorTheory_
 !
 !                print *,"entro al else"                
 !
-!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
@@ -11070,7 +11070,7 @@ end module PropagatorTheory_
 !
 !                      print *,"entro a r diferente de p"
 !
-!                      nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( r ) )
+!                      nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( r ) )
 !                      chargeOfSpeciesC = MolecularSystem_getCharge( r )
 !!                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
 !                      occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
@@ -11295,7 +11295,7 @@ end module PropagatorTheory_
 !                            
 !                            if (k .ne. i)  then
 !                               
-!                               nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                               nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                               chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                               eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                               occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -11414,7 +11414,7 @@ end module PropagatorTheory_
 !                                  
 !                                  if (k .ne. i)  then
 !                                     
-!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -11460,7 +11460,7 @@ end module PropagatorTheory_
 !                   
 !                else ! interspecies
 !                   
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -11734,7 +11734,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -11957,7 +11957,7 @@ end module PropagatorTheory_
 !                                     
 !                                     if (k .ne. i)  then
 !                                        
-!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -12112,7 +12112,7 @@ end module PropagatorTheory_
 !                                     
 !                                     if (k .ne. i)  then
 !                                        
-!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -12182,7 +12182,7 @@ end module PropagatorTheory_
 !                      
 !                   else ! Interspecies term
 !                      
-!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -12412,7 +12412,7 @@ end module PropagatorTheory_
 !                            
 !                            print *,"entro al manolito",k
 !                            
-!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -12747,7 +12747,7 @@ end module PropagatorTheory_
 !    
 !    do p = 1 , PropagatorTheory_instance%numberOfSpecies
 !
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !
 !       if (nameOfSpeciesA=="e-ALPHA".or.nameOfSpeciesA=="e-BETA") then
 !
@@ -12769,7 +12769,7 @@ end module PropagatorTheory_
 !             
 !          else
 !             
-!             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( n ) )
+!             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( n ) )
 !             
 !!             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                  MolecularSystem_getEigenVectors(p), MolecularSystem_getEigenVectors(n), &
@@ -12792,7 +12792,7 @@ end module PropagatorTheory_
 !       
 !       q = q + 1
 !       
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -12986,7 +12986,7 @@ end module PropagatorTheory_
 !
 !                print *,"entro al else"                
 !
-!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
@@ -13331,7 +13331,7 @@ end module PropagatorTheory_
 !
 !                      print *,"entro a r diferente de p"
 !
-!                      nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( r ) )
+!                      nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( r ) )
 !                      chargeOfSpeciesC = MolecularSystem_getCharge( r )
 !!                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
 !                      occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
@@ -13711,7 +13711,7 @@ end module PropagatorTheory_
 !                   
 !                else ! interspecies
 !                   
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -14081,7 +14081,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -14444,7 +14444,7 @@ end module PropagatorTheory_
 !                            id1=0
 !                            id2=0
 !
-!                            nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                            nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                            chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -14678,7 +14678,7 @@ end module PropagatorTheory_
 !                      
 !                   else ! Interspecies term
 !                      
-!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -14988,7 +14988,7 @@ end module PropagatorTheory_
 !                            
 !                            print *,"ENTRO AL TERMINO DE TRES PARTICULAS:",i,j,k
 !                            
-!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )

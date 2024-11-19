@@ -555,7 +555,7 @@ contains
   !   !! @brief Retorna un ID asociado a la especie especificada
   !   !!
   !   !>
-  !   function ParticleManager_getNameOfSpecie( specieID ) result( output )
+  !   function ParticleManager_getNameOfSpecies( specieID ) result( output )
   !     implicit none
   !     integer, intent(in) :: specieID
   !     character(30) :: output
@@ -566,10 +566,10 @@ contains
 
   !     else
   !        call ParticleManager_exception( ERROR, "You should instance the ParticleManager before use this function", &
-  !             "Class object ParticleManager in the getNameOfSpecie function")
+  !             "Class object ParticleManager in the getNameOfSpecies function")
   !     end if
 
-  !   end function ParticleManager_getNameOfSpecie
+  !   end function ParticleManager_getNameOfSpecies
 
   !   !<
   !   !!   @brief Retorna un iterador a laprimera especie en el sistema molecular

@@ -111,9 +111,9 @@ contains
 
     write (*,"(A32)",advance="no") "Number of orbitals for species: "
     do i = 1, numberOfSpecies-1
-      write (*,"(A)",advance="no") trim(MolecularSystem_getNameOfSpecie(i))//", "
+      write (*,"(A)",advance="no") trim(MolecularSystem_getNameOfSpecies(i))//", "
     end do
-    write (*,"(A)",advance="no") trim(MolecularSystem_getNameOfSpecie(numberOfSpecies))
+    write (*,"(A)",advance="no") trim(MolecularSystem_getNameOfSpecies(numberOfSpecies))
     write (*,*) ""
 
     write (*,"(A28)",advance="no") "  occupied orbitals: "
@@ -558,7 +558,7 @@ contains
     allocate(CIcore_instance%fourIndexArray(numberOfSpecies))
 
     do i=1, numberOfSpecies
-      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( i ) )
       specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
       ocupationNumber = MolecularSystem_getOcupationNumber( i )
       numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
@@ -577,7 +577,7 @@ contains
 
       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-      arguments(2) = MolecularSystem_getNameOfSpecie(i)
+      arguments(2) = MolecularSystem_getNameOfSpecies(i)
       arguments(1) = "COEFFICIENTS"
 
       coefficients = &
@@ -651,7 +651,7 @@ contains
        if ( numberOfSpecies > 1 ) then
          do j = 1 , numberOfSpecies
            if ( i .ne. j) then
-             nameOfOtherSpecie = trim(  MolecularSystem_getNameOfSpecie( j ) )
+             nameOfOtherSpecie = trim(  MolecularSystem_getNameOfSpecies( j ) )
              otherSpecieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
              ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( j )
              numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
@@ -1077,7 +1077,7 @@ contains
 
       !Inicializando las matrices
       do species=1, numberOfSpecies
-         speciesName = MolecularSystem_getNameOfSpecie(species)
+         speciesName = MolecularSystem_getNameOfSpecies(species)
          
          numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
          ! numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(species)
@@ -1388,7 +1388,7 @@ contains
        
      !! Building the CI reduced density matrix in the atomic orbital representation       
      do species=1, numberOfSpecies
-       speciesName = MolecularSystem_getNameOfSpecie(species)
+       speciesName = MolecularSystem_getNameOfSpecies(species)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
 
        do state=1, CONTROL_instance%CI_STATES_TO_PRINT
@@ -1472,7 +1472,7 @@ contains
                 write(*,*) "-----------------"
 
                 numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-                speciesName = MolecularSystem_getNameOfSpecie(species)
+                speciesName = MolecularSystem_getNameOfSpecies(species)
 
 
                 call Vector_constructor ( auxdensityEigenValues, &
@@ -1684,7 +1684,7 @@ contains
     !  end do
     
     ! !Write occupation numbers to file
-    ! write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecie(specie)),"OCCUPATIONS:"
+    ! write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecies(specie)),"OCCUPATIONS:"
     
     ! call Matrix_show ( ciOccupationNumbers )
     

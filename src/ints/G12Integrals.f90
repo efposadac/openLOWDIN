@@ -217,7 +217,7 @@ contains
 
     G12_ptr => G12Integrals_instance%libintG12
 
-    nameOfSpecie = trim(MolecularSystem_getNameOfSpecie(specieID))
+    nameOfSpecie = trim(MolecularSystem_getNameOfSpecies(specieID))
 
     call cpu_time(startTime)
 

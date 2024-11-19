@@ -1,0 +1,23 @@
+GEOMETRY
+        e-(O)   CC-PVDZ     0.00    0.00   1.2274 addParticles=-1 multiplicity=3
+        e-(O)   CC-PVDZ     0.00    0.00   0.00
+        e-(H)   CC-PVDZ     0.9271944658    0.00     -0.4197943098
+        O       dirac           0.00    0.00   1.2274 
+        O       dirac           0.00    0.00   0.00
+        H_1     DZSPNB      0.9271944658    0.00     -0.4197943098       
+END GEOMETRY
+
+TASKS
+        method = "UHF"
+        nonOrthogonalConfigurationInteraction=.T.
+END TASKS
+
+CONTROL
+	computeROCIformula=.T.
+	rotationAroundZMaxAngle=40
+	rotationAroundZStep=5
+	numberOfCIStates=5
+        integralStorage="MEMORY"
+	readCoefficients=.F.
+END CONTROL
+

@@ -483,8 +483,8 @@ contains
     do s = 1, nspecies
        ! Prepare matrix
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = s), &
-            MolecularSystem_getTotalNumberOfContractions(specieID = s)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(s), &
+            MolecularSystem_getTotalNumberOfContractions(s)))
        matrix_ptr = c_loc(integralsMatrix(1,1))
 
        ! Initialize libint objects
@@ -511,39 +511,38 @@ contains
 
   !>
   !! Compute  2-body integrals and computes the G matrix
-  subroutine Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoBody, factor)
+  subroutine Libint2Interface_compute2BodyIntraspecies_direct(speciesID, density, twoBody, factor, molSys, Libint2LocalForSpecies)
     implicit none
 
     integer :: speciesID
     real(8), allocatable, target :: density(:,:)
     real(8), allocatable, target :: twoBody(:,:)
     real(8) :: factor
+    type(MolecularSystem) :: molSys    
+    type(Libint2Interface) :: Libint2LocalForSpecies
 
     type(c_ptr) :: density_ptr
     type(c_ptr) :: twoBody_ptr
 
     integer :: nspecies
 
-    nspecies = size(MolecularSystem_instance%species)
-    if (.not. allocated(Libint2Instance)) then
-       allocate(Libint2Instance(nspecies))  
-    endif
+    nspecies = size(molSys%species)
 
     ! Prepare matrix
     if(allocated(twoBody)) deallocate(twoBody)
-    allocate(twoBody(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
-         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+    allocate(twoBody(MolecularSystem_getTotalNumberOfContractions(speciesID,molSys), &
+         MolecularSystem_getTotalNumberOfContractions(speciesID,molSys)))
 
     twoBody_ptr = c_loc(twoBody(1,1))
     density_ptr = c_loc(density(1,1))
 
     ! Initialize libint objects
-    if (.not. Libint2Instance(speciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(speciesID), MolecularSystem_instance, speciesID)
+    if (.not. Libint2LocalForSpecies%isInstanced) then
+       call Libint2Interface_constructor(Libint2LocalForSpecies, molSys, speciesID)
     endif
 
-    call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
-    call c_LibintInterface_compute2BodyDirect(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr, factor)
+    call c_LibintInterface_init2BodyInts(Libint2LocalForSpecies%this)
+    call c_LibintInterface_compute2BodyDirect(Libint2LocalForSpecies%this, density_ptr, twoBody_ptr, factor)
 
   end subroutine Libint2Interface_compute2BodyIntraspecies_direct
 
@@ -611,7 +610,7 @@ contains
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
     labels(1) = "DENSITY"
-    labels(2) = trim(MolecularSystem_getNameOfSpecie(speciesID))
+    labels(2) = trim(MolecularSystem_getNameOfSpecies(speciesID))
     aux_dens = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
          columns= int(numberOfContractions,4), binary=.true., arguments=labels)
 
@@ -635,45 +634,43 @@ contains
 
   !>
   !! Compute  2-body integrals and computes the G matrix
-  subroutine Libint2Interface_compute2BodyInterspecies_direct(speciesID, otherSpeciesID, density, coupling)
+  subroutine Libint2Interface_compute2BodyInterspecies_direct(speciesID, otherSpeciesID, density, coupling, molSys, Libint2LocalForSpecies, Libint2LocalForOtherSpecies)
     implicit none
 
     integer :: speciesID
     integer :: otherSpeciesID
     real(8), allocatable, target :: density(:,:)
     real(8), allocatable, target :: coupling(:,:)
+    type(MolecularSystem) :: molSys    
+    type(Libint2Interface) :: Libint2LocalForSpecies
+    type(Libint2Interface) :: Libint2LocalForOtherSpecies
 
     type(c_ptr) :: density_ptr
     type(c_ptr) :: coupling_ptr
 
     integer :: nspecies
 
-    nspecies = size(MolecularSystem_instance%species)
-
-    if (.not. allocated(Libint2Instance)) then
-       allocate(Libint2Instance(nspecies))  
-    endif
+    nspecies = size(molSys%species)
 
     ! Prepare matrix
     if(allocated(coupling)) deallocate(coupling)
-    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
-         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(speciesID,molSys), &
+         MolecularSystem_getTotalNumberOfContractions(speciesID,molSys)))
 
     coupling_ptr = c_loc(coupling(1,1))
     density_ptr = c_loc(density(1,1))
 
     ! Initialize libint objects
-    if (.not. Libint2Instance(speciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(speciesID), MolecularSystem_instance, speciesID)
-    end if
+    if (.not. Libint2LocalForSpecies%isInstanced) then
+       call Libint2Interface_constructor(Libint2LocalForSpecies, molSys, speciesID)
+    endif
 
-    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(otherSpeciesID), MolecularSystem_instance, otherSpeciesID)
-    end if
-
-
+    if (.not. Libint2LocalForOtherSpecies%isInstanced) then
+       call Libint2Interface_constructor(Libint2LocalForOtherSpecies, molSys, otherSpeciesID)
+    endif
+    
     call c_LibintInterface_computeCouplingDirect(&
-         Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coupling_ptr)
+         Libint2LocalForSpecies%this, Libint2LocalForOtherSpecies%this, density_ptr, coupling_ptr)
 
   end subroutine Libint2Interface_compute2BodyInterSpecies_direct
 
@@ -685,7 +682,7 @@ contains
     real(8), target :: density(:,:)
     real(8), target :: coefficients(:,:)
     real(8), allocatable, target :: coupling(:,:,:)
-    integer :: p, n
+    integer :: p
     type(MolecularSystem) :: molSys
     type(Libint2Interface) :: Libint2LocalForSpecies
     type(Libint2Interface) :: Libint2LocalForOtherSpecies
@@ -736,8 +733,8 @@ contains
 
     !! Prepare matrix
     if(allocated(coupling)) deallocate(coupling)
-!    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
-!         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+!    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(speciesID), &
+!         MolecularSystem_getTotalNumberOfContractions(speciesID)))
     allocate(coupling(1,1))
 
 
@@ -935,13 +932,15 @@ contains
 
   !>
   !! Compute 2-body integrals and store them on disk
-  subroutine Libint2Interface_computeG12Intraspecies_direct(speciesID, density, twoBody, factor)
+  subroutine Libint2Interface_computeG12Intraspecies_direct(speciesID, density, twoBody, factor, molSys, Libint2LocalForSpecies)
     implicit none
 
     integer :: speciesID
     real(8), allocatable, target :: density(:,:)
     real(8), allocatable, target :: twoBody(:,:)
     real(8) :: factor
+    type(MolecularSystem) :: molSys    
+    type(Libint2Interface) :: Libint2LocalForSpecies
 
     integer :: nspecies
     integer :: i, potID, pot_size
@@ -955,22 +954,19 @@ contains
     type(c_ptr) :: density_ptr
     type(c_ptr) :: twoBody_ptr
 
-    nspecies = size(MolecularSystem_instance%species)
-    if (.not. allocated(Libint2Instance)) then
-       allocate(Libint2Instance(nspecies))  
-    endif
+    nspecies = size(molSys%species)
 
     if(allocated(twoBody)) deallocate(twoBody)
-    allocate(twoBody(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
-         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+    allocate(twoBody(MolecularSystem_getTotalNumberOfContractions(speciesID,molSys), &
+         MolecularSystem_getTotalNumberOfContractions(speciesID,molSys)))
     
     twoBody_ptr = c_loc(twoBody(1,1))
     density_ptr = c_loc(density(1,1))
     !Get potential ID
     do i=1, InterPotential_instance%ssize
-       if ( trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+       if ( trim( molSys%species(speciesID)%symbol) == &
             trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
-            trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+            trim( molSys%species(speciesID)%symbol) == &
             trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie))) ) then
           potID=i
           exit
@@ -989,24 +985,22 @@ contains
     coefficients_ptr = c_loc(coefficients(1))
     exponents_ptr = c_loc(exponents(1))
 
-    ! Initialize libint objects
-    if (.not. Libint2Instance(speciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(speciesID), MolecularSystem_instance, speciesID)
-    end if
+    call c_LibintInterface_init2BodyInts(Libint2LocalForSpecies%this)
 
-    call c_LibintInterface_init2BodyInts(Libint2Instance(speciesID)%this)
-
-    call c_LibintInterface_computeG12Direct(Libint2Instance(speciesID)%this, density_ptr, twoBody_ptr, factor, coefficients_ptr, exponents_ptr, pot_size)
+    call c_LibintInterface_computeG12Direct(Libint2LocalForSpecies%this, density_ptr, twoBody_ptr, factor, coefficients_ptr, exponents_ptr, pot_size)
 
   end subroutine Libint2Interface_computeG12Intraspecies_direct
 
   !! Compute 2-body integrals and store them on disk
-  subroutine Libint2Interface_computeG12Interspecies_direct(speciesID,otherSpeciesID,density, coupling)
+  subroutine Libint2Interface_computeG12Interspecies_direct(speciesID,otherSpeciesID,density, coupling, molSys, Libint2LocalForSpecies, Libint2LocalForOtherSpecies)
     implicit none
 
     integer :: speciesID, otherSpeciesID
     real(8), allocatable, target :: density(:,:)
     real(8), allocatable, target :: coupling(:,:)
+    type(MolecularSystem) :: molSys
+    type(Libint2Interface) :: Libint2LocalForSpecies
+    type(Libint2Interface) :: Libint2LocalForOtherSpecies
 
     integer :: nspecies
     integer :: i, potID, pot_size
@@ -1020,29 +1014,26 @@ contains
     type(c_ptr) :: density_ptr
     type(c_ptr) :: coupling_ptr
 
-    nspecies = size(MolecularSystem_instance%species)
-    if (.not. allocated(Libint2Instance)) then
-       allocate(Libint2Instance(nspecies))  
-    endif
+    nspecies = size(molSys%species)
 
     ! Prepare matrix
     if(allocated(coupling)) deallocate(coupling)
-    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(specieID = speciesID), &
-         MolecularSystem_getTotalNumberOfContractions(specieID = speciesID)))
+    allocate(coupling(MolecularSystem_getTotalNumberOfContractions(speciesID,molSys), &
+         MolecularSystem_getTotalNumberOfContractions(speciesID,molSys)))
 
     coupling_ptr = c_loc(coupling(1,1))
     density_ptr = c_loc(density(1,1))
 
     !Get potential ID
     do i=1, InterPotential_instance%ssize
-       if ( (trim(MolecularSystem_instance%species(speciesID)%symbol) == &
+       if ( (trim(molSys%species(speciesID)%symbol) == &
             trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
-            trim(MolecularSystem_instance%species(otherSpeciesID)%symbol) == &
+            trim(molSys%species(otherSpeciesID)%symbol) == &
             trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
             ) .or. &
-            (trim( MolecularSystem_instance%species(otherSpeciesID)%symbol) == &
+            (trim(molSys%species(otherSpeciesID)%symbol) == &
             trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
-            trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+            trim(molSys%species(speciesID)%symbol) == &
             trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
             ) &
             ) then
@@ -1062,19 +1053,9 @@ contains
 
     coefficients_ptr = c_loc(coefficients(1))
     exponents_ptr = c_loc(exponents(1))
-
-    ! Initialize libint objects
-    if (.not. Libint2Instance(speciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(speciesID), MolecularSystem_instance, speciesID)
-    endif
-
-    if (.not. Libint2Instance(otherSpeciesID)%isInstanced) then
-       call Libint2Interface_constructor(Libint2Instance(otherSpeciesID),MolecularSystem_instance, otherSpeciesID)
-    endif
-
     
     call c_LibintInterface_computeG12InterDirect(&
-         Libint2Instance(speciesID)%this, Libint2Instance(otherSpeciesID)%this, density_ptr, coupling_ptr, coefficients_ptr, exponents_ptr, pot_size)
+         Libint2LocalForSpecies%this, Libint2LocalForOtherSpecies%this, density_ptr, coupling_ptr, coefficients_ptr, exponents_ptr, pot_size)
 
     
   end subroutine Libint2Interface_computeG12Interspecies_direct
@@ -1090,7 +1071,6 @@ contains
     type(MolecularSystem) :: molSys    
     type(Libint2Interface) :: Libint2LocalForSpecies
 
-    integer :: nspecies
     integer :: i, potID, pot_size
 
     real(8), allocatable, target :: coefficients(:)
@@ -1107,9 +1087,9 @@ contains
     if(InterPotential_instance%isInstanced) then !G12 integrals
        !Get potential ID
        do i=1, InterPotential_instance%ssize
-          if ( trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+          if ( trim( molSys%species(speciesID)%symbol) == &
                trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
-               trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+               trim( molSys%species(speciesID)%symbol) == &
                trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie))) ) then
              potID=i
              exit
@@ -1145,7 +1125,6 @@ contains
     type(Libint2Interface) :: Libint2LocalForSpecies
     type(Libint2Interface) :: Libint2LocalForOtherSpecies
 
-    integer :: nspecies
     integer :: i, potID, pot_size
 
     real(8), allocatable, target :: coefficients(:)
@@ -1162,14 +1141,14 @@ contains
     if(InterPotential_instance%isInstanced) then !G12 integrals
        !Get potential ID
        do i=1, InterPotential_instance%ssize
-          if ( (trim(MolecularSystem_instance%species(speciesID)%symbol) == &
+          if ( (trim(molSys%species(speciesID)%symbol) == &
                trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
-               trim(MolecularSystem_instance%species(otherSpeciesID)%symbol) == &
+               trim(molSys%species(otherSpeciesID)%symbol) == &
                trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
                ) .or. &
-               (trim( MolecularSystem_instance%species(otherSpeciesID)%symbol) == &
+               (trim( molSys%species(otherSpeciesID)%symbol) == &
                trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
-               trim( MolecularSystem_instance%species(speciesID)%symbol) == &
+               trim( molSys%species(speciesID)%symbol) == &
                trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
                ) &
                ) then

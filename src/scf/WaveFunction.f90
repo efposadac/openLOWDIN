@@ -28,6 +28,7 @@ module WaveFunction_
   use CosmoCore_
   use DirectIntegralManager_
   use DensityFunctionalTheory_
+  use Libint2Interface_
 
   implicit none
 
@@ -47,6 +48,7 @@ module WaveFunction_
      !!Identity
      character(30) :: name
      integer :: species
+     type(MolecularSystem), pointer :: molSys
 
      !!**************************************************************
      !! Matrices requeridas y alteradas en la realizacion del ciclo SCF
@@ -121,35 +123,36 @@ contains
 
   !>
   !! @brief Define el constructor para la clase
-  subroutine WaveFunction_constructor(these )
+  subroutine WaveFunction_constructor(these,nspecies,molsystem)
     implicit none
-    type(WaveFunction) :: these(*)
+    type(WaveFunction) :: these(nspecies)
+    integer :: nspecies
+    type(MolecularSystem), optional, target :: molsystem
 
     integer :: speciesID, otherSpeciesID
     integer(8) :: numberOfContractions, otherNumberOfContractions
-    character(50) :: labels(2)
-    character(50) :: dftFile
-    integer :: dftUnit
-
+        
     !! Allocate memory for specie in system and load some matrices.
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do speciesID = 1, nspecies
+       if( present(molsystem) ) then
+          these(speciesID)%molSys=>molsystem
+       else
+          these(speciesID)%molSys=>MolecularSystem_instance
+       end if
 
        these(speciesID)%species=speciesID
-       these(speciesID)%name=trim(MolecularSystem_getNameOfSpecies(speciesID))
+       these(speciesID)%name=trim(MolecularSystem_getNameOfSpecies(speciesID,these(speciesID)%molSys))
 
-       
-       labels = ""
-       labels(2) = trim(MolecularSystem_getNameOfSpecies(speciesID))
-       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID,these(speciesID)%molSys)
 
 
        if(allocated(these(speciesID)%hartreeMatrix)) deallocate(these(speciesID)%hartreeMatrix)
        if(allocated(these(speciesID)%hartreeEnergy)) deallocate(these(speciesID)%hartreeEnergy)
        if(allocated(these(speciesID)%exchangeCorrelationEnergy)) deallocate(these(speciesID)%exchangeCorrelationEnergy)
 
-       allocate(these(speciesID)%hartreeMatrix( MolecularSystem_instance%numberOfQuantumSpecies))
-       allocate(these(speciesID)%hartreeEnergy( MolecularSystem_instance%numberOfQuantumSpecies))
-       allocate(these(speciesID)%exchangeCorrelationEnergy( MolecularSystem_instance%numberOfQuantumSpecies))
+       allocate(these(speciesID)%hartreeMatrix( nspecies))
+       allocate(these(speciesID)%hartreeEnergy( nspecies))
+       allocate(these(speciesID)%exchangeCorrelationEnergy( nspecies))
 
 
        !! Parametros Asociados con el SCF
@@ -159,7 +162,7 @@ contains
 
        !! Instancia un objeto para manejo de aceleracion y convergencia del metodo SCF
        call Convergence_constructor(these( speciesID )%convergenceMethod, &
-            these(speciesID)%name,CONTROL_instance%CONVERGENCE_METHOD)
+            these(speciesID)%name,CONTROL_instance%CONVERGENCE_METHOD,these(speciesID)%molSys)
 
        !! Set defaults
        these(speciesID)%totalEnergyForSpecies = 0.0_8
@@ -189,7 +192,7 @@ contains
        call Matrix_constructor( these(speciesID)%couplingMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
        call Matrix_constructor( these(speciesID)%externalPotentialMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
 
-       do otherSpeciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+       do otherSpeciesID = 1, nspecies
          call Matrix_constructor( these(speciesID)%hartreeMatrix(otherSpeciesID), numberOfContractions, numberOfContractions, 0.0_8 )
       end do
       
@@ -212,37 +215,15 @@ contains
        if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
           if(allocated(these(speciesID)%fourCenterIntegrals)) deallocate(these(speciesID)%fourCenterIntegrals)
 
-          allocate(these(speciesID)%fourCenterIntegrals(MolecularSystem_instance%numberOfQuantumSpecies))
+          allocate(these(speciesID)%fourCenterIntegrals(nspecies))
           !its not necessary to allocate all the species
-          do otherSpeciesID=speciesID, MolecularSystem_instance%numberOfQuantumSpecies
-             otherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
+          do otherSpeciesID=speciesID, nspecies
+             otherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID,these(speciesID)%molSys)
              call Matrix_fourIndexConstructor(these(speciesID)%fourCenterIntegrals(otherSpeciesID),&
                   otherNumberOfContractions,otherNumberOfContractions,numberOfContractions,numberOfContractions,0.0_8)
           end do
        end if
     end do
-    
-    !!Initialize DFT: Calculate Grids and build functionals
-    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-       if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
-          call system ("lowdin-DFT.x BUILD_SCF_GRID")
-          do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
-             dftUnit = 77
-             dftFile = "lowdin."//trim(MolecularSystem_getNameOfSpecies(speciesID))//".grid"
-             open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
-
-             labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
-             labels(1) = "EXACT-EXCHANGE-FRACTION"
-
-             call Vector_getFromFile(unit=dftUnit, binary=.true., value=these(speciesID)%exactExchangeFraction, arguments=labels)
-             close(unit=dftUnit)
-             ! print *, "el tormento tuyo", speciesID, these(speciesID)%exactExchangeFraction
-          end do
-       else
-          call DensityFunctionalTheory_buildSCFGrid(these(1:MolecularSystem_instance%numberOfQuantumSpecies)%exactExchangeFraction)
-       end if
-    end if
-
 
     if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
       write (*,"(T2,A15,3F12.8)") "ELECTRIC FIELD:", CONTROL_instance%ELECTRIC_FIELD
@@ -262,19 +243,19 @@ contains
     character(10) :: arguments(2)
 
     arguments(1) = "OVERLAP"
-    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species))
+    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
     this%overlapMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments)
     close(34)
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
-     print *,"Matriz de overlap: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+     print *,"Matriz de overlap: ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
      call Matrix_show(this%overlapMatrix)
     end if
   end subroutine WaveFunction_readOverlapMatrix
@@ -291,19 +272,19 @@ contains
     character(10) :: arguments(2)
 
     arguments(1) = "KINETIC"
-    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species))
+    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
     this%kineticMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments)
     close(34)
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
-     print *,"Matriz de kinetic: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+     print *,"Matriz de kinetic: ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
      call Matrix_show(this%kineticMatrix)
     end if
   end subroutine WaveFunction_readKineticMatrix
@@ -320,19 +301,19 @@ contains
     character(10) :: arguments(2)
 
     arguments(1) = "ATTRACTION"
-    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species))
+    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
     this%puntualInteractionMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments)
     close(34)
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"Matriz de puntual interaction: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+       print *,"Matriz de puntual interaction: ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
        call Matrix_show(this%puntualInteractionMatrix)
     end if
   end subroutine WaveFunction_readPuntualInteractionMatrix
@@ -348,12 +329,12 @@ contains
     integer :: totalNumberOfContractions
     character(10) :: arguments(2)
 
-    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species))
+    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
     arguments(1) = "MOMENTX"
     this%electricField(1) = Matrix_getFromFile(rows=totalNumberOfContractions, &
          columns=totalNumberOfContractions, &
@@ -370,7 +351,7 @@ contains
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"External electric field Matrix: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+       print *,"External electric field Matrix: ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
        call Matrix_show(this%electricField(1))
        call Matrix_show(this%electricField(2))
        call Matrix_show(this%electricField(3))
@@ -388,12 +369,12 @@ contains
     integer :: totalNumberOfContractions
     character(10) :: arguments(2)
 
-    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species))
+    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
     arguments(1) = "HARMONIC"
     this%harmonic = Matrix_getFromFile(rows=totalNumberOfContractions, &
          columns=totalNumberOfContractions, &
@@ -402,7 +383,7 @@ contains
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"Harmonic oscillator Matrix: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+       print *,"Harmonic oscillator Matrix: ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
        call Matrix_show(this%harmonic )
     end if
 
@@ -421,7 +402,7 @@ contains
     integer :: i, j
 
     !! Numero de contracciones "totales"
-    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
 
     if ( numberOfContractions > 1) then
        call Vector_constructor( eigenValues, int(numberOfContractions) )
@@ -449,7 +430,7 @@ contains
        end do
        if (this%removedOrbitals .gt. 0 .and. CONTROL_instance%PRINT_LEVEL .gt. 0) &
             write(*,"(A,I5,A,A,A,ES9.3)") "Removed ", this%removedOrbitals , " orbitals for species ", &
-            trim(MolecularSystem_getNameOfSpecies(this%species)), " with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
+            trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys)), " with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
        !!
        !!****************************************************************
 
@@ -479,7 +460,7 @@ contains
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"Matriz de transformation: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+       print *,"Matriz de transformation: ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
        call Matrix_show(this%transformationMatrix)
     end if
 
@@ -497,48 +478,42 @@ contains
     integer :: owner, owner_2
     real(8) :: auxCharge
     real(8) :: auxOmega
-    integer :: numberOfContractions
-    integer :: totalNumberOfContractions
-
-    !! Get number of shells and number of cartesian contractions
-    numberOfContractions = MolecularSystem_getNumberOfContractions(this%species)
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)          
 
     !! Incluiding mass effect       
     if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
        this%kineticMatrix%values =  &
             this%kineticMatrix%values * &
-            ( 1.0_8/MolecularSystem_getMass(this%species) -1.0_8 / MolecularSystem_getTotalMass() )
+            ( 1.0_8/MolecularSystem_getMass(this%species,this%molSys) -1.0_8 / MolecularSystem_getTotalMass(this%molSys) )
     else
        this%kineticMatrix%values = &
             this%kineticMatrix%values / &
-            MolecularSystem_getMass(this%species)
+            MolecularSystem_getMass(this%species,this%molSys)
     end if
 
     !! Finite Nuclear Mass Correction
     if ( CONTROL_instance%FINITE_MASS_CORRECTION ) then
        k=1
-       do particleID = 1, size(MolecularSystem_instance%species(this%species)%particles)
-          do contractionID = 1, size(MolecularSystem_instance%species(this%species)%particles(particleID)%basis%contraction)
+       do particleID = 1, size(this%molSys%species(this%species)%particles)
+          do contractionID = 1, size(this%molSys%species(this%species)%particles(particleID)%basis%contraction)
 
-             numberOfCartesiansOrbitals = MolecularSystem_instance%species(this%species)%particles(particleID)%basis%contraction(contractionID)%numCartesianOrbital
-             owner = MolecularSystem_instance%species(this%species)%particles(particleID)%basis%contraction(contractionID)%owner
+             numberOfCartesiansOrbitals = this%molSys%species(this%species)%particles(particleID)%basis%contraction(contractionID)%numCartesianOrbital
+             owner = this%molSys%species(this%species)%particles(particleID)%basis%contraction(contractionID)%owner
 
              do s = 1, numberOfCartesiansOrbitals
                 l=k
 
-                do particleID_2 = 1, size(MolecularSystem_instance%species(this%species)%particles)
-                   do contractionID_2 = 1, size(MolecularSystem_instance%species(this%species)%particles(particleID_2)%basis%contraction)
+                do particleID_2 = 1, size(this%molSys%species(this%species)%particles)
+                   do contractionID_2 = 1, size(this%molSys%species(this%species)%particles(particleID_2)%basis%contraction)
 
-                      numberOfCartesiansOrbitals_2 = MolecularSystem_instance%species(this%species)%particles(particleID_2)%basis%contraction(contractionID_2)%numCartesianOrbital
-                      owner_2 = MolecularSystem_instance%species(this%species)%particles(particleID_2)%basis%contraction(contractionID_2)%owner
+                      numberOfCartesiansOrbitals_2 = this%molSys%species(this%species)%particles(particleID_2)%basis%contraction(contractionID_2)%numCartesianOrbital
+                      owner_2 = this%molSys%species(this%species)%particles(particleID_2)%basis%contraction(contractionID_2)%owner
 
                       do r = 1, numberOfCartesiansOrbitals_2
 
                          if ( owner .eq. owner_2) then
                             this%kineticMatrix%values(k,l)=&
                                  this%kineticMatrix%values(k,l)*&
-                                 ( 1 + MolecularSystem_getMass(this%species) / MolecularSystem_instance%species(this%species)%particles(particleID)%mass  )
+                                 ( 1 + MolecularSystem_getMass(this%species,this%molSys) / this%molSys%species(this%species)%particles(particleID)%mass  )
 
                             this%kineticMatrix%values(l,k)=&
                                  this%kineticMatrix%values(k,l)
@@ -555,7 +530,7 @@ contains
     end if
 
     !! Incluiding charge effect
-    auxcharge = MolecularSystem_getCharge(this%species)
+    auxcharge = MolecularSystem_getCharge(this%species,this%molSys)
 
     this%puntualInteractionMatrix%values = &
          this%puntualInteractionMatrix%values * (-auxCharge)
@@ -578,17 +553,17 @@ contains
 
 
     !! Add harmonic oscillator potential 1/2 m omega**2 < \mu | r**2 | \nu >
-    auxOmega = MolecularSystem_getOmega(this%species)
+    auxOmega = MolecularSystem_getOmega(this%species,this%molSys)
 
     if ( auxOmega .ne. 0.0_8 ) then
       this%HCoreMatrix%values = this%HCoreMatrix%values + &                                                  
-                                (1.0/2.0) * MolecularSystem_getMass( this%species ) * auxOmega**2 * this%harmonic%values      
+                                (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values      
     end if                                                                                                        
 
 
     !! DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
-       print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+       print *,"Matriz de hcore: ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
        call Matrix_show(this%HCoreMatrix)
     end if
 
@@ -604,7 +579,7 @@ contains
     integer :: otherSpeciesID
     real(8) :: auxCharge
 
-    auxcharge = MolecularSystem_getCharge(this%species)
+    auxcharge = MolecularSystem_getCharge(this%species,this%molSys)
 
     !! Remove the electric field matrix to calculate the energy components
     if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
@@ -659,7 +634,7 @@ contains
          this%externalPotentialMatrix%values))
 
     !! Calcula energia de acoplamiento por especies
-    do otherSpeciesID=1, MolecularSystem_instance%numberOfQuantumSpecies
+    do otherSpeciesID=1, this%molSys%numberOfQuantumSpecies
        if (this%species .ne. otherSpeciesID) then
           this%hartreeEnergy( otherSpeciesID ) = &
                sum( transpose( this%densityMatrix%values ) * &
@@ -685,7 +660,7 @@ contains
 
        write(*,*)"COSMO energy contributions"
 
-       write(*,*)"Especie = ",trim(MolecularSystem_instance%species(this%species)%name)
+       write(*,*)"Especie = ",trim(this%molSys%species(this%species)%name)
 
        this%cosmoEnergy =  &
             0.5_8* (sum( transpose( this%densitymatrix%values ) * &
@@ -720,7 +695,7 @@ contains
 
 
     ! print *, "__________________ ENERGY COMPONENTS _______________________"
-    ! print *, "	Specie                       ", MolecularSystem_getNameOfSpecies(this%species)
+    ! print *, "	Specie                       ", MolecularSystem_getNameOfSpecies(this%species,this%molSys)
     ! print *, "	Total Energy                =", this%totalEnergyForSpecies
     ! print *, "	Indepent Specie Energy      =", this%independentSpeciesEnergy
     ! print *, "	Kinetic Energy              =",this%kineticEnergy
@@ -746,7 +721,6 @@ contains
     ! integer :: numberOfCartesiansOrbitals, numberOfCartesiansOrbitals_2
     ! integer :: owner, owner_2
     ! integer :: auxCharge
-    integer :: numberOfContractions
     integer :: totalNumberOfContractions
     character(10) :: arguments(2)
 
@@ -754,12 +728,11 @@ contains
     unit = 44
     open(unit = unit, file=trim(file), status="old", form="unformatted")
 
-    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species))  
+    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))  
 
 
     !! Get number of shells and number of cartesian contractions
-    numberOfContractions = MolecularSystem_getNumberOfContractions(this%species)
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)          
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)          
 
 
     !! Load electron potential vs clasical charges cosmo matrix
@@ -770,7 +743,7 @@ contains
 
 
     ! DEBUG
-    ! print *,"Matriz cosmo1: ", trim(MolecularSystem_getNameOfSpecies(this%species))
+    ! print *,"Matriz cosmo1: ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     ! call Matrix_show( this%cosmo1 )
 
     !! Load clasical potential vs quantum charges cosmo matrix
@@ -782,7 +755,7 @@ contains
 
 
     !! DEBUG
-    ! print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecies(this%species))
+    ! print *,"Matriz cosmo 4 ", trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     ! call Matrix_show( this%cosmo4 )
 
     close(44)    
@@ -804,12 +777,12 @@ contains
     character(50) :: arguments(2)
 
     arguments(1) = "EXTERNAL_POTENTIAL"
-    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species))
+    arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     !! Open file
     unit = 34
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)          
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)          
     this%externalPotentialMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, &
          columns=totalNumberOfContractions, &
          unit=unit, binary=.true., arguments=arguments(1:2))
@@ -841,13 +814,14 @@ contains
   
   !>
   !! @brief Builds two-particles matrix.
-  subroutine WaveFunction_buildTwoParticlesMatrix( this, densityMatrixIN, factorIN, twoParticlesMatrixOUT )
+  subroutine WaveFunction_buildTwoParticlesMatrix( this, densityMatrixIN, factorIN, twoParticlesMatrixOUT, Libint2Objects )
     implicit none
     type(WaveFunction) :: this
     type(Matrix), optional :: densityMatrixIN
     real(8), optional :: factorIN
     type(Matrix), optional :: twoParticlesMatrixOUT
-    
+    type(Libint2Interface), optional :: Libint2Objects(:)
+
     real(8) :: coulomb
     real(8) :: exchange
     real(8) :: factor
@@ -871,8 +845,8 @@ contains
     integer :: nthreads
     integer :: threadid
     integer :: unitid
-
-    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
+    
+    totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
 
     call Matrix_constructor(densityMatrix, int(totalNumberOfContractions,8), int(totalNumberOfContractions,8), 0.0_8 )
     if ( present(densityMatrixIN)) then
@@ -882,15 +856,15 @@ contains
     end if
 
     if ( present(factorIN)) then
-       factor = MolecularSystem_getFactorOfExchangeIntegrals(this%species)*factorIN
+       factor = MolecularSystem_getFactorOfExchangeIntegrals(this%species,this%molSys)*factorIN
     else
-       factor = MolecularSystem_getFactorOfExchangeIntegrals(this%species)*this%exactExchangeFraction
+       factor = MolecularSystem_getFactorOfExchangeIntegrals(this%species,this%molSys)*this%exactExchangeFraction
     end if
     
     call Matrix_constructor(twoParticlesMatrix, int(totalNumberOfContractions,8), int(totalNumberOfContractions,8), 0.0_8 )
     
     !! This matrix is only calculated if there are more than one particle for this%species or if the user want to calculate it.
-    if ( MolecularSystem_getNumberOfParticles(this%species) > 1 .or.  CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
+    if ( MolecularSystem_getNumberOfParticles(this%species,this%molSys) > 1 .or.  CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE ) then
 
        if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) then
 
@@ -902,7 +876,7 @@ contains
           write(fileid,*) threadid
           fileid = trim(adjustl(fileid))
 
-          if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(this%species)%isElectron) then
+          if(CONTROL_instance%IS_OPEN_SHELL .and. this%molSys%species(this%species)%isElectron) then
              open( UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.ints", status='old', access='stream', form='Unformatted')
           else
              open( UNIT=unitid,FILE=trim(fileid)//trim(this%name)//".ints", status='old', access='stream', form='Unformatted')
@@ -1072,7 +1046,7 @@ contains
           end do
           
           if ( .not. InterPotential_instance%isInstanced) &
-               twoParticlesMatrix%values=twoParticlesMatrix%values*(MolecularSystem_getCharge(speciesID=this%species))**2.0_8
+               twoParticlesMatrix%values=twoParticlesMatrix%values*(MolecularSystem_getCharge(this%species,this%molSys))**2.0_8
           
        else if ( CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
 
@@ -1116,27 +1090,52 @@ contains
              end do
           end do
           if ( .not. InterPotential_instance%isInstanced) &
-               twoParticlesMatrix%values=twoParticlesMatrix%values*(MolecularSystem_getCharge(speciesID=this%species))**2.0_8
+               twoParticlesMatrix%values=twoParticlesMatrix%values*(MolecularSystem_getCharge(this%species,this%molSys))**2.0_8
           
        else !! Direct
 
           if ( .not. InterPotential_instance%isInstanced) then !!regular integrals
-             call DirectIntegralManager_getDirectIntraRepulsionMatrix(&
-                  this%species, &
-                  trim(CONTROL_instance%INTEGRAL_SCHEME), &
-                  densityMatrix, & 
-                  tmpTwoParticlesMatrix, &
-                  factor)
+             if( present(Libint2Objects) ) then
+                call DirectIntegralManager_getDirectIntraRepulsionMatrix(&
+                     this%species, &
+                     trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                     densityMatrix, & 
+                     tmpTwoParticlesMatrix, &
+                     factor, &
+                     this%molSys, &
+                     Libint2Objects(:))
+             else
+                call DirectIntegralManager_getDirectIntraRepulsionMatrix(&
+                     this%species, &
+                     trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                     densityMatrix, & 
+                     tmpTwoParticlesMatrix, &
+                     factor, &
+                     this%molSys, &
+                     Libint2Instance)
+             end if
 
              tmpTwoParticlesMatrix = &
-                  tmpTwoParticlesMatrix * ( MolecularSystem_getCharge(speciesID=this%species ) )**2.0_8
+                  tmpTwoParticlesMatrix * ( MolecularSystem_getCharge(this%species,this%molSys) )**2.0_8
 
           else !! G12 integrals
-             call DirectIntegralManager_getDirectIntraRepulsionG12Matrix(&
-                  this%species, &
-                  densityMatrix, & 
-                  tmpTwoParticlesMatrix, &
-                  factor)
+             if( present(Libint2Objects) ) then
+                call DirectIntegralManager_getDirectIntraRepulsionG12Matrix(&
+                     this%species, &
+                     densityMatrix, & 
+                     tmpTwoParticlesMatrix, &
+                     factor,&
+                     this%molSys, &
+                     Libint2Objects(:))
+             else
+                call DirectIntegralManager_getDirectIntraRepulsionG12Matrix(&
+                     this%species, &
+                     densityMatrix, & 
+                     tmpTwoParticlesMatrix, &
+                     factor,&
+                     this%molSys, &
+                     Libint2Instance)
+             end if
 
           end if
           twoParticlesMatrix%values = tmpTwoParticlesMatrix
@@ -1161,13 +1160,14 @@ contains
 
   !>
   !! @brief Builds the coupling matrix for the selected speciesID.
-  subroutine WaveFunction_buildCouplingMatrix( these, speciesID, densityMatricesIN, couplingMatrixOUT, hartreeMatricesOUT )
+  subroutine WaveFunction_buildCouplingMatrix( these, speciesID, densityMatricesIN, couplingMatrixOUT, hartreeMatricesOUT, Libint2Objects)
     implicit none
     type(WaveFunction) :: these(*)
     integer :: speciesID
     type(Matrix), optional :: densityMatricesIN(*)
     type(Matrix), optional :: couplingMatrixOUT
     type(Matrix), optional :: hartreeMatricesOUT(*)
+    type(Libint2Interface), optional :: Libint2Objects(:)
 
     character(30) :: nameOfSpecies
     character(30) :: nameOfOtherSpecies
@@ -1199,8 +1199,8 @@ contains
 
     nameOfSpecies=these(speciesID)%name
 
-    numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
-    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+    numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies(these(1)%molSys)
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID,these(1)%molSys)
 
     allocate(densityMatrices(numberOfSpecies))
     allocate(hartreeMatrices(numberOfSpecies))
@@ -1238,8 +1238,8 @@ contains
 
           do otherSpeciesID = 1, numberOfSpecies
 
-             nameOfOtherSpecies = MolecularSystem_getNameOfSpecies( otherSpeciesID )          
-             OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
+             nameOfOtherSpecies = MolecularSystem_getNameOfSpecies(otherSpeciesID,these(otherSpeciesID)%molSys)          
+             OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID,these(otherSpeciesID)%molSys)
 
              !! Restringe suma de terminos repulsivos de la misma especie.
              if ( otherSpeciesID .eq. speciesID ) cycle
@@ -1252,14 +1252,14 @@ contains
 
                 !! open file for integrals
                 if(CONTROL_instance%IS_OPEN_SHELL .and. &
-                     MolecularSystem_instance%species(speciesID)%isElectron .and. &
-                     MolecularSystem_instance%species(otherSpeciesID)%isElectron ) then
+                     these(speciesID)%molSys%species(speciesID)%isElectron .and. &
+                     these(speciesID)%molSys%species(otherSpeciesID)%isElectron ) then
                    open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-                else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(otherSpeciesID)%isElectron) then
+                else if(CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
                    open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA."//trim(nameOfSpecies)//".ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-                else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(speciesID)%isElectron) then
+                else if(CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(speciesID)%isElectron) then
                    open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfOtherSpecies)//".E-ALPHA.ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
                 else
@@ -1296,7 +1296,7 @@ contains
                 close(unitid)
 
                 if ( .not. InterPotential_instance%isInstanced) &
-                     auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+                     auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID,these(speciesID)%molSys ) * MolecularSystem_getCharge( otherSpeciesID,these(otherSpeciesID)%molSys )
 
                 do i = 1 , numberOfContractions
                    do j = i , numberOfContractions
@@ -1312,14 +1312,14 @@ contains
 
                 !! open file for integrals
                 if(CONTROL_instance%IS_OPEN_SHELL .and. &
-                     MolecularSystem_instance%species(speciesID)%isElectron .and. &
-                     MolecularSystem_instance%species(otherSpeciesID)%isElectron ) then
+                     these(speciesID)%molSys%species(speciesID)%isElectron .and. &
+                     these(speciesID)%molSys%species(otherSpeciesID)%isElectron ) then
                    open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-                else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(otherSpeciesID)%isElectron) then
+                else if(CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
                    open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecies)//".E-ALPHA.ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-                else if(CONTROL_instance%IS_OPEN_SHELL .and. MolecularSystem_instance%species(speciesID)%isElectron) then
+                else if(CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(speciesID)%isElectron) then
                    open(UNIT=unitid,FILE=trim(fileid)//"E-ALPHA."//trim(nameOfOtherSpecies)//".ints", &
                         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
                 else
@@ -1356,7 +1356,7 @@ contains
                 close(unitid)
 
                 if ( .not. InterPotential_instance%isInstanced) &
-                     auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+                     auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID,these(speciesID)%molSys ) * MolecularSystem_getCharge( otherSpeciesID,these(otherSpeciesID)%molSys )
 
                 do i = 1 , numberOfContractions
                    do j = i , numberOfContractions
@@ -1377,7 +1377,7 @@ contains
        else if ( CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
           do otherSpeciesID = 1, numberOfSpecies
              if ( otherSpeciesID .eq. speciesID ) cycle
-             OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
+             OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID,these(otherSpeciesID)%molSys)
              !integral storage order
              if( speciesID < otherSpeciesID) then  
                 do v = 1 , numberOfContractions
@@ -1424,7 +1424,8 @@ contains
                 end do
              end do
              if ( .not. InterPotential_instance%isInstanced) &
-                  hartreeMatrices(otherSpeciesID)%values=hartreeMatrices(otherSpeciesID)%values*MolecularSystem_getCharge(speciesID)*MolecularSystem_getCharge(otherSpeciesID)
+                  hartreeMatrices(otherSpeciesID)%values=hartreeMatrices(otherSpeciesID)%values*&
+                  MolecularSystem_getCharge(speciesID,these(speciesID)%molSys)*MolecularSystem_getCharge(otherSpeciesID,these(otherSpeciesID)%molSys)
           end do
 
           
@@ -1436,19 +1437,42 @@ contains
              if ( otherSpeciesID .eq. speciesID ) cycle
 
              if ( .not. InterPotential_instance%isInstanced) then !!regular integrals
-                call DirectIntegralManager_getDirectInterRepulsionMatrix(&
-                     speciesID, OtherSpeciesID, &
-                     trim(CONTROL_instance%INTEGRAL_SCHEME), &
-                     densityMatrices(otherSpeciesID), &
-                     auxMatrix )
+                if(present(Libint2Objects)) then
+                   call DirectIntegralManager_getDirectInterRepulsionMatrix(&
+                        speciesID, OtherSpeciesID, &
+                        trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                        densityMatrices(otherSpeciesID), &
+                        auxMatrix, &
+                        these(speciesID)%molSys, &
+                        Libint2Objects(:))
+                else
+                   call DirectIntegralManager_getDirectInterRepulsionMatrix(&
+                        speciesID, OtherSpeciesID, &
+                        trim(CONTROL_instance%INTEGRAL_SCHEME), &
+                        densityMatrices(otherSpeciesID), &
+                        auxMatrix, &
+                        these(speciesID)%molSys, &
+                        Libint2Instance)
+                end if
 
                 auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
 
              else !! G12 integrals
-                call DirectIntegralManager_getDirectInterRepulsionG12Matrix(&
-                     speciesID, OtherSpeciesID, &
-                     densityMatrices(otherSpeciesID), &
-                     auxMatrix )
+                if(present(Libint2Objects)) then
+                   call DirectIntegralManager_getDirectInterRepulsionG12Matrix(&
+                        speciesID, OtherSpeciesID, &
+                        densityMatrices(otherSpeciesID), &
+                        auxMatrix, &
+                        these(speciesID)%molSys, &
+                        Libint2Objects(:))
+                else
+                   call DirectIntegralManager_getDirectInterRepulsionG12Matrix(&
+                        speciesID, OtherSpeciesID, &
+                        densityMatrices(otherSpeciesID), &
+                        auxMatrix, &
+                        these(speciesID)%molSys, &
+                        Libint2Instance)
+                end if
              end if
                 
              hartreeMatrices(otherSpeciesID)%values = &
@@ -1473,7 +1497,7 @@ contains
              end do
           end do
           
-          nameOfOtherSpecies = MolecularSystem_getNameOfSpecies( otherSpeciesID )          
+          nameOfOtherSpecies = MolecularSystem_getNameOfSpecies( otherSpeciesID,these(otherSpeciesID)%molSys )          
              
           if ( nameOfOtherSpecies .ne. CONTROL_instance%SCF_GHOST_SPECIES ) &
                couplingMatrix%values = couplingMatrix%values + hartreeMatrices(otherSpeciesID)%values 
@@ -1500,7 +1524,7 @@ contains
     if (  CONTROL_instance%DEBUG_SCFS) then
        do otherSpeciesID = 1, numberOfSpecies
           if ( otherSpeciesID .eq. speciesID ) cycle
-          nameOfOtherSpecies = MolecularSystem_getNameOfSpecies( otherSpeciesID )          
+          nameOfOtherSpecies = MolecularSystem_getNameOfSpecies( otherSpeciesID,these(otherSpeciesID)%molSys )          
           write(*,*) "Hartree Matrix for: ", trim(nameOfSpecies), trim(nameOfOtherSpecies)
           call Matrix_show( these(speciesID)%hartreeMatrix(otherSpeciesID) )
        end do
@@ -1533,8 +1557,8 @@ contains
     character(50) :: labels(2)
     integer :: excUnit
     
-    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species)
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
     allocate(exchangeCorrelationEnergy(numberOfSpecies))
 
     !! Open file from dft and read matrices
@@ -1556,7 +1580,7 @@ contains
          binary=.true., arguments=labels(1:2))
 
     do otherSpeciesID = this%species, numberOfSpecies
-       otherNameOfSpecies=trim(MolecularSystem_getNameOfSpecies(otherSpeciesID))
+       otherNameOfSpecies=trim(MolecularSystem_getNameOfSpecies(otherSpeciesID,this%molSys))
        labels(1) = "EXCHANGE-CORRELATION-ENERGY"
        labels(2) = trim(this%name)//trim(otherNameOfSpecies)
        call Vector_getFromFile(unit=excUnit, binary=.true., value=exchangeCorrelationEnergy(otherSpeciesID), arguments= labels )
@@ -1587,10 +1611,11 @@ contains
 
   !>
   !! @brief Builds exchange correlation contributions Matrix for DFT calculations (FELIX)
- subroutine WaveFunction_getDFTContributions( these, status, densityMatricesIN, &
+ subroutine WaveFunction_getDFTContributions( these, DFTGrids, DFTGridCommonPoints, status, densityMatricesIN, &
       exchangeCorrelationMatricesOUT, exchangeCorrelationEnergyOUT, particlesInGridOUT  )       
     implicit none
     type(WaveFunction) :: these(*)
+    type(Grid) :: DFTGrids(:), DFTGridCommonPoints(:,:)
     character(*) :: status
     type(Matrix), optional :: densityMatricesIN(*)
     type(Matrix), optional :: exchangeCorrelationMatricesOUT(*)
@@ -1602,7 +1627,7 @@ contains
     type(Matrix) :: energyMatrix
     integer :: numberOfSpecies, i,j
     
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies(these(1)%molSys)
     allocate(densityMatrices(numberOfSpecies), exchangeCorrelationMatrices(numberOfSpecies), particlesInGrid(numberOfSpecies))
     
     if ( present(densityMatricesIN)) then
@@ -1618,7 +1643,7 @@ contains
     call Matrix_constructor(energyMatrix, int(numberOfSpecies,8), int(numberOfSpecies,8), 0.0_8 )
     
     if (status .eq. "SCF" ) then
-       call DensityFunctionalTheory_SCFDFT(densityMatrices, &
+       call DensityFunctionalTheory_SCFDFT(DFTGrids, DFTGridCommonPoints, densityMatrices, &
             exchangeCorrelationMatrices, &
             energyMatrix, &
             particlesInGrid)
@@ -1631,9 +1656,9 @@ contains
              energyMatrix%values(i,j)=these(i)%exchangeCorrelationEnergy(j)
           end do
        end do
-       call DensityFunctionalTheory_buildFinalGrid()
+       call DensityFunctionalTheory_buildFinalGrid(DFTGrids, DFTGridCommonPoints, these(1)%molSys)
 
-       call DensityFunctionalTheory_finalDFT(densityMatrices, &
+       call DensityFunctionalTheory_finalDFT(DFTGrids, DFTGridCommonPoints,densityMatrices, &
             exchangeCorrelationMatrices, &
             energyMatrix, &
             particlesInGrid)
@@ -1712,7 +1737,7 @@ contains
     integer :: densUnit
     character(50) :: labels(2)
 
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies(these(1)%molSys)
 
     allocate(densityMatrices(numberOfSpecies))
     densUnit = 78
@@ -1728,7 +1753,7 @@ contains
     open(unit = densUnit, file=trim(densityFileOUT), status="replace", form="unformatted")
     labels(1) = "DENSITY-MATRIX"
     do speciesID = 1, numberOfSpecies
-       labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
+       labels(2) = MolecularSystem_getNameOfSpecies(speciesID,these(speciesID)%molSys)
        call Matrix_writeToFile(densityMatrices(speciesID), unit=densUnit, binary=.true., arguments = labels )
        call Matrix_destructor(densityMatrices(speciesID))
     end do
@@ -1815,7 +1840,7 @@ contains
 
     orderMatrix = size( this%densityMatrix%values, DIM = 1 )
 
-    ocupationNumber = MolecularSystem_getOcupationNumber(this%species)
+    ocupationNumber = MolecularSystem_getOcupationNumber(this%species,this%molSys)
 
     this%densityMatrix%values = 0.0_8
 
@@ -1842,7 +1867,7 @@ contains
        end do
     end do
 
-    this%densityMatrix%values =  MolecularSystem_getEta(this%species)  * this%densityMatrix%values
+    this%densityMatrix%values =  MolecularSystem_getEta(this%species,this%molSys)  * this%densityMatrix%values
 
     !!DEBUG
     if (  CONTROL_instance%DEBUG_SCFS) then
@@ -1910,7 +1935,7 @@ contains
     cosmo3Energy = 0.0_8
 
     !! Adicionado energia de interaccion entre particulas puntuales
-    totalEnergy = MolecularSystem_getPointChargesEnergy()
+    totalEnergy = MolecularSystem_getPointChargesEnergy(these(1)%molSys)
     !! cosmo potential nuclei-charges nuclei
 
     if(CONTROL_instance%COSMO)then
@@ -1920,7 +1945,7 @@ contains
        totalEnergy=totalEnergy+cosmo3Energy
     end if
 
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do speciesID = 1, these(1)%molSys%numberOfQuantumSpecies
 
        !! Calula enegia de especie independiente ( sin considerar el termino de acoplamiento )
        these(speciesID)%independentSpeciesEnergy = &
@@ -1958,8 +1983,8 @@ contains
     end do
 
     !! Adicionar  energia de acoplamiento y recalcula matrices de acoplamiento, including E-ALPHA/E-BETA
-    do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
-      do otherSpeciesID = speciesID+1, MolecularSystem_getNumberOfQuantumSpecies()
+    do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies(these(1)%molSys)
+      do otherSpeciesID = speciesID+1, MolecularSystem_getNumberOfQuantumSpecies(these(1)%molSys)
           totalCouplingEnergy = totalCouplingEnergy + (sum(  transpose(these(speciesID)%densityMatrix%values) &
               * (these(speciesID)%hartreeMatrix(otherSpeciesID)%values))) 
           totalEnergy = totalEnergy+these(speciesID)%exchangeCorrelationEnergy(otherSpeciesID)
@@ -2220,7 +2245,7 @@ contains
     integer:: auxLabelsOfContractions
     integer:: a, b, c
 
-    specieSelected=MolecularSystem_instance%species(this%species)
+    specieSelected=this%molSys%species(this%species)
 
     open(unit=110, file=trim(this%name)//"_qq.inn", status='old', form="unformatted")
     read(110)m
@@ -2233,14 +2258,14 @@ contains
 
 
     if(allocated(labels)) deallocate(labels)
-    allocate(labels(MolecularSystem_instance%species(this%species)%basisSetSize))
+    allocate(labels(this%molSys%species(this%species)%basisSetSize))
 
     if(allocated(ints_mat_aux)) deallocate(ints_mat_aux)
-    allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(this%species), MolecularSystem_getTotalNumberOfContractions(this%species)))
+    allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys), MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)))
 
 
     if(allocated(cosmo2_aux)) deallocate(cosmo2_aux)
-    allocate(cosmo2_aux(MolecularSystem_getTotalNumberOfContractions(this%species), MolecularSystem_getTotalNumberOfContractions(this%species)))
+    allocate(cosmo2_aux(MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys), MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)))
 
 
     auxLabelsOfContractions = 1
@@ -2266,35 +2291,35 @@ contains
     m = 0
 
     ii = 0
-    do g = 1, size(MolecularSystem_instance%species(this%species)%particles)
-       do h = 1, size(MolecularSystem_instance%species(this%species)%particles(g)%basis%contraction)
+    do g = 1, size(this%molSys%species(this%species)%particles)
+       do h = 1, size(this%molSys%species(this%species)%particles(g)%basis%contraction)
 
           hh = h
           ii = ii + 1
           jj = ii - 1
 
-          do i = g, size(MolecularSystem_instance%species(this%species)%particles)
-             do j = hh, size(MolecularSystem_instance%species(this%species)%particles(i)%basis%contraction)
+          do i = g, size(this%molSys%species(this%species)%particles)
+             do j = hh, size(this%molSys%species(this%species)%particles(i)%basis%contraction)
 
                 jj = jj + 1
 
                 !!saving integrals on Matrix
-                do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(this%species)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                   do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(this%species)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                do k = labels(ii), labels(ii) + (this%molSys%species(this%species)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                   do l = labels(jj), labels(jj) + (this%molSys%species(this%species)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                       iii=0
-                      do gg = 1, size(MolecularSystem_instance%species(this%species)%particles)
-                         do ll = 1, size(MolecularSystem_instance%species(this%species)%particles(gg)%basis%contraction)
+                      do gg = 1, size(this%molSys%species(this%species)%particles)
+                         do ll = 1, size(this%molSys%species(this%species)%particles(gg)%basis%contraction)
 
                             hhh = ll
                             iii = iii + 1
                             jjj = iii - 1
-                            do p = gg, size(MolecularSystem_instance%species(this%species)%particles)
-                               do o = hhh, size(MolecularSystem_instance%species(this%species)%particles(p)%basis%contraction)
+                            do p = gg, size(this%molSys%species(this%species)%particles)
+                               do o = hhh, size(this%molSys%species(this%species)%particles(p)%basis%contraction)
                                   jjj = jjj + 1
 
                                   !!saving integrals on Matrix
-                                  do pp = labels(iii), labels(iii) + (MolecularSystem_instance%species(this%species)%particles(gg)%basis%contraction(ll)%numCartesianOrbital - 1)
-                                     do oo = labels(jjj), labels(jjj) + (MolecularSystem_instance%species(this%species)%particles(p)%basis%contraction(o)%numCartesianOrbital - 1)
+                                  do pp = labels(iii), labels(iii) + (this%molSys%species(this%species)%particles(gg)%basis%contraction(ll)%numCartesianOrbital - 1)
+                                     do oo = labels(jjj), labels(jjj) + (this%molSys%species(this%species)%particles(p)%basis%contraction(o)%numCartesianOrbital - 1)
                                         m = m + 1
 
                                         read(110)cosmo_int
@@ -2369,12 +2394,12 @@ contains
     integer:: a, b, c
 
 
-    currentSpeciesID = MolecularSystem_getSpecieID( nameOfSpecie=this%name )
-    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(currentSpeciesID)
-    specieSelected=MolecularSystem_instance%species(currentSpeciesID)
+    currentSpeciesID = MolecularSystem_getSpecieID(this%name,this%molSys)
+    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(currentSpeciesID,this%molSys)
+    specieSelected=this%molSys%species(currentSpeciesID)
 
     if(allocated(labels)) deallocate(labels)
-    allocate(labels(MolecularSystem_instance%species(currentSpeciesID)%basisSetSize))
+    allocate(labels(this%molSys%species(currentSpeciesID)%basisSetSize))
 
     this%cosmoCoupling%values(:,:)=0.0_8
 
@@ -2398,16 +2423,16 @@ contains
     end do
 
 
-    if( MolecularSystem_getNumberOfQuantumSpecies() > 1 ) then
+    if( MolecularSystem_getNumberOfQuantumSpecies(this%molSys) > 1 ) then
 
        this%cosmoCoupling%values = 0.0_8
 
-       do speciesIterator = 1, MolecularSystem_getNumberOfQuantumSpecies()
+       do speciesIterator = 1, MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
 
           otherSpeciesID = speciesIterator
-          nameOfOtherSpecie = MolecularSystem_getNameOfSpecies( otherSpeciesID )          
-          OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)
-          otherSpecieSelected=MolecularSystem_instance%species(otherSpeciesID)
+          nameOfOtherSpecie = MolecularSystem_getNameOfSpecies(otherSpeciesID,this%molSys)          
+          OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID,this%molSys)
+          otherSpecieSelected=this%molSys%species(otherSpeciesID)
 
           if ( otherSpeciesID /= currentSpeciesID ) then
 
@@ -2424,7 +2449,7 @@ contains
 
 
              if(allocated(otherLabels)) deallocate(otherLabels)
-             allocate(otherLabels(MolecularSystem_instance%species(otherSpeciesID)%basisSetSize))
+             allocate(otherLabels(this%molSys%species(otherSpeciesID)%basisSetSize))
 
              otherAuxLabelsOfContractions=1
 
@@ -2445,48 +2470,48 @@ contains
 
 
              if(allocated(ints_mat_aux)) deallocate(ints_mat_aux)
-             allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(otherSpeciesID), MolecularSystem_getTotalNumberOfContractions(otherSpeciesID)))
+             allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(otherSpeciesID,this%molSys), MolecularSystem_getTotalNumberOfContractions(otherSpeciesID,this%molSys)))
 
              ints_mat_aux=0.0_8                
 
 
              if(allocated(cosmoCoup_aux)) deallocate(cosmoCoup_aux)
-             allocate(cosmoCoup_aux(MolecularSystem_getTotalNumberOfContractions(currentSpeciesID), MolecularSystem_getTotalNumberOfContractions(currentSpeciesID)))
+             allocate(cosmoCoup_aux(MolecularSystem_getTotalNumberOfContractions(currentSpeciesID,this%molSys), MolecularSystem_getTotalNumberOfContractions(currentSpeciesID,this%molSys)))
 
 
              m = 0
 
              ii = 0
-             do g = 1, size(MolecularSystem_instance%species(currentSpeciesID)%particles)
-                do h = 1, size(MolecularSystem_instance%species(currentSpeciesID)%particles(g)%basis%contraction)
+             do g = 1, size(this%molSys%species(currentSpeciesID)%particles)
+                do h = 1, size(this%molSys%species(currentSpeciesID)%particles(g)%basis%contraction)
 
                    hh = h
                    ii = ii + 1
                    jj = ii - 1
 
-                   do i = g, size(MolecularSystem_instance%species(currentSpeciesID)%particles)
-                      do j = hh, size(MolecularSystem_instance%species(currentSpeciesID)%particles(i)%basis%contraction)
+                   do i = g, size(this%molSys%species(currentSpeciesID)%particles)
+                      do j = hh, size(this%molSys%species(currentSpeciesID)%particles(i)%basis%contraction)
 
                          jj = jj + 1
 
                          !!saving integrals on Matrix
-                         do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(currentSpeciesID)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                            do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(currentSpeciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                         do k = labels(ii), labels(ii) + (this%molSys%species(currentSpeciesID)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                            do l = labels(jj), labels(jj) + (this%molSys%species(currentSpeciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                                iii=0
-                               do gg = 1, size(MolecularSystem_instance%species(otherSpeciesID)%particles)
-                                  do ll = 1, size(MolecularSystem_instance%species(otherSpeciesID)%particles(gg)%basis%contraction)
+                               do gg = 1, size(this%molSys%species(otherSpeciesID)%particles)
+                                  do ll = 1, size(this%molSys%species(otherSpeciesID)%particles(gg)%basis%contraction)
 
                                      hhh = ll
                                      iii = iii + 1
                                      jjj = iii - 1
 
-                                     do p = gg, size(MolecularSystem_instance%species(otherSpeciesID)%particles)
-                                        do o = hhh, size(MolecularSystem_instance%species(otherSpeciesID)%particles(p)%basis%contraction)
+                                     do p = gg, size(this%molSys%species(otherSpeciesID)%particles)
+                                        do o = hhh, size(this%molSys%species(otherSpeciesID)%particles(p)%basis%contraction)
                                            jjj = jjj + 1
 
                                            !!saving integrals on Matrix
-                                           do pp = otherlabels(iii), otherlabels(iii) + (MolecularSystem_instance%species(otherSpeciesID)%particles(gg)%basis%contraction(ll)%numCartesianOrbital - 1)
-                                              do oo = otherlabels(jjj), otherlabels(jjj) + (MolecularSystem_instance%species(otherSpeciesID)%particles(p)%basis%contraction(o)%numCartesianOrbital - 1)
+                                           do pp = otherlabels(iii), otherlabels(iii) + (this%molSys%species(otherSpeciesID)%particles(gg)%basis%contraction(ll)%numCartesianOrbital - 1)
+                                              do oo = otherlabels(jjj), otherlabels(jjj) + (this%molSys%species(otherSpeciesID)%particles(p)%basis%contraction(o)%numCartesianOrbital - 1)
                                                  m = m + 1
 
                                                  ! write(*,*)"m,cosmo_int(m),P_element,pp,oo",m,cosmo_int(m),wavefunction_instance(otherSpeciesID)%densityMatrix%values(pp,oo),pp,oo
@@ -2550,7 +2575,8 @@ contains
 
   end subroutine WaveFunction_buildCosmoCoupling
 
-  subroutine WaveFunction_cosmoQuantumCharge()
+  subroutine WaveFunction_cosmoQuantumCharge(molSys)
+    type(MolecularSystem) :: molSys
     integer :: f,g,a,c,b
     integer :: m,k,l
     integer :: h,hh,i,ii,jj,j
@@ -2591,18 +2617,18 @@ contains
     ! write(*,*)"Cosmo Clasical Charges : ", qTotalCosmo(:)
     ! write(*,*)"sum Cosmo Clasical Charges : ", sum(qTotalCosmo(:))
 
-    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+    numberOfSpecies = molSys%numberOfQuantumSpecies
 
     do f = 1, numberOfSpecies
 
-       specieSelected=MolecularSystem_instance%species(f)
+       specieSelected=molSys%species(f)
 
        if(allocated(labels)) deallocate(labels)
-       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+       allocate(labels(molSys%species(f)%basisSetSize))
 
-       orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(f)
+       orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(f,molSys)
 
-       arguments(2) = MolecularSystem_getNameOfSpecies(f)
+       arguments(2) = MolecularSystem_getNameOfSpecies(f,molSys)
 
        arguments(1) = "DENSITY"
        densityMatrix = &
@@ -2626,23 +2652,23 @@ contains
           end do
        end do
 
-       charges_file="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".charges"
+       charges_file="cosmo"//trim( MolecularSystem_getNameOfSpecies( f,molSys ) )//".charges"
        open(unit=100, file=trim(charges_file), status='old', form="unformatted")
        read(100)m
 
        if(allocated(qiDensityCosmo)) deallocate(qiDensityCosmo)
        allocate(qiDensityCosmo(orderOfMatrix, orderOfMatrix,numberOfPointCharges))
        ii = 0
-       do g = 1, size(MolecularSystem_instance%species(f)%particles)
-          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+       do g = 1, size(molSys%species(f)%particles)
+          do h = 1, size(molSys%species(f)%particles(g)%basis%contraction)
              hh = h
              ii = ii + 1
              jj = ii - 1
-             do i = g, size(MolecularSystem_instance%species(f)%particles)
-                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+             do i = g, size(molSys%species(f)%particles)
+                do j = hh, size(molSys%species(f)%particles(i)%basis%contraction)
                    jj = jj + 1
-                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                   do k = labels(ii), labels(ii) + (molSys%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                      do l = labels(jj), labels(jj) + (molSys%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                          read(100)(qiCosmo(m),m=1,numberOfPointCharges)
                          do m=1, numberOfPointCharges
                             qiDensityCosmo(k, l, m) = densityMatrix%values(k,l)*qiCosmo(m)
@@ -2670,7 +2696,7 @@ contains
        end do
 
        ! write(*,*)"Cosmo Quantum Charges : ", qiCosmo(:)
-       write(*,*) "COSMO Charges for ",MolecularSystem_getNameOfSpecies( f )," = ", sum(qiCosmo(:))
+       write(*,*) "COSMO Charges for ",MolecularSystem_getNameOfSpecies( f,molSys )," = ", sum(qiCosmo(:))
 
     end do
     close(wfnUnit)
@@ -2696,7 +2722,7 @@ contains
     real(8) :: normCheck    
     integer :: i, j, mu, nu, index
 
-    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(this%species)
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(this%species,this%molSys)
 
     i=0
     do index = 1 , numberOfContractions

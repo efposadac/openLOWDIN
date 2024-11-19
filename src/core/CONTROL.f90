@@ -215,6 +215,8 @@ module CONTROL_
      integer :: TRANSLATION_SCAN_GRID(3)
      integer :: ROTATIONAL_SCAN_GRID
      integer :: NESTED_ROTATIONAL_GRIDS
+     integer :: ROTATION_AROUND_Z_MAX_ANGLE
+     real(8) :: ROTATION_AROUND_Z_STEP
      real(8) :: TRANSLATION_STEP
      real(8) :: NESTED_GRIDS_DISPLACEMENT
      real(8) :: CONFIGURATION_ENERGY_THRESHOLD
@@ -227,10 +229,13 @@ module CONTROL_
      real(8) :: CONFIGURATION_EQUIVALENCE_DISTANCE
      real(8) :: EMPIRICAL_OVERLAP_PARAMETER_A
      real(8) :: EMPIRICAL_OVERLAP_PARAMETER_B
+     real(8) :: EMPIRICAL_OVERLAP_PARAMETER_E0
+     real(8) :: EMPIRICAL_OVERLAP_PARAMETER_SC
      logical :: CONFIGURATION_USE_SYMMETRY
      logical :: READ_NOCI_GEOMETRIES
      logical :: EMPIRICAL_OVERLAP_CORRECTION
      logical :: ONLY_FIRST_NOCI_ELEMENTS
+     logical :: COMPUTE_ROCI_FORMULA
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -557,6 +562,8 @@ module CONTROL_
   integer :: LowdinParameters_translationScanGrid(3)
   integer :: LowdinParameters_rotationalScanGrid
   integer :: LowdinParameters_nestedRotationalGrids
+  integer :: LowdinParameters_rotationAroundZMaxAngle
+  real(8) :: LowdinParameters_rotationAroundZStep
   real(8) :: LowdinParameters_translationStep
   real(8) :: LowdinParameters_nestedGridsDisplacement
   real(8) :: LowdinParameters_configurationEnergyThreshold
@@ -569,10 +576,13 @@ module CONTROL_
   real(8) :: LowdinParameters_configurationEquivalenceDistance
   real(8) :: LowdinParameters_empiricalOverlapParameterA
   real(8) :: LowdinParameters_empiricalOverlapParameterB
+  real(8) :: LowdinParameters_empiricalOverlapParameterE0
+  real(8) :: LowdinParameters_empiricalOverlapParameterSc
   logical :: LowdinParameters_configurationUseSymmetry
   logical :: LowdinParameters_readNOCIGeometries
   logical :: LowdinParameters_empiricalOverlapCorrection
   logical :: LowdinParameters_onlyFirstNOCIelements
+  logical :: LowdinParameters_computeROCIformula
 
   !!***************************************************************************
   !! CCSD
@@ -899,6 +909,8 @@ module CONTROL_
        LowdinParameters_nonOrthogonalConfigurationInteraction,&
        LowdinParameters_translationScanGrid,&
        LowdinParameters_rotationalScanGrid,&
+       LowdinParameters_rotationAroundZMaxAngle,&
+       LowdinParameters_rotationAroundZStep,&
        LowdinParameters_nestedRotationalGrids,&
        LowdinParameters_translationStep,&
        LowdinParameters_nestedGridsDisplacement,&
@@ -912,10 +924,13 @@ module CONTROL_
        LowdinParameters_configurationEquivalenceDistance,&
        LowdinParameters_empiricalOverlapParameterA,&
        LowdinParameters_empiricalOverlapParameterB,&
+       LowdinParameters_empiricalOverlapParameterE0,&
+       LowdinParameters_empiricalOverlapParameterSc,&
        LowdinParameters_configurationUseSymmetry,&
        LowdinParameters_readNOCIGeometries,&
        LowdinParameters_empiricalOverlapCorrection,&
        LowdinParameters_onlyFirstNOCIelements,&
+       LowdinParameters_computeROCIformula,&
        !!***************************************************************************
                                 !! CCSD 
                                 !!
@@ -1262,6 +1277,8 @@ contains
     LowdinParameters_nonOrthogonalConfigurationInteraction=.false.
     LowdinParameters_translationScanGrid(:)=0
     LowdinParameters_rotationalScanGrid=0
+    LowdinParameters_rotationAroundZMaxAngle=360
+    LowdinParameters_rotationAroundZStep=0
     LowdinParameters_nestedRotationalGrids=1
     LowdinParameters_translationStep=0.0
     LowdinParameters_nestedGridsDisplacement=0.0
@@ -1275,10 +1292,13 @@ contains
     LowdinParameters_configurationEquivalenceDistance=1.0E-8
     LowdinParameters_empiricalOverlapParameterA=0.0604
     LowdinParameters_empiricalOverlapParameterB=0.492
+    LowdinParameters_empiricalOverlapParameterE0=0.0
+    LowdinParameters_empiricalOverlapParameterSc=0.0
     LowdinParameters_configurationUseSymmetry=.false.
     LowdinParameters_readNOCIgeometries=.false.
     LowdinParameters_empiricalOverlapCorrection=.false.
     LowdinParameters_onlyFirstNOCIelements=.false.
+    LowdinParameters_computeROCIformula=.false.
     !!***************************************************************************
     !! CCSD
     !!
@@ -1602,6 +1622,8 @@ contains
     CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION=.FALSE.
     CONTROL_instance%TRANSLATION_SCAN_GRID(:)=0
     CONTROL_instance%ROTATIONAL_SCAN_GRID=0
+    CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE=360
+    CONTROL_instance%ROTATION_AROUND_Z_STEP=0
     CONTROL_instance%NESTED_ROTATIONAL_GRIDS=1
     CONTROL_instance%TRANSLATION_STEP=0.0
     CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=0.0
@@ -1615,10 +1637,13 @@ contains
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=1.0E-8
     CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_A=0.0604
     CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_B=0.492
+    CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_E0=0.0
+    CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_Sc=0.0
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
     CONTROL_instance%READ_NOCI_GEOMETRIES=.false.
     CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION=.false.
     CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=.false.
+    CONTROL_instance%COMPUTE_ROCI_FORMULA=.false.
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
     !!                                                                                                                         
@@ -1995,6 +2020,8 @@ contains
     CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION=LowdinParameters_nonOrthogonalConfigurationInteraction
     CONTROL_instance%TRANSLATION_SCAN_GRID=LowdinParameters_translationScanGrid
     CONTROL_instance%ROTATIONAL_SCAN_GRID=LowdinParameters_rotationalScanGrid
+    CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE=LowdinParameters_rotationAroundZMaxAngle
+    CONTROL_instance%ROTATION_AROUND_Z_STEP=LowdinParameters_rotationAroundZStep
     CONTROL_instance%NESTED_ROTATIONAL_GRIDS=LowdinParameters_nestedRotationalGrids
     CONTROL_instance%TRANSLATION_STEP=LowdinParameters_translationStep
     CONTROL_instance%NESTED_GRIDS_DISPLACEMENT=LowdinParameters_nestedGridsDisplacement
@@ -2012,10 +2039,13 @@ contains
     CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE=LowdinParameters_configurationEquivalenceDistance
     CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_A=LowdinParameters_empiricalOverlapParameterA
     CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_B=LowdinParameters_empiricalOverlapParameterB
+    CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_E0=LowdinParameters_empiricalOverlapParameterE0
+    CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_SC=LowdinParameters_empiricalOverlapParameterSc
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=LowdinParameters_configurationUseSymmetry
     CONTROL_instance%READ_NOCI_GEOMETRIES=LowdinParameters_readNOCIGeometries
     CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION=LowdinParameters_empiricalOverlapCorrection
     CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=LowdinParameters_onlyFirstNOCIelements
+    CONTROL_instance%COMPUTE_ROCI_FORMULA=LowdinParameters_computeROCIformula
 
 
     !!***************************************************************************      
@@ -2361,6 +2391,8 @@ contains
     LowdinParameters_nonOrthogonalConfigurationInteraction=CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION
     LowdinParameters_translationScanGrid=CONTROL_instance%TRANSLATION_SCAN_GRID
     LowdinParameters_rotationalScanGrid=CONTROL_instance%ROTATIONAL_SCAN_GRID
+    LowdinParameters_rotationAroundZMaxAngle=CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE
+    LowdinParameters_rotationAroundZStep=CONTROL_instance%ROTATION_AROUND_Z_STEP
     LowdinParameters_nestedRotationalGrids=CONTROL_instance%NESTED_ROTATIONAL_GRIDS
     LowdinParameters_translationStep=CONTROL_instance%TRANSLATION_STEP
     LowdinParameters_nestedGridsDisplacement=CONTROL_instance%NESTED_GRIDS_DISPLACEMENT
@@ -2374,10 +2406,13 @@ contains
     LowdinParameters_configurationEquivalenceDistance=CONTROL_instance%CONFIGURATION_EQUIVALENCE_DISTANCE
     LowdinParameters_empiricalOverlapParameterA=CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_A
     LowdinParameters_empiricalOverlapParameterB=CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_B
+    LowdinParameters_empiricalOverlapParameterE0=CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_E0
+    LowdinParameters_empiricalOverlapParameterSc=CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_SC
     LowdinParameters_configurationUseSymmetry=CONTROL_instance%CONFIGURATION_USE_SYMMETRY
     LowdinParameters_readNOCIGeometries=CONTROL_instance%READ_NOCI_GEOMETRIES
     LowdinParameters_empiricalOverlapCorrection=CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION
     LowdinParameters_onlyFirstNOCIelements=CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS
+    LowdinParameters_computeROCIformula=CONTROL_instance%COMPUTE_ROCI_FORMULA
 
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -2697,6 +2732,8 @@ contains
     otherThis%NONORTHOGONAL_CONFIGURATION_INTERACTION = this%NONORTHOGONAL_CONFIGURATION_INTERACTION
     otherThis%TRANSLATION_SCAN_GRID = this%TRANSLATION_SCAN_GRID
     otherThis%ROTATIONAL_SCAN_GRID = this%ROTATIONAL_SCAN_GRID
+    otherThis%ROTATION_AROUND_Z_MAX_ANGLE=this%ROTATION_AROUND_Z_MAX_ANGLE
+    otherThis%ROTATION_AROUND_Z_STEP=this%ROTATION_AROUND_Z_STEP
     otherThis%NESTED_ROTATIONAL_GRIDS = this%NESTED_ROTATIONAL_GRIDS
     otherThis%TRANSLATION_STEP = this%TRANSLATION_STEP
     otherThis%NESTED_GRIDS_DISPLACEMENT = this%NESTED_GRIDS_DISPLACEMENT
@@ -2710,6 +2747,9 @@ contains
     otherThis%CONFIGURATION_EQUIVALENCE_DISTANCE=this%CONFIGURATION_EQUIVALENCE_DISTANCE
     otherThis%CONFIGURATION_USE_SYMMETRY=this%CONFIGURATION_USE_SYMMETRY
     otherThis%READ_NOCI_GEOMETRIES=this%READ_NOCI_GEOMETRIES
+    otherThis%ONLY_FIRST_NOCI_ELEMENTS=this%ONLY_FIRST_NOCI_ELEMENTS
+    otherThis%COMPUTE_ROCI_FORMULA=this%COMPUTE_ROCI_FORMULA
+    
     !!***************************************************************************
     !! CCSD
     !!
@@ -2997,10 +3037,32 @@ contains
        
        if(CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) &
             write (*,"(T10,A)") "COMPUTING NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
+
+       if(CONTROL_instance%COMPUTE_ROCI_FORMULA) then
+          CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=.true.
+          if(CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE .gt. 180 ) CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE=180
+          write (*,"(T10,A)") "COMPUTING ROTATIONAL ENERGIES FROM THE FIRST GEOMETRY NOCI ELEMENTS"
+          if(CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_E0 .gt. 0.0 .or. CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_B .gt. 0.0) then
+             write (*,"(T10,A,F8.5,A,F8.5)") &
+                  "EMPLOYING EMPIRICAL SCALE FACTORS E0=",&
+                  CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_E0,&
+                  " AND Sc=",&
+                  CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_SC
+          end if
+          print *, ""
+       end if
+
+       if(CONTROL_instance%ROTATION_AROUND_Z_STEP .gt. 0 ) then
+          ! if(CONTROL_instance%NESTED_ROTATIONAL_GRIDS .gt. 1 ) then
+          !    write (*,"(T10,I3,A,I6,A)") CONTROL_instance%NESTED_ROTATIONAL_GRIDS, "  GRIDS OF", CONTROL_instance%ROTATIONAL_SCAN_GRID_AROUND_Z, " BASIS FUNCTIONS WILL BE PLACED AROUND EACH ROTATIONAL CENTER"
+          !    write (*,"(T10,A,F6.3,A10)") "WITH A RADIAL SEPARATION  OF", CONTROL_instance%NESTED_GRIDS_DISPLACEMENT,  " BOHRS"
+          ! else
+          write (*,"(T10,A,F8.2,A,I6,A)") "THE MOLECULAR SYSTEM WILL BE ROTATED AROUND THE Z AXIS IN STEPS OF", CONTROL_instance%ROTATION_AROUND_Z_STEP, " DEGREES UP TO ",  CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE, " DEGREES"
+          ! end if
+       end if
        
+
        print *, ""
-
-
 
     end if
 

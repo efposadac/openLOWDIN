@@ -117,7 +117,7 @@ contains
 
     
     !! Convert lowdin fchk files to erkale chk files
-    nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+    nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
     open(unit=30, file="erkale.read", status="replace", form="formatted")
 
@@ -294,7 +294,7 @@ contains
     
     do speciesID=1, numberOfSpecies
 
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
        numberOfCenters = size(MolecularSystem_instance%species(speciesID)%particles)
        occupationNumber = MolecularSystem_getOcupationNumber( speciesID )
@@ -491,7 +491,7 @@ contains
     !!Reduce basis set loops
     do speciesID=1, numberOfSpecies
 
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
        numberOfCenters = size(MolecularSystem_instance%species(speciesID)%particles)
        overlapMatrix=WaveFunction_instance( speciesID )%OverlapMatrix
@@ -578,7 +578,7 @@ contains
     end do
        
     do speciesID=1, numberOfSpecies
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
        !Adds diagonal proyection elements to orbitals with small contributions to A orbitals - small mulliken population
@@ -673,7 +673,7 @@ contains
     write(*,"(A15,A15,A15,A15,A15)") "Species", "Occupied A","Virtual A","Occupied B", "Virtual B"
     write(*,"(A75)") "---------------------------------------------------------------------------"
     do speciesID=1, numberOfSpecies
-       write(*,"(A15,I7,F7.1,A,I7,F7.1,A,I7,F7.1,A,I7,F7.1,A)") trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+       write(*,"(A15,I7,F7.1,A,I7,F7.1,A,I7,F7.1,A,I7,F7.1,A)") trim(MolecularSystem_getNameOfSpecies(speciesID)), &
             OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA,&
             100.0_8*OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA/(OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA+OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsB),&
             "%",&
@@ -699,7 +699,7 @@ contains
     !Two particles and coupling matrices
     do speciesID=1, numberOfSpecies     
        
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
        !Only Coulomb (factor=0.0)
        call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
          densityMatrixIN=densityMatrixB(speciesID),&
@@ -814,7 +814,7 @@ contains
        !Calculates the fock matrix with the new subsystem density 
        do speciesID=1, numberOfSpecies
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
-          nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+          nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
           
           !Updates two particles matrix - only Coulomb (factor=0.0)
           call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
@@ -991,7 +991,7 @@ contains
        !Calculates the subsystem orbitals with the new fock matrix
        do speciesID=1, numberOfSpecies
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
-          nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+          nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
 
           call Matrix_copyConstructor( fockMatrixTransformed, OrbitalLocalizer_instance(speciesID)%fockMatrixA )
           
@@ -1833,7 +1833,7 @@ contains
 
     !! Start the wavefunction object
     deallocate(WaveFunction_instance)
-    call WaveFunction_constructor(WaveFunction_instance)
+    call WaveFunction_constructor(WaveFunction_instance,numberOfSpecies)
        
     do speciesID=1, numberOfSpecies
        call WaveFunction_readOverlapMatrix(WaveFunction_instance(speciesID), "lowdin.opints")
@@ -1930,7 +1930,7 @@ contains
     open(unit=wfnUnit, file=trim(wfnFile), status="replace", form="unformatted")
     rewind(wfnUnit)
     do speciesID = 1, numberOfSpecies
-       labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+       labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
        labels(1) = "DENSITY"
        call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
     end do
@@ -2103,7 +2103,7 @@ contains
 
     do speciesID = 1, numberOfSpecies
 
-       labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+       labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
 
        labels(1) = "REMOVED-ORBITALS"
        call Vector_writeToFile(unit=wfnUnit, binary=.true., value=real(WaveFunction_instance(speciesID)%removedOrbitals,8), arguments= labels )
@@ -2162,7 +2162,7 @@ contains
        vecFile = trim(CONTROL_instance%INPUT_FILE)//"subvec"
        open(unit=vecUnit, file=trim(vecFile), form="unformatted", status='replace')
        do speciesID = 1, numberOfSpecies
-          labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
           labels(1) = "COEFFICIENTS"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
                unit=vecUnit, binary=.true., arguments = labels)
@@ -2177,7 +2177,7 @@ contains
        open(unit=vecUnit, file=trim(vecFile), form="formatted", status='replace')
 
        do speciesID = 1, numberOfSpecies
-          labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
           labels(1) = "COEFFICIENTS"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
                unit=vecUnit, binary=.false., arguments = labels)

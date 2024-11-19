@@ -28,6 +28,7 @@ program DFT
   use MolecularSystem_
   use DensityFunctionalTheory_
   use GridManager_
+  use Functional_
   use String_
   use Matrix_
   use Exception_
@@ -36,6 +37,7 @@ program DFT
 
   character(50) :: job
   character(100) :: densFile
+  type(Grid), allocatable :: grids(:), gridsCommonPoints(:,:)
   type(Matrix), allocatable :: densityMatrix(:)
   type(Matrix), allocatable :: exchangeCorrelationMatrix(:)
   type(Matrix) :: exchangeCorrelationEnergy
@@ -62,21 +64,30 @@ program DFT
   !!Load the system in lowdin.sys format
   call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-  call Functional_createFunctionals( )
+  numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
+  
+  !! Allocate memory.
+  if(allocated(grids)) deallocate(grids)
+  allocate(grids(numberOfSpecies))
+
+  if (allocated(gridsCommonPoints)) deallocate(gridsCommonPoints)
+  allocate(gridsCommonPoints(numberOfSpecies,numberOfSpecies))
+
+  do speciesID = 1 , numberOfSpecies
+     grids(speciesID)%molSys => MolecularSystem_instance
+  end do
 
   !!!Building grids jobs
   select case ( job ) 
   case ("BUILD_SCF_GRID")
-     call DensityFunctionalTheory_buildSCFGrid()
+     call DensityFunctionalTheory_buildSCFGrid(grids,gridsCommonPoints)
      STOP
   case ("BUILD_FINAL_GRID" )
-     call DensityFunctionalTheory_buildFinalGrid()
+     call DensityFunctionalTheory_buildFinalGrid(grids,gridsCommonPoints)
      STOP
   end select
 
-  !!!Computing energy and potential jobs  
-  numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
-  
+  !!!Computing energy and potential jobs    
   allocate( densityMatrix(numberOfSpecies) , numberOfParticles(numberOfSpecies), &
        exchangeCorrelationMatrix(numberOfSpecies))
 
@@ -99,7 +110,7 @@ program DFT
   
   select case ( job ) 
   case ("SCF_DFT")
-     call DensityFunctionalTheory_SCFDFT(densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
+     call DensityFunctionalTheory_SCFDFT(grids,gridsCommonPoints,densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
   case ("FINAL_DFT")
      !read scf information for comparison
      do speciesID = 1 , numberOfSpecies
@@ -124,7 +135,7 @@ program DFT
         close(unit=excUnit)
      end do
 
-     call DensityFunctionalTheory_finalDFT(densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
+     call DensityFunctionalTheory_finalDFT(grids,gridsCommonPoints,densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
   ! case default 
   !    write(*,*) "USAGE: lowdin-DFT.x job "
   !    write(*,*) "Where job can be: "

@@ -114,7 +114,7 @@ contains
     !! Open file for wavefunction
     open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-    arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+    arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
     arguments(1) = "COEFFICIENTS"
 
     coefficientsofcombination = &

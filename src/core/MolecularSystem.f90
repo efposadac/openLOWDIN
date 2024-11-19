@@ -92,7 +92,6 @@ module MolecularSystem_
        MolecularSystem_getMultiplicity, &
        MolecularSystem_getParticlesFraction, &
        MolecularSystem_getFactorOfExchangeIntegrals, &
-       MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getNameOfSpecies, &
        MolecularSystem_getSpecieID, &
        MolecularSystem_getSpecieIDFromSymbol, &
@@ -199,7 +198,7 @@ contains
 
        !!Check for input errors in the number of particles
        if( (abs(int(MolecularSystem_instance%species(i)%ocupationNumber)-MolecularSystem_instance%species(i)%ocupationNumber) .gt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD)) then
-          print *, "species ", trim(MolecularSystem_getNameOfSpecie(i)) , "has fractional ocupation number ", &
+          print *, "species ", trim(MolecularSystem_getNameOfSpecies(i)) , "has fractional ocupation number ", &
                MolecularSystem_instance%species(i)%ocupationNumber, "please check your input addParticles and multiplicity"
           call MolecularSystem_exception(ERROR, "Fractional ocupation number, imposible combination of charge and multiplicity","MolecularSystem module at build function.")
        end if
@@ -237,10 +236,6 @@ contains
     if(allocated(MolecularSystem_instance%allParticles)) deallocate(MolecularSystem_instance%allParticles)
     
     call MecanicProperties_destructor(MolecularSystem_instance%mechanicalProp)
-
-    call ExternalPotential_destructor()
-    call InterPotential_destructor()
-
 
   end subroutine MolecularSystem_destroy
 
@@ -996,52 +991,66 @@ contains
   !>
   !! @brief Returns the number of quantum species in the system.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getNumberOfQuantumSpecies() result( output )
+  function MolecularSystem_getNumberOfQuantumSpecies(this) result( output )
     implicit none
-
+    type(MolecularSystem), optional, target :: this
     integer :: output
-    
-    output = MolecularSystem_instance%numberOfQuantumSpecies
+
+    type(MolecularSystem), pointer :: system
+
+    output = 0
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
+    output = system%numberOfQuantumSpecies
     
   end function MolecularSystem_getNumberOfQuantumSpecies
 
   !>
   !! @brief Returns the number of particles of speciesID.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getNumberOfParticles(speciesID) result(output)
+  function MolecularSystem_getNumberOfParticles(speciesID,this) result(output)
     implicit none
-
     integer :: speciesID
+    type(MolecularSystem), optional, target :: this
     integer :: output
 
-    output = MolecularSystem_instance%species(speciesID)%internalSize
+    type(MolecularSystem), pointer :: system
+
+    output = 0
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
+
+    output = system%species(speciesID)%internalSize
     
   end function MolecularSystem_getNumberOfParticles
   
   !>
   !! @brief Returns the number of shells for specie.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getNumberOfContractions( specieID ) result( output )
+  function MolecularSystem_getNumberOfContractions(speciesID,this) result( output )
     implicit none
-    integer :: specieID
+    integer :: speciesID
+    type(MolecularSystem), optional, target :: this
     integer :: output
     
-    integer :: i, j
+    type(MolecularSystem), pointer :: system
+    integer :: j
 
     output = 0
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
 
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-
-       if ( specieID ==  i ) then
-
-          do j = 1, size(MolecularSystem_instance%species(i)%particles)
-             
-             output = output + size(MolecularSystem_instance%species(i)%particles(j)%basis%contraction)
-             
-          end do
-          
-       end if
-       
+    do j = 1, size(system%species(speciesID)%particles)
+       output = output + size(system%species(speciesID)%particles(j)%basis%contraction)
     end do
     
   end function MolecularSystem_getNumberOfContractions
@@ -1049,9 +1058,9 @@ contains
   !>
   !! @brief Returns the number of cartesian shells for specie.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getTotalNumberOfContractions( specieID, this ) result( output )
+  function MolecularSystem_getTotalNumberOfContractions( speciesID, this ) result( output )
     implicit none
-    integer :: specieID
+    integer :: speciesID
     type(MolecularSystem), optional, target :: this
 
     type(MolecularSystem), pointer :: system
@@ -1066,14 +1075,10 @@ contains
        system=>MolecularSystem_instance
     end if
     
-    do j = 1, size(system%species(specieID)%particles)
-
-       do k = 1, size(system%species(specieID)%particles(j)%basis%contraction)
-          
-          output = output + system%species(specieID)%particles(j)%basis%contraction(k)%numCartesianOrbital
-          
+    do j = 1, size(system%species(speciesID)%particles)
+       do k = 1, size(system%species(speciesID)%particles(j)%basis%contraction)
+          output = output + system%species(speciesID)%particles(j)%basis%contraction(k)%numCartesianOrbital
        end do
-       
     end do
           
   end function MolecularSystem_getTotalNumberOfContractions
@@ -1154,20 +1159,29 @@ contains
    !> @brief find de maximun number of primitives for specieID, necessary for derive with libint
    !! @author J.M. Rodas 2015
    !! @version 1.0
-   function MolecularSystem_getMaxNumberofCartesians(specieID) result(output)
+   function MolecularSystem_getMaxNumberofCartesians(speciesID,this) result(output)
      implicit none
      
-     integer :: specieID
+     integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
      
+     type(MolecularSystem), pointer :: system
      integer :: i, j
+
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      
      output = -1
      
-     do i = 1, size(MolecularSystem_instance%species(specieID)%particles)
-        do j = 1, size(MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction)
+     do i = 1, size(system%species(speciesID)%particles)
+        do j = 1, size(system%species(speciesID)%particles(i)%basis%contraction)
            
-           output = max(output, MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction(j)%numCartesianOrbital)
+           output = max(output, system%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital)
            
         end do
      end do
@@ -1219,51 +1233,82 @@ contains
           
    end function MolecularSystem_getEta
 
-   function MolecularSystem_getLambda(speciesID) result(output)
+   function MolecularSystem_getLambda(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
      
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%lambda
+     output = system%species(speciesID)%lambda
           
    end function MolecularSystem_getLambda
 
 
-   function MolecularSystem_getKappa(speciesID) result(output)
+   function MolecularSystem_getKappa(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
      
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%kappa
+     output = system%species(speciesID)%kappa
           
    end function MolecularSystem_getKappa
 
-   function MolecularSystem_getMultiplicity(speciesID) result(output)
+   function MolecularSystem_getMultiplicity(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
      
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%spin
+     output = system%species(speciesID)%spin
           
    end function MolecularSystem_getMultiplicity
 
 
 
 
-   function MolecularSystem_getParticlesFraction(speciesID) result(output)
-     implicit none
-     
+   function MolecularSystem_getParticlesFraction(speciesID,this) result(output)
+     implicit none     
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%particlesFraction
+     output = system%species(speciesID)%particlesFraction
           
    end function MolecularSystem_getParticlesFraction
 
@@ -1271,37 +1316,58 @@ contains
    !> @brief Returns the charge of speciesID
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getCharge( speciesID ) result( output )
+   function MolecularSystem_getCharge(speciesID,this) result( output )
      implicit none
      integer :: speciesID
-     
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%charge
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
+     output = system%species(speciesID)%charge
      
    end function MolecularSystem_getCharge
 
    !> @brief Returns the omega frequency of speciesID. Why we have these functions??
-   function MolecularSystem_getOmega( speciesID ) result( output )
+   function MolecularSystem_getOmega(speciesID,this) result( output )
      implicit none
      integer :: speciesID
-     
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%omega
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+          
+     output = system%species(speciesID)%omega
      
    end function MolecularSystem_getOmega
 
    !> @brief Returns the mass of speciesID
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getMass( speciesID ) result( output )
+   function MolecularSystem_getMass(speciesID,this) result( output )
      implicit none
      integer :: speciesID
-     
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%mass
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+
+     output = system%species(speciesID)%mass
      
    end function MolecularSystem_getMass
 
@@ -1332,69 +1398,86 @@ contains
    !> @brief Returns the Factor Of Exchange Integrals
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getFactorOfExchangeIntegrals( speciesID ) result( output )
+   function MolecularSystem_getFactorOfExchangeIntegrals(speciesID,this) result( output )
      implicit none
      integer :: speciesID
-     
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%kappa / MolecularSystem_instance%species(speciesID)%eta
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
+     output = system%species(speciesID)%kappa / system%species(speciesID)%eta
      
    end function MolecularSystem_getFactorOfExchangeIntegrals
 
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getNameOfSpecie(speciesID) result(output)
-     implicit none
-     
+   function MolecularSystem_getNameOfSpecies(speciesID,this) result(output)
+     implicit none     
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      character(30) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%name
-          
-   end function MolecularSystem_getNameOfSpecie
-
-   !> @brief Returns the name of a species
-   !! @author E. F. Posada, 2013
-   !! @version 1.0
-   function MolecularSystem_getNameOfSpecies(speciesID) result(output)
-     implicit none
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
      
-     integer :: speciesID
-     character(30) :: output
-     
-     output = MolecularSystem_instance%species(speciesID)%name
+     output = system%species(speciesID)%name
           
    end function MolecularSystem_getNameOfSpecies
 
    !> @brief Returns the symbol of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getSymbolOfSpecies(speciesID) result(output)
+   function MolecularSystem_getSymbolOfSpecies(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      character(30) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%symbol
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
+     output = system%species(speciesID)%symbol
           
    end function MolecularSystem_getSymbolOfSpecies
    
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getSpecieID( nameOfSpecie ) result(output)
+   function MolecularSystem_getSpecieID( nameOfSpecie,this ) result(output)
      implicit none
      
      character(*) :: nameOfSpecie
+     type(MolecularSystem), optional, target :: this
      integer :: output
+     
+     type(MolecularSystem), pointer :: system
      integer i 
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
      
      output = 0
 
-     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        if( trim(MolecularSystem_instance%species(i)%name) == trim(nameOfSpecie)) output = i
+     do i = 1, system%numberOfQuantumSpecies
+        if( trim(system%species(i)%name) == trim(nameOfSpecie)) output = i
      end do
 
    end function MolecularSystem_getSpecieID
@@ -1402,41 +1485,58 @@ contains
       !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getSpecieIDFromSymbol( symbolOfSpecie ) result(output)
+   function MolecularSystem_getSpecieIDFromSymbol( symbolOfSpecie,this ) result(output)
      implicit none
      
      character(*) :: symbolOfSpecie
+     type(MolecularSystem), optional, target :: this
      integer :: output
+     
+     type(MolecularSystem), pointer :: system
      integer i 
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
      
      output = 0
 
-     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        if( trim(MolecularSystem_instance%species(i)%symbol) == trim(symbolOfSpecie)) output = i
+     do i = 1, system%numberOfQuantumSpecies
+        if( trim(system%species(i)%symbol) == trim(symbolOfSpecie)) output = i
      end do
 
    end function MolecularSystem_getSpecieIDFromSymbol
 
    !>
    !! @brief calcula la energia total para una especie especificada
-   function MolecularSystem_getPointChargesEnergy() result( output )
+   function MolecularSystem_getPointChargesEnergy(this) result( output )
      implicit none
      real(8) :: output
+     type(MolecularSystem), optional, target :: this
      
+     type(MolecularSystem), pointer :: system
      integer :: i
      integer :: j
      real(8) :: deltaOrigin(3)
+
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+
      
      output =0.0_8
      
-     do i=1, size( MolecularSystem_instance%pointCharges )      
-        do j = i + 1 , size( MolecularSystem_instance%pointCharges )
+     do i=1, size( system%pointCharges )      
+        do j = i + 1 , size( system%pointCharges )
             
-           deltaOrigin = MolecularSystem_instance%pointCharges(i)%origin &
-                - MolecularSystem_instance%pointCharges(j)%origin
+           deltaOrigin = system%pointCharges(i)%origin &
+                - system%pointCharges(j)%origin
            
-           output=output + ( ( MolecularSystem_instance%pointCharges(i)%charge &
-                * MolecularSystem_instance%pointCharges(j)%charge )&
+           output=output + ( ( system%pointCharges(i)%charge &
+                * system%pointCharges(j)%charge )&
                 / sqrt( sum( deltaOrigin**2.0_8 ) ) )
            
         end do
@@ -1444,33 +1544,41 @@ contains
     
     !! Point charge potential with the external electric field
     if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
-      do i=1, size( MolecularSystem_instance%pointCharges )      
-        output = output + sum(CONTROL_instance%ELECTRIC_FIELD(:) * MolecularSystem_instance%pointCharges(i)%origin(:) )*  MolecularSystem_instance%pointCharges(i)%charge 
+      do i=1, size( system%pointCharges )      
+        output = output + sum(CONTROL_instance%ELECTRIC_FIELD(:) * system%pointCharges(i)%origin(:) )*  system%pointCharges(i)%charge 
       end do
     end if
 
      
    end function MolecularSystem_getPointChargesEnergy
 
-   function MolecularSystem_getMMPointChargesEnergy() result( output )
+   function MolecularSystem_getMMPointChargesEnergy(this) result( output )
      implicit none
      real(8) :: output
-
+     type(MolecularSystem), optional, target :: this
+     
+     type(MolecularSystem), pointer :: system
      integer :: i
      integer :: j
      real(8) :: deltaOrigin(3)
 
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+
      output =0.0_8
      
-     do i=1, size( MolecularSystem_instance%pointCharges )
-        if(trim(MolecularSystem_instance%pointCharges(i)%nickname) == "PC") then
-           do j = i + 1 , size( MolecularSystem_instance%pointCharges )
+     do i=1, size( system%pointCharges )
+        if(trim(system%pointCharges(i)%nickname) == "PC") then
+           do j = i + 1 , size( system%pointCharges )
 
-              deltaOrigin = MolecularSystem_instance%pointCharges(i)%origin &
-                   - MolecularSystem_instance%pointCharges(j)%origin
+              deltaOrigin = system%pointCharges(i)%origin &
+                   - system%pointCharges(j)%origin
 
-              output=output + ( ( MolecularSystem_instance%pointCharges(i)%charge &
-                   * MolecularSystem_instance%pointCharges(j)%charge )&
+              output=output + ( ( system%pointCharges(i)%charge &
+                   * system%pointCharges(j)%charge )&
                    / sqrt( sum( deltaOrigin**2.0_8 ) ) )
 
            end do
@@ -1481,35 +1589,44 @@ contains
    
    !>
    !! @brief returns an array of labels of all basis set of speciesID
-   function MolecularSystem_getlabelsofcontractions(speciesID) result(output)
+   function MolecularSystem_getlabelsofcontractions(speciesID,this) result(output)
      implicit none
      
-     integer :: speciesID     
      character(19),allocatable :: output(:)
+     integer :: speciesID     
+     type(MolecularSystem), optional, target :: this
+     
+     type(MolecularSystem), pointer :: system
 
      integer :: i, j, k
      integer :: counter
      character(9), allocatable :: shellCode(:)
 
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      if(allocated(output)) deallocate(output)
-     allocate(output(MolecularSystem_getTotalNumberOfContractions(speciesID)))
+     allocate(output(MolecularSystem_getTotalNumberOfContractions(speciesID,system)))
      
      output = ""
      counter = 1
      
-     do i = 1, size(MolecularSystem_instance%species(speciesID)%particles)
-        do j = 1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
+     do i = 1, size(system%species(speciesID)%particles)
+        do j = 1, size(system%species(speciesID)%particles(i)%basis%contraction)
            
            if(allocated(shellCode)) deallocate(shellCode)
-           allocate(shellCode(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+           allocate(shellCode(system%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital))
            shellCode = ""
 
-           shellCode = ContractedGaussian_getShellCode(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j))
+           shellCode = ContractedGaussian_getShellCode(system%species(speciesID)%particles(i)%basis%contraction(j))
            
-           do k = 1, MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
+           do k = 1, system%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
               
               write (output(counter),"(I5,A1,A6,A1,A6)") counter, " ", &
-                   trim(MolecularSystem_instance%species(speciesID)%particles(i)%nickname), " ", &
+                   trim(system%species(speciesID)%particles(i)%nickname), " ", &
                    trim(shellCode(k))//" "
 
               counter = counter + 1 
@@ -2352,7 +2469,7 @@ contains
     ! if( (.not. present(sysAbasisList)) .and. (.not. present(sysBbasisList)) ) return
     
     !!Fill the basis set lists
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do speciesID = 1, mergedThis%numberOfQuantumSpecies
        call Vector_constructorInteger(sysAbasisList(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 0 )
        call Vector_constructorInteger(sysBbasisList(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 0 )
        
