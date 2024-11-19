@@ -1,0 +1,25 @@
+GEOMETRY
+        e-(Cl)   CC-PVDZ  0.00    0.00   0.00 addParticles=0
+        e-(H)   CC-PVDZ   1.284   0.00    0.00   
+        Cl       dirac    0.00    0.00   0.00
+        H_1     DZSPNB    1.284   0.00    0.00   
+END GEOMETRY
+
+TASKS
+        method = "RKS"
+        nonOrthogonalConfigurationInteraction=.T.
+END TASKS
+
+CONTROL
+	computeROCIformula=.T.
+	rotationAroundZMaxAngle=35
+	rotationAroundZStep=5
+	numberOfCIStates=5
+	electronExchangeCorrelationFunctional="B3LYP"
+	nuclearElectronCorrelationFunctional="epc17-2"
+        integralStorage="MEMORY"
+	gridStorage="MEMORY"
+	readCoefficients=.F.
+	nonElectronicLevelShifting=0.005
+END CONTROL
+

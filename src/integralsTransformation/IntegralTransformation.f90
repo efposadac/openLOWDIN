@@ -170,7 +170,7 @@ program IntegralsTransformation
   
     do i=1, numberOfQuantumSpecies
   
-        nameOfSpecies = trim( MolecularSystem_getNameOfSpecie( i ) )
+        nameOfSpecies = trim( MolecularSystem_getNameOfSpecies( i ) )
 
         !! For PT = 2 there is no need to transform integrals for all species"
         if ( partialTransform == "PT2" .and. CONTROL_instance%IONIZE_SPECIES(1) /= "NONE" ) then
@@ -195,7 +195,7 @@ program IntegralsTransformation
 
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
            occupation = MolecularSystem_getOcupationNumber( i )
-           arguments(2) = MolecularSystem_getNameOfSpecie(i)
+           arguments(2) = MolecularSystem_getNameOfSpecies(i)
   
            arguments(1) = "COEFFICIENTS"
            eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -253,7 +253,7 @@ program IntegralsTransformation
           !!
           if ( numberOfQuantumSpecies > 1 ) then
                   do j = i + 1 , numberOfQuantumSpecies
-                          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
+                          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( j ) )
 
                           !! For PT = 2 there is no need to transform integrals for all species"
                           if ( partialTransform == "PT2" .and. CONTROL_instance%IONIZE_SPECIES(1) /= "NONE" ) then
@@ -280,7 +280,7 @@ program IntegralsTransformation
                           numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
                           otherOccupation = MolecularSystem_getOcupationNumber( j )
 
-                          arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+                          arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
 
                           arguments(1) = "COEFFICIENTS"
                           eigenVecOtherSpecie = &

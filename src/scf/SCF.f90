@@ -67,7 +67,7 @@ program SCF
 
   !! Start the MultiSCF object
   allocate(WaveFunction_instance(MolecularSystem_instance%numberOfQuantumSpecies))
-  call MultiSCF_constructor(MultiSCF_instance,WaveFunction_instance,CONTROL_instance%ITERATION_SCHEME)
+  call MultiSCF_constructor(MultiSCF_instance,WaveFunction_instance,CONTROL_instance%ITERATION_SCHEME,molecularSystem_instance)
 
   !! Calculate one-particle integrals  
   if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) &
@@ -87,7 +87,7 @@ program SCF
      wfnFile = "lowdin.wfn"
      open(unit=wfnUnit, file=trim(wfnFile), status="replace", form="unformatted")
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+        labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
         labels(1) = "DENSITY"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
      end do

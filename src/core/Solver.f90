@@ -97,7 +97,7 @@ contains
     if ( CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION ) then
        call system("lowdin-NOCI.x POSTSCF")
        !!calculate CI density properties
-       call system ("lowdin-CalcProp.x")
+       if ( .not. (CONTROL_instance%COMPUTE_ROCI_FORMULA .or. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS)) call system ("lowdin-CalcProp.x")
     end if
 
     if ( CONTROL_instance%PT_ORDER /= 0 ) then

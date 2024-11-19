@@ -28,6 +28,8 @@ module Grid_
 
   type, public :: Grid
 
+     type(MolecularSystem), pointer :: molSys
+     
      character(30) :: nameOfSpecies
      integer :: totalSize
      type(Matrix) :: points !! x,y,z,weight
@@ -38,9 +40,6 @@ module Grid_
      type(Vector) :: densityGradient(3)
 
   end type Grid
-
-  type(Grid), public, allocatable :: Grid_instance(:)
-  type(Grid), public, allocatable :: GridsCommonPoints(:,:)
 
   public :: &
        Grid_constructor, &
@@ -56,11 +55,12 @@ contains
   !! @brief Builds a grid for each species - Different sizes are possible, all points in memory
   ! Felix Moncada, 2017
   ! Roberto Flores-Moreno, 2009
-  subroutine Grid_constructor( this, speciesID, type )
+  subroutine Grid_constructor( this, speciesID, type, molSys )
     implicit none
     type(Grid) :: this
     integer :: speciesID
     character(*) :: type
+    type(MolecularSystem), target :: molSys
     
     type(Matrix) :: atomicGrid, molecularGrid
     integer :: numberOfSpecies, numberOfCenters
@@ -70,7 +70,9 @@ contains
     real(8), allocatable :: origins(:,:), distance(:),factor(:)
     integer, allocatable :: atomicGridSize(:)
 
-    this%nameOfSpecies=trim(MolecularSystem_getNameOfSpecie(speciesID))
+    this%molSys=>molSys
+
+    this%nameOfSpecies=trim(MolecularSystem_getNameOfSpecies(speciesID,this%molSys))
     
     if (trim(type) .eq. "INITIAL") then
        radialSize=CONTROL_instance%GRID_RADIAL_POINTS
@@ -87,7 +89,7 @@ contains
     if(CONTROL_instance%PRINT_LEVEL .gt. 0) &
          write (*,"(A,I4,A,I2,A,A)") " Building an atomic grid with", radialSize, " radial points in ", numberOfShells, " shells for ", trim(this%nameOfSpecies)
     
-    numberOfCenters=size(MolecularSystem_instance%species(speciesID)%particles)
+    numberOfCenters=size(this%molSys%species(speciesID)%particles)
     allocate(origins(numberOfCenters,3), atomicGridSize(numberOfCenters))
 
     !Get Atomic Grid
@@ -98,7 +100,7 @@ contains
     !We are screening the points with delocalized orbital values lower than 1E-6
     molecularGridSize=0
     do particleID = 1, numberOfCenters
-       call Grid_radialCutoff( atomicGrid, initialGridSize, speciesID, particleID, atomicGridSize(particleID))
+       call Grid_radialCutoff( atomicGrid, initialGridSize, speciesID, particleID, atomicGridSize(particleID), this%molSys)
        molecularGridSize=molecularGridSize + atomicGridSize(particleID)
     end do
     
@@ -106,7 +108,7 @@ contains
 
     i=1
     do particleID = 1, numberOfCenters
-       origins(particleID,1:3) = MolecularSystem_instance%species(speciesID)%particles(particleID)%origin(1:3)
+       origins(particleID,1:3) = this%molSys%species(speciesID)%particles(particleID)%origin(1:3)
        do point = 1, atomicGridSize(particleID)
           molecularGrid%values(i,1)=atomicGrid%values(point,1)+origins(particleID,1)
           molecularGrid%values(i,2)=atomicGrid%values(point,2)+origins(particleID,2)
@@ -115,7 +117,7 @@ contains
           i=i+1
        end do
     end do
-
+    
     ! call Matrix_show(molecularGrid)
 
     !Calculate adecuate weights with Becke's
@@ -170,7 +172,7 @@ contains
     if(CONTROL_instance%PRINT_LEVEL .gt. 0) then
        write(*,"(A,ES9.3,A,ES9.3,A)") "Screening delocalized orbital(<", CONTROL_instance%ELECTRON_DENSITY_THRESHOLD,&
             ") and low weight(<",CONTROL_instance%GRID_WEIGHT_THRESHOLD,") points ..."
-       print *, "Final molecular grid size for: ", trim(this%nameOfSpecies), Grid_instance(speciesID)%totalSize ," points"
+       print *, "Final molecular grid size for: ", trim(this%nameOfSpecies), this%totalSize ," points"
        print *, " "
     end if
     
@@ -200,13 +202,14 @@ contains
 
   end subroutine Grid_exception
   
-  subroutine Grid_radialCutoff(atomicGrid, gridSize, speciesID, particleID, relevantPoints)
+  subroutine Grid_radialCutoff(atomicGrid, gridSize, speciesID, particleID, relevantPoints, molSys)
     ! Gets the radial point where basis sets take negligible values
     ! Felix Moncada, 2017
     implicit none
     type(matrix) :: atomicGrid
-    integer :: gridSize, speciesID, particleID
+    integer :: gridSize, speciesID, particleID   
     integer :: relevantPoints !output
+    type(molecularSystem) :: molSys
 
     integer :: numberOfContractions
     integer :: numberOfPrimitives
@@ -216,12 +219,12 @@ contains
 
     ! Search for the lowest exponent in the atomic basis set
     minExp=1E12
-    numberOfContractions = size(MolecularSystem_instance%species(speciesID)%particles(particleID)%basis%contraction)
+    numberOfContractions = size(molSys%species(speciesID)%particles(particleID)%basis%contraction)
     do mu = 1, numberOfContractions
-       numberOfPrimitives = size(MolecularSystem_instance%species(speciesID)%particles(particleID)%basis%contraction(mu)%orbitalExponents)
+       numberOfPrimitives = size(molSys%species(speciesID)%particles(particleID)%basis%contraction(mu)%orbitalExponents)
        do i = 1, numberOfPrimitives
-          if (MolecularSystem_instance%species(speciesID)%particles(particleID)%basis%contraction(mu)%orbitalExponents(i) .lt. minExp) then
-             minExp=MolecularSystem_instance%species(speciesID)%particles(particleID)%basis%contraction(mu)%orbitalExponents(i)
+          if (molSys%species(speciesID)%particles(particleID)%basis%contraction(mu)%orbitalExponents(i) .lt. minExp) then
+             minExp=molSys%species(speciesID)%particles(particleID)%basis%contraction(mu)%orbitalExponents(i)
           end if
        end do
     end do

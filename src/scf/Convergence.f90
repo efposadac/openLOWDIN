@@ -40,6 +40,7 @@ module Convergence_
   type, public :: Convergence
      
      character(30) :: name
+     type(MolecularSystem), pointer :: molSys
      
      type(Matrix) :: initialDensityMatrix
      type(Matrix) :: initialFockMatrix
@@ -97,12 +98,19 @@ contains
   
   !>
   !! @brief Define el constructor para la clase
-  subroutine Convergence_constructor( this, name ,methodType )
+  subroutine Convergence_constructor( this, name ,methodType, system )
     implicit none
     type(Convergence), intent(inout) :: this
     character(*),optional :: name
     integer, optional :: methodType
+    type(MolecularSystem), optional, target :: system
 
+    if( present(system) ) then
+       this%molSys=>system
+    else
+       this%molSys=>MolecularSystem_instance
+    end if
+    
     this%name = "undefined"
     if ( present(name) ) this%name = trim(name)
     this%methodType = SCF_CONVERGENCE_DEFAULT
@@ -682,7 +690,7 @@ contains
    
    if ( .not. CONTROL_instance%ACTIVATE_LEVEL_SHIFTING) return
 
-   if ( MolecularSystem_instance%species(this%speciesID)%isElectron ) then
+   if ( this%molSys%species(this%speciesID)%isElectron ) then
       levelShiftingFactor=CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
    else
       levelShiftingFactor=CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
@@ -692,8 +700,8 @@ contains
         matmul( matmul( transpose(this%coefficientMatrix%values ) , &
         this%newFockMatrixPtr%values), this%coefficientMatrix%values )
 
-   do i=MolecularSystem_getOcupationNumber(this%speciesID)+1, &
-        MolecularSystem_getTotalnumberOfContractions(this%speciesID)
+   do i=MolecularSystem_getOcupationNumber(this%speciesID,this%molSys)+1, &
+        MolecularSystem_getTotalnumberOfContractions(this%speciesID,this%molSys)
       fockMatrixTransformed%values(i,i) = levelShiftingFactor + fockMatrixTransformed%values(i,i)
    end do
    
@@ -722,14 +730,14 @@ contains
 
    if ( .not. CONTROL_instance%ACTIVATE_LEVEL_SHIFTING) return
 
-   if ( MolecularSystem_instance%species(this%speciesID)%isElectron ) then
+   if ( this%molSys%species(this%speciesID)%isElectron ) then
       levelShiftingFactor=CONTROL_instance%ELECTRONIC_LEVEL_SHIFTING
    else
       levelShiftingFactor=CONTROL_instance%NONELECTRONIC_LEVEL_SHIFTING
    end if
    
-   do i=MolecularSystem_getOcupationNumber(this%speciesID)+1, &
-        MolecularSystem_getTotalnumberOfContractions(this%speciesID)
+   do i=MolecularSystem_getOcupationNumber(this%speciesID,this%molSys)+1, &
+        MolecularSystem_getTotalnumberOfContractions(this%speciesID,this%molSys)
       eigenvalues%values(i) = eigenvalues%values(i) -levelShiftingFactor
    end do
 

@@ -2149,8 +2149,8 @@ contains
         ionizeA = .false.
         ionizeB = .false.
 
-         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
-         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
 
          do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
            if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
@@ -2287,8 +2287,8 @@ contains
          ionizeA = .false.
          ionizeB = .false.
 
-         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
-         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
 
          do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
             if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then

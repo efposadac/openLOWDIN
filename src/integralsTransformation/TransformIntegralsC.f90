@@ -1716,8 +1716,8 @@ contains
         ionizeA = .false.
         ionizeB = .false.
 
-         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
-         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
 
          do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
            if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
@@ -1843,8 +1843,8 @@ contains
         ionizeA = .false.
         ionizeB = .false.
 
-         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
-         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
 
          do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
            if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
@@ -1979,7 +1979,7 @@ contains
        sfile = trim(adjustl(sfile))
        unit = ifile+50
 
-       nameOfSpecie = MolecularSystem_getNameOfSpecie( specieID )          
+       nameOfSpecie = MolecularSystem_getNameOfSpecies( specieID )          
 
        if ( trim(nameOfSpecie) == "E-BETA" ) nameOfSpecie =""//trim("E-ALPHA")
 
@@ -2009,8 +2009,8 @@ contains
        sfile = trim(adjustl(sfile))
        unit = ifile+50
 
-       nameOfSpecie = MolecularSystem_getNameOfSpecie( i )          
-       nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( j )          
+       nameOfSpecie = MolecularSystem_getNameOfSpecies( i )          
+       nameOfOtherSpecie = MolecularSystem_getNameOfSpecies( j )          
 
 
        open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".nints", status='old',access='sequential', form='Unformatted')

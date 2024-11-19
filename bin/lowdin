@@ -358,7 +358,7 @@ if [ $extFile="lowdin" ]; then
 		fi
 		gawk '($1~/BASIS/ && toupper($2)~/^'$BASIS_NAME'$/){flag=1; next}
 		      ($0~/END/){flag=0};
-		      (flag==1){print toupper($0)}' $nameFile > $LOWDIN_DATA/basis/$BASIS_NAME
+		      (flag==1){print toupper($0)}' $nameFile > $BASIS_NAME.$PID
      	    done
 	fi
 
@@ -393,6 +393,14 @@ if [ $extFile="lowdin" ]; then
 	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.coeff $LOWDIN_SCRATCH/$nameFile &> /dev/null		
+	#PID to avoid basis duplicates in simultaneous calculations
+	if [ ${#BASIS_NAMES[@]} -gt "0" ]
+	then
+	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
+	    do
+		mv $BASIS_NAME.$PID $LOWDIN_SCRATCH/$nameFile/$BASIS_NAME &> /dev/null		
+     	    done
+	fi
 	
 	if [ -e  $nameFile.gms.bs ]
 	then
@@ -490,15 +498,6 @@ if [ $extFile="lowdin" ]; then
 
 	if [ $keepScratch = "F" ]; then
 	   rm -rf $LOWDIN_SCRATCH/$nameFile
-	fi
-
-	### Clean custom basis files
-	if [ ${#BASIS_NAMES[@]} -gt "0" ]
-	then
-	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
-	    do
-		rm $LOWDIN_DATA/basis/$BASIS_NAME
-     	    done
 	fi
 
     else

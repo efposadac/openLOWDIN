@@ -155,7 +155,7 @@ contains
     real(8) :: hold
 
     !    wfnFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
-    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species )
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species, wfObject%molSys )
 
     !!**********************************************************************************************
 
@@ -281,7 +281,7 @@ contains
 
     call Convergence_destructor(wfObject%convergenceMethod)
     call Convergence_constructor(wfObject%convergenceMethod, &
-         wfObject%name,CONTROL_instance%CONVERGENCE_METHOD)
+         wfObject%name,CONTROL_instance%CONVERGENCE_METHOD,wfObject%molSys)
 
     call Convergence_reset()
 
@@ -300,7 +300,7 @@ contains
   !   wfObject%name = "E-"
   !   if ( present(wfObject%name ) )  wfObject%name= trim(wfObject%name )
 
-  !   wfObject%species = MolecularSystem_getSpecieID(wfObject%name=trim(wfObject%name ) )
+  !   wfObject%species = MolecularSystem_getSpecieID(wfObject%name=trim(wfObject%name,wfObject%molSys ) )
 
   !   !! Determina la desviacion estandar de los elementos de la matriz de densidad
   !   call Matrix_copyConstructor(wfObject%beforeDensityMatrix, wfObject%densityMatrix )
@@ -365,7 +365,7 @@ contains
     !When the user explicitly requires EXCHANGE_ORBITALS_IN_SCF to have a solution with max overlap to the guess function
     !Or when an orbital is selected for partial ionization 
     if(CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF) then
-       activeOrbitals = MolecularSystem_getOcupationNumber(wfObject%species)
+       activeOrbitals = MolecularSystem_getOcupationNumber(wfObject%species,wfObject%molSys)
        call Vector_constructorInteger(orbitalsVector,activeOrbitals)
        do i=1,activeOrbitals
           orbitalsVector%values(i)=i
@@ -388,7 +388,7 @@ contains
     
     call Matrix_copyConstructor(auxOverlapMatrix,wfObject%overlapMatrix)
 
-    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species )
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species,wfObject%molSys)
 
     call Matrix_constructor (matchingMatrix, int(activeOrbitals,8), int(activeOrbitals,8))
 
@@ -499,10 +499,10 @@ contains
     integer :: wfnUnit
 
     wfnUnit = 30
-    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species )
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species,wfObject%molSys)
     !! NO SCF cicle for electrons or non-electrons
-    if ( CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS .and. .not. MolecularSystem_instance%species(wfObject%species)%isElectron) return
-    if ( CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS .and. MolecularSystem_instance%species(wfObject%species)%isElectron ) return
+    if ( CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS .and. .not. wfObject%molSys%species(wfObject%species)%isElectron) return
+    if ( CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS .and. wfObject%molSys%species(wfObject%species)%isElectron ) return
 
     !! Read coefficients from various possible files
     if (CONTROL_instance%READ_FCHK) then
@@ -513,7 +513,7 @@ contains
        call Matrix_destructor(auxiliaryMatrix)
 
     else if (CONTROL_instance%READ_COEFFICIENTS) then
-       arguments(2) = MolecularSystem_getNameOfSpecie(wfObject%species)
+       arguments(2) = MolecularSystem_getNameOfSpecies(wfObject%species,wfObject%molSys)
        arguments(1) = "COEFFICIENTS"
 
        wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"

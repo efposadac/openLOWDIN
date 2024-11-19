@@ -746,10 +746,10 @@ contains
 
   !             do i=1, ParticleManager_getNumberOfQuantumSpecies()
   !                 if ( ParticleManager_instance%particles(i)%isQuantum ) then
-  !                     status=system("cp "//trim(fileName)//trim(ParticleManager_getNameOfSpecie( i ))//".vec " &
-  !                             //trim(fileName)//"0."//trim(ParticleManager_getNameOfSpecie( i ))//".vec ")
-  !                     status=system("cp "//trim(fileName)//trim(ParticleManager_getNameOfSpecie( i ))//".vec " &
-  !                             //trim(fileName)//"1."//trim(ParticleManager_getNameOfSpecie( i ))//".vec ")
+  !                     status=system("cp "//trim(fileName)//trim(ParticleManager_getNameOfSpecies( i ))//".vec " &
+  !                             //trim(fileName)//"0."//trim(ParticleManager_getNameOfSpecies( i ))//".vec ")
+  !                     status=system("cp "//trim(fileName)//trim(ParticleManager_getNameOfSpecies( i ))//".vec " &
+  !                             //trim(fileName)//"1."//trim(ParticleManager_getNameOfSpecies( i ))//".vec ")
   !                 end if
   !             end do
 
@@ -1003,7 +1003,7 @@ contains
        ! end do
        ocupationNumber = MolecularSystem_getOcupationNumber( specieIterator )
 
-       arguments(2) = MolecularSystem_getNameOfSpecie(specieIterator)
+       arguments(2) = MolecularSystem_getNameOfSpecies(specieIterator)
 
        arguments(1) = "DENSITY"
        densityMatrix = &
@@ -1891,7 +1891,7 @@ contains
 
        orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(specieIterator)
 
-       arguments(2) = MolecularSystem_getNameOfSpecie(specieIterator)
+       arguments(2) = MolecularSystem_getNameOfSpecies(specieIterator)
 
        arguments(1) = "DENSITY"
        densityMatrix = &
@@ -1921,7 +1921,7 @@ contains
 
           otherOrderOfMatrix = MolecularSystem_getTotalNumberOfContractions(otherSpecieIterator)
 
-          otherArguments(2) = MolecularSystem_getNameOfSpecie(otherSpecieIterator)
+          otherArguments(2) = MolecularSystem_getNameOfSpecies(otherSpecieIterator)
 
           otherArguments(1) = "DENSITY"
           otherDensityMatrix = &

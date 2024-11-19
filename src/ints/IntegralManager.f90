@@ -152,7 +152,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -223,7 +223,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -294,7 +294,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -383,7 +383,7 @@ contains
          labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
          if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-         allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+         allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
          integralsMatrix = 0.0_8
 
          ii = 0
@@ -529,8 +529,8 @@ contains
           write(40) MolecularSystem_instance%species(f)%name
           total_aux=0
 
-          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".opints"
-          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".opints"
+          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".charges"
 
           open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
           open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
@@ -680,8 +680,8 @@ contains
 
                 if ( f /= g ) then
 
-                   cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
-                   cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
+                   cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".charges"
+                   cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( g ) )//".opints"
 
                    call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
 
@@ -779,13 +779,11 @@ contains
     character(*) :: scheme
 
     integer :: speciesID
-    integer :: numberOfContractions
 
     !! Skip integrals calculation two times for electrons alpha and beta    
     if(CONTROL_instance%IS_OPEN_SHELL .and. ( trim(nameOfSpecies) == "E-BETA" )) return
 
     speciesID = MolecularSystem_getSpecieID(trim(nameOfSpecies))
-    numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
 
     if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE )) == "DIRECT") return 
 
@@ -832,11 +830,11 @@ contains
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-       if(CONTROL_instance%IS_OPEN_SHELL .and. trim(MolecularSystem_getNameOfSpecie(i)) == "E-BETA" ) cycle
+       if(CONTROL_instance%IS_OPEN_SHELL .and. trim(MolecularSystem_getNameOfSpecies(i)) == "E-BETA" ) cycle
 
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
 
-          if(trim(MolecularSystem_getNameOfSpecie(j)) == "E-BETA" .and. .not. trim(MolecularSystem_getNameOfSpecie(i)) == "E-ALPHA" ) cycle
+          if(trim(MolecularSystem_getNameOfSpecies(j)) == "E-BETA" .and. .not. trim(MolecularSystem_getNameOfSpecies(i)) == "E-ALPHA" ) cycle
 
           !! Calculate integrals (stored on disk)       
           select case (trim(String_getUppercase(trim(scheme))))
@@ -924,7 +922,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
 
        integralsMatrix = 0.0_8
 

@@ -152,7 +152,7 @@ contains
 
 
     do i=1, numberOfSpecies
-        nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+        nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( i ) )
         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
 
         arguments(2) = nameOfSpecie

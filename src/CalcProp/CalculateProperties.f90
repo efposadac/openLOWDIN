@@ -146,10 +146,10 @@ contains
        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
        do speciesID=1, numberOfSpecies
           numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
-          print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+          print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecies(speciesID)), &
                " in the CI ground state"
           auxstring="1" !ground state
-          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
           arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
           this%densityMatrix(speciesID)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfcontractions,4), &
                columns= int(numberOfcontractions,4), binary=.false., arguments=arguments(1:2))
@@ -159,9 +159,9 @@ contains
        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
        do speciesID=1, numberOfSpecies
           numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
-          print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+          print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecies(speciesID)), &
                " in the HF/KS ground state"
-          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
           arguments(1) = "DENSITY"
           this%densityMatrix(speciesID) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
@@ -180,7 +180,7 @@ contains
        do speciesID=1, numberOfSpecies
           numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
           ! Overlap matrix
-          arguments(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
           arguments(1) = "OVERLAP"
           this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), &
                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
@@ -294,7 +294,7 @@ contains
 
        do type= 1, size(analysis)
           
-          speciesName = trim(MolecularSystem_getNameOfSpecie( speciesID ))
+          speciesName = trim(MolecularSystem_getNameOfSpecies( speciesID ))
 
           if(trim(speciesName) .eq. "E-ALPHA") then
              speciesNickname="E-"
@@ -366,7 +366,7 @@ contains
 
     ! search_specie: do i = 1, MolecularSystem_getNumberOfQuantumSpecies()
     !   speciesName=""
-    !   speciesName = trim(MolecularSystem_getNameOfSpecie(i))
+    !   speciesName = trim(MolecularSystem_getNameOfSpecies(i))
 
     !   if( scan(trim(speciesName),"E")==1 ) then
     !     if( scan(trim(speciesName),"-")>1 ) then
@@ -408,7 +408,7 @@ contains
 
     call Matrix_constructor( auxMatrix, int( numberOfcontractions, 8), int( numberOfcontractions, 8) )
 
-    speciesName=trim(MolecularSystem_getNameOfSpecie( speciesID ))
+    speciesName=trim(MolecularSystem_getNameOfSpecies( speciesID ))
     if(trim(speciesName) .eq. "E-ALPHA") then
        call Matrix_constructor( output, int( numberOfcontractions, 8), 2_8 )
        otherSpeciesID=speciesID+1
@@ -485,7 +485,7 @@ contains
     print *,""
     write (6,"(T19,4A9)") "<x>","<y>", "<z>", ""
     do i=1, numberOfSpecies
-       write (6,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecie( i )), CalculateProperties_getExpectedPosition(this, i)
+       write (6,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecies( i )), CalculateProperties_getExpectedPosition(this, i)
     end do
     print *,""
     print *,"END EXPECTED POSITIONS"
@@ -540,7 +540,7 @@ contains
     do i=1, numberOfSpecies
        dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)
        totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
+       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecies( i )), dipole(i,:)
     end do
     dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()
     totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
@@ -558,7 +558,7 @@ contains
     do i=1, numberOfSpecies
        dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)*2.54174619
        totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecie( i )), dipole(i,:)
+       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecies( i )), dipole(i,:)
     end do
 
     dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()*2.54174619
@@ -579,7 +579,7 @@ contains
     do i=1, numberOfSpecies
        quadrupole(i,:)=CalculateProperties_getQuadrupoleOfQuantumSpecies(this, i)*2.54174619*0.52917720859
        totalQuadrupole(:)=totalQuadrupole(:)+quadrupole(i,:)
-       write (6,"(T5,A15,6F14.8)") trim(MolecularSystem_getNameOfSpecie( i )), quadrupole(i,:)
+       write (6,"(T5,A15,6F14.8)") trim(MolecularSystem_getNameOfSpecies( i )), quadrupole(i,:)
     end do
 
     quadrupole(numberOfSpecies+1,:)=CalculateProperties_getQuadrupoleOfPuntualCharges()*2.54174619*0.52917720859
@@ -755,7 +755,7 @@ end module CalculateProperties_
 !
 !
 !    do i=1, numberOfSpecies
-!      nameOfSpecieSelected = trim( Particle_Manager_getNameOfSpecie( i ) )
+!      nameOfSpecieSelected = trim( Particle_Manager_getNameOfSpecies( i ) )
 !      numberOfContractions = Particle_Manager_getTotalNumberOfContractions( i )
 !      call Matrix_constructor (densityMatrix, int(numberOfContractions,8), int(numberOfContractions,8))
 !      densityMatrix = MolecularSystem_getDensityMatrix( trim(nameOfSpecieSelected) )
@@ -796,7 +796,7 @@ end module CalculateProperties_
 !                   print *,""
 !                   write (6,"(T19,A9)") "<R^2>"
 !                   do i=1, numberOfSpecies
-!                      write (6,"(T5,A15,F9.4)") trim(Particle_Manager_getNameOfSpecie( i )), (this%expectedR2%values(i))
+!                      write (6,"(T5,A15,F9.4)") trim(Particle_Manager_getNameOfSpecies( i )), (this%expectedR2%values(i))
 !                   end do
 !                   print *,""
 !                   print *,"END EXPECTED <R^2>"
