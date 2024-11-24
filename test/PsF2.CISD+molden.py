@@ -14,7 +14,7 @@ inputName = testName + ".lowdin"
 outputName = testName + ".out"
 molden1Name = testName + ".E-ALPHA.molden"                                                              
 molden2Name = testName + ".E-BETA.molden"                                                             
-molden3Name = testName + ".POSITRON.molden"                                                             
+molden3Name = testName + ".E+.molden"                                                             
 # Reference values and tolerance
 
 refValues = {

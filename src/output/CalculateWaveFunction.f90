@@ -50,7 +50,9 @@ module CalculateWaveFunction_
 
   public :: &
        CalculateWaveFunction_getDensityAt, &
-       CalculateWaveFunction_getOrbitalValueAt
+       CalculateWaveFunction_getOrbitalValueAt, &
+       CalculateWaveFunction_loadDensityMatrices, &       
+       CalculateWaveFunction_loadCoefficientsMatrices      
   !		CalculateWaveFunction_getFukuiFunctionAt
 
 contains
@@ -86,20 +88,17 @@ contains
 
   end subroutine CalculateWaveFunction_getDensityAt
 
-  subroutine CalculateWaveFunction_getOrbitalValueAt ( speciesID, orbitalNum, coordinates, output )
+  subroutine CalculateWaveFunction_getOrbitalValueAt ( speciesID, orbitalNum, coordinates, coefficientsofcombination, output )
     implicit none
     integer :: speciesID
     integer :: orbitalNum
     type(Matrix) :: coordinates
+    type(Matrix) :: coefficientsofcombination
     type(Vector) :: output
 
-    type(Matrix) :: coefficientsofcombination
     type(Matrix) :: basisSetValues
     integer :: totalNumberOfContractions, gridSize
     integer :: u
-    integer :: wfnUnit
-    character(50) :: wfnFile
-    character(50) :: arguments(20)
 
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
 
@@ -108,19 +107,6 @@ contains
     call Matrix_constructor( basisSetValues, int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8 )
 
     call CalculateWaveFunction_getBasisValueAt(speciesID, coordinates, gridSize, basisSetValues)
-
-    wfnFile = "lowdin.wfn"
-    wfnUnit = 20  
-    !! Open file for wavefunction
-    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-
-    arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
-    arguments(1) = "COEFFICIENTS"
-
-    coefficientsofcombination = &
-         Matrix_getFromFile(unit=wfnUnit, rows= int(totalNumberOfContractions,4), &
-         columns= int(totalNumberOfContractions,4), binary=.true., arguments=arguments(1:2))
-    close (wfnUnit)
 
     do u=1,totalNumberOfContractions
        output%values=output%values + coefficientsofcombination%values(u,orbitalNum)*basisSetValues%values(:,u)
@@ -155,7 +141,163 @@ contains
 
   end subroutine CalculateWaveFunction_getBasisValueAt
 
+  subroutine CalculateWaveFunction_loadDensityMatrices ( numberOfSpecies, numberOfStates, levelOfTheory, densityMatrices )
+    integer :: numberOfSpecies
+    integer :: numberOfStates
+    character(*) :: levelOfTheory
+    type(Matrix) :: densityMatrices(:,:)
+
+    integer :: l
+    integer :: state
+    character(50) :: auxString
+    integer :: wfnUnit, occupationsUnit
+    character(100) :: wfnFile, occupationsFile
+    integer :: numberOfOrbitals
+    character(50) :: arguments(2)
+    
+    if ( trim(levelOfTheory) .eq. "CI" ) then
+       occupationsUnit = 29
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+
+       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+       do state=1,numberOfStates
+          do l=1,numberOfSpecies
+             numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(l)
+             write(auxstring,*) state
+             arguments(2) = MolecularSystem_getNameOfSpecies( l )
+             arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
+             densityMatrices(l,state)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,4), &
+                  columns= int(numberOfOrbitals,4), binary=.false., arguments=arguments(1:2))
+
+          end do
+       end do
+       close(occupationsUnit)
+
+    else if( trim(levelOfTheory) .eq. "HF" ) then
+       wfnFile = "lowdin.wfn"
+       wfnUnit = 20
+       state = 1 
+       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+       do l=1,numberOfSpecies
+          numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(l)
+          arguments(2) = MolecularSystem_getNameOfSpecies( l )
+          arguments(1) = "DENSITY"
+          densityMatrices(l,state)= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
+               columns= int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
+
+       end do
+       close(wfnUnit)
+    end if
+    
+  end subroutine CalculateWaveFunction_loadDensityMatrices
+
+  subroutine CalculateWaveFunction_loadCoefficientsMatrices ( numberOfSpecies, numberOfStates, levelOfTheory, coefficientsOfCombination, occupations, energies)
+    integer :: numberOfSpecies
+    integer :: numberOfStates
+    character(*) :: levelOfTheory
+    type(Matrix) :: coefficientsOfCombination(:,:)
+    type(Vector), optional :: occupations(:,:)
+    type(Vector), optional :: energies(:,:)
+
+    type(Vector), allocatable :: fractionalOccupations(:,:)
+    type(Vector), allocatable :: energyOfMolecularOrbital(:,:)
+
+    integer :: i
+    integer :: l
+    integer :: state
+    integer :: wfnUnit, occupationsUnit
+    character(100) :: wfnFile, occupationsFile
+    character(50) :: arguments(2)
+    character(50) :: auxString
+
+
+    allocate(fractionalOccupations(numberOfSpecies,numberOfStates),energyOfMolecularOrbital(numberOfSpecies,numberOfStates))
+
+
+    if ( trim(levelOfTheory) .eq. "CI" ) then
+
+       occupationsUnit = 29
+       occupationsFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+
+       open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
+       do state=1,numberOfStates
+          do l=1,numberOfSpecies
+             write(auxstring,*) state
+
+             arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
+             arguments(2) = MolecularSystem_getNameOfSpecies( l )
+             call  Vector_getFromFile(elementsNum=MolecularSystem_getTotalNumberOfContractions(l),&
+                  unit=occupationsUnit,&
+                  arguments=arguments(1:2),&
+                  output=fractionalOccupations(l,state))
+
+             arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
+             coefficientsOfCombination(l,state)=Matrix_getFromFile(unit=occupationsUnit,&
+                  rows= int(MolecularSystem_getTotalNumberOfContractions(l),4), &
+                  columns= int(MolecularSystem_getTotalNumberOfContractions(l),4), &
+                  arguments=arguments(1:2))
+
+             call Vector_constructor( energyOfMolecularOrbital(l,state), MolecularSystem_getTotalNumberOfContractions(l) )
+             energyOfMolecularOrbital(l,state)%values=0.0
+
+          end do
+       end do
+       close(occupationsUnit)
+
+    else if( trim(levelOfTheory) .eq. "HF" ) then
+       !! Open file for wavefunction and load results                                                                                     
+       wfnFile = "lowdin.wfn"
+       wfnUnit = 20
+       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+
+       do l=1,numberOfSpecies
+          call Vector_constructor( fractionalOccupations(l,1), &
+               MolecularSystem_getTotalNumberOfContractions(l) )
+          fractionalOccupations(l,1)%values=0.0
+          do i=1, MolecularSystem_getOcupationNumber(l)
+             fractionalOccupations(l,1)%values(i)=1.0_8 * MolecularSystem_getLambda(l)
+          end do
+          arguments(2) = MolecularSystem_getNameOfSpecies(l)
+          arguments(1) = "COEFFICIENTS"
+          coefficientsOfcombination(l,1) = &
+               Matrix_getFromFile(unit=wfnUnit, &
+               rows= int(MolecularSystem_getTotalNumberOfContractions(l),4), &
+               columns= int(MolecularSystem_getTotalNumberOfContractions(l),4),&
+               binary=.true., &
+               arguments=arguments(1:2))
+
+          arguments(1) = "ORBITALS"
+          call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions(l), &
+               unit = wfnUnit,&
+               binary = .true.,&
+               arguments = arguments(1:2), &
+               output = energyOfMolecularOrbital(l,1) )
+
+       end do
+       close(wfnUnit)
+
+    end if
+
+    if(present(occupations)) then
+       do state=1,numberOfStates
+          do l=1,numberOfSpecies
+             occupations(l,state)=fractionalOccupations(l,state)
+          end do
+       end do
+    end if
+
+    if(present(energies)) then
+       do state=1,numberOfStates
+          do l=1,numberOfSpecies
+             energies(l,state)=energyOfMolecularOrbital(l,state)
+          end do
+       end do
+    end if
+
+  end subroutine CalculateWaveFunction_loadCoefficientsMatrices
+  
 end module CalculateWaveFunction_
+
 !>
 !! @brief Retorna el valor de la funcion en la coordenada especificada
 !<

@@ -1703,6 +1703,74 @@ contains
            !! Reorder the G functions
            !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14
            !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
+           !!Molden15G:xxxx yyyy zzzz xxxy xxxz yyyx yyyz zzzx zzzy xxyy xxzz yyzz xxyz yyxz zzxy
+           if ( adjustl(shellcode) == "Gxxxx" ) then
+              auxcounter = counter
+              ! call Matrix_swapRows(  coefficientsOfCombination, auxcounter+0 , auxcounter+0)   
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+10) !XXXY->10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+14) !XXXZ->14
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+10) !XXYY->10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+14) !XXYZ->14
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+6)  !XXZZ->6
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+11) !XXZZ->11
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+9)  !XYYZ->9
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+13) !XYZZ->13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+9 , auxcounter+10) !XYYZ->10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+10, auxcounter+11) !XYYZ->11 
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+11, auxcounter+12) !XYYZ->12
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+12, auxcounter+14) !XYYZ->14 
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+13, auxcounter+14) !XYZZ->14
+              ! call Matrix_swapRows(  coefficientsOfCombination, auxcounter+14, auxcounter+14) 
+           end if
+
+           if ( adjustl(shellcode) == "Hxxxxx" ) then 
+              call MolecularSystem_exception(WARNING, "The order of the coefficients only works until G orbitals", "MolecularSystem_changeOrbitalOrder" )
+           end if
+
+        end do
+
+     else if( (actualFormat.eq."LOWDIN" .and. desiredFormat.eq."FCHK") ) then
+        !! Swap some columns according to the molden format
+        do k=1,numberOfContractions
+           !! Take the shellcode
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
+
+           !! Reorder the D functions
+           !! counter:  0,  1,  2,  3,  4,  5
+           !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+           !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+           !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+           !!  2-4, 3-5, 5-6
+
+           if ( adjustl(shellcode) == "Dxx" ) then 
+              auxcounter = counter
+              !! Swap XY and YY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+              !! Swap XZ and ZZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+              !! Swap YZ and XZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+           end if
+
+           !! Reorder the F functions
+           !! counter:   0,   1,   2,   3,   4,   5,   6,   7,   8    9
+           !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+           !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+
+           if ( adjustl(shellcode) == "Fxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+
+           end if
+
+           !! Reorder the G functions
+           !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14
+           !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
            !! erkale-FCHK:  ZZZZ,YZZZ,YYZZ,YYYZ,YYYY,XZZZ,XYZZ,XYYZ,XYYY,XXZZ,XXYZ,XXYY,XXXZ,XXXY,XXXX
 
            ! Molden 15G: xxxx yyyy zzzz xxxy xxxz yyyx yyyz zzzx zzzy xxyy xxzz yyzz xxyz yyxz zzxy
@@ -1812,6 +1880,71 @@ contains
               call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
            end if
            !! Reorder the G functions
+           !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14 
+           !!Molden15G:xxxx yyyy zzzz xxxy xxxz yyyx yyyz zzzx zzzy xxyy xxzz yyzz xxyz yyxz zzxy
+           !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
+           if ( adjustl(shellcode) == "Gxxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3) !YYYY->3
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+4) !ZZZZ->4
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+9) !YYYY->9
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+12)!ZZZZ->12
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+10)!YYYX-10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+10)!YYYZ-10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+13)!ZZZX-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+14)!ZZZY-14
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+9 , auxcounter+13)!YYYY-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+10, auxcounter+13)!YYYZ-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+11, auxcounter+13)!YYZZ-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+12, auxcounter+13)!ZZZZ-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+13, auxcounter+14)!ZZZZ-14
+           end if
+
+           if ( adjustl(shellcode) == "Hxxxxx" ) then 
+              call MolecularSystem_exception(WARNING, "The order of the coefficients only works until G orbitals", "MolecularSystem_changeOrbitalOrder" )
+           end if
+
+           
+        end do
+        
+     else if( actualFormat.eq."FCHK" .and. desiredFormat.eq."LOWDIN") then
+        !! Swap some columns according to the molden format
+        do k=1,numberOfContractions
+           !! Take the shellcode
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
+
+           !! Reorder the D functions
+           !! counter:  1,  2,  3,  4,  5,  6
+           !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+           !! Lowdin:  XX, XY, XZ, YY, ZZ, YZ
+           !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+           !!  2-4, 3-5, 5-6
+
+           if ( adjustl(shellcode) == "Dxx" ) then 
+              auxcounter = counter
+              !! Swap YY and XY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+              !! Swap ZZ and XZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+4)
+              !! Swap ZZ and YZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+           end if
+
+           !! Reorder the F functions
+           !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+           !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+           !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+
+           if ( adjustl(shellcode) == "Fxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+4)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)             
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+           end if
+           !! Reorder the G functions
            !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14
            !! erkale-FCHK:  ZZZZ,YZZZ,YYZZ,YYYZ,YYYY,XZZZ,XYZZ,XYYZ,XYYY,XXZZ,XXYZ,XXYY,XXXZ,XXXY,XXXX
            !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
@@ -1833,7 +1966,7 @@ contains
 
            
         end do
-
+        
      else
 
         call MolecularSystem_exception(ERROR, "The desired format change from "//actualFormat//" to "//desiredFormat//"has not been implemented","MolecularSystem module at changeOrbitalOrder function.")
@@ -1946,7 +2079,7 @@ contains
        end if
     end do
 
-    call MolecularSystem_changeOrbitalOrder( coefficients, speciesID, "MOLDEN", "LOWDIN" )
+    call MolecularSystem_changeOrbitalOrder( coefficients, speciesID, "FCHK", "LOWDIN" )
     ! print *, "coefficients read"
     ! call Matrix_show(coefficients)
 

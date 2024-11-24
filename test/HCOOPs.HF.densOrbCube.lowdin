@@ -1,0 +1,34 @@
+GEOMETRY
+e-(C) cc-pVDZ		0.0000000	0.0000000	0.3157740
+e-(H) cc-pVDZ		0.0000000	0.0000000	1.4510170
+e-(O) aug-cc-pVDZ	0.0000000	1.1357680	-0.2091040
+e-(O) aug-cc-pVDZ	0.0000000	-1.1357680	-0.2091040 addparticles=1
+e+    PSX-DZ		0.0000000	1.1357680	-0.2091040
+e+    PSX-DZ		0.0000000	-1.1357680	-0.2091040 ADDParticles=-1
+C     dirac		0.0000000	0.0000000	0.3157740
+H     dirac		0.0000000	0.0000000	1.4510170
+O     dirac		0.0000000	1.1357680	-0.2091040
+O     dirac		0.0000000	-1.1357680	-0.2091040
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+END TASKS
+
+CONTROL
+	readCoefficients=.F.
+END CONTROL
+
+OUTPUTS
+	densityCube  cubeSize=5  point1=0.0 0.0 0.0 species="E-" pointsPerDim=100
+	densityCube  cubesize=20  point1=0.0 0.0 -2.5 species="E+" pointsPerDim=50
+	orbitalCube  CubeSize=15  center=0.0 0.0 -2.5 species="ALL" scanStep=0.5
+	orbitalPlot  axis="y" limitY=-7.5 7.5 offsetZ=-0.2091040 species="E+" scanStep=0.1
+	orbitalPlot  plane="yz" limitY=-7.5 7.5 limitZ=-7.5 7.5 species="E+" pointsPerDim=100
+END OUTPUTS
+
+
+
+
+
+

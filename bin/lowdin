@@ -177,37 +177,37 @@ if [ $extFile="lowdin" ]; then
 	    '{
 		printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",toupper($1),toupper($2))
 		for(i=1;i<=NF;i++){
-			if($i=="addParticles"){
+			if(toupper($i)==toupper("addParticles")){
 				printf("\tInputParticle_addParticles = %s\n",toupper($(i+2)) )
 			}
-			else if($i=="multiplicity"){
+			else if(toupper($i)==toupper("multiplicity")){
 				printf("\tInputParticle_multiplicity = %s\n",toupper($(i+2)) )
 			}
-			else if($i=="fix"){
+			else if(toupper($i)==toupper("fix")){
 				printf("\tInputParticle_fixedCoordinates = %s\n",toupper($(i+2)) )
                         }
-                        else if($i=="fragmentNumber"){
+                        else if(toupper($i)==toupper("fragmentNumber")){
 				printf("\tInputParticle_fragmentNumber = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="translationCenter"){
+                        else if(toupper($i)==toupper("translationCenter")){
 				printf("\tInputParticle_translationCenter = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="rotationPoint"){
+                        else if(toupper($i)==toupper("rotationPoint")){
 				printf("\tInputParticle_rotationPoint = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="rotateAround"){
+                        else if(toupper($i)==toupper("rotateAround")){
 				printf("\tInputParticle_rotateAround = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="q"){
+                        else if(toupper($i)==toupper("q")){
 				printf("\tInputParticle_charge = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="m"){
+                        else if(toupper($i)==toupper("m")){
 				printf("\tInputParticle_mass = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="omega"){
+                        else if(toupper($i)==toupper("omega")){
 				printf("\tInputParticle_omega = %s\n",toupper($(i+2)) )
 			}
-	                else if($i=="qdoCenterOf"){
+	                else if(toupper($i)==toupper("qdoCenterOf")){
 				printf("\tInputParticle_qdoCenterOf = \"%s\"\n",toupper($(i+2)) )
 			};
 		};
@@ -291,28 +291,67 @@ if [ $extFile="lowdin" ]; then
 	    '{
                 printf("\n&Output\n")
 		for(i=1;i<=NF;i++){
-			if($i=="species"){
+			if(toupper($i)==toupper("species")){
 				printf("\tOutput_species = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="orbital"){
-				printf("\tOutput_orbital = %s\n",$toupper((i+2)) )
+			else if(toupper($i)==toupper("plane")){
+				printf("\tOutput_plane = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="state"){
+			else if(toupper($i)==toupper("axis")){
+				printf("\tOutput_axis = %s\n",$toupper((i+2)) )
+			}
+			else if(toupper($i)==toupper("state")){
 				printf("\tOutput_state = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="dimensions"){
+			else if(toupper($i)==toupper("orbital")){
+				printf("\tOutput_orbital = %s\n",$toupper((i+2)) )
+			}
+			else if(toupper($i)==toupper("dimensions")){
 				printf("\tOutput_dimensions = %s\n",$toupper((i+2)) )
                         }
-                        else if($i=="cubeSize"){
+                        else if(toupper($i)==toupper("pointsPerDim")){
+                 		printf("\tOutput_pointsPerDim =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("scanStep")){
+                 		printf("\tOutput_scanStep =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("cubeSize")){
                  		printf("\tOutput_cubeSize =  %s\n",$toupper((i+2)) )
                         }
-                        else if($i=="point1"){
+                        else if(toupper($i)==toupper("minValue")){
+                 		printf("\tOutput_minValue =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("maxValue")){
+                 		printf("\tOutput_maxValue =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("offsetX")){
+                 		printf("\tOutput_offsetX =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("offsetY")){
+                 		printf("\tOutput_offsetY =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("offsetZ")){
+                 		printf("\tOutput_offsetZ =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("limitX")){
+                 		printf("\tOutput_limitX = %15.12E %15.12E \n",$(i+2),$(i+3))
+                        }
+                        else if(toupper($i)==toupper("limitY")){
+                 		printf("\tOutput_limitY = %15.12E %15.12E \n",$(i+2),$(i+3))
+                        }
+                        else if(toupper($i)==toupper("limitZ")){
+                 		printf("\tOutput_limitZ = %15.12E %15.12E \n",$(i+2),$(i+3))
+                        }
+                        else if(toupper($i)==toupper("center")){
+                 		printf("\tOutput_center = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
+                        }
+                        else if(toupper($i)==toupper("point1")){
                  		printf("\tOutput_point1 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
                         }
-                        else if($i=="point2"){
+                        else if(toupper($i)==toupper("point2")){
                  		printf("\tOutput_point2 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
                         }
-                        else if($i=="point3"){
+                        else if(toupper($i)==toupper("point3")){
                  		printf("\tOutput_point3 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
 			};
 		};
@@ -324,16 +363,16 @@ if [ $extFile="lowdin" ]; then
 	    '{
                 printf("\n&InputCINamelist\n")
 		for(i=1;i<=NF;i++){
-			if($i=="species"){
+			if(toupper($i)==toupper("species")){
 				printf("\tInputCI_species = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="core"){
+			else if(toupper($i)==toupper("core")){
 				printf("\tInputCI_core = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="active"){
+			else if(toupper($i)==toupper("active")){
 				printf("\tInputCI_active = %s\n",$toupper((i+2)) )
                         }
-                        else if($i=="excitation"){
+                        else if(toupper($i)==toupper("excitation")){
                  		printf("\tInputCI_excitation =  %s\n",$toupper((i+2)) )
 			};
 		};

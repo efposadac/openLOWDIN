@@ -29,16 +29,9 @@ module Solver_
   use InputManager_
   implicit none
 
-  type, public :: Solver
-     logical :: withProperties
-  end type Solver
-  
   public :: &
        Solver_run
   
-  !> Singleton lock
-  type(Solver), public :: lowdin_solver
-    
 contains
 
   !>
@@ -70,23 +63,40 @@ contains
 
     !!calculate HF/KS HF/KS properties
     call system ("lowdin-CalcProp.x")
+
+    !Check for inconsistent methods
+    if ( (CONTROL_instance%MOLLER_PLESSET_CORRECTION /= 0 .or. &
+         CONTROL_instance%EPSTEIN_NESBET_CORRECTION /= 0 .or. &
+         CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" .or. &
+         CONTROL_instance%PT_ORDER /= 0) .and. &
+         (trim(CONTROL_instance%METHOD) .eq. "RKS" .or. trim(CONTROL_instance%METHOD) .eq. "UKS")) then
+       print *, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+       call Solver_exception(WARNING, "You have selected a post-HF calculation that probably doesn't make sense with a KS reference."// &
+            " The calculation will proceed but be mindful of the results", "At Solver module in run function")
+       print *, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+
+    end if
+
+    if ( (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" .or. CONTROL_instance%PT_ORDER .ge. 3)  .and. &
+         trim(CONTROL_instance%METHOD) .ne. "UHF" ) then
+       print *, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+       call Solver_exception(WARNING, "CI calculations have been tested only for UHF. You have selected "//trim(CONTROL_instance%METHOD)//&
+            " The calculation will proceed but be mindful of the results", "At Solver module in run function")
+       print *, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    end if
     
     !Post SCF corrections
     if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION /= 0 .or. &
          CONTROL_instance%EPSTEIN_NESBET_CORRECTION /= 0 .or. &
          CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" .or. &
-         CONTROL_instance%PT_ORDER /= 0) then
-       call system("lowdin-integralsTransformation.x")
-    end if
+         CONTROL_instance%PT_ORDER /= 0) call system("lowdin-integralsTransformation.x")
 
-    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION /= 0 ) then
-       call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
-    end if
+    if ( CONTROL_instance%MOLLER_PLESSET_CORRECTION /= 0 ) call system("lowdin-MBPT.x CONTROL_instance%MOLLER_PLESSET_CORRECTION")
 
-    if ( CONTROL_instance%EPSTEIN_NESBET_CORRECTION /= 0 ) then
-       call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
-    end if
-        
+    if ( CONTROL_instance%EPSTEIN_NESBET_CORRECTION /= 0 ) call system("lowdin-MBPT.x CONTROL_instance%EPSTEIN_NESBET_CORRECTION")
+
+    if ( CONTROL_instance%PT_ORDER /= 0 ) call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
+    
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "NONE" ) then
        write(auxString,"(I10)") Input_instance%numberOfSpeciesInCI
        call system("lowdin-CI.x" //trim(auxString))
@@ -100,19 +110,12 @@ contains
        if ( .not. (CONTROL_instance%COMPUTE_ROCI_FORMULA .or. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS)) call system ("lowdin-CalcProp.x")
     end if
 
-    if ( CONTROL_instance%PT_ORDER /= 0 ) then
-       call system("lowdin-PT.x CONTROL_instance%PT_ORDER")
-    end if
-   
-    ! lowdin_solver%withProperties = .false.
     ! if(optimization) then
     !    call system("lowdin-Optimizer.x")
     ! else
     ! end if
      
    end subroutine Solver_run
-
- 
   
   !>
   !! @brief Manejo de excepciones
