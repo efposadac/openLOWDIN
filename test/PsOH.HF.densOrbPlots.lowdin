@@ -19,10 +19,10 @@ CONTROL
 END CONTROL
 
 OUTPUTS
-        densityPlot  dimensions=3 point1=0.0 -1.5 -1.5 point2= 0.0 1.5 -1.5 point3= 0.0 -1.5 1.5 species="E-"
+        densityPlot  plane="xz" limitX=-1.5 1.5 limitZ=-1.5 2.0 species="E-" scanStep=0.01
 	orbitalPlot  dimensions=3 point1=0.0 -2.0 -2.0 point2= 0.0 2.0 -2.0 point3= 0.0 -2.0 2.0 species="E-" orbital=3
         densityPlot  dimensions=3 point1=0.0 -5.0 -5.0 point2= 0.0 5.0 -5.0 point3= 0.0 -5.0 5.0 species="E+"
-	orbitalPlot  dimensions=3 point1=0.0 -5.0 -5.0 point2= 0.0 5.0 -5.0 point3= 0.0 -5.0 5.0 species="E+" orbital=1
+	orbitalPlot  plane="yz" limitY=-5.0 5.0 limitZ=-5.0 5.0 species="E+" orbital=1
 END OUTPUTS
 
 

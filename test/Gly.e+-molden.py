@@ -13,7 +13,7 @@ testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 molden1Name = testName + ".E-.molden"                                                                
-molden2Name = testName + ".POSITRON.molden"                                                                      
+molden2Name = testName + ".E+.molden"                                                                      
 # Reference values and tolerance
 
 refValues = {

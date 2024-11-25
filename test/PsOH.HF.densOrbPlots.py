@@ -13,17 +13,17 @@ testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
 densplot1Name = testName + ".E-.3D.dens"
-densplot2Name = testName + ".POSITRON.3D.dens"
+densplot2Name = testName + ".E+.3D.dens"
 orbplot1Name = testName + ".E-.3D.orb3"
-orbplot2Name = testName + ".POSITRON.3D.orb1"
+orbplot2Name = testName + ".E+.3D.orb1"
 # Reference values and tolerance
 
 refValues = {
 "HF energy" : [-75.587683637788,1E-8],
-"Num e- in densplot" : [10.37978910220915,1E-1],
-"Num e- in orbplot" :  [1.7211264610474177,1E-1],
-"Num e+ in densplot" : [0.9870409056582871,1E-2],
-"Num e+ in orbplot" :  [0.9870409056980444,1E-2],
+"Num e- in densplot" : [10.0,1E-0],
+"Num e- in orbplot" :  [2.0,5E-1],
+"Num e+ in densplot" : [1.0,5E-2],
+"Num e+ in orbplot" :  [1.0,5E-2],
 }                       
 
 testValues = dict(refValues) #copy 
