@@ -17,10 +17,10 @@ outputName = testName + ".out"
 
 refValues = {
     "HF energy" : [-0.651377261423,1E-8],
-    "HA-TIP Ext Pot" : [0.010606635479,1E-4],
-    "HA-TIP/HA-TIP Hartree" : [1.217813835967,1E-4],
-    "HA-TIP Exchange" : [-1.214419735313,1E-4],
-    "HA-TIP/Fixed interact." : [-0.035396418562,1E-4]
+    "X0.5+ Ext Pot" : [0.010606635479,1E-4],
+    "X0.5+/X0.5+ Hartree" : [1.217813835967,1E-4],
+    "X0.5+ Exchange" : [-1.214419735313,1E-4],
+    "X0.5+/Fixed interact." : [-0.035396418562,1E-4]
 }                       
 
 testValues = dict(refValues) #copy 
@@ -43,14 +43,14 @@ for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "HA-TIP Ext Pot" in line:
-        testValues["HA-TIP Ext Pot"] = float(line.split()[5])
-    if "HA-TIP/HA-TIP Hartree" in line:
-        testValues["HA-TIP/HA-TIP Hartree"] = float(line.split()[4])
-    if "HA-TIP Exchange" in line:
-        testValues["HA-TIP Exchange"] = float(line.split()[4])
-    if "HA-TIP/Fixed interact." in line:
-        testValues["HA-TIP/Fixed interact."] = float(line.split()[4])
+    if "X0.5+ Ext Pot" in line:
+        testValues["X0.5+ Ext Pot"] = float(line.split()[5])
+    if "X0.5+/X0.5+ Hartree" in line:
+        testValues["X0.5+/X0.5+ Hartree"] = float(line.split()[4])
+    if "X0.5+ Exchange" in line:
+        testValues["X0.5+ Exchange"] = float(line.split()[4])
+    if "X0.5+/Fixed interact." in line:
+        testValues["X0.5+/Fixed interact."] = float(line.split()[4])
         
 
 passTest = True

@@ -109,7 +109,7 @@ contains
     type(Matrix) :: orbitalCoefficients
     type(Vector) :: orbitalEnergies
 
-    character(30) :: nameOfSpecies
+    character(30) :: nameOfSpecies, symbolOfSpecies
     integer :: statusSystem
 
     integer :: numberOfContractions
@@ -118,11 +118,12 @@ contains
     
     !! Convert lowdin fchk files to erkale chk files
     nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
+    symbolOfSpecies=MolecularSystem_getSymbolOfSpecies(speciesID)
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
     open(unit=30, file="erkale.read", status="replace", form="formatted")
 
-    write(30,*) "LoadFChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk"
-    write(30,*) "SaveChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".chk"
+    write(30,*) "LoadFChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".fchk"
+    write(30,*) "SaveChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".chk"
     write(30,*) "Reorthonormalize true"
     
     close(30)
@@ -132,8 +133,8 @@ contains
     !! Localize orbitals
     open(unit=30, file="erkale.local", status="replace", form="formatted")
     
-    write(30,*) "LoadChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".chk"
-    write(30,*) "SaveChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.chk"
+    write(30,*) "LoadChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".chk"
+    write(30,*) "SaveChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.chk"
     write(30,*) "Method ", trim(CONTROL_instance%ERKALE_LOCALIZATION_METHOD)
     write(30,*) "Virtual false"
     write(30,*) "Maxiter 5000"
@@ -149,15 +150,15 @@ contains
     !!Convert erkale chk files to lowdin fchk files
     open(unit=30, file="erkale.write", status="replace", form="formatted")
     
-    write(30,*) "LoadChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.chk"
-    write(30,*) "SaveFChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.fchk"
+    write(30,*) "LoadChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.chk"
+    write(30,*) "SaveFChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.fchk"
     
     close(30)
 
     call system("erkale_fchkpt erkale.write")
     
     !! Read orbital coefficients from fchk files
-    call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.fchk",  orbitalCoefficients, densityMatrix, nameOfSpecies )
+    call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.fchk",  orbitalCoefficients, densityMatrix, nameOfSpecies )
 
     orbitalEnergies%values=0.0
     !! Molecular orbital fock operator expected value

@@ -14,14 +14,10 @@ inputName = testName + ".lowdin"
 outputName = testName + ".out"
 
 # Reference values and tolerance
-
 refValues = {
-"HF energy" : [-0.651377267238,1E-8],
-"X0.5+ Ext Pot" : [0.005339817047,1E-4],
-"Y0.5+ Ext Pot" : [0.005265789260,1E-4],
-"X0.5+/Y0.5+ Hartree" : [0.003393498016,1E-4],
-"X0.5+/Fixed interact." : [-0.025239485153,1E-4],
-"Y0.5+/Fixed interact." : [-0.010156190638,1E-4]
+    "HF energy" : [-199.213740198536,1E-8],
+    "eta e+" : [2.0,1E-8],
+    "occupation e+" : [1.0,1E-8]
 }                       
 
 testValues = dict(refValues) #copy 
@@ -40,21 +36,18 @@ output = open(outputName, "r")
 outputRead = output.readlines()
 
 # Values
+flagC=0
 for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "X0.5+ Ext Pot" in line:
-        testValues["X0.5+ Ext Pot"] = float(line.split()[5])
-    if "Y0.5+ Ext Pot" in line:
-        testValues["Y0.5+ Ext Pot"] = float(line.split()[5])
-    if "X0.5+/Y0.5+ Hartree" in line:
-        testValues["X0.5+/Y0.5+ Hartree"] = float(line.split()[4])
-    if "X0.5+/Fixed interact." in line:
-        testValues["X0.5+/Fixed interact."] = float(line.split()[4])
-    if "Y0.5+/Fixed interact." in line:
-        testValues["Y0.5+/Fixed interact."] = float(line.split()[4])
-           
+    if "CONSTANTS OF COUPLING" in line:
+        flagC=1
+    if "E+" in line and flagC==1:
+        testValues["eta e+"] = float(line.split()[2])
+        testValues["occupation e+"] = float(line.split()[4])
+        flagC=0
+output.close()
 
 passTest = True
 

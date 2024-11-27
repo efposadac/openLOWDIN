@@ -32,7 +32,7 @@ module DirectIntegralManager_
   use RysQuadrature_
   use Matrix_
   use Stopwatch_
-  use ExternalPotential_
+  use GTFPotential_
   use String_
   !# use RysQInts_  !! Please do not remove this line
 
@@ -866,8 +866,8 @@ contains
     do i= 1, ExternalPotential_instance%ssize
        !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
        ! if ( String_findSubstring(trim( molSystem%species(speciesID)%name  ), &
-       !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
-       if ( trim( molSystem%species(speciesID)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
+       !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%species)))) == 1 ) then
+       if ( trim( molSystem%species(speciesID)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%species))) ) then
           potID=i
           exit
        end if

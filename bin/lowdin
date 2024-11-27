@@ -204,6 +204,9 @@ if [ $extFile="lowdin" ]; then
                         else if(toupper($i)==toupper("m")){
 				printf("\tInputParticle_mass = %s\n",toupper($(i+2)) )
 			}
+                        else if(toupper($i)==toupper("eta")){
+				printf("\tInputParticle_eta = %s\n",toupper($(i+2)) )
+			}
                         else if(toupper($i)==toupper("omega")){
 				printf("\tInputParticle_omega = %s\n",toupper($(i+2)) )
 			}
@@ -381,10 +384,10 @@ if [ $extFile="lowdin" ]; then
 	' | $SED "s/,/./g" >> $nameFile.aux
 
 	###########################################
-	# Check custom basis sets in the input
+	# Check custom basis sets/potentials in the input
 	###########################################
 
-	BASIS_NAMES=(`gawk '($1~/BASIS/){print toupper($2)}' $nameFile`)
+	BASIS_NAMES=(`gawk '($1~/^BASIS$/){print toupper($2)}' $nameFile`)
 	if [ ${#BASIS_NAMES[@]} -gt "0" ]
 	then
 	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
@@ -401,6 +404,23 @@ if [ $extFile="lowdin" ]; then
      	    done
 	fi
 
+	POTENTIALS_NAMES=(`gawk '($1~/^POTENTIAL$/){print toupper($2)}' $nameFile`)
+	if [ ${#POTENTIALS_NAMES[@]} -gt "0" ]
+	then
+	    for POTENTIALS_NAME in ${POTENTIALS_NAMES[@]}				 
+	    do
+		if [ -e $LOWDIN_DATA/basis/$POTENTIALS_NAME ]
+		then
+		    echo "## ERROR: ## The custom potential file already exists in " $LOWDIN_DATA/potentials/$POTENTIALS_NAME		    
+		    echo "Modify the POTENTIALS block in your input and select a different name"
+		    exit 1
+		fi
+		gawk '($1~/POTENTIALS/ && toupper($2)~/^'$POTENTIALS_NAME'$/){flag=1; next}
+		      ($0~/END/){flag=0};
+		      (flag==1){print toupper($0)}' $nameFile > $POTENTIALS_NAME.$PID
+     	    done
+	fi
+	
 	
 	###########################################
 	# Exec lowdin.x
@@ -421,6 +441,7 @@ if [ $extFile="lowdin" ]; then
 	
 	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.plainvec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.fchk $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
@@ -432,7 +453,9 @@ if [ $extFile="lowdin" ]; then
 	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.coeff $LOWDIN_SCRATCH/$nameFile &> /dev/null		
-	#PID to avoid basis duplicates in simultaneous calculations
+	cp $nameFile*.gms.bs $LOWDIN_SCRATCH/$nameFile &> /dev/null
+
+	#PID to avoid basis/potentials duplicates in simultaneous calculations
 	if [ ${#BASIS_NAMES[@]} -gt "0" ]
 	then
 	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
@@ -440,12 +463,14 @@ if [ $extFile="lowdin" ]; then
 		mv $BASIS_NAME.$PID $LOWDIN_SCRATCH/$nameFile/$BASIS_NAME &> /dev/null		
      	    done
 	fi
-	
-	if [ -e  $nameFile.gms.bs ]
+	if [ ${#POTENTIALS_NAMES[@]} -gt "0" ]
 	then
-	    cp $nameFile.gms.bs $LOWDIN_SCRATCH/$nameFile
+	    for POTENTIALS_NAME in ${POTENTIALS_NAMES[@]}				 
+	    do
+		mv $POTENTIALS_NAME.$PID $LOWDIN_SCRATCH/$nameFile/$POTENTIALS_NAME &> /dev/null		
+     	    done
 	fi
-
+	
 	# setting default number of cores for OpenMP
 
 	if [ -z "$OMP_NUM_THREADS" ]; then
@@ -515,6 +540,7 @@ if [ $extFile="lowdin" ]; then
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.plainvec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.fchk $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.coords $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.s* $currentPath &> 2
