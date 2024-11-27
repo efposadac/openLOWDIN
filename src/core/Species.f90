@@ -93,9 +93,9 @@ contains
        if(trim(this%statistics) == "FERMION") then
           
           this%kappa = -1.0_8
-          this%eta = 2.0_8
-          this%lambda = 2.0_8
-          this%particlesFraction = 0.5_8
+          this%eta = 1.0_8
+          this%lambda = 1.0_8
+          this%particlesFraction = 1.0_8
           
        else 
           
@@ -150,6 +150,13 @@ contains
     this%spin = this%particles(1)%spin
     !! Adjust multiplicity
     this%multiplicity = this%multiplicity + 1
+
+    !! Adjust eta
+    if(this%particles(1)%eta .ne. 0) then
+       this%eta = this%particles(1)%eta
+       this%lambda = this%particles(1)%eta
+       this%particlesFraction = 1.0_8/this%particles(1)%eta
+    end if
 
     !! Adjust Occupation number
     this%ocupationNumber = this%ocupationNumber * this%particlesFraction

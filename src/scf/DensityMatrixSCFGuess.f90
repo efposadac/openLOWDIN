@@ -54,7 +54,7 @@ contains
     type(MolecularSystem), pointer :: molSys
 
     type(Matrix) :: auxMatrix
-    character(30) :: nameOfSpecies
+    character(30) :: nameOfSpecies, symbolOfSpecies
     integer(8) :: orderOfMatrix, occupationNumber
     logical :: existPlain, existBinnary, readSuccess
     character(50) :: guessType
@@ -71,6 +71,7 @@ contains
     
     orderOfMatrix = MolecularSystem_getTotalnumberOfContractions(speciesID,molSys)
     nameOfSpecies = molSys%species(speciesID)%name
+    symbolOfSpecies = molSys%species(speciesID)%symbol
     occupationNumber = MolecularSystem_getOcupationNumber(speciesID,molSys)
     readSuccess=.false.
 
@@ -79,11 +80,12 @@ contains
 
     call Matrix_constructor(densityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8  )
     call Matrix_constructor(orbitals, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
-    
+
+    readSuccess=.false.
     !!Verifica el archivo que contiene los coeficientes para una especie dada
     if ( CONTROL_instance%READ_FCHK ) then
-       call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk", orbitals, densityMatrix, nameOfSpecies )
-       return
+       wfnFile=trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".fchk"
+       call MolecularSystem_readFchk(wfnFile, orbitals, densityMatrix, nameOfSpecies, readSuccess)
 
     else if ( CONTROL_instance%READ_COEFFICIENTS ) then
        wfnUnit = 30
@@ -107,10 +109,7 @@ contains
           end if
        end if
     end if
-
-    !check if the orbitals were read correctly
-    if(.not. allocated(orbitals%values) ) readSuccess=.false.
-
+    
     if(readSuccess .and. printInfo ) print *, "Combination coefficients for ", trim(nameOfSpecies), " were read from ", trim(wfnFile)
 
     if(.not. readSuccess) then

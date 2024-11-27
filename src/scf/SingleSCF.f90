@@ -508,7 +508,7 @@ contains
     if (CONTROL_instance%READ_FCHK) then
 
        call Matrix_constructor (auxiliaryMatrix, numberOfContractions, numberOfContractions)
-       call MolecularSystem_readFchk( trim(CONTROL_instance%INPUT_FILE)//trim(wfObject%name)//".fchk", &
+       call MolecularSystem_readFchk( trim(CONTROL_instance%INPUT_FILE)//trim(wfObject%molSys%species(wfObject%species)%symbol)//".fchk", &
             wfObject%waveFunctionCoefficients, auxiliaryMatrix, wfObject%name )
        call Matrix_destructor(auxiliaryMatrix)
 

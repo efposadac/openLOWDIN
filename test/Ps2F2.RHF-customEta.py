@@ -12,14 +12,12 @@ else:
 testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
-# Reference values and tolerance
 
+# Reference values and tolerance
 refValues = {
-"HF energy" : [-343.383218426575,1E-8],
-"U-HOMO" : [-371.889981903188,1E-1],
-"H_1-HOMO" : [-1.019346186407,1E-4],
-"He_4-HOMO" : [-652.365841581870,1E-1],
-"e-HOMO" : [-0.585408097570,1E-4],
+    "HF energy" : [-199.213740198536,1E-8],
+    "eta e+" : [2.0,1E-8],
+    "occupation e+" : [1.0,1E-8]
 }                       
 
 testValues = dict(refValues) #copy 
@@ -38,36 +36,17 @@ output = open(outputName, "r")
 outputRead = output.readlines()
 
 # Values
-checkArray=[0,0,0,0]
+flagC=0
 for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
-    if "Eigenvalues for:" in line:
-        species=line.split()[2]
-        if species == "E-":
-            checkArray[0]=1
-        elif species == "H_1":
-            checkArray[1]=1
-        elif species == "MUON":
-            checkArray[2]=1
-        elif species == "HE_4":
-            checkArray[3]=1
-        
-    if "1 " in line and checkArray[0]==1:
-        checkArray[0]=0
-        testValues["e-HOMO"] = float(line.split()[1])
-    if "1 " in line and checkArray[1]==1:
-        checkArray[1]=0
-        testValues["H_1-HOMO"] = float(line.split()[1])
-    if "1 " in line and checkArray[2]==1:
-        checkArray[2]=0
-        testValues["U-HOMO"] = float(line.split()[1])
-    if "1 " in line and checkArray[3]==1:
-        checkArray[3]=0
-        testValues["He_4-HOMO"] = float(line.split()[1])
-
-        
+    if "CONSTANTS OF COUPLING" in line:
+        flagC=1
+    if "E+" in line and flagC==1:
+        testValues["eta e+"] = float(line.split()[2])
+        testValues["occupation e+"] = float(line.split()[4])
+        flagC=0
 output.close()
 
 passTest = True
@@ -86,3 +65,4 @@ else:
     print(testName + str_red(" ... NOT OK"))
     sys.exit(1)
 
+output.close()

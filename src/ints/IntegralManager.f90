@@ -37,7 +37,7 @@ module IntegralManager_
   use Matrix_
   use CosmoCore_
   use Stopwatch_
-  use ExternalPotential_
+  use GTFPotential_
   use HarmonicIntegrals_
   use FirstDerivativeIntegrals_
 
@@ -929,8 +929,8 @@ contains
        do i= 1, ExternalPotential_instance%ssize
           !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
           ! if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
-          !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
-          if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
+          !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%species)))) == 1 ) then
+          if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%species))) ) then
              potID=i
              exit
           end if

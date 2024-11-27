@@ -38,8 +38,7 @@ module MolecularSystem_
   use Matrix_
   use Vector_
   use InternalCoordinates_
-  use ExternalPotential_
-  use InterPotential_
+  use GTFPotential_
   implicit none
   
   type , public :: MolecularSystem
@@ -343,9 +342,10 @@ contains
     print *," MOLECULAR SYSTEM: ",trim(system%name)
     print *,"-----------------"
     print *,""
-    write (6,"(T5,A16,A)") "DESCRIPTION   : ", trim( system%description )
-    write (6,"(T5,A16,I3)") "CHARGE        : ",system%charge
-    write (6,"(T5,A16,A4)") "PUNTUAL GROUP : ", "NONE"
+    write (6,"(T5,A16,A)")     "DESCRIPTION   : ", trim( system%description )
+    write (6,"(T5,A16,I3)")    "CHARGE        : ",system%charge
+    write (6,"(T5,A16,F12.4)") "MASS (m_e)    : ", MolecularSystem_getTotalMass(system)
+    write (6,"(T5,A16,A4)")    "PUNTUAL GROUP : ", "NONE"
     print *,""
     
  
@@ -382,9 +382,9 @@ contains
     !!
     print *,""
     print *,"                INFORMATION OF QUANTUM SPECIES "
-    write (6,"(T5,A70)") "---------------------------------------------------------------------------------------------"
+    write (6,"(T5,A85)") "------------------------------------------------------------------------------------------------------------"
     write (6,"(T10,A2,A4,A8,A12,A4,A5,A6,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","omega","","spin","","multiplicity"
-    write (6,"(T5,A70)") "---------------------------------------------------------------------------------------------"
+    write (6,"(T5,A85)") "------------------------------------------------------------------------------------------------------------"
 
     do i = 1, system%numberOfQuantumSpecies
        write (6,'(T8,I3.0,A5,A10,A5,F10.4,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)') &
@@ -415,16 +415,16 @@ contains
     print *,""
 
     print *,"                  BASIS SET FOR SPECIES "
-    write (6,"(T7,A60)") "------------------------------------------------------------"
-    write (6,"(T10,A8,A10,A8,A5,A12,A5,A9)") "Symbol", " ","N. Basis", " ","N. Particles"," ","Basis Set"
-    write (6,"(T7,A60)") "------------------------------------------------------------"
+    write (6,"(T7,A70)") "----------------------------------------------------------------------"
+    write (6,"(T10,A8,A10,A8,A5,A12,A5,A20)") "Symbol", " ","N. Basis", " ","N. Particles"," ","Basis Set"
+    write (6,"(T7,A70)") "----------------------------------------------------------------------"
     
     !! Only shows the basis-set name of the first particle by specie.
     do i = 1, system%numberOfQuantumSpecies
        
        if( system%species(i)%isElectron .and. CONTROL_instance%IS_OPEN_SHELL ) then
 
-          write (6,'(T10,A10,A5,I8,A5,I12,A5,A10)') &
+          write (6,'(T10,A10,A5,I8,A5,I12,A5,A20)') &
                trim(system%species(i)%symbol)," ",&
                !MolecularSystem_getTotalNumberOfContractions(i)," ",&
                system%species(i)%basisSetSize," ",&
@@ -434,7 +434,7 @@ contains
           
        else
 
-          write (6,'(T10,A10,A5,I8,A5,I12,A5,A10)') &
+          write (6,'(T10,A10,A5,I8,A5,I12,A5,A20)') &
                trim(system%species(i)%symbol)," ",&
                !MolecularSystem_getTotalNumberOfContractions(i)," ",&
                system%species(i)%basisSetSize," ",&
@@ -501,7 +501,7 @@ contains
     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
       print *,""
       print *," INFORMATION OF EXTERNAL POTENTIALS "
-      call ExternalPotential_show()
+      call GTFPotential_show(ExternalPotential_instance)
       print *,""
       print *," END INFORMATION OF EXTERNAL POTENTIALS"
       print *,""
@@ -510,7 +510,7 @@ contains
     if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
       print *,""
       print *," INFORMATION OF INTER-PARTICLE POTENTIALS "
-      call InterPotential_show()
+      call GTFPotential_show(InterPotential_instance)
       print *,""
       print *," END INFORMATION OF INTER-PARTICLE POTENTIALS"
       print *,""
@@ -671,7 +671,7 @@ contains
       do i = 1, ExternalPotential_instance%ssize 
         write(40,*) i 
         write(40,*) ExternalPotential_instance%potentials(i)%name
-        write(40,*) ExternalPotential_instance%potentials(i)%specie 
+        write(40,*) ExternalPotential_instance%potentials(i)%species 
       end do
 
     end if
@@ -681,8 +681,8 @@ contains
       do i = 1, InterPotential_instance%ssize 
         write(40,*) i 
         write(40,*) InterPotential_instance%potentials(i)%name
-        write(40,*) InterPotential_instance%potentials(i)%specie 
-        write(40,*) InterPotential_instance%potentials(i)%otherSpecie 
+        write(40,*) InterPotential_instance%potentials(i)%species 
+        write(40,*) InterPotential_instance%potentials(i)%otherSpecies
       end do
 
     end if
@@ -950,16 +950,14 @@ contains
        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
 
           read(40,*) auxValue
-          call ExternalPotential_constructor(auxValue)
-
-          !! FELIX TODO: create function to get potential ID
+          call GTFPotential_constructor(ExternalPotential_instance,auxValue,"EXTERNAL")
 
           do j = 1, ExternalPotential_instance%ssize 
              read(40,*) i 
              read(40,*) name
              read(40,*) species
 
-             call ExternalPotential_load(i, name, species)
+             call GTFPotential_load(ExternalPotential_instance, i, name, species)
 
           end do
 
@@ -968,7 +966,7 @@ contains
        if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
 
           read(40,*) auxValue 
-          call InterPotential_constructor(auxValue)
+          call GTFPotential_constructor(InterPotential_instance,auxValue,"INTERNAL")
 
           do j = 1, InterPotential_instance%ssize 
              read(40,*) i 
@@ -976,7 +974,7 @@ contains
              read(40,*) species
              read(40,*) otherSpecies
 
-             call InterPotential_load(i, name, species, otherSpecies)
+             call GTFPotential_load(InterPotential_instance, i, name, species, otherSpecies)
 
           end do
 
@@ -1979,13 +1977,14 @@ contains
 
   !>
   !! @brief Lee la matriz de densidad y los orbitales de un archivo fchk tipo Gaussian
-  subroutine MolecularSystem_readFchk( fileName, coefficients, densityMatrix, nameOfSpecies )
+  subroutine MolecularSystem_readFchk( fileName, coefficients, densityMatrix, nameOfSpecies, readSuccess )
     implicit none
 
     character(*), intent(in) :: fileName
     type(Matrix), intent(inout) :: coefficients
     type(Matrix), intent(inout) :: densityMatrix
     character(*) :: nameOfSpecies
+    logical, optional :: readSuccess
 
     integer :: speciesID
     integer :: numberOfContractions
@@ -2006,9 +2005,15 @@ contains
     speciesID=MolecularSystem_getSpecieID(nameOfSpecies)
     numberOfContractions=MolecularSystem_getTotalnumberOfContractions( speciesID )
     inquire(FILE = trim(fileName), EXIST = existFchk )
-    if ( .not. existFchk ) call MolecularSystem_exception( ERROR, "I did not find any .fchk coefficients file", "At MolecularSystem_readFchk")
+    if ( .not. existFchk .and. present(readSuccess)) then
+       readSuccess=.false.
+       call MolecularSystem_exception( WARNING, "I did not find the "//trim(filename)//" coefficients file for "//trim(nameOfSpecies), "At MolecularSystem_readFchk")
+       return
+    end if
+    if ( .not. existFchk) then
+       call MolecularSystem_exception( ERROR, "I did not find the "//trim(filename)//" coefficients file for "//trim(nameOfSpecies), "At MolecularSystem_readFchk")
+    end if
     
-
     fchkUnit = 50
 
     open(unit=fchkUnit, file=filename, status="old", form="formatted", access='sequential', action='read')
@@ -2097,8 +2102,8 @@ contains
     ! print *, "density matrix from orbitals read"
     ! call Matrix_show(densityMatrix)
 
-    
     close(fchkUnit)
+    if(present(readSuccess)) readSuccess=.true.
     
   end subroutine MolecularSystem_readFchk
 
@@ -2783,6 +2788,9 @@ contains
        case("AMU")
           output = output * AMU
 
+       case("DALTON")
+          output = output * DALTON
+          
        case default
 
        end select

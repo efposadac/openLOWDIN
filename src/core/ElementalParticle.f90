@@ -40,6 +40,7 @@ module ElementalParticle_
      real(8) :: mass
      real(8) :: charge
      real(8) :: spin
+     logical :: custom
   end type ElementalParticle
   
   public :: &
@@ -59,6 +60,7 @@ contains
     character(*) :: symbolSelected
 
     logical :: existFile
+    logical :: custom
     integer :: stat
     integer :: i
     
@@ -81,59 +83,64 @@ contains
     !! Looking for library    
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), exist=existFile)
     
-    if ( existFile ) then
+    if ( .not. existFile ) call ElementalParticle_exception( ERROR, "LOWDIN library not found!! please export lowdinvars.sh file.", "In ElementalParticle at load function.")
 
-       !! Open library
-       open(unit=10, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), status="old", form="formatted" )
-              
-       !! Read information
-       symbol = "NONE"
-       stat = 0
+    !! Open library
+    open(unit=10, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), status="old", form="formatted" )
+
+    !! Read information
+    symbol = "NONE"
+    stat = 0
+
+    do while(trim(symbol) /= trim(symbolSelected))
+
+       !! Setting defaults
+       name = "NONE"
+       category = "NONE"
+       mass = -1
+       charge = 0
+       spin = 0
+       custom = .false.
        
-       do while(trim(symbol) /= trim(symbolSelected))
-       
-          !! Setting defaults
-          name = "NONE"
-          category = "NONE"
-          mass = -1
-          charge = 0
-          spin = 0
+       if (stat == -1 ) then
+
+          ! call ElementalParticle_exception( WARNING, "Elemental particle: "//trim(symbolSelected)//" NOT found in ElementalParticles.lib", "Setting default values")
+          name = trim(symbolSelected)
+          symbol = trim(symbolSelected)
+          category = "FERMION"
+          mass = 1.0
+          charge = 1.0
+          spin = 0.5
+          custom = .true.
           
-          if (stat == -1 ) then
-             
-             call ElementalParticle_exception( ERROR, "Elemental particle: "//trim(symbolSelected)//" NOT found!!", "In ElementalParticle at load function.")
-
-          end if
+          exit
           
-          read(10,NML=particle, iostat=stat)
- 
-          if (stat > 0 ) then
-             
-             call ElementalParticle_exception( ERROR, "Failed reading ElementalParticles.lib file!! please check this file.", "In ElementalParticle at load function.")
-             
-          end if
+       end if
 
-       end do
-       
-       !! Set object variables
-       this%name = name
-       this%symbol = symbol
-       this%category = category 
-       this%mass = mass
-       this%charge = charge
-       this%spin = spin
-       
-       !! Debug information.
-       !! call ElementalParticle_show(this)
-       
-       close(10)
-       
-    else 
+       read(10,NML=particle, iostat=stat)
 
-       call ElementalParticle_exception( ERROR, "LOWDIN library not found!! please export lowdinvars.sh file.", "In ElementalParticle at load function.")
+       if (stat > 0 ) then
 
-    end if 
+          call ElementalParticle_exception( ERROR, "Failed reading ElementalParticles.lib file!! please check this file.", "In ElementalParticle at load function.")
 
+       end if
+
+    end do
+
+    !! Set object variables
+    this%name = name
+    this%symbol = symbol
+    this%category = category 
+    this%mass = mass
+    this%charge = charge
+    this%spin = spin
+    this%custom = custom
+    
+    !! Debug information.
+    ! call ElementalParticle_show(this)
+
+    close(10)
+       
     !! Done
     
   end subroutine ElementalParticle_load

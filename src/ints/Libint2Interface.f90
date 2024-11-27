@@ -26,7 +26,7 @@
 module Libint2Interface_
   use, intrinsic :: iso_c_binding
   use MolecularSystem_
-  use InterPotential_
+  use GTFPotential_
   use ContractedGaussian_
   ! use Matrix_
 
@@ -824,9 +824,9 @@ contains
     !Get potential ID
     do i=1, InterPotential_instance%ssize
        if ( trim( MolecularSystem_instance%species(speciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
             trim( MolecularSystem_instance%species(speciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie))) ) then
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies))) ) then
           potID=i
           exit
        end if
@@ -883,14 +883,14 @@ contains
     !Get potential ID
     do i=1, InterPotential_instance%ssize
        if ( (trim(MolecularSystem_instance%species(speciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
             trim(MolecularSystem_instance%species(otherSpeciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies)) ) &
             ) .or. &
             (trim( MolecularSystem_instance%species(otherSpeciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
             trim( MolecularSystem_instance%species(speciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies)) ) &
             ) &
             ) then
           potID=i
@@ -965,9 +965,9 @@ contains
     !Get potential ID
     do i=1, InterPotential_instance%ssize
        if ( trim( molSys%species(speciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
             trim( molSys%species(speciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie))) ) then
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies))) ) then
           potID=i
           exit
        end if
@@ -1027,14 +1027,14 @@ contains
     !Get potential ID
     do i=1, InterPotential_instance%ssize
        if ( (trim(molSys%species(speciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
             trim(molSys%species(otherSpeciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies)) ) &
             ) .or. &
             (trim(molSys%species(otherSpeciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
             trim(molSys%species(speciesID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies)) ) &
             ) &
             ) then
           potID=i
@@ -1088,9 +1088,9 @@ contains
        !Get potential ID
        do i=1, InterPotential_instance%ssize
           if ( trim( molSys%species(speciesID)%symbol) == &
-               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
                trim( molSys%species(speciesID)%symbol) == &
-               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie))) ) then
+               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies))) ) then
              potID=i
              exit
           end if
@@ -1142,14 +1142,14 @@ contains
        !Get potential ID
        do i=1, InterPotential_instance%ssize
           if ( (trim(molSys%species(speciesID)%symbol) == &
-               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
                trim(molSys%species(otherSpeciesID)%symbol) == &
-               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies)) ) &
                ) .or. &
                (trim( molSys%species(otherSpeciesID)%symbol) == &
-               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
                trim( molSys%species(speciesID)%symbol) == &
-               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+               trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies)) ) &
                ) &
                ) then
              potID=i
