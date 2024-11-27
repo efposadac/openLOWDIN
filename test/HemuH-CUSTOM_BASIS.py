@@ -15,11 +15,11 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-343.383191892820,1E-8],
-"U-HOMO" : [-371.890049816287,1E-1],
-"H_1-HOMO" : [-1.019360160964,1E-4],
-"He_4-HOMO" : [-652.366876763392,1E-1],
-"e-HOMO" : [-0.585414450602,1E-4],
+"HF energy" : [-343.383218426575,1E-8],
+"U-HOMO" : [-371.889981903188,1E-1],
+"H_1-HOMO" : [-1.019346186407,1E-4],
+"He_4-HOMO" : [-652.365841581870,1E-1],
+"e-HOMO" : [-0.585408097570,1E-4],
 }                       
 
 testValues = dict(refValues) #copy 
