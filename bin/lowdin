@@ -415,7 +415,7 @@ if [ $extFile="lowdin" ]; then
 		    echo "Modify the POTENTIALS block in your input and select a different name"
 		    exit 1
 		fi
-		gawk '($1~/POTENTIALS/ && toupper($2)~/^'$POTENTIALS_NAME'$/){flag=1; next}
+		gawk '($1~/^POTENTIAL$/ && toupper($2)~/^'$POTENTIALS_NAME'$/){flag=1; next}
 		      ($0~/END/){flag=0};
 		      (flag==1){print toupper($0)}' $nameFile > $POTENTIALS_NAME.$PID
      	    done
