@@ -1,0 +1,311 @@
+  !>
+  !! @brief Muestra informacion del objeto
+  !!
+  !! @param this 
+  !<
+!  subroutine CI_core_printTransformedIntegralsToFile()
+!    implicit none
+!
+!!    type(TransformIntegrals) :: repulsionTransformer
+!    integer :: numberOfSpecies
+!    integer :: i,j,m,n,mu,nu
+!    integer :: a,b,r,s,u, auxIndex
+!    integer :: z
+!    integer :: stats, recNum
+!    character(10) :: nameOfSpecie, auxNameOfSpecie
+!    character(10) :: nameOfOtherSpecie
+!    integer :: ocupationNumber
+!    integer :: ocupationNumberOfOtherSpecie
+!    integer :: numberOfContractions
+!    integer :: numberOfContractionsOfOtherSpecie
+!    type(Matrix) :: auxMatrix
+!    type(Matrix) :: molecularCouplingMatrix
+!    type(Matrix) :: molecularExtPotentialMatrix
+!
+!    integer :: spin
+!
+!    real(8) :: totalCoupEnergy
+!    real(8) :: fixedPotEnergy
+!    real(8) :: fixedIntEnergy
+!    real(8) :: KineticEnergy
+!    real(8) :: RepulsionEnergy
+!    real(8) :: couplingEnergy
+
+
+!    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+!
+!    print *,""
+!    print *,"BEGIN INTEGRALS TRANFORMATION:"
+!    print *,"========================================"
+!    print *,""
+!    print *,"--------------------------------------------------"
+!    print *,"    Algorithm Four-index integral tranformation"
+!    print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
+!    print *,"  Computer Physics Communications, 2005, 166, 58-65"
+!    print *,"--------------------------------------------------"
+!    print *,""
+!
+!    totalCoupEnergy = 0.0_8
+!    fixedPotEnergy = 0.0_8
+!    fixedIntEnergy = 0.0_8
+!    KineticEnergy = 0.0_8
+!    RepulsionEnergy = 0.0_8
+!    couplingEnergy = 0.0_8
+!    spin = 0
+!
+!    do i=1, numberOfSpecies
+!        nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+!        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
+!        spin = MolecularSystem_getMultiplicity(i) - 1
+!
+!        if(trim(nameOfSpecie) /= "E-BETA" ) then
+!
+!           if(trim(nameOfSpecie) /= "U-" ) then 
+!
+!              open(unit=35, file="FCIDUMP-"//trim(nameOfSpecie)//".com", form="formatted", status="replace")
+!
+!              write(35,"(A)")"gprint basis"
+!              write(35,"(A)")"memory 1000 M"
+!              write(35,"(A)")"cartesian"
+!              write(35,"(A)")"gthresh twoint=1e-12 prefac=1e-14 energy=1e-10 edens=1e-10 zero=1e-12"
+!              write(35,"(A)")"basis={"
+!              call CI_core_printBasisSetToFile(35)
+!              write(35,"(A)")"}"
+!
+!              write(35,"(A)")"symmetry nosym"
+!              write(35,"(A)")"angstrom"
+!              write(35,"(A)")"geometry={"
+!              call CI_core_printGeometryToFile(35)
+!              write(35,"(A)")"}"
+!
+!              write(35,"(A)")"import 21500.2 "//trim(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//"."//"jcoup")
+!              write(35,"(A)")"import 21510.2 "//trim(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//"."//"icoup")
+!              write(35,"(A)")"import 21520.2 "//trim(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//"."//"kin")
+!              write(35,"(A)")"import 21530.2 "//trim(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//"."//"coeff")
+!
+!              if(trim(nameOfSpecie) == "E-ALPHA") then
+!
+!                 write(35,"(A)")"import 21550.2 "//trim(trim(CONTROL_instance%INPUT_FILE)//"E-BETA"//"."//"coeff")
+!
+!              end if
+!
+!              write(35,"(A)")"import 21540.2 "//trim(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//"."//"dens")
+!              !write(35,"(A)")"import 21560.2 "//trim(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//"."//"pot")
+!
+!              write(35,"(A)")"{matrop"
+!              write(35,"(A)")"load Jcoup, SQUARE 21500.2"
+!              write(35,"(A)")"load Icoup, SQUARE 21510.2"
+!              write(35,"(A)")"load K, SQUARE 21520.2"
+!              !write(35,"(A)")"load Pot, SQUARE 21560.2"
+!              write(35,"(A)")"add H01, K Icoup Jcoup"! Pot"
+!              write(35,"(A)")"save H01, 21511.2 H0"
+!              write(35,"(A)")"}"
+!
+!              if(trim(nameOfSpecie) == "E-ALPHA") then
+!                 write(35,"(A)")"{matrop"
+!                 write(35,"(A)")"load Ca, SQUARE 21530.2"
+!                 write(35,"(A)")"load Cb, SQUARE 21550.2"               
+!                 write(35,"(A)")"save Ca, 2100.1 ORBITALS alpha"
+!                 write(35,"(A)")"save Cb, 2100.1 ORBITALS beta"
+!                 write(35,"(A)")"}"
+!              else
+!                 write(35,"(A)")"{matrop"
+!                 write(35,"(A)")"load C, SQUARE 21530.2"
+!                 write(35,"(A)")"save C, 2100.1 ORBITALS"
+!                 write(35,"(A)")"}"
+!              end if
+!
+!              write(35,"(A)")"{matrop"
+!              write(35,"(A)")"load D, SQUARE 21540.2"
+!              write(35,"(A)")"save D, 21400.1 DENSITY"
+!              write(35,"(A)")"}"
+!
+!
+!              !            write(35,"(A,I3,A,I3,A,I3,A1)")"$FCI NORB=",numberOfContractions, ",NELEC=", MolecularSystem_getNumberOfParticles(i)-spin, ", MS2=", spin,","
+!              !
+!              !            write(35,"(A)",advance="no") "ORBSYM="
+!              !            do z=1, numberOfContractions
+!              !                write(35,"(I1,A1)",advance="no") 1,","
+!              !            end do
+!              !            write(35,"(A)") ""
+!              !
+!              !            write(35, "(A,I3,A,I9)") "ISYM=",1, ",MEMORY=", 200000000
+!              !
+!              !            write(35, "(A)") "$"
+!              !
+!              !            print *, "FOUR CENTER INTEGRALS FOR SPECIE: ", trim(nameOfSpecie)
+!              !
+!              !            recNum = 0
+!              !            do a = 1, numberOfContractions
+!              !                n = a
+!              !                do b=a, numberOfContractions
+!              !                    u = b
+!              !                    do r = n, numberOfContractions
+!              !                        do s = u, numberOfContractions
+!              !
+!              !                            auxIndex = IndexMap_tensorR4ToVector( a, b, r, s, numberOfContractions )
+!              !                            write(35,"(F20.10,4I3)") CI_core_instance%fourCenterIntegrals(i,i)%values(auxIndex, 1), a, b, r, s
+!              !
+!              !                        end do
+!              !                        u=r+1
+!              !                    end do
+!              !                end do
+!              !            end do
+!              !
+!              !
+!              !            print *, "TWO CENTER TRANSFORMED INTEGRALS FOR SPECIE: ", trim(nameOfSpecie)
+!              !
+!              !            do m=1,numberOfContractions
+!              !                do n=1, m
+!              !                    write(35,"(F20.10,4I3)") CI_core_instance%twoCenterIntegrals(i)%values(m,n), m, n, 0, 0
+!              !                end do
+!              !            end do
+!
+!              !!Calculating the core energy....
+!
+!
+!
+!              totalCoupEnergy = MolecularSystem_instance%totalCouplingEnergy
+!              fixedPotEnergy = MolecularSystem_instance%puntualInteractionEnergy
+!
+!              do j = 1, numberOfSpecies
+!
+!                 auxNameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
+!
+!                 if(trim(auxNameOfSpecie) == "E-ALPHA" .or.  trim(auxNameOfSpecie) == "E-BETA" .or.  trim(auxNameOfSpecie) == "e-") cycle
+!
+!                 fixedIntEnergy = fixedIntEnergy + MolecularSystem_instance%quantumPuntualInteractionEnergy(j)
+!                 KineticEnergy = KineticEnergy + MolecularSystem_instance%kineticEnergy(j)
+!                 RepulsionEnergy = RepulsionEnergy + MolecularSystem_instance%repulsionEnergy(j)
+!                 couplingEnergy = couplingEnergy + MolecularSystem_instance%couplingEnergy(j)
+!
+!              end do
+!
+!              !!COMO SEA QUE SE META LA ENERGIA DE CORE
+!              !write(35,"(F20.10,4I3)") (couplingEnergy-totalCoupEnergy+fixedPotEnergy+fixedIntEnergy+KineticEnergy+RepulsionEnergy), 0, 0, 0, 0
+!              
+!              print*, "COREENERGY ", (couplingEnergy-totalCoupEnergy+fixedPotEnergy+fixedIntEnergy+KineticEnergy+RepulsionEnergy)
+!
+!              write(35,"(A)")"{hf"
+!              write(35,"(A)")"maxit 250"
+!              write(35,"(A10,I2,A1,A6,I2,A1,A6,I3)")"wf spin=", spin, ",", "charge=",0, ",", "elec=", MolecularSystem_getNumberOfParticles(i)-spin
+!              write(35,"(A)")"start 2100.1"
+!              write(35,"(A)")"}"
+!
+!
+!              write(35,"(A)")"{fci"
+!              write(35,"(A)")"maxit 250"
+!              write(35,"(A)")"dm 21400.1, IGNORE_ERROR"
+!              write(35,"(A)")"orbit 2100.1, IGNORE_ERROR"
+!              write(35,"(A10,I2,A1,A6,I2,A1,A6,I3)")"wf spin=", spin, ",", "charge=",0, ",", "elec=", MolecularSystem_getNumberOfParticles(i)-spin
+!              !            write(35,"(A)")"print, orbital=2 integral = 2"
+!              !            write(35,"(A)")"CORE"
+!              write(35,"(A)")"}"
+!
+!              write(35,"(A)")"{matrop"
+!              write(35,"(A)")"load D, DEN, 21400.1"
+!              !	    write(35,"(A)")"print D"
+!              write(35,"(A)")"natorb Norb, D"
+!              write(35,"(A)")"save Norb, 21570.2"
+!              !	    write(35,"(A)")"print Norb"
+!              write(35,"(A)")"}"
+!
+!              write(35,"(A)")"put molden "//trim(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//"."//"molden")//"; orb, 21570.2"
+!
+!              close(35)
+!
+!              print*, ""
+!
+!              stats = system("molpro "//"FCIDUMP-"//trim(nameOfSpecie)//".com ")
+!              stats = system("cat "//"FCIDUMP-"//trim(nameOfSpecie)//".out ")
+!
+!              print*, ""
+!
+!              print *,"END"
+!              
+!           end if
+!
+!         end if
+!
+!    end do
+    
+!  end subroutine CI_core_printTransformedIntegralsToFile
+
+!  subroutine CI_core_printGeometryToFile(unit)
+!    implicit none
+!    integer :: unit
+!
+!    integer :: i
+!    integer :: from, to
+!    real(8) :: origin(3)
+!    character(50) :: auxString
+!
+!    
+!    do i = 1, MolecularSystem_getTotalNumberOfParticles()
+!       
+!       origin = MolecularSystem_getOrigin( iterator = i ) * AMSTRONG
+!       auxString = trim( MolecularSystem_getNickName( iterator = i ) )
+!       
+!       if( String_findSubstring( trim( auxString ), "e-") == 1 ) then
+!          if( String_findSubstring( trim( auxString ), "BETA") > 1 ) then
+!             cycle
+!          end if
+!            
+!          from =String_findSubstring( trim(auxString), "[")
+!          to = String_findSubstring( trim(auxString), "]")
+!          auxString = auxString(from+1:to-1)
+!          
+!       else if( String_findSubstring( trim( auxString ), "_") /= 0 ) then
+!          cycle
+!       end if
+!         
+!         
+!       write (unit,"(A10,3F20.10)") trim( auxString ), origin(1), origin(2), origin(3)
+!       
+!    end do
+
+!  end subroutine CI_core_printGeometryToFile
+
+
+!  subroutine CI_core_printBasisSetToFile(unit)
+!    implicit none
+!
+!    integer :: unit
+!
+!    integer :: i, j
+!    character(16) :: auxString
+!
+!
+!    do i =1, MolecularSystem_instance%numberOfQuantumSpecies
+!       
+!       auxString=trim( Map_getKey( MolecularSystem_instance%speciesID, iterator=i ) )
+!       
+!       if( String_findSubstring( trim(auxString), "e-") == 1 ) then
+!          
+!          if( String_findSubstring( trim(auxString), "BETA") > 1 ) then
+!             
+!             cycle
+!             
+!          end if
+!          
+!          
+!       end if
+!       
+!       if(trim(auxString)=="U-") cycle
+!
+!       do j =1, size(MolecularSystem_instance%particlesPtr)
+!
+!          if (    trim(MolecularSystem_instance%particlesPtr(j)%symbol) == trim( Map_getKey( MolecularSystem_instance%speciesID, iterator=i ) ) &
+!               .and. MolecularSystem_instance%particlesPtr(j)%isQuantum ) then
+!             
+!             call BasisSet_showInMolproForm( MolecularSystem_instance%particlesPtr(j)%basis, trim(MolecularSystem_instance%particlesPtr(j)%nickname), unit=unit )
+!             
+!          end if
+!          
+!       end do
+!       
+!    end do
+    
+!  end subroutine CI_core_printBasisSetToFile
+
+

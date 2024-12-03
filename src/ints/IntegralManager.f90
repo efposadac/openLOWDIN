@@ -37,7 +37,7 @@ module IntegralManager_
   use Matrix_
   use CosmoCore_
   use Stopwatch_
-  use ExternalPotential_
+  use GTFPotential_
   use HarmonicIntegrals_
   use FirstDerivativeIntegrals_
 
@@ -49,7 +49,8 @@ module IntegralManager_
        IntegralManager_writeAttractionIntegrals, &
        IntegralManager_writeMomentIntegrals, &
        IntegralManager_writeInterRepulsionIntegrals, &
-       IntegralManager_writeIntraRepulsionIntegrals
+       IntegralManager_writeIntraRepulsionIntegrals, &
+       IntegralManager_writeHarmonicIntegrals
   ! private :: &
 
 contains
@@ -151,7 +152,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -222,7 +223,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -293,7 +294,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -352,7 +353,7 @@ contains
 
   end subroutine IntegralManager_getFirstDerivativeIntegrals
 
-  subroutine IntegralManager_getHarmonicIntegrals()
+  subroutine IntegralManager_writeHarmonicIntegrals()
     implicit none
 
     integer :: f, g, h, i
@@ -361,6 +362,7 @@ contains
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:)
     real(8), allocatable :: integralsMatrix(:,:)
+    real(8) :: origin(3)
     character(100) :: job
     integer :: ijob
 
@@ -370,72 +372,75 @@ contains
     !!First derivative Integrals for all species
     do f = 1, size(MolecularSystem_instance%species)
 
-       write(30) job
-       write(30) MolecularSystem_instance%species(f)%name
+      if ( MolecularSystem_getOmega(f) /= 0.0_8 ) then
+        origin = MolecularSystem_getQDOcenter( f ) 
 
-       if(allocated(labels)) deallocate(labels)
-       allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-       labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
+         write(30) job
+         write(30) MolecularSystem_instance%species(f)%name
 
-       if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
-       integralsMatrix = 0.0_8
+         if(allocated(labels)) deallocate(labels)
+         allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
+         labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
-       ii = 0
-       do g = 1, size(MolecularSystem_instance%species(f)%particles)
-          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+         if(allocated(integralsMatrix)) deallocate(integralsMatrix)
+         allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
+         integralsMatrix = 0.0_8
 
-             hh = h
+         ii = 0
+         do g = 1, size(MolecularSystem_instance%species(f)%particles)
+            do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
 
-             ii = ii + 1
-             jj = ii - 1
+               hh = h
 
-             do i = g, size(MolecularSystem_instance%species(f)%particles)
-                do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+               ii = ii + 1
+               jj = ii - 1
 
-                   jj = jj + 1
+               do i = g, size(MolecularSystem_instance%species(f)%particles)
+                  do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
 
-                   !! allocating memory Integrals for shell
-                   if(allocated(integralValue)) deallocate(integralValue)
-                   allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
-                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+                     jj = jj + 1
 
-                   !!Calculating integrals for shell
-                   call HarmonicIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), integralValue)
+                     !! allocating memory Integrals for shell
+                     if(allocated(integralValue)) deallocate(integralValue)
+                     allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                          MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
 
-                   !!saving integrals on Matrix
-                   m = 0
-                   do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                      do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                         m = m + 1
-                         integralsMatrix(k, l) = integralValue(m)
-                         integralsMatrix(l, k) = integralsMatrix(k, l)
+                     !!Calculating integrals for shell
+                     call HarmonicIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                          MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), integralValue, origin)
 
-                      end do
-                   end do
+                     !!saving integrals on Matrix
+                     m = 0
+                     do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                        do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                           m = m + 1
+                           integralsMatrix(k, l) = integralValue(m)
+                           integralsMatrix(l, k) = integralsMatrix(k, l)
 
-                end do
-                hh = 1
-             end do
+                        end do
+                     end do
 
-          end do
-       end do
+                  end do
+                  hh = 1
+               end do
 
-       write(*,"(A, A ,A,I6)")" Number of Harmonic Oscillator integrals for species ", &
-                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+            end do
+         end do
 
-       !!Write integrals to file (unit 30)
-       if(CONTROL_instance%LAST_STEP) then
-          ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
-       end if
-       write(30) int(size(integralsMatrix),8)
-       write(30) integralsMatrix
+         write(*,"(A, A ,A,I6)")" Number of Harmonic Oscillator integrals for species ", &
+                                trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
 
+         !!Write integrals to file (unit 30)
+         if(CONTROL_instance%LAST_STEP) then
+            ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
+            !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+         end if
+         write(30) int(size(integralsMatrix),8)
+         write(30) integralsMatrix
+      end if
     end do !done! 
 
-  end subroutine IntegralManager_getHarmonicIntegrals
+  end subroutine IntegralManager_writeHarmonicIntegrals
 
 
   !> 
@@ -524,8 +529,8 @@ contains
           write(40) MolecularSystem_instance%species(f)%name
           total_aux=0
 
-          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".opints"
-          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".opints"
+          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".charges"
 
           open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
           open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
@@ -576,10 +581,11 @@ contains
                          point(1)%x  =surface%xs(c)
                          point(1)%y  =surface%ys(c)
                          point(1)%z  =surface%zs(c)
+                         point(1)%qdoCenterOf = "NONE"
 
                          !Calculating integrals for shell
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue)
+                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue, f, "NONE")
                          m=0
 
                          do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
@@ -674,8 +680,8 @@ contains
 
                 if ( f /= g ) then
 
-                   cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
-                   cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
+                   cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".charges"
+                   cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( g ) )//".opints"
 
                    call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
 
@@ -736,7 +742,7 @@ contains
     do f = 1, size(MolecularSystem_instance%species)
        arguments(2) = MolecularSystem_instance%species(f)%name
 
-       do component = 1, 9 !! components x, y, z
+       do component = 1, 9 !! components x, y, z, XX, YY, ZZ, XY, XZ, YZ
 
           arguments(1) = "MOMENT"//trim(coordinate(component))
 
@@ -773,13 +779,11 @@ contains
     character(*) :: scheme
 
     integer :: speciesID
-    integer :: numberOfContractions
 
     !! Skip integrals calculation two times for electrons alpha and beta    
     if(CONTROL_instance%IS_OPEN_SHELL .and. ( trim(nameOfSpecies) == "E-BETA" )) return
 
     speciesID = MolecularSystem_getSpecieID(trim(nameOfSpecies))
-    numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
 
     if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE )) == "DIRECT") return 
 
@@ -826,11 +830,11 @@ contains
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-       if(CONTROL_instance%IS_OPEN_SHELL .and. trim(MolecularSystem_getNameOfSpecie(i)) == "E-BETA" ) cycle
+       if(CONTROL_instance%IS_OPEN_SHELL .and. trim(MolecularSystem_getNameOfSpecies(i)) == "E-BETA" ) cycle
 
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
 
-          if(trim(MolecularSystem_getNameOfSpecie(j)) == "E-BETA" .and. .not. trim(MolecularSystem_getNameOfSpecie(i)) == "E-ALPHA" ) cycle
+          if(trim(MolecularSystem_getNameOfSpecies(j)) == "E-BETA" .and. .not. trim(MolecularSystem_getNameOfSpecies(i)) == "E-ALPHA" ) cycle
 
           !! Calculate integrals (stored on disk)       
           select case (trim(String_getUppercase(trim(scheme))))
@@ -918,15 +922,15 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
 
        integralsMatrix = 0.0_8
 
        do i= 1, ExternalPotential_instance%ssize
           !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
           ! if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
-          !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
-          if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
+          !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%species)))) == 1 ) then
+          if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%species))) ) then
              potID=i
              exit
           end if

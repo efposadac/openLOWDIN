@@ -388,7 +388,7 @@ contains
     call Matrix_constructor(q_charge, int(ints,8), 1_8)
     call Matrix_constructor(cosmo_pot, int(ints,8), 1_8)
 
-    specieName=MolecularSystem_getNameOfSpecie(specieid)
+    specieName=MolecularSystem_getNameOfSpecies(specieid)
 
     charge=MolecularSystem_getCharge(MolecularSystem_getSpecieID(specieName))
 
@@ -503,7 +503,7 @@ contains
        if(trim(charges_file)=="cosmo.clasical") then
 
 
-          allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+          allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(f_aux), MolecularSystem_getTotalNumberOfContractions(f_aux)))
 	  ints_mat_aux = 0 !!JC
           ii = 0
           mm = 1
@@ -710,7 +710,7 @@ contains
     allocate(cosmo_int(charges))
     allocate(a_mat(segments,charges))
     allocate(clasical_positions(np,3))
-    allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+    allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(f_aux), MolecularSystem_getTotalNumberOfContractions(f_aux)))
 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
 

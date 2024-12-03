@@ -12,14 +12,12 @@ else:
 testName = sys.argv[0][:-3]
 inputName = testName + ".lowdin"
 outputName = testName + ".out"
-cube1Name = testName + ".E-.dens.cub"                                                                      
-cube2Name = testName + ".POSITRON.dens.cub"                                                                
+
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-188.362545831570,1E-8],
-"Num e- in cube" : [24.0,1E-1],
-"Num e+ in cube" : [1.0,1E-2],
+"HF energy" : [-76.062503916951,1E-8],
+"HF dipole" : [0.76847102,1E-7],
 }                       
 
 testValues = dict(refValues) #copy 
@@ -36,40 +34,30 @@ if status:
 
 output = open(outputName, "r")
 outputRead = output.readlines()
+HF_prop = True 
 
 # Values
 for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
         testValues["HF energy"] = float(line.split()[3])
+    if "STATE:   1 ENERGY =" in line:
+        testValues["CI 1"] = float(line.split()[4])
 
-output.close()
+    if "DIPOLE: (A.U.)" in line and HF_prop:
+        for j in range (i,len(outputRead)) :
+            linej = outputRead[j]
+            if "Total Dipole:"  in linej:
+                testValues["HF dipole"] = float(linej.split()[5])
+                HF_prop = False
+                break
 
-cube1 = open(cube1Name, "r")
-cube1Read = cube1.readlines()
-sumE=0
-for i in range(0,len(cube1Read)):
-    line = cube1Read[i]
-    if i == 3: step=float(line.split()[1])
-    if i > 10:
-        values = line.split()
-        for j in range(0,len(values)):
-            sumE+=float(values[j])
-testValues["Num e- in cube"]=sumE*step**3
-cube1.close()
-
-cube2 = open(cube2Name, "r")
-cube2Read = cube2.readlines()
-sumP=0
-for i in range(0,len(cube2Read)):
-    line = cube2Read[i]
-    if i == 3: step=float(line.split()[1])
-    if i > 10:
-        values = line.split()
-        for j in range(0,len(values)):
-            sumP+=float(values[j])
-testValues["Num e+ in cube"]=sumP*step**3
-cube2.close()
+    if "DIPOLE: (A.U.)" in line and not HF_prop:
+        for j in range (i,len(outputRead)) :
+            linej = outputRead[j]
+            if "Total Dipole:"  in linej:
+                testValues["CI dipole"] = float(linej.split()[5])
+                break
 
 passTest = True
 
@@ -87,3 +75,4 @@ else:
     print(testName + str_red(" ... NOT OK"))
     sys.exit(1)
 
+output.close()

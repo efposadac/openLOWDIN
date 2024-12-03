@@ -76,7 +76,7 @@ contains
     real(8) :: auxIntegralValue
 
     numberOfContractions = max( MolecularSystem_getTotalNumberOfContractions(specieID), MolecularSystem_getOcupationNumber( specieID ))
-    nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
+    nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
 
     prefixOfFile =""//trim(nameOfSpecie)
 
@@ -365,8 +365,8 @@ contains
                + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
           bias = MolecularSystem_getTotalNumberOfContractions(specieID)
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
 
           prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
 
@@ -451,8 +451,8 @@ contains
                + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
           bias = MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
 
           prefixOfFile =""//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
 
@@ -542,8 +542,8 @@ contains
                + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
           bias = MolecularSystem_getTotalNumberOfContractions(specieID)
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
 
           prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
 
@@ -618,8 +618,8 @@ contains
           ssize2a = ( ssizea * (ssizea + 1 ) ) / 2_8
           ssize2b = ( ssizeb * (ssizeb + 1 ) ) / 2_8
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
 
           prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
 
@@ -673,8 +673,8 @@ contains
           ssize2b = ( ssizeb * (ssizeb + 1 ) ) / 2_8
 
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
 
           prefixOfFile =""//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
 
@@ -726,8 +726,8 @@ contains
                + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
           bias = MolecularSystem_getTotalNumberOfContractions(specieID)
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
           prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
 
 
@@ -764,8 +764,8 @@ contains
                + MolecularSystem_getTotalNumberOfContractions(otherSpecieID)
           bias = MolecularSystem_getTotalNumberOfContractions(specieID)
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
           prefixOfFile =""//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
 
           unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
@@ -818,8 +818,8 @@ contains
           ssize2a = ( ssizea * (ssizea + 1 ) ) / 2_8
           ssize2b = ( ssizeb * (ssizeb + 1 ) ) / 2_8
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
           prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
 
   
@@ -877,8 +877,8 @@ contains
           ssize2b = ( ssizeb * (ssizeb + 1 ) ) / 2_8
 
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( otherSpecieID ) )
+          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
+          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
           prefixOfFile =""//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
 
           unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE

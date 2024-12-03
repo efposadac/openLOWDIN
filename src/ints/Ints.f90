@@ -93,9 +93,7 @@ Program Ints
        call IntegralManager_getFirstDerivativeIntegrals()
      end if
 
-     if ( CONTROL_instance%HARMONIC_CONSTANT /= 0.0_8 ) then 
-       call IntegralManager_getHarmonicIntegrals()
-     end if
+     call IntegralManager_writeHarmonicIntegrals()
 
      ! !!Calculate attraction integrals
      ! call Libint2Interface_compute1BodyInts(3)
@@ -103,7 +101,7 @@ Program Ints
 
      ! !!Calculate moment integrals
      call IntegralManager_writeMomentIntegrals()
-      
+
      !! Calculate integrals with external potential
      if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
        call IntegralManager_writeThreeCenterIntegrals()
@@ -187,7 +185,7 @@ Program Ints
      !! intra-species two-boy integration
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
         !!Calculate attraction integrals (intra-species)
-        call IntegralManager_writeIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+        call IntegralManager_writeIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecies(speciesID)), &
              trim(CONTROL_instance%INTEGRAL_SCHEME))
      end do
 
@@ -256,8 +254,8 @@ Program Ints
 
              call Libint2Interface_computeG12Interspecies_disk(i, j)
         
-             ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecie(i)), &
-             !  trim(MolecularSystem_getNameOfSpecie(j)), i, j)
+             ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecies(i)), &
+             !  trim(MolecularSystem_getNameOfSpecies(j)), i, j)
 
           end do
         end do

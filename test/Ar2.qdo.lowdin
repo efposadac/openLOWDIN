@@ -1,0 +1,22 @@
+GEOMETRY
+        ea-  aug-cc-pVTZ     0.00    0.00    0.0 m = 0.3020 q = -1.3314 omega = 0.7272
+        ea-  aug-cc-pVTZ     0.00    0.00    1.0 m = 0.3020 q = -1.3314 addParticles=-1
+        eb-  aug-cc-pVTZ     0.00    0.00    0.0  m = 0.3020 q = -1.3314 omega = 0.7272
+        eb-  aug-cc-pVTZ     0.00    0.00    1.0  m = 0.3020 q = -1.3314 addParticles=-1
+        H       dirac           0.00    0.00    0.0 q = 1.3314 qdoCenterOf=EA-
+        H       dirac       	0.00	0.00	1.0 q = 1.3314 qdoCenterOf=EB-
+END GEOMETRY
+
+TASKS
+        method = "UHF"
+        configurationInteractionLevel ="FCI"
+END TASKS
+
+CONTROL
+        numberOfCIstates=1
+        CIStatesToPrint = 1
+        CIdiagonalizationMethod = "JADAMILU"
+        units = "bohr"
+	readCoefficients=F
+END CONTROL
+

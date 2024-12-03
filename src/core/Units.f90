@@ -38,6 +38,7 @@ module Units_
   real(8) , parameter :: DEBYES = 2.541764_8
   real(8) , parameter :: ELECTRON_REST = 1.0_8
   real(8) , parameter :: AMU = 1.0_8/1822.88850065855_8
+  real(8) , parameter :: DALTON = 1822.88850065855_8
   real(8) , parameter :: kg = 9.109382616D-31
   real(8) , parameter :: DEGREES = 57.29577951_8
   real(8) , parameter :: CM_NEG1 = 219476.0_8

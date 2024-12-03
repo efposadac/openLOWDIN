@@ -32,6 +32,7 @@
 module Particle_
   use Exception_
   use CONTROL_
+  use Units_
   use PhysicalConstants_
   use AtomicElement_
   use ElementalParticle_
@@ -45,9 +46,12 @@ module Particle_
      character(50) :: nickname          !< Name in input file: e-(H), U-, He_4, etc.
      character(10) :: statistics        !< Boson / fermion
      character(20) :: basisSetName      !< basis set name
+     character(20) :: qdoCenterOf       !< qdo center of species 
      real(8) :: origin(3)		!< Posicion espacial
      real(8) :: charge 			!< Carga asociada a la particula.
      real(8) :: mass			!< Masa asociada a la particula.
+     real(8) :: eta			!< Particles per orbital
+     real(8) :: omega			!< harmonic oscillator frequency 
      real(8) :: spin			!< Especifica el espin de la particula
      real(8) :: totalCharge		!< Carga total asociada a la particula.
      real(8) :: klamt			!< Radio de Klamt asociado a la particula
@@ -81,13 +85,14 @@ contains
   !!      -Re-written and  Verified, 2013. E. F. Posada
   !! @version 2.0
   subroutine Particle_load( this, name, baseName, origin, fix, multiplicity, &
-       addParticles, subsystem, translationCenter, rotationPoint, rotateAround, spin, id, charge, mass )
+       addParticles, subsystem, translationCenter, rotationPoint, rotateAround, spin, id, charge, mass, eta, omega, qdoCenterOf  )
     implicit none
     type(particle) :: this
     character(*), intent(in) :: name
     character(*), intent(in), optional :: baseName
     character(*), intent(in), optional :: fix
     character(*), intent(in), optional :: spin
+    character(*), intent(in), optional :: qdoCenterOf
     real(8), intent(in), optional :: origin(3)
     real(8), intent(in), optional :: multiplicity
     integer, intent(in), optional :: addParticles
@@ -98,12 +103,15 @@ contains
     integer, intent(in) :: id
     real(8), intent(in), optional :: charge
     real(8), intent(in), optional :: mass
+    integer, intent(in), optional :: eta
+    real(8), intent(in), optional :: omega
     
     type(AtomicElement) :: element
     type(ElementalParticle) :: eparticle
     character(3) :: varsToFix
     character(5) :: massNumberString
     character(5) :: elementSymbol
+    character(15) :: auxqdoCenterOf
     integer :: i
     integer :: j
     integer :: massNumber
@@ -115,6 +123,8 @@ contains
     real(8) :: auxOrigin(3)
     real(8) :: auxCharge
     real(8) :: auxMass
+    integer :: auxEta
+    real(8) :: auxOmega
     real(8) :: auxMultiplicity
     logical :: isDummy
     logical :: isElectron
@@ -130,6 +140,15 @@ contains
 
     auxMass=0.0_8
     if   ( present(mass) ) auxMass= mass
+
+    auxEta=0
+    if   ( present(eta) ) auxEta= eta
+
+    auxOmega=0.0_8
+    if   ( present(omega) ) auxOmega= omega
+
+    auxqdoCenterOf= "NONE"
+    if   ( present( qdoCenterOf ) ) auxqdoCenterOf = qdoCenterOf 
     
     auxMultiplicity=1.0_8
     if   ( present(multiplicity) ) auxMultiplicity=multiplicity
@@ -207,6 +226,8 @@ contains
                origin=auxOrigin, &
                charge=auxCharge, &
                mass=auxMass, &
+               eta=auxEta, &
+               omega=auxOmega, &
                basisSetName=trim(baseName), &
                elementSymbol=trim(elementSymbol), &
                isDummy= isDummy, &
@@ -296,6 +317,8 @@ contains
                origin = auxOrigin,&
                charge = auxCharge,&
                mass = auxMass,&
+               eta=auxEta, &
+               omega=auxOmega, &
                basisSetName = trim(baseName), &
                elementSymbol = trim(elementSymbol), &
                isDummy = isDummy, &
@@ -316,10 +339,10 @@ contains
             this%charge = element%atomicNumber
           end if
 
-          if ( auxMass == 0.0_8) then
-            this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
+          if ( auxMass .eq. 0.0_8 .and. element%atomicWeight .eq. 0.0_8 ) &
+               this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
                + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)          
-          end if
+          if ( auxMass .eq. 0.0_8 ) this%mass = element%atomicWeight*DALTON - element%atomicNumber*PhysicalConstants_ELECTRON_MASS
 
           this%totalCharge = element%atomicNumber
           this%internalSize = 1  + auxAdditionOfParticles
@@ -379,8 +402,14 @@ contains
                 this%charge = element%atomicNumber
                 this%totalCharge = element%atomicNumber
              end if
-             this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
-                  + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)
+
+             
+             if ( element%atomicWeight .eq. 0.0_8 ) then
+                this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
+                     + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)
+             else
+                this%mass = element%atomicWeight*DALTON - element%atomicNumber*PhysicalConstants_ELECTRON_MASS
+             end if
 
              this%internalSize = 1 + auxAdditionOfParticles
              this%id = id
@@ -414,7 +443,8 @@ contains
                   rotationPoint=auxRotationPoint, &
                   rotateAround=auxRotateAround,&
                   charge=auxCharge, &
-                  nickname=trim(element%symbol))
+                  nickname=trim(element%symbol), &
+                  qdoCenterOf = auxqdoCenterOf)
 
              call Particle_setComponentFixed(this, varsToFix )
 
@@ -424,8 +454,14 @@ contains
              if ( auxCharge == 0.0_8) then
               this%charge = element%atomicNumber
              end if
-             this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
-                  + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)
+
+             if ( element%atomicWeight .eq. 0.0_8 ) then
+                this%mass = element%massicNumber * PhysicalConstants_NEUTRON_MASS &
+                     + element%atomicNumber * (PhysicalConstants_PROTON_MASS - PhysicalConstants_NEUTRON_MASS)
+             else
+                this%mass = element%atomicWeight*DALTON - element%atomicNumber*PhysicalConstants_ELECTRON_MASS
+             end if
+
              this%totalCharge = element%atomicNumber
              this%internalSize = 1 + auxAdditionOfParticles
              this%id = id
@@ -453,12 +489,20 @@ contains
     else if ( present(baseName) .and. trim(baseName) /= "DIRAC" .and. trim(baseName) /= "MM") then
        
        call ElementalParticle_load( eparticle, trim(name) )
+
+       if(eparticle%custom .and. auxMass .ne. 0.0_8 .and. auxCharge .ne. 0.0_8) &
+            print *, "I'm loading a custom particle from the input", trim(name), "with mass", auxMass, "and charge", auxCharge
+       if(eparticle%custom .and. auxMass .eq. 0.0_8 .and. auxCharge .eq. 0.0_8) &
+            call Particle_exception( ERROR, "Elemental particle: "//trim(name)//&
+            " NOT found in ElementalParticles.lib. If you want to use a custom particle, provide at least its mass and charge in the input", "In Particle_load routine")
        
        call Particle_build( this = this, &
             isQuantum = .true., &
             origin = auxOrigin, &
             charge = auxCharge, &
             mass = auxMass, &
+            eta=auxEta, &
+            omega = auxOmega, &
             basisSetName = trim(baseName), &
             elementSymbol = trim(elementSymbol), &
             isDummy = isDummy, &
@@ -537,7 +581,8 @@ contains
                rotationPoint=auxRotationPoint, &
                rotateAround=auxRotateAround,&
                owner=id, &
-               nickname=trim(eparticle%symbol))
+               nickname=trim(eparticle%symbol), &
+               qdoCenterOf = auxqdoCenterOf )
 
           call Particle_setComponentFixed(this, varsToFix )
 
@@ -569,7 +614,7 @@ contains
   !! @param this Quantum particle or point charge
   !! @author S. A. Gonzalez (before known as Particle_constructor)
   subroutine Particle_build( this, name, symbol, basisSetName, elementSymbol, nickname, &
-       origin, mass, charge, totalCharge, spin, &
+       origin, mass, eta, omega, qdoCenterOf, charge, totalCharge, spin, &
        owner, subsystem, translationCenter, rotationPoint, rotateAround, massNumber, isQuantum, isDummy)
 
     implicit none
@@ -580,8 +625,11 @@ contains
     character(*), optional, intent(in) :: basisSetName
     character(*), optional, intent(in) :: elementSymbol
     character(*), optional, intent(in) :: nickname
+    character(*), optional, intent(in) :: qdoCenterOf
     real(8), optional, intent(in) :: origin(3)
     real(8), optional, intent(in) :: mass
+    integer, optional, intent(in) :: eta
+    real(8), optional, intent(in) :: omega
     real(8), optional, intent(in) :: charge
     real(8), optional, intent(in) :: totalCharge
     real(8), optional, intent(in) :: spin
@@ -602,6 +650,9 @@ contains
     this%isQuantum = .false.
     this%origin = 0.0_8
     this%mass = PhysicalConstants_ELECTRON_MASS
+    this%eta = 0
+    this%omega = 0.0_8
+    this%qdoCenterOf = "NONE"
     this%charge = PhysicalConstants_ELECTRON_CHARGE
     this%totalCharge = PhysicalConstants_ELECTRON_CHARGE
     this%name = "ELECTRON"
@@ -625,6 +676,9 @@ contains
     !! Loads optional information    
     if ( present(origin) ) this%origin = origin
     if ( present( mass ) ) this%mass = mass
+    if ( present( eta ) ) this%eta = eta
+    if ( present( omega ) ) this%omega = omega
+    if ( present( qdoCenterOf ) ) this%qdoCenterOf = qdoCenterOf
     if ( present(charge) ) this%charge = charge    
     if ( present(totalCharge)) then
        this%totalCharge = totalCharge
@@ -695,9 +749,12 @@ contains
     this%nickname = "NONE"    
     this%statistics = "NONE"  
     this%basisSetName = "NONE"
+    this%qdoCenterOf = "NONE"
     this%origin = 0.0_8
     this%charge = 0	
     this%mass = 0.0_8	
+    this%eta = 0
+    this%omega = 0.0_8	
     this%spin = 0.0_8	
     this%totalCharge = 0	
     this%isQuantum = .false.
@@ -735,6 +792,9 @@ contains
     write (6,"(T10,A16,I8)") "Owner         : ",this%owner
     write (6,"(T10,A16,F8.2)") "Charge        : ",this%charge
     write (6,"(T10,A16,F8.2)") "Mass          : ",this%mass
+    write (6,"(T10,A16,I8)") "Eta           : ",this%eta
+    write (6,"(T10,A16,F8.2)") "Omega         : ",this%omega
+    write (6,"(T10,A16,F8.2)") "QDO center of : ",this%qdoCenterOf
     write (6,"(T10,A16,F8.2)") "Spin          : ",this%spin
     write (6,"(T10,A16,F8.2)") "Klamt radius  : ",this%klamt
     write (6,"(T10,A16,F8.2)") "vanderWaals radius  : ",this%vanderWaalsRadio
@@ -801,6 +861,9 @@ contains
     write(unit,*) this%origin
     write(unit,*) this%charge
     write(unit,*) this%mass
+    write(unit,*) this%eta
+    write(unit,*) this%omega
+    write(unit,*) this%qdoCenterOf
     write(unit,*) this%spin
     write(unit,*) this%totalCharge
     write(unit,*) this%isQuantum
@@ -859,6 +922,9 @@ contains
     read(unit,*) this%origin
     read(unit,*) this%charge
     read(unit,*) this%mass
+    read(unit,*) this%eta
+    read(unit,*) this%omega
+    read(unit,*) this%qdoCenterOf
     read(unit,*) this%spin
     read(unit,*) this%totalCharge
     read(unit,*) this%isQuantum

@@ -20,3 +20,5 @@ find . -name "*.pyc" -exec rm -f {} \;
 find . -name "*.ints" -exec rm -f {} \;
 find . -name "*.dens" -exec rm -f {} \;
 find . -name "*.cub" -exec rm -f {} \;
+find . -name "*.coords" -exec rm -f {} \;
+find . -name "*.states" -exec rm -f {} \;

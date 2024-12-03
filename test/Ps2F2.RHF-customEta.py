@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import os
+import sys
+from colorstring import *
+
+if len(sys.argv)==2:
+    lowdinbin = sys.argv[1]
+else:
+    lowdinbin = "lowdin2"
+
+testName = sys.argv[0][:-3]
+inputName = testName + ".lowdin"
+outputName = testName + ".out"
+
+# Reference values and tolerance
+refValues = {
+    "HF energy" : [-199.213740198536,1E-8],
+    "eta e+" : [2.0,1E-8],
+    "occupation e+" : [1.0,1E-8]
+}                       
+
+testValues = dict(refValues) #copy 
+for value in testValues: #reset
+    testValues[value] = 0 #reset
+    
+# Run calculation
+
+status = os.system(lowdinbin + " -i " + inputName)
+
+if status:
+    print(testName + str_red(" ... NOT OK"))
+    sys.exit(1)
+
+output = open(outputName, "r")
+outputRead = output.readlines()
+
+# Values
+flagC=0
+for i in range(0,len(outputRead)):
+    line = outputRead[i]
+    if "TOTAL ENERGY =" in line:
+        testValues["HF energy"] = float(line.split()[3])
+    if "CONSTANTS OF COUPLING" in line:
+        flagC=1
+    if "E+" in line and flagC==1:
+        testValues["eta e+"] = float(line.split()[2])
+        testValues["occupation e+"] = float(line.split()[4])
+        flagC=0
+output.close()
+
+passTest = True
+
+for value in refValues:
+    diffValue = abs(refValues[value][0] - testValues[value]) 
+    if ( diffValue <= refValues[value][1] ):
+        passTest = passTest * True
+    else :
+        passTest = passTest * False
+        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
+
+if passTest :
+    print(testName + str_green(" ... OK"))
+else:
+    print(testName + str_red(" ... NOT OK"))
+    sys.exit(1)
+
+output.close()

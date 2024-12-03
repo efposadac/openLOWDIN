@@ -38,11 +38,13 @@ module MultiSCF_
   use List_  
   use MolecularSystem_
   use WaveFunction_
+  use DensityFunctionalTheory_
   use SingleSCF_
   use omp_lib
   use DensityMatrixSCFGuess_
   use OrbitalLocalizer_
   use Convergence_
+  use Libint2Interface_
   
   implicit none    
 
@@ -52,6 +54,7 @@ module MultiSCF_
 
   type, public :: MultiSCF
 
+     type(MolecularSystem), pointer :: molSys
      type(List) :: energyOMNE
      character(100) :: name
      integer :: numberOfIterations
@@ -75,6 +78,9 @@ module MultiSCF_
      !!
      logical :: printSCFiterations
 
+     !!
+     type(Grid), allocatable :: DFTGrids(:), DFTGridsCommonPoints(:,:)
+
   end type MultiSCF
 
   type(MultiSCF), public, target :: MultiSCF_instance
@@ -95,13 +101,22 @@ contains
 
   !>
   !! @brief Define el constructor para la clase
-  subroutine MultiSCF_constructor(this,wfObjects,iterationScheme)
+  subroutine MultiSCF_constructor(this,wfObjects,iterationScheme,molsystem)
     implicit none
     type(MultiSCF) :: this
     type(WaveFunction) :: wfObjects(*)
     integer :: iterationScheme
-    integer :: i
+    type(MolecularSystem), target :: molsystem
+    
+    integer :: i, nspecies, speciesID
+    integer :: dftUnit
+    character(50) :: labels(2)
+    character(50) :: dftFile
+    
+    this%molSys=>molsystem
 
+    nspecies=MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
+    
     ! isROHF = .false.
     select case(iterationScheme)
     case(0)
@@ -120,12 +135,12 @@ contains
     this%numberOfIterations = 0
     this%status = 0
 
-    allocate(this%singleEnergyTolerance(MolecularSystem_getNumberOfQuantumSpecies()),&
-         this%singleDensityTolerance(MolecularSystem_getNumberOfQuantumSpecies()),&
-         this%singleMaxIterations(MolecularSystem_getNumberOfQuantumSpecies()))
+    allocate(this%singleEnergyTolerance(nspecies),&
+         this%singleDensityTolerance(nspecies),&
+         this%singleMaxIterations(nspecies))
 
-    do i = 1, MolecularSystem_getNumberOfQuantumSpecies()
-       if(MolecularSystem_instance%species(i)%isElectron ) then
+    do i = 1, nspecies
+       if(this%molSys%species(i)%isElectron ) then
           this%singleEnergyTolerance(i)=CONTROL_instance%ELECTRONIC_ENERGY_TOLERANCE
           this%singleDensityTolerance(i)=CONTROL_instance%ELECTRONIC_DENSITY_MATRIX_TOLERANCE
        else
@@ -138,7 +153,7 @@ contains
 
        case( 0 )          
           ! we perform single species iterations for nonelectrons
-          if(MolecularSystem_instance%species(i)%isElectron ) then
+          if(this%molSys%species(i)%isElectron ) then
              this%singleMaxIterations(i)=1
           else
              this%singleMaxIterations(i)=CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
@@ -146,7 +161,7 @@ contains
 
        case( 1 )
           ! we perform single species iterations for nelectrons
-          if(MolecularSystem_instance%species(i)%isElectron ) then
+          if(this%molSys%species(i)%isElectron ) then
              this%singleMaxIterations(i)=CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
           else
              this%singleMaxIterations(i)=1
@@ -155,7 +170,7 @@ contains
 
        case( 2 )
           ! we perform single species  for all species
-          if(MolecularSystem_instance%species(i)%isElectron ) then
+          if(this%molSys%species(i)%isElectron ) then
              this%singleMaxIterations(i)=CONTROL_instance%SCF_ELECTRONIC_MAX_ITERATIONS
           else
              this%singleMaxIterations(i)=CONTROL_instance%SCF_NONELECTRONIC_MAX_ITERATIONS
@@ -163,7 +178,7 @@ contains
 
        case ( 3 )
           ! we do not perform single species SCF
-          if(MolecularSystem_instance%species(i)%isElectron ) then
+          if(this%molSys%species(i)%isElectron ) then
              this%singleMaxIterations(i)=1
           else
              this%singleMaxIterations(i)=1
@@ -183,8 +198,36 @@ contains
     if(CONTROL_instance%DEBUG_SCFS) this%printSCFiterations=.true.
 
     !! Start the wavefunction object   
-    call WaveFunction_constructor(wfObjects)
+    call WaveFunction_constructor(wfObjects,nspecies,this%molSys)
 
+    !!Initialize DFT: Calculate Grids and build functionals
+    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+       if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
+          call system("lowdin-DFT.x BUILD_SCF_GRID")
+          do speciesID = 1, nspecies
+             dftUnit = 77
+             dftFile = "lowdin."//trim(MolecularSystem_getNameOfSpecies(speciesID,this%molSys))//".grid"
+             open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
+
+             labels(2) = MolecularSystem_getNameOfSpecies(speciesID,this%molSys)
+             labels(1) = "EXACT-EXCHANGE-FRACTION"
+
+             call Vector_getFromFile(unit=dftUnit, binary=.true., value=wfObjects(speciesID)%exactExchangeFraction, arguments=labels)
+             close(unit=dftUnit)
+             ! print *, "el tormento tuyo", speciesID, these(speciesID)%exactExchangeFraction
+          end do
+       else     !! Allocate DFT grids memory.
+          if(allocated(this%DFTGrids)) deallocate(this%DFTGrids)
+          allocate(this%DFTGrids(nspecies))
+
+          if (allocated(this%DFTGridsCommonPoints)) deallocate(this%DFTGridsCommonPoints)
+          allocate(this%DFTGridsCommonPoints(nspecies,nspecies))
+          
+          call DensityFunctionalTheory_buildSCFGrid(this%DFTGrids,this%DFTGridsCommonPoints,wfObjects(1:nspecies)%exactExchangeFraction,this%molSys)
+       end if
+    end if
+
+    
     !! Start the orbital localizer object
     if (CONTROL_instance%LOCALIZE_ORBITALS) call OrbitalLocalizer_constructor( )
 
@@ -230,10 +273,11 @@ contains
   !! @brief Realiza esquema de iteracion SCF para todas las especies cuanticas presentes
   !! @param
   !!
-  subroutine MultiSCF_iterate(this, wfObjects, iterationScheme)
+  subroutine MultiSCF_iterate(this, wfObjects, libint2Objects, iterationScheme)
     implicit none
     type(MultiSCF) :: this
-    type(WaveFunction) :: wfObjects(*)     
+    type(WaveFunction) :: wfObjects(*)
+    type(Libint2Interface) :: libint2Objects(:)    
     integer, intent(in) :: iterationScheme
 
     integer :: i,j
@@ -247,7 +291,7 @@ contains
 !!!We start with an update of the global energy and matrices
 
     this%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
 
     densFile="lowdin.densmatrix"
 
@@ -258,7 +302,7 @@ contains
           call WaveFunction_writeDensityMatricesToFile(wfObjects, densFile)
           call system("lowdin-DFT.x SCF_DFT "//trim(densFile))
        else
-          call WaveFunction_getDFTContributions(wfObjects,"SCF")
+          call WaveFunction_getDFTContributions(wfObjects,this%DFTGrids,this%DFTGridsCommonPoints,"SCF")
        end if
     end if
 
@@ -266,9 +310,9 @@ contains
     !Coupling Matrix is only updated in global SCF cycles
     do i = 1, numberOfSpecies
 
-       call WaveFunction_buildTwoParticlesMatrix(wfObjects(i))
+       call WaveFunction_buildTwoParticlesMatrix(wfObjects(i),libint2Objects=libint2Objects(:))
 
-       call WaveFunction_buildCouplingMatrix(wfObjects,i)
+       call WaveFunction_buildCouplingMatrix(wfObjects,i,libint2Objects=libint2Objects(:))
 
        if ( (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") .and. CONTROL_instance%GRID_STORAGE .eq. "DISK") then
           call WaveFunction_readExchangeCorrelationMatrix(wfObjects(i))
@@ -305,7 +349,7 @@ contains
 !!!Now we procede to update each species density matrices according to the iteration scheme selected
     this%totalDensityMatrixStandardDeviation=0.0
     do i = 1, numberOfSpecies
-       nameOfSpecies = MolecularSystem_getNameOfSpecies(i)
+       nameOfSpecies = MolecularSystem_getNameOfSpecies(i,this%molSys)
        oldEnergy=wfObjects(i)%totalEnergyForSpecies
        deltaEnergy=1.0E16_8
        singleIterator=0
@@ -334,7 +378,7 @@ contains
 
           if(this%singleMaxIterations(i).gt.1) then
              !! Updates two particle matrix
-             call WaveFunction_buildTwoParticlesMatrix(wfObjects(i))
+             call WaveFunction_buildTwoParticlesMatrix(wfObjects(i),libint2Objects=libint2Objects(:))
 
              if (CONTROL_instance%COSMO) then
                 call WaveFunction_buildCosmo2Matrix(wfObjects(i))
@@ -382,10 +426,10 @@ contains
 
     if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
          (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
-       i=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
-       j=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
+       i=MolecularSystem_getSpecieIDFromSymbol(trim("E-ALPHA"),this%molSys)
+       j=MolecularSystem_getSpecieIDFromSymbol(trim("E-BETA"),this%molSys)
 
-       if(MolecularSystem_getNumberOfParticles(i) .eq. MolecularSystem_getNumberOfParticles(j) ) then
+       if(MolecularSystem_getNumberOfParticles(i,this%molSys) .eq. MolecularSystem_getNumberOfParticles(j,this%molSys) ) then
           wfObjects(j)%waveFunctionCoefficients%values= wfObjects(i)%waveFunctionCoefficients%values
           wfObjects(j)%densityMatrix%values= wfObjects(i)%densityMatrix%values
        end if
@@ -432,13 +476,13 @@ contains
   !    if ( this%numberOfIterations > 1 ) then
 
   !       auxVar=.true.
-  !       do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+  !       do speciesID = 1, nspecies
 
   !          nameOfSpecie = MolecularSystem_getNameOfSpecies(speciesID)
 
   !          toleraceOfSpecie = this%electronicTolerance
 
-  !          if (.not. MolecularSystem_instance%species(speciesID)%isElectron ) then
+  !          if (.not. this%molSys%species(speciesID)%isElectron ) then
   !             toleraceOfSpecie = this%nonelectronicTolerance
   !          end if
 
@@ -504,7 +548,7 @@ contains
     call List_clear( this%energyOMNE )
     this%status =  SCF_INTRASPECIES_CONVERGENCE_CONTINUE
 
-    do speciesIterator = 1, MolecularSystem_getNumberOfQuantumSpecies()
+    do speciesIterator = 1, MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
        call SingleSCF_reset(wfObjects(speciesIterator))
     end do
 
@@ -566,10 +610,10 @@ contains
             call MolecularSystem_exception(ERROR,"lowdin.opints file not found!", "In SCF.f90 at main program")
        open(unit=integralsUnit, file=trim(integralsFile), status="old", form="unformatted")
        read(integralsUnit) numberOfSpecies
-       if(MolecularSystem_instance%numberOfQuantumSpecies /= numberOfSpecies ) &
+       if(this%molSys%numberOfQuantumSpecies /= numberOfSpecies ) &
             call MolecularSystem_exception( ERROR, "Bad "//trim(integralsFile)//" file!", "In SCF.f90 at main program")
        close(integralsUnit)
-       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+       do speciesID = 1, this%molSys%numberOfQuantumSpecies
           call WaveFunction_readOverlapMatrix(wfObjects(speciesID), trim(integralsFile))
           call WaveFunction_readKineticMatrix(wfObjects(speciesID), trim(integralsFile))
           call WaveFunction_readPuntualInteractionMatrix(wfObjects(speciesID), trim(integralsFile))
@@ -579,6 +623,10 @@ contains
           if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
              call WaveFunction_readElectricFieldMatrices(wfObjects(speciesID), trim(integralsFile))
           end if
+
+          if ( MolecularSystem_getOmega(speciesID,this%molSys) .ne. 0.0_8) then
+            call WaveFunction_readHarmonicOscillatorMatrix(wfObjects(speciesID), trim(integralsFile))
+          end if
           !! Builds Cosmo hcore integrals
           if(CONTROL_instance%COSMO)then
              cosmoIntegralsFile="cosmo.opints"
@@ -586,24 +634,24 @@ contains
           end if
        end do
     else !!DIRECT or MEMORY
-       numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+       numberOfSpecies = this%molSys%numberOfQuantumSpecies
 
        do speciesID = 1, numberOfSpecies
-          call DirectIntegralManager_getOverlapIntegrals(molecularSystem_instance,speciesID,&
+          call DirectIntegralManager_getOverlapIntegrals(this%molSys,speciesID,&
                wfObjects(speciesID)%overlapMatrix)
-          call DirectIntegralManager_getKineticIntegrals(molecularSystem_instance,speciesID,&
+          call DirectIntegralManager_getKineticIntegrals(this%molSys,speciesID,&
                wfObjects(speciesID)%kineticMatrix)
-          call DirectIntegralManager_getAttractionIntegrals(molecularSystem_instance,speciesID,&
+          call DirectIntegralManager_getAttractionIntegrals(this%molSys,speciesID,&
                wfObjects(speciesID)%puntualInteractionMatrix)
           if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-             call DirectIntegralManager_getExternalPotentialIntegrals(molecularSystem_instance,speciesID,&
+             call DirectIntegralManager_getExternalPotentialIntegrals(this%molSys,speciesID,&
                   wfObjects(speciesID)%externalPotentialMatrix)
           end if
        end do
     end if
 
     !!**********************************************************
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do speciesID = 1, this%molSys%numberOfQuantumSpecies
        !! Transformation Matrix
        call WaveFunction_buildTransformationMatrix(wfObjects(speciesID), 2)
        !! Hcore Matrix
@@ -624,23 +672,24 @@ contains
     !!**********************************************************
     !! Build Guess and first density matrix
     !!
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do speciesID = 1, this%molSys%numberOfQuantumSpecies
        call DensityMatrixSCFGuess_getGuess( speciesID, wfObjects(speciesID)%HcoreMatrix, &
             wfObjects(speciesID)%transformationMatrix, &
             wfObjects(speciesID)%densityMatrix,&
             wfObjects(speciesID)%waveFunctionCoefficients, &
-            this%printSCFiterations)
+            this%printSCFiterations, &
+            this%molSys)
        normCheck=sum( transpose(wfObjects(speciesID)%densityMatrix%values)*wfObjects(speciesID)%overlapMatrix%values)
 
        if ( this%printSCFiterations ) &
-            write(*,"(A15,A10,A40,F12.6)") "number of ", trim(MolecularSystem_getNameOfSpecies( speciesID )) , &
+            write(*,"(A15,A10,A40,F12.6)") "number of ", trim(MolecularSystem_getNameOfSpecies(speciesID,this%molSys)) , &
             " particles in guess density matrix: ", normCheck
 
-       expectedOccupation=MolecularSystem_getEta(speciesID)*MolecularSystem_instance%species(speciesID)%ocupationNumber
-       if (trim(MolecularSystem_getNameOfSpecies( speciesID )) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1))) then
+       expectedOccupation=MolecularSystem_getEta(speciesID,this%molSys)*this%molSys%species(speciesID)%ocupationNumber
+       if (trim(MolecularSystem_getNameOfSpecies(speciesID,this%molSys)) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1))) then
           do i=1,size(CONTROL_instance%IONIZE_MO)
              if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) &
-                  expectedOccupation=expectedOccupation-MolecularSystem_getEta(speciesID)*(1.0-CONTROL_instance%MO_FRACTION_OCCUPATION(i))
+                  expectedOccupation=expectedOccupation-MolecularSystem_getEta(speciesID,this%molSys)*(1.0-CONTROL_instance%MO_FRACTION_OCCUPATION(i))
           end do
        end if
        
@@ -653,8 +702,8 @@ contains
        end if
        
        if ( CONTROL_instance%DEBUG_SCFS ) then
-          print *, "Initial Density Matrix ", trim(MolecularSystem_getNameOfSpecie( speciesID ))
-          call Matrix_show(WaveFunction_instance(speciesID)%densityMatrix)
+          print *, "Initial Density Matrix ", trim(MolecularSystem_getNameOfSpecies(speciesID,this%molSys))
+          call Matrix_show(wfObjects(speciesID)%densityMatrix)
        end if
 
     end do
@@ -662,10 +711,10 @@ contains
     !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
     if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
          (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
-       speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
-       otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
+       speciesID=MolecularSystem_getSpecieIDFromSymbol(trim("E-ALPHA"),this%molSys)
+       otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol(trim("E-BETA"),this%molSys)
 
-       if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
+       if(MolecularSystem_getNumberOfParticles(speciesID,this%molSys) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID,this%molSys)) then
           wfObjects(otherSpeciesID)%waveFunctionCoefficients%values= wfObjects(speciesID)%waveFunctionCoefficients%values
           wfObjects(otherSpeciesID)%densityMatrix%values= wfObjects(speciesID)%densityMatrix%values
        end if
@@ -681,7 +730,7 @@ contains
   subroutine MultiSCF_solveHartreeFockRoothan(this,wfObjects,libint2Objects)
     type(MultiSCF) :: this
     type(WaveFunction) :: wfObjects(*)
-    type(Libint2Interface), optional :: libint2Objects(*)
+    type(Libint2Interface) :: libint2Objects(:)
 
     real(8) :: oldEnergy
     real(8) :: deltaEnergy
@@ -704,7 +753,7 @@ contains
     densUnit=78
     densFile="lowdin.densmatrix"
 
-    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+    numberOfSpecies = this%molSys%numberOfQuantumSpecies
 
     !!
     !!***************************************************************************************************************
@@ -731,7 +780,7 @@ contains
 
     do while(GLOBAL_SCF_CONTINUE)
 
-       call MultiSCF_iterate(this, wfObjects, CONTROL_instance%ITERATION_SCHEME )
+       call MultiSCF_iterate(this, wfObjects, libint2Objects(:), CONTROL_instance%ITERATION_SCHEME )
        deltaEnergy = oldEnergy -MultiSCF_getLastEnergy(this)
        oldEnergy = MultiSCF_getLastEnergy(this)
 
@@ -741,7 +790,7 @@ contains
              write(*,"(I15,F25.12,F25.12,F25.12,F25.12)") MultiSCF_getNumberOfIterations(this), &
                   MultiSCF_getLastEnergy(this), deltaEnergy, &
                   this%totalDensityMatrixStandardDeviation ,&
-                  sum(wfObjects(1:MolecularSystem_instance%numberOfQuantumSpecies)%particlesInGrid)
+                  sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%particlesInGrid)
           else
              write(*,"(I15,F25.12,F25.12,F25.12)") MultiSCF_getNumberOfIterations(this), &
                   MultiSCF_getLastEnergy(this), deltaEnergy, &
@@ -809,17 +858,18 @@ contains
     !    print *,""
     ! end if
 
-    call MultiSCF_obtainFinalEnergy(this,wfObjects,libint2Objects)
+    call MultiSCF_obtainFinalEnergy(this,wfObjects,libint2Objects(:))
     
   end subroutine MultiSCF_solveHartreeFockRoothan
 
     !>
   !! @brief solve multcomponent FC=eSC SCF equations, store the coefficients in wfObjects, use the libint2Objects to compute the integrals in direct calculations
-  subroutine MultiSCF_obtainFinalEnergy(this,wfObjects,libint2Objects)
+  subroutine MultiSCF_obtainFinalEnergy(this,wfObjects,libint2Objects,method)
     type(MultiSCF) :: this
     type(WaveFunction) :: wfObjects(*)
-    type(Libint2Interface), optional :: libint2Objects(*)
-
+    type(Libint2Interface) :: libint2Objects(:)
+    character(*), optional :: method
+    
     integer :: numberOfSpecies
     integer :: wfnUnit, densUnit
     integer :: speciesID, otherSpeciesID, i
@@ -828,6 +878,8 @@ contains
     character(50) :: integralsFile
     integer :: integralsUnit
 
+    if( .not. present(method) ) method=CONTROL_instance%METHOD
+    
     !! Open file for wfn
     wfnUnit = 300
     wfnFile = "lowdin.wfn"
@@ -838,7 +890,7 @@ contains
     densUnit=78
     densFile="lowdin.densmatrix"
 
-    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+    numberOfSpecies = this%molSys%numberOfQuantumSpecies
 
     if (CONTROL_instance%LOCALIZE_ORBITALS) then
 
@@ -846,7 +898,7 @@ contains
        open(unit=wfnUnit, file=trim(wfnFile), status="replace", form="unformatted")
        rewind(wfnUnit)
        do speciesID=1, numberOfSpecies
-          labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
+          labels(2) = MolecularSystem_getNameOfSpecies(speciesID,this%molSys)
           labels(1) = "COEFFICIENTS"
           call Matrix_writeToFile(wfObjects(speciesID)%waveFunctionCoefficients, unit=wfnUnit, binary=.true., arguments = labels )
           labels(1) = "ORBITALS"
@@ -864,7 +916,7 @@ contains
        write(*,*) "=============================="
        write(*,*) ""
        do speciesID=1, numberOfSpecies
-          if(MolecularSystem_getMass( speciesID ) .lt. 10.0 .and. MolecularSystem_getOcupationNumber( speciesID ) .gt. 1) then !We assume that heavy particle orbitals are naturally localized
+          if(MolecularSystem_getMass(speciesID,this%molSys) .lt. 10.0 .and. MolecularSystem_getOcupationNumber(speciesID,this%molSys) .gt. 1) then !We assume that heavy particle orbitals are naturally localized
              call OrbitalLocalizer_erkaleLocal(speciesID,&
                   wfObjects( speciesID )%densityMatrix,&
                   wfObjects( speciesID )%fockMatrix, &
@@ -891,10 +943,10 @@ contains
     !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
     if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
          (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
-       speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
-       otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
+       speciesID=MolecularSystem_getSpecieIDFromSymbol(trim("E-ALPHA"),this%molSys)
+       otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol(trim("E-BETA"),this%molSys)
 
-       if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
+       if(MolecularSystem_getNumberOfParticles(speciesID,this%molSys) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID,this%molSys)) then
           wfObjects(otherSpeciesID)%waveFunctionCoefficients%values= wfObjects(speciesID)%waveFunctionCoefficients%values
           wfObjects(otherSpeciesID)%densityMatrix%values= wfObjects(speciesID)%densityMatrix%values
        end if
@@ -908,7 +960,7 @@ contains
           call system("lowdin-DFT.x BUILD_FINAL_GRID "//trim(densFile))
           call system("lowdin-DFT.x FINAL_DFT "//trim(densFile))
        else
-          call WaveFunction_getDFTContributions(wfObjects,"FINAL")
+          call WaveFunction_getDFTContributions(wfObjects,this%DFTGrids,this%DFTGridsCommonPoints,"FINAL")
        end if
     end if
 
@@ -923,16 +975,16 @@ contains
           call WaveFunction_readExchangeCorrelationMatrix(wfObjects(speciesID))
        end if
 
-       call WaveFunction_buildTwoParticlesMatrix(wfObjects(speciesID))
+       call WaveFunction_buildTwoParticlesMatrix(wfObjects(speciesID),libint2Objects=libint2Objects(:))
        !Separate coulomb and exchange contributions to two particles matrix
 
        call WaveFunction_buildTwoParticlesMatrix(wfObjects(speciesID), &
-            twoParticlesMatrixOUT=wfObjects(speciesID)%hartreeMatrix(speciesID), factorIN=0.0_8 )     
+            twoParticlesMatrixOUT=wfObjects(speciesID)%hartreeMatrix(speciesID), factorIN=0.0_8, libint2Objects=libint2Objects(:) )     
 
        wfObjects(speciesID)%exchangeHFMatrix%values= wfObjects(speciesID)%twoParticlesMatrix%values &
             -wfObjects(speciesID)%hartreeMatrix(speciesID)%values
 
-       call WaveFunction_buildCouplingMatrix(wfObjects,speciesID)       
+       call WaveFunction_buildCouplingMatrix(wfObjects,speciesID, libint2Objects=libint2Objects(:))       
 
        call WaveFunction_buildFockMatrix(wfObjects(speciesID))
 
@@ -972,13 +1024,14 @@ contains
 
     !! Show results
     !! Shows iterations by species
+
     if ( this%printSCFiterations ) then
 
        if(.not. CONTROL_instance%ELECTRONIC_WaveFunction_ANALYSIS ) then
 
-          do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
+          do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
 
-             nameOfSpecies =  MolecularSystem_getNameOfSpecies(speciesID)                 
+             nameOfSpecies =  MolecularSystem_getNameOfSpecies(speciesID,this%molSys)                 
              numberOfIterations = List_size( wfObjects(speciesID)%energySCF )
 
              call List_begin( wfObjects(speciesID)%energySCF )
@@ -1030,12 +1083,12 @@ contains
     write(*,*) ""
 
     if ( CONTROL_instance%HF_PRINT_EIGENVALUES ) then
-       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
+       do speciesID = 1, this%molSys%numberOfQuantumSpecies                
           write(*,*) ""
-          write(*,*) " Eigenvalues for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+          write(*,*) " Eigenvalues for: ", trim( this%molSys%species(speciesID)%name )
           write(*,*) "-----------------"
           write(*,*) ""
-          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID,this%molSys)
           do i = 1 , numberOfContractions 
              write(6,"(T2,I4,F25.12)") i,wfObjects(speciesID)%molecularOrbitalsEnergy%values(i)
           end do
@@ -1046,14 +1099,14 @@ contains
 
     if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "ALL" .or. trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "OCCUPIED" ) then
 
-       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies      
+       do speciesID = 1, this%molSys%numberOfQuantumSpecies      
 
-          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID,this%molSys)
 
           if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "ALL") then
 
              write(*,*) ""
-             write(*,*) " Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+             write(*,*) " Eigenvectors for: ", trim( this%molSys%species(speciesID)%name )
              write(*,*) "-----------------"
              write(*,*) ""
 
@@ -1068,13 +1121,13 @@ contains
           else if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "OCCUPIED" ) then
 
              write(*,*) ""
-             write(*,*) " Occupied Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+             write(*,*) " Occupied Eigenvectors for: ", trim( this%molSys%species(speciesID)%name )
              write(*,*) "--------------------------- "
              write(*,*) ""
 
-             call Matrix_constructor(coefficientsShow,int(numberOfContractions,8),int(MolecularSystem_getOcupationNumber(speciesID),8),0.0_8)
+             call Matrix_constructor(coefficientsShow,int(numberOfContractions,8),int(MolecularSystem_getOcupationNumber(speciesID,this%molSys),8),0.0_8)
              do i=1, numberOfContractions
-                do j=1, MolecularSystem_getOcupationNumber(speciesID)
+                do j=1, MolecularSystem_getOcupationNumber(speciesID,this%molSys)
                    coefficientsShow%values(i,j)=wfObjects(speciesID)%waveFunctionCoefficients%values(i,j)
                 end do
              end do
@@ -1082,8 +1135,8 @@ contains
           end if
 
           call Matrix_show(coefficientsShow , &
-               rowkeys = MolecularSystem_getlabelsofcontractions( speciesID ), &
-               columnkeys = string_convertvectorofrealstostring( wfObjects(speciesID)%molecularOrbitalsEnergy ),&
+               rowkeys = MolecularSystem_getlabelsofcontractions(speciesID,this%molSys), &
+               columnkeys = string_convertvectorofrealstostring(wfObjects(speciesID)%molecularOrbitalsEnergy ),&
                flags=WITH_BOTH_KEYS)
 
           call Matrix_destructor(coefficientsShow)
@@ -1104,11 +1157,11 @@ contains
     write(*,*) "-----------------------------"
     write(*,*) ""             
 
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+    do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
             " Kinetic energy = ", wfObjects(speciesID)%kineticEnergy
     end do
-    this%totalKineticEnergy = sum(wfObjects(1:MolecularSystem_instance%numberOfQuantumSpecies)%kineticEnergy)             
+    this%totalKineticEnergy = sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%kineticEnergy)             
 
     write(*,"(T38,A25)") "___________________________"
     write(*,"(A38,F25.12)") "Total kinetic energy = ", this%totalKineticEnergy
@@ -1118,10 +1171,10 @@ contains
     write(*,*) "-------------------------------"
     write(*,*) ""
 
-    puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy()
+    puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy(this%molSys)
     write(*,"(A38,F25.12)") "Fixed potential energy    = ", puntualInteractionEnergy
 
-    puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy()
+    puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy(this%molSys)
     if(CONTROL_instance%CHARGES_MM) then
        write(*,"(A38,F25.12)") "Self MM potential energy   = ", puntualMMInteractionEnergy
     end if
@@ -1131,11 +1184,11 @@ contains
     write(*,*) "----------------------------------"
     write(*,*) ""
 
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+    do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
             "/Fixed interact. energy = ", wfObjects(speciesID)%puntualInteractionEnergy
     end do
-    totalQuantumPuntualInteractionEnergy = sum(wfObjects(1:MolecularSystem_instance%numberOfQuantumSpecies)%puntualInteractionEnergy )
+    totalQuantumPuntualInteractionEnergy = sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%puntualInteractionEnergy )
     write(*,"(T38,A25)") "___________________________"
     write(*,"(A38,F25.12)") "Total Q/Fixed energy = ", totalQuantumPuntualInteractionEnergy
 
@@ -1144,16 +1197,16 @@ contains
     write(*,*) "------------------"
     write(*,*) ""
     totalHartreeEnergy=0.0
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
-            "/"//trim( MolecularSystem_instance%species(speciesID)%name ) // &
+    do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
+            "/"//trim( this%molSys%species(speciesID)%name ) // &
             " Hartree energy = ", wfObjects(speciesID)%hartreeEnergy(speciesID)
        totalHartreeEnergy=totalHartreeEnergy+wfObjects(speciesID)%hartreeEnergy(speciesID)
     end do
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-       do otherSpeciesID = speciesID + 1, MolecularSystem_instance%numberOfQuantumSpecies                
-          write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
-               "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
+    do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+       do otherSpeciesID = speciesID + 1, this%molSys%numberOfQuantumSpecies                
+          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
+               "/"//trim( this%molSys%species(otherSpeciesID)%name ) // &
                " Hartree energy = ", wfObjects(speciesID)%hartreeEnergy(otherSpeciesID)
           totalHartreeEnergy=totalHartreeEnergy+wfObjects(speciesID)%hartreeEnergy(otherSpeciesID)
        end do
@@ -1165,11 +1218,11 @@ contains
     write(*,*) " Exchange(HF) energy: "
     write(*,*) "----------------------"
     write(*,*) ""
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+    do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
             " Exchange energy = ", wfObjects(speciesID)%exchangeHFEnergy
     end do
-    totalExchangeHFEnergy=sum(wfObjects(1:MolecularSystem_instance%numberOfQuantumSpecies)%exchangeHFEnergy)
+    totalExchangeHFEnergy=sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%exchangeHFEnergy)
     write(*,"(T38,A25)") "___________________________"
     write(*,"(A38,F25.12)") "Total Exchange energy = ", totalExchangeHFEnergy
 
@@ -1180,15 +1233,15 @@ contains
        write(*,*) "-----------------------------------"
        write(*,*) "" 
        totalExchangeCorrelationEnergy=0.0
-       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-          write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+       do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
                " Exc.Corr. energy = ", wfObjects(speciesID)%exchangeCorrelationEnergy(speciesID)
           totalExchangeCorrelationEnergy=totalExchangeCorrelationEnergy+wfObjects(speciesID)%exchangeCorrelationEnergy(speciesID)
        end do
-       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-          do otherSpeciesID = speciesID + 1, MolecularSystem_instance%numberOfQuantumSpecies                
-             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
-                  "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
+       do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+          do otherSpeciesID = speciesID + 1, this%molSys%numberOfQuantumSpecies                
+             write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
+                  "/"//trim( this%molSys%species(otherSpeciesID)%name ) // &
                   " Corr. energy = ", wfObjects(speciesID)%exchangeCorrelationEnergy(otherSpeciesID)
              totalExchangeCorrelationEnergy=totalExchangeCorrelationEnergy+wfObjects(speciesID)%exchangeCorrelationEnergy(otherSpeciesID)
           end do
@@ -1205,11 +1258,11 @@ contains
        write(*,*) "----------------------------"
        write(*,*) ""
 
-       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-          write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name) // &
+       do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name) // &
                " Ext Pot energy = ", wfObjects(speciesID)%externalPotentialEnergy
        end do
-       totalExternalPotentialEnergy=sum(wfObjects(1:MolecularSystem_instance%numberOfQuantumSpecies)%externalPotentialEnergy)
+       totalExternalPotentialEnergy=sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%externalPotentialEnergy)
        write(*,"(T38,A25)") "___________________________"
        write(*,"(A38,F25.12)") "Total External Potential energy = ", totalExternalPotentialEnergy             
 
@@ -1220,7 +1273,7 @@ contains
        write(*,*) " COSMO ENERGY: "
        write(*,*) "--------------"
        write(*,*) ""
-       totalCosmoEnergy = sum(wfObjects(1:MolecularSystem_instance%numberOfQuantumSpecies)%cosmoEnergy)
+       totalCosmoEnergy = sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%cosmoEnergy)
        write(*,"(A38,F25.12)") "Total Cosmo Energy    = ", totalCosmoEnergy
        write(*,"(A38,F25.12)") "Cosmo 3 Energy    = ", this%cosmo3Energy
     end if
@@ -1255,7 +1308,7 @@ contains
        write(*,*) " COSMO CHARGE: "
        write(*,*) "--------------"
        write(*,*) ""
-       call WaveFunction_cosmoQuantumCharge()
+       call WaveFunction_cosmoQuantumCharge(this%molSys)
     end if
 
   end subroutine MultiSCF_showResults
@@ -1293,11 +1346,11 @@ contains
 
     labels = ""
 
-    numberOfSpecies = MolecularSystem_instance%numberOfQuantumSpecies
+    numberOfSpecies = this%molSys%numberOfQuantumSpecies
 
     do speciesID = 1, numberOfSpecies
 
-       labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
+       labels(2) = MolecularSystem_getNameOfSpecies(speciesID,this%molSys)
 
        labels(1) = "REMOVED-ORBITALS"
        call Vector_writeToFile(unit=wfnUnit, binary=.true., value=real(wfObjects(speciesID)%removedOrbitals,8), arguments= labels )
@@ -1370,7 +1423,7 @@ contains
        vecFile = trim(CONTROL_instance%INPUT_FILE)//"vec"
        open(unit=vecUnit, file=trim(vecFile), form="unformatted", status='replace')
        do speciesID = 1, numberOfSpecies
-          labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
+          labels(2) = MolecularSystem_getNameOfSpecies(speciesID,this%molSys)
           labels(1) = "COEFFICIENTS"
           call Matrix_writeToFile(wfObjects(speciesID)%waveFunctionCoefficients, &
                unit=vecUnit, binary=.true., arguments = labels)
@@ -1385,7 +1438,7 @@ contains
        open(unit=vecUnit, file=trim(vecFile), form="formatted", status='replace')
 
        do speciesID = 1, numberOfSpecies
-          labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
+          labels(2) = MolecularSystem_getNameOfSpecies(speciesID,this%molSys)
           labels(1) = "COEFFICIENTS"
           call Matrix_writeToFile(wfObjects(speciesID)%waveFunctionCoefficients, &
                unit=vecUnit, binary=.false., arguments = labels)
@@ -1408,7 +1461,7 @@ contains
 
     call Vector_writeToFile(unit=wfnUnit, binary=.true., value=this%totalCouplingEnergy, arguments=["COUPLINGENERGY"])
 
-    call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MolecularSystem_getPointChargesEnergy(), arguments=["PUNTUALINTERACTIONENERGY"])
+    call Vector_writeToFile(unit=wfnUnit, binary=.true., value=MolecularSystem_getPointChargesEnergy(this%molSys), arguments=["PUNTUALINTERACTIONENERGY"])
 
     call Vector_writeToFile(unit=wfnUnit, binary=.true., value=- ( this%totalPotentialEnergy / this%totalKineticEnergy) , arguments=["VIRIAL"])
 
@@ -1425,9 +1478,9 @@ contains
     type(Vector) :: auxVector
     integer :: occupationNumber, newOccupationNumber, i, j, speciesID
 
-    do speciesID=1, MolecularSystem_getNumberOfQuantumSpecies()
+    do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
        if (trim(wfObjects(speciesID)%name) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
-          occupationNumber=MolecularSystem_getOcupationNumber(speciesID)
+          occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molSys)
           newOccupationNumber=occupationNumber
           call Matrix_copyConstructor(auxMatrix,wfObjects(speciesID)%waveFunctionCoefficients)
           call Vector_copyConstructor(auxVector,wfObjects(speciesID)%molecularOrbitalsEnergy)
@@ -1442,9 +1495,9 @@ contains
                 newOccupationNumber=newOccupationNumber-1
              end if             
           end do
-          molecularSystem_instance%species(speciesID)%ocupationNumber=newOccupationNumber
+          this%molSys%species(speciesID)%ocupationNumber=newOccupationNumber
           if(CONTROL_instance%DEBUG_SCFS) then
-             print *, "newOccupationNumber for",  trim(wfObjects(speciesID)%name), molecularSystem_instance%species(speciesID)%ocupationNumber
+             print *, "newOccupationNumber for",  trim(wfObjects(speciesID)%name), this%molSys%species(speciesID)%ocupationNumber
              call Matrix_show(wfObjects(speciesID)%waveFunctionCoefficients)
           end if
        end if

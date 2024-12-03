@@ -178,7 +178,7 @@ contains
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecie( i ) )//"} = ", &
+       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecies( i ) )//"} = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,1)
         end do
 
@@ -187,7 +187,7 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) )//" } = ", &
+           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecies( j ) )//" } = ", &
                 EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,1)
        end do
      end do
@@ -208,7 +208,7 @@ contains
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecie( i ) )//" } = ", &
+       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecies( i ) )//" } = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,2)
         end do
 
@@ -217,7 +217,7 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ) //" } = ", &
+           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecies( j ) ) //" } = ", &
                 EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,2)
        end do
      end do
@@ -238,7 +238,7 @@ contains
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getNameOfSpecie( i ) )//" } = ", &
+       write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getNameOfSpecies( i ) )//" } = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,3)
         end do
 
@@ -247,7 +247,7 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getNameOfSpecie( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecie( j ) ) // " } = ", &
+           write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getNameOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecies( j ) ) // " } = ", &
                 EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,3)
        end do
      end do
@@ -359,7 +359,7 @@ end if
 
     do i=1, EpsteinNesbet_instance%numberOfSpecies
 
-      if ( trim(specieName) == trim(  MolecularSystem_getNameOfSpecie( i ) ) ) then
+      if ( trim(specieName) == trim(  MolecularSystem_getNameOfSpecies( i ) ) ) then
 
         output = EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,1) !!MP2
         return
@@ -473,14 +473,14 @@ end if
 
    do is=1, EpsteinNesbet_instance%numberOfSpecies
 
-      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( is ) )
+      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( is ) )
       
       independentEnergyCorrection = 0.0_8
       
       if( trim(nameOfSpecie)=="E-" .or. .not.CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION ) then
          
          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(is)
-         arguments(2) = MolecularSystem_getNameOfSpecie(is)
+         arguments(2) = MolecularSystem_getNameOfSpecies(is)
 
          arguments(1) = "COEFFICIENTS"
          eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -743,7 +743,7 @@ end if
    do is = 1 , EpsteinNesbet_instance%numberOfSpecies
 
      numberOfContractions = MolecularSystem_getTotalNumberOfContractions(is)
-     arguments(2) = trim(MolecularSystem_getNameOfSpecie(is))
+     arguments(2) = trim(MolecularSystem_getNameOfSpecies(is))
 
      arguments(1) = "COEFFICIENTS"
      eigenVec = &
@@ -755,7 +755,7 @@ end if
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = eigenValues )     
 
-     nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( is ) )
+     nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( is ) )
      specieID =MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecie) )
      ocupationNumber = MolecularSystem_getOcupationNumber( is )
      lambda = MolecularSystem_getEta( is )
@@ -766,7 +766,7 @@ end if
 
         numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( js )
 
-        arguments(2) = trim(MolecularSystem_getNameOfSpecie(js))
+        arguments(2) = trim(MolecularSystem_getNameOfSpecies(js))
 
         arguments(1) = "COEFFICIENTS"
         eigenVecOtherSpecie = &
@@ -779,7 +779,7 @@ end if
              output = eigenValuesOfOtherSpecie )     
 
 
-        nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( js ) )
+        nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( js ) )
         otherSpecieID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
         ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( js )
 

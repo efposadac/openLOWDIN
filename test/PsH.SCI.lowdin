@@ -1,0 +1,35 @@
+GEOMETRY
+	e-(H)   SHARON-E-6S2P 	0.00	0.00 	0.00 addParticles=1 
+	H	dirac			0.00	0.00 	0.00
+	e+	SHARON-E+6S2P	0.00	0.00	0.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="SCI"
+	!configurationInteractionLevel ="CISD"
+END TASKS
+
+CONTROL
+	readCoefficients=F
+	numberOfCIstates=1	
+	CINaturalOrbitals=T
+	CIStatesToPrint = 1
+	CIdiagonalizationMethod = "JADAMILU"
+	!CIPrintEigenVectorsFormat = "NONE"
+	!CIPrintEigenVectorsFormat = "OCCUPIED"
+	!CIPrintEigenVectorsFormat = "ORBITALS"
+	!CIPrintThreshold = 5e-2
+	buildTwoParticlesMatrixForOneParticle=T
+	CISCICoreSpace = 100
+	CISCITargetSpace = 500
+	CIMatVecTolerance = 1e-10
+	HFprintEigenVectors = "ALL"
+END CONTROL
+
+INPUT_CI
+	species="E-ALPHA" core=0 active=0
+	species="E-BETA" core=0 active=0
+	species="POSITRON" core=0 active=0
+END INPUT_CI
+

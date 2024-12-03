@@ -45,6 +45,7 @@ module Species_
      character(10) :: statistics               !< Boson / fermion
      real(8) :: charge        !< Carga asociada a la especie.
      real(8) :: mass       !< Masa asociada a la particula.
+     real(8) :: omega             !< harmonic oscillator frequency 
      real(8) :: spin       !< Especifica el espin de la especie
      real(8) :: totalCharge       !< Carga total asociada a la especie.
      real(8) :: kappa
@@ -92,9 +93,9 @@ contains
        if(trim(this%statistics) == "FERMION") then
           
           this%kappa = -1.0_8
-          this%eta = 2.0_8
-          this%lambda = 2.0_8
-          this%particlesFraction = 0.5_8
+          this%eta = 1.0_8
+          this%lambda = 1.0_8
+          this%particlesFraction = 1.0_8
           
        else 
           
@@ -143,10 +144,20 @@ contains
     this%charge = this%particles(1)%charge
     !! Adjust mass
     this%mass = this%particles(1)%mass
+    !! Adjust harmonic frequency
+    this%omega = this%particles(1)%omega
     !! Adjust spin
     this%spin = this%particles(1)%spin
     !! Adjust multiplicity
     this%multiplicity = this%multiplicity + 1
+
+    !! Adjust eta
+    if(this%particles(1)%eta .ne. 0) then
+       this%eta = this%particles(1)%eta
+       this%lambda = this%particles(1)%eta
+       this%particlesFraction = 1.0_8/this%particles(1)%eta
+    end if
+
     !! Adjust Occupation number
     this%ocupationNumber = this%ocupationNumber * this%particlesFraction
     
@@ -174,6 +185,7 @@ contains
     write(unit,*) this%statistics
     write(unit,*) this%charge
     write(unit,*) this%mass
+    write(unit,*) this%omega
     write(unit,*) this%spin
     write(unit,*) this%totalCharge
     write(unit,*) this%kappa
@@ -211,6 +223,7 @@ contains
     read(unit,*) this%statistics
     read(unit,*) this%charge
     read(unit,*) this%mass
+    read(unit,*) this%omega
     read(unit,*) this%spin
     read(unit,*) this%totalCharge
     read(unit,*) this%kappa

@@ -39,13 +39,10 @@ module Functional_
      TYPE(xc_f03_func_info_t) :: info2
   end type Functional
 
-  type(Functional), public, allocatable :: Functionals(:)
-
   public :: &
        Functional_createFunctionals, &
        Functional_constructor, &
        Functional_show, &
-       Functional_getIndex, &
        Functional_getExchangeFraction, &
        Functional_libxcEvaluate, &
        Functional_LDAEvaluate, &
@@ -84,48 +81,45 @@ module Functional_
    
 contains
 
-  subroutine Functional_createFunctionals()
+  subroutine Functional_createFunctionals(these,numberOfSpecies,molSys)
     implicit none
-
+    type(Functional) :: these(:,:)
     integer :: numberOfSpecies
-    integer :: speciesID, otherSpeciesID, i
+    type(MolecularSystem) :: molSys
+    
+    integer :: speciesID, otherSpeciesID
     character(50) :: labels(2), dftFile
     integer :: dftUnit
-    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    if(.not.allocated(Functionals) )allocate(Functionals(numberOfSpecies+numberOfSpecies*(numberOfSpecies-1)/2))
-
-    i=1
     do speciesID=1, numberOfSpecies
-       call Functional_constructor(Functionals(i), speciesID, speciesID)
-       i=i+1
+       call Functional_constructor(these(speciesID,speciesID), speciesID, speciesID, molSys)
     end do
 
     do speciesID=1, numberOfSpecies-1
        do otherSpeciesID=speciesID+1, numberOfSpecies  
-          call Functional_constructor(Functionals(i), speciesID, otherSpeciesID)
-          i=i+1
+          call Functional_constructor(these(speciesID,otherSpeciesID), speciesID, otherSpeciesID, molSys)
        end do
     end do
 
   end subroutine Functional_createFunctionals
 
   
-  subroutine Functional_constructor(this, speciesID, otherSpeciesID)
+  subroutine Functional_constructor(this, speciesID, otherSpeciesID, molSys)
     implicit none
     type(Functional) :: this 
     integer :: speciesID
     integer :: otherSpeciesID
     character(50) :: auxstring
+    type(MolecularSystem) :: molSys
     
     this%name="NONE"
     this%correlationName="NONE"
     this%exchangeName="NONE"
-    this%species1=MolecularSystem_getNameOfSpecie(speciesID)
-    this%species2=MolecularSystem_getNameOfSpecie(otherSpeciesID)
+    this%species1=MolecularSystem_getNameOfSpecies(speciesID,molSys)
+    this%species2=MolecularSystem_getNameOfSpecies(otherSpeciesID,molSys)
     this%exactExchangeFraction=1.0_8
-    this%mass1=MolecularSystem_getMass(speciesID)
-    this%mass2=MolecularSystem_getMass(otherSpeciesID)
+    this%mass1=MolecularSystem_getMass(speciesID,molSys)
+    this%mass2=MolecularSystem_getMass(otherSpeciesID,molSys)
 
     
     if((this%species1 == "E-" .and. this%species2 == "E-") .or. &
@@ -307,12 +301,13 @@ contains
 
   end subroutine Functional_constructor
 
-  subroutine Functional_show()
+  subroutine Functional_show(these)
     implicit none
-    type(Functional) :: this 
-    integer :: i
+    type(Functional) :: these(:,:) 
+    type(Functional) :: this
+    integer :: i,j
     real(8) :: p,qe,qn,qen,q2en,q3en,Eab,Ea2b,Eab2,a0,q0,q2,q4
-    
+
     if( CONTROL_instance%CALL_LIBXC) then
        print *, "--------------------------------------------------------------------------------------"
        print *, "LIBXC library, Fermann, Miguel A. L. Marques, Micael J. T. Oliveira, and Tobias Burnus"
@@ -325,127 +320,129 @@ contains
     print *, "--------------------------------------------------------------------------------------"
     print *, ""
 
-    do i=1, size(Functionals)
-       this=Functionals(i)
+    do i=1, size(these(:,:),DIM=1)
+       do j=i, size(these(:,:),DIM=2)
+          this=these(i,j)
 
-       if ((this%species1 == "E-" .and. this%species2 == "E-") .or. &
-            (this%species1 == "E-ALPHA" .and. this%species2 == "E-ALPHA") .or. &
-            (this%species1 == "E-ALPHA" .and. this%species2 == "E-BETA") .or. &
-            (this%species1 == "E-BETA" .and. this%species2 == "E-BETA") .or. &
-            (this%species1 == "E-BETA" .and. this%species2 == "E-ALPHA") ) then
+          if ((this%species1 == "E-" .and. this%species2 == "E-") .or. &
+               (this%species1 == "E-ALPHA" .and. this%species2 == "E-ALPHA") .or. &
+               (this%species1 == "E-ALPHA" .and. this%species2 == "E-BETA") .or. &
+               (this%species1 == "E-BETA" .and. this%species2 == "E-BETA") .or. &
+               (this%species1 == "E-BETA" .and. this%species2 == "E-ALPHA") ) then
 
-          if( CONTROL_instance%CALL_LIBXC)  then
+             if( CONTROL_instance%CALL_LIBXC)  then
 
-             if( this%correlationName .ne. "NONE" ) then
+                if( this%correlationName .ne. "NONE" ) then
 
-                write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","exchange:", xc_f03_func_info_get_name(this%info1)
-                ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
+                   write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","exchange:", xc_f03_func_info_get_name(this%info1)
+                   ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
 
-                write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","correlation:", xc_f03_func_info_get_name(this%info2)
-                ! print *, "family", xc_f03_func_info_get_family(this%info2), "shell", this%shell
+                   write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","correlation:", xc_f03_func_info_get_name(this%info2)
+                   ! print *, "family", xc_f03_func_info_get_family(this%info2), "shell", this%shell
+
+                else
+
+                   write(*, "(T5,A10,A10,A5,A21,A)") trim(this%species1), trim(this%species2), "", "exchange-correlation:", xc_f03_func_info_get_name(this%info1)
+
+                   ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
+
+                end if
 
              else
-
-                write(*, "(T5,A10,A10,A5,A21,A)") trim(this%species1), trim(this%species2), "", "exchange-correlation:", xc_f03_func_info_get_name(this%info1)
-
-                ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
+                write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
 
              end if
-
-          else
+          else 
              write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
 
-          end if
-       else 
-          write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
+             if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3") print *, "Using as correlation length: beta=q*rhoE^(1/3)"
+             if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE6RHON6") print *, "Using as correlation length: beta=q*rhoE^(1/6)*rhoN^(1/6)"
+             if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON") print *, "Using as correlation length: beta=1/(q*rhoE^(-1/3)+r*rhoN^(-1))"
+             if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON3AS") print *, "Using as correlation length: beta=qe*rhoE^(1/3)+qn*rhoN^(1/3)"
+             if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON3RHOEN6") print *, "Using as correlation length: beta=q*rhoE^(1/3)+p*rhoN^(1/3)+r*rhoE^(1/6)*rhoN^(1/6)"
+             if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "NEWBETA") print *, "beta=(qe*rhoE(i)+qn*rhoN(i)+q2en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3en*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**2)**(1.0/3.0)"
 
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3") print *, "Using as correlation length: beta=q*rhoE^(1/3)"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE6RHON6") print *, "Using as correlation length: beta=q*rhoE^(1/6)*rhoN^(1/6)"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON") print *, "Using as correlation length: beta=1/(q*rhoE^(-1/3)+r*rhoN^(-1))"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON3AS") print *, "Using as correlation length: beta=qe*rhoE^(1/3)+qn*rhoN^(1/3)"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3RHON3RHOEN6") print *, "Using as correlation length: beta=q*rhoE^(1/3)+p*rhoN^(1/3)+r*rhoE^(1/6)*rhoN^(1/6)"
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "NEWBETA") print *, "beta=(qe*rhoE(i)+qn*rhoN(i)+q2en*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3en*(rhoE(i)-rhoN(i))**3/(rhoE(i)+rhoN(i))**2)**(1.0/3.0)"
+             if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "NEWNEWBETA") print *, "beta=(q0*(rhoE(i)+rhoN(i))+q2*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3*(rhoE(i)-rhoN(i))**4/(rhoE(i)+rhoN(i))**3)**(1.0/3.0)"
 
-          if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "NEWNEWBETA") print *, "beta=(q0*(rhoE(i)+rhoN(i))+q2*(rhoE(i)-rhoN(i))**2/(rhoE(i)+rhoN(i))+q3*(rhoE(i)-rhoN(i))**4/(rhoE(i)+rhoN(i))**3)**(1.0/3.0)"
+             if(CONTROL_instance%BETA_FUNCTION .eq. "NEWBETA") then
 
-          if(CONTROL_instance%BETA_FUNCTION .eq. "NEWBETA") then
+                if(this%mass2 .gt. 2.0) then !hydrogen
+                   print *, "electron-hydrogen correlation parameters"
+                   a0=4.5839773752240566113
+                   Ea2b=0.527444
+                   Eab2=0.597139 
+                else !positron
+                   print *, "electron-positron correlation parameters"
+                   a0=2.2919886876120283056
+                   Ea2b=0.262005
+                   Eab2=0.262005
+                end if
 
-             if(this%mass2 .gt. 2.0) then !hydrogen
-                print *, "electron-hydrogen correlation parameters"
-                a0=4.5839773752240566113
-                Ea2b=0.527444
-                Eab2=0.597139 
-             else !positron
-                print *, "electron-positron correlation parameters"
-                a0=2.2919886876120283056
-                Ea2b=0.262005
-                Eab2=0.262005
-             end if
+                p=1.0
 
-             p=1.0
+                if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) then
+                   Ea2b=CONTROL_instance%DUMMY_REAL(1)
+                   Eab2=CONTROL_instance%DUMMY_REAL(2)
+                   p=CONTROL_instance%DUMMY_REAL(3)
+                end if
 
-             if(CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) then
-                Ea2b=CONTROL_instance%DUMMY_REAL(1)
-                Eab2=CONTROL_instance%DUMMY_REAL(2)
-                p=CONTROL_instance%DUMMY_REAL(3)
-             end if
-                          
-             print *, "Ea2b=", Ea2b
-             print *, "Eab2=", Eab2
-             qe=a0*(11.0/8.0/Ea2b-3.0/4.0/Eab2)
-             qn=a0*(11.0/8.0/Eab2-3.0/4.0/Ea2b)
-             q2en=a0*3.0/16.0*(1.0/Ea2b+1.0/Eab2)
-             q3en=a0*9.0/16.0*(1.0/Eab2-1.0/Ea2b)
-             print *, "qe=", qe
-             print *, "qn=", qn
-             print *, "q2en=", q2en
-             print *, "q3en=", q3en
+                print *, "Ea2b=", Ea2b
+                print *, "Eab2=", Eab2
+                qe=a0*(11.0/8.0/Ea2b-3.0/4.0/Eab2)
+                qn=a0*(11.0/8.0/Eab2-3.0/4.0/Ea2b)
+                q2en=a0*3.0/16.0*(1.0/Ea2b+1.0/Eab2)
+                q3en=a0*9.0/16.0*(1.0/Eab2-1.0/Ea2b)
+                print *, "qe=", qe
+                print *, "qn=", qn
+                print *, "q2en=", q2en
+                print *, "q3en=", q3en
 
-             print *, "p", CONTROL_instance%DUMMY_REAL(3)
+                print *, "p", CONTROL_instance%DUMMY_REAL(3)
 
-          else if(CONTROL_instance%BETA_FUNCTION .eq. "NEWNEWBETA") then
+             else if(CONTROL_instance%BETA_FUNCTION .eq. "NEWNEWBETA") then
 
-             if(this%mass2 .gt. 2.0) then !hydrogen
-                STOP "this beta function only works for electron-positron"
-             else !positron
-                a0=2.2919886876120283056
-                Eab=0.25
-                Eab2=0.2620050702329801
-             end if
+                if(this%mass2 .gt. 2.0) then !hydrogen
+                   STOP "this beta function only works for electron-positron"
+                else !positron
+                   a0=2.2919886876120283056
+                   Eab=0.25
+                   Eab2=0.2620050702329801
+                end if
 
 
-             if (this%name .eq. "correlation:EXPCS-GGA-NOA") a0=4.5839773752240566113                 
+                if (this%name .eq. "correlation:EXPCS-GGA-NOA") a0=4.5839773752240566113                 
 
-             p=1.0
+                p=1.0
 
-             if(CONTROL_instance%BETA_PARAMETER_A .ne. 0 .or. CONTROL_instance%BETA_PARAMETER_B .ne. 0 .or. CONTROL_instance%BETA_PARAMETER_C .ne. 0) then
-                Eab=CONTROL_instance%BETA_PARAMETER_A
-                Eab2=CONTROL_instance%BETA_PARAMETER_B
-                p=CONTROL_instance%BETA_PARAMETER_C
-             end if
-                          
-             print *, "Eab=", Eab
-             print *, "Eab2=", Eab2
-             q0=a0/2/Eab
-             q2=a0*(-5/Eab+53/Eab2/8)
-             q4=a0*(9/Eab/2-45/Eab2/8)
-             print *, "q0=", q0
-             print *, "q2=", q2
-             print *, "q4=", q4
+                if(CONTROL_instance%BETA_PARAMETER_A .ne. 0 .or. CONTROL_instance%BETA_PARAMETER_B .ne. 0 .or. CONTROL_instance%BETA_PARAMETER_C .ne. 0) then
+                   Eab=CONTROL_instance%BETA_PARAMETER_A
+                   Eab2=CONTROL_instance%BETA_PARAMETER_B
+                   p=CONTROL_instance%BETA_PARAMETER_C
+                end if
 
-             print *, "p", CONTROL_instance%DUMMY_REAL(3)
+                print *, "Eab=", Eab
+                print *, "Eab2=", Eab2
+                q0=a0/2/Eab
+                q2=a0*(-5/Eab+53/Eab2/8)
+                q4=a0*(9/Eab/2-45/Eab2/8)
+                print *, "q0=", q0
+                print *, "q2=", q2
+                print *, "q4=", q4
+
+                print *, "p", CONTROL_instance%DUMMY_REAL(3)
 
 
-          else 
-             if(this%name .ne. "NONE" .and. (CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) ) then
-                print *, "q", CONTROL_instance%DUMMY_REAL(1)
-                print *, "p", CONTROL_instance%DUMMY_REAL(2)
-                print *, "r", CONTROL_instance%DUMMY_REAL(3)
+             else 
+                if(this%name .ne. "NONE" .and. (CONTROL_instance%DUMMY_REAL(1) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(2) .ne. 0 .or. CONTROL_instance%DUMMY_REAL(3) .ne. 0) ) then
+                   print *, "q", CONTROL_instance%DUMMY_REAL(1)
+                   print *, "p", CONTROL_instance%DUMMY_REAL(2)
+                   print *, "r", CONTROL_instance%DUMMY_REAL(3)
+                end if
+
              end if
 
           end if
-
-       end if
+       end do
     end do
 
     print *, ""
@@ -453,39 +450,14 @@ contains
 
   end subroutine Functional_show
 
-    function Functional_getIndex(speciesID, otherSpeciesID) result( output)
+  function Functional_getExchangeFraction(these,speciesID) result( output)
     implicit none
-    integer :: speciesID
-    integer, optional :: otherSpeciesID
-    integer :: output
-    character(50) :: nameOfSpecies, otherNameOfSpecies
-    integer i
-
-    nameOfSpecies = MolecularSystem_getNameOfSpecie( speciesID )
-    if( present(otherSpeciesID) )  then
-       otherNameOfSpecies = MolecularSystem_getNameOfSpecie( otherSpeciesID )
-    else
-       otherNameOfSpecies = nameOfSpecies
-    end if
-    
-    do i=1, size(Functionals(:))
-       if (Functionals(i)%species1 == nameOfSpecies .and. Functionals(i)%species2 == otherNameOfSpecies) then
-          output=i
-          return
-       end if
-    end do
-    
-  end function Functional_getIndex
-
-  function Functional_getExchangeFraction(speciesID) result( output)
-    implicit none
+    type(Functional) :: these(:,:)
     integer :: speciesID
     real(8) :: output
     integer :: index
 
-    index=Functional_getIndex(speciesID)
-
-    output=Functionals(index)%exactExchangeFraction
+    output=these(speciesID,speciesID)%exactExchangeFraction
 
   end function Functional_getExchangeFraction
 
@@ -567,7 +539,7 @@ contains
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
 
-    real(8) :: a,b,c, q
+    real(8) :: a,b,c, prodRho
     real(8) :: denominator, densityThreshold
     real(8) :: v_exchange(n),va_correlation(n),vb_correlation(n)
     integer :: i
@@ -588,35 +560,27 @@ contains
        STOP "The nuclear electron functional chosen is not implemented"
     end if
 
-    !$omp parallel private(denominator)
+    ec(1:n)=0.0
+    vcE(1:n)=0.0
+    vcN(1:n)=0.0
+
+    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
+    !$omp parallel private(denominator,prodRho)
     !$omp do schedule (dynamic)
     do i = 1, n
-
-       denominator=a-b*sqrt(rhoE(i)*rhoN(i))+c*rhoE(i)*rhoN(i)
-
+       if( rhoE(i)+rhoN(i) .lt. densityThreshold ) cycle
+       prodRho=rhoE(i)*rhoN(i)
+       denominator=a-b*sqrt(prodRho)+c*prodRho
 !!!Energy density
-       ! ec(i)= -rhoE(1:n)*rhoN(1:n)/denominator(1:n)
        ec(i)= -rhoN(i)/denominator
-
 !!!Potential  
-
-       if( rhoE(i)+rhoN(i) .gt. densityThreshold ) then !
-          vcE(i)= (rhoE(i)*rhoN(i)*(c*rhoN(i)-b*rhoN(i)/(2*sqrt(rhoE(i)*rhoN(i))))-rhoN(i)*denominator)/denominator**2
-          vcN(i)= (rhoN(i)*rhoE(i)*(c*rhoE(i)-b*rhoE(i)/(2*sqrt(rhoE(i)*rhoN(i))))-rhoE(i)*denominator)/denominator**2
-       else
-          vcE(i)=0.0
-          vcN(i)=0.0
-       end if
-       
+       vcE(i)= rhoN(i)*(prodRho*c-sqrt(prodRho)*b/2.0-denominator)/denominator**2
+       vcN(i)= rhoE(i)*(prodRho*c-sqrt(prodRho)*b/2.0-denominator)/denominator**2
+       !    write(*,"(I0.1,5ES16.6)") i, rhoE(i), rhoN(i),  ec(i), vcE(i), vcN(i)
     end do
     !$omp end do 
     !$omp end parallel
     
-    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
-    ! do i = 1, n
-    !    write(*,"(I0.1,5F16.6)") i, rhoE(i), rhoN(i),  ec(i), vcE(i), vcN(i)
-    ! end do
-
   end subroutine Functional_EPCEvaluate
 
   subroutine Functional_IKNEvaluate( this, mass, n, rhoE, rhoN, ec, vcE, vcN )

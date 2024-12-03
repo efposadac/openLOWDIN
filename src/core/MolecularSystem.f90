@@ -38,8 +38,7 @@ module MolecularSystem_
   use Matrix_
   use Vector_
   use InternalCoordinates_
-  use ExternalPotential_
-  use InterPotential_
+  use GTFPotential_
   implicit none
   
   type , public :: MolecularSystem
@@ -92,7 +91,6 @@ module MolecularSystem_
        MolecularSystem_getMultiplicity, &
        MolecularSystem_getParticlesFraction, &
        MolecularSystem_getFactorOfExchangeIntegrals, &
-       MolecularSystem_getNameOfSpecie, &
        MolecularSystem_getNameOfSpecies, &
        MolecularSystem_getSpecieID, &
        MolecularSystem_getSpecieIDFromSymbol, &
@@ -199,7 +197,7 @@ contains
 
        !!Check for input errors in the number of particles
        if( (abs(int(MolecularSystem_instance%species(i)%ocupationNumber)-MolecularSystem_instance%species(i)%ocupationNumber) .gt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD)) then
-          print *, "species ", trim(MolecularSystem_getNameOfSpecie(i)) , "has fractional ocupation number ", &
+          print *, "species ", trim(MolecularSystem_getNameOfSpecies(i)) , "has fractional ocupation number ", &
                MolecularSystem_instance%species(i)%ocupationNumber, "please check your input addParticles and multiplicity"
           call MolecularSystem_exception(ERROR, "Fractional ocupation number, imposible combination of charge and multiplicity","MolecularSystem module at build function.")
        end if
@@ -237,10 +235,6 @@ contains
     if(allocated(MolecularSystem_instance%allParticles)) deallocate(MolecularSystem_instance%allParticles)
     
     call MecanicProperties_destructor(MolecularSystem_instance%mechanicalProp)
-
-    call ExternalPotential_destructor()
-    call InterPotential_destructor()
-
 
   end subroutine MolecularSystem_destroy
 
@@ -348,9 +342,10 @@ contains
     print *," MOLECULAR SYSTEM: ",trim(system%name)
     print *,"-----------------"
     print *,""
-    write (6,"(T5,A16,A)") "DESCRIPTION   : ", trim( system%description )
-    write (6,"(T5,A16,I3)") "CHARGE        : ",system%charge
-    write (6,"(T5,A16,A4)") "PUNTUAL GROUP : ", "NONE"
+    write (6,"(T5,A16,A)")     "DESCRIPTION   : ", trim( system%description )
+    write (6,"(T5,A16,I3)")    "CHARGE        : ",system%charge
+    write (6,"(T5,A16,F12.4)") "MASS (m_e)    : ", MolecularSystem_getTotalMass(system)
+    write (6,"(T5,A16,A4)")    "PUNTUAL GROUP : ", "NONE"
     print *,""
     
  
@@ -387,16 +382,17 @@ contains
     !!
     print *,""
     print *,"                INFORMATION OF QUANTUM SPECIES "
-    write (6,"(T5,A70)") "---------------------------------------------------------------------"
-    write (6,"(T10,A2,A4,A8,A12,A4,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","spin","","multiplicity"
-    write (6,"(T5,A70)") "---------------------------------------------------------------------"
+    write (6,"(T5,A85)") "------------------------------------------------------------------------------------------------------------"
+    write (6,"(T10,A2,A4,A8,A12,A4,A5,A6,A5,A6,A5,A4,A5,A12)") "ID", " ","Symbol", " ","mass", " ","charge", " ","omega","","spin","","multiplicity"
+    write (6,"(T5,A85)") "------------------------------------------------------------------------------------------------------------"
 
     do i = 1, system%numberOfQuantumSpecies
-       write (6,'(T8,I3.0,A5,A10,A5,F10.4,A5,F5.2,A5,F5.2,A5,F5.2)') &
+       write (6,'(T8,I3.0,A5,A10,A5,F10.4,A5,F5.2,A5,F5.2,A5,F5.2,A5,F5.2)') &
             i, " ", &
             trim(system%species(i)%symbol)," ",&
             system%species(i)%mass," ",&
             system%species(i)%charge, " ",&
+            system%species(i)%omega," ",&
             system%species(i)%spin, "",&
             system%species(i)%multiplicity
     end do
@@ -419,16 +415,16 @@ contains
     print *,""
 
     print *,"                  BASIS SET FOR SPECIES "
-    write (6,"(T7,A60)") "------------------------------------------------------------"
-    write (6,"(T10,A8,A10,A8,A5,A12,A5,A9)") "Symbol", " ","N. Basis", " ","N. Particles"," ","Basis Set"
-    write (6,"(T7,A60)") "------------------------------------------------------------"
+    write (6,"(T7,A70)") "----------------------------------------------------------------------"
+    write (6,"(T10,A8,A10,A8,A5,A12,A5,A20)") "Symbol", " ","N. Basis", " ","N. Particles"," ","Basis Set"
+    write (6,"(T7,A70)") "----------------------------------------------------------------------"
     
     !! Only shows the basis-set name of the first particle by specie.
     do i = 1, system%numberOfQuantumSpecies
        
        if( system%species(i)%isElectron .and. CONTROL_instance%IS_OPEN_SHELL ) then
 
-          write (6,'(T10,A10,A5,I8,A5,I12,A5,A10)') &
+          write (6,'(T10,A10,A5,I8,A5,I12,A5,A20)') &
                trim(system%species(i)%symbol)," ",&
                !MolecularSystem_getTotalNumberOfContractions(i)," ",&
                system%species(i)%basisSetSize," ",&
@@ -438,7 +434,7 @@ contains
           
        else
 
-          write (6,'(T10,A10,A5,I8,A5,I12,A5,A10)') &
+          write (6,'(T10,A10,A5,I8,A5,I12,A5,A20)') &
                trim(system%species(i)%symbol)," ",&
                !MolecularSystem_getTotalNumberOfContractions(i)," ",&
                system%species(i)%basisSetSize," ",&
@@ -505,7 +501,7 @@ contains
     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
       print *,""
       print *," INFORMATION OF EXTERNAL POTENTIALS "
-      call ExternalPotential_show()
+      call GTFPotential_show(ExternalPotential_instance)
       print *,""
       print *," END INFORMATION OF EXTERNAL POTENTIALS"
       print *,""
@@ -514,7 +510,7 @@ contains
     if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
       print *,""
       print *," INFORMATION OF INTER-PARTICLE POTENTIALS "
-      call InterPotential_show()
+      call GTFPotential_show(InterPotential_instance)
       print *,""
       print *," END INFORMATION OF INTER-PARTICLE POTENTIALS"
       print *,""
@@ -659,6 +655,7 @@ contains
     end do    
     !! Saving Point charges
     write(40,*) MolecularSystem_instance%numberOfPointCharges
+
     !! Saving info of each point charge
     do i = 1, MolecularSystem_instance%numberOfPointCharges
        call Particle_saveToFile(MolecularSystem_instance%pointCharges(i), unit=40)
@@ -674,7 +671,7 @@ contains
       do i = 1, ExternalPotential_instance%ssize 
         write(40,*) i 
         write(40,*) ExternalPotential_instance%potentials(i)%name
-        write(40,*) ExternalPotential_instance%potentials(i)%specie 
+        write(40,*) ExternalPotential_instance%potentials(i)%species 
       end do
 
     end if
@@ -684,8 +681,8 @@ contains
       do i = 1, InterPotential_instance%ssize 
         write(40,*) i 
         write(40,*) InterPotential_instance%potentials(i)%name
-        write(40,*) InterPotential_instance%potentials(i)%specie 
-        write(40,*) InterPotential_instance%potentials(i)%otherSpecie 
+        write(40,*) InterPotential_instance%potentials(i)%species 
+        write(40,*) InterPotential_instance%potentials(i)%otherSpecies
       end do
 
     end if
@@ -953,16 +950,14 @@ contains
        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
 
           read(40,*) auxValue
-          call ExternalPotential_constructor(auxValue)
-
-          !! FELIX TODO: create function to get potential ID
+          call GTFPotential_constructor(ExternalPotential_instance,auxValue,"EXTERNAL")
 
           do j = 1, ExternalPotential_instance%ssize 
              read(40,*) i 
              read(40,*) name
              read(40,*) species
 
-             call ExternalPotential_load(i, name, species)
+             call GTFPotential_load(ExternalPotential_instance, i, name, species)
 
           end do
 
@@ -971,7 +966,7 @@ contains
        if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
 
           read(40,*) auxValue 
-          call InterPotential_constructor(auxValue)
+          call GTFPotential_constructor(InterPotential_instance,auxValue,"INTERNAL")
 
           do j = 1, InterPotential_instance%ssize 
              read(40,*) i 
@@ -979,7 +974,7 @@ contains
              read(40,*) species
              read(40,*) otherSpecies
 
-             call InterPotential_load(i, name, species, otherSpecies)
+             call GTFPotential_load(InterPotential_instance, i, name, species, otherSpecies)
 
           end do
 
@@ -994,52 +989,66 @@ contains
   !>
   !! @brief Returns the number of quantum species in the system.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getNumberOfQuantumSpecies() result( output )
+  function MolecularSystem_getNumberOfQuantumSpecies(this) result( output )
     implicit none
-
+    type(MolecularSystem), optional, target :: this
     integer :: output
-    
-    output = MolecularSystem_instance%numberOfQuantumSpecies
+
+    type(MolecularSystem), pointer :: system
+
+    output = 0
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
+    output = system%numberOfQuantumSpecies
     
   end function MolecularSystem_getNumberOfQuantumSpecies
 
   !>
   !! @brief Returns the number of particles of speciesID.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getNumberOfParticles(speciesID) result(output)
+  function MolecularSystem_getNumberOfParticles(speciesID,this) result(output)
     implicit none
-
     integer :: speciesID
+    type(MolecularSystem), optional, target :: this
     integer :: output
 
-    output = MolecularSystem_instance%species(speciesID)%internalSize
+    type(MolecularSystem), pointer :: system
+
+    output = 0
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
+
+    output = system%species(speciesID)%internalSize
     
   end function MolecularSystem_getNumberOfParticles
   
   !>
   !! @brief Returns the number of shells for specie.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getNumberOfContractions( specieID ) result( output )
+  function MolecularSystem_getNumberOfContractions(speciesID,this) result( output )
     implicit none
-    integer :: specieID
+    integer :: speciesID
+    type(MolecularSystem), optional, target :: this
     integer :: output
     
-    integer :: i, j
+    type(MolecularSystem), pointer :: system
+    integer :: j
 
     output = 0
+    if( present(this) ) then
+       system=>this
+    else
+       system=>MolecularSystem_instance
+    end if
 
-    do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-
-       if ( specieID ==  i ) then
-
-          do j = 1, size(MolecularSystem_instance%species(i)%particles)
-             
-             output = output + size(MolecularSystem_instance%species(i)%particles(j)%basis%contraction)
-             
-          end do
-          
-       end if
-       
+    do j = 1, size(system%species(speciesID)%particles)
+       output = output + size(system%species(speciesID)%particles(j)%basis%contraction)
     end do
     
   end function MolecularSystem_getNumberOfContractions
@@ -1047,9 +1056,9 @@ contains
   !>
   !! @brief Returns the number of cartesian shells for specie.
   !! @author E. F. Posada, 2013
-  function MolecularSystem_getTotalNumberOfContractions( specieID, this ) result( output )
+  function MolecularSystem_getTotalNumberOfContractions( speciesID, this ) result( output )
     implicit none
-    integer :: specieID
+    integer :: speciesID
     type(MolecularSystem), optional, target :: this
 
     type(MolecularSystem), pointer :: system
@@ -1064,14 +1073,10 @@ contains
        system=>MolecularSystem_instance
     end if
     
-    do j = 1, size(system%species(specieID)%particles)
-
-       do k = 1, size(system%species(specieID)%particles(j)%basis%contraction)
-          
-          output = output + system%species(specieID)%particles(j)%basis%contraction(k)%numCartesianOrbital
-          
+    do j = 1, size(system%species(speciesID)%particles)
+       do k = 1, size(system%species(speciesID)%particles(j)%basis%contraction)
+          output = output + system%species(speciesID)%particles(j)%basis%contraction(k)%numCartesianOrbital
        end do
-       
     end do
           
   end function MolecularSystem_getTotalNumberOfContractions
@@ -1152,20 +1157,29 @@ contains
    !> @brief find de maximun number of primitives for specieID, necessary for derive with libint
    !! @author J.M. Rodas 2015
    !! @version 1.0
-   function MolecularSystem_getMaxNumberofCartesians(specieID) result(output)
+   function MolecularSystem_getMaxNumberofCartesians(speciesID,this) result(output)
      implicit none
      
-     integer :: specieID
+     integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
      
+     type(MolecularSystem), pointer :: system
      integer :: i, j
+
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      
      output = -1
      
-     do i = 1, size(MolecularSystem_instance%species(specieID)%particles)
-        do j = 1, size(MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction)
+     do i = 1, size(system%species(speciesID)%particles)
+        do j = 1, size(system%species(speciesID)%particles(i)%basis%contraction)
            
-           output = max(output, MolecularSystem_instance%species(specieID)%particles(i)%basis%contraction(j)%numCartesianOrbital)
+           output = max(output, system%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital)
            
         end do
      end do
@@ -1217,51 +1231,82 @@ contains
           
    end function MolecularSystem_getEta
 
-   function MolecularSystem_getLambda(speciesID) result(output)
+   function MolecularSystem_getLambda(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
      
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%lambda
+     output = system%species(speciesID)%lambda
           
    end function MolecularSystem_getLambda
 
 
-   function MolecularSystem_getKappa(speciesID) result(output)
+   function MolecularSystem_getKappa(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
      
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%kappa
+     output = system%species(speciesID)%kappa
           
    end function MolecularSystem_getKappa
 
-   function MolecularSystem_getMultiplicity(speciesID) result(output)
+   function MolecularSystem_getMultiplicity(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      integer :: output
      
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%spin
+     output = system%species(speciesID)%spin
           
    end function MolecularSystem_getMultiplicity
 
 
 
 
-   function MolecularSystem_getParticlesFraction(speciesID) result(output)
-     implicit none
-     
+   function MolecularSystem_getParticlesFraction(speciesID,this) result(output)
+     implicit none     
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      output = -1
-     output = MolecularSystem_instance%species(speciesID)%particlesFraction
+     output = system%species(speciesID)%particlesFraction
           
    end function MolecularSystem_getParticlesFraction
 
@@ -1269,95 +1314,168 @@ contains
    !> @brief Returns the charge of speciesID
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getCharge( speciesID ) result( output )
+   function MolecularSystem_getCharge(speciesID,this) result( output )
      implicit none
      integer :: speciesID
-     
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%charge
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
+     output = system%species(speciesID)%charge
      
    end function MolecularSystem_getCharge
+
+   !> @brief Returns the omega frequency of speciesID. Why we have these functions??
+   function MolecularSystem_getOmega(speciesID,this) result( output )
+     implicit none
+     integer :: speciesID
+     type(MolecularSystem), optional, target :: this
+     real(8) :: output
+     
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+          
+     output = system%species(speciesID)%omega
+     
+   end function MolecularSystem_getOmega
 
    !> @brief Returns the mass of speciesID
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getMass( speciesID ) result( output )
+   function MolecularSystem_getMass(speciesID,this) result( output )
      implicit none
      integer :: speciesID
-     
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%mass
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+
+     output = system%species(speciesID)%mass
      
    end function MolecularSystem_getMass
+
+   !> @brief Returns QDO center of quantum species
+   function MolecularSystem_getQDOcenter( speciesID ) result( origin )
+     implicit none
+     integer :: speciesID
+     integer :: i
+     logical :: centerFound
+     real(8) :: origin(3)
+
+     centerFound = .False.
+     do i = 1 , size( MolecularSystem_instance%pointCharges )
+        if ( trim(MolecularSystem_instance%pointCharges(i)%qdoCenterOf) == trim(MolecularSystem_instance%species(speciesID)%symbol) ) then 
+          origin = MolecularSystem_instance%pointCharges(i)%origin 
+          centerFound = .True.
+          exit
+        end if
+    end do
+    if ( .not. centerFound ) then
+        call MolecularSystem_exception(ERROR, "No QDO center for species: "//MolecularSystem_instance%species(speciesID)%symbol, "MolecularSystem_getQDOcenter"   )
+    end if
+ 
+     
+   end function MolecularSystem_getQDOCenter
+
    
    !> @brief Returns the Factor Of Exchange Integrals
    !! @author E. F. Posada, 2013
    !! @version 1.0   
-   function MolecularSystem_getFactorOfExchangeIntegrals( speciesID ) result( output )
+   function MolecularSystem_getFactorOfExchangeIntegrals(speciesID,this) result( output )
      implicit none
      integer :: speciesID
-     
+     type(MolecularSystem), optional, target :: this
      real(8) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%kappa / MolecularSystem_instance%species(speciesID)%eta
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
+     output = system%species(speciesID)%kappa / system%species(speciesID)%eta
      
    end function MolecularSystem_getFactorOfExchangeIntegrals
 
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getNameOfSpecie(speciesID) result(output)
-     implicit none
-     
+   function MolecularSystem_getNameOfSpecies(speciesID,this) result(output)
+     implicit none     
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      character(30) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%name
-          
-   end function MolecularSystem_getNameOfSpecie
-
-   !> @brief Returns the name of a species
-   !! @author E. F. Posada, 2013
-   !! @version 1.0
-   function MolecularSystem_getNameOfSpecies(speciesID) result(output)
-     implicit none
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
      
-     integer :: speciesID
-     character(30) :: output
-     
-     output = MolecularSystem_instance%species(speciesID)%name
+     output = system%species(speciesID)%name
           
    end function MolecularSystem_getNameOfSpecies
 
    !> @brief Returns the symbol of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getSymbolOfSpecies(speciesID) result(output)
+   function MolecularSystem_getSymbolOfSpecies(speciesID,this) result(output)
      implicit none
      
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
      character(30) :: output
      
-     output = MolecularSystem_instance%species(speciesID)%symbol
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
+     output = system%species(speciesID)%symbol
           
    end function MolecularSystem_getSymbolOfSpecies
    
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getSpecieID( nameOfSpecie ) result(output)
+   function MolecularSystem_getSpecieID( nameOfSpecie,this ) result(output)
      implicit none
      
      character(*) :: nameOfSpecie
+     type(MolecularSystem), optional, target :: this
      integer :: output
+     
+     type(MolecularSystem), pointer :: system
      integer i 
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
      
      output = 0
 
-     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        if( trim(MolecularSystem_instance%species(i)%name) == trim(nameOfSpecie)) output = i
+     do i = 1, system%numberOfQuantumSpecies
+        if( trim(system%species(i)%name) == trim(nameOfSpecie)) output = i
      end do
 
    end function MolecularSystem_getSpecieID
@@ -1365,67 +1483,100 @@ contains
       !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getSpecieIDFromSymbol( symbolOfSpecie ) result(output)
+   function MolecularSystem_getSpecieIDFromSymbol( symbolOfSpecie,this ) result(output)
      implicit none
      
      character(*) :: symbolOfSpecie
+     type(MolecularSystem), optional, target :: this
      integer :: output
+     
+     type(MolecularSystem), pointer :: system
      integer i 
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
      
      output = 0
 
-     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        if( trim(MolecularSystem_instance%species(i)%symbol) == trim(symbolOfSpecie)) output = i
+     do i = 1, system%numberOfQuantumSpecies
+        if( trim(system%species(i)%symbol) == trim(symbolOfSpecie)) output = i
      end do
 
    end function MolecularSystem_getSpecieIDFromSymbol
 
    !>
    !! @brief calcula la energia total para una especie especificada
-   function MolecularSystem_getPointChargesEnergy() result( output )
+   function MolecularSystem_getPointChargesEnergy(this) result( output )
      implicit none
      real(8) :: output
+     type(MolecularSystem), optional, target :: this
      
+     type(MolecularSystem), pointer :: system
      integer :: i
      integer :: j
      real(8) :: deltaOrigin(3)
+
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+
      
      output =0.0_8
      
-     do i=1, size( MolecularSystem_instance%pointCharges )      
-        do j = i + 1 , size( MolecularSystem_instance%pointCharges )
+     do i=1, size( system%pointCharges )      
+        do j = i + 1 , size( system%pointCharges )
             
-           deltaOrigin = MolecularSystem_instance%pointCharges(i)%origin &
-                - MolecularSystem_instance%pointCharges(j)%origin
+           deltaOrigin = system%pointCharges(i)%origin &
+                - system%pointCharges(j)%origin
            
-           output=output + ( ( MolecularSystem_instance%pointCharges(i)%charge &
-                * MolecularSystem_instance%pointCharges(j)%charge )&
+           output=output + ( ( system%pointCharges(i)%charge &
+                * system%pointCharges(j)%charge )&
                 / sqrt( sum( deltaOrigin**2.0_8 ) ) )
            
         end do
      end do
+    
+    !! Point charge potential with the external electric field
+    if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
+      do i=1, size( system%pointCharges )      
+        output = output + sum(CONTROL_instance%ELECTRIC_FIELD(:) * system%pointCharges(i)%origin(:) )*  system%pointCharges(i)%charge 
+      end do
+    end if
+
      
    end function MolecularSystem_getPointChargesEnergy
 
-   function MolecularSystem_getMMPointChargesEnergy() result( output )
+   function MolecularSystem_getMMPointChargesEnergy(this) result( output )
      implicit none
      real(8) :: output
-
+     type(MolecularSystem), optional, target :: this
+     
+     type(MolecularSystem), pointer :: system
      integer :: i
      integer :: j
      real(8) :: deltaOrigin(3)
 
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+
      output =0.0_8
      
-     do i=1, size( MolecularSystem_instance%pointCharges )
-        if(trim(MolecularSystem_instance%pointCharges(i)%nickname) == "PC") then
-           do j = i + 1 , size( MolecularSystem_instance%pointCharges )
+     do i=1, size( system%pointCharges )
+        if(trim(system%pointCharges(i)%nickname) == "PC") then
+           do j = i + 1 , size( system%pointCharges )
 
-              deltaOrigin = MolecularSystem_instance%pointCharges(i)%origin &
-                   - MolecularSystem_instance%pointCharges(j)%origin
+              deltaOrigin = system%pointCharges(i)%origin &
+                   - system%pointCharges(j)%origin
 
-              output=output + ( ( MolecularSystem_instance%pointCharges(i)%charge &
-                   * MolecularSystem_instance%pointCharges(j)%charge )&
+              output=output + ( ( system%pointCharges(i)%charge &
+                   * system%pointCharges(j)%charge )&
                    / sqrt( sum( deltaOrigin**2.0_8 ) ) )
 
            end do
@@ -1436,35 +1587,44 @@ contains
    
    !>
    !! @brief returns an array of labels of all basis set of speciesID
-   function MolecularSystem_getlabelsofcontractions(speciesID) result(output)
+   function MolecularSystem_getlabelsofcontractions(speciesID,this) result(output)
      implicit none
      
-     integer :: speciesID     
      character(19),allocatable :: output(:)
+     integer :: speciesID     
+     type(MolecularSystem), optional, target :: this
+     
+     type(MolecularSystem), pointer :: system
 
      integer :: i, j, k
      integer :: counter
      character(9), allocatable :: shellCode(:)
 
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
+     
      if(allocated(output)) deallocate(output)
-     allocate(output(MolecularSystem_getTotalNumberOfContractions(speciesID)))
+     allocate(output(MolecularSystem_getTotalNumberOfContractions(speciesID,system)))
      
      output = ""
      counter = 1
      
-     do i = 1, size(MolecularSystem_instance%species(speciesID)%particles)
-        do j = 1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
+     do i = 1, size(system%species(speciesID)%particles)
+        do j = 1, size(system%species(speciesID)%particles(i)%basis%contraction)
            
            if(allocated(shellCode)) deallocate(shellCode)
-           allocate(shellCode(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+           allocate(shellCode(system%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital))
            shellCode = ""
 
-           shellCode = ContractedGaussian_getShellCode(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j))
+           shellCode = ContractedGaussian_getShellCode(system%species(speciesID)%particles(i)%basis%contraction(j))
            
-           do k = 1, MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
+           do k = 1, system%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital
               
               write (output(counter),"(I5,A1,A6,A1,A6)") counter, " ", &
-                   trim(MolecularSystem_instance%species(speciesID)%particles(i)%nickname), " ", &
+                   trim(system%species(speciesID)%particles(i)%nickname), " ", &
                    trim(shellCode(k))//" "
 
               counter = counter + 1 
@@ -1500,6 +1660,74 @@ contains
      labelsOfContractions =  MolecularSystem_getlabelsofcontractions(speciesID)
 
      if( (actualFormat.eq."LOWDIN" .and. desiredFormat.eq."MOLDEN") ) then
+        !! Swap some columns according to the molden format
+        do k=1,numberOfContractions
+           !! Take the shellcode
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
+
+           !! Reorder the D functions
+           !! counter:  0,  1,  2,  3,  4,  5
+           !! Lowdin:  XX, XY, XZ, YY, YZ, ZZ
+           !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+           !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+           !!  2-4, 3-5, 5-6
+
+           if ( adjustl(shellcode) == "Dxx" ) then 
+              auxcounter = counter
+              !! Swap XY and YY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+              !! Swap XZ and ZZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)
+              !! Swap YZ and XZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+           end if
+
+           !! Reorder the F functions
+           !! counter:   0,   1,   2,   3,   4,   5,   6,   7,   8    9
+           !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+           !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+
+           if ( adjustl(shellcode) == "Fxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+
+           end if
+
+           !! Reorder the G functions
+           !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14
+           !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
+           !!Molden15G:xxxx yyyy zzzz xxxy xxxz yyyx yyyz zzzx zzzy xxyy xxzz yyzz xxyz yyxz zzxy
+           if ( adjustl(shellcode) == "Gxxxx" ) then
+              auxcounter = counter
+              ! call Matrix_swapRows(  coefficientsOfCombination, auxcounter+0 , auxcounter+0)   
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+10) !XXXY->10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+14) !XXXZ->14
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+10) !XXYY->10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+14) !XXYZ->14
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+6)  !XXZZ->6
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+11) !XXZZ->11
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+9)  !XYYZ->9
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+13) !XYZZ->13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+9 , auxcounter+10) !XYYZ->10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+10, auxcounter+11) !XYYZ->11 
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+11, auxcounter+12) !XYYZ->12
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+12, auxcounter+14) !XYYZ->14 
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+13, auxcounter+14) !XYZZ->14
+              ! call Matrix_swapRows(  coefficientsOfCombination, auxcounter+14, auxcounter+14) 
+           end if
+
+           if ( adjustl(shellcode) == "Hxxxxx" ) then 
+              call MolecularSystem_exception(WARNING, "The order of the coefficients only works until G orbitals", "MolecularSystem_changeOrbitalOrder" )
+           end if
+
+        end do
+
+     else if( (actualFormat.eq."LOWDIN" .and. desiredFormat.eq."FCHK") ) then
         !! Swap some columns according to the molden format
         do k=1,numberOfContractions
            !! Take the shellcode
@@ -1650,6 +1878,71 @@ contains
               call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
            end if
            !! Reorder the G functions
+           !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14 
+           !!Molden15G:xxxx yyyy zzzz xxxy xxxz yyyx yyyz zzzx zzzy xxyy xxzz yyzz xxyz yyxz zzxy
+           !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
+           if ( adjustl(shellcode) == "Gxxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3) !YYYY->3
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+4) !ZZZZ->4
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+3 , auxcounter+9) !YYYY->9
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+12)!ZZZZ->12
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+10)!YYYX-10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+10)!YYYZ-10
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+13)!ZZZX-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+8 , auxcounter+14)!ZZZY-14
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+9 , auxcounter+13)!YYYY-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+10, auxcounter+13)!YYYZ-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+11, auxcounter+13)!YYZZ-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+12, auxcounter+13)!ZZZZ-13
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+13, auxcounter+14)!ZZZZ-14
+           end if
+
+           if ( adjustl(shellcode) == "Hxxxxx" ) then 
+              call MolecularSystem_exception(WARNING, "The order of the coefficients only works until G orbitals", "MolecularSystem_changeOrbitalOrder" )
+           end if
+
+           
+        end do
+        
+     else if( actualFormat.eq."FCHK" .and. desiredFormat.eq."LOWDIN") then
+        !! Swap some columns according to the molden format
+        do k=1,numberOfContractions
+           !! Take the shellcode
+           read (labelsOfContractions(k), "(I5,A1,A6,A1,A6)") counter, space, nickname, space, shellcode 
+
+           !! Reorder the D functions
+           !! counter:  1,  2,  3,  4,  5,  6
+           !! Molden:  XX, YY, ZZ, XY, XZ, YZ 
+           !! Lowdin:  XX, XY, XZ, YY, ZZ, YZ
+           !!  1-1, 2-4, 3-5, 4-2, 5-6, 6-3
+           !!  2-4, 3-5, 5-6
+
+           if ( adjustl(shellcode) == "Dxx" ) then 
+              auxcounter = counter
+              !! Swap YY and XY
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+3)
+              !! Swap ZZ and XZ
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+4)
+              !! Swap ZZ and YZ'
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+5)
+           end if
+
+           !! Reorder the F functions
+           !! counter:   1,   2,   3,   4,   5,   6,   7,   8    9,  10
+           !! Molden:  XXX, YYY, ZZZ, XYY, XXY, XXZ, XZZ, YZZ, YYZ, XYZ
+           !! Lowdin:  XXX, XXY, XXZ, XYY, XYZ, XZZ, YYY, YYZ, YZZ, ZZZ
+
+           if ( adjustl(shellcode) == "Fxxx" ) then 
+              auxcounter = counter
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+1 , auxcounter+4)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+2 , auxcounter+5)             
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+4 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+5 , auxcounter+6)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+6 , auxcounter+9)
+              call Matrix_swapRows(  coefficientsOfCombination, auxcounter+7 , auxcounter+8)
+           end if
+           !! Reorder the G functions
            !! counter:   0,  1,   2,   3,   4,   5,   6,   7,   8    9,   10,  11,  12,  13,  14
            !! erkale-FCHK:  ZZZZ,YZZZ,YYZZ,YYYZ,YYYY,XZZZ,XYZZ,XYYZ,XYYY,XXZZ,XXYZ,XXYY,XXXZ,XXXY,XXXX
            !! Lowdin:  XXXX,XXXY,XXXZ,XXYY,XXYZ,XXZZ,XYYY,XYYZ,XYZZ,XZZZ,YYYY,YYYZ,YYZZ,YZZZ,ZZZZ
@@ -1671,7 +1964,7 @@ contains
 
            
         end do
-
+        
      else
 
         call MolecularSystem_exception(ERROR, "The desired format change from "//actualFormat//" to "//desiredFormat//"has not been implemented","MolecularSystem module at changeOrbitalOrder function.")
@@ -1684,13 +1977,14 @@ contains
 
   !>
   !! @brief Lee la matriz de densidad y los orbitales de un archivo fchk tipo Gaussian
-  subroutine MolecularSystem_readFchk( fileName, coefficients, densityMatrix, nameOfSpecies )
+  subroutine MolecularSystem_readFchk( fileName, coefficients, densityMatrix, nameOfSpecies, readSuccess )
     implicit none
 
     character(*), intent(in) :: fileName
     type(Matrix), intent(inout) :: coefficients
     type(Matrix), intent(inout) :: densityMatrix
     character(*) :: nameOfSpecies
+    logical, optional :: readSuccess
 
     integer :: speciesID
     integer :: numberOfContractions
@@ -1711,9 +2005,15 @@ contains
     speciesID=MolecularSystem_getSpecieID(nameOfSpecies)
     numberOfContractions=MolecularSystem_getTotalnumberOfContractions( speciesID )
     inquire(FILE = trim(fileName), EXIST = existFchk )
-    if ( .not. existFchk ) call MolecularSystem_exception( ERROR, "I did not find any .fchk coefficients file", "At MolecularSystem_readFchk")
+    if ( .not. existFchk .and. present(readSuccess)) then
+       readSuccess=.false.
+       call MolecularSystem_exception( WARNING, "I did not find the "//trim(filename)//" coefficients file for "//trim(nameOfSpecies), "At MolecularSystem_readFchk")
+       return
+    end if
+    if ( .not. existFchk) then
+       call MolecularSystem_exception( ERROR, "I did not find the "//trim(filename)//" coefficients file for "//trim(nameOfSpecies), "At MolecularSystem_readFchk")
+    end if
     
-
     fchkUnit = 50
 
     open(unit=fchkUnit, file=filename, status="old", form="formatted", access='sequential', action='read')
@@ -1784,7 +2084,7 @@ contains
        end if
     end do
 
-    call MolecularSystem_changeOrbitalOrder( coefficients, speciesID, "MOLDEN", "LOWDIN" )
+    call MolecularSystem_changeOrbitalOrder( coefficients, speciesID, "FCHK", "LOWDIN" )
     ! print *, "coefficients read"
     ! call Matrix_show(coefficients)
 
@@ -1802,8 +2102,8 @@ contains
     ! print *, "density matrix from orbitals read"
     ! call Matrix_show(densityMatrix)
 
-    
     close(fchkUnit)
+    if(present(readSuccess)) readSuccess=.true.
     
   end subroutine MolecularSystem_readFchk
 
@@ -1846,6 +2146,7 @@ contains
        this%species(i)%statistics = originalThis%species(i)%statistics
        this%species(i)%charge = originalThis%species(i)%charge
        this%species(i)%mass = originalThis%species(i)%mass
+       this%species(i)%omega = originalThis%species(i)%omega
        this%species(i)%spin = originalThis%species(i)%spin
        this%species(i)%totalCharge = originalThis%species(i)%totalCharge
        this%species(i)%kappa = originalThis%species(i)%kappa
@@ -1888,6 +2189,8 @@ contains
        this%allParticles(i)%particlePtr%origin=originalThis%allParticles(i)%particlePtr%origin
        this%allParticles(i)%particlePtr%charge=originalThis%allParticles(i)%particlePtr%charge
        this%allParticles(i)%particlePtr%mass=originalThis%allParticles(i)%particlePtr%mass
+       this%allParticles(i)%particlePtr%omega=originalThis%allParticles(i)%particlePtr%omega
+       this%allParticles(i)%particlePtr%qdoCenterOf=originalThis%allParticles(i)%particlePtr%qdoCenterOf
        this%allParticles(i)%particlePtr%spin=originalThis%allParticles(i)%particlePtr%spin
        this%allParticles(i)%particlePtr%totalCharge=originalThis%allParticles(i)%particlePtr%totalCharge
        this%allParticles(i)%particlePtr%klamt=originalThis%allParticles(i)%particlePtr%klamt
@@ -2048,6 +2351,7 @@ contains
        mergedThis%species(i)%statistics = thisA%species(i)%statistics
        mergedThis%species(i)%charge = thisA%species(i)%charge
        mergedThis%species(i)%mass = thisA%species(i)%mass
+       mergedThis%species(i)%omega = thisA%species(i)%omega
        mergedThis%species(i)%spin = thisA%species(i)%spin
        mergedThis%species(i)%totalCharge = thisA%species(i)%totalCharge
        mergedThis%species(i)%kappa = thisA%species(i)%kappa
@@ -2090,6 +2394,8 @@ contains
        mergedThis%pointCharges(i)%origin=thisA%pointCharges(i)%origin
        mergedThis%pointCharges(i)%charge=thisA%pointCharges(i)%charge
        mergedThis%pointCharges(i)%mass=thisA%pointCharges(i)%mass
+       mergedThis%pointCharges(i)%omega=thisA%pointCharges(i)%omega
+       mergedThis%pointCharges(i)%qdoCenterOf=thisA%pointCharges(i)%qdoCenterOf
        mergedThis%pointCharges(i)%spin=thisA%pointCharges(i)%spin
        mergedThis%pointCharges(i)%totalCharge=thisA%pointCharges(i)%totalCharge
        mergedThis%pointCharges(i)%klamt=thisA%pointCharges(i)%klamt
@@ -2131,6 +2437,8 @@ contains
                 mergedThis%species(i)%particles(j)%origin=thisA%species(i)%particles(jj)%origin
                 mergedThis%species(i)%particles(j)%charge=thisA%species(i)%particles(jj)%charge
                 mergedThis%species(i)%particles(j)%mass=thisA%species(i)%particles(jj)%mass
+                mergedThis%species(i)%particles(j)%omega=thisA%species(i)%particles(jj)%omega
+                mergedThis%species(i)%particles(j)%qdoCenterOf=thisA%species(i)%particles(jj)%qdoCenterOf
                 mergedThis%species(i)%particles(j)%spin=thisA%species(i)%particles(jj)%spin
                 mergedThis%species(i)%particles(j)%totalCharge=thisA%species(i)%particles(jj)%totalCharge
                 mergedThis%species(i)%particles(j)%klamt=thisA%species(i)%particles(jj)%klamt
@@ -2218,6 +2526,8 @@ contains
              mergedThis%species(i)%particles(j)%origin=thisB%species(i)%particles(jj)%origin
              mergedThis%species(i)%particles(j)%charge=thisB%species(i)%particles(jj)%charge
              mergedThis%species(i)%particles(j)%mass=thisB%species(i)%particles(jj)%mass
+             mergedThis%species(i)%particles(j)%omega=thisB%species(i)%particles(jj)%omega
+             mergedThis%species(i)%particles(j)%qdoCenterOf=thisB%species(i)%particles(jj)%qdoCenterOf
              mergedThis%species(i)%particles(j)%spin=thisB%species(i)%particles(jj)%spin
              mergedThis%species(i)%particles(j)%totalCharge=thisB%species(i)%particles(jj)%totalCharge
              mergedThis%species(i)%particles(j)%klamt=thisB%species(i)%particles(jj)%klamt
@@ -2297,7 +2607,7 @@ contains
     ! if( (.not. present(sysAbasisList)) .and. (.not. present(sysBbasisList)) ) return
     
     !!Fill the basis set lists
-    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    do speciesID = 1, mergedThis%numberOfQuantumSpecies
        call Vector_constructorInteger(sysAbasisList(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 0 )
        call Vector_constructorInteger(sysBbasisList(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 0 )
        
@@ -2478,6 +2788,9 @@ contains
        case("AMU")
           output = output * AMU
 
+       case("DALTON")
+          output = output * DALTON
+          
        case default
 
        end select
