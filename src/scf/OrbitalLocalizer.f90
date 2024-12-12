@@ -145,7 +145,7 @@ contains
 
     close(30)
 
-    call system("erkale_loc_omp erkale.local")
+    call system("erkale_loc erkale.local")
     
     !!Convert erkale chk files to lowdin fchk files
     open(unit=30, file="erkale.write", status="replace", form="formatted")

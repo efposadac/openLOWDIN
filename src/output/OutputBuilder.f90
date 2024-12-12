@@ -208,6 +208,7 @@ contains
     auxY=0.0
     auxZ=0.0
     auxStep=0.0
+    auxReal=0.0
 
     if( present(offsetX)) auxX=offsetX
     if( present(offsetY)) auxY=offsetY
@@ -321,7 +322,7 @@ contains
     end if
 
     if(auxStep .gt. 0.0 .and. this%cubeSize .gt. 0.0) this%pointsPerDim(1:3)=int((this%cubeSize*2.0)/auxStep)
-    
+
     if( present(center) ) auxReal=sum(center*center)
     if(auxReal .gt. 0.0) this%point1%values=center
 

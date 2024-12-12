@@ -32,6 +32,8 @@ usage(){
     echo ""
 }
 
+TOPDIR=`pwd`
+
 ###########################################
 #            SET DEFAULTS
 ###########################################
@@ -40,6 +42,7 @@ FLAGS="1"
 PREFIX="/usr/local"
 SCRATCH='/scratch'
 CUDAFLAGS="no"
+COMP_ERKALE="yes"
 CXX="g++"
 CC="gcc"
 CFLAGS="-g -O2 -fopenmp -D gfortran"
@@ -111,13 +114,15 @@ else
         LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         LIBXC_LIBS=`awk '{if($1 == "LIBXC_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+	COMP_ERKALE=`awk '{if($1 == "COMP_ERKALE" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+
         # ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
     fi
     
     ###############################################################################
     #                        OPTIONS FOR FORTRAN COMPILER
     ###############################################################################
-    echo "Fortran Compiler command?  [$FC]"
+    echo "Fortran Compiler command? gfortran(default) or ifort [$FC]"
     read FCOMP
 
     if [ "$FCOMP" = "" ] ; then
@@ -157,7 +162,6 @@ else
     fi
 
     CUDAFLAGS=$FCUDAFLAGS
-
     addflagsCuda=""
 
 
@@ -234,7 +238,7 @@ else
     ###############################################################################
     #                       SPECIFIC INSTALLATION DIRECTORIES
     ###############################################################################
-    echo "Installation directory? [$PREFIX]"
+    echo "Installation directory? default=/usr/local [$PREFIX]"
     read BINDIR
     
     if [ "$BINDIR" = "" ] ; then
@@ -243,6 +247,17 @@ else
 
     PREFIX=$BINDIR
 
+    ###############################################################################
+    #                       ADDITIONAL UTILITIES
+    ###############################################################################
+    echo "Compile erkale? (for orbital localization and embedding): yes(default)/no [$COMP_ERKALE]"
+    read ERKALE
+
+    if [ "$ERKALE" != "no" ] ; then
+	COMP_ERKALE="yes"
+    fi
+	 
+    
 fi
 ###############################################################################
 #                       SAVING OPTIONS
@@ -268,13 +283,22 @@ echo "LIBXC_LIBS = $LIBXC_LIBS"  >> CONFIG
 echo "CUDA_LIBS = $CUDA_LIBS" >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 echo "SED = $SED"  >> CONFIG
+echo "COMP_ERKALE = $COMP_ERKALE"  >> CONFIG
 
+
+###############################################################################
+#                     Compile Erkale  
+###############################################################################
+if [ "$COMP_ERKALE" = "yes" ] ; then
+    cd $TOPDIR/utilities/erkale
+    ./compileForLowdin.sh
+    cd $TOPDIR
+fi
 
 ###############################################################################
 #                       Generate makefiles
 ###############################################################################
 
-TOPDIR=`pwd`
 SRCDIR="src utilities"
 SUBDIRS="core ints DFT scf integralsTransformation MBPT PT CalcProp aduw gepol cosmo output CI NOCI MM molden2aim jadamilu"
 
