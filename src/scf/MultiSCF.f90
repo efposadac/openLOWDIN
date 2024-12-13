@@ -1327,7 +1327,6 @@ contains
     character(30) :: labels(2)
 
     character(50) :: integralsFile
-    character(50) :: arguments(20)
     integer :: integralsUnit
 
     !! Open file for wfn
@@ -1393,25 +1392,20 @@ contains
        call Matrix_writeToFile(wfObjects(speciesID)%fockMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
        labels(1) = "OVERLAP"
-       call Matrix_writeToFile(wfObjects(speciesID)%overlapMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+       call Matrix_writeToFile(wfObjects(speciesID)%overlapMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
        labels(1) = "TRANSFORMATION"
-       call Matrix_writeToFile(wfObjects(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
-
-       if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-          labels(1) = "EXTERNAL_POTENTIAL"
-          call Matrix_writeToFile(wfObjects(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
-       end if
+       call Matrix_writeToFile(wfObjects(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
        if (CONTROL_instance%COSMO) then
           labels(1) = "COSMO1"
-          call Matrix_writeToFile(wfObjects(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+          call Matrix_writeToFile(wfObjects(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = labels )
           labels(1) = "COSMO2"
           call Matrix_writeToFile(wfObjects(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
           labels(1) = "COSMOCOUPLING"
           call Matrix_writeToFile(wfObjects(speciesID)%cosmoCoupling, unit=wfnUnit, binary=.true., arguments = labels ) 
           labels(1) = "COSMO4"
-          call Matrix_writeToFile(wfObjects(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = arguments(1:2) )
+          call Matrix_writeToFile(wfObjects(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = labels )
        end if
 
     end do

@@ -128,7 +128,7 @@ contains
     
     close(30)
 
-    call system("erkale_fchkpt erkale.read")
+    call system("erkale_fchkpt erkale.read >> erkale_fchkpt.log")
 
     !! Localize orbitals
     open(unit=30, file="erkale.local", status="replace", form="formatted")
@@ -155,7 +155,7 @@ contains
     
     close(30)
 
-    call system("erkale_fchkpt erkale.write")
+    call system("erkale_fchkpt erkale.write >> erkale_fchkpt.log")
     
     !! Read orbital coefficients from fchk files
     call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.fchk",  orbitalCoefficients, densityMatrix, nameOfSpecies )
@@ -1829,11 +1829,12 @@ contains
     call MolecularSystem_saveToFile()
     
     !! Recalculate one particle integrals  
-    call system("rm lowdin.opints")
+    ! call system("rm lowdin.opints")
     call system("lowdin-ints.x ONE_PARTICLE")
 
     !! Start the wavefunction object
     deallocate(WaveFunction_instance)
+    allocate(WaveFunction_instance(numberOfSpecies))
     call WaveFunction_constructor(WaveFunction_instance,numberOfSpecies)
        
     do speciesID=1, numberOfSpecies
@@ -2127,6 +2128,16 @@ contains
        labels(1) = "DENSITY"
        call Matrix_writeToFile(wavefunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
+       labels(1) = "KINETIC"
+       call Matrix_writeToFile(wavefunction_instance(speciesID)%kineticMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
+       labels(1) = "ATTRACTION"
+       call Matrix_writeToFile(wavefunction_instance(speciesID)%puntualInteractionMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
+       labels(1) = "EXTERNAL"
+       if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+            call Matrix_writeToFile(wavefunction_instance(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+       
        labels(1) = "HCORE"      
        call Matrix_writeToFile(wavefunction_instance(speciesID)%hcoreMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
@@ -2148,10 +2159,14 @@ contains
        end if
 
        if (CONTROL_instance%COSMO) then
+          labels(1) = "COSMO1"
+          call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = labels(1:2) )
           labels(1) = "COSMO2"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
           labels(1) = "COSMOCOUPLING"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmoCoupling, unit=wfnUnit, binary=.true., arguments = labels ) 
+          labels(1) = "COSMO4"
+          call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = labels(1:2) )
        end if
        
     end do

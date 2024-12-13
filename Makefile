@@ -26,10 +26,12 @@ install:: bin/lowdin bin/lowdin.x
 	$(SED) -i 's|COMPILATION_DATE|$(shell date)|g' $(TOPDIR)/lowdinvars.sh
 	cp -rf $(TOPDIR)/lowdinvars.sh $(PREFIX)/.lowdin2/
 	cp -rf lib $(PREFIX)/.lowdin2/
-	cp -rf utilities/erkale/build/erkale/basis $(PREFIX)/.lowdin2/lib/erkaleBasis
+	if [ -e utilities/erkale/build/erkale/basis ]; then \
+		cp -rf utilities/erkale/build/erkale/basis $(PREFIX)/.lowdin2/lib/erkaleBasis ; fi
 	mkdir -p $(PREFIX)/.lowdin2/bin
 	cp -rf $(TOPDIR)/bin/*.x $(PREFIX)/.lowdin2/bin
-	cp -rf utilities/erkale/erkale/bin/erkale_fchkpt utilities/erkale/erkale/bin/erkale_loc $(PREFIX)/.lowdin2/bin
+	if [ -e utilities/erkale/erkale/bin/erkale_loc ]; then \
+		cp -rf utilities/erkale/erkale/bin/erkale_fchkpt utilities/erkale/erkale/bin/erkale_loc $(PREFIX)/.lowdin2/bin ; fi
 	cp -rf $(TOPDIR)/bin/lowdin $(TOPDIR)
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdin
 	cp -rf $(TOPDIR)/lowdin $(PREFIX)/lowdin2

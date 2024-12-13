@@ -282,18 +282,14 @@ void localize_wrk(const BasisSet & basis, arma::subview<double> & C, arma::subvi
     double measure;
 
     // Run localization
-    printf("before orbital loc trololo \n");
-
     orbital_localization(method,basis,Cwrk,P,measure,U,true,!(start==UNITMAT),maxiter,Gthr,Fthr,umet,acc,delocalize,fname,debug);
 
     if(start==UNITMAT) {
-      printf("after orbital loc, inside unitmat trololo \n");
       // Update orbitals, complex case
       arma::cx_mat Cloc=Cwrk*U;
       Cplx = Cloc; // same dimension, no need for submatrix views
     } else {
       // Update orbitals and energies, real case
-      printf("after orbital loc, inside not unitmat trololo \n");
 
       // Convert U to real form
       arma::mat Ur=orthogonalize(arma::real(U));
@@ -316,8 +312,6 @@ void localize_wrk(const BasisSet & basis, arma::subview<double> & C, arma::subvi
       C=Cloc;
       E=Eloc;
   }
-    printf("after orbital loc trololo \n");
-
 }
 
 
@@ -425,14 +419,11 @@ int main_guarded(int argc, char **argv) {
   //Felix is doing stuff here
   // Need to add scf keywords for basis set defaults
   // settings.add_scf_settings();
-  printf("Hola Felix\n");
-  printf("Trololooooooooooooooooooooooooooo \n");
+  printf("Lowdin - Erkale localization interface:\n%s\n%s\n%s\n\n", \
+	 "F. Moncada and A. Reyes",         \
+	 "Multicomponent wavefunction-in-DFT embedding for positronium molecules", \
+	 "J. Chem. Phys. 158 (2023), 134101.");
   
-  printf("Please read and cite the reference:\n%s\n%s\n%s\n\n", \	 
-	 "S. Lehtola and H. Jónsson",         \
-	 "Unitary Optimization of Localized Molecular Orbitals", \
-	 "J. Chem. Theory Comput. 9 (2013), pp. 5365 - 5372.");
-
   // Dummy functional: this will be set to HF or a X-C combination
   // settings.add_string("Method", "Method used in calculation (HF or a DFT functional)", "Dummy");
   settings.add_string("AtomGuess", "Method used for atomic guess (Auto for same as method)", "Auto");
