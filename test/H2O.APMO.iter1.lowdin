@@ -14,7 +14,7 @@ CONTROL
 	readCoefficients=F
 	iterationScheme=1
 	totalEnergyTolerance=1E-10
-	scfElectronicMaxIterations=10
+	scfElectronicMaxIterations=15
 	scfGlobalMaxIterations=10000
 	integralStorage="MEMORY"
 END CONTROL

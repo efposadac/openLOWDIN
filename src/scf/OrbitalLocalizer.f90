@@ -189,6 +189,7 @@ contains
     integer :: shellSize
     
     type(BasisSet) :: reducedBasisA
+    type(MolecularSystem) :: oldMolecularSystem
     
     type(Matrix),allocatable :: auxMatrix(:)
     type(Matrix),allocatable :: densityMatrixA(:)
@@ -221,8 +222,6 @@ contains
     real(8),allocatable :: densStd(:)
     real(8),allocatable :: auxEnergy(:)
     character(9), allocatable :: shellCode(:)
-    character(9), allocatable :: holdPointChargeSymbol(:)
-    real(8), allocatable :: holdPointChargeMass(:)
     
     real(8) :: totalDensStd
 
@@ -1680,7 +1679,7 @@ contains
     write(*,*) "---------------------------------------------------------------------------"
     write(*,*) ""             
 
-
+    oldMolecularSystem=MolecularSystem_instance
     !Destroy unrequired basis centers and shells from the molecular system
     !Write a LOWDIN.BAS with the reduced basis set file
     
@@ -1746,11 +1745,8 @@ contains
        end do
     end do
     
-    allocate(holdPointChargeSymbol(MolecularSystem_instance%numberOfPointCharges),holdPointChargeMass(MolecularSystem_instance%numberOfPointCharges))
     write(40,*) MolecularSystem_instance%numberOfPointCharges
     do i = 1, MolecularSystem_instance%numberOfPointCharges
-       holdPointChargeSymbol(i)=trim(MolecularSystem_instance%pointCharges(i)%nickname)
-       holdPointChargeMass(i)=MolecularSystem_instance%pointCharges(i)%mass
        write(40,*) MolecularSystem_instance%pointCharges(i)%charge
        write(40,*) MolecularSystem_instance%pointCharges(i)%origin
     end do
@@ -1766,25 +1762,32 @@ contains
        MolecularSystem_instance%species(speciesID)%particles(:)%basis%name="REDUCED"      
 
        do i=1, size(MolecularSystem_instance%species(speciesID)%particles)
-          MolecularSystem_instance%species(speciesID)%particles(i)%name=MolecularSystem_instance%species(speciesID)%name
-          MolecularSystem_instance%species(speciesID)%particles(i)%symbol=MolecularSystem_instance%species(speciesID)%symbol
-          MolecularSystem_instance%species(speciesID)%particles(i)%statistics=MolecularSystem_instance%species(speciesID)%statistics
+          MolecularSystem_instance%species(speciesID)%particles(i)%name=oldMolecularSystem%species(speciesID)%name
+          MolecularSystem_instance%species(speciesID)%particles(i)%symbol=oldMolecularSystem%species(speciesID)%symbol
+          MolecularSystem_instance%species(speciesID)%particles(i)%statistics=oldMolecularSystem%species(speciesID)%statistics
           MolecularSystem_instance%species(speciesID)%particles(i)%basisSetName="REDUCED"
           MolecularSystem_instance%species(speciesID)%particles(i)%origin=MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(1)%origin
-          MolecularSystem_instance%species(speciesID)%particles(i)%charge=MolecularSystem_instance%species(speciesID)%charge
-          MolecularSystem_instance%species(speciesID)%particles(i)%mass=MolecularSystem_instance%species(speciesID)%mass
-          MolecularSystem_instance%species(speciesID)%particles(i)%spin=MolecularSystem_instance%species(speciesID)%spin
+          MolecularSystem_instance%species(speciesID)%particles(i)%charge=oldMolecularSystem%species(speciesID)%charge
+          MolecularSystem_instance%species(speciesID)%particles(i)%mass=oldMolecularSystem%species(speciesID)%mass
+          MolecularSystem_instance%species(speciesID)%particles(i)%eta=oldMolecularSystem%species(speciesID)%eta
+          MolecularSystem_instance%species(speciesID)%particles(i)%omega=oldMolecularSystem%species(speciesID)%omega
+          MolecularSystem_instance%species(speciesID)%particles(i)%qdoCenterOf = "NONE"
+          MolecularSystem_instance%species(speciesID)%particles(i)%spin=oldMolecularSystem%species(speciesID)%spin
           MolecularSystem_instance%species(speciesID)%particles(i)%totalCharge=0
-          MolecularSystem_instance%species(speciesID)%particles(i)%internalSize=0
           MolecularSystem_instance%species(speciesID)%particles(i)%isQuantum=.true.
           MolecularSystem_instance%species(speciesID)%particles(i)%isDummy=.false.
           MolecularSystem_instance%species(speciesID)%particles(i)%fixComponent=.false.
           MolecularSystem_instance%species(speciesID)%particles(i)%isCenterOfOptimization=.true.
-          MolecularSystem_instance%species(speciesID)%particles(i)%multiplicity=MolecularSystem_instance%species(speciesID)%multiplicity
+          MolecularSystem_instance%species(speciesID)%particles(i)%multiplicity=oldMolecularSystem%species(speciesID)%multiplicity
           MolecularSystem_instance%species(speciesID)%particles(i)%id=i
+          MolecularSystem_instance%species(speciesID)%particles(i)%internalSize=0
           MolecularSystem_instance%species(speciesID)%particles(i)%owner=i
           MolecularSystem_instance%species(speciesID)%particles(i)%basisSetSize=size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
           MolecularSystem_instance%species(speciesID)%particles(i)%subsystem=1
+          MolecularSystem_instance%species(speciesID)%particles(i)%translationCenter=0
+          MolecularSystem_instance%species(speciesID)%particles(i)%rotationPoint=0
+          MolecularSystem_instance%species(speciesID)%particles(i)%rotateAround=0
+
           ! MolecularSystem_instance%species(speciesID)%particles(i)%childs=.false.
           
           ! do j=1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
@@ -1799,15 +1802,33 @@ contains
        end do
     end do
 
-    do i = 1, MolecularSystem_instance%numberOfPointCharges
-       MolecularSystem_instance%pointCharges(i)%name=trim(holdPointChargeSymbol(i))
-       MolecularSystem_instance%pointCharges(i)%symbol=trim(holdPointChargeSymbol(i))
-       MolecularSystem_instance%pointCharges(i)%statistics="BOSON"
-       MolecularSystem_instance%pointCharges(i)%basisSetName="DIRAC"
-       MolecularSystem_instance%pointCharges(i)%nickname=trim(holdPointChargeSymbol(i))
-       MolecularSystem_instance%pointCharges(i)%mass=holdPointChargeMass(i)
-       MolecularSystem_instance%pointCharges(i)%totalCharge=MolecularSystem_instance%pointCharges(i)%charge
-       MolecularSystem_instance%pointCharges(i)%isQuantum=.false.
+    do i = 1, MolecularSystem_instance%numberOfPointCharges       
+       MolecularSystem_instance%pointCharges(i)%name=oldMolecularSystem%pointCharges(i)%name                   
+       MolecularSystem_instance%pointCharges(i)%symbol=oldMolecularSystem%pointCharges(i)%symbol                 
+       MolecularSystem_instance%pointCharges(i)%nickname=oldMolecularSystem%pointCharges(i)%nickname               
+       MolecularSystem_instance%pointCharges(i)%statistics=oldMolecularSystem%pointCharges(i)%statistics             
+       MolecularSystem_instance%pointCharges(i)%basisSetName=oldMolecularSystem%pointCharges(i)%basisSetName           
+       MolecularSystem_instance%pointCharges(i)%origin=oldMolecularSystem%pointCharges(i)%origin                 
+       MolecularSystem_instance%pointCharges(i)%charge=oldMolecularSystem%pointCharges(i)%charge                 
+       MolecularSystem_instance%pointCharges(i)%mass=oldMolecularSystem%pointCharges(i)%mass                   
+       MolecularSystem_instance%pointCharges(i)%eta=oldMolecularSystem%pointCharges(i)%eta                    
+       MolecularSystem_instance%pointCharges(i)%omega=oldMolecularSystem%pointCharges(i)%omega                  
+       MolecularSystem_instance%pointCharges(i)%qdoCenterOf=oldMolecularSystem%pointCharges(i)%qdoCenterOf            
+       MolecularSystem_instance%pointCharges(i)%spin=oldMolecularSystem%pointCharges(i)%spin                   
+       MolecularSystem_instance%pointCharges(i)%totalCharge=oldMolecularSystem%pointCharges(i)%totalCharge            
+       MolecularSystem_instance%pointCharges(i)%isQuantum=oldMolecularSystem%pointCharges(i)%isQuantum              
+       MolecularSystem_instance%pointCharges(i)%isDummy=oldMolecularSystem%pointCharges(i)%isDummy                
+       MolecularSystem_instance%pointCharges(i)%fixComponent=oldMolecularSystem%pointCharges(i)%fixComponent           
+       MolecularSystem_instance%pointCharges(i)%isCenterOfOptimization=oldMolecularSystem%pointCharges(i)%isCenterOfOptimization 
+       MolecularSystem_instance%pointCharges(i)%multiplicity=oldMolecularSystem%pointCharges(i)%multiplicity           
+       MolecularSystem_instance%pointCharges(i)%id=oldMolecularSystem%pointCharges(i)%id                     
+       MolecularSystem_instance%pointCharges(i)%internalSize=oldMolecularSystem%pointCharges(i)%internalSize           
+       MolecularSystem_instance%pointCharges(i)%owner=oldMolecularSystem%pointCharges(i)%owner                  
+       MolecularSystem_instance%pointCharges(i)%basisSetSize=oldMolecularSystem%pointCharges(i)%basisSetSize           
+       MolecularSystem_instance%pointCharges(i)%subsystem=oldMolecularSystem%pointCharges(i)%subsystem              
+       MolecularSystem_instance%pointCharges(i)%translationCenter=oldMolecularSystem%pointCharges(i)%translationCenter      
+       MolecularSystem_instance%pointCharges(i)%rotationPoint=oldMolecularSystem%pointCharges(i)%rotationPoint          
+       MolecularSystem_instance%pointCharges(i)%rotateAround=oldMolecularSystem%pointCharges(i)%rotateAround           
     end do
 
     call ParticleManager_setOwner()
