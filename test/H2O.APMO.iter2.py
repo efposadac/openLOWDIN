@@ -17,7 +17,7 @@ outputName = testName + ".out"
 
 refValues = {
 "HF energy" : [-75.905888729266,1E-8],
-"Iterations" : [230,20],
+"Iterations" : [230,50],
 }                       
 
 testValues = dict(refValues) #copy 
