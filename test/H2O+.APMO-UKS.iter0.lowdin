@@ -1,0 +1,23 @@
+SYSTEM_DESCRIPTION='Molecula de H2O'
+GEOMETRY
+	e-[O]   6-31G     0.000000      0.000000     -0.066575 addParticles=-1 multiplicity=2
+	e-[H]   6-31G     0.000000      0.754175      0.528381
+	e-[H]   6-31G     0.000000     -0.754174      0.528382
+	O        dirac     0.000000      0.000000     -0.066575
+	H_1	Nakai-3-sp     0.000000      0.754175      0.528381	
+	H_1   Nakai-3-sp     0.000000     -0.754174      0.528382  
+END GEOMETRY
+TASKS
+	method = "UKS"
+END TASKS
+CONTROL
+	electronExchangeCorrelationFunctional="B3LYP"
+	nuclearElectronCorrelationFunctional="epc17-2"
+	readCoefficients=F
+	iterationScheme=0
+	totalEnergyTolerance=1E-10
+	scfNonelectronicMaxIterations=25
+	scfGlobalMaxIterations=10000
+	integralStorage="MEMORY"
+	gridStorage="MEMORY"
+END CONTROL

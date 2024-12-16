@@ -290,9 +290,14 @@ echo "COMP_ERKALE = $COMP_ERKALE"  >> CONFIG
 #                     Compile Erkale  
 ###############################################################################
 if [ "$COMP_ERKALE" = "yes" ] ; then
-    cd $TOPDIR/utilities/erkale
-    ./compileForLowdin.sh
-    cd $TOPDIR
+    if [ -e utilities/erkale/erkale/bin/erkale_loc ]; then
+	echo "I found the folliowing erkale binaries, skipping erkale compilation"
+	ls utilities/erkale/erkale/bin/*
+    else
+	cd $TOPDIR/utilities/erkale
+	./compileForLowdin.sh
+	cd $TOPDIR
+    fi
 fi
 
 ###############################################################################

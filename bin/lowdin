@@ -519,7 +519,7 @@ if [ $extFile="lowdin" ]; then
 	if [ -e $nameFile.out ]
 	then
 	    cp $LOWDIN_SCRATCH/$nameFile/*.out $currentPath
-	    cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
+	    # cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.xyzr $currentPath 
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
 	fi
@@ -534,21 +534,21 @@ if [ $extFile="lowdin" ]; then
 	#mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
-	mv $LOWDIN_SCRATCH/$nameFile/*.molden $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.molden $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfn $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfx $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.plainvec $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.fchk $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.vec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.plainvec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.fchk $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.coords $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.s* $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.NOCI.coords $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.NOCI.s* $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.cub $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.dens $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.eps $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.orb* $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.gnp $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.civec $currentPath &> 2
         # mv $LOWDIN_SCRATCH/$nameFile/*.ci $currentPath &> 2

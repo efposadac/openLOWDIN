@@ -806,26 +806,26 @@ contains
        end if
 
        if(MultiSCF_getNumberOfIterations(this) .ge. CONTROL_instance%SCF_GLOBAL_MAX_ITERATIONS) then
-          write(convergenceMessage,"(A,I4,A)")  "The number of Iterations was exceded, the convergence had failed after", MultiSCF_getNumberOfIterations(this), "global iterations"
+          write(convergenceMessage,"(A,I8,A)")  "The number of Iterations was exceded, the convergence had failed after", MultiSCF_getNumberOfIterations(this), "global iterations"
           GLOBAL_SCF_CONTINUE=.false.
        end if
 
        if(trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) .eq. "DENSITY" .and. &
             this%totalDensityMatrixStandardDeviation .lt. CONTROL_instance%TOTAL_DENSITY_MATRIX_TOLERANCE) then
-          write(convergenceMessage,"(A,I4,A)") "Total density converged after", MultiSCF_getNumberOfIterations(this) ," global iterations"
+          write(convergenceMessage,"(A,I8,A)") "Total density converged after", MultiSCF_getNumberOfIterations(this) ," global iterations"
           GLOBAL_SCF_CONTINUE=.false.
        end if
 
        if(trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) .eq. "ENERGY" .and. &
             abs(deltaEnergy) .lt. CONTROL_instance%TOTAL_ENERGY_TOLERANCE) then
-          write(convergenceMessage,"(A,I4,A)") "Total energy converged after", MultiSCF_getNumberOfIterations(this) ," global iterations"
+          write(convergenceMessage,"(A,I8,A)") "Total energy converged after", MultiSCF_getNumberOfIterations(this) ," global iterations"
           GLOBAL_SCF_CONTINUE=.false.
        end if
 
        if(trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) .eq. "BOTH" .and. & 
             abs(deltaEnergy) .lt. CONTROL_instance%TOTAL_ENERGY_TOLERANCE .and. &
             this%totalDensityMatrixStandardDeviation .lt. CONTROL_instance%TOTAL_DENSITY_MATRIX_TOLERANCE) then
-          write(convergenceMessage,"(A,I4,A)") "Total energy and density converged after", MultiSCF_getNumberOfIterations(this) ," global iterations"
+          write(convergenceMessage,"(A,I8,A)") "Total energy and density converged after", MultiSCF_getNumberOfIterations(this) ," global iterations"
           GLOBAL_SCF_CONTINUE=.false.
        end if
 
