@@ -1,0 +1,31 @@
+SYSTEM_DESCRIPTION='C2OPs-TZ.geom'
+GEOMETRY
+        e-(Cl)  AUG-CC-PVDZ     0.00    0.00   1.7084 
+        e-(O)   AUG-CC-PVDZ     0.00    0.00   0.00                   fragmentNumber=1
+        e-(H)   NAKAI-CC-PVDZ   0.9414257861   0.00     -0.2222313641 fragmentNumber=1
+        Cl      dirac           0.00    0.00   1.7084 
+        O       dirac           0.00    0.00   0.00
+        H_1     PB4-D    	0.9414257861   0.00     -0.2222313641 fragmentNumber=1
+END GEOMETRY
+
+TASKS
+propagatorTheoryCorrection = 2
+mollerPlessetCorrection = 2
+subsystemEmbedding=.T.
+method = "RHF"
+END TASKS
+
+CONTROL
+subsystemBasisThreshold=0.001
+subsystemOrbitalThreshold=0.2
+erkaleLocalizationMethod="IAO"
+readCoefficients=.F.
+localizeOrbitals=.T.
+totalEnergyTolerance=1E-10
+scfGlobalMaxIterations=1000
+integralsTransformationMethod = "C"
+ionizeMO=1
+ionizeSpecies = "H_1"
+ptJustOneOrbital=T
+mpFrozenCoreBoundary=1
+END CONTROL
