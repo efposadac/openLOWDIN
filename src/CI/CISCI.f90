@@ -393,7 +393,7 @@ contains
     do nn = 1, ncore
       u1 = ( nn - 1)*chunkSize + 1 
       u2 = ( nn ) * chunkSize 
-      if ( u2 > auxMatrixSiez ) u2 = auxMatrixSize
+      if ( u2 > auxMatrixSize ) u2 = auxMatrixSize
     do u = u1, u2
 !    do u = 1, auxMatrixSize 
 
@@ -666,7 +666,6 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     integer(8) :: indexConf(:)
     integer :: cilevel(:)
     integer(8) :: c, totalsize, auxtotalsize
-        if ( j2 > n ) j2 = n
     integer :: counter(:)
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
