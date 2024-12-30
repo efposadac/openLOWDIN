@@ -237,6 +237,7 @@ private:
   size_t max_nprim;
   size_t nbasis;
   int s_size; // stack size
+	double int_tol; 
   int max_l;
   int speciesID;
   bool is_electron;
@@ -248,7 +249,7 @@ private:
   std::string name;
 
 public:
-  LibintInterface(const int stack_size, const int id, const bool el, const bool parallel);
+  LibintInterface(const int stack_size, const double tol, const int id, const bool el, const bool parallel);
 
   ~LibintInterface() { libint2::finalize(); };
 
@@ -354,7 +355,7 @@ extern "C" {
 /*
 Fortran interface routines.
 */
-LibintInterface *LibintInterface_new(const int stack_size, const int id,
+LibintInterface *LibintInterface_new(const int stack_size, const double tol, const int id,
                                      const bool el, const bool parallel);
 
 void LibintInterface_del(LibintInterface *lint);
