@@ -61,7 +61,7 @@ jobs:
         tar xzvf libxc-master-MAY242023.tgz
         cd ..
         # Configure Lowdin
-        ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
+        ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
         # Build Lowdin
         make -j 4
         # Install Lowdin
