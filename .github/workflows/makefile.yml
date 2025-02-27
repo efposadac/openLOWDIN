@@ -16,7 +16,7 @@ jobs:
     - name: Compile and install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev libopenblas-dev
+        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran gawk libeigen3-dev libgmp-dev libboost-all-dev libopenblas-dev gnuplot
         # Define ENV Variables
         export WORKDIR=$PWD/dependencies
         export PATH=$PATH:$WORKDIR/bin
