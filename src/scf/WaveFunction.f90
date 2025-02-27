@@ -1882,7 +1882,7 @@ contains
   subroutine WaveFunction_obtainTotalEnergyForSpecies(this)
     implicit none
     type(WaveFunction) :: this
-
+    
     this%totalEnergyForSpecies = &
          sum(  transpose(this%densityMatrix%values) &
          *  (( this%hcoreMatrix%values ) &
@@ -1912,6 +1912,10 @@ contains
 
     if (  CONTROL_instance%DEBUG_SCFS) then
        print *,"Total energy for "// trim(this%name) //"= ", this%totalEnergyForSpecies
+       print *,"Core:            ", sum(transpose(this%densityMatrix%values)*this%hcoreMatrix%values )
+       print *,"Two particles:   ", sum(transpose(this%densityMatrix%values)*0.5_8 *this%twoParticlesMatrix%values )
+       print *,"Coupling:        ", sum(transpose(this%densityMatrix%values)*this%couplingMatrix%values )
+       print *,"DFT exch-corr:   ", sum(this%exchangeCorrelationEnergy(:))
     end if
 
   end subroutine WaveFunction_obtainTotalEnergyForSpecies
