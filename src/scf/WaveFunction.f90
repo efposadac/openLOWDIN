@@ -549,6 +549,10 @@ contains
             (CONTROL_instance%ELECTRIC_FIELD(1)*this%electricField(1)%values + &
             CONTROL_instance%ELECTRIC_FIELD(2)*this%electricField(2)%values + &
             CONTROL_instance%ELECTRIC_FIELD(3)*this%electricField(3)%values )
+       this%externalPotentialMatrix%values = this%externalPotentialMatrix%values + auxcharge * &
+            (CONTROL_instance%ELECTRIC_FIELD(1)*this%electricField(1)%values + &
+            CONTROL_instance%ELECTRIC_FIELD(2)*this%electricField(2)%values + &
+            CONTROL_instance%ELECTRIC_FIELD(3)*this%electricField(3)%values )
     end if
 
 
@@ -556,9 +560,12 @@ contains
     auxOmega = MolecularSystem_getOmega(this%species,this%molSys)
 
     if ( auxOmega .ne. 0.0_8 ) then
-      this%HCoreMatrix%values = this%HCoreMatrix%values + &                                                  
-                                (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values      
-    end if                                                                                                        
+       CONTROL_instance%ARE_THERE_QDO_POTENTIALS=.true.
+       this%HCoreMatrix%values = this%HCoreMatrix%values + &                                                  
+            (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values
+       this%externalPotentialMatrix%values = this%externalPotentialMatrix%values + &
+            (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values
+    end if
 
 
     !! DEBUG

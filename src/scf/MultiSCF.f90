@@ -710,8 +710,6 @@ contains
           call Matrix_show(wfObjects(speciesID)%densityMatrix)
        end if
 
-       print *, ""
-       
     end do
 
     if(this%iterationToStartConvergence.gt.0) write(*,"(A77)") "The first energy in the SCF will not be a variational estimate"
@@ -1260,7 +1258,9 @@ contains
     end if
 
 
-    if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+    if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL .or. &
+         sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 .or. &
+         CONTROL_instance%ARE_THERE_QDO_POTENTIALS ) then
 
        write(*,*) ""
        write(*,*) " External Potential energy: "

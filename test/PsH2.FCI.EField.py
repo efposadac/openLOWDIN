@@ -16,10 +16,10 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-1.330593653938,1E-8],
-"CI 1" : [-1.472334104068,1E-8],
-"HF dipole" : [0.35853379,1E-7],
-"CI dipole" : [0.27625290,1E-4],
+"HF energy" : [-1.330593658435,1E-8],
+"CI 1" : [-1.472333332766,1E-8],
+"HF dipole" : [0.35846814,1E-7],
+"CI dipole" : [0.27622697,1E-4],
 }                       
 
 testValues = dict(refValues) #copy 

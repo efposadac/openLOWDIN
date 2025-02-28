@@ -248,6 +248,7 @@ module CONTROL_
      character(50) :: METHOD
      logical :: TRANSFORM_TO_CENTER_OF_MASS
      logical :: ARE_THERE_DUMMY_ATOMS
+     logical :: ARE_THERE_QDO_POTENTIALS
      logical :: IS_THERE_EXTERNAL_POTENTIAL
      logical :: IS_THERE_INTERPARTICLE_POTENTIAL
      logical :: IS_THERE_OUTPUT
@@ -595,6 +596,7 @@ module CONTROL_
   character(50) :: LowdinParameters_method
   logical :: LowdinParameters_transformToCenterOfMass
   logical :: LowdinParameters_areThereDummyAtoms
+  logical :: LowdinParameters_areThereQDOPotentials
   logical :: LowdinParameters_isThereExternalPotential
   logical :: LowdinParameters_isThereInterparticlePotential
   logical :: LowdinParameters_isThereOutput
@@ -942,6 +944,7 @@ module CONTROL_
        LowdinParameters_method,&
        LowdinParameters_transformToCenterOfMass,&
        LowdinParameters_areThereDummyAtoms,&
+       LowdinParameters_areThereQDOPotentials,&
        LowdinParameters_isThereExternalPotential,&
        LowdinParameters_isThereInterparticlePotential,&
        LowdinParameters_isThereOutput,&
@@ -1310,6 +1313,7 @@ contains
     LowdinParameters_method = "NONE"
     LowdinParameters_transformToCenterOfMass = .false.
     LowdinParameters_areThereDummyAtoms = .false.
+    LowdinParameters_areThereQDOPotentials = .false.
     LowdinParameters_isThereExternalPotential = .false.
     LowdinParameters_isThereInterparticlePotential = .false.
     LowdinParameters_isThereOutput = .false.
@@ -1655,6 +1659,7 @@ contains
     CONTROL_instance%METHOD = "NONE"
     CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS = .false.
     CONTROL_instance%ARE_THERE_DUMMY_ATOMS = .false.
+    CONTROL_instance%ARE_THERE_QDO_POTENTIALS = .false.
     CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL = .false.
     CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL = .false.
     CONTROL_instance%IS_THERE_OUTPUT = .false.
@@ -2059,6 +2064,7 @@ contains
     CONTROL_instance%METHOD = LowdinParameters_method
     CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS = LowdinParameters_transformToCenterOfMass
     CONTROL_instance%ARE_THERE_DUMMY_ATOMS = LowdinParameters_areThereDummyAtoms
+    CONTROL_instance%ARE_THERE_QDO_POTENTIALS = LowdinParameters_areThereQDOPotentials
     CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL = LowdinParameters_isThereExternalPotential
     CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL = LowdinParameters_isThereInterparticlePotential
     CONTROL_instance%IS_THERE_OUTPUT = LowdinParameters_isThereOutput
@@ -2425,6 +2431,7 @@ contains
     LowdinParameters_method = CONTROL_instance%METHOD
     LowdinParameters_transformToCenterOfMass = CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS
     LowdinParameters_areThereDummyAtoms = CONTROL_instance%ARE_THERE_DUMMY_ATOMS
+    LowdinParameters_areThereQDOPotentials = CONTROL_instance%ARE_THERE_QDO_POTENTIALS 
     LowdinParameters_isThereExternalPotential = CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL
     LowdinParameters_isThereInterparticlePotential = CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL
     LowdinParameters_isThereOutput = CONTROL_instance%IS_THERE_OUTPUT
@@ -2762,6 +2769,7 @@ contains
     otherThis%METHOD = this%METHOD 
     otherThis%TRANSFORM_TO_CENTER_OF_MASS = this%TRANSFORM_TO_CENTER_OF_MASS 
     otherThis%ARE_THERE_DUMMY_ATOMS = this%ARE_THERE_DUMMY_ATOMS 
+    otherThis%ARE_THERE_QDO_POTENTIALS = this%ARE_THERE_QDO_POTENTIALS 
     otherThis%IS_THERE_EXTERNAL_POTENTIAL = this%IS_THERE_EXTERNAL_POTENTIAL 
     otherThis%IS_THERE_FROZEN_PARTICLE = this%IS_THERE_FROZEN_PARTICLE 
     !!*****************************************************

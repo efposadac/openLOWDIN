@@ -2771,9 +2771,9 @@ contains
     
     output = 0.0_8
 
-    do i=1, size( molecularSystem_instance%allParticles)
-       output = output + molecularSystem_instance%allParticles(i)%particlePtr%mass *  &
-            molecularSystem_instance%allParticles(i)%particlePtr%internalSize
+    do i=1, size( system%allParticles)
+       output = output + system%allParticles(i)%particlePtr%mass *  &
+            system%allParticles(i)%particlePtr%internalSize
     end do
 
     if ( present(unid) ) then

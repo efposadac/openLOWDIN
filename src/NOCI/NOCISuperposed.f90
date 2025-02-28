@@ -94,7 +94,7 @@ contains
     call MolecularSystem_mergeTwoSystems(this%mergedMolecularSystem, this%molecularSystems(1), this%molecularSystems(2), &
          this%sysBasisList(1,:),this%sysBasisList(2,:))
     
-    call NOCIMatrices_mergeCoefficients(this%HFCoefficients(1,:),this%HFCoefficients(2,:),&
+    call NOCIMatrices_mergeCoefficients(numberOfSpecies,this%HFCoefficients(1,:),this%HFCoefficients(2,:),&
          this%molecularSystems(1),this%molecularSystems(2),this%mergedMolecularSystem,&
          this%sysBasisList(1,:),this%sysBasisList(2,:),this%mergedCoefficients(:))
 
@@ -112,7 +112,7 @@ contains
        end do
        call MolecularSystem_mergeTwoSystems(this%mergedMolecularSystem, auxMolecularSystem, this%molecularSystems(sysI), &
             auxBasisList,this%sysBasisList(sysI,:),reorder=.false.)
-       call NOCIMatrices_mergeCoefficients(auxCoefficients,this%HFCoefficients(sysI,:),&
+       call NOCIMatrices_mergeCoefficients(numberOfSpecies,auxCoefficients,this%HFCoefficients(sysI,:),&
             auxMolecularSystem,this%molecularSystems(sysI),this%mergedMolecularSystem,&
             auxBasisList,this%sysBasisList(sysI,:),this%mergedCoefficients(:))
        ! do speciesID=1, numberOfSpecies
