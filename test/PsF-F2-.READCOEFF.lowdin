@@ -1,0 +1,41 @@
+GEOMETRY
+E-(F) AUG-CC-PVDZ 0.0 0.0 -0.95 addParticles=2 multiplicity=2
+E-(F) AUG-CC-PVDZ 0.0 0.0 0.95
+E-(F) AUG-CC-PVDZ 0.0 2.9 0.0
+F dirac 0.0 0.0 -0.95
+F dirac 0.0 0.0 0.95
+F dirac 0.0 2.9 0.0
+E+ PSX-DZ 0.0 0.0 -0.95
+E+ PSX-DZ 0.0 0.0 0.95
+E+ PSX-DZ 0.0 2.9 0.0 addParticles=-2
+END GEOMETRY
+
+TASKS
+method = "UHF"
+END TASKS
+
+CONTROL
+readCoefficients=.T.
+END CONTROL
+
+! Generated coefficients PsF-F2-.READCOEFF.plainvec with 
+! GEOMETRY
+! E-(F) AUG-CC-PVDZ 0.0 0.0 -0.95 addParticles=2 multiplicity=2
+! E-(F) AUG-CC-PVDZ 0.0 0.0 0.95
+! E-(F) AUG-CC-PVDZ 0.0 3.1 0.0
+! F dirac 0.0 0.0 -0.95
+! F dirac 0.0 0.0 0.95
+! F dirac 0.0 3.1 0.0
+! E+ PSX-DZ 0.0 0.0 -0.95
+! E+ PSX-DZ 0.0 0.0 0.95
+! E+ PSX-DZ 0.0 3.1 0.0 addParticles=-2
+! END GEOMETRY
+
+! TASKS
+! method = "UHF"
+! END TASKS
+
+! CONTROL
+! readCoefficients=.F.
+! writeCoefficientsInBinary=.F.
+! END CONTROL

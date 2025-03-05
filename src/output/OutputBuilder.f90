@@ -2091,9 +2091,9 @@ contains
              do i=0,numberOfSteps
                 n=n+1
                 if(abs(val%values(n))>1.0E-99_8) then
-                   write (10,"(T10,F20.8,E20.8)") initialValue1+i*Vector_norm(this%step1), val%values(n) 
+                   write (10,"(T10,E20.8,E20.8)") initialValue1+i*Vector_norm(this%step1), val%values(n) 
                 else
-                   write (10,"(T10,F20.8,E20.8)") initialValue1+i*Vector_norm(this%step1), 0.0
+                   write (10,"(T10,E20.8,E20.8)") initialValue1+i*Vector_norm(this%step1), 0.0
                 end if
              end do
              if( this%type=="DENSITYPLOT") title=trim(nameOfSpecies)//" state "//trim(String_convertIntegerToString(state))//" density" 

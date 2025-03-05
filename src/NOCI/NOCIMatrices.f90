@@ -126,8 +126,6 @@ contains
     print *, "ncores", ncores, "batchsize", batchSize
 
     allocate(mergedMolecularSystem(batchSize),&
-         mergedCoefficients(nspecies),&
-         inverseOverlapMatrices(nspecies),&
          Libint2ParallelInstance(nspecies,batchSize),&
          sysIbatch(batchSize),&
          sysIIbatch(batchSize),&
@@ -198,6 +196,8 @@ contains
        !$omp parallel & 
        !$omp& private(mySysI,mySysII,mergedCoefficients,inverseOverlapMatrices),&
        !$omp& shared(this,sysI,sysII,matrixUnit,prescreenedElements,overlapScreenedElements,sysIbasisList,sysIIbasisList,mergedMolecularSystem,Libint2ParallelInstance,nspecies,batchSize)
+       if(allocated(mergedCoefficients)) deallocate(mergedCoefficients,inverseOverlapMatrices)
+       allocate(mergedCoefficients(nspecies),inverseOverlapMatrices(nspecies))
        !$omp do schedule(dynamic,10)
        procs: do me=1, batchSize
           mySysI=sysIbatch(me)
@@ -206,10 +206,12 @@ contains
           
           ! print *, "evaluating S and H elements for", mySysI, mySysII
 
-          !! Merge occupied coefficients into a single matrix 
-          call NOCIMatrices_mergeCoefficients(this%HFCoefficients(mySysI,:),this%HFCoefficients(mySysII,:),&
+          !! Merge occupied coefficients into a single matrix
+          print *, "mySysI, mySysII, me", mySysI, mySysII, me
+                    
+          call NOCIMatrices_mergeCoefficients(nspecies,this%HFCoefficients(mySysI,1:nspecies),this%HFCoefficients(mySysII,1:nspecies),&
                this%molecularSystems(mySysI),this%molecularSystems(mySysII),mergedMolecularSystem(me),&
-               sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me),mergedCoefficients)
+               sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me),mergedCoefficients(1:nspecies))
           !$  timeA = omp_get_wtime()
 
           call NOCIMatrices_computeOverlapAndHCoreElements(this,mySysI,mySysII,mergedMolecularSystem(me),mergedCoefficients,&
@@ -264,7 +266,7 @@ contains
                 !      (this%configurationCorrelationEnergies%values(mySysI)+&
                 !      this%configurationCorrelationEnergies%values(mySysII))
                 !    !DFT energy correction for off diagonal elements
-                !    call NOCIMatrices_getOffDiagonalDensityMatrix(this,mySysI,mySysII,mergedCoefficients,mergedMolecularSystem(me),this%configurationOverlapMatrix%values(mySysI,mySysII),&
+                !    call NOCIMatrices_getOffDiagonalDensityMatrix(this,mySysI,mySysII,mergedMolecularSystem(me),mergedCoefficients,this%configurationOverlapMatrix%values(mySysI,mySysII),&
                 !         inverseOverlapMatrices,sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me))
              end if
 
@@ -413,8 +415,6 @@ contains
     print *, ""
 
     deallocate(mergedMolecularSystem,&
-         mergedCoefficients,&
-         inverseOverlapMatrices,&
          Libint2ParallelInstance,&
          sysIbatch,&
          sysIIbatch,&
@@ -486,30 +486,20 @@ contains
   !! @param occupationI and occupationII: Number of orbitals to merge from each matrix. 
   !! sysBasisList: array indicating which basis functions of the merged molecular system belong to sysI and sysII Merged Coefficients: Matrices for output.
   !<
-  subroutine NOCIMatrices_mergeCoefficients(coefficientsI,coefficientsII,molecularSystemI,molecularSystemII,mergedMolecularSystem,&
+  subroutine NOCIMatrices_mergeCoefficients(nspecies,coefficientsI,coefficientsII,molecularSystemI,molecularSystemII,mergedMolecularSystem,&
        sysIbasisList,sysIIbasisList,mergedCoefficients)
-    type(Matrix), intent(in) :: coefficientsI(*), coefficientsII(*)
+    integer :: nspecies
+    type(Matrix), intent(in) :: coefficientsI(1:nspecies), coefficientsII(1:nspecies)
     type(MolecularSystem), intent(in) :: molecularSystemI, molecularSystemII, mergedMolecularSystem
-    type(IVector), intent(in) :: sysIbasisList(*), sysIIbasisList(*)
-    type(Matrix), intent(out) :: mergedCoefficients(*)
+    type(IVector), intent(in) :: sysIbasisList(1:nspecies), sysIIbasisList(1:nspecies)
+    type(Matrix), intent(out) :: mergedCoefficients(1:nspecies)
     
-    ! character(100) :: wfnFile
-    ! character(50) :: arguments(2)
-    ! integer :: wfnUnit
     integer :: speciesID, i, j, mu
     
     !! Mix coefficients of occupied orbitals of both systems    
-    !!Create a dummy density matrix to lowdin.wfn file
-    ! wfnUnit = 500
-    ! wfnFile = "lowdin.wfn"
-    ! open(unit=wfnUnit, file=trim(wfnFile), status="replace", form="unformatted")
     do speciesID = 1, mergedMolecularSystem%numberOfQuantumSpecies
        
-       ! arguments(2) = mergedMolecularSystem%species(speciesID)%name
-
-       ! arguments(1) = "COEFFICIENTS"
-
-       !    !Max: to make the matrix square for the integral calculations for configuration pairs, and rectangular for the merged coefficients of all systems 
+       !Max: to make the matrix square for the integral calculations for configuration pairs, and rectangular for the merged coefficients of all systems 
        call Matrix_constructor(mergedCoefficients(speciesID), int(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem),8), &
             int(max(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem),MolecularSystem_getOcupationNumber(speciesID,mergedMolecularSystem)),8), 0.0_8 )
 
@@ -538,28 +528,8 @@ contains
                 ! print *, "sys II", mu, j, mergedCoefficients(speciesID)%values(mu,j)
              end do
           end if
-       end do       
-              
-       ! print *, "Merged coefficients matrix for ", speciesID
-       ! call Matrix_show(mergedCoefficients(speciesID))
-
-       ! call Matrix_writeToFile(mergedCoefficients(speciesID), unit=wfnUnit, binary=.true., arguments = arguments      
-       ! call Matrix_writeToFile(auxMatrix, unit=wfnUnit, binary=.true., arguments = arguments )
-
-       ! arguments(1) = "ORBITALS"
-       ! call Vector_constructor(auxVector, MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem), 0.0_8 )
-
-       ! call Vector_writeToFile(auxVector, unit=wfnUnit, binary=.true., arguments = arguments )
-
-       ! Only occupied orbitals are going to be transformed - handled in integral transformation program
-       ! print *, "removed", MolecularSystem_getTotalNumberOfContractions(speciesID)-MolecularSystem_getOcupationNumber(speciesID)
-       ! arguments(1) = "REMOVED-ORBITALS"
-       ! call Vector_writeToFile(unit=wfnUnit, binary=.true., &
-       !      value=real(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)-MolecularSystem_getOcupationNumber(speciesID,mergedMolecularSystem),8),&
-       !      arguments= arguments )
-
+       end do                    
     end do
-    ! close(wfnUnit)
     
   end subroutine NOCIMatrices_mergeCoefficients
 
@@ -568,14 +538,14 @@ contains
   !! @param occupationI and occupationII: Number of orbitals to merge from each matrix. 
   !! sysBasisList: array indicating which basis functions of the merged molecular system belong to sysI and sysII Merged Coefficients: Matrices for output.
   !<
-  subroutine NOCIMatrices_getOffDiagonalDensityMatrix(this,sysI,sysII,mergedCoefficients,mergedMolecularSystem,overlapElement,inverseOverlapMatrices,&
+  subroutine NOCIMatrices_getOffDiagonalDensityMatrix(this,sysI,sysII,mergedMolecularSystem,mergedCoefficients,overlapElement,inverseOverlapMatrices,&
        sysIbasisList,sysIIbasisList)
     type(NonOrthogonalCI), intent(inout) :: this
     integer, intent(in) :: sysI, sysII
-    type(Matrix), intent(in) :: mergedCoefficients(*), inverseOverlapMatrices(*)
     type(MolecularSystem), intent(in) :: mergedMolecularSystem
+    type(Matrix), intent(in) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies), inverseOverlapMatrices(mergedMolecularSystem%numberOfQuantumSpecies)
     real(8), intent(in) :: overlapElement
-    type(IVector), intent(in) :: sysIbasisList(*), sysIIbasisList(*)
+    type(IVector), intent(in) :: sysIbasisList(mergedMolecularSystem%numberOfQuantumSpecies), sysIIbasisList(mergedMolecularSystem%numberOfQuantumSpecies)
 
     type(Matrix), allocatable :: mergedDensityMatrix(:)
     type(Matrix), allocatable :: exchangeCorrelationMatrices(:)
@@ -807,8 +777,10 @@ contains
     type(NonOrthogonalCI) :: this
     type(MolecularSystem) :: mergedMolecularSystem
     integer :: sysI, sysII 
-    type(Matrix) :: mergedCoefficients(*), inverseOverlapMatrices(*) 
-    type(IVector) :: sysIbasisList(*), sysIIbasisList(*)
+    type(Matrix) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(Matrix) :: inverseOverlapMatrices(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(IVector) :: sysIbasisList(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(IVector) :: sysIIbasisList(mergedMolecularSystem%numberOfQuantumSpecies)
 
     integer :: speciesID
     integer :: a,b,bb,mu,nu    
@@ -1014,9 +986,9 @@ contains
     type(NonOrthogonalCI) :: this
     integer :: sysI, sysII 
     type(MolecularSystem) :: mergedMolecularSystem
-    type(Matrix) :: inverseOverlapMatrices(*) 
-    type(Matrix) :: mergedCoefficients(*) 
-    type(Libint2Interface) :: Libint2LocalInstance(*)
+    type(Matrix) :: inverseOverlapMatrices(mergedMolecularSystem%numberOfQuantumSpecies) 
+    type(Matrix) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies) 
+    type(Libint2Interface) :: Libint2LocalInstance(mergedMolecularSystem%numberOfQuantumSpecies)
    
     type(matrix), allocatable :: fourCenterIntegrals(:,:)
     type(imatrix), allocatable :: twoIndexArray(:),fourIndexArray(:)

@@ -549,6 +549,10 @@ contains
             (CONTROL_instance%ELECTRIC_FIELD(1)*this%electricField(1)%values + &
             CONTROL_instance%ELECTRIC_FIELD(2)*this%electricField(2)%values + &
             CONTROL_instance%ELECTRIC_FIELD(3)*this%electricField(3)%values )
+       this%externalPotentialMatrix%values = this%externalPotentialMatrix%values + auxcharge * &
+            (CONTROL_instance%ELECTRIC_FIELD(1)*this%electricField(1)%values + &
+            CONTROL_instance%ELECTRIC_FIELD(2)*this%electricField(2)%values + &
+            CONTROL_instance%ELECTRIC_FIELD(3)*this%electricField(3)%values )
     end if
 
 
@@ -556,9 +560,12 @@ contains
     auxOmega = MolecularSystem_getOmega(this%species,this%molSys)
 
     if ( auxOmega .ne. 0.0_8 ) then
-      this%HCoreMatrix%values = this%HCoreMatrix%values + &                                                  
-                                (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values      
-    end if                                                                                                        
+       CONTROL_instance%ARE_THERE_QDO_POTENTIALS=.true.
+       this%HCoreMatrix%values = this%HCoreMatrix%values + &                                                  
+            (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values
+       this%externalPotentialMatrix%values = this%externalPotentialMatrix%values + &
+            (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values
+    end if
 
 
     !! DEBUG
@@ -1882,7 +1889,7 @@ contains
   subroutine WaveFunction_obtainTotalEnergyForSpecies(this)
     implicit none
     type(WaveFunction) :: this
-
+    
     this%totalEnergyForSpecies = &
          sum(  transpose(this%densityMatrix%values) &
          *  (( this%hcoreMatrix%values ) &
@@ -1912,6 +1919,10 @@ contains
 
     if (  CONTROL_instance%DEBUG_SCFS) then
        print *,"Total energy for "// trim(this%name) //"= ", this%totalEnergyForSpecies
+       print *,"Core:            ", sum(transpose(this%densityMatrix%values)*this%hcoreMatrix%values )
+       print *,"Two particles:   ", sum(transpose(this%densityMatrix%values)*0.5_8 *this%twoParticlesMatrix%values )
+       print *,"Coupling:        ", sum(transpose(this%densityMatrix%values)*this%couplingMatrix%values )
+       print *,"DFT exch-corr:   ", sum(this%exchangeCorrelationEnergy(:))
     end if
 
   end subroutine WaveFunction_obtainTotalEnergyForSpecies

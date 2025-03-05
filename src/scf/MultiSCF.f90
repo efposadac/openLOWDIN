@@ -59,6 +59,7 @@ module MultiSCF_
      character(100) :: name
      integer :: numberOfIterations
      integer :: status
+     integer :: iterationToStartConvergence
      integer, allocatable :: singleMaxIterations(:)
      real(8), allocatable :: singleEnergyTolerance(:)
      real(8), allocatable :: singleDensityTolerance(:)
@@ -77,7 +78,6 @@ module MultiSCF_
 
      !!
      logical :: printSCFiterations
-
      !!
      type(Grid), allocatable :: DFTGrids(:), DFTGridsCommonPoints(:,:)
 
@@ -132,6 +132,7 @@ contains
     end select
 
     call List_constructor( this%energyOMNE,"ENERGY", CONTROL_instance%LISTS_SIZE)
+    this%iterationToStartConvergence = 0
     this%numberOfIterations = 0
     this%status = 0
 
@@ -328,7 +329,8 @@ contains
        call WaveFunction_obtainTotalEnergyForSpecies(wfObjects(i))
 
        !Save initial matrices for convergence comparisons
-       if(this%numberOfIterations .eq. 0 ) then
+       !iterationToStartConvergence is either 0 or 1
+       if(this%numberOfIterations .le. this%iterationToStartConvergence) then
           call Convergence_setInitialDensityMatrix(wfObjects(i)%convergenceMethod, &
                wfObjects(i)%densityMatrix )
           call Convergence_setInitialFockMatrix(wfObjects(i)%convergenceMethod, &
@@ -343,7 +345,8 @@ contains
          this%totalCouplingEnergy, &
          this%cosmo3Energy)
 
-    call List_push_back( this%energyOMNE, this%totalEnergy)             
+    call List_push_back( this%energyOMNE, this%totalEnergy)
+
     this%numberOfIterations = this%numberOfIterations + 1
 
 !!!Now we procede to update each species density matrices according to the iteration scheme selected
@@ -693,7 +696,8 @@ contains
           end do
        end if
        
-       if (abs(expectedOccupation/normCheck-1.0) .gt. 1.0E-3 ) then
+       if (abs(expectedOccupation/normCheck-1.0) .gt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+          this%iterationToStartConvergence=1
           ! wfObjects(speciesID)%densityMatrix%values=wfObjects(speciesID)%densityMatrix%values*expectedOccupation/normCheck
           if ( this%printSCFiterations ) &
                write(*,"(A65,F12.6)") "Warning!, density matrix with deviation from number of particles", expectedOccupation
@@ -708,6 +712,9 @@ contains
 
     end do
 
+    if(this%iterationToStartConvergence.gt.0) write(*,"(A77)") "The first energy in the SCF will not be a variational estimate"
+
+    
     !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
     if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
          (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
@@ -1251,7 +1258,9 @@ contains
     end if
 
 
-    if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+    if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL .or. &
+         sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 .or. &
+         CONTROL_instance%ARE_THERE_QDO_POTENTIALS ) then
 
        write(*,*) ""
        write(*,*) " External Potential energy: "
