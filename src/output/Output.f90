@@ -63,7 +63,7 @@ program Output_
      allocate(outputs_instance(1) )
 
      call OutputBuilder_constructor( outputs_instance(1), 1, &
-          "fchkFile", "ALL")
+          "FCHKFILE", "ALL")
 
      call OutputBuilder_buildOutput(outputs_instance(1))
      call OutputBuilder_show(outputs_instance(1))

@@ -1,0 +1,31 @@
+SYSTEM_DESCRIPTION='C2OPs-TZ.geom'
+GEOMETRY
+e-[O] AUG-CC-PVDZ 0.0 0.0 1.5 addParticles=1 fragmentNumber=1 multiplicity=2
+e-[S] AUG-CC-PVDZ 0.0 0.0 0.0
+E+ PSX-DZ 0.0 0.0 1.5 fragmentNumber=1
+E+ PSX-DZ 0.0 0.0 0.0 addParticles=-1 
+O dirac  0.0 0.0 1.5
+S dirac  0.0 0.0 0.0
+END GEOMETRY
+
+TASKS
+propagatorTheoryCorrection = 2
+mollerPlessetCorrection = 2
+subsystemEmbedding=.T.
+method = "UHF"
+END TASKS
+
+CONTROL
+subsystemBasisThreshold=0.01
+subsystemOrbitalThreshold=0.2
+erkaleLocalizationMethod="IAO"
+readCoefficients=.F.
+localizeOrbitals=.T.
+totalEnergyTolerance=1E-10
+scfGlobalMaxIterations=1000
+integralsTransformationMethod = "C"
+ionizeMO=1
+ionizeSpecies = "POSITRON"
+ptJustOneOrbital=T
+mpFrozenCoreBoundary=1
+END CONTROL

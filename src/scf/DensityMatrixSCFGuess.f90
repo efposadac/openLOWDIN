@@ -78,7 +78,6 @@ contains
     arguments(2) = nameOfSpecies
     arguments(1) = "COEFFICIENTS"
 
-    call Matrix_constructor(densityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8  )
     call Matrix_constructor(orbitals, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
 
     readSuccess=.false.
@@ -160,6 +159,7 @@ contains
        end do
     end if
     
+    call Matrix_constructor(densityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8  )
     do i = 1 , orderOfMatrix
        do j = 1 , orderOfMatrix
           do k = 1 , occupationNumber

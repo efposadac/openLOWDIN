@@ -171,7 +171,7 @@ contains
     call MolecularSystem_showParticlesInformation(superMergedMolecularSystem)
     call MolecularSystem_showCartesianMatrix(superMergedMolecularSystem)
 
-    call NOCIMatrices_mergeCoefficients(this%mergedCoefficients(:),auxCoefficients(:),&
+    call NOCIMatrices_mergeCoefficients(numberOfSpecies,this%mergedCoefficients(:),auxCoefficients(:),&
          this%mergedMolecularSystem,MolecularSystem_instance,superMergedMolecularSystem,&
          orbListI(:),orbListII(:),superMergedCoefficients(:))
 

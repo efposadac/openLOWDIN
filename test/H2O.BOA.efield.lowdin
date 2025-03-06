@@ -13,6 +13,7 @@ END TASKS
 
 CONTROL
 	electricField = 0.00 0.00 0.001
+	totalEnergyTolerance = 1E-12
 !	multipoleOrder = 1
 END CONTROL
 

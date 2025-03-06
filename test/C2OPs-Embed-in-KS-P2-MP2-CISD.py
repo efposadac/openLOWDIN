@@ -16,10 +16,11 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-1.330593658435,1E-8],
-"CI 1" : [-1.472333332766,1E-8],
-"HF dipole" : [0.35846814,1E-7],
-"CI dipole" : [0.27622697,1E-4],
+"HF energy" : [-153.536301213424,1E-6],
+"Embedded HF energy" : [-153.118946505217,1E-6],
+"Embedded CISD" : [-153.310526831872,1E-6],
+"Embedded MP2" : [-153.352174869549,1E-6],
+"Embedded P2 H_1" : [-5.328000,1E-3]
 }                       
 
 testValues = dict(refValues) #copy 
@@ -36,30 +37,25 @@ if status:
 
 output = open(outputName, "r")
 outputRead = output.readlines()
-HF_prop = True 
 
 # Values
+flag=1
 for i in range(0,len(outputRead)):
     line = outputRead[i]
-    if "TOTAL ENERGY =" in line:
+    if "TOTAL ENERGY =" in line and flag==1:
         testValues["HF energy"] = float(line.split()[3])
+        flag=2
+        continue
+    if "TOTAL ENERGY =" in line and flag==2:
+        testValues["Embedded HF energy"] = float(line.split()[3])
+        flag=3
+        continue
     if "STATE:   1 ENERGY =" in line:
-        testValues["CI 1"] = float(line.split()[4])
-
-    if "DIPOLE: (A.U.)" in line and HF_prop:
-        for j in range (i,len(outputRead)) :
-            linej = outputRead[j]
-            if "Total Dipole:"  in linej:
-                testValues["HF dipole"] = float(linej.split()[5])
-                HF_prop = False
-                break
-
-    if "DIPOLE: (A.U.)" in line and not HF_prop:
-        for j in range (i,len(outputRead)) :
-            linej = outputRead[j]
-            if "Total Dipole:"  in linej:
-                testValues["CI dipole"] = float(linej.split()[5])
-                break
+        testValues["Embedded CISD"] = float(line.split()[4])
+    if "E(MP2) =" in line:
+        testValues["Embedded MP2"] = float(line.split()[2])
+    if "Optimized second order pole:" in line:
+        testValues["Embedded P2 H_1"] = float(line.split()[4])
 
 passTest = True
 

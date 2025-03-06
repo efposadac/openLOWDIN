@@ -208,6 +208,7 @@ contains
     auxY=0.0
     auxZ=0.0
     auxStep=0.0
+    auxReal=0.0
 
     if( present(offsetX)) auxX=offsetX
     if( present(offsetY)) auxY=offsetY
@@ -321,7 +322,7 @@ contains
     end if
 
     if(auxStep .gt. 0.0 .and. this%cubeSize .gt. 0.0) this%pointsPerDim(1:3)=int((this%cubeSize*2.0)/auxStep)
-    
+
     if( present(center) ) auxReal=sum(center*center)
     if(auxReal .gt. 0.0) this%point1%values=center
 
@@ -2090,9 +2091,9 @@ contains
              do i=0,numberOfSteps
                 n=n+1
                 if(abs(val%values(n))>1.0E-99_8) then
-                   write (10,"(T10,F20.8,E20.8)") initialValue1+i*Vector_norm(this%step1), val%values(n) 
+                   write (10,"(T10,E20.8,E20.8)") initialValue1+i*Vector_norm(this%step1), val%values(n) 
                 else
-                   write (10,"(T10,F20.8,E20.8)") initialValue1+i*Vector_norm(this%step1), 0.0
+                   write (10,"(T10,E20.8,E20.8)") initialValue1+i*Vector_norm(this%step1), 0.0
                 end if
              end do
              if( this%type=="DENSITYPLOT") title=trim(nameOfSpecies)//" state "//trim(String_convertIntegerToString(state))//" density" 

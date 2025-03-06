@@ -15,7 +15,7 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-    "Total mass" :                  [40383.2869, 5E-4],
+    "Total mass" :                  [4.0383E+04, 5E-4],
     "E- Kinetic energy" :           [36.558549208752,1E-6],
     "MUON Kinetic energy" :           [4.823223401186,1E-6],
     "C_12 Kinetic energy" :           [0.020362665915,1E-6],

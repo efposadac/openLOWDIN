@@ -1,0 +1,20 @@
+SYSTEM_DESCRIPTION='Molecula de H2O'
+GEOMETRY
+	e-[O]   6-31G     0.000000      0.000000     -0.066575
+	e-[H]   6-31G     0.000000      0.754175      0.528381
+	e-[H]   6-31G     0.000000     -0.754174      0.528382
+	O        dirac     0.000000      0.000000     -0.066575
+	H_1	Nakai-3-sp     0.000000      0.754175      0.528381	
+	H_1   Nakai-3-sp     0.000000     -0.754174      0.528382  
+END GEOMETRY
+TASKS
+	method = "RHF"
+END TASKS
+CONTROL
+	readCoefficients=F
+	iterationScheme=1
+	totalEnergyTolerance=1E-10
+	scfElectronicMaxIterations=15
+	scfGlobalMaxIterations=10000
+	integralStorage="MEMORY"
+END CONTROL

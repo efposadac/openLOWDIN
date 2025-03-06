@@ -16,8 +16,8 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-76.062503916951,1E-8],
-"HF dipole" : [0.76847102,1E-7],
+"HF energy" : [-76.062503916950,1E-8],
+"HF dipole" : [0.76847087,1E-7],
 }                       
 
 testValues = dict(refValues) #copy 

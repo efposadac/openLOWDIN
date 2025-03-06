@@ -21,6 +21,12 @@ then
     export LOWDIN_DATA
 fi
 
+if [ -z "$ERKALE_LIBRARY" ]
+then
+    ERKALE_LIBRARY="$LOWDIN_DATA/erkaleBasis"
+    export ERKALE_LIBRARY
+fi
+
 if [ -z "$PATH" ]
 then
     PATH="$LOWDIN_HOME/bin:$LOWDIN_HOME/utils:"

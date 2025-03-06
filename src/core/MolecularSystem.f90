@@ -344,7 +344,7 @@ contains
     print *,""
     write (6,"(T5,A16,A)")     "DESCRIPTION   : ", trim( system%description )
     write (6,"(T5,A16,I3)")    "CHARGE        : ",system%charge
-    write (6,"(T5,A16,F12.4)") "MASS (m_e)    : ", MolecularSystem_getTotalMass(system)
+    write (6,"(T5,A16,ES10.4)") "MASS (m_e)    : ", MolecularSystem_getTotalMass(system)
     write (6,"(T5,A16,A4)")    "PUNTUAL GROUP : ", "NONE"
     print *,""
     
@@ -821,9 +821,8 @@ contains
           do j = 1, size(MolecularSystem_instance%species(i)%particles)
 
              read(40,*) MolecularSystem_instance%species(i)%particles(j)%nickname
-
              MolecularSystem_instance%numberOfQuantumParticles = MolecularSystem_instance%numberOfQuantumParticles + 1
-             call BasisSet_load(MolecularSystem_instance%species(i)%particles(j)%basis, filename, unit = 40)
+             call BasisSet_load(MolecularSystem_instance%species(i)%particles(j)%basis, "LOWDIN.BAS", "SUBS. A REDUCED", MolecularSystem_instance%species(i)%name, unit = 40)
 
           end do
 
@@ -2018,13 +2017,13 @@ contains
 
     open(unit=fchkUnit, file=filename, status="old", form="formatted", access='sequential', action='read')
 
-    print *, ""
-    print *, "reading FCHK orbitals from ", fileName
+    ! print *, ""
+    ! print *, "reading FCHK orbitals from ", fileName
     !The first two lines don't matter
     read(fchkUnit,"(A100)",iostat=io) info
-    print *, info
+    ! print *, info
     read(fchkUnit,"(A100)",iostat=io) info
-    print *, info
+    ! print *, info
 
     !Read line by line, the first 40 characters determine what's being read
     do 
@@ -2772,9 +2771,9 @@ contains
     
     output = 0.0_8
 
-    do i=1, size( molecularSystem_instance%allParticles)
-       output = output + molecularSystem_instance%allParticles(i)%particlePtr%mass *  &
-            molecularSystem_instance%allParticles(i)%particlePtr%internalSize
+    do i=1, size( system%allParticles)
+       output = output + system%allParticles(i)%particlePtr%mass *  &
+            system%allParticles(i)%particlePtr%internalSize
     end do
 
     if ( present(unid) ) then
