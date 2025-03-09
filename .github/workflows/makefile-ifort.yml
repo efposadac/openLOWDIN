@@ -69,6 +69,7 @@ jobs:
         # make distclean
         # cd ..
         # Get libxc
+        cd $WORKDIR 
         wget 'https://www.dropbox.com/scl/fi/wdxgk1n3gh6qn0vsjjyky/libxc-master-ifort-MAR2025.tgz?rlkey=aj62ovsg3v7n4pjy4ufyx4bxe&st=jfbkdtai&dl=0'
         mv 'libxc-master-ifort-MAR2025.tgz?rlkey=aj62ovsg3v7n4pjy4ufyx4bxe&st=jfbkdtai&dl=0' libxc-master-ifort-MAR2025.tgz
         tar xzvf libxc-master-ifort-MAR2025.tgz
