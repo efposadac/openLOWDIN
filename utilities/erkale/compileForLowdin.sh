@@ -24,13 +24,18 @@ nprocs=5
 # Archiver
 export AR="ar"
 
-if [ "$FC" = "ifort" ]  ; then
+if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     # C compiler
     export CC="icc"
     # C++ compiler
     export CXX="icpc"
     # Fortran compiler
-    export F77="ifort"
+    export F77="$FC"
+    # C++ flags to use
+    export CFLAGS="-g -O2 -D intel"
+    ## OpenBLAS
+    LAPACKOMP="-lopenblaso -lquadmath"
+    LAPACKSER="-lopenblas -lquadmath"
 else
     # C compiler
     export CC="gcc"
@@ -38,6 +43,11 @@ else
     export CXX="g++"
     # Fortran compiler
     export F77="gfortran"
+    # C++ flags to use
+    export CFLAGS="-Wall -g -O2 -fPIC "
+    # MKL (with Intel compiler)
+    LAPACKOMP="-mkl=parallel"
+    LAPACKSER="-mkl=sequential"
 fi
 export FC="${F77}"
 # C preprosessor
@@ -47,8 +57,6 @@ export FCCPP="${FC} -E"
 
 # C flags to use. For older compilers you may need to specify the architecture
 # by hand.
-export CFLAGS="-Wall -g -O2 -fPIC "
-# C++ flags to use
 export CXXFLAGS="${CFLAGS}"
 # Fortran flags to use
 export FFLAGS="${CFLAGS}"
@@ -61,14 +69,6 @@ OMPLIBS="-fopenmp"
 FRECURSIVE="-frecursive"
 
 ### System LAPACK (+ BLAS) library to use.
-
-## OpenBLAS
-LAPACKOMP="-lopenblaso -lquadmath"
-LAPACKSER="-lopenblas -lquadmath"
-
-# MKL (with Intel compiler)
-#LAPACKOMP="-mkl=parallel"
-#LAPACKSER="-mkl=sequential"
 
 ## ATLAS, newer versions of Fedora / RHEL
 #LAPACKOMP="-L/usr/lib64/atlas -lsatlas"
