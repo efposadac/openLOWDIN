@@ -122,7 +122,7 @@ contains
        overlapIntegral=0
 
        do sysI=1,this%numberOfDisplacedSystems
-          signs%values(sysI)=sign(1.0,this%configurationOverlapMatrix%values(1,sysI))
+          signs%values(sysI)=sign(1.0_8,this%configurationOverlapMatrix%values(1,sysI))
           overlapIntegral=overlapIntegral+signs%values(sysI)*this%configurationOverlapMatrix%values(1,sysI)*weights%values(sysI,state)
        end do
 

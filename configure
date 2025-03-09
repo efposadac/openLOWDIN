@@ -18,7 +18,7 @@ usage(){
     echo "   $ ./configure [-f compiler] [-o options] [-p path/to/install] [-s path/to/scratch] [-l lapack libs] [-d] [-h] "
     echo ""
     echo "   -f"
-    echo "      gfortran/ifort"
+    echo "      gfortran/ifort/ifx"
     echo "   -o"
     echo "      Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level"   
     echo "   -p"
@@ -126,7 +126,7 @@ fi
 #                        OPTIONS FOR FORTRAN COMPILER
 ###############################################################################
 if [[ $DEFAULTS == 'F' ]]; then
-    echo "Fortran Compiler command? gfortran(default) or ifort [$FC]"
+    echo "Fortran Compiler command? gfortran(default) or ifort/ifx [$FC]"
     read FCOMP
 fi
 if [ "$FCOMP" = "" ] ; then
@@ -134,7 +134,7 @@ if [ "$FCOMP" = "" ] ; then
 fi
 
 FC=$FCOMP
-if [ "$FC" = "ifort" ]  ; then
+if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     CXX="icpc"
     CC="icc"
     CU="nvcc -arch=sm_20"
@@ -173,7 +173,7 @@ fi
 
 if [ "$FLAGS" = "1" ] ; then
     
-    if [ "$FC" = "ifort" ] ; then
+    if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
     else
     	FCFLAGS="-ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz  -fno-range-check -g -D gfortran $addflagsCuda"
@@ -181,7 +181,7 @@ if [ "$FLAGS" = "1" ] ; then
 fi
 
 if [ "$FLAGS" = "2" ] ; then
-    if [ "$FC" = "ifort" ] ; then
+    if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
     else
     	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -Wunused -g -D gfortran $addflagsCuda"
@@ -189,7 +189,7 @@ if [ "$FLAGS" = "2" ] ; then
 fi
 
 if [ "$FLAGS" = "3" ] ; then
-    if [ "$FC" = "ifort" ] ; then	
+    if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -qopenmp -traceback -g -debug extended  $addflagsCuda"
     else
     	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
@@ -198,7 +198,7 @@ if [ "$FLAGS" = "3" ] ; then
 fi
 
 if [ "$FLAGS" = "4" ] ; then
-    if [ "$FC" = "ifort" ] ; then
+    if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
     else
     	FCFLAGS="-O2 -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -ffree-line-length-0 -ffpe-trap=zero,overflow,underflow -finit-real=nan -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fallow-invalid-boz -fbacktrace -fcheck=all -g -D gfortran $addflagsCuda"
@@ -206,7 +206,7 @@ if [ "$FLAGS" = "4" ] ; then
 fi
 
 if [ "$FLAGS" = "5" ] ; then
-    if [ "$FC" = "ifort" ] ; then
+    if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
     else
     	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
@@ -217,7 +217,7 @@ fi
 #                   LIBRARIES CONFIGURATION
 ###############################################################################
 
-if [ "$FC" = "ifort" ] ; then
+if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     LAPACK_LIBS="-qmkl"
 else
     LAPACK_LIBS="-lblas -llapack"
@@ -229,7 +229,7 @@ else
     CUDA_LIBS=""
 fi
     
-if [ "$FC" = "ifort" ] ; then
+if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     STDCPP_LIBS="-lstdc++ "
 else
     STDCPP_LIBS="-lstdc++"
