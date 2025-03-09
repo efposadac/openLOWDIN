@@ -134,9 +134,15 @@ if [ "$FCOMP" = "" ] ; then
 fi
 
 FC=$FCOMP
-if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
+if [ "$FC" = "ifort" ] ; then
     CXX="icpc"
     CC="icc"
+    CU="nvcc -arch=sm_20"
+    CFLAGS="-g -O2 -D intel "
+    CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "
+else if [ "$FC" = "ifx" ] ; then
+    CXX="icpx"
+    CC="icx"
     CU="nvcc -arch=sm_20"
     CFLAGS="-g -O2 -D intel "
     CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "

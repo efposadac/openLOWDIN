@@ -24,11 +24,19 @@ nprocs=5
 # Archiver
 export AR="ar"
 
-if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
+if [ "$FC" = "ifort" ] ; then
     # C compiler
     export CC="icc"
     # C++ compiler
     export CXX="icpc"
+else if [ "$FC" = "ifx" ] ; then
+    # C compiler
+    export CC="icx"
+    # C++ compiler
+    export CXX="icpx"
+else
+
+if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     # Fortran compiler
     export F77="$FC"
     # C++ flags to use
