@@ -81,6 +81,7 @@ program SCF
   !!**************************************************************************************************************************
   !! Calculate two-particle integrals (not building 2 particles and coupling matrix... those matrices updated at each SCF cycle)
   !!
+  allocate(Libint2Instance(MolecularSystem_instance%numberOfQuantumSpecies))
   if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) then
      !! Save matrices to lowdin.wfn file required by ints program
      wfnUnit = 300
@@ -99,7 +100,6 @@ program SCF
         call system(" lowdin-ints.x TWO_PARTICLE_R12")
      end if
   else if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
-     allocate(Libint2Instance(MolecularSystem_instance%numberOfQuantumSpecies))
      call DirectIntegralManager_constructor(Libint2Instance,MolecularSystem_instance)
      do speciesID=1, MolecularSystem_instance%numberOfQuantumSpecies
         call DirectIntegralManager_getDirectIntraRepulsionIntegralsAll(&

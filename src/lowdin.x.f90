@@ -33,6 +33,7 @@ program lowdin_
  implicit none
 
  character(50) :: strAuxNumber
+ integer :: statusSystem
  
  !! Time Control
  call Stopwatch_constructor( lowdin_stopwatch )
@@ -182,8 +183,8 @@ program lowdin_
 
   if ( CONTROL_instance%IS_THERE_OUTPUT ) then
     write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
-    call system("lowdin-output.x" //trim(strAuxNumber))
-    ! statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
+    ! call system("lowdin-output.x" //trim(strAuxNumber))
+    statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
   end if
 
 

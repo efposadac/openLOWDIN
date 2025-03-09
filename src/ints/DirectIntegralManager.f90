@@ -253,6 +253,8 @@ contains
 
     ! Initialize libint objects
     if( present(Libint2Local)) then
+       if (.not. Libint2Local(speciesID)%isInstanced) call Libint2Interface_constructor(Libint2Local(speciesID), molSys, speciesID)
+       if (.not. Libint2Local(otherSpeciesID)%isInstanced) call Libint2Interface_constructor(Libint2Local(otherSpeciesID), molSys, otherSpeciesID)
        call Libint2Interface_computeG12Interspecies_direct(speciesID, otherSpeciesID, density, couplingMatrix, molSys, Libint2Local(speciesID), Libint2Local(otherSpeciesID))
     else
        if (.not. allocated(Libint2Instance)) allocate(Libint2Instance(size(molSys%species)))

@@ -15,8 +15,12 @@
 
 usage(){
     echo "Usage:"
-    echo "   $ ./configure [-p path/to/install] [-s path/to/scratch] [-l lapack libs] [-d] [-h] "
+    echo "   $ ./configure [-f compiler] [-o options] [-p path/to/install] [-s path/to/scratch] [-l lapack libs] [-d] [-h] "
     echo ""
+    echo "   -f"
+    echo "      gfortran/ifort"
+    echo "   -o"
+    echo "      Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level"   
     echo "   -p"
     echo "      Path to install LOWDIN"
     echo "   -s"
@@ -28,7 +32,7 @@ usage(){
     echo "   -h"
     echo "      Print this message"
     echo ""
-    echo "Example: ./configure -p /usr/local -s /tmp -l \"-llapack -lblas -latlas\""
+    echo "Example: ./configure -f gfortran -o 1 -p /usr/local -s /tmp -l \"-llapack -lblas -latlas\""
     echo ""
 }
 
@@ -43,17 +47,6 @@ PREFIX="/usr/local"
 SCRATCH='/scratch'
 CUDAFLAGS="no"
 COMP_ERKALE="yes"
-CXX="g++"
-CC="gcc"
-CFLAGS="-g -O2 -fopenmp -D gfortran"
-CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11 "
-FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fallow-invalid-boz -fbacktrace -g -D gfortran"
-GSL_LIBS="-lgsl -lgslcblas"
-LAPACK_LIBS="-lblas -llapack"
-STDCPP_LIBS="-lstdc++"
-LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
-LIBXC_LIBS="-lxcf03 -lxc"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
 DEFAULTS='F'
 SED=sed
 if [[ $(uname -s) == Darwin ]]; then
@@ -63,9 +56,17 @@ fi
 ############################################
 # Script options
 ############################################
-while getopts   "p:s:l:dh" OPTNAME
+while getopts   "f:o:p:s:l:dh" OPTNAME
 do
     case $OPTNAME in
+        f)
+            FC=$OPTARG
+            DEFAULTS='T'
+            ;;
+        o)
+	    FLAGS=$OPTARG
+            DEFAULTS='T'
+            ;;
         p)
             PREFIX=$OPTARG
             DEFAULTS='T'
@@ -90,8 +91,9 @@ do
 done
 
 if [[ $DEFAULTS == 'T' ]]; then
-    echo 'INFO: Using default configuration!'
+    echo 'INFO: Using default configuration for inline options!'
 else
+    echo 'INFO: Interactive configuration options'
     ###############################################################################
     #                            LOAD OLD CONFIG
     ###############################################################################
@@ -118,147 +120,149 @@ else
 
         # ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
     fi
-    
-    ###############################################################################
-    #                        OPTIONS FOR FORTRAN COMPILER
-    ###############################################################################
+fi
+	
+###############################################################################
+#                        OPTIONS FOR FORTRAN COMPILER
+###############################################################################
+if [[ $DEFAULTS == 'F' ]]; then
     echo "Fortran Compiler command? gfortran(default) or ifort [$FC]"
     read FCOMP
+fi
+if [ "$FCOMP" = "" ] ; then
+    FCOMP=$FC
+fi
 
-    if [ "$FCOMP" = "" ] ; then
-        FCOMP=$FC
-    fi
+FC=$FCOMP
+if [ "$FC" = "ifort" ]  ; then
+    CXX="icpc"
+    CC="icc"
+    CU="nvcc -arch=sm_20"
+    CFLAGS="-g -O2 -D intel "
+    CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "
+else
+    CXX=g++
+    CC=gcc
+    CU="nvcc -arch=sm_20"
+    CFLAGS="-g -O2 -fopenmp -D gfortran"
+    CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11"
+fi
 
-    FC=$FCOMP
-
-    if [ "$FC" = "ifort" ]  ; then
-        CXX="icpc"
-        CC="icc"
-        CU="nvcc -arch=sm_20"
-        CFLAGS="-g -O2 -D intel "
-        CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "
-    else
-        CXX=g++
-        CC=gcc
-        CU="nvcc -arch=sm_20"
-        CFLAGS="-g -O2 -fopenmp -D gfortran"
-        CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11"
-    fi
-
+if [[ $DEFAULTS == 'F' ]]; then
     echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level [$FLAGS]"
     read FFLAGS
+fi
+if [ "$FFLAGS" = "" ] ; then
+    FFLAGS=$FLAGS
+fi
+FLAGS=$FFLAGS
 
-    if [ "$FFLAGS" = "" ] ; then
-        FFLAGS=$FLAGS
-    fi
-
-    FLAGS=$FFLAGS
-
+if [[ $DEFAULTS == 'F' ]]; then
     echo "Speed up on GPUs? (you need to have already installed CUDA and Magma libraries): yes/no [$CUDAFLAGS]"
     read FCUDAFLAGS
+fi
+if [ "$FCUDAFLAGS" = "" ] ; then
+    FCUDAFLAGS=$CUDAFLAGS
+fi
+CUDAFLAGS=$FCUDAFLAGS
+addflagsCuda=""
 
-    if [ "$FCUDAFLAGS" = "" ] ; then
-        FCUDAFLAGS=$CUDAFLAGS
-    fi
-
-    CUDAFLAGS=$FCUDAFLAGS
-    addflagsCuda=""
-
-
-    if [ "$CUDAFLAGS" = "yes" ] ; then
+if [ "$CUDAFLAGS" = "yes" ] ; then
     addflagsCuda="-D CUDA"
-    fi
+fi
 
-    if [ "$FLAGS" = "1" ] ; then
-        
-        if [ "$FC" = "ifort" ] ; then
+if [ "$FLAGS" = "1" ] ; then
+    
+    if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
-        else
+    else
     	FCFLAGS="-ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz  -fno-range-check -g -D gfortran $addflagsCuda"
-        fi
     fi
+fi
 
-    if [ "$FLAGS" = "2" ] ; then
-        if [ "$FC" = "ifort" ] ; then
+if [ "$FLAGS" = "2" ] ; then
+    if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
-        else
+    else
     	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -Wunused -g -D gfortran $addflagsCuda"
-        fi
     fi
+fi
 
-    if [ "$FLAGS" = "3" ] ; then
-        if [ "$FC" = "ifort" ] ; then	
+if [ "$FLAGS" = "3" ] ; then
+    if [ "$FC" = "ifort" ] ; then	
     	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -qopenmp -traceback -g -debug extended  $addflagsCuda"
-        else
+    else
     	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
     	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
-        fi
     fi
-    if [ "$FLAGS" = "4" ] ; then
-        if [ "$FC" = "ifort" ] ; then
+fi
+
+if [ "$FLAGS" = "4" ] ; then
+    if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
-        else
+    else
     	FCFLAGS="-O2 -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -ffree-line-length-0 -ffpe-trap=zero,overflow,underflow -finit-real=nan -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fallow-invalid-boz -fbacktrace -fcheck=all -g -D gfortran $addflagsCuda"
-        fi
     fi
+fi
 
-    if [ "$FLAGS" = "5" ] ; then
-        if [ "$FC" = "ifort" ] ; then
+if [ "$FLAGS" = "5" ] ; then
+    if [ "$FC" = "ifort" ] ; then
     	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
-        else
+    else
     	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
-        fi
     fi
+fi
 
-    ###############################################################################
-    #                   LIBRARIES CONFIGURATION
-    ###############################################################################
+###############################################################################
+#                   LIBRARIES CONFIGURATION
+###############################################################################
 
-    if [ "$FC" = "ifort" ] ; then
-        LAPACK_LIBS="-mkl"
-    else
-        LAPACK_LIBS="-lblas -llapack"
-    fi
+if [ "$FC" = "ifort" ] ; then
+    LAPACK_LIBS="-qmkl"
+else
+    LAPACK_LIBS="-lblas -llapack"
+fi
 
-    if [ "$CUDAFLAGS" = "yes" ] ; then
-        CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcublas -lcudart"
-    else
-        CUDA_LIBS=""
-    fi
+if [ "$CUDAFLAGS" = "yes" ] ; then
+    CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcublas -lcudart"
+else
+    CUDA_LIBS=""
+fi
     
-    if [ "$FC" = "ifort" ] ; then
-        STDCPP_LIBS="-lstdc++ "
-    else
-        STDCPP_LIBS="-lstdc++"
-    fi
-    GSL_LIBS="-lgsl -lgslcblas"
-    LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
-    ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
+if [ "$FC" = "ifort" ] ; then
+    STDCPP_LIBS="-lstdc++ "
+else
+    STDCPP_LIBS="-lstdc++"
+fi
+GSL_LIBS="-lgsl -lgslcblas"
+LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
+LIBXC_LIBS="-lxcf03 -lxc"
+ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
 
-    ###############################################################################
-    #                       SPECIFIC INSTALLATION DIRECTORIES
-    ###############################################################################
+###############################################################################
+#                       SPECIFIC INSTALLATION DIRECTORIES
+###############################################################################
+if [[ $DEFAULTS == 'F' ]]; then
     echo "Installation directory? default=/usr/local [$PREFIX]"
     read BINDIR
-    
-    if [ "$BINDIR" = "" ] ; then
-        BINDIR=$PREFIX
-    fi
+fi
+if [ "$BINDIR" = "" ] ; then
+    BINDIR=$PREFIX
+fi
+PREFIX=$BINDIR
 
-    PREFIX=$BINDIR
-
-    ###############################################################################
-    #                       ADDITIONAL UTILITIES
-    ###############################################################################
+###############################################################################
+#                       ADDITIONAL UTILITIES
+###############################################################################
+if [[ $DEFAULTS == 'F' ]]; then
     echo "Compile erkale? (for orbital localization and embedding): yes(default)/no [$COMP_ERKALE]"
     read ERKALE
-
-    if [ "$ERKALE" != "no" ] ; then
-	COMP_ERKALE="yes"
-    fi
-	 
-    
 fi
+
+if [ "$ERKALE" != "no" ] ; then
+    COMP_ERKALE="yes"
+fi
+	 
 ###############################################################################
 #                       SAVING OPTIONS
 ###############################################################################
@@ -295,7 +299,7 @@ if [ "$COMP_ERKALE" = "yes" ] ; then
 	ls utilities/erkale/erkale/bin/*
     else
 	cd $TOPDIR/utilities/erkale
-	./compileForLowdin.sh
+	./compileForLowdin.sh $FC
 	cd $TOPDIR
     fi
 fi

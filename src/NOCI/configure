@@ -16,7 +16,8 @@ LDR=\$(FC)
 INC=-I\$(TOPDIR)src/core/
 INCI=-I\$(TOPDIR)src/integralsTransformation/
 INCII=-I\$(TOPDIR)src/ints/
-INCIII=-I\$(TOPDIR)src/scf/
+INCIII=-I\$(TOPDIR)src/DFT/
+INCIV=-I\$(TOPDIR)src/scf/
 LDPATH=\$(TOPDIR)lib/libtransform.a \$(TOPDIR)lib/libjadamilu.a \$(TOPDIR)lib/lowdincore.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o \$(TOPDIR)src/scf/Convergence.o \$(TOPDIR)src/scf/DensityMatrixSCFGuess.o \$(TOPDIR)src/scf/MultiSCF.o \$(TOPDIR)src/scf/OrbitalLocalizer.o \$(TOPDIR)src/scf/SingleSCF.o \$(TOPDIR)src/scf/StackMatrices.o \$(TOPDIR)src/scf/WaveFunction.o \$(TOPDIR)src/DFT/DensityFunctionalTheory.o \$(TOPDIR)src/DFT/Functional.o  \$(TOPDIR)src/DFT/Grid.o  \$(TOPDIR)src/DFT/GridManager.o  \$(TOPDIR)src/DFT/LibxcInterface.o \$(TOPDIR)lib/lowdincore.a
 
 FLAGS=\$(FCFLAGS)
@@ -67,6 +68,14 @@ do
         echo -e "$ifile \c" >> makefile
       fi
    done
+   for ifile in $INCIV
+   do
+      inciv=$(grep $ifile $file)
+      if [[ -n $inciv ]]
+      then
+        echo -e "$ifile \c" >> makefile
+      fi
+   done
 
   for mod in $(grep use\  $file | cut -d" " -f4 | cut -d"_" -f1)
    do
@@ -80,7 +89,7 @@ do
        fi
      done
    done
-  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(INCII) \$(INCIII) \$(FLAGS) ${file}\n" >> makefile
+  echo -e "\n\t\$(FC) -c \$(INC) \$(INCI) \$(INCII) \$(INCIII) \$(INCIV) \$(FLAGS) ${file}\n" >> makefile
 done
 #
 cat >> makefile << EOF

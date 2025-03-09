@@ -2,6 +2,18 @@
 # This is a script for downloading, compiling and
 # installing ERKALE with all of its prerequisite libraries and CMake.
 # 2020-03-16 Susi Lehtola
+# Modified for Lowdin compilation - use Erkale as an external program to localize orbitals
+# 2024-12 Felix Moncada
+
+#select Lowdin compiler (libint and libxc used)
+if [ -z $1 ]
+then
+    FC="gfortran"
+else
+    FC=$1
+fi
+
+echo "Felix: sending", $FC
 
 ERKALE_COMMIT=f85eb6ec99e25cc4e8e5e5bbef37cc4648dc6912
 ARMA_COMMIT=0a948017f0c7139f32a477a51c8a957d6106fdb0
@@ -11,14 +23,23 @@ nprocs=5
 
 # Archiver
 export AR="ar"
-# C compiler
-export CC="gcc"
-# C++ compiler
-export CXX="g++"
-# Fortran compiler
-export F77="gfortran"
-export FC="${F77}"
 
+if [ "$FC" = "ifort" ]  ; then
+    # C compiler
+    export CC="icc"
+    # C++ compiler
+    export CXX="icpc"
+    # Fortran compiler
+    export F77="ifort"
+else
+    # C compiler
+    export CC="gcc"
+    # C++ compiler
+    export CXX="g++"
+    # Fortran compiler
+    export F77="gfortran"
+fi
+export FC="${F77}"
 # C preprosessor
 export CPP="${CC} -E"
 # Fortran preprocessor
@@ -27,7 +48,6 @@ export FCCPP="${FC} -E"
 # C flags to use. For older compilers you may need to specify the architecture
 # by hand.
 export CFLAGS="-Wall -g -O2 -fPIC "
-
 # C++ flags to use
 export CXXFLAGS="${CFLAGS}"
 # Fortran flags to use

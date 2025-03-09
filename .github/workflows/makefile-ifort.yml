@@ -1,0 +1,95 @@
+name: Makefile-ifort-CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+  
+jobs:
+  build:
+    name: Compiles and Tests Lowdin
+    runs-on: ubuntu-latest
+    toolchain: {compiler: intel-classic, version: '2021.10'}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Compile and install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev 
+        # Define ENV Variables
+        export WORKDIR=$PWD/dependencies
+        export PATH=$PATH:$WORKDIR/bin
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
+        export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
+        export LIBRARY_PATH=$LIBRARY_PATH:$WORKDIR/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$WORKDIR/lib
+        # Create work directories
+        mkdir $WORKDIR
+        mkdir $WORKDIR/bin
+        mkdir $WORKDIR/lib
+        cd $WORKDIR
+
+	# Get libint
+	wget 'https://www.dropbox.com/scl/fi/26203zd6zmw2eb33ckuqk/libint-master-ifort-MAR2025.tgz?rlkey=qskf0l0so66d42h8925hwb0ot&st=wlnhlfd6&dl=0'
+	mv 'libint-master-ifort-MAR2025.tgz?rlkey=qskf0l0so66d42h8925hwb0ot&st=wlnhlfd6&dl=0' libint-master-ifort-MAR2025.tgz
+        tar xzvf libint-master-ifort-MAR2025.tgz
+        cd ..
+
+	# # Build libint2
+	# git clone https://github.com/evaleev/libint.git
+	# cd libint
+        # git checkout 668b10c4bdca5876984058742d4212675eb93f3f
+	# ./autogen.sh
+	# mkdir ../libint2
+	# cd ../libint2
+        # export CC=icc
+	# export CXX=icpc
+	# export CXXFLAGS="-std=c++11 -Wno-enum-compare -qopenmp"
+	# export CPPFLAGS='-I/usr/include/eigen3'
+	# ../libint/configure --prefix=$WORKDIR --with-max-am=4 --with-g12-max-am=4
+        # make -j 4
+        # make install
+	# cd ..
+        # # Build libint1
+        # cd libint
+        # git checkout v1
+        # aclocal -I lib/autoconf
+        # autoconf
+        # export CC=icc
+	# export CXX=icpc
+	# export CXXFLAGS="-std=c++11 -Wno-enum-compare -qopenmp"
+        # ./configure --prefix=$WORKDIR
+        # make -j 4
+        # make install
+        # make clean
+        # make distclean
+        # cd ..
+
+	# Get libxc
+	wget 'https://www.dropbox.com/scl/fi/wdxgk1n3gh6qn0vsjjyky/libxc-master-ifort-MAR2025.tgz?rlkey=aj62ovsg3v7n4pjy4ufyx4bxe&st=jfbkdtai&dl=0'
+	mv 'libxc-master-ifort-MAR2025.tgz?rlkey=aj62ovsg3v7n4pjy4ufyx4bxe&st=jfbkdtai&dl=0' libxc-master-ifort-MAR2025.tgz
+	tar xzvf libxc-master-ifort-MAR2025.tgz
+        cd ..
+	
+	# Build libxc
+        # git clone https://gitlab.com/libxc/libxc.git
+        # cd libxc
+        # git checkout 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
+        # autoreconf -i
+        # ./configure --enable-shared --prefix=$WORKDIR
+        # make -j 4
+        # make install
+        # cd ..
+
+	# Configure Lowdin
+        ./configure -f "ifort" -p $WORKDIR/bin -s /tmp
+        # Build Lowdin
+        make -j 4
+        # Install Lowdin
+        make install
+        # Run Tests
+        make test
+
+    

@@ -643,7 +643,7 @@ contains
     open(unit=40, file=filename, status="replace", form="formatted")
     
     !! Saving general information.
-    write(40,*) MolecularSystem_instance%name
+    write(40,'(A100)') MolecularSystem_instance%name
     write(40,'(A100)') MolecularSystem_instance%description    
     write(40,*) MolecularSystem_instance%charge
     

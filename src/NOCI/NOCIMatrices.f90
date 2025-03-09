@@ -207,8 +207,6 @@ contains
           ! print *, "evaluating S and H elements for", mySysI, mySysII
 
           !! Merge occupied coefficients into a single matrix
-          print *, "mySysI, mySysII, me", mySysI, mySysII, me
-                    
           call NOCIMatrices_mergeCoefficients(nspecies,this%HFCoefficients(mySysI,1:nspecies),this%HFCoefficients(mySysII,1:nspecies),&
                this%molecularSystems(mySysI),this%molecularSystems(mySysII),mergedMolecularSystem(me),&
                sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me),mergedCoefficients(1:nspecies))
