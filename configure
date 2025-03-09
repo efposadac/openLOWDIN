@@ -140,7 +140,7 @@ if [ "$FC" = "ifort" ] ; then
     CU="nvcc -arch=sm_20"
     CFLAGS="-g -O2 -D intel "
     CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "
-else if [ "$FC" = "ifx" ] ; then
+elif [ "$FC" = "ifx" ] ; then
     CXX="icpx"
     CC="icx"
     CU="nvcc -arch=sm_20"
