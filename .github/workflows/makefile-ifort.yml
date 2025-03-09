@@ -19,8 +19,8 @@ jobs:
         sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev gpg-agent 
   	wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
    	echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
-	sudo apt update
- 	sudo apt install intel-oneapi-mkl-devel intel-oneapi-compiler-dpcpp-cpp intel-oneapi-compiler-fortran
+	sudo apt -y update
+ 	sudo apt -y install intel-oneapi-mkl-devel intel-oneapi-compiler-dpcpp-cpp intel-oneapi-compiler-fortran
 	source /opt/intel/oneapi/setvars.sh 
  	# Define ENV Variables
         export WORKDIR=$PWD/dependencies
