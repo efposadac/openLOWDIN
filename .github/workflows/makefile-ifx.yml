@@ -83,14 +83,8 @@ jobs:
         # make -j 4
         # make install
         # cd ..
-<<<<<<< Updated upstream
         # Configure Lowdin
-        ./configure -f "ifort" -p $WORKDIR/bin -s /tmp
-=======
-
-	# Configure Lowdin
         ./configure -f "ifx" -p $WORKDIR/bin -s /tmp
->>>>>>> Stashed changes
         # Build Lowdin
         make -j 4
         # Install Lowdin
