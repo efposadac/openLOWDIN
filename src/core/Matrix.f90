@@ -162,6 +162,7 @@ module Matrix_
        Matrix_factorizeLU, &
        Matrix_trace, &
        Matrix_multiplication, &
+       Matrix_product_dgemm, &
        Matrix_product, &
        Matrix_plus, &
        Matrix_pow, &
@@ -1408,12 +1409,17 @@ contains
     integer, optional,intent(out) :: info
     type(Matrix) :: output
 
-
     integer :: matrixSize
     integer :: infoProcess
     real(8), allocatable :: workSpace(:)
     integer, allocatable :: pivotIndices(:)
+    logical :: printError
 
+    printError=.true.
+    if(present(printFormatFlags)) then
+       if(printFormatFlags/=WITHOUT_MESSAGES) printError=.false.
+    end if
+    
     !! Detemina variables y parametros requeridos para el calculo
     matrixSize = size( this%values, DIM=1 )
 
@@ -1439,12 +1445,8 @@ contains
          infoProcess )
 
     !! Determina la ocurrencia de errores
-    if(.not.present(printFormatFlags) .or. (present(printFormatFlags) .and. printFormatFlags/=WITHOUT_MESSAGES) ) then
-       if ( infoProcess /= 0 )  then
-
-          call Matrix_exception( WARNING, "Get Inverse Matrix failed", "Class object Matrix in the getInverse() function" )
-
-       end if
+    if ( infoProcess /= 0 .and. printError )  then
+       call Matrix_exception(WARNING, "Factorization failed", "Class object Matrix in the factorizeLU() function" )
     end if
 
     if (present(info)) info=infoProcess
@@ -2453,11 +2455,17 @@ contains
     integer :: methodTmp
     integer :: i
     integer :: j
-
+    logical :: printError
+    
+    printError=.true.
+    if(present(printFormatFlags)) then
+       if(printFormatFlags/=WITHOUT_MESSAGES) printError=.false.
+    end if
+    
     !! Determina variables y parametros requeridos para el calculo
     numberOfRows = size( this%values, DIM=1 )
     numberOfColumns = size( this%values, DIM=1 )
-
+    
     call Matrix_copyConstructor( output, this )
 
     if( .not. present( pivotIndices ) ) then
@@ -2505,14 +2513,8 @@ contains
     end if
 
     !! Determina la ocurrencia de errores
-    if(.not.present(printFormatFlags) .or. (present(printFormatFlags) .and. printFormatFlags/=WITHOUT_MESSAGES) ) then
-
-       if ( infoProcess /= 0 )  then
-
-          call Matrix_exception(WARNING, "Factorization failed", "Class object Matrix in the factorizeLU() function" )
-
-       end if
-
+    if ( infoProcess /= 0 .and. printError )  then
+       call Matrix_exception(WARNING, "Factorization failed", "Class object Matrix in the factorizeLU() function" )
     end if
 
   end function Matrix_factorizeLU
@@ -2555,6 +2557,28 @@ contains
     call dgemm(TRANSA, TRANSB, M, N, K, ALPHA, matrixA%values, LDA, matrixB%values, LDB, BETA, matrixC%values, LDC)
    
   end function Matrix_multiplication
+
+  !>
+  !! @brief Multiplica dos matrices, funciona para matrices grandes
+  !! @author F.M. 2025
+  function Matrix_product_dgemm( this, otherThis ) result ( output )
+    implicit none
+    type(Matrix), intent(in) :: this
+    type(Matrix), intent(in) :: otherThis
+    type(Matrix) :: output
+
+    integer :: M, N, K
+    real(8) :: ALPHA, BETA
+
+    M=size( this%values , DIM=1 )
+    N=size( otherThis%values , DIM=2 )
+    K=size( this%values , DIM=2 )
+  
+    call Matrix_constructor(output, int(M,8), int(N,8))
+
+    call dgemm("N", "N", M, N, K, 1.0_8, this%values, M, this%values, K, 0.0_8, output%values, M)
+		
+  end function Matrix_product_dgemm
 
   !>
   !! @brief Multiplica dos matrices
@@ -2729,8 +2753,8 @@ contains
 
     end do
 
-    output = Matrix_product( singular, VT )
-    output = Matrix_product( U, output )
+    output = Matrix_product_dgemm( singular, VT )
+    output = Matrix_product_dgemm( U, output )
 
   end function Matrix_function_svd
   

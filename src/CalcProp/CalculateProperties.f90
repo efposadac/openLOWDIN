@@ -421,24 +421,24 @@ contains
     select case( typeOfPopulation )
 
     case("MULLIKEN")
-       auxMatrix%values = matmul(this%densityMatrix(speciesID)%values, this%overlapMatrix(speciesID)%values )
 
-       if(trim(speciesName) .eq. "E-ALPHA") otherAuxMatrix%values = matmul(this%densityMatrix(otherSpeciesID)%values, this%overlapMatrix(otherSpeciesID)%values )
+       auxMatrix=Matrix_product_dgemm(this%densityMatrix(speciesID), this%overlapMatrix(speciesID))
+       if(trim(speciesName) .eq. "E-ALPHA") otherAuxMatrix = Matrix_product_dgemm(this%densityMatrix(otherSpeciesID), this%overlapMatrix(otherSpeciesID) )
 
     case ("LOWDIN")
 
-       auxMatrix%values = matmul(this%densityMatrix(speciesID)%values, this%overlapMatrix(speciesID)%values )
+       auxMatrix = Matrix_product_dgemm(this%densityMatrix(speciesID), this%overlapMatrix(speciesID) )
 
        auxMatrix = Matrix_pow( this%overlapMatrix(speciesID), 0.5_8, method="SVD" )
        auxMatrixB = auxMatrix
-       auxMatrix%values = matmul( matmul( auxMatrixB%values , this%densityMatrix(speciesID)%values), auxMatrixB%values )
+       auxMatrix = Matrix_product_dgemm( Matrix_product_dgemm( auxMatrixB , this%densityMatrix(speciesID)), auxMatrixB )
 
        if(trim(speciesName) .eq. "E-ALPHA") then
-          otherAuxMatrix%values = matmul(this%densityMatrix(otherSpeciesID)%values, this%overlapMatrix(otherSpeciesID)%values )
+          otherAuxMatrix = Matrix_product_dgemm(this%densityMatrix(otherSpeciesID), this%overlapMatrix(otherSpeciesID) )
 
           otherAuxMatrix = Matrix_pow( this%overlapMatrix(otherSpeciesID), 0.5_8, method="SVD"  )
           otherAuxMatrixB = otherAuxMatrix
-          otherAuxMatrix%values = matmul( matmul( otherAuxMatrixB%values , this%densityMatrix(otherSpeciesID)%values), otherAuxMatrixB%values )
+          otherAuxMatrix = Matrix_product_dgemm( Matrix_product_dgemm( otherAuxMatrixB , this%densityMatrix(otherSpeciesID)), otherAuxMatrixB )
        end if
        
     case default

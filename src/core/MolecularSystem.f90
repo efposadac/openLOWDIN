@@ -344,7 +344,7 @@ contains
     print *,""
     write (6,"(T5,A16,A)")     "DESCRIPTION   : ", trim( system%description )
     write (6,"(T5,A16,I3)")    "CHARGE        : ",system%charge
-    write (6,"(T5,A16,ES10.4)") "MASS (m_e)    : ", MolecularSystem_getTotalMass(system)
+    write (6,"(T5,A16,ES11.4)") "MASS (m_e)    : ", MolecularSystem_getTotalMass(system)
     write (6,"(T5,A16,A4)")    "PUNTUAL GROUP : ", "NONE"
     print *,""
     
@@ -528,7 +528,7 @@ contains
     
     type(MolecularSystem), pointer :: system
 
-    integer :: i, j, outUnit
+    integer :: i, j, outUnit, fragment
     real(8) :: origin(3)
 
     if( present(this) ) then
@@ -536,8 +536,10 @@ contains
     else
        system=>MolecularSystem_instance
     end if
-    
-    
+
+    fragment=0
+    if(present(fragmentNumber)) fragment=fragmentNumber
+
     outUnit=6
     if(present(unit)) outUnit=unit
 
@@ -551,10 +553,9 @@ contains
 
        do j = 1, size(system%species(i)%particles)
 
-          origin = system%species(i)%particles(j)%origin * AMSTRONG
+          if(fragment .gt. 0 .and. (system%species(i)%particles(j)%subsystem .ne. fragment)) cycle
 
-          if(present(fragmentNumber) .and. (system%species(i)%particles(j)%subsystem .ne. fragmentNumber )) cycle
-          
+          origin = system%species(i)%particles(j)%origin * AMSTRONG
           if(system%species(i)%isElectron) then
              write (outUnit,"(A10,3F20.10)") trim( system%species(i)%particles(j)%symbol )//trim(system%species(i)%particles(j)%nickname),&
                   origin(1), origin(2), origin(3)

@@ -29,7 +29,7 @@ if [ "$FC" = "ifort" ] ; then
     export CC="icc"
     # C++ compiler
     export CXX="icpc"
-else if [ "$FC" = "ifx" ] ; then
+elif [ "$FC" = "ifx" ] ; then
     # C compiler
     export CC="icx"
     # C++ compiler
