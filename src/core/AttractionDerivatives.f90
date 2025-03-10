@@ -122,7 +122,7 @@ contains
     jym1 = angularMomentB + 1 + 1;  
     jxm1 = jym1 * jym1;
 
-
+    AB2=0.0_8
     do i = 0, 2
        AB2 = AB2 + (originA(i) - originB(i))*(originA(i) - originB(i))
     end do

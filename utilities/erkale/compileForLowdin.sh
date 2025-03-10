@@ -34,7 +34,7 @@ elif [ "$FC" = "ifx" ] ; then
     export CC="icx"
     # C++ compiler
     export CXX="icpx"
-else
+fi
 
 if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     # Fortran compiler
@@ -54,8 +54,8 @@ else
     # C++ flags to use
     export CFLAGS="-Wall -g -O2 -fPIC "
     # MKL (with Intel compiler)
-    LAPACKOMP="-mkl=parallel"
-    LAPACKSER="-mkl=sequential"
+    LAPACKOMP="-qmkl=parallel"
+    LAPACKSER="-qmkl=sequential"
 fi
 export FC="${F77}"
 # C preprosessor
