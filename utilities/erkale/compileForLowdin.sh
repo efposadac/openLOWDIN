@@ -41,9 +41,9 @@ if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     export F77="$FC"
     # C++ flags to use
     export CFLAGS="-g -O2 -D intel"
-    ## OpenBLAS
-    LAPACKOMP="-lopenblaso -lquadmath"
-    LAPACKSER="-lopenblas -lquadmath"
+    # MKL (with Intel compiler)
+    LAPACKOMP="-qmkl=parallel"
+    LAPACKSER="-qmkl=sequential"
 else
     # C compiler
     export CC="gcc"
@@ -53,9 +53,9 @@ else
     export F77="gfortran"
     # C++ flags to use
     export CFLAGS="-Wall -g -O2 -fPIC "
-    # MKL (with Intel compiler)
-    LAPACKOMP="-qmkl=parallel"
-    LAPACKSER="-qmkl=sequential"
+    ## OpenBLAS
+    LAPACKOMP="-lopenblaso -lquadmath"
+    LAPACKSER="-lopenblas -lquadmath"
 fi
 export FC="${F77}"
 # C preprosessor
