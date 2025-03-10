@@ -13,7 +13,7 @@ else
     FC=$1
 fi
 
-echo "Felix: sending", $FC
+echo "Compiling erkale compatible with " $FC
 
 ERKALE_COMMIT=f85eb6ec99e25cc4e8e5e5bbef37cc4648dc6912
 ARMA_COMMIT=0a948017f0c7139f32a477a51c8a957d6106fdb0
@@ -443,6 +443,7 @@ echo "Done"
 cd erkale
 git checkout $ERKALE_COMMIT
 cp -rv ${topdir}/modSrcForLowdin/* src/
+cp -v ${topdir}/CMakeLists_mod.txt CMakeLists.txt
 svnrev=$(git rev-list --count --first-parent HEAD)
 gitversion=$(git log --pretty=format:'%H' -n 1)
 gitshort=$(echo $gitversion|awk '{print substr($1,1,8)}')
