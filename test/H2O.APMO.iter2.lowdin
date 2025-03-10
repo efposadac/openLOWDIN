@@ -13,6 +13,8 @@ END TASKS
 CONTROL
 	readCoefficients=F
 	iterationScheme=2
+	electronicEnergyTolerance=1E-10
+	nonElectronicEnergyTolerance=1E-10
 	totalEnergyTolerance=1E-10
 	scfNonelectronicMaxIterations=15
 	scfElectronicMaxIterations=5
