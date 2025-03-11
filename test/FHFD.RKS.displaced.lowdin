@@ -15,6 +15,7 @@ END TASKS
 
 CONTROL
 readCoefficients=F
+totalEnergyTolerance=1E-10
 electronExchangeCorrelationFunctional="B3LYP"
 nuclearElectronCorrelationFunctional="epc17-2"
 integralStorage="MEMORY"

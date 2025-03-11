@@ -15,6 +15,8 @@ CONTROL
 	rotationAroundZMaxAngle=35
 	rotationAroundZStep=5
 	numberOfCIStates=5
+	totalEnergyTolerance=1E-12
+	configurationOverlapThreshold=1E-10
 	electronExchangeCorrelationFunctional="B3LYP"
 	nuclearElectronCorrelationFunctional="epc17-2"
         integralStorage="MEMORY"

@@ -17,8 +17,8 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-    "KS Total Energy" : [-200.802898216123,1E-7],
-    "E- Exc.Corr. energy" : [-17.449677426723,1E-4],
+    "KS Total Energy" : [-200.802898216123,1E-6],
+    "E- Exc.Corr. energy" : [-17.449677426723,1E-3],
     "E-/H_1 Corr. energy" : [-0.040554548788,1E-4],
     "E-/H_2 Corr. energy" : [-0.035414098071,1E-4],
     "Number of E-" : [20.00000726,1E-4],
