@@ -150,6 +150,7 @@ contains
                 this%name="FOCK"
                 this%exactExchangeFraction=1.0_8
                 CONTROL_instance%CALL_LIBXC=.false.
+                return
              end if
              
              if (CONTROL_instance%ELECTRON_EXCHANGE_FUNCTIONAL .ne. "NONE") then

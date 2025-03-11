@@ -71,12 +71,11 @@ contains
        print *, ""
     end if
 
-    call GridManager_buildGrids(scfGrids,scfGridsCommonPoints,"INITIAL",molSys )
-
     allocate(Functionals(numberOfSpecies,numberOfSpecies))
     call Functional_createFunctionals(Functionals,numberOfSpecies,molSys)
-
     if(CONTROL_instance%PRINT_LEVEL .gt. 0) call Functional_show(Functionals)
+
+    call GridManager_buildGrids(scfGrids,scfGridsCommonPoints,"INITIAL",molSys,Functionals )
     if(CONTROL_instance%GRID_STORAGE .eq. "DISK") then
        call GridManager_writeGrids(scfGrids,scfGridsCommonPoints,Functionals,"INITIAL")
        call GridManager_atomicOrbitals(scfGrids,scfGridsCommonPoints,"WRITE","INITIAL" )
@@ -119,10 +118,10 @@ contains
        print *, "Euler-Maclaurin radial grids - Lebedev angular grids"
        print *, ""
     end if
-    call GridManager_buildGrids(finalGrids,finalGridsCommonPoints,"FINAL",molSys)
-
     allocate(Functionals(numberOfSpecies,numberOfSpecies))
     call Functional_createFunctionals(Functionals,numberOfSpecies,molSys)
+    
+    call GridManager_buildGrids(finalGrids,finalGridsCommonPoints,"FINAL",molSys,Functionals)
 
     if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
        call GridManager_writeGrids(finalGrids,finalGridsCommonPoints,Functionals,"FINAL" )
@@ -157,6 +156,9 @@ contains
 
     numberOfSpecies=size(scfGrids(:))
 
+    allocate(Functionals(numberOfSpecies,numberOfSpecies))
+    call Functional_createFunctionals(Functionals,numberOfSpecies,scfGrids(1)%molSys)
+
     if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
        call GridManager_readGrids(scfGrids,scfGridsCommonPoints,"INITIAL")
        call GridManager_atomicOrbitals(scfGrids,scfGridsCommonPoints,"READ", "INITIAL" )
@@ -164,8 +166,6 @@ contains
     !!Start time
     ! call Stopwatch_constructor(lowdin_stopwatch)
     ! call Stopwatch_start(lowdin_stopwatch)
-    allocate(Functionals(numberOfSpecies,numberOfSpecies))
-    call Functional_createFunctionals(Functionals,numberOfSpecies,scfGrids(1)%molSys)
 
     call DensityFunctionalTheory_calculateDensityAndGradients(scfGrids,scfGridsCommonPoints,densityMatrix,numberOfParticles)
 
@@ -223,13 +223,13 @@ contains
        print *, ""
     end if
 
+    allocate(Functionals(numberOfSpecies,numberOfSpecies))
+    call Functional_createFunctionals(Functionals,numberOfSpecies,finalGrids(1)%molSys)
+
     if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
        call GridManager_readGrids(finalGrids,finalGridsCommonPoints,"FINAL" )
        call GridManager_atomicOrbitals(finalGrids,finalGridsCommonPoints,"READ", "FINAL" )
     end if
-
-    allocate(Functionals(numberOfSpecies,numberOfSpecies))
-    call Functional_createFunctionals(Functionals,numberOfSpecies,finalGrids(1)%molSys)
     
     call DensityFunctionalTheory_calculateDensityAndGradients(finalGrids,finalGridsCommonPoints,densityMatrix,numberOfParticles)
 
