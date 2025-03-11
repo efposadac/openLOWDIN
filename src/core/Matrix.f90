@@ -2576,7 +2576,7 @@ contains
   
     call Matrix_constructor(output, int(M,8), int(N,8))
 
-    call dgemm("N", "N", M, N, K, 1.0_8, this%values, M, this%values, K, 0.0_8, output%values, M)
+    call dgemm("N", "N", M, N, K, 1.0_8, this%values, M, otherThis%values, K, 0.0_8, output%values, M)
 		
   end function Matrix_product_dgemm
 

@@ -1,0 +1,17 @@
+GEOMETRY
+e-(Li) 6-311G.D.P  0.0000  0.00000 0
+e-(H)  6-311G.D.P 0.0000  0.00000 1.5996
+Li   dirac  0.0000  0.00000 0
+H_1  dirac 0.0000  0.00000 1.5996
+END GEOMETRY
+
+TASKS
+method = "RKS"
+END TASKS
+
+CONTROL
+totalEnergyTolerance=1E-10
+readCoefficients=F
+electronExchangeCorrelationFunctional="HYB_LDA_XC_LDA0"
+END CONTROL
+

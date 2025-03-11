@@ -25,9 +25,9 @@ method = "RKS"
 END TASKS
 
 CONTROL
+totalEnergyTolerance=1E-10
 readCoefficients=F
 electronExchangeCorrelationFunctional="BLYP"
-debugSCFS=.F.
 END CONTROL
 
 

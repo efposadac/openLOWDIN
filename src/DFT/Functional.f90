@@ -133,9 +133,7 @@ contains
        else
           this%shell=XC_POLARIZED !open shell
        end if
-       
-       this%exactExchangeFraction=0.0_8
-       
+              
        if( CONTROL_instance%CALL_LIBXC)  then
 
           select case(trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL))         
@@ -144,6 +142,7 @@ contains
              this%name="FOCK"
              this%exactExchangeFraction=1.0_8
              CONTROL_instance%CALL_LIBXC=.false.
+             return
              
           case("NONE")
 
@@ -160,10 +159,7 @@ contains
                 
                 call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)
                 this%info1 = xc_f03_func_get_info(this%xc1)
-                          
-                !if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA )
-                this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
-             
+                                      
              end if
              
              if (CONTROL_instance%ELECTRON_CORRELATION_FUNCTIONAL .ne. "NONE") then
@@ -218,8 +214,6 @@ contains
              call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)
              this%info1 = xc_f03_func_get_info(this%xc1)
 
-             this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
-
           case("B3LYP")
              this%name="exchange-correlation:B3LYP"
              this%exchangeName="XC_HYB_GGA_XC_B3LYP5"
@@ -228,25 +222,28 @@ contains
              call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)
              this%info1 = xc_f03_func_get_info(this%xc1)
 
-             this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
-
           case default
 
              this%name="exchange-correlation:"//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
              this%exchangeName="XC_"//trim(CONTROL_instance%ELECTRON_EXCHANGE_CORRELATION_FUNCTIONAL)
              this%correlationName="NONE"
 
-             call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)
+             call xc_f03_func_init(this%xc1, xc_f03_functional_get_number( this%exchangeName), this%shell)             
              this%info1 = xc_f03_func_get_info(this%xc1)
-
-             this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
-
-             !if( xc_f03_func_info_get_family(this%info1) .eq. XC_FAMILY_HYB_GGA)
-             this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
-
-             ! stop "ERROR: Please select an electronic functional to call LIBXC (LDA, PBE, BLYP, PBE0, B3LYP, or choose one from their web page)"
              
           end select
+          
+          this%exactExchangeFraction=0.0_8
+          if( xc_f03_hyb_type(this%xc1) .eq. XC_HYB_HYBRID) this%exactExchangeFraction=xc_f03_hyb_exx_coef(this%xc1)
+          
+          if( xc_f03_hyb_type(this%xc1) .gt. XC_HYB_HYBRID)  &                
+               call Exception_stopError("openLowdin currently only supports LDA, GGA and Hybrid functionals. You selected "//trim(this%name)//" a range-separated or double-hybrid functional", "In Functional_constructor.f90")
+
+          if (xc_f03_func_info_get_family(this%info1) .ge. XC_FAMILY_MGGA) &                
+               call Exception_stopError("openLowdin currently only supports LDA, GGA and Hybrid functionals. You selected "//trim(this%name)//" a meta-GGA or higher functional", "In Functional_constructor.f90")
+
+          if (xc_f03_func_info_get_kind(this%info1) .eq. XC_KINETIC) &                
+               call Exception_stopError("openLowdin currently only supports LDA, GGA and Hybrid functionals. You selected "//trim(this%name)//" a kinetic functional", "In Functional_constructor.f90")
           
           ! print *, "sere yo maestro", this%species1, this%exactExchangeFraction
           
@@ -273,7 +270,7 @@ contains
 
           case default
 
-             stop "ERROR: Please use LDA or call LIBXC to evaluate the selected electronic exchange correlation functional "
+             call Exception_stopError("Please use LDA or call LIBXC to evaluate the selected "//trim(this%name)//" electronic exchange correlation functional", "In Functional_constructor.f90")
 
           end select
 
