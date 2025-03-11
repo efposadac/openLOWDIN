@@ -2,6 +2,18 @@
 # This is a script for downloading, compiling and
 # installing ERKALE with all of its prerequisite libraries and CMake.
 # 2020-03-16 Susi Lehtola
+# Modified for Lowdin compilation - use Erkale as an external program to localize orbitals
+# 2024-12 Felix Moncada
+
+#select Lowdin compiler (libint and libxc used)
+if [ -z $1 ]
+then
+    FC="gfortran"
+else
+    FC=$1
+fi
+
+echo "Compiling erkale compatible with " $FC
 
 ERKALE_COMMIT=f85eb6ec99e25cc4e8e5e5bbef37cc4648dc6912
 ARMA_COMMIT=0a948017f0c7139f32a477a51c8a957d6106fdb0
@@ -11,14 +23,41 @@ nprocs=5
 
 # Archiver
 export AR="ar"
-# C compiler
-export CC="gcc"
-# C++ compiler
-export CXX="g++"
-# Fortran compiler
-export F77="gfortran"
-export FC="${F77}"
 
+if [ "$FC" = "ifort" ] ; then
+    # C compiler
+    export CC="icc"
+    # C++ compiler
+    export CXX="icpc"
+elif [ "$FC" = "ifx" ] ; then
+    # C compiler
+    export CC="icx"
+    # C++ compiler
+    export CXX="icpx"
+fi
+
+if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
+    # Fortran compiler
+    export F77="$FC"
+    # C++ flags to use
+    export CFLAGS="-g -O2 -D intel"
+    # MKL (with Intel compiler)
+    LAPACKOMP="-qmkl=parallel"
+    LAPACKSER="-qmkl=sequential"
+else
+    # C compiler
+    export CC="gcc"
+    # C++ compiler
+    export CXX="g++"
+    # Fortran compiler
+    export F77="gfortran"
+    # C++ flags to use
+    export CFLAGS="-Wall -g -O2 -fPIC "
+    ## OpenBLAS
+    LAPACKOMP="-lopenblaso -lquadmath"
+    LAPACKSER="-lopenblas -lquadmath"
+fi
+export FC="${F77}"
 # C preprosessor
 export CPP="${CC} -E"
 # Fortran preprocessor
@@ -26,9 +65,6 @@ export FCCPP="${FC} -E"
 
 # C flags to use. For older compilers you may need to specify the architecture
 # by hand.
-export CFLAGS="-Wall -g -O2 -fPIC "
-
-# C++ flags to use
 export CXXFLAGS="${CFLAGS}"
 # Fortran flags to use
 export FFLAGS="${CFLAGS}"
@@ -41,14 +77,6 @@ OMPLIBS="-fopenmp"
 FRECURSIVE="-frecursive"
 
 ### System LAPACK (+ BLAS) library to use.
-
-## OpenBLAS
-LAPACKOMP="-lopenblaso -lquadmath"
-LAPACKSER="-lopenblas -lquadmath"
-
-# MKL (with Intel compiler)
-#LAPACKOMP="-mkl=parallel"
-#LAPACKSER="-mkl=sequential"
 
 ## ATLAS, newer versions of Fedora / RHEL
 #LAPACKOMP="-L/usr/lib64/atlas -lsatlas"
@@ -415,6 +443,7 @@ echo "Done"
 cd erkale
 git checkout $ERKALE_COMMIT
 cp -rv ${topdir}/modSrcForLowdin/* src/
+cp -v ${topdir}/CMakeLists_mod.txt CMakeLists.txt
 svnrev=$(git rev-list --count --first-parent HEAD)
 gitversion=$(git log --pretty=format:'%H' -n 1)
 gitshort=$(echo $gitversion|awk '{print substr($1,1,8)}')

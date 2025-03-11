@@ -105,7 +105,6 @@ contains
        print *, "Using 2D formula: sin(gamma) P_l(cos(gamma)) as weights, with trapezoid integration rule"
        ! weights%values(1,:)=0.5_8
        call Math_p_polynomial_value (npoints , nstates-1, cos(angles%values), weights%values)
-       call flush()
        do i=1,npoints
           weights%values(i,:)=sin(angles%values(i))*weights%values(i,:)
        end do
@@ -123,7 +122,7 @@ contains
        overlapIntegral=0
 
        do sysI=1,this%numberOfDisplacedSystems
-          signs%values(sysI)=this%configurationOverlapMatrix%values(1,sysI)/abs(this%configurationOverlapMatrix%values(1,sysI))
+          signs%values(sysI)=sign(1.0_8,this%configurationOverlapMatrix%values(1,sysI))
           overlapIntegral=overlapIntegral+signs%values(sysI)*this%configurationOverlapMatrix%values(1,sysI)*weights%values(sysI,state)
        end do
 

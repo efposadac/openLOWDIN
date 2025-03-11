@@ -15,7 +15,10 @@ CONTROL
 	nuclearElectronCorrelationFunctional="epc17-2"
 	readCoefficients=F
 	iterationScheme=2
+	electronicEnergyTolerance=1E-10
+	NonelectronicEnergyTolerance=1E-10
 	totalEnergyTolerance=1E-10
+	scfElectronicMaxIterations=15
 	scfNonelectronicMaxIterations=25
 	scfGlobalMaxIterations=10000
 	integralStorage="MEMORY"

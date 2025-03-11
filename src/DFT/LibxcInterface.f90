@@ -65,127 +65,138 @@ module LibxcInterface_
 
   private
   public :: &
-    ! version
-    xc_f03_version, &
-    xc_f03_version_string, &
-    ! func_info
-    xc_f03_func_info_t, &
-    xc_f03_func_info_get_number, &
-    xc_f03_func_info_get_kind, &
-    xc_f03_func_info_get_name, &
-    xc_f03_func_info_get_family, &
-    xc_f03_func_info_get_references, &
-    xc_f03_func_info_get_flags, &
-    xc_f03_func_info_get_n_ext_params, &
-    xc_f03_func_info_get_ext_params_name, &
-    xc_f03_func_info_get_ext_params_description, &
-    xc_f03_func_info_get_ext_params_default_value, &
-    ! func_reference
-    xc_f03_func_reference_t, &
-    xc_f03_func_reference_get_ref, &
-    xc_f03_func_reference_get_doi, &
-    xc_f03_func_reference_get_bibtex, &
-    ! func
-    xc_f03_func_t, &
-    xc_f03_func_init, &
-    xc_f03_func_end, &
-    xc_f03_func_get_info, &
-    xc_f03_functional_get_name, &
-    xc_f03_functional_get_number, &
-    xc_f03_family_from_id, &
-    xc_f03_number_of_functionals, &
-    xc_f03_maximum_name_length, &
-    xc_f03_available_functional_numbers, &
-    xc_f03_available_functional_names, &
-    xc_f03_func_set_dens_threshold, &
-    xc_f03_func_set_ext_params, &
-    ! lda
-    xc_f03_lda, &
-    xc_f03_lda_exc, &
-    xc_f03_lda_exc_vxc, &
-    xc_f03_lda_exc_vxc_fxc, &
-    xc_f03_lda_exc_vxc_fxc_kxc, &
-    xc_f03_lda_vxc, &
-    xc_f03_lda_vxc_fxc, &
-    xc_f03_lda_vxc_fxc_kxc, &
-    xc_f03_lda_fxc, &
-    xc_f03_lda_kxc, &
-    ! gga
-    xc_f03_gga, &
-    xc_f03_gga_exc, &
-    xc_f03_gga_exc_vxc, &
-    xc_f03_gga_exc_vxc_fxc, &
-    xc_f03_gga_exc_vxc_fxc_kxc, &
-    xc_f03_gga_vxc, &
-    xc_f03_gga_vxc_fxc, &
-    xc_f03_gga_vxc_fxc_kxc, &
-    xc_f03_gga_fxc, &
-    xc_f03_gga_kxc, &
-    xc_f03_gga_ak13_get_asymptotic, &
-    xc_f03_hyb_exx_coef, &
-    xc_f03_hyb_cam_coef, &
-    xc_f03_nlc_coef, &
-    ! mgga
-    xc_f03_mgga, &
-    xc_f03_mgga_exc, &
-    xc_f03_mgga_exc_vxc, &
-    xc_f03_mgga_exc_vxc_fxc, &
-    xc_f03_mgga_exc_vxc_fxc_kxc, &
-    xc_f03_mgga_vxc, &
-    xc_f03_mgga_vxc_fxc, &
-    xc_f03_mgga_vxc_fxc_kxc, &
-    xc_f03_mgga_fxc, &
-    xc_f03_mgga_kxc
+                                ! version
+       xc_f03_version, &
+       xc_f03_version_string, &
+                                ! func_info
+       xc_f03_func_info_t, &
+       xc_f03_func_info_get_number, &
+       xc_f03_func_info_get_kind, &
+       xc_f03_func_info_get_name, &
+       xc_f03_func_info_get_family, &
+       xc_f03_func_info_get_references, &
+       xc_f03_func_info_get_flags, &
+       xc_f03_func_info_get_n_ext_params, &
+       xc_f03_func_info_get_ext_params_name, &
+       xc_f03_func_info_get_ext_params_description, &
+       xc_f03_func_info_get_ext_params_default_value, &
+                                ! func_reference
+       xc_f03_func_reference_t, &
+       xc_f03_func_reference_get_ref, &
+       xc_f03_func_reference_get_doi, &
+       xc_f03_func_reference_get_bibtex, &
+                                ! func
+       xc_f03_func_t, &
+       xc_f03_func_init, &
+       xc_f03_func_end, &
+       xc_f03_func_get_info, &
+       xc_f03_functional_get_name, &
+       xc_f03_functional_get_number, &
+       xc_f03_family_from_id, &
+       xc_f03_number_of_functionals, &
+       xc_f03_maximum_name_length, &
+       xc_f03_available_functional_numbers, &
+       xc_f03_available_functional_names, &
+       xc_f03_func_set_dens_threshold, &
+       xc_f03_func_set_ext_params, &
+                                ! lda
+       xc_f03_lda, &
+       xc_f03_lda_exc, &
+       xc_f03_lda_exc_vxc, &
+       xc_f03_lda_exc_vxc_fxc, &
+       xc_f03_lda_exc_vxc_fxc_kxc, &
+       xc_f03_lda_vxc, &
+       xc_f03_lda_vxc_fxc, &
+       xc_f03_lda_vxc_fxc_kxc, &
+       xc_f03_lda_fxc, &
+       xc_f03_lda_kxc, &
+                                ! gga
+       xc_f03_gga, &
+       xc_f03_gga_exc, &
+       xc_f03_gga_exc_vxc, &
+       xc_f03_gga_exc_vxc_fxc, &
+       xc_f03_gga_exc_vxc_fxc_kxc, &
+       xc_f03_gga_vxc, &
+       xc_f03_gga_vxc_fxc, &
+       xc_f03_gga_vxc_fxc_kxc, &
+       xc_f03_gga_fxc, &
+       xc_f03_gga_kxc, &
+       xc_f03_gga_ak13_get_asymptotic, &
+       xc_f03_hyb_type, &
+       xc_f03_hyb_exx_coef, &
+       xc_f03_hyb_cam_coef, &
+       xc_f03_nlc_coef, &
+                                ! mgga
+       xc_f03_mgga, &
+       xc_f03_mgga_exc, &
+       xc_f03_mgga_exc_vxc, &
+       xc_f03_mgga_exc_vxc_fxc, &
+       xc_f03_mgga_exc_vxc_fxc_kxc, &
+       xc_f03_mgga_vxc, &
+       xc_f03_mgga_vxc_fxc, &
+       xc_f03_mgga_vxc_fxc_kxc, &
+       xc_f03_mgga_fxc, &
+       xc_f03_mgga_kxc
 
   integer(c_int), parameter, public :: &
-    XC_UNPOLARIZED          =   1,     &  ! Spin unpolarized
-    XC_POLARIZED            =   2         ! Spin polarized
+       XC_UNPOLARIZED          =   1,     &  ! Spin unpolarized
+       XC_POLARIZED            =   2         ! Spin polarized
 
-    integer(c_int), parameter, public :: &
-    XC_NON_RELATIVISTIC     =   0,     &  ! Functional includes or not relativistic
-    XC_RELATIVISTIC         =   1         ! corrections. Only available in some functionals.
+  integer(c_int), parameter, public :: &
+       XC_NON_RELATIVISTIC     =   0,     &  ! Functional includes or not relativistic
+       XC_RELATIVISTIC         =   1         ! corrections. Only available in some functionals.
 
   ! Kinds
   integer(c_int), parameter, public :: &
-    XC_EXCHANGE             =   0,     &
-    XC_CORRELATION          =   1,     &
-    XC_EXCHANGE_CORRELATION =   2,     &
-    XC_KINETIC              =   3
+       XC_EXCHANGE             =   0,     &
+       XC_CORRELATION          =   1,     &
+       XC_EXCHANGE_CORRELATION =   2,     &
+       XC_KINETIC              =   3
 
+  ! Different types of hybrid functionals.
+  integer(c_int), parameter, public :: &
+       XC_HYB_SEMILOCAL      =  0, &  !/* Standard semi-local functional (not a hybrid) */
+       XC_HYB_HYBRID         =  1, &  !/* Standard hybrid functional */
+       XC_HYB_CAM            =  2, &  !/* Coulomb attenuated hybrid */
+       XC_HYB_CAMY           =  3, &  !/* Coulomb attenuated hybrid with a Yukawa screening */
+       XC_HYB_CAMG           =  4, &  !/* Coulomb attenuated hybrid with a Gaussian screening */
+       XC_HYB_DOUBLE_HYBRID  =  5, &  !/* Double hybrid */
+       XC_HYB_MIXTURE       = 32768  !/* More complicated mixture (have to check individual terms) */
+  
   ! Families of xc functionals
   integer(c_int), parameter, public :: &
-    XC_FAMILY_UNKNOWN       =  -1,     &
-    XC_FAMILY_NONE          =   0,     &
-    XC_FAMILY_LDA           =   1,     &
-    XC_FAMILY_GGA           =   2,     &
-    XC_FAMILY_MGGA          =   4,     &
-    XC_FAMILY_LCA           =   8,     &
-    XC_FAMILY_OEP           =  16
+       XC_FAMILY_UNKNOWN       =  -1,     &
+       XC_FAMILY_NONE          =   0,     &
+       XC_FAMILY_LDA           =   1,     &
+       XC_FAMILY_GGA           =   2,     &
+       XC_FAMILY_MGGA          =   4,     &
+       XC_FAMILY_LCA           =   8,     &
+       XC_FAMILY_OEP           =  16
 
   integer(c_int), parameter, public :: &
-    XC_FLAGS_HAVE_EXC        =     1,   &
-    XC_FLAGS_HAVE_VXC        =     2,   &
-    XC_FLAGS_HAVE_FXC        =     4,   &
-    XC_FLAGS_HAVE_KXC        =     8,   &
-    XC_FLAGS_HAVE_LXC        =    16,   &
-    XC_FLAGS_HAVE_ALL        =    31,   & ! The most common case
-    XC_FLAGS_1D              =    32,   &
-    XC_FLAGS_2D              =    64,   &
-    XC_FLAGS_3D              =   128,   &
-    XC_FLAGS_VV10            =  1024,   &
-    XC_FLAGS_STABLE          =  8192,   &
-    XC_FLAGS_DEVELOPMENT     = 16384,   &
-    XC_FLAGS_NEEDS_LAPLACIAN = 32768
+       XC_FLAGS_HAVE_EXC        =     1,   &
+       XC_FLAGS_HAVE_VXC        =     2,   &
+       XC_FLAGS_HAVE_FXC        =     4,   &
+       XC_FLAGS_HAVE_KXC        =     8,   &
+       XC_FLAGS_HAVE_LXC        =    16,   &
+       XC_FLAGS_HAVE_ALL        =    31,   & ! The most common case
+       XC_FLAGS_1D              =    32,   &
+       XC_FLAGS_2D              =    64,   &
+       XC_FLAGS_3D              =   128,   &
+       XC_FLAGS_VV10            =  1024,   &
+       XC_FLAGS_STABLE          =  8192,   &
+       XC_FLAGS_DEVELOPMENT     = 16384,   &
+       XC_FLAGS_NEEDS_LAPLACIAN = 32768
 
   integer(c_int), parameter, public :: &
-    XC_TAU_EXPLICIT         =     0,   &
-    XC_TAU_EXPANSION        =     1
+       XC_TAU_EXPLICIT         =     0,   &
+       XC_TAU_EXPANSION        =     1
 
   integer(c_int), parameter, public :: &
-    XC_MAX_REFERENCES       =     5
+       XC_MAX_REFERENCES       =     5
 
   ! List of functionals
-!#include "libxc_inc.f90"
+  !#include "libxc_inc.f90"
   integer(c_int), parameter, public :: XC_LDA_X                       =   1  ! Exchange
   integer(c_int), parameter, public :: XC_LDA_C_WIGNER                =   2  ! Wigner parametrization
   integer(c_int), parameter, public :: XC_LDA_C_RPA                   =   3  ! Random Phase Approximation
@@ -738,613 +749,618 @@ module LibxcInterface_
 
   ! These are old names kept for compatibility
   integer(c_int), parameter, public :: &
-    XC_LDA_X_1D             =  21,     &
-    XC_GGA_X_BGCP           =  38,     &
-    XC_GGA_C_BGCP           =  39,     &
-    XC_GGA_C_BCGP           =  39,     &
-    XC_GGA_C_VPBE           =  83,     &
-    XC_GGA_XC_LB            = 160,     &
-    XC_MGGA_C_CC06          = 229,     &
-    XC_GGA_K_ABSR1          = 506,     &
-    XC_GGA_K_ABSR2          = 507,     &
-    XC_LDA_C_LP_A           = 547,     &
-    XC_LDA_C_LP_B           = 548,     &
-    XC_MGGA_C_LP90          = 564
+       XC_LDA_X_1D             =  21,     &
+       XC_GGA_X_BGCP           =  38,     &
+       XC_GGA_C_BGCP           =  39,     &
+       XC_GGA_C_BCGP           =  39,     &
+       XC_GGA_C_VPBE           =  83,     &
+       XC_GGA_XC_LB            = 160,     &
+       XC_MGGA_C_CC06          = 229,     &
+       XC_GGA_K_ABSR1          = 506,     &
+       XC_GGA_K_ABSR2          = 507,     &
+       XC_LDA_C_LP_A           = 547,     &
+       XC_LDA_C_LP_B           = 548,     &
+       XC_MGGA_C_LP90          = 564
 
   !----------------------------------------------------------------
   interface
-    subroutine xc_version(major, minor, micro) bind(c)
-      import
-      integer(c_int), intent(out) :: major, minor, micro
-    end subroutine xc_version
+     subroutine xc_version(major, minor, micro) bind(c)
+       import
+       integer(c_int), intent(out) :: major, minor, micro
+     end subroutine xc_version
 
-    type(c_ptr) function xc_version_string() bind(c)
-      import
-    end function xc_version_string
+     type(c_ptr) function xc_version_string() bind(c)
+       import
+     end function xc_version_string
   end interface
 
 
   !----------------------------------------------------------------
   type :: xc_f03_func_info_t
-    private
-    type(c_ptr) :: ptr = C_NULL_PTR
+     private
+     type(c_ptr) :: ptr = C_NULL_PTR
   end type xc_f03_func_info_t
 
   interface
-    integer(c_int) function xc_func_info_get_number(info) bind(c)
-      import
-      type(c_ptr), value :: info
-    end function xc_func_info_get_number
+     integer(c_int) function xc_func_info_get_number(info) bind(c)
+       import
+       type(c_ptr), value :: info
+     end function xc_func_info_get_number
 
-    integer(c_int) function xc_func_info_get_kind(info) bind(c)
-      import
-      type(c_ptr), value :: info
-    end function xc_func_info_get_kind
+     integer(c_int) function xc_func_info_get_kind(info) bind(c)
+       import
+       type(c_ptr), value :: info
+     end function xc_func_info_get_kind
 
-    type(c_ptr) function xc_func_info_get_name(info) bind(c)
-      import
-      type(c_ptr), value :: info
-    end function xc_func_info_get_name
+     type(c_ptr) function xc_func_info_get_name(info) bind(c)
+       import
+       type(c_ptr), value :: info
+     end function xc_func_info_get_name
 
-    integer(c_int) function xc_func_info_get_family(info) bind(c)
-      import
-      type(c_ptr), value :: info
-    end function xc_func_info_get_family
+     integer(c_int) function xc_func_info_get_family(info) bind(c)
+       import
+       type(c_ptr), value :: info
+     end function xc_func_info_get_family
 
-    integer(c_int) function xc_func_info_get_flags(info) bind(c)
-      import
-      type(c_ptr), value :: info
-    end function xc_func_info_get_flags
+     integer(c_int) function xc_func_info_get_flags(info) bind(c)
+       import
+       type(c_ptr), value :: info
+     end function xc_func_info_get_flags
 
-    type(c_ptr) function xc_func_info_get_references(info, number) bind(c)
-      import
-      type(c_ptr),    value :: info
-      integer(c_int), value :: number
-    end function xc_func_info_get_references
+     type(c_ptr) function xc_func_info_get_references(info, number) bind(c)
+       import
+       type(c_ptr),    value :: info
+       integer(c_int), value :: number
+     end function xc_func_info_get_references
 
-    integer(c_int) function xc_func_info_get_n_ext_params(info) bind(c)
-      import
-      type(c_ptr), value :: info
-    end function xc_func_info_get_n_ext_params
+     integer(c_int) function xc_func_info_get_n_ext_params(info) bind(c)
+       import
+       type(c_ptr), value :: info
+     end function xc_func_info_get_n_ext_params
 
-    type(c_ptr) function xc_func_info_get_ext_params_name(info, number) bind(c)
-      import
-      type(c_ptr),    value :: info
-      integer(c_int), value :: number
-    end function xc_func_info_get_ext_params_name
+     type(c_ptr) function xc_func_info_get_ext_params_name(info, number) bind(c)
+       import
+       type(c_ptr),    value :: info
+       integer(c_int), value :: number
+     end function xc_func_info_get_ext_params_name
 
-    type(c_ptr) function xc_func_info_get_ext_params_description(info, number) bind(c)
-      import
-      type(c_ptr),    value :: info
-      integer(c_int), value :: number
-    end function xc_func_info_get_ext_params_description
+     type(c_ptr) function xc_func_info_get_ext_params_description(info, number) bind(c)
+       import
+       type(c_ptr),    value :: info
+       integer(c_int), value :: number
+     end function xc_func_info_get_ext_params_description
 
-    real(c_double) function xc_func_info_get_ext_params_default_value(info, number) bind(c)
-      import
-      type(c_ptr),    value :: info
-      integer(c_int), value :: number
-    end function xc_func_info_get_ext_params_default_value
+     real(c_double) function xc_func_info_get_ext_params_default_value(info, number) bind(c)
+       import
+       type(c_ptr),    value :: info
+       integer(c_int), value :: number
+     end function xc_func_info_get_ext_params_default_value
 
   end interface
 
   !----------------------------------------------------------------
   type :: xc_f03_func_reference_t
-    private
-    type(c_ptr) :: ptr = C_NULL_PTR
+     private
+     type(c_ptr) :: ptr = C_NULL_PTR
   end type xc_f03_func_reference_t
 
   interface
-    type(c_ptr) function xc_func_reference_get_ref(reference) bind(c)
-      import
-      type(c_ptr), value :: reference
-    end function xc_func_reference_get_ref
+     type(c_ptr) function xc_func_reference_get_ref(reference) bind(c)
+       import
+       type(c_ptr), value :: reference
+     end function xc_func_reference_get_ref
 
-    type(c_ptr) function xc_func_reference_get_doi(reference) bind(c)
-      import
-      type(c_ptr), value :: reference
-    end function xc_func_reference_get_doi
+     type(c_ptr) function xc_func_reference_get_doi(reference) bind(c)
+       import
+       type(c_ptr), value :: reference
+     end function xc_func_reference_get_doi
 
-    type(c_ptr) function xc_func_reference_get_bibtex(reference) bind(c)
-      import
-      type(c_ptr), value :: reference
-    end function xc_func_reference_get_bibtex
+     type(c_ptr) function xc_func_reference_get_bibtex(reference) bind(c)
+       import
+       type(c_ptr), value :: reference
+     end function xc_func_reference_get_bibtex
   end interface
 
   !----------------------------------------------------------------
   type :: xc_f03_func_t
-    private
-    type(c_ptr) :: ptr = C_NULL_PTR
+     private
+     type(c_ptr) :: ptr = C_NULL_PTR
   end type xc_f03_func_t
 
   interface
-    type(c_ptr) function xc_func_alloc() bind(c)
-      import
-    end function xc_func_alloc
+     type(c_ptr) function xc_func_alloc() bind(c)
+       import
+     end function xc_func_alloc
 
-    integer(c_int) function xc_func_init(p, functional, nspin) bind(c)
-      import
-      type(c_ptr),    value :: p
-      integer(c_int), value :: functional, nspin
-    end function xc_func_init
+     integer(c_int) function xc_func_init(p, functional, nspin) bind(c)
+       import
+       type(c_ptr),    value :: p
+       integer(c_int), value :: functional, nspin
+     end function xc_func_init
 
-    subroutine xc_func_end(p) bind(c)
-      import
-      type(c_ptr), value :: p
-    end subroutine xc_func_end
+     subroutine xc_func_end(p) bind(c)
+       import
+       type(c_ptr), value :: p
+     end subroutine xc_func_end
 
-    subroutine xc_func_free(p) bind(c)
-      import
-      type(c_ptr), value :: p
-    end subroutine xc_func_free
+     subroutine xc_func_free(p) bind(c)
+       import
+       type(c_ptr), value :: p
+     end subroutine xc_func_free
 
-    type(c_ptr) function xc_func_get_info(p) bind(c)
-      import
-      type(c_ptr), value :: p
-    end function xc_func_get_info
+     type(c_ptr) function xc_func_get_info(p) bind(c)
+       import
+       type(c_ptr), value :: p
+     end function xc_func_get_info
 
-    type(c_ptr) function xc_functional_get_name(number) bind(c)
-      import
-      integer(c_int), value :: number
-    end function xc_functional_get_name
+     type(c_ptr) function xc_functional_get_name(number) bind(c)
+       import
+       integer(c_int), value :: number
+     end function xc_functional_get_name
 
-    integer(c_int) function xc_functional_get_number(func_string) bind(c)
-      import
-      character(kind=c_char), intent(in) :: func_string(*)
-    end function xc_functional_get_number
+     integer(c_int) function xc_functional_get_number(func_string) bind(c)
+       import
+       character(kind=c_char), intent(in) :: func_string(*)
+     end function xc_functional_get_number
 
-    integer(c_int) function xc_family_from_id(id, family, number) bind(c)
-      import
-      integer(c_int), value :: id
-      type(c_ptr),    value :: family, number
-    end function xc_family_from_id
+     integer(c_int) function xc_family_from_id(id, family, number) bind(c)
+       import
+       integer(c_int), value :: id
+       type(c_ptr),    value :: family, number
+     end function xc_family_from_id
 
-    integer(c_int) function xc_f03_number_of_functionals() bind(c, name="xc_number_of_functionals")
-      import
-    end function xc_f03_number_of_functionals
+     integer(c_int) function xc_f03_number_of_functionals() bind(c, name="xc_number_of_functionals")
+       import
+     end function xc_f03_number_of_functionals
 
-    integer(c_int) function xc_f03_maximum_name_length() bind(c, name="xc_maximum_name_length")
-      import
-    end function xc_f03_maximum_name_length
+     integer(c_int) function xc_f03_maximum_name_length() bind(c, name="xc_maximum_name_length")
+       import
+     end function xc_f03_maximum_name_length
 
-    subroutine xc_f03_available_functional_numbers(list) bind(c, name="xc_available_functional_numbers")
-      import
-      integer(c_int), intent(out) :: list(*)
-    end subroutine xc_f03_available_functional_numbers
+     subroutine xc_f03_available_functional_numbers(list) bind(c, name="xc_available_functional_numbers")
+       import
+       integer(c_int), intent(out) :: list(*)
+     end subroutine xc_f03_available_functional_numbers
 
-    subroutine xc_available_functional_names(list) bind(c)
-      import
-      type(c_ptr) :: list(*)
-    end subroutine xc_available_functional_names
+     subroutine xc_available_functional_names(list) bind(c)
+       import
+       type(c_ptr) :: list(*)
+     end subroutine xc_available_functional_names
 
-    subroutine xc_func_set_dens_threshold(p, dens_threshold) bind(c)
-      import
-      type(c_ptr), value :: p
-      real(c_double), value :: dens_threshold
-    end subroutine xc_func_set_dens_threshold
+     subroutine xc_func_set_dens_threshold(p, dens_threshold) bind(c)
+       import
+       type(c_ptr), value :: p
+       real(c_double), value :: dens_threshold
+     end subroutine xc_func_set_dens_threshold
 
-    subroutine xc_func_set_ext_params(p, ext_params) bind(c)
-      import
-      type(c_ptr), value      :: p
-      real(c_double), intent(in) :: ext_params(*)
-    end subroutine xc_func_set_ext_params
+     subroutine xc_func_set_ext_params(p, ext_params) bind(c)
+       import
+       type(c_ptr), value      :: p
+       real(c_double), intent(in) :: ext_params(*)
+     end subroutine xc_func_set_ext_params
   end interface
-    
+
   ! LDAs
   !----------------------------------------------------------------
   interface
-    subroutine xc_lda(p, np, rho, zk, vrho, v2rho2, v3rho3, v4rho4) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), v2rho2(*), v3rho3(*), v4rho4(*)
-    end subroutine xc_lda
+     subroutine xc_lda(p, np, rho, zk, vrho, v2rho2, v3rho3, v4rho4) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), v2rho2(*), v3rho3(*), v4rho4(*)
+     end subroutine xc_lda
 
-    subroutine xc_lda_exc(p, np, rho, zk) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: zk(*)
-    end subroutine xc_lda_exc
+     subroutine xc_lda_exc(p, np, rho, zk) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: zk(*)
+     end subroutine xc_lda_exc
 
-    subroutine xc_lda_exc_vxc(p, np, rho, zk, vrho) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*)
-    end subroutine xc_lda_exc_vxc
+     subroutine xc_lda_exc_vxc(p, np, rho, zk, vrho) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*)
+     end subroutine xc_lda_exc_vxc
 
-    subroutine xc_lda_exc_vxc_fxc(p, np, rho, zk, vrho, v2rho2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), v2rho2(*)
-    end subroutine xc_lda_exc_vxc_fxc
+     subroutine xc_lda_exc_vxc_fxc(p, np, rho, zk, vrho, v2rho2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), v2rho2(*)
+     end subroutine xc_lda_exc_vxc_fxc
 
-    subroutine xc_lda_exc_vxc_fxc_kxc(p, np, rho, zk, vrho, v2rho2, v3rho3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), v2rho2(*), v3rho3(*)
-    end subroutine xc_lda_exc_vxc_fxc_kxc
+     subroutine xc_lda_exc_vxc_fxc_kxc(p, np, rho, zk, vrho, v2rho2, v3rho3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), v2rho2(*), v3rho3(*)
+     end subroutine xc_lda_exc_vxc_fxc_kxc
 
-    subroutine xc_lda_vxc(p, np, rho, vrho) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: vrho(*)
-    end subroutine xc_lda_vxc
+     subroutine xc_lda_vxc(p, np, rho, vrho) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: vrho(*)
+     end subroutine xc_lda_vxc
 
-    subroutine xc_lda_vxc_fxc(p, np, rho, vrho, v2rho2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: vrho(*), v2rho2(*)
-    end subroutine xc_lda_vxc_fxc
+     subroutine xc_lda_vxc_fxc(p, np, rho, vrho, v2rho2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: vrho(*), v2rho2(*)
+     end subroutine xc_lda_vxc_fxc
 
-    subroutine xc_lda_vxc_fxc_kxc(p, np, rho, vrho, v2rho2, v3rho3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: vrho(*), v2rho2(*), v3rho3(*)
-    end subroutine xc_lda_vxc_fxc_kxc
+     subroutine xc_lda_vxc_fxc_kxc(p, np, rho, vrho, v2rho2, v3rho3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: vrho(*), v2rho2(*), v3rho3(*)
+     end subroutine xc_lda_vxc_fxc_kxc
 
-    subroutine xc_lda_fxc(p, np, rho, v2rho2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: v2rho2(*)
-    end subroutine xc_lda_fxc
+     subroutine xc_lda_fxc(p, np, rho, v2rho2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: v2rho2(*)
+     end subroutine xc_lda_fxc
 
-    subroutine xc_lda_kxc(p, np, rho, v3rho3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: v3rho3(*)
-    end subroutine xc_lda_kxc
+     subroutine xc_lda_kxc(p, np, rho, v3rho3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: v3rho3(*)
+     end subroutine xc_lda_kxc
 
-    subroutine xc_lda_lxc(p, np, rho, v4rho4) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*)
-      real(c_double),    intent(out) :: v4rho4(*)
-    end subroutine xc_lda_lxc
+     subroutine xc_lda_lxc(p, np, rho, v4rho4) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*)
+       real(c_double),    intent(out) :: v4rho4(*)
+     end subroutine xc_lda_lxc
   end interface
 
 
   ! GGAs
   !----------------------------------------------------------------
   interface
-    subroutine xc_gga(p, np, rho, sigma, zk, vrho, vsigma,        &
-         v2rho2, v2rhosigma, v2sigma2,                            &
-         v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3,              &
-         v4rho4, v4rho3sigma, v4rho2sigma2, v4rhosigma3, v4sigma4 &
-         ) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
-      real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
-      real(c_double),    intent(out) :: v4rho4(*), v4rho3sigma(*), v4rho2sigma2(*), v4rhosigma3(*), v4sigma4(*)
-    end subroutine xc_gga
+     subroutine xc_gga(p, np, rho, sigma, zk, vrho, vsigma,        &
+          v2rho2, v2rhosigma, v2sigma2,                            &
+          v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3,              &
+          v4rho4, v4rho3sigma, v4rho2sigma2, v4rhosigma3, v4sigma4 &
+          ) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
+       real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
+       real(c_double),    intent(out) :: v4rho4(*), v4rho3sigma(*), v4rho2sigma2(*), v4rhosigma3(*), v4sigma4(*)
+     end subroutine xc_gga
 
-    subroutine xc_gga_exc(p, np, rho, sigma, zk) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: zk(*)
-    end subroutine xc_gga_exc
+     subroutine xc_gga_exc(p, np, rho, sigma, zk) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: zk(*)
+     end subroutine xc_gga_exc
 
-    subroutine xc_gga_exc_vxc(p, np, rho, sigma, zk, vrho, vsigma) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*)
-    end subroutine xc_gga_exc_vxc
+     subroutine xc_gga_exc_vxc(p, np, rho, sigma, zk, vrho, vsigma) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*)
+     end subroutine xc_gga_exc_vxc
 
-    subroutine xc_gga_exc_vxc_fxc(p, np, rho, sigma, zk, vrho, vsigma,        &
-         v2rho2, v2rhosigma, v2sigma2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
-    end subroutine xc_gga_exc_vxc_fxc
+     subroutine xc_gga_exc_vxc_fxc(p, np, rho, sigma, zk, vrho, vsigma,        &
+          v2rho2, v2rhosigma, v2sigma2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
+     end subroutine xc_gga_exc_vxc_fxc
 
-    subroutine xc_gga_exc_vxc_fxc_kxc(p, np, rho, sigma, zk, vrho, vsigma,        &
-         v2rho2, v2rhosigma, v2sigma2,                            &
-         v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
-      real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
-    end subroutine xc_gga_exc_vxc_fxc_kxc
+     subroutine xc_gga_exc_vxc_fxc_kxc(p, np, rho, sigma, zk, vrho, vsigma,        &
+          v2rho2, v2rhosigma, v2sigma2,                            &
+          v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
+       real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
+     end subroutine xc_gga_exc_vxc_fxc_kxc
 
-    subroutine xc_gga_vxc(p, np, rho, sigma, vrho, vsigma) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: vrho(*), vsigma(*)
-    end subroutine xc_gga_vxc
+     subroutine xc_gga_vxc(p, np, rho, sigma, vrho, vsigma) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: vrho(*), vsigma(*)
+     end subroutine xc_gga_vxc
 
-    subroutine xc_gga_vxc_fxc(p, np, rho, sigma, vrho, vsigma,    &
-         v2rho2, v2rhosigma, v2sigma2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: vrho(*), vsigma(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
-    end subroutine xc_gga_vxc_fxc
+     subroutine xc_gga_vxc_fxc(p, np, rho, sigma, vrho, vsigma,    &
+          v2rho2, v2rhosigma, v2sigma2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: vrho(*), vsigma(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
+     end subroutine xc_gga_vxc_fxc
 
-    subroutine xc_gga_vxc_fxc_kxc(p, np, rho, sigma, vrho, vsigma, &
-         v2rho2, v2rhosigma, v2sigma2,                             &
-         v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: vrho(*), vsigma(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
-      real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
-    end subroutine xc_gga_vxc_fxc_kxc
-    
-    subroutine xc_gga_fxc(p, np, rho, sigma, v2rho2, v2rhosigma, v2sigma2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
-    end subroutine xc_gga_fxc
+     subroutine xc_gga_vxc_fxc_kxc(p, np, rho, sigma, vrho, vsigma, &
+          v2rho2, v2rhosigma, v2sigma2,                             &
+          v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: vrho(*), vsigma(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
+       real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
+     end subroutine xc_gga_vxc_fxc_kxc
 
-    subroutine xc_gga_kxc(p, np, rho, sigma, v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
-    end subroutine xc_gga_kxc
+     subroutine xc_gga_fxc(p, np, rho, sigma, v2rho2, v2rhosigma, v2sigma2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
+     end subroutine xc_gga_fxc
 
-    subroutine xc_gga_lxc(p, np, rho, sigma, v4rho4, v4rho3sigma, v4rho2sigma2, v4rhosigma3, v4sigma4) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*)
-      real(c_double),    intent(out) :: v4rho4(*), v4rho3sigma(*), v4rho2sigma2(*), v4rhosigma3(*), v4sigma4(*)
-    end subroutine xc_gga_lxc
+     subroutine xc_gga_kxc(p, np, rho, sigma, v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
+     end subroutine xc_gga_kxc
+
+     subroutine xc_gga_lxc(p, np, rho, sigma, v4rho4, v4rho3sigma, v4rho2sigma2, v4rhosigma3, v4sigma4) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*)
+       real(c_double),    intent(out) :: v4rho4(*), v4rho3sigma(*), v4rho2sigma2(*), v4rhosigma3(*), v4sigma4(*)
+     end subroutine xc_gga_lxc
 
   end interface
 
 
   interface
-    real(c_double) function xc_gga_ak13_get_asymptotic(homo) bind(c)
-      import
-      real(c_double), value :: homo
-    end function xc_gga_ak13_get_asymptotic
+     real(c_double) function xc_gga_ak13_get_asymptotic(homo) bind(c)
+       import
+       real(c_double), value :: homo
+     end function xc_gga_ak13_get_asymptotic
   end interface
 
 
   interface
-    real(c_double) function xc_hyb_exx_coef(p) bind(c)
-      import
-      type(c_ptr), value :: p
-    end function xc_hyb_exx_coef
+     integer(c_int) function xc_hyb_type(p) bind(c)
+       import
+       type(c_ptr), value :: p
+     end function xc_hyb_type
 
-    subroutine xc_hyb_cam_coef(p, omega, alpha, beta) bind(c)
-      import
-      type(c_ptr), value       :: p
-      real(c_double), intent(out) :: omega, alpha, beta
-    end subroutine xc_hyb_cam_coef
+     real(c_double) function xc_hyb_exx_coef(p) bind(c)
+       import
+       type(c_ptr), value :: p
+     end function xc_hyb_exx_coef
 
-    subroutine xc_nlc_coef(p, nlc_b, nlc_c) bind(c)
-      import
-      type(c_ptr), value       :: p
-      real(c_double), intent(out) :: nlc_b, nlc_c
-    end subroutine xc_nlc_coef
+     subroutine xc_hyb_cam_coef(p, omega, alpha, beta) bind(c)
+       import
+       type(c_ptr), value       :: p
+       real(c_double), intent(out) :: omega, alpha, beta
+     end subroutine xc_hyb_cam_coef
+
+     subroutine xc_nlc_coef(p, nlc_b, nlc_c) bind(c)
+       import
+       type(c_ptr), value       :: p
+       real(c_double), intent(out) :: nlc_b, nlc_c
+     end subroutine xc_nlc_coef
   end interface
 
 
   ! the meta-GGAs
   !----------------------------------------------------------------
   interface
-    subroutine xc_mgga(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau,     &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2,                                                    &
-         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
-         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
-         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
-         v3lapltau2, v3tau3,                                                            &
-         v4rho4, v4rho3sigma, v4rho3lapl, v4rho3tau, v4rho2sigma2, v4rho2sigmalapl,     &
-         v4rho2sigmatau, v4rho2lapl2, v4rho2lapltau, v4rho2tau2, v4rhosigma3,           &
-         v4rhosigma2lapl, v4rhosigma2tau, v4rhosigmalapl2, v4rhosigmalapltau,           &
-         v4rhosigmatau2, v4rholapl3, v4rholapl2tau, v4rholapltau2, v4rhotau3, v4sigma4, &
-         v4sigma3lapl, v4sigma3tau, v4sigma2lapl2, v4sigma2lapltau, v4sigma2tau2,       &
-         v4sigmalapl3, v4sigmalapl2tau, v4sigmalapltau2, v4sigmatau3, v4lapl4,          &
-         v4lapl3tau, v4lapl2tau2, v4lapltau3, v4tau4 &
-         ) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
-           v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
-      real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
-           v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),                  &
-           v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),         &
-           v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),       &
-           v3lapltau2(*), v3tau3(*)
-      real(c_double),    intent(out) :: &
-           v4rho4(*), v4rho3sigma(*), v4rho3lapl(*), v4rho3tau(*), v4rho2sigma2(*), v4rho2sigmalapl(*),     &
-           v4rho2sigmatau(*), v4rho2lapl2(*), v4rho2lapltau(*), v4rho2tau2(*), v4rhosigma3(*),              &
-           v4rhosigma2lapl(*), v4rhosigma2tau(*), v4rhosigmalapl2(*), v4rhosigmalapltau(*),                 &
-           v4rhosigmatau2(*), v4rholapl3(*), v4rholapl2tau(*), v4rholapltau2(*), v4rhotau3(*), v4sigma4(*), &
-           v4sigma3lapl(*), v4sigma3tau(*), v4sigma2lapl2(*), v4sigma2lapltau(*), v4sigma2tau2(*),          &
-           v4sigmalapl3(*), v4sigmalapl2tau(*), v4sigmalapltau2(*), v4sigmatau3(*), v4lapl4(*),             &
-           v4lapl3tau(*), v4lapl2tau2(*), v4lapltau3(*), v4tau4(*)
-    end subroutine xc_mgga
+     subroutine xc_mgga(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau,     &
+          v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+          v2lapl2, v2lapltau, v2tau2,                                                    &
+          v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
+          v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
+          v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
+          v3lapltau2, v3tau3,                                                            &
+          v4rho4, v4rho3sigma, v4rho3lapl, v4rho3tau, v4rho2sigma2, v4rho2sigmalapl,     &
+          v4rho2sigmatau, v4rho2lapl2, v4rho2lapltau, v4rho2tau2, v4rhosigma3,           &
+          v4rhosigma2lapl, v4rhosigma2tau, v4rhosigmalapl2, v4rhosigmalapltau,           &
+          v4rhosigmatau2, v4rholapl3, v4rholapl2tau, v4rholapltau2, v4rhotau3, v4sigma4, &
+          v4sigma3lapl, v4sigma3tau, v4sigma2lapl2, v4sigma2lapltau, v4sigma2tau2,       &
+          v4sigmalapl3, v4sigmalapl2tau, v4sigmalapltau2, v4sigmatau3, v4lapl4,          &
+          v4lapl3tau, v4lapl2tau2, v4lapltau3, v4tau4 &
+          ) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
+            v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
+       real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
+            v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),                  &
+            v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),         &
+            v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),       &
+            v3lapltau2(*), v3tau3(*)
+       real(c_double),    intent(out) :: &
+            v4rho4(*), v4rho3sigma(*), v4rho3lapl(*), v4rho3tau(*), v4rho2sigma2(*), v4rho2sigmalapl(*),     &
+            v4rho2sigmatau(*), v4rho2lapl2(*), v4rho2lapltau(*), v4rho2tau2(*), v4rhosigma3(*),              &
+            v4rhosigma2lapl(*), v4rhosigma2tau(*), v4rhosigmalapl2(*), v4rhosigmalapltau(*),                 &
+            v4rhosigmatau2(*), v4rholapl3(*), v4rholapl2tau(*), v4rholapltau2(*), v4rhotau3(*), v4sigma4(*), &
+            v4sigma3lapl(*), v4sigma3tau(*), v4sigma2lapl2(*), v4sigma2lapltau(*), v4sigma2tau2(*),          &
+            v4sigmalapl3(*), v4sigmalapl2tau(*), v4sigmalapltau2(*), v4sigmatau3(*), v4lapl4(*),             &
+            v4lapl3tau(*), v4lapl2tau2(*), v4lapltau3(*), v4tau4(*)
+     end subroutine xc_mgga
 
-    subroutine xc_mgga_exc(p, np, rho, sigma, lapl, tau, zk) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: zk(*)
-    end subroutine xc_mgga_exc
+     subroutine xc_mgga_exc(p, np, rho, sigma, lapl, tau, zk) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: zk(*)
+     end subroutine xc_mgga_exc
 
-    subroutine xc_mgga_exc_vxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
-    end subroutine xc_mgga_exc_vxc
+     subroutine xc_mgga_exc_vxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
+     end subroutine xc_mgga_exc_vxc
 
-    subroutine xc_mgga_exc_vxc_fxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau, &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
-           v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
-    end subroutine xc_mgga_exc_vxc_fxc
+     subroutine xc_mgga_exc_vxc_fxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau, &
+          v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+          v2lapl2, v2lapltau, v2tau2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
+            v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
+     end subroutine xc_mgga_exc_vxc_fxc
 
-    subroutine xc_mgga_exc_vxc_fxc_kxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau,     &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2,                                                    &
-         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
-         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
-         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
-         v3lapltau2, v3tau3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
-           v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
-      real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
-           v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),                  &
-           v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),         &
-           v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),       &
-           v3lapltau2(*), v3tau3(*)
-    end subroutine xc_mgga_exc_vxc_fxc_kxc
+     subroutine xc_mgga_exc_vxc_fxc_kxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau,     &
+          v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+          v2lapl2, v2lapltau, v2tau2,                                                    &
+          v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
+          v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
+          v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
+          v3lapltau2, v3tau3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: zk(*), vrho(*), vsigma(*), vlapl(*), vtau(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
+            v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
+       real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
+            v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),                  &
+            v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),         &
+            v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),       &
+            v3lapltau2(*), v3tau3(*)
+     end subroutine xc_mgga_exc_vxc_fxc_kxc
 
-    subroutine xc_mgga_vxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: vrho(*), vsigma(*), vlapl(*), vtau(*)
-    end subroutine xc_mgga_vxc
+     subroutine xc_mgga_vxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: vrho(*), vsigma(*), vlapl(*), vtau(*)
+     end subroutine xc_mgga_vxc
 
-    subroutine xc_mgga_vxc_fxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau, &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: vrho(*), vsigma(*), vlapl(*), vtau(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
-           v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
-    end subroutine xc_mgga_vxc_fxc
+     subroutine xc_mgga_vxc_fxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau, &
+          v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+          v2lapl2, v2lapltau, v2tau2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: vrho(*), vsigma(*), vlapl(*), vtau(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
+            v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
+     end subroutine xc_mgga_vxc_fxc
 
-    subroutine xc_mgga_vxc_fxc_kxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau,     &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2,                                                    &
-         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
-         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
-         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
-         v3lapltau2, v3tau3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: vrho(*), vsigma(*), vlapl(*), vtau(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
-           v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
-      real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
-           v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),                  &
-           v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),         &
-           v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),       &
-           v3lapltau2(*), v3tau3(*)
-    end subroutine xc_mgga_vxc_fxc_kxc
+     subroutine xc_mgga_vxc_fxc_kxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau,     &
+          v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+          v2lapl2, v2lapltau, v2tau2,                                                    &
+          v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
+          v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
+          v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
+          v3lapltau2, v3tau3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: vrho(*), vsigma(*), vlapl(*), vtau(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
+            v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
+       real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
+            v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),                  &
+            v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),         &
+            v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),       &
+            v3lapltau2(*), v3tau3(*)
+     end subroutine xc_mgga_vxc_fxc_kxc
 
-    subroutine xc_mgga_fxc(p, np, rho, sigma, lapl, tau, &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
-           v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
-    end subroutine xc_mgga_fxc
+     subroutine xc_mgga_fxc(p, np, rho, sigma, lapl, tau, &
+          v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+          v2lapl2, v2lapltau, v2tau2) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: v2rho2(*), v2rhosigma(*), v2rholapl(*), v2rhotau(*),    &
+            v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
+     end subroutine xc_mgga_fxc
 
-    subroutine xc_mgga_kxc(p, np, rho, sigma, lapl, tau, &
-         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
-         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
-         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
-         v3lapltau2, v3tau3) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
-           v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),               &
-           v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),      &
-           v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),    &
-           v3lapltau2(*), v3tau3(*)
-    end subroutine xc_mgga_kxc
+     subroutine xc_mgga_kxc(p, np, rho, sigma, lapl, tau, &
+          v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
+          v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
+          v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
+          v3lapltau2, v3tau3) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
+            v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),               &
+            v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),      &
+            v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),    &
+            v3lapltau2(*), v3tau3(*)
+     end subroutine xc_mgga_kxc
 
-    subroutine xc_mgga_lxc(p, np, rho, sigma, lapl, tau, &
-         v4rho4, v4rho3sigma, v4rho3lapl, v4rho3tau, v4rho2sigma2, v4rho2sigmalapl,     &
-         v4rho2sigmatau, v4rho2lapl2, v4rho2lapltau, v4rho2tau2, v4rhosigma3,           &
-         v4rhosigma2lapl, v4rhosigma2tau, v4rhosigmalapl2, v4rhosigmalapltau,           &
-         v4rhosigmatau2, v4rholapl3, v4rholapl2tau, v4rholapltau2, v4rhotau3, v4sigma4, &
-         v4sigma3lapl, v4sigma3tau, v4sigma2lapl2, v4sigma2lapltau, v4sigma2tau2,       &
-         v4sigmalapl3, v4sigmalapl2tau, v4sigmalapltau2, v4sigmatau3, v4lapl4,          &
-         v4lapl3tau, v4lapl2tau2, v4lapltau3, v4tau4 &
-         ) bind(c)
-      import
-      type(c_ptr),       value       :: p
-      integer(c_size_t), value       :: np
-      real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
-      real(c_double),    intent(out) :: &
-           v4rho4(*), v4rho3sigma(*), v4rho3lapl(*), v4rho3tau(*), v4rho2sigma2(*), v4rho2sigmalapl(*),     &
-           v4rho2sigmatau(*), v4rho2lapl2(*), v4rho2lapltau(*), v4rho2tau2(*), v4rhosigma3(*),              &
-           v4rhosigma2lapl(*), v4rhosigma2tau(*), v4rhosigmalapl2(*), v4rhosigmalapltau(*),                 &
-           v4rhosigmatau2(*), v4rholapl3(*), v4rholapl2tau(*), v4rholapltau2(*), v4rhotau3(*), v4sigma4(*), &
-           v4sigma3lapl(*), v4sigma3tau(*), v4sigma2lapl2(*), v4sigma2lapltau(*), v4sigma2tau2(*),          &
-           v4sigmalapl3(*), v4sigmalapl2tau(*), v4sigmalapltau2(*), v4sigmatau3(*), v4lapl4(*),             &
-           v4lapl3tau(*), v4lapl2tau2(*), v4lapltau3(*), v4tau4(*)
-    end subroutine xc_mgga_lxc
+     subroutine xc_mgga_lxc(p, np, rho, sigma, lapl, tau, &
+          v4rho4, v4rho3sigma, v4rho3lapl, v4rho3tau, v4rho2sigma2, v4rho2sigmalapl,     &
+          v4rho2sigmatau, v4rho2lapl2, v4rho2lapltau, v4rho2tau2, v4rhosigma3,           &
+          v4rhosigma2lapl, v4rhosigma2tau, v4rhosigmalapl2, v4rhosigmalapltau,           &
+          v4rhosigmatau2, v4rholapl3, v4rholapl2tau, v4rholapltau2, v4rhotau3, v4sigma4, &
+          v4sigma3lapl, v4sigma3tau, v4sigma2lapl2, v4sigma2lapltau, v4sigma2tau2,       &
+          v4sigmalapl3, v4sigmalapl2tau, v4sigmalapltau2, v4sigmatau3, v4lapl4,          &
+          v4lapl3tau, v4lapl2tau2, v4lapltau3, v4tau4 &
+          ) bind(c)
+       import
+       type(c_ptr),       value       :: p
+       integer(c_size_t), value       :: np
+       real(c_double),    intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
+       real(c_double),    intent(out) :: &
+            v4rho4(*), v4rho3sigma(*), v4rho3lapl(*), v4rho3tau(*), v4rho2sigma2(*), v4rho2sigmalapl(*),     &
+            v4rho2sigmatau(*), v4rho2lapl2(*), v4rho2lapltau(*), v4rho2tau2(*), v4rhosigma3(*),              &
+            v4rhosigma2lapl(*), v4rhosigma2tau(*), v4rhosigmalapl2(*), v4rhosigmalapltau(*),                 &
+            v4rhosigmatau2(*), v4rholapl3(*), v4rholapl2tau(*), v4rholapltau2(*), v4rhotau3(*), v4sigma4(*), &
+            v4sigma3lapl(*), v4sigma3tau(*), v4sigma2lapl2(*), v4sigma2lapltau(*), v4sigma2tau2(*),          &
+            v4sigmalapl3(*), v4sigmalapl2tau(*), v4sigmalapltau2(*), v4sigmatau3(*), v4lapl4(*),             &
+            v4lapl3tau(*), v4lapl2tau2(*), v4lapltau3(*), v4tau4(*)
+     end subroutine xc_mgga_lxc
   end interface
-    
-  contains
+
+contains
 
   !----------------------------------------------------------------
   subroutine xc_f03_version(major, minor, micro)
@@ -1410,9 +1426,9 @@ module LibxcInterface_
     reference%ptr = xc_func_info_get_references(info%ptr, number)
     next_ref = xc_func_info_get_references(info%ptr, number + 1)
     if (c_associated(next_ref)) then
-      number = number + 1
+       number = number + 1
     else
-      number = -1
+       number = -1
     end if
 
   end function xc_f03_func_info_get_references
@@ -1523,16 +1539,16 @@ module LibxcInterface_
     integer(c_int), pointer :: f_family, f_number
 
     if (present(family)) then
-      f_family => family
-      call c_f_pointer(c_family, f_family)
+       f_family => family
+       call c_f_pointer(c_family, f_family)
     else
-      c_family = C_NULL_PTR
+       c_family = C_NULL_PTR
     end if
     if (present(number)) then
-      f_number => number
-      call c_f_pointer(c_number, f_number)
+       f_number => number
+       call c_f_pointer(c_number, f_number)
     else
-      c_number = C_NULL_PTR
+       c_number = C_NULL_PTR
     end if
 
     xc_f03_family_from_id = xc_family_from_id(id, c_family, c_number)
@@ -1552,13 +1568,13 @@ module LibxcInterface_
     allocate(names(maxlen, n))
     allocate(c_list(n))
     do i = 1, n
-      c_list(i) = c_loc(names(1,i))
+       c_list(i) = c_loc(names(1,i))
     end do
 
     call xc_available_functional_names(c_list)
 
     do i = 1, n
-      call c_to_f_string_ptr(c_list(i), list(i))
+       call c_to_f_string_ptr(c_list(i), list(i))
     end do
 
     deallocate(c_list)
@@ -1701,7 +1717,7 @@ module LibxcInterface_
        v2rho2, v2rhosigma, v2sigma2,                            &
        v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3,              &
        v4rho4, v4rho3sigma, v4rho2sigma2, v4rhosigma3, v4sigma4 &
-    )
+       )
     type(xc_f03_func_t), intent(in)  :: p
     integer(c_size_t),   intent(in)  :: np
     real(c_double),      intent(in)  :: rho(*), sigma(*)
@@ -1709,7 +1725,7 @@ module LibxcInterface_
     real(c_double),      intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
     real(c_double),      intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
     real(c_double),      intent(out) :: v4rho4(*), v4rho3sigma(*), v4rho2sigma2(*), v4rhosigma3(*), v4sigma4(*)
-    
+
     call xc_gga(p%ptr, np, rho, sigma, zk, vrho, vsigma,          &
          v2rho2, v2rhosigma, v2sigma2,                            &
          v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3,              &
@@ -1745,7 +1761,7 @@ module LibxcInterface_
     real(c_double),      intent(in)  :: rho(*), sigma(*)
     real(c_double),      intent(out) :: zk(*), vrho(*), vsigma(*)
     real(c_double),      intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
-    
+
     call xc_gga_exc_vxc_fxc(p%ptr, np, rho, sigma, zk, vrho, vsigma,          &
          v2rho2, v2rhosigma, v2sigma2)
 
@@ -1760,13 +1776,13 @@ module LibxcInterface_
     real(c_double),      intent(out) :: zk(*), vrho(*), vsigma(*)
     real(c_double),      intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
     real(c_double),      intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
-    
+
     call xc_gga_exc_vxc_fxc_kxc(p%ptr, np, rho, sigma, zk, vrho, vsigma,          &
          v2rho2, v2rhosigma, v2sigma2,                            &
          v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3)
 
   end subroutine xc_f03_gga_exc_vxc_fxc_kxc
-  
+
   subroutine xc_f03_gga_vxc(p, np, rho, sigma, vrho, vsigma)
     type(xc_f03_func_t), intent(in)  :: p
     integer(c_size_t),   intent(in)  :: np
@@ -1784,7 +1800,7 @@ module LibxcInterface_
     real(c_double),      intent(in)  :: rho(*), sigma(*)
     real(c_double),      intent(out) :: vrho(*), vsigma(*)
     real(c_double),      intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
-    
+
     call xc_gga_vxc_fxc(p%ptr, np, rho, sigma, vrho, vsigma, &
          v2rho2, v2rhosigma, v2sigma2)
 
@@ -1799,7 +1815,7 @@ module LibxcInterface_
     real(c_double),      intent(out) :: vrho(*), vsigma(*)
     real(c_double),      intent(out) :: v2rho2(*), v2rhosigma(*), v2sigma2(*)
     real(c_double),      intent(out) :: v3rho3(*), v3rho2sigma(*), v3rhosigma2(*), v3sigma3(*)
-    
+
     call xc_gga_vxc_fxc_kxc(p%ptr, np, rho, sigma, vrho, vsigma,  &
          v2rho2, v2rhosigma, v2sigma2,                            &
          v3rho3, v3rho2sigma, v3rhosigma2, v3sigma3)
@@ -1834,13 +1850,20 @@ module LibxcInterface_
 
     call xc_gga_lxc(p%ptr, np, rho, sigma, v4rho4, v4rho3sigma, v4rho2sigma2, v4rhosigma3, v4sigma4)
   end subroutine xc_f03_gga_lxc
-  
+
   real(c_double) function xc_f03_gga_ak13_get_asymptotic(homo) result(asymptotic)
     real(c_double), intent(in) :: homo
 
     asymptotic = xc_gga_ak13_get_asymptotic(homo)
 
   end function xc_f03_gga_ak13_get_asymptotic
+
+  integer(c_int) function xc_f03_hyb_type(p) result(type)
+    type(xc_f03_func_t), intent(in) :: p
+
+    type = xc_hyb_type(p%ptr)
+
+  end function xc_f03_hyb_type
 
   real(c_double) function xc_f03_hyb_exx_coef(p) result(coef)
     type(xc_f03_func_t), intent(in) :: p
@@ -1869,20 +1892,20 @@ module LibxcInterface_
   ! the meta-GGAs
   !----------------------------------------------------------------
   subroutine xc_f03_mgga(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau,   &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2,                                                    &
-         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
-         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
-         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
-         v3lapltau2, v3tau3,                                                            &
-         v4rho4, v4rho3sigma, v4rho3lapl, v4rho3tau, v4rho2sigma2, v4rho2sigmalapl,     &
-         v4rho2sigmatau, v4rho2lapl2, v4rho2lapltau, v4rho2tau2, v4rhosigma3,           &
-         v4rhosigma2lapl, v4rhosigma2tau, v4rhosigmalapl2, v4rhosigmalapltau,           &
-         v4rhosigmatau2, v4rholapl3, v4rholapl2tau, v4rholapltau2, v4rhotau3, v4sigma4, &
-         v4sigma3lapl, v4sigma3tau, v4sigma2lapl2, v4sigma2lapltau, v4sigma2tau2,       &
-         v4sigmalapl3, v4sigmalapl2tau, v4sigmalapltau2, v4sigmatau3, v4lapl4,          &
-         v4lapl3tau, v4lapl2tau2, v4lapltau3, v4tau4 &
-         )
+       v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+       v2lapl2, v2lapltau, v2tau2,                                                    &
+       v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
+       v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
+       v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
+       v3lapltau2, v3tau3,                                                            &
+       v4rho4, v4rho3sigma, v4rho3lapl, v4rho3tau, v4rho2sigma2, v4rho2sigmalapl,     &
+       v4rho2sigmatau, v4rho2lapl2, v4rho2lapltau, v4rho2tau2, v4rhosigma3,           &
+       v4rhosigma2lapl, v4rhosigma2tau, v4rhosigmalapl2, v4rhosigmalapltau,           &
+       v4rhosigmatau2, v4rholapl3, v4rholapl2tau, v4rholapltau2, v4rhotau3, v4sigma4, &
+       v4sigma3lapl, v4sigma3tau, v4sigma2lapl2, v4sigma2lapltau, v4sigma2tau2,       &
+       v4sigmalapl3, v4sigmalapl2tau, v4sigmalapltau2, v4sigmatau3, v4lapl4,          &
+       v4lapl3tau, v4lapl2tau2, v4lapltau3, v4tau4 &
+       )
     type(xc_f03_func_t), intent(in)  :: p
     integer(c_size_t),   intent(in)  :: np
     real(c_double),      intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
@@ -1895,13 +1918,13 @@ module LibxcInterface_
          v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),    &
          v3lapltau2(*), v3tau3(*)
     real(c_double),    intent(out) :: &
-           v4rho4(*), v4rho3sigma(*), v4rho3lapl(*), v4rho3tau(*), v4rho2sigma2(*), v4rho2sigmalapl(*),     &
-           v4rho2sigmatau(*), v4rho2lapl2(*), v4rho2lapltau(*), v4rho2tau2(*), v4rhosigma3(*),              &
-           v4rhosigma2lapl(*), v4rhosigma2tau(*), v4rhosigmalapl2(*), v4rhosigmalapltau(*),                 &
-           v4rhosigmatau2(*), v4rholapl3(*), v4rholapl2tau(*), v4rholapltau2(*), v4rhotau3(*), v4sigma4(*), &
-           v4sigma3lapl(*), v4sigma3tau(*), v4sigma2lapl2(*), v4sigma2lapltau(*), v4sigma2tau2(*),          &
-           v4sigmalapl3(*), v4sigmalapl2tau(*), v4sigmalapltau2(*), v4sigmatau3(*), v4lapl4(*),             &
-           v4lapl3tau(*), v4lapl2tau2(*), v4lapltau3(*), v4tau4(*)
+         v4rho4(*), v4rho3sigma(*), v4rho3lapl(*), v4rho3tau(*), v4rho2sigma2(*), v4rho2sigmalapl(*),     &
+         v4rho2sigmatau(*), v4rho2lapl2(*), v4rho2lapltau(*), v4rho2tau2(*), v4rhosigma3(*),              &
+         v4rhosigma2lapl(*), v4rhosigma2tau(*), v4rhosigmalapl2(*), v4rhosigmalapltau(*),                 &
+         v4rhosigmatau2(*), v4rholapl3(*), v4rholapl2tau(*), v4rholapltau2(*), v4rhotau3(*), v4sigma4(*), &
+         v4sigma3lapl(*), v4sigma3tau(*), v4sigma2lapl2(*), v4sigma2lapltau(*), v4sigma2tau2(*),          &
+         v4sigmalapl3(*), v4sigmalapl2tau(*), v4sigmalapltau2(*), v4sigmatau3(*), v4lapl4(*),             &
+         v4lapl3tau(*), v4lapl2tau2(*), v4lapltau3(*), v4tau4(*)
 
     call xc_mgga(p%ptr, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau,       &
          v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
@@ -1941,8 +1964,8 @@ module LibxcInterface_
   end subroutine xc_f03_mgga_exc_vxc
 
   subroutine xc_f03_mgga_exc_vxc_fxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau,   &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2)
+       v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+       v2lapl2, v2lapltau, v2tau2)
     type(xc_f03_func_t), intent(in)  :: p
     integer(c_size_t),   intent(in)  :: np
     real(c_double),      intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
@@ -1956,12 +1979,12 @@ module LibxcInterface_
   end subroutine xc_f03_mgga_exc_vxc_fxc
 
   subroutine xc_f03_mgga_exc_vxc_fxc_kxc(p, np, rho, sigma, lapl, tau, zk, vrho, vsigma, vlapl, vtau,   &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2,                                                    &
-         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
-         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
-         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
-         v3lapltau2, v3tau3)
+       v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+       v2lapl2, v2lapltau, v2tau2,                                                    &
+       v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
+       v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
+       v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
+       v3lapltau2, v3tau3)
     type(xc_f03_func_t), intent(in)  :: p
     integer(c_size_t),   intent(in)  :: np
     real(c_double),      intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
@@ -1994,8 +2017,8 @@ module LibxcInterface_
   end subroutine xc_f03_mgga_vxc
 
   subroutine xc_f03_mgga_vxc_fxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau,   &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2)
+       v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+       v2lapl2, v2lapltau, v2tau2)
     type(xc_f03_func_t), intent(in)  :: p
     integer(c_size_t),   intent(in)  :: np
     real(c_double),      intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
@@ -2009,12 +2032,12 @@ module LibxcInterface_
   end subroutine xc_f03_mgga_vxc_fxc
 
   subroutine xc_f03_mgga_vxc_fxc_kxc(p, np, rho, sigma, lapl, tau, vrho, vsigma, vlapl, vtau,   &
-         v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
-         v2lapl2, v2lapltau, v2tau2,                                                    &
-         v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
-         v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
-         v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
-         v3lapltau2, v3tau3)
+       v2rho2, v2rhosigma, v2rholapl, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau,    &
+       v2lapl2, v2lapltau, v2tau2,                                                    &
+       v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
+       v3rhosigmatau, v3rholapl2, v3rholapltau, v3rhotau2, v3sigma3, v3sigma2lapl,    &
+       v3sigma2tau, v3sigmalapl2, v3sigmalapltau, v3sigmatau2, v3lapl3, v3lapl2tau,   &
+       v3lapltau2, v3tau3)
     type(xc_f03_func_t), intent(in)  :: p
     integer(c_size_t),   intent(in)  :: np
     real(c_double),      intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
@@ -2046,8 +2069,8 @@ module LibxcInterface_
          v2sigma2(*), v2sigmalapl(*), v2sigmatau(*), v2lapl2(*), v2lapltau(*), v2tau2(*)
 
     call xc_mgga_fxc(p%ptr, np, rho, sigma, lapl, tau,   &
-      v2rho2, v2rhosigma, v2rholapl, v2rhotau,           &
-      v2sigma2, v2sigmalapl, v2sigmatau, v2lapl2, v2lapltau, v2tau2)
+         v2rho2, v2rhosigma, v2rholapl, v2rhotau,           &
+         v2sigma2, v2sigmalapl, v2sigmatau, v2lapl2, v2lapltau, v2tau2)
 
   end subroutine xc_f03_mgga_fxc
 
@@ -2060,10 +2083,10 @@ module LibxcInterface_
     integer(c_size_t),   intent(in)  :: np
     real(c_double),      intent(in)  :: rho(*), sigma(*), lapl(*), tau(*)
     real(c_double),      intent(out) :: v3rho3(*), v3rho2sigma(*), v3rho2lapl(*), v3rho2tau(*), &
-           v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),               &
-           v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),      &
-           v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),    &
-           v3lapltau2(*), v3tau3(*)
+         v3rhosigma2(*), v3rhosigmalapl(*), v3rhosigmatau(*), v3rholapl2(*),               &
+         v3rholapltau(*), v3rhotau2(*), v3sigma3(*), v3sigma2lapl(*), v3sigma2tau(*),      &
+         v3sigmalapl2(*), v3sigmalapltau(*), v3sigmatau2(*), v3lapl3(*), v3lapl2tau(*),    &
+         v3lapltau2(*), v3tau3(*)
 
     call xc_mgga_kxc(p%ptr, np, rho, sigma, lapl, tau,  &
          v3rho3, v3rho2sigma, v3rho2lapl, v3rho2tau, v3rhosigma2, v3rhosigmalapl,       &
@@ -2116,7 +2139,7 @@ module LibxcInterface_
     strlen = len_trim(f_string)
 
     forall (i=1:strlen)
-      c_string(i) = f_string(i:i)
+       c_string(i) = f_string(i:i)
     end forall
     c_string(strlen+1) = C_NULL_CHAR
 
@@ -2130,8 +2153,8 @@ module LibxcInterface_
 
     i = 1
     do while(c_string(i) /= C_NULL_CHAR .and. i <= len(f_string))
-      f_string(i:i) = c_string(i)
-      i = i + 1
+       f_string(i:i) = c_string(i)
+       i = i + 1
     end do
     if (i < len(f_string)) f_string(i:) = ' '
 
@@ -2145,19 +2168,19 @@ module LibxcInterface_
     integer :: i
 
     if (.not. c_associated(c_string)) then
-      f_string = ' '
+       f_string = ' '
     else
-      call c_f_pointer(c_string, p_chars, [huge(0)])
-      i = 1
-      do while(p_chars(i) /= C_NULL_CHAR .and. i <= len(f_string))
-        f_string(i:i) = p_chars(i)
-        i = i + 1
-      end do
-      if (i < len(f_string)) f_string(i:) = ' '
+       call c_f_pointer(c_string, p_chars, [huge(0)])
+       i = 1
+       do while(p_chars(i) /= C_NULL_CHAR .and. i <= len(f_string))
+          f_string(i:i) = p_chars(i)
+          i = i + 1
+       end do
+       if (i < len(f_string)) f_string(i:) = ' '
     end if
 
   end subroutine c_to_f_string_ptr
-  
+
 end module LibxcInterface_
 
 !! Local Variables:

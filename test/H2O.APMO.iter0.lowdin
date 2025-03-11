@@ -4,8 +4,8 @@ GEOMETRY
 	e-[H]   6-31G     0.000000      0.754175      0.528381
 	e-[H]   6-31G     0.000000     -0.754174      0.528382
 	O        dirac     0.000000      0.000000     -0.066575
-	H_1	Nakai-3-sp     0.000000      0.754175      0.528381	
-	H_1   Nakai-3-sp     0.000000     -0.754174      0.528382  
+	H-A_1	Nakai-3-sp     0.000000      0.754175      0.528381	
+	H-B_1   Nakai-3-sp     0.000000     -0.754174      0.528382  
 END GEOMETRY
 TASKS
 	method = "RHF"
@@ -13,6 +13,8 @@ END TASKS
 CONTROL
 	readCoefficients=F
 	iterationScheme=0
+	buildTwoParticlesMatrixForOneParticle=T
+	nonElectronicEnergyTolerance=1E-10
 	totalEnergyTolerance=1E-10
 	scfNonelectronicMaxIterations=25
 	scfGlobalMaxIterations=10000

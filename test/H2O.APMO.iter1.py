@@ -16,8 +16,8 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-75.905888726266,1E-8],
-"Iterations" : [1094,800],
+"HF energy" : [-75.905888726302,1E-8],
+"Iterations" : [1068,800],
 }                       
 
 testValues = dict(refValues) #copy 

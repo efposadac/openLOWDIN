@@ -114,7 +114,7 @@ contains
 
     integer, intent(in) :: npoints
     integer, intent(in) :: speciesID
-    character(50), intent(in) :: symbolOfSpecies
+    character(*), intent(in) :: symbolOfSpecies
 
     real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
 

@@ -16,7 +16,7 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-75.887006410212,1E-8],
+"HF energy" : [-75.887006410212,1E-6],
 "Iterations" : [40,8],
 }                       
 

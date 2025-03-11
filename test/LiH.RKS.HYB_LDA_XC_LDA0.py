@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 from __future__ import print_function
 import os
@@ -16,8 +17,9 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-76.062503916950,1E-8],
-"HF dipole" : [0.76847087,1E-6],
+    "TotalEnergy" : [-7.933027690691,1E-7],
+    "ExchangeCorrelationEnergy" : [-1.535550395828,1E-4],
+    "NumberOfE" : [3.99998731,1E-4]
 }                       
 
 testValues = dict(refValues) #copy 
@@ -34,31 +36,17 @@ if status:
 
 output = open(outputName, "r")
 outputRead = output.readlines()
-HF_prop = True 
 
 # Values
 for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
-        testValues["HF energy"] = float(line.split()[3])
-    if "STATE:   1 ENERGY =" in line:
-        testValues["CI 1"] = float(line.split()[4])
-
-    if "DIPOLE: (A.U.)" in line and HF_prop:
-        for j in range (i,len(outputRead)) :
-            linej = outputRead[j]
-            if "Total Dipole:"  in linej:
-                testValues["HF dipole"] = float(linej.split()[5])
-                HF_prop = False
-                break
-
-    if "DIPOLE: (A.U.)" in line and not HF_prop:
-        for j in range (i,len(outputRead)) :
-            linej = outputRead[j]
-            if "Total Dipole:"  in linej:
-                testValues["CI dipole"] = float(linej.split()[5])
-                break
-
+        testValues["TotalEnergy"] = float(line.split()[3])
+    if "Total Exchange Correlation energy" in line:
+        testValues["ExchangeCorrelationEnergy"] = float(line.split()[5])
+    if "Number of E- particles in the final grid" in line:
+        testValues["NumberOfE"] = float(line.split()[8])
+            
 passTest = True
 
 for value in refValues:

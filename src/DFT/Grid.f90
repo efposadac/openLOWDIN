@@ -43,6 +43,7 @@ module Grid_
 
   public :: &
        Grid_constructor, &
+       Grid_copyPoints,&
        Grid_buildAtomic, &
        Grid_radialCutoff, &
        Grid_weightCutoff, &
@@ -184,6 +185,19 @@ contains
 
   end subroutine Grid_constructor
 
+  !>
+  !! @brief Copies a grid object otherThis->this
+  ! Felix Moncada, 2025
+  subroutine Grid_copyPoints( this, otherThis )
+    implicit none
+    type(Grid) :: this
+    type(Grid) :: otherThis
+
+    this%totalSize=otherThis%totalSize
+    call Matrix_copyConstructor( this%points, otherThis%points )
+
+  end subroutine Grid_copyPoints
+  
   !>
   !! @brief  Maneja excepciones de la clase
   subroutine Grid_exception( typeMessage, description, debugDescription)

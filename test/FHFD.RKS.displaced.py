@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 from __future__ import print_function
 import os
@@ -16,8 +17,13 @@ outputName = testName + ".out"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-76.062503916950,1E-8],
-"HF dipole" : [0.76847087,1E-6],
+    "KS Total Energy" : [-200.802898216123,1E-6],
+    "E- Exc.Corr. energy" : [-17.449677426723,1E-3],
+    "E-/H_1 Corr. energy" : [-0.040554548788,1E-4],
+    "E-/H_2 Corr. energy" : [-0.035414098071,1E-4],
+    "Number of E-" : [20.00000726,1E-4],
+    "Number of H_1" : [0.99999439,1E-4],
+    "Number of H_2" : [0.99998816,1E-4]
 }                       
 
 testValues = dict(refValues) #copy 
@@ -34,31 +40,25 @@ if status:
 
 output = open(outputName, "r")
 outputRead = output.readlines()
-HF_prop = True 
 
 # Values
 for i in range(0,len(outputRead)):
     line = outputRead[i]
     if "TOTAL ENERGY =" in line:
-        testValues["HF energy"] = float(line.split()[3])
-    if "STATE:   1 ENERGY =" in line:
-        testValues["CI 1"] = float(line.split()[4])
-
-    if "DIPOLE: (A.U.)" in line and HF_prop:
-        for j in range (i,len(outputRead)) :
-            linej = outputRead[j]
-            if "Total Dipole:"  in linej:
-                testValues["HF dipole"] = float(linej.split()[5])
-                HF_prop = False
-                break
-
-    if "DIPOLE: (A.U.)" in line and not HF_prop:
-        for j in range (i,len(outputRead)) :
-            linej = outputRead[j]
-            if "Total Dipole:"  in linej:
-                testValues["CI dipole"] = float(linej.split()[5])
-                break
-
+        testValues["KS Total Energy"] = float(line.split()[3])
+    if "E- Exc.Corr. energy" in line:
+        testValues["E- Exc.Corr. energy"] = float(line.split()[4])
+    if "E-/H_1 Corr. energy" in line:
+        testValues["E-/H_1 Corr. energy"] = float(line.split()[4])
+    if "E-/H_2 Corr. energy" in line:
+        testValues["E-/H_2 Corr. energy"] = float(line.split()[4])
+    if "Number of E- particles in the final grid" in line:
+        testValues["Number of E-"] = float(line.split()[8])
+    if "Number of H_1 particles in the final grid" in line:
+        testValues["Number of H_1"] = float(line.split()[8])
+    if "Number of H_2 particles in the final grid" in line:
+        testValues["Number of H_2"] = float(line.split()[8])
+            
 passTest = True
 
 for value in refValues:

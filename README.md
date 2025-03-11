@@ -80,7 +80,19 @@ To visualize the html documentation use:
         # If you have Ubuntu, you can get this precompiled Libint2 library
         wget https://www.dropbox.com/s/d3d44j238lkfwcr/libint-master-SEP052019.tgz
         tar xzvf libint-master-SEP052019.tgz
+
 	# Otherwise, download and compile with minimal (default am), G12, fPIC options (libint2 commit 668b10c4bdca5876984058742d4212675eb93f3f)
+	# git clone https://github.com/evaleev/libint.git
+	# cd libint
+	# git checkout 668b10c4bdca5876984058742d4212675eb93f3f
+	# ./autogen.sh
+	# mkdir ../build
+        # cd ../build
+        # ../libint/configure --prefix=$WORKDIR --with-max-am=6 --with-g12-max-am=4
+        # make -j 4
+        # make install
+	# ../libint/configure --prefix=$WORKDIR
+
         cd -
 	
         # Libint1
@@ -102,6 +114,14 @@ To visualize the html documentation use:
         wget https://www.dropbox.com/s/6cja3zzhl1cq46i/libxc-master-MAY242023.tgz
         tar xzvf libxc-master-MAY242023.tgz
 	# Otherwise, download and compile with default options (libxc commit 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951)
+	# git clone https://gitlab.com/libxc/libxc.git
+	# cd libxc
+	# git checkout 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
+	# autoreconf -i
+	# ./configure --enable-shared --prefix=$WORKDIR
+	# make -j 4
+	# make install
+
         cd ..
 	
         # Configure Lowdin

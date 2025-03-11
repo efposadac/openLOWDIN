@@ -50,13 +50,14 @@ contains
   !! @brief Builds a grid for each species - Different sizes are possible, all points in memory
   ! Felix Moncada, 2017
   ! Roberto Flores-Moreno, 2009
-  subroutine GridManager_buildGrids(Grid_instance, GridsCommonPoints, type, molSys )
+  subroutine GridManager_buildGrids(Grid_instance, GridsCommonPoints, type, molSys, Functionals )
     implicit none
     type(Grid) :: Grid_instance(:)
     type(Grid) :: GridsCommonPoints(:,:)
     character(*) :: type
     type(MolecularSystem), target :: molSys
-     
+    type(Functional) :: Functionals(:,:)     
+
     integer :: numberOfSpecies
     integer :: speciesID,otherSpeciesID
     character(50) :: labels(2) 
@@ -78,6 +79,18 @@ contains
           call GridManager_findCommonPoints(Grid_instance(speciesID)%points,Grid_instance(speciesID)%totalSize,&
                Grid_instance(otherSpeciesID)%points,Grid_instance(otherSpeciesID)%totalSize,&
                GridsCommonPoints(speciesID,otherSpeciesID)%points,GridsCommonPoints(speciesID,otherSpeciesID)%totalSize)
+
+          if(GridsCommonPoints(speciesID,otherSpeciesID)%totalSize .eq. 0 .and. Functionals(speciesID,otherSpeciesID)%name.ne."NONE") then
+             call Exception_sendWarning("There are no common points between the grids of "//&
+                  trim(Grid_instance(speciesID)%nameOfSpecies)//" and "//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//&
+                  ". Are the GTF centers equal?", "at GridManager_buildGrids" )
+             print *, "As a hotfix, replacing grid of", &
+                  trim(Grid_instance(otherSpeciesID)%nameOfSpecies)," with the grid of ", trim(Grid_instance(speciesID)%nameOfSpecies)
+             call Grid_copyPoints(Grid_instance(otherSpeciesID), Grid_instance(speciesID)) 
+             call GridManager_findCommonPoints(Grid_instance(speciesID)%points,Grid_instance(speciesID)%totalSize,&
+                  Grid_instance(otherSpeciesID)%points,Grid_instance(otherSpeciesID)%totalSize,&
+                  GridsCommonPoints(speciesID,otherSpeciesID)%points,GridsCommonPoints(speciesID,otherSpeciesID)%totalSize)
+          end if
        end do
     end do
 
@@ -1005,7 +1018,6 @@ contains
     time1=omp_get_wtime()
 
     !check if both have common points
-    if(commonGridSize .lt. 0) print *, "WARNING! trying to evaluate the correlation between species ", electronicID, " and " ,otherSpeciesID, " but there are no common points. Are the GTF centers equal?"
     do k=1, commonGridSize
        !here we are assuming that the electron came in the first position
        i=commonPoints(k,1)
