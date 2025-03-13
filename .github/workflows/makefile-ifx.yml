@@ -95,5 +95,4 @@ jobs:
         make install
         # Run Tests
         make test
-
     
