@@ -88,7 +88,7 @@ To visualize the html documentation use:
 	# ./autogen.sh
 	# mkdir ../build
         # cd ../build
-        # ../libint/configure --prefix=$WORKDIR --with-max-am=6 --with-g12-max-am=4
+        # ../libint/configure --prefix=$WORKDIR --with-max-am=6 --enable-g12=4 --with-g12-max-am=4 --with-cxxgen-optflags
         # make -j 4
         # make install
 	# ../libint/configure --prefix=$WORKDIR

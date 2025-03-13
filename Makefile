@@ -5,6 +5,13 @@ endif
 
 include $(TOPDIR)/CONFIG
 
+ifeq ($(strip $(PREFIX)),)
+	PREFIX="/usr/local"
+endif
+ifeq ($(strip $(EXENAME)),)
+	EXENAME="openlowdin"
+endif
+
 SUBDIRS = utilities src
 ALLSUBDIRS = $(SUBDIRS) doc bin
 
@@ -18,6 +25,9 @@ doc::
 	cd $(TOPDIR)/doc && doxygen Doxyfile
 
 install:: bin/lowdin bin/lowdin.x
+	if [ -e $(PREFIX)/.$(EXENAME) ]; then \
+		rm -rf $(PREFIX)/.$(EXENAME)/bin \
+		rm -rf $(PREFIX)/.$(EXENAME)/lib ; fi
 	mkdir -p $(PREFIX)/.$(EXENAME)
 	cp -rf $(TOPDIR)/bin/lowdinvars.sh $(TOPDIR)
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdinvars.sh
@@ -26,7 +36,7 @@ install:: bin/lowdin bin/lowdin.x
 	$(SED) -i "s|COMMIT_ID|$(shell git --no-pager log -1 --pretty=format:"%H")|g" $(TOPDIR)/lowdinvars.sh
 	$(SED) -i 's|COMPILATION_DATE|$(shell date)|g' $(TOPDIR)/lowdinvars.sh
 	cp -rf $(TOPDIR)/lowdinvars.sh $(PREFIX)/.$(EXENAME)/
-	cp -rf lib $(PREFIX)/.$(EXENAME)/
+	cp -rf lib/ $(PREFIX)/.$(EXENAME)/lib/	
 	if [ -e utilities/erkale/build/erkale/basis ]; then \
 		cp -rf utilities/erkale/build/erkale/basis $(PREFIX)/.$(EXENAME)/lib/erkaleBasis ; fi
 	mkdir -p $(PREFIX)/.$(EXENAME)/bin

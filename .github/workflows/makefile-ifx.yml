@@ -50,7 +50,7 @@ jobs:
         # export CXX=icpc
         # export CXXFLAGS="-std=c++11 -Wno-enum-compare -qopenmp"
         # export CPPFLAGS='-I/usr/include/eigen3'
-        # ../libint/configure --prefix=$WORKDIR --with-max-am=4 --with-g12-max-am=4
+        # ../libint/configure --prefix=$WORKDIR --with-max-am=6 --enable-g12=4 --with-g12-max-am=4 --with-cxxgen-optflags
         # make -j 4
         # make install
         # cd ..

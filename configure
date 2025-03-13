@@ -43,9 +43,9 @@ TOPDIR=`pwd`
 ###########################################
 #            SET DEFAULTS
 ###########################################
-EXENAME="openlowdin"
 FC="gfortran"
 FLAGS="1"
+EXENAME="openlowdin"
 PREFIX="/usr/local"
 SCRATCH='/scratch'
 CUDAFLAGS="no"
