@@ -18,29 +18,30 @@ doc::
 	cd $(TOPDIR)/doc && doxygen Doxyfile
 
 install:: bin/lowdin bin/lowdin.x
-	mkdir -p $(PREFIX)/.lowdin2
+	mkdir -p $(PREFIX)/.$(EXENAME)
 	cp -rf $(TOPDIR)/bin/lowdinvars.sh $(TOPDIR)
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdinvars.sh
+	$(SED) -i  's|EXENAME|$(EXENAME)|g' $(TOPDIR)/lowdinvars.sh
 	$(SED) -i  's|SCRATCH_DIR|$(SCRATCH)|g' $(TOPDIR)/lowdinvars.sh
 	$(SED) -i "s|COMMIT_ID|$(shell git --no-pager log -1 --pretty=format:"%H")|g" $(TOPDIR)/lowdinvars.sh
 	$(SED) -i 's|COMPILATION_DATE|$(shell date)|g' $(TOPDIR)/lowdinvars.sh
-	cp -rf $(TOPDIR)/lowdinvars.sh $(PREFIX)/.lowdin2/
-	cp -rf lib $(PREFIX)/.lowdin2/
+	cp -rf $(TOPDIR)/lowdinvars.sh $(PREFIX)/.$(EXENAME)/
+	cp -rf lib $(PREFIX)/.$(EXENAME)/
 	if [ -e utilities/erkale/build/erkale/basis ]; then \
-		cp -rf utilities/erkale/build/erkale/basis $(PREFIX)/.lowdin2/lib/erkaleBasis ; fi
-	mkdir -p $(PREFIX)/.lowdin2/bin
-	cp -rf $(TOPDIR)/bin/*.x $(PREFIX)/.lowdin2/bin
+		cp -rf utilities/erkale/build/erkale/basis $(PREFIX)/.$(EXENAME)/lib/erkaleBasis ; fi
+	mkdir -p $(PREFIX)/.$(EXENAME)/bin
+	cp -rf $(TOPDIR)/bin/*.x $(PREFIX)/.$(EXENAME)/bin
 	if [ -e utilities/erkale/erkale/bin/erkale_loc ]; then \
-		cp -rf utilities/erkale/erkale/bin/erkale_fchkpt utilities/erkale/erkale/bin/erkale_loc $(PREFIX)/.lowdin2/bin ; fi
+		cp -rf utilities/erkale/erkale/bin/erkale_fchkpt utilities/erkale/erkale/bin/erkale_loc $(PREFIX)/.$(EXENAME)/bin ; fi
 	cp -rf $(TOPDIR)/bin/lowdin $(TOPDIR)
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdin
-	cp -rf $(TOPDIR)/lowdin $(PREFIX)/lowdin2
+	cp -rf $(TOPDIR)/lowdin $(PREFIX)/$(EXENAME)
 	rm -rf $(TOPDIR)/lowdin
 	rm -rf $(TOPDIR)/lowdinvars.sh
 
 uninstall:: bin/lowdin bin/lowdin.x
-	rm -rf $(PREFIX)/.lowdin2
-	rm -rf $(PREFIX)/lowdin2
+	rm -rf $(PREFIX)/.$(EXENAME)
+	rm -rf $(PREFIX)/$(EXENAME)
 
 clean::
 	for dir in $(SUBDIRS); \
@@ -60,6 +61,6 @@ distclean::
 	rm -rf $(TOPDIR)/doc/latex
 
 test::
-	cd $(TOPDIR)/test/ && sh runtest.sh lowdin2
+	cd $(TOPDIR)/test/ && sh runtest.sh $(EXENAME)
 
 

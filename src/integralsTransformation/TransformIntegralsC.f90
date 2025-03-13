@@ -225,7 +225,7 @@ contains
       ioff(pq) = ioff(pq-1) + ssize2 - pq + 1 
     end do
 
-!$  timeA(1) = omp_get_wtime()
+    !$  timeA(1) = omp_get_wtime()
     !! Read integrals
 
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, pp, qq, rr, ss, p, shellIntegrals, i, index2, filesize, pq, rs)
@@ -303,25 +303,6 @@ contains
     !! First half-transformation
 !$  timeA(2) = omp_get_wtime()
 
-    allocate (tempB ( ssize, ssize ) )
-    tempB = 0
-
-    if ( allocated (tempC)) deallocate (tempC )
-    allocate (tempC ( ssize ) )
-
-    tempC = 0
-
-    if ( allocated (tempA)) deallocate (tempA )
-    allocate (tempA ( ssize, ssize, ssize ) )
-    tempA = 0
-
-    !if ( allocated (auxtempA)) deallocate (auxtempA )
-    !allocate (auxtempA ( this%numberOfContractions , &
-    !     this%numberOfContractions, &
-    !     this%numberOfContractions ) )
-    !auxtempA = 0
-
-
     auxIntegrals = 0.0_8
     pp = 0
     qq = 0
@@ -341,6 +322,18 @@ contains
     !$OMP PARALLEL &
     !$omp& private(p,q,r,s,j,n,u,k,l,ij,kl,tempA, tempB, tempC, index2, mu, nu,lambda, sigma, auxTransformedTwoParticlesIntegral) &
     !$omp& shared(pp,qq,rr,ss,m,auxIntegrals) reduction(+:mm) 
+    if ( allocated (tempC)) deallocate (tempC )
+    allocate (tempC ( ssize ) )
+    tempC = 0
+
+    if ( allocated (tempB)) deallocate (tempB )
+    allocate (tempB ( ssize, ssize ) )
+    tempB = 0
+
+    if ( allocated (tempA)) deallocate (tempA )
+    allocate (tempA ( ssize, ssize, ssize ) )
+    tempA = 0
+
     !$omp do schedule (dynamic)
     do p = this%p_l, this%p_u
        n = p

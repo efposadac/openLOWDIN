@@ -28,6 +28,7 @@ module DirectIntegralManager_
   use AttractionIntegrals_
   use KineticIntegrals_
   use MomentIntegrals_
+  use HarmonicIntegrals_
   use Libint2Interface_
   use RysQuadrature_
   use Matrix_
@@ -52,6 +53,8 @@ module DirectIntegralManager_
        DirectIntegralManager_getKineticIntegrals, &
        DirectIntegralManager_getAttractionIntegrals, &
        DirectIntegralManager_getMomentIntegrals, &
+       DirectIntegralManager_getElectricFieldIntegrals, &
+       DirectIntegralManager_getHarmonicIntegrals, &
        DirectIntegralManager_getExternalPotentialIntegrals, &
        DirectIntegralManager_getDirectIntraRepulsionIntegralsAll, &
        DirectIntegralManager_getDirectInterRepulsionIntegralsAll
@@ -859,8 +862,6 @@ contains
     integer :: ii, jj, hh
     integer, allocatable :: labels(:)
     real(8), allocatable :: integralValue(:), auxintegralValue(:)
-    character(100) :: speciesName
-
 
     !!Overlap Integrals for one species    
     potID = 0
@@ -875,17 +876,16 @@ contains
        end if
     end do
 
-    ! write(30) job
-    speciesName = molSystem%species(speciesID)%name
-    ! write(30) speciesName
+    call Matrix_constructor(integralsMatrix, int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), &
+         int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), 0.0_8)
+
+    ! Safety check, If there is no potential, do not try to fill the matrix
+    if(potID .eq. 0) return
 
     if(allocated(labels)) deallocate(labels)
     allocate(labels(molSystem%species(speciesID)%basisSetSize))
     labels = DirectIntegralManager_getLabels(molSystem%species(speciesID))
-
-    call Matrix_constructor(integralsMatrix, int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), &
-         int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), 0.0_8)
-
+    
     ii = 0
     do g = 1, size(molSystem%species(speciesID)%particles)
        do h = 1, size(molSystem%species(speciesID)%particles(g)%basis%contraction)
@@ -909,11 +909,9 @@ contains
                 allocate(auxintegralValue(molSystem%species(speciesID)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
                      molSystem%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital))
 
-
                 integralValue = 0.0_8
                 do p = 1, ExternalPotential_instance%potentials(potID)%numOfComponents
                    auxintegralValue = 0.0_8
-
 
                    do r = 1, ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%numcartesianOrbital
                       ExternalPotential_instance%potentials(potID)%gaussianComponents(p)%primNormalization( &
@@ -949,7 +947,7 @@ contains
     end do
 
   end subroutine DirectIntegralManager_getExternalPotentialIntegrals
-
+ 
   !> 
   !! @brief Calculate Intra-species repulsion integrals directly 
   !! @author F.M. 3/2023
@@ -1035,5 +1033,84 @@ contains
 
   end subroutine DirectIntegralManager_getDirectInterRepulsionIntegralsAll
 
+  !! @author F.M. 3/2025
+  subroutine DirectIntegralManager_getElectricFieldIntegrals(molSystem,speciesID,integralsMatrices)
+    implicit none
+    type(MolecularSystem) :: molSystem
+    integer :: speciesID
+    Type(Matrix) :: integralsMatrices(1:3)
+
+    integer :: component
+
+    do component=1, 3
+       call DirectIntegralManager_getMomentIntegrals(molSystem,speciesID,component,integralsMatrices(component))
+    end do
+    
+  end subroutine DirectIntegralManager_getElectricFieldIntegrals
+
+  !! @author F.M. 3/2025
+  subroutine DirectIntegralManager_getHarmonicIntegrals(molSystem,speciesID,origin,integralsMatrix)
+    implicit none
+    type(MolecularSystem) :: molSystem
+    integer :: speciesID
+    real(8) :: origin(3)
+    Type(Matrix) :: integralsMatrix
+
+    integer :: g, h, i
+    integer :: j, k, l, m, r
+    integer :: p, potID
+    integer :: ii, jj, hh
+    integer, allocatable :: labels(:)
+    real(8), allocatable :: integralValue(:), auxintegralValue(:)
+
+    if(allocated(labels)) deallocate(labels)
+    allocate(labels(MolecularSystem_instance%species(speciesID)%basisSetSize))
+    labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(speciesID))
+
+    call Matrix_constructor(integralsMatrix, int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), &
+         int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), 0.0_8)
+
+    ii = 0
+    do g = 1, size(molSystem%species(speciesID)%particles)
+       do h = 1, size(molSystem%species(speciesID)%particles(g)%basis%contraction)
+          
+          hh = h
+          
+          ii = ii + 1
+          jj = ii - 1
+          
+          do i = g, size(molSystem%species(speciesID)%particles)
+             do j = hh, size(molSystem%species(speciesID)%particles(i)%basis%contraction)
+                
+                jj = jj + 1
+                
+                !! allocating memory Integrals for shell
+                if(allocated(integralValue)) deallocate(integralValue)
+                allocate(integralValue(molSystem%species(speciesID)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
+                     molSystem%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+
+                !!Calculating integrals for shell
+                call HarmonicIntegrals_computeShell( molSystem%species(speciesID)%particles(g)%basis%contraction(h), &
+                     molSystem%species(speciesID)%particles(i)%basis%contraction(j), integralValue, origin)
+                
+                !!saving integrals on Matrix
+                m = 0
+                do k = labels(ii), labels(ii) + (molSystem%species(speciesID)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                   do l = labels(jj), labels(jj) + (molSystem%species(speciesID)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                      m = m + 1
+                      integralsMatrix%values(k, l) = integralValue(m)
+                      integralsMatrix%values(l, k) = integralsMatrix%values(k, l)
+                      
+                   end do
+                end do
+                
+             end do
+             hh = 1
+          end do
+          
+       end do
+    end do
+    
+  end subroutine DirectIntegralManager_getHarmonicIntegrals
 
 end module DirectIntegralManager_
