@@ -72,6 +72,6 @@ distclean::
 	rm -rf $(TOPDIR)/doc/latex
 
 test::
-	cd $(TOPDIR)/test/ && sh runtest.sh $(EXENAME)
+	cd $(TOPDIR)/test/ && sh runtest.sh $(EXENAME) && sh clean.sh
 
 

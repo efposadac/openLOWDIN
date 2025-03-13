@@ -190,7 +190,7 @@ if [ "$FLAGS" = "1" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
     else
-    	FCFLAGS="-ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz  -fno-range-check -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz  -fno-range-check -D gfortran $addflagsCuda"
     fi
 fi
 
@@ -221,9 +221,9 @@ fi
 
 if [ "$FLAGS" = "5" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+    	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp  $addflagsCuda " 
     else
-    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check D gfortran $addflagsCuda"
     fi
 fi
 

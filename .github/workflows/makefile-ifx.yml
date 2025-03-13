@@ -84,7 +84,7 @@ jobs:
         # make install
         # cd ..
         # Configure Lowdin
-        ./configure -f "ifx" -p $WORKDIR/bin -s /tmp
+        ./configure -f "ifx" -o 2 -p $WORKDIR/bin -s /tmp
         # Build Lowdin
         make -j 4
         # Install Lowdin

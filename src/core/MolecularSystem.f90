@@ -943,7 +943,6 @@ contains
 
        particleManager_instance => molecularSystem_instance%allParticles
 
-
        !! Loading External/Inter-particle potentials information
        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
           read(40,*) auxValue
@@ -956,7 +955,6 @@ contains
           end do
        end if
 
-       print *, "CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL", CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL
        if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
           read(40,*) auxValue 
           call GTFPotential_constructor(InterPotential_instance,auxValue,"INTERNAL")
