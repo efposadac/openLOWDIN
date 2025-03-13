@@ -47,6 +47,7 @@ install:: bin/lowdin bin/lowdin.x
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdin
 	$(SED) -i  's|EXENAME|$(EXENAME)|g' $(TOPDIR)/lowdin
 	cp -rf $(TOPDIR)/lowdin $(PREFIX)/$(EXENAME)
+	cp -rf $(TOPDIR)/lowdin $(PREFIX)/.$(EXENAME)/$(EXENAME)
 	rm -rf $(TOPDIR)/lowdin
 	rm -rf $(TOPDIR)/lowdinvars.sh
 

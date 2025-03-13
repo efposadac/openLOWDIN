@@ -40,7 +40,7 @@ if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     # Fortran compiler
     export F77="$FC"
     # C++ flags to use
-    export CFLAGS="-g -O2 -D intel"
+    export CFLAGS="-g -O2 -D intel -static -static-intel -static-libgcc"
     # MKL (with Intel compiler)
     LAPACKOMP="-qmkl=parallel"
     LAPACKSER="-qmkl=sequential"

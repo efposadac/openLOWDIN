@@ -83,7 +83,11 @@ jobs:
         # make -j 4
         # make install
         # cd ..
-        # Configure Lowdin
+	# Get erkale - save some compilation time
+	wget https://www.dropbox.com/scl/fi/rrboefmyu04wse1s57n3o/erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0
+	mv 'erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0' erkaleStaticForLowdin.tgz
+	tar xzvf erkaleStaticForLowdin.tgz
+	# Configure Lowdin
         ./configure -f "ifx" -o 2 -p $WORKDIR/bin -s /tmp
         # Build Lowdin
         make -j 4
