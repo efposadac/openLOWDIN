@@ -45,6 +45,7 @@ install:: bin/lowdin bin/lowdin.x
 		cp -rf utilities/erkale/erkale/bin/erkale_fchkpt utilities/erkale/erkale/bin/erkale_loc $(PREFIX)/.$(EXENAME)/bin ; fi
 	cp -rf $(TOPDIR)/bin/lowdin $(TOPDIR)
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdin
+	$(SED) -i  's|EXENAME|$(EXENAME)|g' $(TOPDIR)/lowdin
 	cp -rf $(TOPDIR)/lowdin $(PREFIX)/$(EXENAME)
 	rm -rf $(TOPDIR)/lowdin
 	rm -rf $(TOPDIR)/lowdinvars.sh
