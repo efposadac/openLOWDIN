@@ -674,18 +674,16 @@ contains
         write(40,*) ExternalPotential_instance%potentials(i)%name
         write(40,*) ExternalPotential_instance%potentials(i)%species 
       end do
-
     end if
 
     if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
       write(40,*) InterPotential_instance%ssize 
       do i = 1, InterPotential_instance%ssize 
         write(40,*) i 
-        write(40,*) InterPotential_instance%potentials(i)%name
-        write(40,*) InterPotential_instance%potentials(i)%species 
-        write(40,*) InterPotential_instance%potentials(i)%otherSpecies
+        write(40,"(A50)") InterPotential_instance%potentials(i)%name
+        write(40,"(A50)") InterPotential_instance%potentials(i)%species 
+        write(40,"(A50)") InterPotential_instance%potentials(i)%otherSpecies
       end do
-
     end if
 
     close(40)
@@ -776,7 +774,7 @@ contains
     integer :: counter
     integer :: i, j
     logical :: existFile
-    character(20) :: name
+    character(50) :: name
     character(50) :: species
     character(50) :: otherSpecies
 
@@ -945,39 +943,28 @@ contains
 
        particleManager_instance => molecularSystem_instance%allParticles
 
-
        !! Loading External/Inter-particle potentials information
        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-
           read(40,*) auxValue
           call GTFPotential_constructor(ExternalPotential_instance,auxValue,"EXTERNAL")
-
           do j = 1, ExternalPotential_instance%ssize 
              read(40,*) i 
              read(40,*) name
              read(40,*) species
-
-             call GTFPotential_load(ExternalPotential_instance, i, name, species)
-
+             call GTFPotential_load(ExternalPotential_instance, "EXTERNAL", i, trim(name), trim(species), "NONE")
           end do
-
        end if
 
        if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
-
           read(40,*) auxValue 
           call GTFPotential_constructor(InterPotential_instance,auxValue,"INTERNAL")
-
           do j = 1, InterPotential_instance%ssize 
              read(40,*) i 
              read(40,*) name
              read(40,*) species
              read(40,*) otherSpecies
-
-             call GTFPotential_load(InterPotential_instance, i, name, species, otherSpecies)
-
+             call GTFPotential_load(InterPotential_instance, "INTERNAL", i, trim(name), trim(species), trim(otherSpecies))
           end do
-
        end if
 
        close(40)

@@ -13,10 +13,9 @@ END TASKS
 CONTROL
 	readCoefficients=F
 	iterationScheme=1
-	buildTwoParticlesMatrixForOneParticle=T
 	electronicEnergyTolerance=1E-10
 	totalEnergyTolerance=1E-10
-	scfElectronicMaxIterations=15
+	scfElectronicMaxIterations=25
 	scfGlobalMaxIterations=10000
 	integralStorage="MEMORY"
 END CONTROL

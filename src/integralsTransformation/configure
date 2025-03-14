@@ -18,7 +18,7 @@ LDR=\$(FC)
 CUDA=\$(CUBAFLAGS)
 INC=-I\$(TOPDIR)src/core/ 
 INCI=-I\$(TOPDIR)src/ints/
-LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o  \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o
+LDPATH=\$(TOPDIR)lib/lowdincore.a \$(TOPDIR)lib/libtransform.a \$(TOPDIR)src/ints/AttractionIntegrals.o \$(TOPDIR)src/ints/CudintInterface.o \$(TOPDIR)src/ints/DirectIntegralManager.o \$(TOPDIR)src/ints/G12Integrals.o  \$(TOPDIR)src/ints/Iterators.o \$(TOPDIR)src/ints/KineticIntegrals.o \$(TOPDIR)src/ints/Libint2Iface.o \$(TOPDIR)src/ints/Libint2Interface.o \$(TOPDIR)src/ints/MomentIntegrals.o  \$(TOPDIR)src/ints/HarmonicIntegrals.o \$(TOPDIR)src/ints/OverlapIntegrals.o \$(TOPDIR)src/ints/RysQInts.o \$(TOPDIR)src/ints/RysQuadrature.o \$(TOPDIR)src/ints/ThreeCOverlapIntegrals.o
 FLAGS=\$(FCFLAGS)
 LIBS=\$(ALL_LIBS) -lm 
 HELIOSFLAGS=\$(CPPFLAGS) -D_OPENMP  -Ofast -std=c++11   -finline-functions -g  -ffast-math  -w

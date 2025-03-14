@@ -1,6 +1,6 @@
 #!/bin/bash
 PID=$$
-VARS_PATH="PREFIX/.lowdin2/lowdinvars.sh"
+VARS_PATH="PREFIX/.EXENAME/lowdinvars.sh"
 source ${VARS_PATH}
 
 SED=sed

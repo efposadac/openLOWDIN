@@ -65,20 +65,22 @@ module WaveFunction_
      type(Matrix), allocatable :: hartreeMatrix(:) !!Coulomb Interaction between species
      type(Matrix) :: exchangeHFMatrix
      type(Matrix) :: exchangeCorrelationMatrix !!Kohn-Sham contributions. Felix: Separate this into exchange and correlation contributions
-     type(Matrix) :: externalPotentialMatrix
      type(Matrix) :: beforeDensityMatrix
      type(Matrix) :: waveFunctionCoefficients
      type(Vector) :: molecularOrbitalsEnergy     
      type(FourIndexMatrix), allocatable :: fourCenterIntegrals(:) !!Coulomb Interaction between species
 
+     !! External potential contributions
+     type(Matrix) :: externalPotentialMatrix
+     type(Matrix) :: electricField(3)
+     type(Matrix) :: harmonic
+     
      !! Cosmo Things
 
      type(Matrix) :: cosmo1
      type(Matrix) :: cosmo2
      type(Matrix) :: cosmo4
      type(Matrix) :: cosmoCoupling
-     type(Matrix) :: electricField(3)
-     type(Matrix) :: harmonic
      real(8) :: cosmoCharge
      real(8) :: cosmoChargeValue
 
@@ -429,7 +431,7 @@ contains
                this%removedOrbitals=this%removedOrbitals+1
        end do
        if (this%removedOrbitals .gt. 0 .and. CONTROL_instance%PRINT_LEVEL .gt. 0) &
-            write(*,"(A,I5,A,A,A,ES9.3)") "Removed ", this%removedOrbitals , " orbitals for species ", &
+            write(*,"(A,I5,A,A,A,ES10.3)") "Removed ", this%removedOrbitals , " orbitals for species ", &
             trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys)), " with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
        !!
        !!****************************************************************
@@ -539,6 +541,7 @@ contains
          this%kineticMatrix%values + &
          this%puntualInteractionMatrix%values
 
+    !! Add GTF external potential
     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
        this%HCoreMatrix%values = this%HCoreMatrix%values + this%externalPotentialMatrix%values
     end if
@@ -565,6 +568,12 @@ contains
             (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values
        this%externalPotentialMatrix%values = this%externalPotentialMatrix%values + &
             (1.0/2.0) * MolecularSystem_getMass(this%species,this%molSys) * auxOmega**2 * this%harmonic%values
+       !! Setting the kinetic and potential energy relative to the free QDO results (omega/4)
+       if(CONTROL_instance%SET_QDO_ENERGY_ZERO) then
+          this%HCoreMatrix%values=this%HCoreMatrix%values-auxOmega*3.0/2.0*this%overlapMatrix%values
+          this%externalPotentialMatrix%values=this%externalPotentialMatrix%values-auxOmega*3.0/4.0*this%overlapMatrix%values
+          this%kineticMatrix%values=this%kineticMatrix%values-auxOmega*3.0/4.0*this%overlapMatrix%values
+       end if
     end if
 
 

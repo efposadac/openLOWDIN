@@ -249,6 +249,7 @@ module CONTROL_
      logical :: TRANSFORM_TO_CENTER_OF_MASS
      logical :: ARE_THERE_DUMMY_ATOMS
      logical :: ARE_THERE_QDO_POTENTIALS
+     logical :: SET_QDO_ENERGY_ZERO
      logical :: IS_THERE_EXTERNAL_POTENTIAL
      logical :: IS_THERE_INTERPARTICLE_POTENTIAL
      logical :: IS_THERE_OUTPUT
@@ -597,6 +598,7 @@ module CONTROL_
   logical :: LowdinParameters_transformToCenterOfMass
   logical :: LowdinParameters_areThereDummyAtoms
   logical :: LowdinParameters_areThereQDOPotentials
+  logical :: LowdinParameters_setQDOEnergyZero
   logical :: LowdinParameters_isThereExternalPotential
   logical :: LowdinParameters_isThereInterparticlePotential
   logical :: LowdinParameters_isThereOutput
@@ -945,6 +947,7 @@ module CONTROL_
        LowdinParameters_transformToCenterOfMass,&
        LowdinParameters_areThereDummyAtoms,&
        LowdinParameters_areThereQDOPotentials,&
+       LowdinParameters_setQDOEnergyZero, &
        LowdinParameters_isThereExternalPotential,&
        LowdinParameters_isThereInterparticlePotential,&
        LowdinParameters_isThereOutput,&
@@ -1314,6 +1317,7 @@ contains
     LowdinParameters_transformToCenterOfMass = .false.
     LowdinParameters_areThereDummyAtoms = .false.
     LowdinParameters_areThereQDOPotentials = .false.
+    LowdinParameters_setQDOEnergyZero = .false.
     LowdinParameters_isThereExternalPotential = .false.
     LowdinParameters_isThereInterparticlePotential = .false.
     LowdinParameters_isThereOutput = .false.
@@ -1660,6 +1664,7 @@ contains
     CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS = .false.
     CONTROL_instance%ARE_THERE_DUMMY_ATOMS = .false.
     CONTROL_instance%ARE_THERE_QDO_POTENTIALS = .false.
+    CONTROL_instance%SET_QDO_ENERGY_ZERO = .false.
     CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL = .false.
     CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL = .false.
     CONTROL_instance%IS_THERE_OUTPUT = .false.
@@ -2065,6 +2070,7 @@ contains
     CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS = LowdinParameters_transformToCenterOfMass
     CONTROL_instance%ARE_THERE_DUMMY_ATOMS = LowdinParameters_areThereDummyAtoms
     CONTROL_instance%ARE_THERE_QDO_POTENTIALS = LowdinParameters_areThereQDOPotentials
+    CONTROL_instance%SET_QDO_ENERGY_ZERO = LowdinParameters_setQDOEnergyZero
     CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL = LowdinParameters_isThereExternalPotential
     CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL = LowdinParameters_isThereInterparticlePotential
     CONTROL_instance%IS_THERE_OUTPUT = LowdinParameters_isThereOutput
@@ -2431,7 +2437,8 @@ contains
     LowdinParameters_method = CONTROL_instance%METHOD
     LowdinParameters_transformToCenterOfMass = CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS
     LowdinParameters_areThereDummyAtoms = CONTROL_instance%ARE_THERE_DUMMY_ATOMS
-    LowdinParameters_areThereQDOPotentials = CONTROL_instance%ARE_THERE_QDO_POTENTIALS 
+    LowdinParameters_areThereQDOPotentials = CONTROL_instance%ARE_THERE_QDO_POTENTIALS
+    LowdinParameters_setQDOEnergyZero = CONTROL_instance%SET_QDO_ENERGY_ZERO
     LowdinParameters_isThereExternalPotential = CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL
     LowdinParameters_isThereInterparticlePotential = CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL
     LowdinParameters_isThereOutput = CONTROL_instance%IS_THERE_OUTPUT
@@ -2770,7 +2777,10 @@ contains
     otherThis%TRANSFORM_TO_CENTER_OF_MASS = this%TRANSFORM_TO_CENTER_OF_MASS 
     otherThis%ARE_THERE_DUMMY_ATOMS = this%ARE_THERE_DUMMY_ATOMS 
     otherThis%ARE_THERE_QDO_POTENTIALS = this%ARE_THERE_QDO_POTENTIALS 
+    otherThis%SET_QDO_ENERGY_ZERO = this%SET_QDO_ENERGY_ZERO
     otherThis%IS_THERE_EXTERNAL_POTENTIAL = this%IS_THERE_EXTERNAL_POTENTIAL 
+    otherThis%IS_THERE_INTERPARTICLE_POTENTIAL = this%IS_THERE_INTERPARTICLE_POTENTIAL
+    otherThis%IS_THERE_OUTPUT = this%IS_THERE_OUTPUT
     otherThis%IS_THERE_FROZEN_PARTICLE = this%IS_THERE_FROZEN_PARTICLE 
     !!*****************************************************
     !! Density Functional Theory Options
@@ -3297,12 +3307,16 @@ contains
        write (*,"(T10,A)") "POST-SCF CORRECTIONS ONLY WILL BE PERFORMED IN THE SECOND CALCULATION"
        print *, "  "
 
-       write (*,"(T10,A,E6.1,A)") "SUBSYSTEM B IS BUILT FROM ORBITALS WITH POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD ," OVER FRAGMENT ONE ATOMS"
+       write (*,"(T10,A,E8.1,A)") "SUBSYSTEM B IS BUILT FROM ORBITALS WITH POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_ORBITAL_THRESHOLD ," OVER FRAGMENT ONE ATOMS"
        if(CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD .gt. 0.0) &
-            write (*,"(T10,A,E6.1,A)") "SHELLS WITH MULLIKEN POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD ," WILL BE REMOVED FROM SUBSYSTEM A BASIS SET"
+            write (*,"(T10,A,E8.1,A)") "SHELLS WITH MULLIKEN POPULATION LOWER THAN ", CONTROL_instance%SUBSYSTEM_BASIS_THRESHOLD ," WILL BE REMOVED FROM SUBSYSTEM A BASIS SET"
             
     end if
 
+    if(CONTROL_instance%SET_QDO_ENERGY_ZERO) then
+       write (*, "(A)") "Setting the energy zero to the kinetic and potential energy of the free QDOs (3/2*omega)"
+    end if
+    
     
   end subroutine CONTROL_show
 

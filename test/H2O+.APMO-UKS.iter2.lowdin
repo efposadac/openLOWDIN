@@ -18,8 +18,8 @@ CONTROL
 	electronicEnergyTolerance=1E-10
 	NonelectronicEnergyTolerance=1E-10
 	totalEnergyTolerance=1E-10
-	scfElectronicMaxIterations=15
-	scfNonelectronicMaxIterations=25
+	scfElectronicMaxIterations=20
+	scfNonelectronicMaxIterations=50
 	scfGlobalMaxIterations=10000
 	integralStorage="MEMORY"
 	gridStorage="MEMORY"

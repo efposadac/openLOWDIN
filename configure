@@ -15,14 +15,16 @@
 
 usage(){
     echo "Usage:"
-    echo "   $ ./configure [-f compiler] [-o options] [-p path/to/install] [-s path/to/scratch] [-l lapack libs] [-d] [-h] "
+    echo "   $ ./configure [-f compiler] [-o options] [-n name] [-p path/to/install] [-s path/to/scratch] [-l lapack libs] [-d] [-h] "
     echo ""
     echo "   -f"
     echo "      gfortran/ifort/ifx"
     echo "   -o"
     echo "      Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level"   
+    echo "   -n"
+    echo "      executable name"
     echo "   -p"
-    echo "      Path to install LOWDIN"
+    echo "      Path to install openLOWDIN"
     echo "   -s"
     echo "      Path for scratch"
     echo "   -l"
@@ -32,7 +34,7 @@ usage(){
     echo "   -h"
     echo "      Print this message"
     echo ""
-    echo "Example: ./configure -f gfortran -o 1 -p /usr/local -s /tmp -l \"-llapack -lblas -latlas\""
+    echo "Example: ./configure -f gfortran -o 1 -n openlowdin -p /usr/local -s /tmp -l \"-llapack -lblas -latlas\""
     echo ""
 }
 
@@ -43,6 +45,7 @@ TOPDIR=`pwd`
 ###########################################
 FC="gfortran"
 FLAGS="1"
+EXENAME="openlowdin"
 PREFIX="/usr/local"
 SCRATCH='/scratch'
 CUDAFLAGS="no"
@@ -56,9 +59,13 @@ fi
 ############################################
 # Script options
 ############################################
-while getopts   "f:o:p:s:l:dh" OPTNAME
+while getopts   "n:f:o:p:s:l:dh" OPTNAME
 do
     case $OPTNAME in
+        n)
+            EXENAME=$OPTARG
+            DEFAULTS='T'
+            ;;
         f)
             FC=$OPTARG
             DEFAULTS='T'
@@ -100,6 +107,7 @@ else
     if [ -e CONFIG ] ; then
         FC=`awk '{if($1 == "FC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print  $i}}' CONFIG`
+	EXENAME=`awk '{if($1 == "EXENAME" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         PREFIX=`awk '{if($1 == "PREFIX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         SCRATCH=`awk '{if($1 == "SCRATCH" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
@@ -182,7 +190,7 @@ if [ "$FLAGS" = "1" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
     else
-    	FCFLAGS="-ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz  -fno-range-check -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz  -fno-range-check -D gfortran $addflagsCuda"
     fi
 fi
 
@@ -213,9 +221,9 @@ fi
 
 if [ "$FLAGS" = "5" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+    	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp  $addflagsCuda " 
     else
-    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check D gfortran $addflagsCuda"
     fi
 fi
 
@@ -249,6 +257,15 @@ ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIB
 #                       SPECIFIC INSTALLATION DIRECTORIES
 ###############################################################################
 if [[ $DEFAULTS == 'F' ]]; then
+    echo "Executable name? default=openlowdin [$EXENAME]"
+    read NAME
+fi
+if [ "$NAME" = "" ] ; then
+    NAME=$EXENAME
+fi
+EXENAME=$NAME
+
+if [[ $DEFAULTS == 'F' ]]; then
     echo "Installation directory? default=/usr/local [$PREFIX]"
     read BINDIR
 fi
@@ -275,6 +292,7 @@ fi
 
 echo "FC = $FC" > CONFIG
 echo "FLAGS = $FLAGS" >> CONFIG
+echo "EXENAME = $EXENAME" >> CONFIG
 echo "PREFIX = $PREFIX" >> CONFIG
 echo "SCRATCH = $SCRATCH" >> CONFIG
 echo "CUBAFLAGS = $CUBAFFLAGS" >> CONFIG

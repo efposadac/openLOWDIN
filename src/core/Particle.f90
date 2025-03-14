@@ -490,8 +490,11 @@ contains
        
        call ElementalParticle_load( eparticle, trim(name) )
 
-       if(eparticle%custom .and. auxMass .ne. 0.0_8 .and. auxCharge .ne. 0.0_8) &
-            print *, "I'm loading a custom particle from the input", trim(name), "with mass", auxMass, "and charge", auxCharge
+       if(eparticle%custom .and. auxMass .ne. 0.0_8 .and. auxCharge .ne. 0.0_8) then
+          write (*,*) ""
+          write (*,"(A,A15)") "Loading a custom particle from the input", trim(name) 
+          write (*,"(A,F15.8,A,F12.8)") "with mass", auxMass, "and charge", auxCharge
+       end if
        if(eparticle%custom .and. auxMass .eq. 0.0_8 .and. auxCharge .eq. 0.0_8) &
             call Particle_exception( ERROR, "Elemental particle: "//trim(name)//&
             " NOT found in ElementalParticles.lib. If you want to use a custom particle, provide at least its mass and charge in the input", "In Particle_load routine")

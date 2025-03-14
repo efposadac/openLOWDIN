@@ -768,7 +768,7 @@ contains
           call InputManager_exception( ERROR, "check the INTERPOTENTIAL block in your input file", "InputManager loadTask function" )       
         end if
 
-        call GTFPotential_load(InterPotential_instance, potId, trim(InterPot_name), trim(InterPot_specie), trim(InterPot_otherSpecie))
+        call GTFPotential_load(InterPotential_instance, "INTERNAL", potId, trim(InterPot_name), trim(InterPot_specie), trim(InterPot_otherSpecie))
 
       end do
     
@@ -790,7 +790,7 @@ contains
           call InputManager_exception( ERROR, "check the EXTERPOTENTIAL block in your input file", "InputManager loadTask function" )       
         end if
 
-        call GTFPotential_load(ExternalPotential_instance, potId, trim(ExternalPot_name), trim(ExternalPot_specie))
+        call GTFPotential_load(ExternalPotential_instance, "EXTERNAL", potId, trim(ExternalPot_name), trim(ExternalPot_specie), "NONE")
 
       end do
     end if

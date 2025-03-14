@@ -620,16 +620,12 @@ contains
           call WaveFunction_readOverlapMatrix(wfObjects(speciesID), trim(integralsFile))
           call WaveFunction_readKineticMatrix(wfObjects(speciesID), trim(integralsFile))
           call WaveFunction_readPuntualInteractionMatrix(wfObjects(speciesID), trim(integralsFile))
-          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-             call WaveFunction_readExternalPotentialMatrix(wfObjects(speciesID), trim(integralsFile))
-          end if
-          if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) then
-             call WaveFunction_readElectricFieldMatrices(wfObjects(speciesID), trim(integralsFile))
-          end if
-
-          if ( MolecularSystem_getOmega(speciesID,this%molSys) .ne. 0.0_8) then
-            call WaveFunction_readHarmonicOscillatorMatrix(wfObjects(speciesID), trim(integralsFile))
-          end if
+          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+               call WaveFunction_readExternalPotentialMatrix(wfObjects(speciesID), trim(integralsFile))
+          if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) &
+               call WaveFunction_readElectricFieldMatrices(wfObjects(speciesID), trim(integralsFile))
+          if ( MolecularSystem_getOmega(speciesID,this%molSys) .ne. 0.0_8) &
+               call WaveFunction_readHarmonicOscillatorMatrix(wfObjects(speciesID), trim(integralsFile))
           !! Builds Cosmo hcore integrals
           if(CONTROL_instance%COSMO)then
              cosmoIntegralsFile="cosmo.opints"
@@ -640,16 +636,15 @@ contains
        numberOfSpecies = this%molSys%numberOfQuantumSpecies
 
        do speciesID = 1, numberOfSpecies
-          call DirectIntegralManager_getOverlapIntegrals(this%molSys,speciesID,&
-               wfObjects(speciesID)%overlapMatrix)
-          call DirectIntegralManager_getKineticIntegrals(this%molSys,speciesID,&
-               wfObjects(speciesID)%kineticMatrix)
-          call DirectIntegralManager_getAttractionIntegrals(this%molSys,speciesID,&
-               wfObjects(speciesID)%puntualInteractionMatrix)
-          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-             call DirectIntegralManager_getExternalPotentialIntegrals(this%molSys,speciesID,&
-                  wfObjects(speciesID)%externalPotentialMatrix)
-          end if
+          call DirectIntegralManager_getOverlapIntegrals(this%molSys,speciesID,wfObjects(speciesID)%overlapMatrix)
+          call DirectIntegralManager_getKineticIntegrals(this%molSys,speciesID,wfObjects(speciesID)%kineticMatrix)
+          call DirectIntegralManager_getAttractionIntegrals(this%molSys,speciesID,wfObjects(speciesID)%puntualInteractionMatrix)
+          if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+               call DirectIntegralManager_getExternalPotentialIntegrals(this%molSys,speciesID,wfObjects(speciesID)%externalPotentialMatrix)
+          if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) &
+               call DirectIntegralManager_getElectricFieldIntegrals(this%molSys,speciesID,wfObjects(speciesID)%electricField(1:3))
+          if ( MolecularSystem_getOmega(speciesID,this%molSys) .ne. 0.0_8) &
+               call DirectIntegralManager_getHarmonicIntegrals(this%molSys,speciesID,MolecularSystem_getQDOcenter(speciesID),wfObjects(speciesID)%harmonic)
        end do
     end if
 
@@ -1025,6 +1020,7 @@ contains
     real(8) :: puntualInteractionEnergy
     real(8) :: puntualMMInteractionEnergy
     real(8) :: totalCosmoEnergy
+    real(8) :: totalQDOZeroEnergy
     character :: convergenceType
     character(30) :: nameOfSpecies
     type(Matrix) :: coefficientsShow
@@ -1163,7 +1159,7 @@ contains
     write(*,*) " COMPONENTS OF KINETIC ENERGY: "
     write(*,*) "-----------------------------"
     write(*,*) ""             
-
+    this%totalKineticEnergy = 0.0
     do speciesID = 1, this%molSys%numberOfQuantumSpecies                
        write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
             " Kinetic energy = ", wfObjects(speciesID)%kineticEnergy
@@ -1177,12 +1173,12 @@ contains
     write(*,*) " COMPONENTS OF POTENTIAL ENERGY: "
     write(*,*) "-------------------------------"
     write(*,*) ""
-
     puntualInteractionEnergy = MolecularSystem_getPointChargesEnergy(this%molSys)
     write(*,"(A38,F25.12)") "Fixed potential energy    = ", puntualInteractionEnergy
 
-    puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy(this%molSys)
+    puntualMMInteractionEnergy = 0.0
     if(CONTROL_instance%CHARGES_MM) then
+       puntualMMInteractionEnergy = MolecularSystem_getMMPointChargesEnergy(this%molSys)
        write(*,"(A38,F25.12)") "Self MM potential energy   = ", puntualMMInteractionEnergy
     end if
 
@@ -1190,7 +1186,7 @@ contains
     write(*,*) " Quantum/Fixed interaction energy: "
     write(*,*) "----------------------------------"
     write(*,*) ""
-
+    totalQuantumPuntualInteractionEnergy = 0.0
     do speciesID = 1, this%molSys%numberOfQuantumSpecies                
        write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
             "/Fixed interact. energy = ", wfObjects(speciesID)%puntualInteractionEnergy
@@ -1220,11 +1216,12 @@ contains
     end do
     write(*,"(T38,A25)") "___________________________"
     write(*,"(A38,F25.12)") "Total Hartree energy = ", totalHartreeEnergy
-
+    
     write(*,*) ""
     write(*,*) " Exchange(HF) energy: "
     write(*,*) "----------------------"
     write(*,*) ""
+    totalExchangeHFEnergy=0.0
     do speciesID = 1, this%molSys%numberOfQuantumSpecies                
        write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
             " Exchange energy = ", wfObjects(speciesID)%exchangeHFEnergy
@@ -1234,12 +1231,12 @@ contains
     write(*,"(A38,F25.12)") "Total Exchange energy = ", totalExchangeHFEnergy
 
 
+    totalExchangeCorrelationEnergy=0.0
     if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
        write(*,*) ""
        write(*,*) " Exchange-Correlation(DFT) energy: "
        write(*,*) "-----------------------------------"
        write(*,*) "" 
-       totalExchangeCorrelationEnergy=0.0
        do speciesID = 1, this%molSys%numberOfQuantumSpecies                
           write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
                " Exc.Corr. energy = ", wfObjects(speciesID)%exchangeCorrelationEnergy(speciesID)
@@ -1257,7 +1254,7 @@ contains
        write(*,"(A38,F25.12)") "Total Exchange Correlation energy = ", totalExchangeCorrelationEnergy
     end if
 
-
+    totalExternalPotentialEnergy=0.0
     if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL .or. &
          sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 .or. &
          CONTROL_instance%ARE_THERE_QDO_POTENTIALS ) then
@@ -1277,6 +1274,7 @@ contains
 
     end if
 
+    totalCosmoEnergy = 0.0
     if(CONTROL_instance%COSMO) then
        write(*,*) ""
        write(*,*) " COSMO ENERGY: "
@@ -1311,6 +1309,24 @@ contains
     write(*,*) " END ENERGY COMPONENTS"
     write(*,*) ""  
 
+    totalQDOZeroEnergy=0.0
+    if(CONTROL_instance%ARE_THERE_QDO_POTENTIALS .and. CONTROL_instance%SET_QDO_ENERGY_ZERO) then
+       write(*,*) ""
+       write(*,*) "Kinetic and external potential energies above are relative to the isolated QDO components:"
+       write(*,*) ""       
+       do speciesID = 1, this%molSys%numberOfQuantumSpecies                
+          write(*,"(A38,F25.12,F25.12)") &
+               trim( this%molSys%species(speciesID)%name) // " QDO kin./pot. energy = ", &
+               MolecularSystem_getOmega(speciesID,this%molSys)*3.0/4.0, &
+               MolecularSystem_getOmega(speciesID,this%molSys)*3.0/4.0          
+          totalQDOZeroEnergy=totalQDOZeroEnergy+MolecularSystem_getOmega(speciesID,this%molSys)*3.0/2.0
+       end do
+       write(*,"(T38,A50)") "______________________________________________________"
+       write(*,"(A38,F25.12)") "QDO zero point energy = ", totalQDOZeroEnergy       
+       write(*,*) ""
+       write(*,"(A38,F25.12)") "TOTAL ENERGY plus QDO ZPE = ", this%totalEnergy+totalQDOZeroEnergy             
+       write(*,*) ""
+    end if
 
     if(CONTROL_instance%COSMO) then
        write(*,*) ""

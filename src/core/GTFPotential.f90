@@ -34,7 +34,7 @@ module GTFPotential_
   implicit none
 
   type, public :: GaussPot
-     character(20) :: name
+     character(50) :: name
      character(50) :: species
      character(50) :: otherSpecies
      character(50) :: ttype
@@ -95,18 +95,21 @@ contains
   !! @brief loads information from the input file
   !! @param this
   !! @author E. F. Posada, 2013
-  subroutine GTFPotential_load(this, potId, name, species, otherSpecies)
+  subroutine GTFPotential_load(this, type, potId, name, species, otherSpecies)
     implicit none
     type(GTFPotential) :: this
+    character(*) :: type
     integer :: potId
     character(*) :: name
     character(*) :: species
-    character(*), optional :: otherSpecies
+    character(*) :: otherSpecies
 
-    if(present(otherSpecies)) then
-       call GaussPot_load(this%potentials(potId), potId, name, species, otherSpecies)
+    if(trim(type) .eq. "INTERNAL") then
+       call GaussPot_load(this%potentials(potId), name, trim(type), trim(species), trim(otherSpecies))
+    else if(trim(type) .eq. "EXTERNAL") then
+       call GaussPot_load(this%potentials(potId), name, trim(type), trim(species), "")
     else
-       call GaussPot_load(this%potentials(potId), potId, name, species)
+       call Exception_stopError("Unknown GTFPotential potential type requested: "//trim(type),"GTFPotential module at Load function.")
     end if
   end subroutine GTFPotential_load
 
@@ -120,8 +123,8 @@ contains
 
     do i=1,this%ssize       
        if( this%potentials(i)%ttype .eq. "INTERNAL") then
-          print *,""
-          print *,"======="
+          write(*,*) ""
+          write(*,*)"======="
           write(*,"(A30,A)") "GTF Interparticle potential: ", trim(this%potentials(i)%name)
           write(*,"(A4,A10,A5,A10)") "for ", trim(this%potentials(i)%species) ," and ",  trim(this%potentials(i)%otherSpecies)
           write(*,"(T10,A10,A10)") "Units:", trim(this%potentials(i)%units)
@@ -131,8 +134,8 @@ contains
                   this%potentials(i)%gaussianComponents(j)%contractionCoefficients(1)
           end do
        else if( this%potentials(i)%ttype .eq. "EXTERNAL") then
-          print *,""
-          print *,"======="
+          write(*,*) ""
+          write(*,*) "======="
           write(*,"(A25,A20,A5,A10)") "GTF External potential: ", trim(this%potentials(i)%name), " for ", trim(this%potentials(i)%species)
           write(*,"(T10,A10,A10)") "Units:", trim(this%potentials(i)%units)
           write(*,"(T10,A16,A10,A10,A10,A16)") "Exponent", "R_x", "R_y", "R_z", "Factor"
@@ -152,12 +155,12 @@ contains
   !! @brief loads information from the input file
   !! @param this
   !! @author Felix, 2024
-  subroutine GaussPot_load(this, potId, name, species, otherSpecies)
+  subroutine GaussPot_load(this, name, type, species, otherSpecies)
     type(GaussPot) :: this
-    integer :: potId
     character(*) :: name
+    character(*) :: type
     character(*) :: species
-    character(*), optional :: otherSpecies
+    character(*) :: otherSpecies
 
     integer :: status, i, j
     character(150) :: fileName
@@ -167,15 +170,15 @@ contains
 
     this%name= trim(name)
     this%species= trim(species)
+    this%ttype=type
     this%units="BOHR"
     this%numOfComponents=0
     this%iter=1
 
-    this%ttype="EXTERNAL"
-    this%otherSpecies=""
-    if(present(otherSpecies) ) then
-       this%ttype="INTERNAL"
-       this%otherSpecies=otherSpecies
+    if(trim(this%ttype) .eq. "EXTERNAL" ) then
+       this%otherSpecies=""
+    else
+       this%otherSpecies=trim(otherSpecies)
     end if
 
     fileName = trim( trim( CONTROL_instance%DATA_DIRECTORY ) // &
@@ -211,7 +214,8 @@ contains
        if (status > 0 ) call Exception_stopError("ERROR reading InterPotential file: "//trim(this%name)//&
             " Please check that file!","GTFPotential module at Load function.")
 
-       if (status == -1 ) call Exception_stopError("The InterPotential: "//trim(this%name)//&
+       if (status == -1 ) &
+            call Exception_stopError("The "//trim(this%ttype)//" Potential: "//trim(this%name)//&
             " for: "//trim(species)//trim(otherSpecies)//&
             " was not found!","GTFPotential module at Load function.")
 
@@ -232,7 +236,7 @@ contains
     read(30,*, iostat=status) this%numOfComponents
 
     !! Some debug information in case of error!
-    if (status > 0 ) call Exception_stopError("ERROR reading InternalPotential file: "//trim(this%name)//&
+    if (status > 0 ) call Exception_stopError("ERROR reading ExterPotential file: "//trim(this%name)//&
          " Please check that file!","GTFPotential module at Load function.")
 
     allocate(this%gaussianComponents(this%numOfComponents))
@@ -242,7 +246,8 @@ contains
             this%gaussianComponents(i)%angularMoment
 
        if(this%gaussianComponents(i)%angularMoment .gt. 0) then
-          print *, "Warning! you provided a non-zero angular momentum for a GTFpotential ", this%name ,"this feature is not yet implemented, will be ignored and set to zeo"
+          call Exception_sendWarning("you provided a non-zero angular momentum in GTFpotential "//trim(this%name)//&
+               ". This feature is not yet implemented, will be ignored and set to zero", "GTFPotential module at Load function.")
           this%gaussianComponents(i)%angularMoment=0
        end if
 
@@ -268,7 +273,8 @@ contains
        end do
 
        if(this%ttype=="INTERNAL" .and. sum(this%gaussianComponents(i)%origin(:)**2) .gt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
-          print *, "Warning! you provided a non-zero origin for interpotential ", this%name ,"this feature is not yet implemented, will be ignored and set to zeo"
+          call Exception_sendWarning("you provided a non-zero origin for interpotential "//trim(this%name)//&
+               ". This feature is not yet implemented, will be ignored and set to zero", "GTFPotential module at Load function.")
           this%gaussianComponents(i)%origin=0.0_8
        end if
 
@@ -295,9 +301,6 @@ contains
 
        call ContractedGaussian_normalizePrimitive(this%gaussianComponents(i))
        call ContractedGaussian_normalizeContraction(this%gaussianComponents(i))
-
-       !! DEBUG
-       ! call ContractedGaussian_showInCompactForm(InterPotential_instance%potentials(potId)%gaussianComponents(i))
 
     end do
 
