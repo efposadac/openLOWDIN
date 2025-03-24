@@ -698,11 +698,11 @@ contains
   ! #ifdef intel
   !                     write(34,"(A10,A10,<3>F15.10)")     trim(ParticleManager_instance%particles(i)%nickname), &
   !                                         trim(ParticleManager_instance%particles(i)%basisSetName), &
-  !                                         ParticleManager_instance%particles(i)%origin*0.52917724924_8
+  !                                         ParticleManager_instance%particles(i)%origin*ANGSTROM
   ! #else
   !                     write(34,"(A10,A10,3F15.10)")     trim(ParticleManager_instance%particles(i)%nickname), &
   !                                         trim(ParticleManager_instance%particles(i)%basisSetName), &
-  !                                         ParticleManager_instance%particles(i)%origin*0.52917724924_8
+  !                                         ParticleManager_instance%particles(i)%origin*ANGSTROM
   ! #endif
   !                 end do
   !             write (34,*) "END GEOMETRY"

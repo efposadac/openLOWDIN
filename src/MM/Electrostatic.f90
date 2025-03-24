@@ -207,7 +207,7 @@ contains
     end if
 
     allocate(this%distance(numberofElectrostaticDistances))
-    this%distance = electrostaticDistance%data * AMSTRONG
+    this%distance = electrostaticDistance%data * ANGSTROM
 
     call MatrixInteger_constructor( this%connectionMatrix, numberofElectrostaticDistances, 2 )
     this%connectionMatrix%values(:,1) = atomA%data(:)

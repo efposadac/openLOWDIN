@@ -1,5 +1,15 @@
 #!/bin/bash
 
+if [ -d ./testResults_$1 ]
+then
+    echo "moving outputs to " ./testResults_$1
+    mv *.out ./testResults_$1/
+    mv *.molden ./testResults_$1/
+    mv *.cub ./testResults_$1/
+    mv *.dens ./testResults_$1/
+    mv *.orb* ./testResults_$1/
+fi
+
 find . -name "*.out" -exec rm -f {} \;
 find . -name "*.vec" -exec rm -f {} \;
 find . -name "*.aux" -exec rm -f {} \;

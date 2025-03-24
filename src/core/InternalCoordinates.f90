@@ -220,7 +220,7 @@ contains
              covalentRadiusValues(2) = this%covalentRadius%value( auxIndex )
           end if
          
-          connectivityCriteria =  (	distanceFactor * sum( covalentRadiusValues ) ) /  AMSTRONG
+          connectivityCriteria =  (	distanceFactor * sum( covalentRadiusValues ) ) /  ANGSTROM
 
           if ( separationOfCenters < connectivityCriteria ) then
 
@@ -900,13 +900,13 @@ contains
 
     ! if ( size(this%connectionMatrixForBonds%values,dim=1) >1 ) then
 
-    !    write (6,"(T20,A24)") "CHEMICAL BONDS: AMSTRONG"
+    !    write (6,"(T20,A24)") "CHEMICAL BONDS: ANGSTROM"
     !    write (6,"(T20,A23)") "======================="
     !    write (6,*) ""
 
     !    do i=1,size(this%distanceBondValue%values)
     !       write (6,"(T20,I5,A1,2I5,F15.8)") i,":",this%connectionMatrixForBonds%values(i,:), this%distanceBondValue%values(i) &
-    !            * AMSTRONG
+    !            * ANGSTROM
     !    end do
     ! end if
 
@@ -1134,7 +1134,7 @@ contains
           symbolOfOtherAtom=trim( labelOfCenters( this%connectionMatrixForBonds%values( i, 2 ) ) )
           covalentRadiusValues(2) = Map_getValue( this%covalentRadius, symbolOfOtherAtom )
 
-          output%values(i,i) = 0.3601_8 * exp( -1.944_8*( ( this%distanceBondValue%values(i)* AMSTRONG ) &
+          output%values(i,i) = 0.3601_8 * exp( -1.944_8*( ( this%distanceBondValue%values(i)* ANGSTROM ) &
                -  sum( covalentRadiusValues ) ) )
 
 
@@ -1149,11 +1149,11 @@ contains
           !!
           vectorAB=	this%cartesianCoordinates%values( this%connectionMatrixForAngles%values(auxIndex,1),: ) - &
                this%cartesianCoordinates%values( this%connectionMatrixForAngles%values(auxIndex,2),: )
-          distanceAB = dsqrt(sum(vectorAB**2.0) ) * AMSTRONG
+          distanceAB = dsqrt(sum(vectorAB**2.0) ) * ANGSTROM
 
           vectorCD=	this%cartesianCoordinates%values( this%connectionMatrixForAngles%values(auxIndex,3),: ) - &
                this%cartesianCoordinates%values( this%connectionMatrixForAngles%values(auxIndex,2),: )
-          distanceCD = dsqrt(sum(vectorCD**2.0) ) * AMSTRONG
+          distanceCD = dsqrt(sum(vectorCD**2.0) ) * ANGSTROM
 
           !!
           !! Calculo de sumas de radios covalentes entre atomos terminales y central
@@ -1192,7 +1192,7 @@ contains
           !!
           vectorAB=	this%cartesianCoordinates%values( this%connectionMatrixForDihedrals%values(auxIndex,1),: ) - &
                this%cartesianCoordinates%values( this%connectionMatrixForDihedrals%values(auxIndex,4),: )
-          distanceAB = dsqrt(sum(vectorAB**2.0) ) * AMSTRONG
+          distanceAB = dsqrt(sum(vectorAB**2.0) ) * ANGSTROM
 
           !!
           !! Calculo de sumas de radios covalentes entre atomos terminales y central

@@ -555,7 +555,7 @@ contains
 
           if(fragment .gt. 0 .and. (system%species(i)%particles(j)%subsystem .ne. fragment)) cycle
 
-          origin = system%species(i)%particles(j)%origin * AMSTRONG
+          origin = system%species(i)%particles(j)%origin * ANGSTROM
           if(system%species(i)%isElectron) then
              write (outUnit,"(A10,3F20.10)") trim( system%species(i)%particles(j)%symbol )//trim(system%species(i)%particles(j)%nickname),&
                   origin(1), origin(2), origin(3)
@@ -569,7 +569,7 @@ contains
     !! Print Point charges information
     do i = 1, system%numberOfPointCharges
        
-       origin = system%pointCharges(i)%origin * AMSTRONG
+       origin = system%pointCharges(i)%origin * ANGSTROM
        write (outUnit,"(A10,3F20.10)") trim(system%pointCharges(i)%nickname), origin(1), origin(2), origin(3)
        
     end do
@@ -601,7 +601,7 @@ contains
     write (6,"(T18,A35)") "------------------------------------------"
     
     auxMatrix=ParticleManager_getDistanceMatrix()
-    auxMatrix%values = auxMatrix%values * AMSTRONG
+    auxMatrix%values = auxMatrix%values * ANGSTROM
     call Matrix_show(auxMatrix, rowKeys=ParticleManager_getLabelsOfCentersOfOptimization( LABELS_NUMERATED ),&
          columnKeys = ParticleManager_getLabelsOfCentersOfOptimization( LABELS_NUMERATED), flags=WITH_BOTH_KEYS  )
     
@@ -738,9 +738,9 @@ contains
         write(41,"(I8)") size(MolecularSystem_instance%species(i)%particles)
         do j = 1, size(MolecularSystem_instance%species(i)%particles)
             write(41,150)&
-              MolecularSystem_instance%species(i)%particles(j)%origin(1)*AMSTRONG, &
-              MolecularSystem_instance%species(i)%particles(j)%origin(2)*AMSTRONG, &
-              MolecularSystem_instance%species(i)%particles(j)%origin(3)*AMSTRONG, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(1)*ANGSTROM, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(2)*ANGSTROM, &
+              MolecularSystem_instance%species(i)%particles(j)%origin(3)*ANGSTROM, &
               MolecularSystem_instance%species(i)%particles(j)%vanderwaalsRadio
         end do
         end if
@@ -2770,7 +2770,7 @@ contains
        case ("AU")
 
        case("SI")
-          output = output * kg
+          output = output * KG
 
        case("AMU")
           output = output * AMU

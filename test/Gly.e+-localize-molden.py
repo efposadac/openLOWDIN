@@ -17,7 +17,7 @@ molden2Name = testName + ".E+.molden"
 # Reference values and tolerance
 
 refValues = {
-"HF energy" : [-281.379249199614,1E-6],
+"HF energy" : [-281.379249167035,1E-6],
 "e+HOMO" : [-3.48432E-03,1E-4],
 "e-HOMO" : [-6.32003E-01,1E-4],
 }                       

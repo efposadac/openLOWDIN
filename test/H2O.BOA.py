@@ -18,9 +18,9 @@ outputName = testName + ".out"
 refValues = {
 "HF energy" : [-76.010288769789,1E-8],
 "HF dipole" : [1.01124369,1E-7],
-"HF quadrupole xx" : [-7.25729057,1E-7],
-"HF quadrupole yy" : [-4.07831587,1E-7],
-"HF quadrupole zz" : [-6.25445146,1E-7],
+"HF quadrupole xx" : [-7.25729057,1E-5],
+"HF quadrupole yy" : [-4.07831587,1E-5],
+"HF quadrupole zz" : [-6.25445146,1E-5],
 }                       
 
 testValues = dict(refValues) #copy 

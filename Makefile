@@ -73,6 +73,9 @@ distclean::
 	rm -rf $(TOPDIR)/doc/latex
 
 test::
-	cd $(TOPDIR)/test/ && sh runtest.sh $(EXENAME) && sh clean.sh
+	cd $(TOPDIR)/test/; \
+	mkdir -p testResults_$(EXENAME); \
+	sh runtest.sh $(EXENAME) | tee -a testResults_$(EXENAME)/maketest.log ; \
+	sh clean.sh $(EXENAME)	
 
 

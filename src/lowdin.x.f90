@@ -100,7 +100,7 @@ program lowdin_
     !!***************************************************************************
     !!        Shows system's geometry
     !!
-    write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
+    write (6,"(T20,A30)") " INITIAL GEOMETRY: ANGSTROM"
     write (6,"(T18,A35)") "------------------------------------------"
  
     call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
@@ -114,7 +114,7 @@ program lowdin_
     
     call MolecularSystem_moveToCenterOfMass()
     call MolecularSystem_rotateOnPrincipalAxes()
-    write (6,"(T20,A30)") " GEOMETRY IN C.M. : AMSTRONG"
+    write (6,"(T20,A30)") " GEOMETRY IN C.M. : ANGSTROM"
     write (6,"(T18,A35)") "------------------------------------------"
     call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
     

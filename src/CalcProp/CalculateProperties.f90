@@ -91,10 +91,10 @@ module CalculateProperties_
        CalculateProperties_getPopulation, &
        CalculateProperties_showContributionsToElectrostaticMoment, &
        CalculateProperties_getDipoleOfPuntualCharges, &
-       CalculateProperties_getDipoleOfQuantumSpecies
-  !     CalculateProperties_expectedR2, &
+       CalculateProperties_getDipoleOfQuantumSpecies, &
+       CalculateProperties_getExpectedR2, &
+       CalculateProperties_showRMSradius
   !    CalculateProperties_polarizability, &
-  !     CalculateProperties_showExpectedR2, &
   !    CalculateProperties_showPolarizabilityTensor, &
   !    CalculateProperties_interparticleDistance,  &
   !    CalculateProperties_interparticleOverlap, &
@@ -117,7 +117,7 @@ contains
     implicit none
     type(CalculateProperties) :: this
     character(*) :: fileName
-    
+
     character(50) :: wfnFile
     integer :: wfnUnit
     character(50) :: arguments(20)
@@ -168,10 +168,10 @@ contains
        end do
        close(wfnUnit)     
     else
-       call CalculateProperties_exception( ERROR, "I did not find the file "//trim(wfnFile)//" or "//trim(occupationsFile), "in CalculatateProperties constructor")
+       call Exception_stopError("I did not find the file "//trim(wfnFile)//" or "//trim(occupationsFile), "in CalculatateProperties constructor")
        ! Check if there are CI density matrices and read those or the HF matrix
     end if
-    
+
     integralsFile = "lowdin.opints"
     integralsUnit = 30
     inquire(FILE = integralsFile, EXIST = existFile )
@@ -230,7 +230,6 @@ contains
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,1,this%momentMatrices(speciesID,1))
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,2,this%momentMatrices(speciesID,2))
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,3))
-          !NOT YET IMPLEMENTED. DUMMY ARRAYS
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,4))
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,5))
           call DirectIntegralManager_getMomentIntegrals(molecularSystem_instance,speciesID,3,this%momentMatrices(speciesID,6))
@@ -287,13 +286,13 @@ contains
 
     analysis(1)="MULLIKEN"
     analysis(2)="LOWDIN"
-    
+
     !Felix: Vamos a hacer el analisis de poblaciones para todas las especies
 
     do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies()
 
        do type= 1, size(analysis)
-          
+
           speciesName = trim(MolecularSystem_getNameOfSpecies( speciesID ))
 
           if(trim(speciesName) .eq. "E-ALPHA") then
@@ -417,7 +416,7 @@ contains
     else
        call Matrix_constructor( output, int( numberOfcontractions, 8), 1_8 )
     end if
-    
+
     select case( typeOfPopulation )
 
     case("MULLIKEN")
@@ -440,7 +439,7 @@ contains
           otherAuxMatrixB = otherAuxMatrix
           otherAuxMatrix = Matrix_product_dgemm( Matrix_product_dgemm( otherAuxMatrixB , this%densityMatrix(otherSpeciesID)), otherAuxMatrixB )
        end if
-       
+
     case default
 
     end select
@@ -483,10 +482,20 @@ contains
     print *,"POSITIONS IN ANGSTROMS"
     print *,"------"
     print *,""
-    write (6,"(T19,4A9)") "<x>","<y>", "<z>", ""
+    write (*,"(T19,4A9)") "<x>","<y>", "<z>", ""
     do i=1, numberOfSpecies
-       write (6,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecies( i )), CalculateProperties_getExpectedPosition(this, i)
+       write (*,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecies( i )), CalculateProperties_getExpectedPosition(this, i)* ANGSTROM
     end do
+    if(trim(CONTROL_instance%UNITS) .eq. "BOHR") then
+       print *,""
+       print *,"POSITIONS IN BOHR"
+       print *,"------"
+       print *,""
+       write (*,"(T19,4A9)") "<x>","<y>", "<z>", ""
+       do i=1, numberOfSpecies
+          write (*,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecies( i )), CalculateProperties_getExpectedPosition(this, i)
+       end do
+    end if
     print *,""
     print *,"END EXPECTED POSITIONS"
     print *,""
@@ -501,9 +510,9 @@ contains
     !! Open file for wavefunction                                                                                                          
     output=0.0_8
 
-    output(1)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,1)%values ) * 0.52917720859
-    output(2)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,2)%values ) * 0.52917720859
-    output(3)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,3)%values ) * 0.52917720859
+    output(1)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,1)%values ) 
+    output(2)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,2)%values ) 
+    output(3)=sum( this%densityMatrix(speciesID)%values * this%momentMatrices(speciesID,3)%values ) 
 
   end function CalculateProperties_getExpectedPosition
 
@@ -535,62 +544,62 @@ contains
     print *,"DIPOLE: (A.U.)"
     print *,"------"
     print *,""
-    write (6,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
+    write (*,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
 
     do i=1, numberOfSpecies
        dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)
        totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecies( i )), dipole(i,:)
+       write (*,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecies( i )), dipole(i,:)
     end do
     dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()
     totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
-    write (6,"(T5,A15,3F13.8)") "Point charges: ", dipole(numberOfSpecies+1,:)
-    write (6,"(T22,A28)") "___________________________________"
-    write (6,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
+    write (*,"(T5,A15,3F13.8)") "Point charges: ", dipole(numberOfSpecies+1,:)
+    write (*,"(T22,A28)") "___________________________________"
+    write (*,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
 
     print *,""
     print *,"DIPOLE: (DEBYE)"
     print *,"------"
     print *,""
-    write (6,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
+    write (*,"(T19,4A13)") "<Dx>","<Dy>", "<Dz>"," |D|"
 
     totalDipole=0.0_8
     do i=1, numberOfSpecies
-       dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)*2.54174619
+       dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)*DEBYE
        totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (6,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecies( i )), dipole(i,:)
+       write (*,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecies( i )), dipole(i,:)
     end do
 
-    dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()*2.54174619
+    dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()*DEBYE
     totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
-    write (6,"(T5,A15,3F13.8)") "Point charges: ", dipole(numberOfSpecies+1,:)
+    write (*,"(T5,A15,3F13.8)") "Point charges: ", dipole(numberOfSpecies+1,:)
 
-    write (6,"(T22,A28)") "___________________________________"
+    write (*,"(T22,A28)") "___________________________________"
 
-    write (6,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
+    write (*,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
 
 
     print *,""
     print *,"QUADRUPOLE NON-TRACELESS: (DEBYE ANGS)"
     print *,"------"
     print *,""
-    write (6,"(T19,6A13)") "<xx>","<yy>", "<zz>", "<xy>","<xz>","<yz>"
+    write (*,"(T19,6A13)") "<xx>","<yy>", "<zz>", "<xy>","<xz>","<yz>"
 
     do i=1, numberOfSpecies
-       quadrupole(i,:)=CalculateProperties_getQuadrupoleOfQuantumSpecies(this, i)*2.54174619*0.52917720859
+       quadrupole(i,:)=CalculateProperties_getQuadrupoleOfQuantumSpecies(this, i)*DEBYE*ANGSTROM
        totalQuadrupole(:)=totalQuadrupole(:)+quadrupole(i,:)
-       write (6,"(T5,A15,6F14.8)") trim(MolecularSystem_getNameOfSpecies( i )), quadrupole(i,:)
+       write (*,"(T5,A15,6F14.8)") trim(MolecularSystem_getNameOfSpecies( i )), quadrupole(i,:)
     end do
 
-    quadrupole(numberOfSpecies+1,:)=CalculateProperties_getQuadrupoleOfPuntualCharges()*2.54174619*0.52917720859
+    quadrupole(numberOfSpecies+1,:)=CalculateProperties_getQuadrupoleOfPuntualCharges()*DEBYE*ANGSTROM
     totalquadrupole(:)=totalquadrupole(:)+quadrupole(numberOfSpecies+1,:)
-    write (6,"(T5,A15,6F14.8)") "Point charges: ", quadrupole(numberOfSpecies+1,:)
+    write (*,"(T5,A15,6F14.8)") "Point charges: ", quadrupole(numberOfSpecies+1,:)
 
-    write (6,"(T2,A18,6F14.8)") "Total Quadrupole:", totalQuadrupole(:) 
+    write (*,"(T2,A18,6F14.8)") "Total Quadrupole:", totalQuadrupole(:) 
 
-    write (6,"(T22,A28)") "___________________________________"
+    write (*,"(T22,A28)") "___________________________________"
 
-    !write (6,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
+    !write (*,"(T5,A15,3F13.8, F13.8)") "Total Dipole:", totalDipole(:), sqrt(sum(totalDipole(:)**2.0 ) )
 
 
     print *,""
@@ -611,13 +620,9 @@ contains
     integer :: i
 
     output = 0.0_8
-
-    
     do i=1, size( MolecularSystem_instance%pointCharges )      
        output(:) = output(:) + MolecularSystem_instance%pointCharges(i)%origin(:) * MolecularSystem_instance%pointCharges(i)%charge
     end do
-
-    
   end function CalculateProperties_getDipoleOfPuntualCharges
 
 
@@ -630,8 +635,6 @@ contains
     integer :: i
 
     output = 0.0_8
-
-    
     do i=1, size( MolecularSystem_instance%pointCharges )      
        output(1) = output(1) + MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%charge
        output(2) = output(2) + MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%charge
@@ -640,8 +643,6 @@ contains
        output(5) = output(5) + MolecularSystem_instance%pointCharges(i)%origin(1)* MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%charge
        output(6) = output(6) + MolecularSystem_instance%pointCharges(i)%origin(2)* MolecularSystem_instance%pointCharges(i)%origin(3)* MolecularSystem_instance%pointCharges(i)%charge
     end do
-
-    
   end function CalculateProperties_getQuadrupoleOfPuntualCharges
 
 
@@ -654,11 +655,7 @@ contains
     integer :: i !specieid
     real(8) :: output(3)
 
-    output(1) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,1)%values )
-    output(2) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,2)%values )
-    output(3) =sum( this%densitymatrix(i)%values * this%momentmatrices(i,3)%values )
-
-    output = output * molecularsystem_getcharge( i )
+    output = CalculateProperties_getExpectedPosition(this, i) * molecularsystem_getcharge( i )
 
   end function CalculateProperties_getDipoleOfQuantumSpecies
 
@@ -683,125 +680,70 @@ contains
 
   end function CalculateProperties_getQuadrupoleOfQuantumSpecies
 
-  subroutine CalculateProperties_exception( typeMessage, description, debugDescription)
+  !<
+  !! @brief  Calculates the expected position^2 for each quantum species
+  !! @author F.M. mar-2025  
+  !>
+  function CalculateProperties_getExpectedR2(this,speciesID) result(output)
     implicit none
-    integer :: typeMessage
-    character(*) :: description
-    character(*) :: debugDescription
+    type(CalculateProperties) :: this
+    integer :: speciesID
+    real(8) :: output
 
-    type(Exception) :: ex
+    real(8) :: orig(3)
+    type(Matrix) :: harmonicIntegrals
 
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    orig=CalculateProperties_getExpectedPosition( this , speciesID)
+    call DirectIntegralManager_getHarmonicIntegrals(MolecularSystem_instance,speciesID,orig,harmonicIntegrals)
+    output= sum( this%densitymatrix(speciesID)%values*harmonicIntegrals%values )
 
-  end subroutine CalculateProperties_exception
+  end function CalculateProperties_getExpectedR2
+
+  !<
+  !! @brief  Shows the square root of the expected position^2 for each quantum species
+  !! @author F.M. mar-2025  
+  !>
+  subroutine CalculateProperties_showRMSradius(this)
+    implicit none
+    type(CalculateProperties) :: this
+    real(8) :: R2
+    integer :: numberOfSpecies   
+    integer :: speciesID
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    print *,""
+    print *," EXPECTED RMS RADIUS OF QUANTUM SPECIES:"
+    print *,"======================"
+    print *,"Relative to the position expectation value"
+    print *,"Computed as sqrt(<R^2 - <R>>)"
+    if(trim(CONTROL_instance%UNITS) .eq. "BOHR") then
+       write (*,"(T20,A)") "IN BOHR"
+       write (*,"(T20,A)") "------"
+       do speciesID=1, numberOfSpecies
+          R2=CalculateProperties_getExpectedR2(this,speciesID)
+          if(sqrt(R2).gt.1E-3 .and. sqrt(R2).lt.1E5) then 
+             write (*,"(T5,A15,F12.6)") trim(MolecularSystem_getNameOfSpecies(speciesID)), sqrt(R2)
+          else
+             write (*,"(T5,A15,ES12.5)") trim(MolecularSystem_getNameOfSpecies(speciesID)), sqrt(R2)
+          end if
+       end do
+    end if
+    print *,""
+    write (*,"(T20,A)") "IN ANGSTROM"
+    write (*,"(T20,A)") "-----------"
+    do speciesID=1, numberOfSpecies
+       R2=CalculateProperties_getExpectedR2(this,speciesID)
+       if(sqrt(R2).gt.1E-3 .and. sqrt(R2).lt.1E5) then 
+          write (*,"(T5,A15,F12.6)") trim(MolecularSystem_getNameOfSpecies(speciesID)), sqrt(R2)*ANGSTROM
+       else
+          write (*,"(T5,A15,ES12.5)") trim(MolecularSystem_getNameOfSpecies(speciesID)), sqrt(R2)*ANGSTROM
+       end if
+    end do
+    print *,""
+    print *,"END EXPECTED RMS RADIUS"
+    print *,""
+
+  end subroutine CalculateProperties_showRMSradius
 
 end module CalculateProperties_
-
-!  !<
-!  !! @brief  Calculates the expected position for each quantum specie
-!  !>
-!  subroutine CalculateProperties_expectedR2( this )
-!    implicit none
-!    type(CalculateProperties) :: this
-!    type(Matrix) :: densityMatrix
-!    type(Matrix) :: R2Matrix
-!    type(ContractedGaussian):: dxx
-!    type(ContractedGaussian):: dyy
-!    type(ContractedGaussian):: dzz
-!    type(ExternalPotential) :: R2Operator(1)
-!    real(8) :: expo(1)
-!    real(8) :: coefficient(1)
-!    real(8) :: orig(3)
-!    integer(8) ::  angMom
-!    integer(8) ::  angMomIndex(3)
-!    character(30) :: nameOfSpecieSelected
-!    integer :: i
-!                integer :: numberOfContractions
-!    integer(8) :: numberOfSpecies
-!
-!    numberOfSpecies = Particle_Manager_getNumberOfQuantumSpecies()
-!    call Vector_constructor(this%expectedR2,int(numberOfSpecies,4))
-!
-!    !! Preparing the R2 operator (Treated as a potential)
-!
-!    expo(1)=0.0
-!    coefficient(1)=1.0
-!    orig=0.0
-!    angMom=2
-!    angMomIndex(1)=2.0
-!    angMomIndex(2)=0.0
-!    angMomIndex(3)=0.0
-!
-!    call ContractedGaussian_constructor( dxx , orbitalsExponents=expo , &
-!    oefficients=coefficient , origin=orig , angularMoment=angMom, angularMomentIndex=angMomIndex, noNormalize=.true. )
-!
-!    angMomIndex(1)=0.0
-!    angMomIndex(2)=2.0
-!    angMomIndex(3)=0.0
-!
-!    call ContractedGaussian_constructor( dyy , orbitalsExponents=expo , &
-!    oefficients=coefficient , origin=orig , angularMoment=angMom, angularMomentIndex=angMomIndex, noNormalize=.true. )
-!
-!    angMomIndex(1)=0.0
-!    angMomIndex(2)=0.0
-!    angMomIndex(3)=2.0
-!
-!    call ContractedGaussian_constructor( dzz , orbitalsExponents=expo , &
-!    contractionCoefficients=coefficient , origin=orig , angularMoment=angMom, angularMomentIndex=angMomIndex, noNormalize=.true. )
-!
-!
-!    do i=1, numberOfSpecies
-!      nameOfSpecieSelected = trim( Particle_Manager_getNameOfSpecies( i ) )
-!      numberOfContractions = Particle_Manager_getTotalNumberOfContractions( i )
-!      call Matrix_constructor (densityMatrix, int(numberOfContractions,8), int(numberOfContractions,8))
-!      densityMatrix = MolecularSystem_getDensityMatrix( trim(nameOfSpecieSelected) )
-!      call ExternalPotential_constructor(R2Operator(1), "R2", nameOfSpecieSelected)
-!      R2Operator(1)%numOfComponents=3
-!      allocate(R2Operator(1)%gaussianComponents(R2Operator(1)%numOfComponents))
-!      R2Operator(1)%gaussianComponents(1)=dxx
-!      R2Operator(1)%gaussianComponents(2)=dyy
-!      R2Operator(1)%gaussianComponents(3)=dzz
-!      R2Matrix=IntegralManager_getInteractionWithPotentialMatrix(R2Operator, sspecieIDOA=i )
-!      this%expectedR2%values(i)= sum( densityMatrix%values * R2Matrix%values )
-!      call Matrix_destructor( densityMatrix )
-!      call Matrix_destructor( R2Matrix )
-!      call ExternalPotential_destructor( R2Operator(1) )
-!    end do
-!
-!  end subroutine CalculateProperties_expectedR2
-!
-!  !<
-!  !! @brief Muestra las contrinuciones al dipolo de cada especie
-!  !>
-!  subroutine CalculateProperties_showExpectedR2(this)
-!    implicit none
-!    type(CalculateProperties) :: this
-!    character(30) :: nameOfSpecieSelected
-!    integer :: i,j
-!    integer :: numberOfSpecies
-!    real(8) :: output(3)
-!
-!                if( externalPotential_Manager_instance%isInstanced ) then
-!                   numberOfSpecies = Particle_Manager_getNumberOfQuantumSpecies()
-!                   print *,""
-!                   print *," EXPECTED <R^2> OF QUANTUM SPECIES:"
-!                   print *,"======================"
-!                   print *,""
-!                   print *,"IN BOHR^2"
-!                   print *,"------"
-!                   print *,""
-!                   write (6,"(T19,A9)") "<R^2>"
-!                   do i=1, numberOfSpecies
-!                      write (6,"(T5,A15,F9.4)") trim(Particle_Manager_getNameOfSpecies( i )), (this%expectedR2%values(i))
-!                   end do
-!                   print *,""
-!                   print *,"END EXPECTED <R^2>"
-!                   print *,""
-!                end if
-!
-!  end subroutine CalculateProperties_showExpectedR2
 

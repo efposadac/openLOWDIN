@@ -54,7 +54,7 @@ program SCF
   write(*,"(A)")" "
 
   if(.not. CONTROL_instance%FIRST_STEP) then
-     write (6,"(T20,A30)") " TEST GEOMETRY: AMSTRONG"
+     write (6,"(T20,A30)") " TEST GEOMETRY: ANGSTROM"
      write (6,"(T18,A35)") "------------------------------------------"
      call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
      call MolecularSystem_showDistanceMatrix()

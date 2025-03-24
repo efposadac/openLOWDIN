@@ -177,6 +177,7 @@ contains
     real(8), intent(out) :: integralValue
 
     real(8), allocatable ::  x(:,:), y(:,:), z(:,:)
+    real(8) :: Aloc(0:3), Bloc(0:3), opoint(3)
     real(8) :: AB2
     real(8) :: auxExponentA, auxCoefficientA, auxConstantA
     real(8) :: auxExponentB, auxCoefficientB, auxConstantB
@@ -205,10 +206,15 @@ contains
 
     allocate(x(0:maxAngularMoment+2, 0:maxAngularMoment+2), y(0:maxAngularMoment+2, 0:maxAngularMoment+2), z(0:maxAngularMoment+2, 0:maxAngularMoment+2))
 
+    !Shifting origin 
+    Aloc(0:2)=A(0:2)-origin(1:3)
+    Bloc(0:2)=B(0:2)-origin(1:3)
+    opoint(1:3)=0.0
+    
     AB2 = 0.0_8
-    AB2 = AB2 + (A(0) - B(0)) * (A(0) - B(0))
-    AB2 = AB2 + (A(1) - B(1)) * (A(1) - B(1))
-    AB2 = AB2 + (A(2) - B(2)) * (A(2) - B(2))
+    AB2 = AB2 + (Aloc(0) - Bloc(0)) * (Aloc(0) - Bloc(0))
+    AB2 = AB2 + (Aloc(1) - Bloc(1)) * (Aloc(1) - Bloc(1))
+    AB2 = AB2 + (Aloc(2) - Bloc(2)) * (Aloc(2) - Bloc(2))
 
     do p1=0, lengthA - 1
        auxExponentA = orbitalExponentsA(p1)
@@ -221,15 +227,15 @@ contains
           zeta = auxExponentA + auxExponentB
           zetaInv = 1.0/zeta
 
-          P(0) = (auxExponentA*A(0) + auxExponentB*B(0))*zetaInv
-          P(1) = (auxExponentA*A(1) + auxExponentB*B(1))*zetaInv
-          P(2) = (auxExponentA*A(2) + auxExponentB*B(2))*zetaInv
-          PA(0) = P(0) - A(0)
-          PA(1) = P(1) - A(1)
-          PA(2) = P(2) - A(2)
-          PB(0) = P(0) - B(0)
-          PB(1) = P(1) - B(1)
-          PB(2) = P(2) - B(2)
+          P(0) = (auxExponentA*Aloc(0) + auxExponentB*Bloc(0))*zetaInv
+          P(1) = (auxExponentA*Aloc(1) + auxExponentB*Bloc(1))*zetaInv
+          P(2) = (auxExponentA*Aloc(2) + auxExponentB*Bloc(2))*zetaInv
+          PA(0) = P(0) - Aloc(0)
+          PA(1) = P(1) - Aloc(1)
+          PA(2) = P(2) - Aloc(2)
+          PB(0) = P(0) - Bloc(0)
+          PB(1) = P(1) - Bloc(1)
+          PB(2) = P(2) - Bloc(2)
 
           commonPreFactor =  exp(-auxExponentA*auxExponentB*AB2*zetaInv) * sqrt(Math_PI*zetaInv) * Math_PI * zetaInv * auxCoefficientA * auxCoefficientB * auxConstantA * auxConstantB
 
@@ -253,22 +259,21 @@ contains
           !Iz = x(angularMomentIndexA(0),angularMomentIndexB(0)  ) * y(angularMomentIndexA(1),angularMomentIndexB(1)  ) * z(angularMomentIndexA(2),angularMomentIndexB(2)+2) * commonPreFactor
           
           integralValue = integralValue + (commonPreFactor*y00*z00* &
-                          (x02 + 2*( x01 + B(0)*x00 )*B(0) - B(0)**2*x00 &
-                          - 2*( x01 + B(0)*x00 )*origin(1) &
-                          + origin(1)**2*x00 ))
+                          (x02 + 2*( x01 + Bloc(0)*x00 )*Bloc(0) - Bloc(0)**2*x00 &
+                          - 2*( x01 + Bloc(0)*x00 )*opoint(1) &
+                          + opoint(1)**2*x00 ))
           
           integralValue = integralValue + (commonPreFactor*x00*z00* &
                           !(y11) )
-                          (y02 + 2*( y01 + B(1)*y00 )*B(1) - B(1)**2*y00 &
-                          - 2*( y01 + B(1)*y00 )* origin(2) &
-                          + origin(2)**2*y00 ))
-          
-          
+                          (y02 + 2*( y01 + Bloc(1)*y00 )*Bloc(1) - Bloc(1)**2*y00 &
+                          - 2*( y01 + Bloc(1)*y00 )*opoint(2) &
+                          + opoint(2)**2*y00 ))
+                    
           integralValue = integralValue + (commonPreFactor*x00*y00* &
                           !(z02) )
-                          (z02 + 2*( z01 + B(2)*z00 )*B(2) - B(2)**2*z00 &
-                          - 2*( z01 + B(2)*z00 )*origin(3) &
-                          + origin(3)**2*z00 ))
+                          (z02 + 2*( z01 + Bloc(2)*z00 )*Bloc(2) - Bloc(2)**2*z00 &
+                          - 2*( z01 + Bloc(2)*z00 )*opoint(3) &
+                          + opoint(3)**2*z00 ))
 
     
        end do

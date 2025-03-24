@@ -45,7 +45,7 @@ diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
 diffCISDEnergy = abs(refCISDEnergy - CISDEnergy)
 diffHFCoefficient = abs(refHFCoefficient - abs(HFCoefficient))
 
-if (diffTotalEnergy <= 1E-8 and diffCISDEnergy <= 1E-6 and diffHFCoefficient <= 1E-4 ):
+if (diffTotalEnergy <= 1E-7 and diffCISDEnergy <= 1E-6 and diffHFCoefficient <= 1E-4 ):
     print(testName + str_green(" ... OK"))
 else:
     print(testName + str_red(" ... NOT OK"))

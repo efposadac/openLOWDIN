@@ -1,4 +1,4 @@
-!!******************************************************************************
+!******************************************************************************
 !!	This code is part of LOWDIN Quantum chemistry package                 
 !!	
 !!	this program has been developed under direction of:
@@ -209,7 +209,8 @@ contains
     ! call Matrix_show(wfObject%waveFunctionCoefficients)
 
     !! Filtra los orbitales eliminados por el umbral de solapamiento
-    call Wavefunction_removeOrbitalsBelowEigenThreshold(wfObject)    
+    if (wfObject%removedOrbitals .ge. 1) &
+         call Wavefunction_removeOrbitalsBelowEigenThreshold(wfObject)    
 
     if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING) &
          call Convergence_removeLevelShifting(wfObject%convergenceMethod,wfObject%molecularOrbitalsEnergy)   

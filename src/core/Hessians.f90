@@ -149,7 +149,7 @@ contains
 
                 origin = ParticleManager_getOrigin( iterator = iteratorOfParticles_1 )
                 origin = origin - ParticleManager_getOrigin( iterator = iteratorOfParticles_2 )
-                origin = origin * AMSTRONG
+                origin = origin * ANGSTROM
                 particlesDistance = sum( origin*origin )
                 strengthConstant = 0.3601_8 * exp( -1.944_8*( dsqrt(particlesDistance) -  covalentRadius ) )
 

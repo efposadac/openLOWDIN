@@ -147,7 +147,7 @@ contains
     end if
 
     allocate(this%distance(numberofVDWdistances))
-    this%distance = vdwDistance%data * AMSTRONG
+    this%distance = vdwDistance%data * ANGSTROM
 
     call MatrixInteger_constructor( this%connectionMatrix, numberofVDWdistances, 2 )
     this%connectionMatrix%values(:,1) = atomA%data(:)

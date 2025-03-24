@@ -2739,38 +2739,48 @@ contains
     type(WaveFunction) :: this
 
     integer(8) :: numberOfContractions
-    real(8) :: normCheck    
+    type(Vector) :: normCheck, normCheckSorted
+    real(8) :: threshold
     integer :: i, j, mu, nu, index
 
+    if(this%removedOrbitals .eq. 0) return
+    
     numberOfContractions = MolecularSystem_getTotalnumberOfContractions(this%species,this%molSys)
+    call Vector_constructor(normCheck, int(numberOfContractions,4), 0.0_8)
+
+    do i=1, numberOfContractions
+       do mu = 1 , numberOfContractions
+          do nu = 1 , numberOfContractions
+             normCheck%values(i)=normCheck%values(i)+this%waveFunctionCoefficients%values(mu,i)*&
+                  this%waveFunctionCoefficients%values(nu,i)*&
+                  this%overlapMatrix%values(mu,nu)
+          end do
+       end do
+    end do
+
+    normCheckSorted=normCheck
+    call Vector_reverseSortElements(normCheckSorted)
+    threshold=normCheckSorted%values(this%removedOrbitals)
 
     i=0
     do index = 1 , numberOfContractions
        i=i+1
-       normCheck=0.0
-       if ( abs(this%molecularOrbitalsEnergy%values(i)) .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
-          do mu = 1 , numberOfContractions
-             do nu = 1 , numberOfContractions
-                normCheck=normCheck+this%waveFunctionCoefficients%values(mu,i)*&
-                     this%waveFunctionCoefficients%values(nu,i)*&
-                     this%overlapMatrix%values(mu,nu)
-             end do
+       if ( normCheck%values(i) .le. threshold) then
+          if (  CONTROL_instance%DEBUG_SCFS) &
+               print *, "shifting eigenvector no.", i, "with normCheck", normCheck%values(i), "to the end of the coefficients matrix"
+          do j = i , numberOfContractions-1
+             this%molecularOrbitalsEnergy%values(j)=this%molecularOrbitalsEnergy%values(j+1)
+             this%waveFunctionCoefficients%values(1:numberOfContractions,j) = this%waveFunctionCoefficients%values(1:numberOfContractions,j+1)
+             normCheck%values(j)=normCheck%values(j+1)
           end do
-          ! print *, "eigenvalue", i, this%molecularOrbitalsEnergy%values(i), "normCheck", normCheck
-
-          if ( normCheck .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD) then
-             ! Shift orbital coefficients to the end of the matrix and Make energy a very large number
-             do j = i , numberOfContractions-1
-                this%molecularOrbitalsEnergy%values(j)=this%molecularOrbitalsEnergy%values(j+1)
-                this%waveFunctionCoefficients%values(:,j) = this%waveFunctionCoefficients%values(:,j+1)
-             end do
-             this%molecularOrbitalsEnergy%values(numberOfContractions)=1/CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
-             this%waveFunctionCoefficients%values(:,numberOfContractions)=0.0
-             i=i-1
-          end if
-
+          i=i-1
+          ! Make eigenenergy a very large number
+          this%molecularOrbitalsEnergy%values(numberOfContractions)=1.0E+308_8
+          this%waveFunctionCoefficients%values(1:numberOfContractions,numberOfContractions)=0.0_8
+          normCheck%values(numberOfContractions)=1.0E+308_8
        end if
     end do
+    
   end subroutine Wavefunction_removeOrbitalsBelowEigenThreshold
 
 

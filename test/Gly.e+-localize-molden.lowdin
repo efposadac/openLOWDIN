@@ -32,8 +32,9 @@ END CONTROL
 
 OUTPUTS
 	moldenFile
+	fchkFile
 END OUTPUTS
-
+!The fchk files generated here are read in the Gly.e+-localize-molden.lowdin test
 
 
 
