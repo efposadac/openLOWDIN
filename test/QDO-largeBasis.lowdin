@@ -6,10 +6,12 @@ TASKS
 method = "UHF"
 END TASKS
 CONTROL
+readCoefficients=F
 setQDOenergyZero=T
 totalEnergyTolerance=1E-12
 overlapEigenThreshold=1E-6
 integralStorage="DIRECT"
+debugSCFS=F
 END CONTROL
 BASIS PB6ZQDO
 O-POSITIVE qp+ (PB6ZQDO) BASIS TYPE: 2
