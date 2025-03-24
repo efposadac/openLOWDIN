@@ -327,12 +327,12 @@ contains
     if(auxReal .gt. 0.0) this%point1%values=center
 
     if ( trim(CONTROL_instance%UNITS) == "ANGS") then
-       this%point1%values= this%point1%values/AMSTRONG
-       this%point2%values= this%point2%values/AMSTRONG
-       this%point3%values= this%point3%values/AMSTRONG
-       this%cubeSize=this%cubeSize/AMSTRONG
-       this%step1%values= this%step1%values/AMSTRONG
-       this%step2%values= this%step2%values/AMSTRONG
+       this%point1%values= this%point1%values/ANGSTROM
+       this%point2%values= this%point2%values/ANGSTROM
+       this%point3%values= this%point3%values/ANGSTROM
+       this%cubeSize=this%cubeSize/ANGSTROM
+       this%step1%values= this%step1%values/ANGSTROM
+       this%step2%values= this%step2%values/ANGSTROM
     end if
 
     !! By default, we work with HF-KS wavefunctions
@@ -633,7 +633,7 @@ contains
              if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
              if(scan(symbol,"[") /=0) symbol=symbol(scan(symbol,"[")+1:scan(symbol,"]")-1)
 
-             if ( CONTROL_instance%UNITS=="ANGS") origin = origin * AMSTRONG
+             if ( CONTROL_instance%UNITS=="ANGS") origin = origin * ANGSTROM
 
              totalNumberOfParticles = totalNumberOfParticles + 1
 
@@ -663,7 +663,7 @@ contains
 
                    totalNumberOfParticles = totalNumberOfParticles + 1
                    origin=localizationOfCenters%values(k,:)
-                   if ( CONTROL_instance%UNITS=="ANGS") origin = origin * AMSTRONG
+                   if ( CONTROL_instance%UNITS=="ANGS") origin = origin * ANGSTROM
                    symbol=labels(k)
                    if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
 

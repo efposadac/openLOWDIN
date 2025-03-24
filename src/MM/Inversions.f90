@@ -303,10 +303,10 @@ contains
        atom3 = this%connectionMatrix%values(i,3)
        atom4 = this%connectionMatrix%values(i,4)
 
-       R1%values = vertices%cartesianMatrix%values(atom1,:) * AMSTRONG
-       R2%values = vertices%cartesianMatrix%values(atom2,:) * AMSTRONG
-       R3%values = vertices%cartesianMatrix%values(atom3,:) * AMSTRONG
-       R4%values = vertices%cartesianMatrix%values(atom4,:) * AMSTRONG
+       R1%values = vertices%cartesianMatrix%values(atom1,:) * ANGSTROM
+       R2%values = vertices%cartesianMatrix%values(atom2,:) * ANGSTROM
+       R3%values = vertices%cartesianMatrix%values(atom3,:) * ANGSTROM
+       R4%values = vertices%cartesianMatrix%values(atom4,:) * ANGSTROM
 
        R12%values = R2%values - R1%values
        R13%values = R3%values - R1%values

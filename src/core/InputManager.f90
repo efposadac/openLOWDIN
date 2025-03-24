@@ -559,7 +559,7 @@ contains
        
        !! Fix units ( converts ANGS to BOHR )
        if ( trim(CONTROL_instance%UNITS) == "ANGS") then
-          InputParticle_origin= InputParticle_origin / AMSTRONG
+          InputParticle_origin= InputParticle_origin / ANGSTROM
        end if
        
        !! All uppercase

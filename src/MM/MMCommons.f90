@@ -334,7 +334,7 @@ contains
     call Vector_constructor( bonds, edgesSize )
     do i=1,edgesSize
        do j=1,2
-          bonds%values(i) = this%intCoordinates%distanceBondValue%values(i) * AMSTRONG
+          bonds%values(i) = this%intCoordinates%distanceBondValue%values(i) * ANGSTROM
        end do
     end do
 

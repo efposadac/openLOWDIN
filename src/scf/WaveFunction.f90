@@ -2748,27 +2748,25 @@ contains
     do index = 1 , numberOfContractions
        i=i+1
        normCheck=0.0
-       if ( abs(this%molecularOrbitalsEnergy%values(i)) .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD ) then
-          do mu = 1 , numberOfContractions
-             do nu = 1 , numberOfContractions
-                normCheck=normCheck+this%waveFunctionCoefficients%values(mu,i)*&
-                     this%waveFunctionCoefficients%values(nu,i)*&
-                     this%overlapMatrix%values(mu,nu)
-             end do
+       do mu = 1 , numberOfContractions
+          do nu = 1 , numberOfContractions
+             normCheck=normCheck+this%waveFunctionCoefficients%values(mu,i)*&
+                  this%waveFunctionCoefficients%values(nu,i)*&
+                  this%overlapMatrix%values(mu,nu)
           end do
-          ! print *, "eigenvalue", i, this%molecularOrbitalsEnergy%values(i), "normCheck", normCheck
+       end do
+       if ( normCheck .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD) then
+          if (  CONTROL_instance%DEBUG_SCFS) &
+               print *, "shifting eigenvector no.", i, "with normCheck", normCheck, "to the end of the coefficients matrix"
 
-          if ( normCheck .lt. CONTROL_instance%OVERLAP_EIGEN_THRESHOLD) then
-             ! Shift orbital coefficients to the end of the matrix and Make energy a very large number
-             do j = i , numberOfContractions-1
-                this%molecularOrbitalsEnergy%values(j)=this%molecularOrbitalsEnergy%values(j+1)
-                this%waveFunctionCoefficients%values(:,j) = this%waveFunctionCoefficients%values(:,j+1)
-             end do
-             this%molecularOrbitalsEnergy%values(numberOfContractions)=1/CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
-             this%waveFunctionCoefficients%values(:,numberOfContractions)=0.0
-             i=i-1
-          end if
-
+          do j = i , numberOfContractions-1
+             this%molecularOrbitalsEnergy%values(j)=this%molecularOrbitalsEnergy%values(j+1)
+             this%waveFunctionCoefficients%values(:,j) = this%waveFunctionCoefficients%values(:,j+1)
+          end do
+          ! Make eigenenergy a very large number
+          this%molecularOrbitalsEnergy%values(numberOfContractions)=1.0E+308_8
+          this%waveFunctionCoefficients%values(:,numberOfContractions)=0.0
+          i=i-1
        end if
     end do
   end subroutine Wavefunction_removeOrbitalsBelowEigenThreshold

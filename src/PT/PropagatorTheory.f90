@@ -28,13 +28,14 @@ module PropagatorTheory_
         use InputCI_
 !	use IntegralManager_
 !	use GenericInterface_
-!        use PInterface_ 
+!       use PInterface_ 
 	use Exception_
         use Matrix_
 	use Vector_
         use ReadTransformedIntegrals_
 	use IndexMap_
-  use omp_lib
+	use Units_
+        use omp_lib
 !	use TransformIntegrals_
 !	use TransformIntegrals2_
 	implicit NONE
@@ -952,7 +953,7 @@ contains
           ! Koopmans
           koopmans = eigenValuesOfSpeciesA%values(pa)
           PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)=real(pa,8)
-          PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
+          PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2)=EV * koopmans
 
           print *,"----------------------------------------------------------------"
           write (*,"(T5,A25,I2,A13,A8)") "Results for spin-orbital:",int(PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)),&
@@ -1151,8 +1152,8 @@ contains
                    
                 end if
 
-                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), nameOfSpeciesB, prx*27.211396_8, orx*27.211396_8, &
-                        E2ph*27.211396_8,(E2hp+E2ph)*27.211396_8
+                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), nameOfSpeciesB, prx*EV, orx*EV, &
+                        E2ph*EV,(E2hp+E2ph)*EV
 
                 TE2hp = TE2hp + E2hp
                 TE2ph = TE2ph + E2ph
@@ -1164,22 +1165,22 @@ contains
              write (*, "(T6,A50)") "--------------------------------------------------"
 
              !! Total 
-             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), "Sum for b " , Tprx*27.211396_8,Torx*27.211396_8, &
-                         TE2ph*27.211396_8,(TE2hp+TE2ph)*27.211396_8
+             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), "Sum for b " , Tprx*EV,Torx*EV, &
+                         TE2ph*EV,(TE2hp+TE2ph)*EV
 
              write (*, "(T6,A50)") "--------------------------------------------------"
              write (*, *) ""
 
              ! Storing corrections
              
-             PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1)=27.211396_8 * newOmega
+             PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1)=EV * newOmega
              PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+2)=poleStrenght
              
              write (*,"(T5,A10,F8.5,A10,F8.5)") " FactorOS: ",factorOS(n)," FactorSS: ",factorSS(n)
              write (*,"(T5,A30,F8.4,A7,I2,A12)") " Optimized second order pole: ",&
                   PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1),&
                   " after ",ni," iterations."
-             write (*,"(T5,A17,F8.4,A15,F7.4)") "Correction(eV): ",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+             write (*,"(T5,A17,F8.4,A15,F7.4)") "Correction(eV): ",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
              write (*, *) ""
 
           end do          
@@ -3134,8 +3135,8 @@ contains
 !          print *,"M y Q:",m,q
 
           PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
           PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 
           write (*,"(T5,A25,I2,A13,A8)") "Results for spin-orbital:",int(PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)),&
@@ -3143,7 +3144,7 @@ contains
           write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
           write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
                " after ",ni," iterations."
-          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
           print *,"----------------------------------------------------------------"
 
           ! Calculation of third order poles
@@ -3176,8 +3177,8 @@ contains
              ! Initial guess             
              koopmans = eigenValuesOfSpeciesA%values(pa)
              newOmega = koopmans
-             ! if (o>2.and.o/=6) newOmega = thirdOrderResults(1,2)/27.211396_8
-             ! if (o==6) newOmega = thirdOrderResults(1,1)/27.211396_8
+             ! if (o>2.and.o/=6) newOmega = thirdOrderResults(1,2)/EV
+             ! if (o==6) newOmega = thirdOrderResults(1,1)/EV
              lastOmega = 0.0_8
              
              ni = 0
@@ -3190,7 +3191,7 @@ contains
              fI = 1.0_8
              if (o==1 .or. o==6) fW=1.0_8
              if (o==1 .or. o==6) fI=0.0_8
-             threshold=0.001_8/27.211396_8
+             threshold=0.001_8/EV
              ! if (o==1 .or. o==2) threshold=0.00001_8
              
              ! NR procedure Hola
@@ -4616,13 +4617,13 @@ contains
              end if
              
              poleStrenght = 1.0_8/(selfEnergyDerivative)
-             thirdOrderResults(1,o) = 27.211396_8 * newOmega
+             thirdOrderResults(1,o) = EV * newOmega
              thirdOrderResults(2,o) = poleStrenght
 
 !             print *,"value of o:",o
 !             ! print *,"FACTORS:"
 !             ! print *,factors(:,:,:)
-             print *, "Constant self-energy: ", constantSelfEnergy*27.211396_8
+             print *, "Constant self-energy: ", constantSelfEnergy*EV
              print *, "2hp(2):               ",s2hp(:)
              print *, "2ph(2):               ",s2ph(:)
              print *, "W 2hp(3):             ",W2hp(:)
@@ -4638,8 +4639,8 @@ contains
              print *, "Factor2 2hp:          ",factors2(:,2,o)
              print *, "Factor2 2ph:         ",factors2(:,1,o)
              print *, ""
-             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*27.211396_8," after ",ni," iterations."
-             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*EV," after ",ni," iterations."
+             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
              print *,"----------------------------------------------------------------"
                           
           end do ! options for third order
@@ -4661,7 +4662,7 @@ contains
           end do
           write (*, "(T5,A45)") "--------------------------------------------"
 
-          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
           ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
                               
           ! call Matrix_destructor(auxMatrix2(:))          
@@ -5209,18 +5210,18 @@ end module PropagatorTheory_
   !         ! Storing of corrections
 
   !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,4*m)= &
-  !              27.211396_8 * optimizedOmega
+  !              EV * optimizedOmega
           
   !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-1))= &
   !              PropagatorTheory_getPolarStrength( auxNumeratorsVector, &
   !              auxDenominatorsVector, id, optimizedOmega)
 
-  !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-2))= 27.211396_8 * selfEnergyIntraSpecie
-  !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-3))= 27.211396_8 * selfEnergyInterSpecie
+  !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-2))= EV * selfEnergyIntraSpecie
+  !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-3))= EV * selfEnergyInterSpecie
           
   !         if ( CONTROL_instance%PT_SELF_ENERGY_SCAN ) then    
              
-  !            range=(CONTROL_instance%PT_SELF_ENERGY_RANGE)/27.211396_8
+  !            range=(CONTROL_instance%PT_SELF_ENERGY_RANGE)/EV
              
   !            call PropagatorTheory_scanSelfEnergy( auxNumeratorsVector, &
   !                 auxDenominatorsVector, id, p, nameOfSpecie, & 
@@ -5716,7 +5717,7 @@ end module PropagatorTheory_
   !   ! Storing of corrections
     
   !   PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(speciesID,4*CONTROL_instance%IONIZE_MO(1))= &
-  !        27.211396_8 * lastEigenvalue
+  !        EV * lastEigenvalue
 
   !   !!! DAVIDSON ALGORYTHM ENDS
 
@@ -6863,14 +6864,14 @@ end module PropagatorTheory_
 !     ! Storing of corrections
     
 !     PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(speciesID,4*CONTROL_instance%IONIZE_MO(1))= &
-!          27.211396_8 * lastEigenvalue
+!          EV * lastEigenvalue
     
 !     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-1))= &
 !     !      PropagatorTheory_getPolarStrength( auxNumeratorsVector, &
 !     !      auxDenominatorsVector, id, optimizedOmega)
     
-!     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-2))= 27.211396_8 * selfEnergyIntraSpecie
-!     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-3))= 27.211396_8 * selfEnergyInterSpecie
+!     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-2))= EV * selfEnergyIntraSpecie
+!     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-3))= EV * selfEnergyInterSpecie
 
 !     !!************************************************************************************************
 !     print *,"END OF CALCULATION OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR"
@@ -7663,8 +7664,8 @@ end module PropagatorTheory_
 !          ! Storing corrections
 !
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 !
 !          print *,"----------------------------------------------------------------"
@@ -7673,7 +7674,7 @@ end module PropagatorTheory_
 !          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
 !          write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
 !               " after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !
 !          ! Initial guess
 !          koopmans = eigenValuesOfSpeciesA%values(pa)
@@ -8295,11 +8296,11 @@ end module PropagatorTheory_
 !
 !          poleStrenght = 1.0_8/(selfEnergyDerivative)
 !
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
 !
-!          write (*,"(T5,A26,F8.4,A7,I2,A12)") "Optimized P3 order pole: ",newOmega*27.211396_8," after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A26,F8.4,A7,I2,A12)") "Optimized P3 order pole: ",newOmega*EV," after ",ni," iterations."
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !          print *,"----------------------------------------------------------------"
 !
 !       end do
@@ -9511,8 +9512,8 @@ end module PropagatorTheory_
 !          ! Storing corrections
 !
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 !
 !          print *,"----------------------------------------------------------------"
@@ -9521,7 +9522,7 @@ end module PropagatorTheory_
 !          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
 !          write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
 !               " after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !
 !          ! Calculation of third order poles
 !
@@ -10411,17 +10412,17 @@ end module PropagatorTheory_
 !             end if
 !
 !             poleStrenght = 1.0_8/(selfEnergyDerivative)
-!             thirdOrderResults(1,o) = 27.211396_8 * newOmega
+!             thirdOrderResults(1,o) = EV * newOmega
 !             thirdOrderResults(2,o) = poleStrenght
 !
 !             print *,"value of o:",o
 !             print *,"constant self-energy:", constantSelfEnergy
-!             print *,"2hp(2):",s2hp*27.211396_8,"2ph(2):",s2ph*27.211396_8
-!             print *,"W 2hp(3):",W2hp*27.211396_8,"W 2ph(3):",W2ph*27.211396_8
-!             print *,"U 2hp(3):",U2hp*27.211396_8,"U 2ph(3):",U2ph*27.211396_8
+!             print *,"2hp(2):",s2hp*EV,"2ph(2):",s2ph*EV
+!             print *,"W 2hp(3):",W2hp*EV,"W 2ph(3):",W2ph*EV
+!             print *,"U 2hp(3):",U2hp*EV,"U 2ph(3):",U2ph*EV
 !             print *,"factor 2hp:",factors(2,o),"factor 2ph:",factors(1,o)
-!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*27.211396_8," after ",ni," iterations."
-!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*EV," after ",ni," iterations."
+!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !             print *,"----------------------------------------------------------------"
 !             
 !             
@@ -10444,7 +10445,7 @@ end module PropagatorTheory_
 !          end do
 !          write (*, "(T5,A45)") "--------------------------------------------"
 !
-!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
 !          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
 !                              
 !          ! call Matrix_destructor(auxMatrix2(:))          
@@ -11798,8 +11799,8 @@ end module PropagatorTheory_
 !          ! Storing corrections
 !
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 !
 !          print *,"----------------------------------------------------------------"
@@ -11808,7 +11809,7 @@ end module PropagatorTheory_
 !          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
 !          write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
 !               " after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !
 !          ! Calculation of third order poles
 !
@@ -12560,17 +12561,17 @@ end module PropagatorTheory_
 !             end if
 !
 !             poleStrenght = 1.0_8/(selfEnergyDerivative)
-!             thirdOrderResults(1,o) = 27.211396_8 * newOmega
+!             thirdOrderResults(1,o) = EV * newOmega
 !             thirdOrderResults(2,o) = poleStrenght
 !
 !             print *,"value of o:",o
-!             print *,"constant self-energy:", constantSelfEnergy*27.211396_8
-!             print *,"2hp(2):",s2hp*27.211396_8,"2ph(2):",s2ph*27.211396_8
-!             print *,"W 2hp(3):",W2hp*27.211396_8,"W 2ph(3):",W2ph*27.211396_8
-!             print *,"U 2hp(3):",U2hp*27.211396_8,"U 2ph(3):",U2ph*27.211396_8
+!             print *,"constant self-energy:", constantSelfEnergy*EV
+!             print *,"2hp(2):",s2hp*EV,"2ph(2):",s2ph*EV
+!             print *,"W 2hp(3):",W2hp*EV,"W 2ph(3):",W2ph*EV
+!             print *,"U 2hp(3):",U2hp*EV,"U 2ph(3):",U2ph*EV
 !             print *,"factor 2hp:",factors(2,o),"factor 2ph:",factors(1,o)
-!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*27.211396_8," after ",ni," iterations."
-!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*EV," after ",ni," iterations."
+!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !             print *,"----------------------------------------------------------------"
 !             
 !          end do ! options of third order
@@ -12592,7 +12593,7 @@ end module PropagatorTheory_
 !          end do
 !          write (*, "(T5,A45)") "--------------------------------------------"
 !
-!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
 !          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
 !                              
 !          ! call Matrix_destructor(auxMatrix2(:))          
@@ -14147,8 +14148,8 @@ end module PropagatorTheory_
 !          print *,"M y Q:",m,q
 !
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 !
 !          print *,"----------------------------------------------------------------"
@@ -14157,7 +14158,7 @@ end module PropagatorTheory_
 !          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
 !          write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
 !               " after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !
 !          ! Calculation of third order poles
 !
@@ -15282,13 +15283,13 @@ end module PropagatorTheory_
 !             end if
 !             
 !             poleStrenght = 1.0_8/(selfEnergyDerivative)
-!             thirdOrderResults(1,o) = 27.211396_8 * newOmega
+!             thirdOrderResults(1,o) = EV * newOmega
 !             thirdOrderResults(2,o) = poleStrenght
 !
 !             print *,"value of o:",o
 !             ! print *,"FACTORS:"
 !             ! print *,factors(:,:,:)
-!             print *,"constant self-energy:", constantSelfEnergy*27.211396_8
+!             print *,"constant self-energy:", constantSelfEnergy*EV
 !             print *,"2hp(2):",s2hp(:)
 !             print *,"2ph(2):",s2ph(:)
 !             print *,"W 2hp(3):",W2hp(:)
@@ -15297,8 +15298,8 @@ end module PropagatorTheory_
 !             print *,"U 2ph(3):",U2ph(:)
 !             print *,"factor 2hp:",factors(:,2,o)
 !             print *,"factor 2ph:",factors(:,1,o)
-!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*27.211396_8," after ",ni," iterations."
-!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*EV," after ",ni," iterations."
+!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !             print *,"----------------------------------------------------------------"
 !                          
 !          end do ! options for third order
@@ -15320,7 +15321,7 @@ end module PropagatorTheory_
 !          end do
 !          write (*, "(T5,A45)") "--------------------------------------------"
 !
-!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
 !          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
 !                              
 !          ! call Matrix_destructor(auxMatrix2(:))          

@@ -121,10 +121,10 @@ contains
 
 
     do i=1,surface%sizeSurface        
-       surface%xs(i)=x(i)/AMSTRONG
-       surface%ys(i)=y(i)/AMSTRONG
-       surface%zs(i)=z(i)/AMSTRONG
-       surface%area(i)=a(i)/((AMSTRONG)**2)
+       surface%xs(i)=x(i)/ANGSTROM
+       surface%ys(i)=y(i)/ANGSTROM
+       surface%zs(i)=z(i)/ANGSTROM
+       surface%area(i)=a(i)/((ANGSTROM)**2)
     end do
 
     !Reading surface from .sup

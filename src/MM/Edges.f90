@@ -101,7 +101,7 @@ contains
        do j=1,2
           this%connectionMatrix%values(i,j) = MolecularSystem_instance%intCoordinates%connectionMatrixForBonds%values(i,j)
        end do
-       this%distance(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * AMSTRONG
+       this%distance(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * ANGSTROM
        this%bondOrder(i) = orders(i)
     end do
 
@@ -404,7 +404,7 @@ contains
     call Vector_constructor( bonds, numberOfEdges )
     do i=1,numberOfEdges
        do j=1,2
-          bonds%values(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * AMSTRONG
+          bonds%values(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * ANGSTROM
        end do
     end do
 

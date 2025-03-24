@@ -460,7 +460,7 @@ contains
           do j = 1, size(molecularSystem_instance%species(i)%particles)
              read(coordsUnit,*) string, origin(1), origin(2), origin(3)
 
-             molecularSystem_instance%species(i)%particles(j)%origin = origin/AMSTRONG
+             molecularSystem_instance%species(i)%particles(j)%origin = origin/ANGSTROM
              do mu = 1, molecularSystem_instance%species(i)%particles(j)%basis%length
                 molecularSystem_instance%species(i)%particles(j)%basis%contraction(mu)%origin = &
                      molecularSystem_instance%species(i)%particles(j)%origin
@@ -472,7 +472,7 @@ contains
        do i = 1, molecularSystem_instance%numberOfPointCharges
           read(coordsUnit,*) string, origin(1), origin(2), origin(3)
           
-          molecularSystem_instance%pointCharges(i)%origin = origin/AMSTRONG
+          molecularSystem_instance%pointCharges(i)%origin = origin/ANGSTROM
        end do
        call MolecularSystem_copyConstructor(this%molecularSystems(sysI), molecularSystem_instance)
 

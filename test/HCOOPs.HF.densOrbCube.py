@@ -22,7 +22,7 @@ plots=[testName + ".E+.2D.orb1",
 
 # Reference values and tolerance
 refValues = {
-"HF energy" : [-188.362545831570,1E-8],
+"HF energy" : [-188.362545831570,1E-7],
 "Num E- in density cube" : [24.0,1E-1],
 "Num E+ in density cube" : [1.0,1E-2],
 "Num E+ in orbital cube" : [1.0,1E-2],

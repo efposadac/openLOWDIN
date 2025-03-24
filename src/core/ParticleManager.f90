@@ -311,7 +311,7 @@ contains
 
        case("SI")
 
-          output = output * kg
+          output = output * KG
 
        case("AMU")
 
@@ -358,7 +358,7 @@ contains
 
        case("SI")
 
-          output = output * kg
+          output = output * KG
 
        case("AMU")
 
@@ -1132,7 +1132,7 @@ contains
 
   !        case("SI")
 
-  !           output = output * kg
+  !           output = output * KG
 
   !        case("AMU")
 

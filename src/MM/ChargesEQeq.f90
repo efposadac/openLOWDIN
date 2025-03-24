@@ -231,7 +231,7 @@ contains
        idempotential = hardness(i)
     else
        separationOfCenters = sum( ( vertices%cartesianMatrix%values(i,:) - vertices%cartesianMatrix%values(j,:))**2.0 )
-       Rab = (sqrt(separationOfCenters)) * AMSTRONG
+       Rab = (sqrt(separationOfCenters)) * ANGSTROM
        Jij = dsqrt(hardness(i)*hardness(j))
        a = Jij/K
        orbitalOverlap = (exp(-(a*a*Rab*Rab)))*(2*a - a*a*Rab - 1/Rab)

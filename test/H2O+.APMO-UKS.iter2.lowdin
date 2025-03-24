@@ -17,7 +17,7 @@ CONTROL
 	iterationScheme=2
 	electronicEnergyTolerance=1E-10
 	NonelectronicEnergyTolerance=1E-10
-	totalEnergyTolerance=1E-10
+	totalEnergyTolerance=1E-11
 	scfElectronicMaxIterations=20
 	scfNonelectronicMaxIterations=50
 	scfGlobalMaxIterations=10000
