@@ -1,62 +1,25 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
-
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
-
-testName = sys.argv[0][:-3]
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
-# Reference values and tolerance
-
-refValues = {
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues = {
 "HF energy" : [-281.379249167035,1E-6],
 "Iterations" : [2,1],
+"KT e+ 1" : [-3.48432E-03,1E-4],
+"KT e- 19" : [-6.32003E-01,1E-4],
 }                       
+    return refValues
 
-testValues = dict(refValues) #copy 
-for value in testValues: #reset
-    testValues[value] = 0 #reset
-    
-# Run calculation
+def getTestValues(testValues,testName):
+    testValues["HF energy"] = test.getSCFTotalEnergy(testName)
+    testValues["KT e+ 1"] = test.getHFeigenvalues(testName,"POSITRON",1)
+    testValues["KT e- 19"] = test.getHFeigenvalues(testName,"E-",19)
+    testValues["Iterations"] = test.getSCFiterations(testName)
+    return 
 
-status = os.system(lowdinbin + " -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-for i in range(0,len(outputRead)):
-    line = outputRead[i]
-    if "TOTAL ENERGY =" in line:
-        testValues["HF energy"] = float(line.split()[3])
-    if " Total energy converged after" in line:
-        testValues["Iterations"] = float(line.split()[4])
-
-output.close()
-
-passTest = True
-
-for value in refValues:
-    diffValue = abs(refValues[value][0] - testValues[value]) 
-    if ( diffValue <= refValues[value][1] ):
-        passTest = passTest * True
-    else :
-        passTest = passTest * False
-        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
-
-if passTest :
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)
