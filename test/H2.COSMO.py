@@ -1,46 +1,19 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues={
+    "HF Energy" : [-1.117447274199,1E-8]
+    }
+    return refValues
 
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
+def getTestValues(testValues,testName):
+    testValues["HF Energy"] = test.getSCFTotalEnergy(testName)
+    return 
 
-testName = "H2.COSMO"
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
-
-# Reference values
-
-refTotalEnergy = -1.117447274199
-
-# Run calculation
-
-status = os.system(lowdinbin + " -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-
-for line in outputRead:
-    if "TOTAL ENERGY =" in line:
-        totalEnergy = float(line.split()[3])
-
-diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-
-if (diffTotalEnergy <= 1E-8):
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-    print("Difference HF: " + str(diffTotalEnergy))
-    sys.exit(1)
-
-output.close()
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)

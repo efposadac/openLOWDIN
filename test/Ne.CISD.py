@@ -1,51 +1,21 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues = {
+    "HF Energy" : [-128.522668749513,1E-8],
+    "FCI Energy" : [-128.678103255522,1E-6],
+}
+    return refValues
 
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
+def getTestValues(testValues,testName):
+    testValues["HF Energy"] = test.getSCFTotalEnergy(testName)
+    testValues["FCI Energy"] = test.getCIEnergy(testName,1)
+    return 
 
-testName = "Ne.CISD"
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
-
-# Reference values
-
-refTotalEnergy = -128.522668749513
-refFCIEnergy = -128.678103255522
-
-# Run calculation
-
-status = os.system(lowdinbin + " -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-
-for line in outputRead:
-    if "TOTAL ENERGY =" in line:
-        totalEnergy = float(line.split()[3])
-    if "STATE:   1 ENERGY =" in line:
-        FCIEnergy = float(line.split()[4])
-
-diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffFCIEnergy = abs(refFCIEnergy - FCIEnergy)
-
-if (diffTotalEnergy <= 1E-8 and diffFCIEnergy <= 1E-6):
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-    print("Difference HF: " + str(diffTotalEnergy))
-    print("Difference FCI: " + str(diffFCIEnergy))
-    sys.exit(1)
-
-output.close()
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)

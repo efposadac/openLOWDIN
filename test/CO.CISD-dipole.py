@@ -1,78 +1,27 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
-
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
-
-testName = sys.argv[0][:-3]
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
-# Reference values and tolerance
-
-refValues = {
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues = {
 "HF energy" : [-112.737336707933,1E-8],
 "CISD energy" : [-112.957030012578,1E-6],
-"HF z-dipole" : [-0.33130728,1E-3],
-"CISD z-dipole" :  [0.13640258,1E-3],
+"HF dipole z" : [-0.33130728,1E-3],
+"CISD dipole z" :  [0.13640258,1E-3],
 }                       
+    return refValues
 
-testValues = dict(refValues) #copy 
-for value in testValues: #reset
-    testValues[value] = 0 #reset
-    
-# Run calculation
+def getTestValues(testValues,testName):
+    testValues["HF energy"] = test.getSCFTotalEnergy(testName)
+    testValues["CISD energy"] = test.getCIEnergy(testName,1)
+    testValues["HF dipole"] = test.getSCFDipole(testName,"total","A.U.")
+    testValues["HF dipole z"] = test.getSCFDipole(testName,"z","DEBYE")
+    testValues["CISD dipole"] = test.getCIDipole(testName,"total","A.U.")
+    testValues["CISD dipole z"] = test.getCIDipole(testName,"z","DEBYE")
+    return 
 
-status = os.system(lowdinbin + " -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-dipoleflag=False
-ciflag=False
-hfflag=True
-for i in range(0,len(outputRead)):
-    line = outputRead[i]
-    if "TOTAL ENERGY =" in line:
-        testValues["HF energy"] = float(line.split()[3])
-    if "STATE:   1 ENERGY =" in line:
-        testValues["CISD energy"] = float(line.split()[4])
-    if "DIPOLE: (DEBYE)" in line:
-        dipoleflag=True
-    if "Total Dipole:" in line and dipoleflag and hfflag:
-        testValues["HF z-dipole"] = float(line.split()[4])
-        dipoleflag=False
-        hfflag=False
-    if "We are calculating properties for E-ALPHA in the CI ground state" in line:
-        ciflag=True
-    if "Total Dipole:" in line and dipoleflag and ciflag:
-        testValues["CISD z-dipole"] = float(line.split()[4])
-        dipoleflag=False
-
-output.close()
-
-passTest = True
-
-for value in refValues:
-    diffValue = abs(refValues[value][0] - testValues[value]) 
-    if ( diffValue <= refValues[value][1] ):
-        passTest = passTest * True
-    else :
-        passTest = passTest * False
-        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
-
-if passTest :
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)

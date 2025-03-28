@@ -1,21 +1,11 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
-
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
-
-testName = sys.argv[0][:-3]
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
-
-# Reference values and tolerance
-
-refValues = {
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues = {
 "HF energy" : [-1.255739154579,1E-8],
 "FCI 1" : [-1.306431783235,1E-8],
 "FCI 2" : [-1.291420173154,1E-8],
@@ -42,57 +32,21 @@ refValues = {
 "Natural Orb 1 H_1 19" : [0.000000,1E-3],
 "Natural Orb 1 H_1 20" : [0.161496,1E-3],
 }                       
+    return refValues
 
+def getTestValues(testValues,testName):
+    testValues["HF energy"] = test.getSCFTotalEnergy(testName)
+    testValues["CI 1"] = test.getCIEnergy(testName,1)
+    testValues["CI 2"] = test.getCIEnergy(testName,2)
+    testValues["FCI 1"] = test.getCIEnergy(testName,1)
+    testValues["FCI 2"] = test.getCIEnergy(testName,2)
+    testValues["FCI 3"] = test.getCIEnergy(testName,3)
+    testValues["Natural Occ 1 H_1 1"] = test.getNaturalOrbOcc(testName,"H_1",1)
+    orbital = test.getNaturalOrb(testName,"H_1",1)
+    for j in range(1,20+1):
+        testValues["Natural Orb 1 H_1 "+str(j)] = orbital[j-1] 
+    return 
 
-
-testValues = dict(refValues) #copy 
-for value in testValues: #reset
-    testValues[value] = 0 #reset
-    
-# Run calculation
-
-status = os.system(lowdinbin + " -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-for i in range(0,len(outputRead)):
-    line = outputRead[i]
-    if "TOTAL ENERGY =" in line:
-        testValues["HF energy"] = float(line.split()[3])
-    if "STATE:   1 ENERGY =" in line:
-        testValues["FCI 1"] = float(line.split()[4])
-    if "STATE:   2 ENERGY =" in line:
-        testValues["FCI 2"] = float(line.split()[4])
-    if "STATE:   3 ENERGY =" in line:
-        testValues["FCI 3"] = float(line.split()[4])
-
-    if "  Natural Orbitals in state:            1  for: H_1" in line:
-        testValues["Natural Occ 1 H_1 1"] = float(outputRead[i+2].split()[0])
-        for j in range(1,20+1):
-            linej = outputRead[i+3+j]
-            testValues["Natural Orb 1 H_1 "+str(j)] = abs(float(linej.split()[3]))
-            
-
-passTest = True
-
-for value in refValues:
-    diffValue = abs(refValues[value][0] - testValues[value]) 
-    if ( diffValue <= refValues[value][1] ):
-        passTest = passTest * True
-    else :
-        passTest = passTest * False
-        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
-
-if passTest :
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output.close()
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)
