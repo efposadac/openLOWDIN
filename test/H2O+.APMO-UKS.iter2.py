@@ -6,8 +6,8 @@ import sys
 import lowdinTestFunctions as test
 def setReferenceValues():
     refValues = {
-"HF energy" : [-75.887006413564,1E-6],
-"Iterations" : [50,49],
+"HF energy" : [-75.887006413366,1E-6],
+"Iterations" : [23,20],
 }                       
     return refValues
 
