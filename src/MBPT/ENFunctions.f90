@@ -178,7 +178,7 @@ contains
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecies( i ) )//"} = ", &
+       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getSymbolOfSpecies( i ) )//"} = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,1)
         end do
 
@@ -187,7 +187,7 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecies( j ) )//" } = ", &
+           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getSymbolOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getSymbolOfSpecies( j ) )//" } = ", &
                 EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,1)
        end do
      end do
@@ -208,7 +208,7 @@ contains
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecies( i ) )//" } = ", &
+       write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getSymbolOfSpecies( i ) )//" } = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,2)
         end do
 
@@ -217,7 +217,7 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getNameOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecies( j ) ) //" } = ", &
+           write (*,'(A30,F20.12)') "E(2){ "//trim(  MolecularSystem_getSymbolOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getSymbolOfSpecies( j ) ) //" } = ", &
                 EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,2)
        end do
      end do
@@ -238,7 +238,7 @@ contains
         print *,""
 
         do i=1, EpsteinNesbet_instance%numberOfSpecies
-       write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getNameOfSpecies( i ) )//" } = ", &
+       write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getSymbolOfSpecies( i ) )//" } = ", &
                EpsteinNesbet_instance%energyCorrectionOfSecondOrder%values(i,3)
         end do
 
@@ -247,7 +247,7 @@ contains
         do i=1, EpsteinNesbet_instance%numberOfSpecies
        do j=i+1,EpsteinNesbet_instance%numberOfSpecies
            k=k+1
-           write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getNameOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getNameOfSpecies( j ) ) // " } = ", &
+           write (*,'(A30,F20.12)') "E(2){ "// trim(  MolecularSystem_getSymbolOfSpecies( i ) ) // "/" // trim(  MolecularSystem_getSymbolOfSpecies( j ) ) // " } = ", &
                 EpsteinNesbet_instance%energyOfCouplingCorrectionOfSecondOrder%values(k,3)
        end do
      end do
@@ -458,7 +458,7 @@ end if
    wfnUnit = 20
    
 
-   electronsID = MolecularSystem_getSpecieID(  nameOfSpecie="E-" )
+   electronsID = MolecularSystem_getSpeciesID( "E-" )
 
    !! Define file names
 !   call TransformIntegrals_constructor( repulsionTransformer )
@@ -492,7 +492,7 @@ end if
               output = eigenValues )     
          
          
-         specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
+         specieID = MolecularSystem_getSpeciesID( nameOfSpecie )
          ocupationNumber = MolecularSystem_getOcupationNumber( is )
          lambda = MolecularSystem_instance%species(is)%lambda
          
@@ -756,7 +756,7 @@ end if
           output = eigenValues )     
 
      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( is ) )
-     specieID =MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecie) )
+     specieID =MolecularSystem_getSpeciesID( trim(nameOfSpecie) )
      ocupationNumber = MolecularSystem_getOcupationNumber( is )
      lambda = MolecularSystem_getEta( is )
 
@@ -780,7 +780,7 @@ end if
 
 
         nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( js ) )
-        otherSpecieID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
+        otherSpecieID =MolecularSystem_getSpeciesID( nameOfOtherSpecie )
         ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( js )
 
         lambdaOfOtherSpecie = MolecularSystem_instance%species(js)%lambda

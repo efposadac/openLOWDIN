@@ -88,7 +88,8 @@ contains
     end if
     
     if(CONTROL_instance%PRINT_LEVEL .gt. 0) &
-         write (*,"(A,I4,A,I2,A,A)") " Building an atomic grid with", radialSize, " radial points in ", numberOfShells, " shells for ", trim(this%nameOfSpecies)
+         write (*,"(A,I4,A,I2,A,A)") " Building an atomic grid with", radialSize, " radial points in ", numberOfShells, " shells for ", &
+         trim(MolecularSystem_getSymbolOfSpecies(speciesID,this%molSys))
     
     numberOfCenters=size(this%molSys%species(speciesID)%particles)
     allocate(origins(numberOfCenters,3), atomicGridSize(numberOfCenters))
@@ -173,7 +174,7 @@ contains
     if(CONTROL_instance%PRINT_LEVEL .gt. 0) then
        write(*,"(A,ES9.3,A,ES9.3,A)") "Screening delocalized orbital(<", CONTROL_instance%ELECTRON_DENSITY_THRESHOLD,&
             ") and low weight(<",CONTROL_instance%GRID_WEIGHT_THRESHOLD,") points ..."
-       print *, "Final molecular grid size for: ", trim(this%nameOfSpecies), this%totalSize ," points"
+       print *, "Final molecular grid size for: ", trim(MolecularSystem_getSymbolOfSpecies(speciesID,this%molSys)), this%totalSize ," points"
        print *, " "
     end if
     

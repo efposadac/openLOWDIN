@@ -16,7 +16,7 @@ def setReferenceValues():
 
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
-    testValues["U-HOMO"] = test.getHFeigenvalues(testName,"MUON",1)
+    testValues["U-HOMO"] = test.getHFeigenvalues(testName,"U-",1)
     testValues["H_1-HOMO"] = test.getHFeigenvalues(testName,"H_1",1)
     testValues["He_4-HOMO"] = test.getHFeigenvalues(testName,"HE_4",1)
     testValues["e-HOMO"] = test.getHFeigenvalues(testName,"E-",1)

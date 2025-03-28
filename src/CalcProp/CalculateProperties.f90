@@ -146,7 +146,7 @@ contains
        open(unit = occupationsUnit, file=trim(occupationsFile), status="old", form="formatted")
        do speciesID=1, numberOfSpecies
           numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
-          print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecies(speciesID)), &
+          print *, "We are calculating properties for ", trim(MolecularSystem_getSymbolOfSpecies(speciesID)), &
                " in the CI ground state"
           auxstring="1" !ground state
           arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
@@ -159,7 +159,7 @@ contains
        open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
        do speciesID=1, numberOfSpecies
           numberOfContractions =  MolecularSystem_getTotalNumberOfContractions (speciesID )
-          print *, "We are calculating properties for ", trim(MolecularSystem_getNameOfSpecies(speciesID)), &
+          print *, "We are calculating properties for ", trim(MolecularSystem_getSymbolOfSpecies(speciesID)), &
                " in the HF/KS ground state"
           arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
           arguments(1) = "DENSITY"
@@ -302,7 +302,7 @@ contains
           else if(trim(speciesName) .eq. "E-BETA") then
              cycle
           else
-             speciesNickname=speciesName
+             speciesNickname=trim(MolecularSystem_getSymbolOfSpecies( speciesID ))
              header(1)=""
              header(2)=""
           end if
@@ -484,7 +484,7 @@ contains
     print *,""
     write (*,"(T19,4A9)") "<x>","<y>", "<z>", ""
     do i=1, numberOfSpecies
-       write (*,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecies( i )), CalculateProperties_getExpectedPosition(this, i)* ANGSTROM
+       write (*,"(T5,A15,3F9.4)") trim(MolecularSystem_getSymbolOfSpecies( i )), CalculateProperties_getExpectedPosition(this, i)* ANGSTROM
     end do
     if(trim(CONTROL_instance%UNITS) .eq. "BOHR") then
        print *,""
@@ -493,7 +493,7 @@ contains
        print *,""
        write (*,"(T19,4A9)") "<x>","<y>", "<z>", ""
        do i=1, numberOfSpecies
-          write (*,"(T5,A15,3F9.4)") trim(MolecularSystem_getNameOfSpecies( i )), CalculateProperties_getExpectedPosition(this, i)
+          write (*,"(T5,A15,3F9.4)") trim(MolecularSystem_getSymbolOfSpecies( i )), CalculateProperties_getExpectedPosition(this, i)
        end do
     end if
     print *,""
@@ -549,7 +549,7 @@ contains
     do i=1, numberOfSpecies
        dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)
        totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (*,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecies( i )), dipole(i,:)
+       write (*,"(T5,A15,3F13.8)") trim(MolecularSystem_getSymbolOfSpecies( i )), dipole(i,:)
     end do
     dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()
     totalDipole(:)=totalDipole(:)+dipole(numberOfSpecies+1,:)
@@ -567,7 +567,7 @@ contains
     do i=1, numberOfSpecies
        dipole(i,:)=CalculateProperties_getDipoleOfQuantumSpecies(this, i)*DEBYE
        totalDipole(:)=totalDipole(:)+dipole(i,:)
-       write (*,"(T5,A15,3F13.8)") trim(MolecularSystem_getNameOfSpecies( i )), dipole(i,:)
+       write (*,"(T5,A15,3F13.8)") trim(MolecularSystem_getSymbolOfSpecies( i )), dipole(i,:)
     end do
 
     dipole(numberOfSpecies+1,:)=CalculateProperties_getDipoleOfPuntualCharges()*DEBYE
@@ -588,7 +588,7 @@ contains
     do i=1, numberOfSpecies
        quadrupole(i,:)=CalculateProperties_getQuadrupoleOfQuantumSpecies(this, i)*DEBYE*ANGSTROM
        totalQuadrupole(:)=totalQuadrupole(:)+quadrupole(i,:)
-       write (*,"(T5,A15,6F14.8)") trim(MolecularSystem_getNameOfSpecies( i )), quadrupole(i,:)
+       write (*,"(T5,A15,6F14.8)") trim(MolecularSystem_getSymbolOfSpecies( i )), quadrupole(i,:)
     end do
 
     quadrupole(numberOfSpecies+1,:)=CalculateProperties_getQuadrupoleOfPuntualCharges()*DEBYE*ANGSTROM
@@ -722,9 +722,9 @@ contains
        do speciesID=1, numberOfSpecies
           R2=CalculateProperties_getExpectedR2(this,speciesID)
           if(sqrt(R2).gt.1E-3 .and. sqrt(R2).lt.1E5) then 
-             write (*,"(T5,A15,F12.6)") trim(MolecularSystem_getNameOfSpecies(speciesID)), sqrt(R2)
+             write (*,"(T5,A15,F12.6)") trim(MolecularSystem_getSymbolOfSpecies(speciesID)), sqrt(R2)
           else
-             write (*,"(T5,A15,ES12.5)") trim(MolecularSystem_getNameOfSpecies(speciesID)), sqrt(R2)
+             write (*,"(T5,A15,ES12.5)") trim(MolecularSystem_getSymbolOfSpecies(speciesID)), sqrt(R2)
           end if
        end do
     end if
@@ -734,9 +734,9 @@ contains
     do speciesID=1, numberOfSpecies
        R2=CalculateProperties_getExpectedR2(this,speciesID)
        if(sqrt(R2).gt.1E-3 .and. sqrt(R2).lt.1E5) then 
-          write (*,"(T5,A15,F12.6)") trim(MolecularSystem_getNameOfSpecies(speciesID)), sqrt(R2)*ANGSTROM
+          write (*,"(T5,A15,F12.6)") trim(MolecularSystem_getSymbolOfSpecies(speciesID)), sqrt(R2)*ANGSTROM
        else
-          write (*,"(T5,A15,ES12.5)") trim(MolecularSystem_getNameOfSpecies(speciesID)), sqrt(R2)*ANGSTROM
+          write (*,"(T5,A15,ES12.5)") trim(MolecularSystem_getSymbolOfSpecies(speciesID)), sqrt(R2)*ANGSTROM
        end if
     end do
     print *,""

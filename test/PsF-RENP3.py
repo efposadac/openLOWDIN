@@ -16,7 +16,7 @@ def setReferenceValues():
 
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
-    P3values = test.getP3results(testName,"POSITRON",1)
+    P3values = test.getP3results(testName,"E+",1)
     testValues["Orb1Positron_KT"] = P3values[0]
     testValues["Orb1Positron_EP2"] = P3values[1]
     testValues["Orb1Positron_P3"] = P3values[2]

@@ -123,7 +123,7 @@ contains
        else if( trim(type) .eq. "FINAL" ) then
           dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".finalGrid"
        else
-          STOP "ERROR At DFT program, requested an unknown grid type to writeGrids at GridManager"
+          call Exception_stopError("requested an unknown grid type", "at GridManager_writeGrids" )
        end if
        
        open(unit = dftUnit, file=trim(dftFile), status="replace", form="unformatted")
@@ -158,7 +158,7 @@ contains
           else if( trim(type) .eq. "FINAL" ) then
              dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//".commonFinalGrid"
           else
-             STOP "ERROR At DFT program, requested an unknown grid type to writeGrids at GridManager"
+             call Exception_stopError("requested an unknown grid type", "at GridManager_writeGrids" )
           end if
           open(unit = dftUnit, file=trim(dftFile), status="replace", form="unformatted")
 
@@ -206,7 +206,7 @@ contains
        else if( trim(type) .eq. "FINAL" ) then
           dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".finalGrid"
        else
-          STOP "ERROR At DFT program, requested an unknown grid type to readGrids at GridManager"
+          call Exception_stopError("requested an unknown grid type", "at GridManager_readGrids" )
        end if
 
        open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
@@ -237,7 +237,7 @@ contains
           else if( trim(type) .eq. "FINAL" ) then
              dftFile = "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//trim(Grid_instance(otherSpeciesID)%nameOfSpecies)//".commonFinalGrid"
           else
-             STOP "ERROR At DFT program, requested an unknown grid type to readGrids at GridManager"
+             call Exception_stopError("requested an unknown grid type", "at GridManager_readGrids" )
           end if
           open(unit = dftUnit, file=trim(dftFile), status="old", form="unformatted")
 
@@ -296,7 +296,7 @@ contains
        else if( trim(type) .eq. "FINAL" ) then
           write( orbsFile, "(A,I0.4)") "lowdin."//trim(Grid_instance(speciesID)%nameOfSpecies)//".finalOrbitals"
        else
-          STOP "ERROR At DFT program, requested an unknown grid type to orbitals at GridManager"
+          call Exception_stopError("requested an unknown grid type", "at GridManager_atomicOrbitals" )
        end if
 
        if (allocated(Grid_instance(speciesID)%orbitalsWithGradient)) then
@@ -833,7 +833,7 @@ contains
 
     case default
        print *, trim(auxstring)
-       STOP "The "//otherNameOfSpecies//"electron functional chosen is not implemented"
+       call Exception_stopError("The "//otherNameOfSpecies//"electron functional chosen is not implemented", "at GridManager_getInterspeciesEnergyAndPotentialAtGrid" )
 
     end select
 
@@ -1008,8 +1008,8 @@ contains
 
     nameOfElectron=MolecularSystem_getNameOfSpecies(electronicID,Grid_instance(electronicID)%molSys)
 
-    if (nameOfElectron .eq. "E-ALPHA") otherElectronicID=MolecularSystem_getSpecieID( "E-BETA",Grid_instance(electronicID)%molSys)
-    if (nameOfElectron .eq. "E-BETA") otherElectronicID=MolecularSystem_getSpecieID( "E-ALPHA",Grid_instance(electronicID)%molSys)
+    if (nameOfElectron .eq. "E-ALPHA") otherElectronicID=MolecularSystem_getSpeciesID( "E-BETA",Grid_instance(electronicID)%molSys)
+    if (nameOfElectron .eq. "E-BETA") otherElectronicID=MolecularSystem_getSpeciesID( "E-ALPHA",Grid_instance(electronicID)%molSys)
        
     
     call Vector_constructor(electronicDensityAtOtherGrid, otherGridSize, 1.0E-12_8)
@@ -1196,8 +1196,12 @@ contains
 
     if(CONTROL_instance%PRINT_LEVEL .gt. 0) then
        print *, ""
-       print *, "Contact density between ", trim(Grid_instance(speciesID)%nameOfSpecies),"-", trim(Grid_instance(otherSpeciesID)%nameOfSpecies)
-       if(present(otherElectronID) ) print *, "Including contact density between ", trim(Grid_instance(otherElectronID)%nameOfSpecies),"-", trim(Grid_instance(otherSpeciesID)%nameOfSpecies)
+       print *, "Contact density between ", &
+            trim(MolecularSystem_getSymbolOfSpecies( speciesID, Grid_instance(speciesID)%molSys)),"-", &
+            trim(MolecularSystem_getSymbolOfSpecies( otherSpeciesID, Grid_instance(otherSpeciesID)%molSys))
+       if(present(otherElectronID) ) print *, "Including contact density between ", &
+            trim(MolecularSystem_getSymbolOfSpecies( otherElectronID, Grid_instance(otherElectronID)%molSys)),"-", &
+            trim(MolecularSystem_getSymbolOfSpecies( otherSpeciesID, Grid_instance(otherSpeciesID)%molSys))
        
        if(auxstring.eq."expCS-A" .or. auxstring.eq."expCS-GGA" ) then
           print *, "As the integral of rhoA*rhoB(1+g[beta])"

@@ -369,7 +369,7 @@ end module CalculateWaveFunction_
 !                if ( CalculateWaveFunction_isSet() ) then
 !                   nameOfSpecieSelected = "e-"
 !                   if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
-!                   speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
+!                   speciesID = MolecularSystem_getSpeciesID( nameOfSpecie=trim(nameOfSpecieSelected ) )
 !                   numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
 !                   totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
 !                   if( allocated(basisSetValues)) deallocate(basisSetValues)
@@ -424,7 +424,7 @@ end module CalculateWaveFunction_
 !                if ( CalculateWaveFunction_isSet() ) then
 !                   nameOfSpecieSelected = "e-"
 !                   if ( present( nameOfSpecie ) )  nameOfSpecieSelected= trim( nameOfSpecie )
-!                   speciesID = MolecularSystem_getSpecieID( nameOfSpecie=trim(nameOfSpecieSelected ) )
+!                   speciesID = MolecularSystem_getSpeciesID( nameOfSpecie=trim(nameOfSpecieSelected ) )
 !                   numberOfContractions = MolecularSystem_getNumberOfContractions( speciesID )
 !                   totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
 !                   if( allocated(basisSetValues)) deallocate(basisSetValues)

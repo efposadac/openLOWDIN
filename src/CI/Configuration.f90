@@ -1147,7 +1147,7 @@ contains
 
     
     do i=1, numberOfSpecies
-      print *, "For specie ", MolecularSystem_getNameOfSpecies( i )
+      print *, "For specie ", MolecularSystem_getSymbolOfSpecies( i )
 !      print *, "Excitations: ", this%order(i)
 !      print *, "Ndeterminants: ",this%nDeterminants
 !      print *, "Occupations"

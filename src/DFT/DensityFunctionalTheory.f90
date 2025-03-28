@@ -216,7 +216,7 @@ contains
     !print scf grid information for comparison
     if(CONTROL_instance%PRINT_LEVEL .gt. 0 ) then
        do speciesID = 1 , numberOfSpecies
-          write (*,"(A50 F15.8)") "Number of "//trim(MolecularSystem_getNameOfSpecies(speciesID, finalGrids(speciesID)%molSys))//" particles in the SCF grid: ", numberOfParticles(speciesID)
+          write (*,"(A50 F15.8)") "Number of "//trim(MolecularSystem_getSymbolOfSpecies(speciesID, finalGrids(speciesID)%molSys))//" particles in the SCF grid: ", numberOfParticles(speciesID)
        end do
        print *, ""
        write (*,"(A50, F15.8)") "Exchange-correlation energy with the SCF grid: ", sum(exchangeCorrelationEnergy%values)
@@ -254,7 +254,7 @@ contains
     !print scf grid information for comparison
     if(CONTROL_instance%PRINT_LEVEL .gt. 0 ) then
        do speciesID = 1 , numberOfSpecies
-          write (*,"(A50 F15.8)") "Number of "//trim(MolecularSystem_getNameOfSpecies(speciesID, finalGrids(speciesID)%molSys))//" particles in the final grid: ", numberOfParticles(speciesID)
+          write (*,"(A50 F15.8)") "Number of "//trim(MolecularSystem_getSymbolOfSpecies(speciesID, finalGrids(speciesID)%molSys))//" particles in the final grid: ", numberOfParticles(speciesID)
        end do
        print *, ""
        write (*,"(A50, F15.8)") "Exchange-correlation energy with the final grid: ", sum(exchangeCorrelationEnergy%values)
@@ -275,7 +275,7 @@ contains
              ! elseif ( nameOfSpecies .eq. "E-ALPHA" .and. nameOfOtherSpecies .eq. "POSITRON" ) then
              !Open shell Electron and other species terms
 
-             otherElectronID=MolecularSystem_getSpecieID("E-BETA",finalGrids(speciesID)%molSys)
+             otherElectronID=MolecularSystem_getSpeciesID("E-BETA",finalGrids(speciesID)%molSys)
 
              call GridManager_getContactDensity(finalGrids,finalGridsCommonPoints,speciesID, otherSpeciesID, otherElectronID )
 
@@ -355,7 +355,7 @@ contains
           call GridManager_getElectronicEnergyAndPotentialAtGrid(Grid_instance,GridCommonPoints,Functionals, speciesID, exchangeCorrelationEnergy%values(speciesID,speciesID))
 
        elseif( nameOfSpecies .eq. "E-ALPHA"  ) then !El potencial de BETA se calcula simultaneamente con ALPHA
-          otherSpeciesID = MolecularSystem_getSpecieID( "E-BETA", Grid_instance(speciesID)%molSys )
+          otherSpeciesID = MolecularSystem_getSpeciesID( "E-BETA", Grid_instance(speciesID)%molSys )
           call GridManager_getElectronicEnergyAndPotentialAtGrid(Grid_instance,GridCommonPoints,Functionals, speciesID, exchangeCorrelationEnergy%values(speciesID,speciesID), &
                otherSpeciesID, exchangeCorrelationEnergy%values(otherSpeciesID,otherSpeciesID) )
 
@@ -394,7 +394,7 @@ contains
           elseif ( nameOfSpecies .eq. "E-ALPHA" .and. &
                (nameOfOtherSpecies .ne. "E-" .and. nameOfOtherSpecies .ne. "E-ALPHA" .and. nameOfOtherSpecies .ne. "E-BETA") ) then
 
-             otherElectronID=MolecularSystem_getSpecieID("E-BETA",Grid_instance(speciesID)%molSys)
+             otherElectronID=MolecularSystem_getSpeciesID("E-BETA",Grid_instance(speciesID)%molSys)
 
              call GridManager_getInterspeciesEnergyAndPotentialAtGrid(Grid_instance, GridCommonPoints,Functionals, speciesID, otherSpeciesID, exchangeCorrelationEnergy%values(speciesID,otherSpeciesID), &
                   otherElectronID, exchangeCorrelationEnergy%values(otherElectronID,otherSpeciesID) )

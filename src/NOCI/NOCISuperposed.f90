@@ -148,7 +148,7 @@ contains
 
     ! do speciesID=1, numberOfSpecies
     !    write(*,*) ""
-    !    write(*,*) " Merged Occupied Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+    !    write(*,*) " Merged Occupied Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%symbol )
     !    write(*,*) "---------------------------------- "
     !    write(*,*) ""
     !    print *, "contractions", speciesID, int(MolecularSystem_getTotalNumberOfContractions(speciesID),8)
@@ -333,10 +333,10 @@ contains
     open(unit = densUnit, file=trim(densFile), status="replace", form="formatted")
     do state=1, CONTROL_instance%CI_STATES_TO_PRINT
        do speciesID=1, numberOfSpecies
-          ! print *, "this%mergedDensityMatrix", state, trim( MolecularSystem_instance%species(speciesID)%name )
+          ! print *, "this%mergedDensityMatrix", state, trim( MolecularSystem_instance%species(speciesID)%symbol )
           ! call Matrix_show(this%mergedDensityMatrix(state,speciesID))
           write(auxString,*) state
-          arguments(2) = trim(MolecularSystem_instance%species(speciesID)%name)
+          arguments(2) = trim(MolecularSystem_instance%species(speciesID)%symbol)
           arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxString)) 
           call Matrix_writeToFile ( this%mergedDensityMatrix(state,speciesID), densUnit , arguments=arguments(1:2) )
        end do
@@ -363,8 +363,8 @@ contains
 
     !       do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
     !          do otherSpeciesID = speciesID, MolecularSystem_instance%numberOfQuantumSpecies                
-    !             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
-    !                  "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
+    !             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
+    !                  "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%symbol ) // &
     !                  " DFT Corr. energy = ", dftEnergyMatrix%values(speciesID,otherSpeciesID)
     !          end do
     !       end do
@@ -407,12 +407,12 @@ contains
     ! do state=1, CONTROL_instance%CI_STATES_TO_PRINT
     !    write(*,*) " STATE: ", state
     !    do speciesID=1, numberOfSpecies
-    !       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+    !       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
     !            " Kinetic energy = ", sum(transpose(this%mergedDensityMatrix(state,speciesID)%values)*kineticMatrix(speciesID)%values)
-    !       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+    !       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
     !            "/Fixed interact. energy = ", sum(transpose(this%mergedDensityMatrix(state,speciesID)%values)*attractionMatrix(speciesID)%values)
     !       if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
-    !            write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name) // &
+    !            write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%symbol) // &
     !            " Ext Pot energy = ", sum(transpose(this%mergedDensityMatrix(state,speciesID)%values)*externalPotMatrix(speciesID)%values)
     !       print *, ""
     !    end do
@@ -468,7 +468,7 @@ contains
        do speciesID=1, numberOfSpecies
 
           write(*,*) ""
-          write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+          write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(speciesID)%symbol )
           write(*,*) "--------------------------------------------------------------"
 
           call Vector_constructor ( densityEigenValues, &
@@ -525,9 +525,9 @@ contains
                columnkeys = string_convertvectorofrealstostring( auxVector ),&
                flags=WITH_BOTH_KEYS)
 
-          write(*,"(A10,A10,A20,I5,A15,F17.12)") "number of ", trim(MolecularSystem_getNameOfSpecies( speciesID )) ," particles in state", state , &
+          write(*,"(A10,A10,A20,I5,A15,F17.12)") "number of ", trim(MolecularSystem_getSymbolOfSpecies( speciesID )) ," particles in state", state , &
                " density matrix: ", sum( transpose(this%mergedDensityMatrix(state,speciesID)%values)*this%mergedOverlapMatrix(speciesID)%values)
-          write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_getNameOfSpecies( speciesID )) , "natural orbital occupations", sum(densityEigenValues%values)
+          write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_getSymbolOfSpecies( speciesID )) , "natural orbital occupations", sum(densityEigenValues%values)
 
           ! density matrix check
           ! auxMatrix%values=0.0
@@ -544,17 +544,17 @@ contains
 
           write(auxString,*) state
 
-          arguments(2) = trim( MolecularSystem_instance%species(speciesID)%name )
+          arguments(2) = trim( MolecularSystem_instance%species(speciesID)%symbol )
           arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
 
           call Matrix_writeToFile ( densityEigenVectors, densUnit , arguments=arguments(1:2) )
 
-          arguments(2) = trim( MolecularSystem_instance%species(speciesID)%name )
+          arguments(2) = trim( MolecularSystem_instance%species(speciesID)%symbol )
           arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
 
           call Vector_writeToFile( densityEigenValues, densUnit, arguments=arguments(1:2) )
 
-          write(*,*) " End of natural orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+          write(*,*) " End of natural orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(speciesID)%symbol )
        end do
     end do
 

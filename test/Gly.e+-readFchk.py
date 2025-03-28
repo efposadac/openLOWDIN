@@ -15,7 +15,7 @@ def setReferenceValues():
 
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
-    testValues["KT e+ 1"] = test.getHFeigenvalues(testName,"POSITRON",1)
+    testValues["KT e+ 1"] = test.getHFeigenvalues(testName,"E+",1)
     testValues["KT e- 19"] = test.getHFeigenvalues(testName,"E-",19)
     testValues["Iterations"] = test.getSCFiterations(testName)
     return 

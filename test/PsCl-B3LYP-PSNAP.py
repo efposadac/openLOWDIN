@@ -13,7 +13,7 @@ def setReferenceValues():
 
 def getTestValues(testValues,testName):
     testValues["KS energy"] = test.getSCFTotalEnergy(testName)
-    testValues["E+/E- Corr energy"] = test.getDFTCorrEnergy(testName,"E-","POSITRON")
+    testValues["E+/E- Corr energy"] = test.getDFTCorrEnergy(testName,"E-","E+")
     return 
 
 if __name__ == '__main__':

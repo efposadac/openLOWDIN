@@ -13,7 +13,7 @@ mkdir -p testResults_$EXENAME
 
 date=$(date '+%Y-%m-%d_%H-%M-%S')
 echo $date
-echo "Testing with executable:" $EXENAME > testResults_$EXENAME/maketest_$date.log
+echo "Testing with executable:" $EXENAME
 echo "Saving outputs to " testResults_$EXENAME
 
 for testfile in `ls *.py`; do

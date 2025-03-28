@@ -16,6 +16,6 @@ END TASKS
 
 CONTROL
 	readCoefficients=.F.
-	scfGhostSpecies="POSITRON"
+	scfGhostSpecies="E+"
 	TotalEnergyTolerance=1E-12
 END CONTROL

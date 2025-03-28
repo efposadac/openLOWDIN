@@ -46,7 +46,7 @@ contains
 
       CIcore_instance%numberOfStrings(i)%values(1) = 1 !! ground
 
-      write (*,"(A,A)") "  ", MolecularSystem_getNameOfSpecies(i)
+      write (*,"(A,A)") "  ", MolecularSystem_getSymbolOfSpecies(i)
 
       do cilevel = 1,CIcore_instance%CILevel(i) 
 

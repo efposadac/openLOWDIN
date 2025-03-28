@@ -80,7 +80,7 @@ contains
        !! Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of Overlap integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
        end if
 
        !!Depuration block
@@ -115,7 +115,7 @@ contains
        
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of Kinetic integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
        end if
 
        !!Depuration block
@@ -197,12 +197,12 @@ contains
        end do
 
        write(*,"(A, A ,A,I6)")" Number of First derivative dx integrals for species ", &
-                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+                              trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
 
        !!Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+          !    trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -268,12 +268,12 @@ contains
        end do
 
        write(*,"(A, A ,A,I6)")" Number of First derivative dy integrals for species ", &
-                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+                              trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
 
        !!Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+          !    trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -339,12 +339,12 @@ contains
        end do
 
        write(*,"(A, A ,A,I6)")" Number of First derivative dz integrals for species ", &
-                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+                              trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
 
        !!Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+          !    trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -375,12 +375,12 @@ contains
           call DirectIntegralManager_getHarmonicIntegrals(MolecularSystem_instance,f,origin,integralsMatrix)
 
           write(*,"(A, A ,A,I6)")" Number of Harmonic Oscillator integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
 
           !!Write integrals to file (unit 30)
           if(CONTROL_instance%LAST_STEP) then
              ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-             !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+             !    trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
           end if
           write(30) int(size(integralsMatrix%values),8)
           write(30) integralsMatrix%values
@@ -658,7 +658,7 @@ contains
           
           if(CONTROL_instance%LAST_STEP) then
              write(*,"(A, A ,A,I6)")" Number of Nuclear integrals for species ", &
-                  trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+                  trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
           end if
           
        !!Depuration block
@@ -705,7 +705,7 @@ contains
        
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of Moment integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", 3*size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", 3*size(integralsMatrix%values,DIM=1)**2
        end if
 
     end do !done! 
@@ -730,7 +730,7 @@ contains
     !! Skip integrals calculation two times for electrons alpha and beta    
     if(CONTROL_instance%IS_OPEN_SHELL .and. ( trim(nameOfSpecies) == "E-BETA" )) return
 
-    speciesID = MolecularSystem_getSpecieID(trim(nameOfSpecies))
+    speciesID = MolecularSystem_getSpeciesID(trim(nameOfSpecies))
 
     if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE )) == "DIRECT") return 
 
@@ -832,7 +832,7 @@ contains
 
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of 3C Overlap integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
        end if
 
     end do !done!    
@@ -953,7 +953,7 @@ contains
        !! Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of Overlap integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
