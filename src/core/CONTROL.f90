@@ -787,6 +787,7 @@ module CONTROL_
        LowdinParameters_HFprintEigenvectors, &
        LowdinParameters_overlapEigenThreshold, &
        LowdinParameters_electricField, &
+       LowdinParameters_multipoleOrder, &
        
        
                                 !!***************************************************************************
