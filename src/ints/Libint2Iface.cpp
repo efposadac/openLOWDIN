@@ -14,9 +14,9 @@ efposadac@unal.edu.co
 LibintInterface class implementation
 */
 
-LibintInterface::LibintInterface(const int stack_size, const int id,
+LibintInterface::LibintInterface(const int stack_size, const double tol, const int id,
                                  const bool el, const bool parallel)
-    : max_nprim(0), nbasis(0), s_size(stack_size), max_l(0), speciesID(id),
+    : max_nprim(0), nbasis(0), s_size(stack_size), int_tol(tol), max_l(0), speciesID(id),
       is_electron(el) {
   // set up thread pool
   using libint2::nthreads;
@@ -366,7 +366,7 @@ void LibintInterface::compute_2body_disk(const char *filename, const Matrix &D,
 
 
             for (intIter.first(); intIter.is_done() == false; intIter.next()) {
-              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+              if (std::abs(buf[0][intIter.index()]) > int_tol) {
                 buffer.p[counter] = intIter.i() + 1;
                 buffer.q[counter] = intIter.j() + 1;
                 buffer.r[counter] = intIter.k() + 1;
@@ -791,7 +791,7 @@ void LibintInterface::compute_2body_directIT(const Matrix &D, const Matrix &C,
                                        bf3_first, bf4_first);
 
             for (intIter.first(); intIter.is_done() == false; intIter.next()) {
-              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+              if (std::abs(buf[0][intIter.index()]) > int_tol) {
                 auto bf1 = intIter.i() ;
                 auto bf2 = intIter.j() ;
                 auto bf3 = intIter.k() ;
@@ -1050,7 +1050,7 @@ void LibintInterface::compute_coupling_disk(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < int_tol)
                         continue;
 
                       buffer.p[counter] = bf1 + 1;
@@ -1224,7 +1224,7 @@ Matrix LibintInterface::compute_coupling_direct(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < int_tol)
                         continue;
 
                       ++num_ints_computed;
@@ -1453,7 +1453,7 @@ void LibintInterface::compute_coupling_directIT(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < int_tol)
                         continue;
 
                       ++num_ints_computed;
@@ -1741,7 +1741,7 @@ Matrix LibintInterface::compute_alphabeta_direct(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < int_tol)
                         continue;
 
                       ++num_ints_computed;
@@ -1950,7 +1950,7 @@ void LibintInterface::compute_g12_disk(const char *filename,
                                        bf3_first, bf4_first);
 
             for (intIter.first(); intIter.is_done() == false; intIter.next()) {
-              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+              if (std::abs(buf[0][intIter.index()]) > int_tol) {
                 buffer.p[counter] = intIter.i() + 1;
                 buffer.q[counter] = intIter.j() + 1;
                 buffer.r[counter] = intIter.k() + 1;
@@ -2140,7 +2140,7 @@ void LibintInterface::compute_g12inter_disk(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < int_tol)
                         continue;
 
                       buffer.p[counter] = bf1 + 1;
@@ -2493,7 +2493,7 @@ Matrix LibintInterface::compute_g12inter_direct(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < int_tol)
                         continue;
 
                       ++num_ints_computed;
@@ -2698,7 +2698,7 @@ void LibintInterface::compute_2body_directAll(const Matrix &D,
                                        bf3_first, bf4_first);
 
             for (intIter.first(); intIter.is_done() == false; intIter.next()) {
-              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+              if (std::abs(buf[0][intIter.index()]) > int_tol) {
                 auto bf1 = intIter.i() ;
                 auto bf2 = intIter.j() ;
                 auto bf3 = intIter.k() ;
@@ -2862,7 +2862,7 @@ void LibintInterface::compute_coupling_directAll(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < int_tol)
                         continue;
 
                       ++num_ints_computed;
@@ -3022,7 +3022,7 @@ void LibintInterface::compute_g12_directAll(const Matrix &D,
                                        bf3_first, bf4_first);
 	    
             for (intIter.first(); intIter.is_done() == false; intIter.next()) {
-              if (std::abs(buf[0][intIter.index()]) > 1.0e-10) {
+              if (std::abs(buf[0][intIter.index()]) > int_tol) {
                 auto bf1 = intIter.i() ;
                 auto bf2 = intIter.j() ;
                 auto bf3 = intIter.k() ;
@@ -3198,7 +3198,7 @@ void LibintInterface::compute_g12inter_directAll(LibintInterface &other,
                     const auto obf2 = of2 + obf2_first;
 
                     if (bf1 <= bf2 && obf1 <= obf2) {
-                      if (std::abs(buf[0][f1212]) < 1.0e-10)
+                      if (std::abs(buf[0][f1212]) < int_tol)
                         continue;
 
                       ++num_ints_computed;
@@ -3451,9 +3451,9 @@ int max_l(const std::vector<libint2::Shell>& shells) {
 Fortran interface
 */
 
-LibintInterface *LibintInterface_new(const int stack_size, const int id,
+LibintInterface *LibintInterface_new(const int stack_size, const double tol, const int id,
                                      const bool el, const bool parallel) {
-  return new LibintInterface(stack_size, id, el, parallel);
+  return new LibintInterface(stack_size, tol, id, el, parallel);
   // printf("%s\n", "LibintInterface_new");
 }
 
