@@ -271,7 +271,7 @@ def getP2orbEnergy(testName,species,number):
     speciesFlag=False
     for i in range(0,len(outputRead)):
         line = outputRead[i]
-        if "Results for spin-orbital: "+str(number)+" of species: "+species in line:
+        if "Results for spin-orbital: "+str(number)+" of species:" in line and species in line :
             speciesFlag=True
         if "Optimized second order pole:" in line and speciesFlag:
             energy = float(line.split()[4])
@@ -292,7 +292,7 @@ def getP2orbScaledEnergy(testName,species,number,scalingType):
     speciesFlag=False
     for i in range(0,len(outputRead)):
         line = outputRead[i]
-        if "Results for spin-orbital: "+str(number)+" of species: "+species in line:
+        if "Results for spin-orbital: "+str(number)+" of species:" in line and species in line :
             speciesFlag=True
         if query in line :
             energy = float(outputRead[i+1].split()[4])
@@ -632,18 +632,18 @@ def getParticlesInOrbCube(testName,species,number):
 def getP3results(testName,species,number):
     output = open(testName+".out", "r")
     outputRead = output.readlines()
-    eigenval=[]    
+    eigenval=[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]    
     for i in range(0,len(outputRead)):
         line = outputRead[i]
         if "SUMMARY OF PROPAGATOR RESULTS FOR THE SPIN-ORBITAL: "+str(number)+"  OF SPECIES:"+species in line:
-            eigenval.append(float(outputRead[i + 4].split()[1])) #KT
-            eigenval.append(float(outputRead[i + 5].split()[1])) #EP2
-            eigenval.append(float(outputRead[i + 6].split()[1])) #P3
-            eigenval.append(float(outputRead[i + 7].split()[1])) #EP3
-            eigenval.append(float(outputRead[i + 8].split()[1])) #OVGFA
-            eigenval.append(float(outputRead[i + 9].split()[1])) #OVGFB
-            eigenval.append(float(outputRead[i + 10].split()[1])) #OVGFC
-            eigenval.append(float(outputRead[i + 11].split()[1])) #RENP3
+            eigenval[0]=float(outputRead[i + 4].split()[1]) #KT
+            eigenval[1]=float(outputRead[i + 5].split()[1]) #EP2
+            eigenval[2]=float(outputRead[i + 6].split()[1]) #P3
+            eigenval[3]=float(outputRead[i + 7].split()[1]) #EP3
+            eigenval[4]=float(outputRead[i + 8].split()[1]) #OVGFA
+            eigenval[5]=float(outputRead[i + 9].split()[1]) #OVGFB
+            eigenval[6]=float(outputRead[i + 10].split()[1]) #OVGFC
+            eigenval[7]=float(outputRead[i + 11].split()[1]) #RENP3
             break
     output.close()
     return eigenval

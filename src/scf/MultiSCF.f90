@@ -283,7 +283,7 @@ contains
 
     integer :: i,j
     integer :: numberOfSpecies
-    character(50) :: nameOfSpecies
+    character(50) :: symbolOfSpecies
     character(50) :: densFile
     integer :: singleIterator
     real(8) :: oldEnergy
@@ -352,7 +352,7 @@ contains
 !!!Now we procede to update each species density matrices according to the iteration scheme selected
     this%totalDensityMatrixStandardDeviation=0.0
     do i = 1, numberOfSpecies
-       nameOfSpecies = MolecularSystem_getNameOfSpecies(i,this%molSys)
+       symbolOfSpecies = MolecularSystem_getSymbolOfSpecies(i,this%molSys)
        oldEnergy=wfObjects(i)%totalEnergyForSpecies
        deltaEnergy=1.0E16_8
        singleIterator=0
@@ -395,7 +395,7 @@ contains
 
              !!Prints iteration results
              if (  CONTROL_instance%DEBUG_SCFS) then
-                write(*,"(A10,I5,F20.12,F20.12,F20.12)") trim(nameOfSpecies), singleIterator , &
+                write(*,"(A10,I5,F20.12,F20.12,F20.12)") trim(symbolofspecies), singleIterator , &
                      wfObjects(i)%totalEnergyForSpecies, deltaEnergy, &
                      List_current(wfObjects(i)%standardDesviationOfDensityMatrixElements)
              end if
@@ -403,22 +403,22 @@ contains
              if ( this%printSCFiterations ) then
                 !!Prints convergence messages
                 if(singleIterator .ge. this%singleMaxIterations(i) ) &
-                     write(*,"(T35,A10,A30,I4,A)") trim(nameOfSpecies), " Max. subcycles reached(", this%singleMaxIterations(i),")"
+                     write(*,"(T35,A10,A30,I4,A)") trim(symbolofspecies), " Max. subcycles reached(", this%singleMaxIterations(i),")"
 
                 if(trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) .eq. "DENSITY" .and. &
                      Matrix_standardDeviation( wfObjects(i)%beforeDensityMatrix, wfObjects(i)%densityMatrix ) .lt. &
                      this%singleDensityTolerance(i)) & 
-                     write(*,"(T35,A10,A30,I4,A)")  trim(nameOfSpecies), " Density converged in", singleIterator ," subcycles"
+                     write(*,"(T35,A10,A30,I4,A)")  trim(symbolofspecies), " Density converged in", singleIterator ," subcycles"
 
                 if(trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) .eq. "ENERGY" .and. &
                      abs(deltaEnergy) .lt. this%singleEnergyTolerance(i) )&
-                     write(*,"(T35,A10,A30,I4,A)")  trim(nameOfSpecies), " Energy converged in", singleIterator ," subcycles"
+                     write(*,"(T35,A10,A30,I4,A)")  trim(symbolofspecies), " Energy converged in", singleIterator ," subcycles"
 
                 if(trim(CONTROL_instance%SCF_CONVERGENCE_CRITERIUM) .eq. "BOTH" .and. & 
                      Matrix_standardDeviation( wfObjects(i)%beforeDensityMatrix, wfObjects(i)%densityMatrix ) .lt. &
                      this%singleDensityTolerance(i) .and. & 
                      abs(deltaEnergy) .lt. this%singleEnergyTolerance(i) )&
-                     write(*,"(T35,A10,A30,I4,A)")  trim(nameOfSpecies), " Energy-density converged in", singleIterator ," subcycles"
+                     write(*,"(T35,A10,A30,I4,A)")  trim(symbolofspecies), " Energy-density converged in", singleIterator ," subcycles"
              end if
           end if
 
@@ -429,8 +429,8 @@ contains
 
     if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
          (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
-       i=MolecularSystem_getSpecieIDFromSymbol(trim("E-ALPHA"),this%molSys)
-       j=MolecularSystem_getSpecieIDFromSymbol(trim("E-BETA"),this%molSys)
+       i=MolecularSystem_getSpeciesIDFromSymbol(trim("E-ALPHA"),this%molSys)
+       j=MolecularSystem_getSpeciesIDFromSymbol(trim("E-BETA"),this%molSys)
 
        if(MolecularSystem_getNumberOfParticles(i,this%molSys) .eq. MolecularSystem_getNumberOfParticles(j,this%molSys) ) then
           wfObjects(j)%waveFunctionCoefficients%values= wfObjects(i)%waveFunctionCoefficients%values
@@ -680,11 +680,11 @@ contains
        normCheck=sum( transpose(wfObjects(speciesID)%densityMatrix%values)*wfObjects(speciesID)%overlapMatrix%values)
 
        if ( this%printSCFiterations ) &
-            write(*,"(A15,A10,A40,F12.6)") "number of ", trim(MolecularSystem_getNameOfSpecies(speciesID,this%molSys)) , &
+            write(*,"(A15,A10,A40,F12.6)") "number of ", trim(MolecularSystem_getSymbolofspecies(speciesID,this%molSys)) , &
             " particles in guess density matrix: ", normCheck
 
        expectedOccupation=MolecularSystem_getEta(speciesID,this%molSys)*this%molSys%species(speciesID)%ocupationNumber
-       if (trim(MolecularSystem_getNameOfSpecies(speciesID,this%molSys)) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1))) then
+       if (trim(MolecularSystem_getSymbolofspecies(speciesID,this%molSys)) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1))) then
           do i=1,size(CONTROL_instance%IONIZE_MO)
              if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) &
                   expectedOccupation=expectedOccupation-MolecularSystem_getEta(speciesID,this%molSys)*(1.0-CONTROL_instance%MO_FRACTION_OCCUPATION(i))
@@ -701,7 +701,7 @@ contains
        end if
        
        if ( CONTROL_instance%DEBUG_SCFS ) then
-          print *, "Initial Density Matrix ", trim(MolecularSystem_getNameOfSpecies(speciesID,this%molSys))
+          print *, "Initial Density Matrix ", trim(MolecularSystem_getSymbolofspecies(speciesID,this%molSys))
           call Matrix_show(wfObjects(speciesID)%densityMatrix)
        end if
 
@@ -713,8 +713,8 @@ contains
     !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
     if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
          (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
-       speciesID=MolecularSystem_getSpecieIDFromSymbol(trim("E-ALPHA"),this%molSys)
-       otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol(trim("E-BETA"),this%molSys)
+       speciesID=MolecularSystem_getSpeciesIDFromSymbol(trim("E-ALPHA"),this%molSys)
+       otherSpeciesID=MolecularSystem_getSpeciesIDFromSymbol(trim("E-BETA"),this%molSys)
 
        if(MolecularSystem_getNumberOfParticles(speciesID,this%molSys) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID,this%molSys)) then
           wfObjects(otherSpeciesID)%waveFunctionCoefficients%values= wfObjects(speciesID)%waveFunctionCoefficients%values
@@ -945,8 +945,8 @@ contains
     !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
     if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
          (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
-       speciesID=MolecularSystem_getSpecieIDFromSymbol(trim("E-ALPHA"),this%molSys)
-       otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol(trim("E-BETA"),this%molSys)
+       speciesID=MolecularSystem_getSpeciesIDFromSymbol(trim("E-ALPHA"),this%molSys)
+       otherSpeciesID=MolecularSystem_getSpeciesIDFromSymbol(trim("E-BETA"),this%molSys)
 
        if(MolecularSystem_getNumberOfParticles(speciesID,this%molSys) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID,this%molSys)) then
           wfObjects(otherSpeciesID)%waveFunctionCoefficients%values= wfObjects(speciesID)%waveFunctionCoefficients%values
@@ -1022,7 +1022,7 @@ contains
     real(8) :: totalCosmoEnergy
     real(8) :: totalQDOZeroEnergy
     character :: convergenceType
-    character(30) :: nameOfSpecies
+    character(30) :: symbolofspecies
     type(Matrix) :: coefficientsShow
 
     !! Show results
@@ -1034,7 +1034,7 @@ contains
 
           do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
 
-             nameOfSpecies =  MolecularSystem_getNameOfSpecies(speciesID,this%molSys)                 
+             symbolofspecies =  MolecularSystem_getSymbolofspecies(speciesID,this%molSys)                 
              numberOfIterations = List_size( wfObjects(speciesID)%energySCF )
 
              call List_begin( wfObjects(speciesID)%energySCF )
@@ -1042,7 +1042,7 @@ contains
              call List_begin( wfObjects(speciesID)%standardDesviationOfDensityMatrixElements )
 
              print *,""
-             print *,"Begin SCF calculation by: ",trim(nameOfSpecies)
+             print *,"Begin SCF calculation by: ",trim(symbolofspecies)
              print *,"-------------------------"
              print *,""
              print *,"-----------------------------------------------------------------------------------"
@@ -1088,7 +1088,7 @@ contains
     if ( CONTROL_instance%HF_PRINT_EIGENVALUES ) then
        do speciesID = 1, this%molSys%numberOfQuantumSpecies                
           write(*,*) ""
-          write(*,*) " Eigenvalues for: ", trim( this%molSys%species(speciesID)%name )
+          write(*,*) " Eigenvalues for: ", trim( this%molSys%species(speciesID)%symbol )
           write(*,*) "-----------------"
           write(*,*) ""
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID,this%molSys)
@@ -1109,7 +1109,7 @@ contains
           if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "ALL") then
 
              write(*,*) ""
-             write(*,*) " Eigenvectors for: ", trim( this%molSys%species(speciesID)%name )
+             write(*,*) " Eigenvectors for: ", trim( this%molSys%species(speciesID)%symbol )
              write(*,*) "-----------------"
              write(*,*) ""
 
@@ -1124,7 +1124,7 @@ contains
           else if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "OCCUPIED" ) then
 
              write(*,*) ""
-             write(*,*) " Occupied Eigenvectors for: ", trim( this%molSys%species(speciesID)%name )
+             write(*,*) " Occupied Eigenvectors for: ", trim( this%molSys%species(speciesID)%symbol )
              write(*,*) "--------------------------- "
              write(*,*) ""
 
@@ -1161,7 +1161,7 @@ contains
     write(*,*) ""             
     this%totalKineticEnergy = 0.0
     do speciesID = 1, this%molSys%numberOfQuantumSpecies                
-       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
+       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%symbol ) // &
             " Kinetic energy = ", wfObjects(speciesID)%kineticEnergy
     end do
     this%totalKineticEnergy = sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%kineticEnergy)             
@@ -1188,7 +1188,7 @@ contains
     write(*,*) ""
     totalQuantumPuntualInteractionEnergy = 0.0
     do speciesID = 1, this%molSys%numberOfQuantumSpecies                
-       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
+       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%symbol ) // &
             "/Fixed interact. energy = ", wfObjects(speciesID)%puntualInteractionEnergy
     end do
     totalQuantumPuntualInteractionEnergy = sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%puntualInteractionEnergy )
@@ -1201,15 +1201,15 @@ contains
     write(*,*) ""
     totalHartreeEnergy=0.0
     do speciesID = 1, this%molSys%numberOfQuantumSpecies                
-       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
-            "/"//trim( this%molSys%species(speciesID)%name ) // &
+       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%symbol ) // &
+            "/"//trim( this%molSys%species(speciesID)%symbol ) // &
             " Hartree energy = ", wfObjects(speciesID)%hartreeEnergy(speciesID)
        totalHartreeEnergy=totalHartreeEnergy+wfObjects(speciesID)%hartreeEnergy(speciesID)
     end do
     do speciesID = 1, this%molSys%numberOfQuantumSpecies                
        do otherSpeciesID = speciesID + 1, this%molSys%numberOfQuantumSpecies                
-          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
-               "/"//trim( this%molSys%species(otherSpeciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%symbol ) // &
+               "/"//trim( this%molSys%species(otherSpeciesID)%symbol ) // &
                " Hartree energy = ", wfObjects(speciesID)%hartreeEnergy(otherSpeciesID)
           totalHartreeEnergy=totalHartreeEnergy+wfObjects(speciesID)%hartreeEnergy(otherSpeciesID)
        end do
@@ -1223,7 +1223,7 @@ contains
     write(*,*) ""
     totalExchangeHFEnergy=0.0
     do speciesID = 1, this%molSys%numberOfQuantumSpecies                
-       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
+       write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%symbol ) // &
             " Exchange energy = ", wfObjects(speciesID)%exchangeHFEnergy
     end do
     totalExchangeHFEnergy=sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%exchangeHFEnergy)
@@ -1238,14 +1238,14 @@ contains
        write(*,*) "-----------------------------------"
        write(*,*) "" 
        do speciesID = 1, this%molSys%numberOfQuantumSpecies                
-          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%symbol ) // &
                " Exc.Corr. energy = ", wfObjects(speciesID)%exchangeCorrelationEnergy(speciesID)
           totalExchangeCorrelationEnergy=totalExchangeCorrelationEnergy+wfObjects(speciesID)%exchangeCorrelationEnergy(speciesID)
        end do
        do speciesID = 1, this%molSys%numberOfQuantumSpecies                
           do otherSpeciesID = speciesID + 1, this%molSys%numberOfQuantumSpecies                
-             write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name ) // &
-                  "/"//trim( this%molSys%species(otherSpeciesID)%name ) // &
+             write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%symbol ) // &
+                  "/"//trim( this%molSys%species(otherSpeciesID)%symbol ) // &
                   " Corr. energy = ", wfObjects(speciesID)%exchangeCorrelationEnergy(otherSpeciesID)
              totalExchangeCorrelationEnergy=totalExchangeCorrelationEnergy+wfObjects(speciesID)%exchangeCorrelationEnergy(otherSpeciesID)
           end do
@@ -1265,7 +1265,7 @@ contains
        write(*,*) ""
 
        do speciesID = 1, this%molSys%numberOfQuantumSpecies                
-          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%name) // &
+          write(*,"(A38,F25.12)") trim( this%molSys%species(speciesID)%symbol) // &
                " Ext Pot energy = ", wfObjects(speciesID)%externalPotentialEnergy
        end do
        totalExternalPotentialEnergy=sum(wfObjects(1:this%molSys%numberOfQuantumSpecies)%externalPotentialEnergy)
@@ -1316,7 +1316,7 @@ contains
        write(*,*) ""       
        do speciesID = 1, this%molSys%numberOfQuantumSpecies                
           write(*,"(A38,F25.12,F25.12)") &
-               trim( this%molSys%species(speciesID)%name) // " QDO kin./pot. energy = ", &
+               trim( this%molSys%species(speciesID)%symbol) // " QDO kin./pot. energy = ", &
                MolecularSystem_getOmega(speciesID,this%molSys)*3.0/4.0, &
                MolecularSystem_getOmega(speciesID,this%molSys)*3.0/4.0          
           totalQDOZeroEnergy=totalQDOZeroEnergy+MolecularSystem_getOmega(speciesID,this%molSys)*3.0/2.0
@@ -1498,7 +1498,7 @@ contains
     integer :: occupationNumber, newOccupationNumber, i, j, speciesID
 
     do speciesID = 1, MolecularSystem_getNumberOfQuantumSpecies(this%molSys)
-       if (trim(wfObjects(speciesID)%name) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
+       if (trim(MolecularSystem_getSymbolOfSpecies(speciesID,this%molSys)) .eq. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
           occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molSys)
           newOccupationNumber=occupationNumber
           call Matrix_copyConstructor(auxMatrix,wfObjects(speciesID)%waveFunctionCoefficients)
@@ -1516,7 +1516,7 @@ contains
           end do
           this%molSys%species(speciesID)%ocupationNumber=newOccupationNumber
           if(CONTROL_instance%DEBUG_SCFS) then
-             print *, "newOccupationNumber for",  trim(wfObjects(speciesID)%name), this%molSys%species(speciesID)%ocupationNumber
+             print *, "newOccupationNumber for",  trim(MolecularSystem_getSymbolOfSpecies(speciesID,this%molSys)), this%molSys%species(speciesID)%ocupationNumber
              call Matrix_show(wfObjects(speciesID)%waveFunctionCoefficients)
           end if
        end if

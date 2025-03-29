@@ -19,7 +19,7 @@ def getTestValues(testValues,testName):
     testValues["Embedded HF energy"] = test.getEmbeddedHFEnergy(testName)
     testValues["CISD energy"] = test.getCIEnergy(testName,1)
     testValues["MP2 energy"] = test.getMP2Energy(testName)
-    testValues["P2 E+"] = test.getP2orbEnergy(testName,"POSITRON",1)
+    testValues["P2 E+"] = test.getP2orbEnergy(testName,"E+",1)
     return 
 
 if __name__ == '__main__':

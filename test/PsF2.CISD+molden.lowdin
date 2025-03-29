@@ -24,7 +24,7 @@ END CONTROL
 INPUT_CI
 	species="E-ALPHA" core=1 active=10 
 	species="E-BETA" core=1 active=10 
-	species="POSITRON" core=0 active=10 
+	species="E+" core=0 active=10 
 END INPUT_CI
 
 OUTPUTS

@@ -131,11 +131,11 @@ contains
     if ( present( nameOfSpecie ) ) then
        nameOfSpecieSelected= nameOfSpecie
     end if
-    specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecieSelected )
+    specieID = MolecularSystem_getSpeciesID( nameOfSpecieSelected )
     call MolecularSystem_getBasisSet(specieID, contractions)
 
     if ( present( otherNameOfSpecie ) ) then
-       otherSpecieID = MolecularSystem_getSpecieID( nameOfSpecie=otherNameOfSpecie )
+       otherSpecieID = MolecularSystem_getSpeciesID( otherNameOfSpecie )
     end if
 
     call MolecularSystem_getBasisSet(specieID, contractions)

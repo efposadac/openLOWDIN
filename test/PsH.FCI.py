@@ -27,8 +27,8 @@ def getTestValues(testValues,testName):
     testValues["FCI 1"] = test.getCIEnergy(testName,1)
     testValues["FCI 2"] = test.getCIEnergy(testName,2)
     testValues["FCI 3"] = test.getCIEnergy(testName,3)
-    testValues["Natural Occ 1 e+ 1"] = test.getNaturalOrbOcc(testName,"POSITRON",1)
-    orbital = test.getNaturalOrb(testName,"POSITRON",1)
+    testValues["Natural Occ 1 e+ 1"] = test.getNaturalOrbOcc(testName,"E+",1)
+    orbital = test.getNaturalOrb(testName,"E+",1)
     for j in range(1,6+1):
         testValues["Natural Orb 1 e+ "+str(j)] = orbital[j-1] 
     return 

@@ -20,7 +20,7 @@ def setReferenceValues():
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
     testValues["CISD+ energy"] = test.getCIEnergy(testName,1)
-    testValues["Natural Occ 1 e+ 1"] = test.getNaturalOrbOcc(testName,"POSITRON",1)
+    testValues["Natural Occ 1 e+ 1"] = test.getNaturalOrbOcc(testName,"E+",1)
     testValues["Natural Occ 1 e+ 1 molden"] = test.getOccupMolden(testName,"E+",1)
     testValues["Natural Occ 2 e+ 1 molden"] = test.getOccupMolden(testName,"E+",2)
     testValues["Natural Occ 10 e-alpha 1 molden"] = test.getOccupMolden(testName,"E-ALPHA",10)

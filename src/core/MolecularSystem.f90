@@ -92,8 +92,8 @@ module MolecularSystem_
        MolecularSystem_getParticlesFraction, &
        MolecularSystem_getFactorOfExchangeIntegrals, &
        MolecularSystem_getNameOfSpecies, &
-       MolecularSystem_getSpecieID, &
-       MolecularSystem_getSpecieIDFromSymbol, &
+       MolecularSystem_getSpeciesID, &
+       MolecularSystem_getSpeciesIDFromSymbol, &
        MolecularSystem_getPointChargesEnergy, &
        MolecularSystem_getMMPointChargesEnergy, &
        MolecularSystem_getlabelsofcontractions, &
@@ -1444,10 +1444,10 @@ contains
    !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getSpecieID( nameOfSpecie,this ) result(output)
+   function MolecularSystem_getSpeciesID( nameOfSpecies,this ) result(output)
      implicit none
      
-     character(*) :: nameOfSpecie
+     character(*) :: nameOfSpecies
      type(MolecularSystem), optional, target :: this
      integer :: output
      
@@ -1462,18 +1462,18 @@ contains
      output = 0
 
      do i = 1, system%numberOfQuantumSpecies
-        if( trim(system%species(i)%name) == trim(nameOfSpecie)) output = i
+        if( trim(system%species(i)%name) == trim(nameOfSpecies)) output = i
      end do
-
-   end function MolecularSystem_getSpecieID
+     
+   end function MolecularSystem_getSpeciesID
 
       !> @brief Returns the name of a species
    !! @author E. F. Posada, 2013
    !! @version 1.0
-   function MolecularSystem_getSpecieIDFromSymbol( symbolOfSpecie,this ) result(output)
+   function MolecularSystem_getSpeciesIDFromSymbol( symbolOfSpecies,this ) result(output)
      implicit none
      
-     character(*) :: symbolOfSpecie
+     character(*) :: symbolOfSpecies
      type(MolecularSystem), optional, target :: this
      integer :: output
      
@@ -1488,10 +1488,10 @@ contains
      output = 0
 
      do i = 1, system%numberOfQuantumSpecies
-        if( trim(system%species(i)%symbol) == trim(symbolOfSpecie)) output = i
+        if( trim(system%species(i)%symbol) == trim(symbolOfSpecies)) output = i
      end do
 
-   end function MolecularSystem_getSpecieIDFromSymbol
+   end function MolecularSystem_getSpeciesIDFromSymbol
 
    !>
    !! @brief calcula la energia total para una especie especificada
@@ -1989,7 +1989,7 @@ contains
     logical :: existFchk
     
 
-    speciesID=MolecularSystem_getSpecieID(nameOfSpecies)
+    speciesID=MolecularSystem_getSpeciesID(nameOfSpecies)
     numberOfContractions=MolecularSystem_getTotalnumberOfContractions( speciesID )
     inquire(FILE = trim(fileName), EXIST = existFchk )
     if ( .not. existFchk .and. present(readSuccess)) then
