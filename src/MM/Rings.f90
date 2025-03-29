@@ -192,7 +192,7 @@ contains
        do j=1,2
           bondConnectionMatrix%values(i,j) = MolecularSystem_instance%intCoordinates%connectionMatrixForBonds%values(i,j)
        end do
-       bondDistance(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * AMSTRONG
+       bondDistance(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * ANGSTROM
     end do
 
 

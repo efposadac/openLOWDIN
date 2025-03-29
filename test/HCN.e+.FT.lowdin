@@ -18,7 +18,7 @@ CONTROL
 readCoefficients=F
 convergenceMethod=1
 	iterationScheme=3
-	SCFGhostSpecies="POSITRON"
+	SCFGhostSpecies="E+"
 	HFprintEigenvalues=T
 	overlapEigenThreshold=1E-6
 	totalEnergyTolerance = 1E-8

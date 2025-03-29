@@ -1,21 +1,41 @@
 #!/bin/bash
 
-if [ -z $1 ]
-then
-    lowdinbin="lowdin2"
+if [ -z $1 ]; then
+    EXENAME="openlowdin"
+    if [ -e ../CONFIG ]; then
+        EXENAME=`gawk '($1~/EXENAME/){print $3}' ../CONFIG`
+    fi
 else
-    lowdinbin=$1
+    EXENAME=$1
 fi
-echo $lowdinbin
+
+mkdir -p testResults_$EXENAME
+
+date=$(date '+%Y-%m-%d_%H-%M-%S')
+echo $date
+echo "Testing with executable:" $EXENAME
+echo "Saving outputs to " testResults_$EXENAME
 
 for testfile in `ls *.py`; do
-    #echo $testfile
-	#python3 $testfile $lowdinbin
-	#/usr/bin/time -o time.log -v python3 $testfile $lowdinbin > out.log  && echo -n $(cat out.log) ; grep "User time" time.log | gawk '{print "\t" $4 " Sec" }'
-	#/usr/bin/time -o time.log -f "%e" python3 $testfile $lowdinbin > out.log  && echo -e -n $(cat out.log) ; echo -e $(cat time.log) " sec" | column -t -s$'\t'
-	/usr/bin/time -o time.log -f "%e" python3 $testfile $lowdinbin > out.log  && printf "%-60s \t %s sec \n" "$(cat out.log)" $(cat time.log) 
-
-    status=$((status + $?))
+    #Run test
+    testName=`echo $testfile | gawk '{print substr($1,1,length($1)-3)}'`
+    #python3 $testName.py $EXENAME | tee -a testResults_$EXENAME/maketest_$date.log
+    /usr/bin/time -o time.log -f "%e" python3 $testName.py $EXENAME > testResults_$EXENAME/maketest_$date.log && printf "%-60s \t %s sec \n" "$(cat testResults_$EXENAME/maketest_$date.log)" $(cat time.log) 
+    #/usr/bin/time -o time.log -f "%e" python3 $testName.py $EXENAME | tee -a testResults_$EXENAME/maketest_$date.log && printf "%-60s \t %s sec \n" "$(cat testResults_$EXENAME/maketest_$date.log)" $(cat time.log) 
+    #Save results 
+    find . -maxdepth 1 -name $testName.out -exec mv -t testResults_$EXENAME {} \;
+    find . -maxdepth 1 -name $testName"*molden" -exec mv -t testResults_$EXENAME {} \;
+    find . -maxdepth 1 -name $testName"*cub" -exec mv -t testResults_$EXENAME {} \;
+    find . -maxdepth 1 -name $testName"*dens" -exec mv -t testResults_$EXENAME {} \;
+    find . -maxdepth 1 -name $testName"*orb*" -exec mv -t testResults_$EXENAME {} \;
 done
-sh clean.sh
+
+status=`grep -c "NOT OK" testResults_$EXENAME/maketest_$date.log`
+
+if [ $status -gt 0 ]; then     
+    echo $status "tests failed"
+else
+    echo "All tests completed successfully"
+fi
+
 exit $status

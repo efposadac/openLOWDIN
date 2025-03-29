@@ -1,0 +1,31 @@
+SYSTEM_DESCRIPTION='Molecula de H2O'
+
+GEOMETRY
+e-[N] 6-31G.d 0.0000000	0.0000000	0.1193440
+e-[H] 6-31G.d 0.0000000	0.9386060	-0.2784680
+e-[H] 6-31G.d 0.8128560	-0.4693030	-0.2784680
+e-[H] 6-31G.d -0.8128560	-0.4693030	-0.2784680
+N dirac	0.0000000	0.0000000	0.1193440
+H_1 dzspnb	0.0000000	0.9386060	-0.2784680
+H_1 dzspnb	0.8128560	-0.4693030	-0.2784680
+H_1 dzspnb	-0.8128560	-0.4693030	-0.2784680
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+END TASKS
+
+CONTROL
+	readCoefficients=.F.
+	iterationScheme=3
+	scfConvergenceCriterium="BOTH"
+	scfGlobalMaxIterations=2000
+	totalEnergyTolerance=1.0E-8
+	totalDensityMatrixTolerance=1.0E-6
+	debugSCFS=.F.
+	integralStorage="MEMORY"
+END CONTROL
+
+
+
+

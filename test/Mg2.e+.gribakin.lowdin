@@ -22,7 +22,7 @@ CONTROL
 readCoefficients=F
 convergenceMethod=1
 	overlapEigenThreshold=1E-6
-	SCFGhostSpecies="POSITRON"
+	SCFGhostSpecies="E+"
 	HFprintEigenvalues=T
 	totalEnergyTolerance = 1E-9
 END CONTROL

@@ -196,7 +196,7 @@ contains
        stop
     else
        write(6,*) ""
-       write (6,"(T20,A30)") " FINAL GEOMETRY: AMSTRONG"
+       write (6,"(T20,A30)") " FINAL GEOMETRY: ANGSTROM"
        write (6,"(T18,A35)") "------------------------------------------"
        write(6,*) ""
 
@@ -373,7 +373,7 @@ contains
        if ( ParticleManager_isCenterOfOptimization( i ) ) then
           origin = ParticleManager_getOrigin( iterator = i )
           if ( CONTROL_instance%UNITS=="ANGSTROMS") then
-             origin = origin * AMSTRONG
+             origin = origin * ANGSTROM
           end if
 #ifdef intel
           write (6,"(A10,<3>F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
@@ -446,7 +446,7 @@ contains
     !        if ( ParticleManager_isCenterOfOptimization( i ) ) then
     !           origin = ParticleManager_getOrigin( iterator = i )
     !           if ( CONTROL_instance%UNITS=="ANGSTROMS") then
-    !              origin = origin * AMSTRONG
+    !              origin = origin * ANGSTROM
     !           end if
     ! #ifdef intel
     !           write (6,"(A10,<3>F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)

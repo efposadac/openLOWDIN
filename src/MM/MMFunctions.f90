@@ -146,7 +146,7 @@ contains
 
           write(*,"(T5,A)") ""
           write(*,"(T5,A)") "-----------------------------------------------------------------------------"
-          write(*,"(T30,A)") "INITIAL GEOMETRY: AMSTRONG"
+          write(*,"(T30,A)") "INITIAL GEOMETRY: ANGSTROM"
           write(*,"(T5,A)") "-----------------------------------------------------------------------------"
           write (*,"(T5,A5,T14,A,T20,A,T30,A,T45,A,T60,A,T75,A)") "Idx", &
                "Atom", "Type", "Charge(Z)", &

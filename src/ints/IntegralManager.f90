@@ -37,7 +37,7 @@ module IntegralManager_
   use Matrix_
   use CosmoCore_
   use Stopwatch_
-  use ExternalPotential_
+  use GTFPotential_
   use HarmonicIntegrals_
   use FirstDerivativeIntegrals_
 
@@ -80,7 +80,7 @@ contains
        !! Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of Overlap integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
        end if
 
        !!Depuration block
@@ -115,7 +115,7 @@ contains
        
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of Kinetic integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
        end if
 
        !!Depuration block
@@ -152,7 +152,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -197,12 +197,12 @@ contains
        end do
 
        write(*,"(A, A ,A,I6)")" Number of First derivative dx integrals for species ", &
-                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+                              trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
 
        !!Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+          !    trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -223,7 +223,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -268,12 +268,12 @@ contains
        end do
 
        write(*,"(A, A ,A,I6)")" Number of First derivative dy integrals for species ", &
-                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+                              trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
 
        !!Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+          !    trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -294,7 +294,7 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
        integralsMatrix = 0.0_8
 
        ii = 0
@@ -339,12 +339,12 @@ contains
        end do
 
        write(*,"(A, A ,A,I6)")" Number of First derivative dz integrals for species ", &
-                              trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+                              trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
 
        !!Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-          !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+          !    trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix
@@ -356,88 +356,35 @@ contains
   subroutine IntegralManager_writeHarmonicIntegrals()
     implicit none
 
-    integer :: f, g, h, i
-    integer :: j, k, l, m
-    integer :: ii, jj, hh
-    integer, allocatable :: labels(:)
-    real(8), allocatable :: integralValue(:)
-    real(8), allocatable :: integralsMatrix(:,:)
+    type(Matrix) :: integralsMatrix
+    integer :: f
     real(8) :: origin(3)
     character(100) :: job
-    integer :: ijob
 
     job = "HARMONIC"
-    ijob = 0 
 
     !!First derivative Integrals for all species
     do f = 1, size(MolecularSystem_instance%species)
 
-      if ( MolecularSystem_getOmega(f) /= 0.0_8 ) then
-        origin = MolecularSystem_getQDOcenter( f ) 
+       if ( MolecularSystem_getOmega(f) /= 0.0_8 ) then
+          origin = MolecularSystem_getQDOcenter( f ) 
 
-         write(30) job
-         write(30) MolecularSystem_instance%species(f)%name
+          write(30) job
+          write(30) MolecularSystem_instance%species(f)%name
 
-         if(allocated(labels)) deallocate(labels)
-         allocate(labels(MolecularSystem_instance%species(f)%basisSetSize))
-         labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
+          call DirectIntegralManager_getHarmonicIntegrals(MolecularSystem_instance,f,origin,integralsMatrix)
 
-         if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-         allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
-         integralsMatrix = 0.0_8
+          write(*,"(A, A ,A,I6)")" Number of Harmonic Oscillator integrals for species ", &
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
 
-         ii = 0
-         do g = 1, size(MolecularSystem_instance%species(f)%particles)
-            do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
-
-               hh = h
-
-               ii = ii + 1
-               jj = ii - 1
-
-               do i = g, size(MolecularSystem_instance%species(f)%particles)
-                  do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
-
-                     jj = jj + 1
-
-                     !! allocating memory Integrals for shell
-                     if(allocated(integralValue)) deallocate(integralValue)
-                     allocate(integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital * &
-                          MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
-
-                     !!Calculating integrals for shell
-                     call HarmonicIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                          MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), integralValue, origin)
-
-                     !!saving integrals on Matrix
-                     m = 0
-                     do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                        do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                           m = m + 1
-                           integralsMatrix(k, l) = integralValue(m)
-                           integralsMatrix(l, k) = integralsMatrix(k, l)
-
-                        end do
-                     end do
-
-                  end do
-                  hh = 1
-               end do
-
-            end do
-         end do
-
-         write(*,"(A, A ,A,I6)")" Number of Harmonic Oscillator integrals for species ", &
-                                trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
-
-         !!Write integrals to file (unit 30)
-         if(CONTROL_instance%LAST_STEP) then
-            ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
-            !    trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
-         end if
-         write(30) int(size(integralsMatrix),8)
-         write(30) integralsMatrix
-      end if
+          !!Write integrals to file (unit 30)
+          if(CONTROL_instance%LAST_STEP) then
+             ! write(*,"(A, A ,A,I6)")" Number of First derivative integrals for species ", &
+             !    trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
+          end if
+          write(30) int(size(integralsMatrix%values),8)
+          write(30) integralsMatrix%values
+       end if
     end do !done! 
 
   end subroutine IntegralManager_writeHarmonicIntegrals
@@ -529,8 +476,8 @@ contains
           write(40) MolecularSystem_instance%species(f)%name
           total_aux=0
 
-          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".opints"
-          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
+          cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".opints"
+          cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".charges"
 
           open(unit=70, file=trim(cosmoIntegralFile), status="unknown",form="unformatted")
           open(unit=80, file=trim(cosmoQuantumChargeFile), status="unknown",form="unformatted")
@@ -680,8 +627,8 @@ contains
 
                 if ( f /= g ) then
 
-                   cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( f ) )//".charges"
-                   cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecie( g ) )//".opints"
+                   cosmoQuantumChargeFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".charges"
+                   cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( g ) )//".opints"
 
                    call CosmoCore_q_int_builder(cosmoIntegralFile,cosmoQuantumChargeFile,numberOfPointCharges,totals(f),totals(g),f,g)
 
@@ -711,7 +658,7 @@ contains
           
           if(CONTROL_instance%LAST_STEP) then
              write(*,"(A, A ,A,I6)")" Number of Nuclear integrals for species ", &
-                  trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+                  trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
           end if
           
        !!Depuration block
@@ -758,7 +705,7 @@ contains
        
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of Moment integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", 3*size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", 3*size(integralsMatrix%values,DIM=1)**2
        end if
 
     end do !done! 
@@ -779,13 +726,11 @@ contains
     character(*) :: scheme
 
     integer :: speciesID
-    integer :: numberOfContractions
 
     !! Skip integrals calculation two times for electrons alpha and beta    
     if(CONTROL_instance%IS_OPEN_SHELL .and. ( trim(nameOfSpecies) == "E-BETA" )) return
 
-    speciesID = MolecularSystem_getSpecieID(trim(nameOfSpecies))
-    numberOfContractions = MolecularSystem_getNumberOfContractions(speciesID)
+    speciesID = MolecularSystem_getSpeciesID(trim(nameOfSpecies))
 
     if ( trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE )) == "DIRECT") return 
 
@@ -832,11 +777,11 @@ contains
 
     do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-       if(CONTROL_instance%IS_OPEN_SHELL .and. trim(MolecularSystem_getNameOfSpecie(i)) == "E-BETA" ) cycle
+       if(CONTROL_instance%IS_OPEN_SHELL .and. trim(MolecularSystem_getNameOfSpecies(i)) == "E-BETA" ) cycle
 
        do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
 
-          if(trim(MolecularSystem_getNameOfSpecie(j)) == "E-BETA" .and. .not. trim(MolecularSystem_getNameOfSpecie(i)) == "E-ALPHA" ) cycle
+          if(trim(MolecularSystem_getNameOfSpecies(j)) == "E-BETA" .and. .not. trim(MolecularSystem_getNameOfSpecies(i)) == "E-ALPHA" ) cycle
 
           !! Calculate integrals (stored on disk)       
           select case (trim(String_getUppercase(trim(scheme))))
@@ -887,7 +832,7 @@ contains
 
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of 3C Overlap integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix%values,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values,DIM=1)**2
        end if
 
     end do !done!    
@@ -924,15 +869,15 @@ contains
        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
        if(allocated(integralsMatrix)) deallocate(integralsMatrix)
-       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(specieID = f), MolecularSystem_getTotalNumberOfContractions(specieID = f)))
+       allocate(integralsMatrix(MolecularSystem_getTotalNumberOfContractions(f), MolecularSystem_getTotalNumberOfContractions(f)))
 
        integralsMatrix = 0.0_8
 
        do i= 1, ExternalPotential_instance%ssize
           !if( trim(potential(i)%specie)==trim(interactNameSelected) ) then ! This does not work for UHF
           ! if ( String_findSubstring(trim( MolecularSystem_instance%species(f)%name  ), &
-          !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie)))) == 1 ) then
-          if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%specie))) ) then
+          !      trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%species)))) == 1 ) then
+          if ( trim( MolecularSystem_instance%species(f)%symbol) == trim(String_getUpperCase(trim(ExternalPotential_instance%potentials(i)%species))) ) then
              potID=i
              exit
           end if
@@ -1008,7 +953,7 @@ contains
        !! Write integrals to file (unit 30)
        if(CONTROL_instance%LAST_STEP) then
           write(*,"(A, A ,A,I6)")" Number of Overlap integrals for species ", &
-               trim(MolecularSystem_instance%species(f)%name), ": ", size(integralsMatrix,DIM=1)**2
+               trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix,DIM=1)**2
        end if
        write(30) int(size(integralsMatrix),8)
        write(30) integralsMatrix

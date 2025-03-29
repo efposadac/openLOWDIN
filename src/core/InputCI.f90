@@ -160,7 +160,7 @@ contains
           else
              if(trim(InputCI_species) .ne. "" ) then
              
-                newID = MolecularSystem_getSpecieID (InputCI_species)
+                newID = MolecularSystem_getSpeciesIDFromSymbol (InputCI_species)
 
                 if ( newID .ne. 0 ) then
                    InputCI_Instance(newID)%species = trim(InputCI_species)
@@ -173,7 +173,7 @@ contains
                      "check the name of the species in the INPUT_CI block of your input file")
                 end if
              else
-                InputCI_Instance(i)%species = MolecularSystem_getNameOfSpecie(i)          
+                InputCI_Instance(i)%species = MolecularSystem_getNameOfSpecies(i)          
                 InputCI_excitation=0
                 if( CONTROL_instance%MP_FROZEN_CORE_BOUNDARY .ne. 0 &
                      .and. (trim(InputCI_Instance(i)%species) .eq. "E-" .or. trim(InputCI_Instance(i)%species) .eq. "E-ALPHA" .or. trim(InputCI_Instance(i)%species) .eq. "E-BETA")) &

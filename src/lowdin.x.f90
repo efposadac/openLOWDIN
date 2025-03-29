@@ -33,6 +33,7 @@ program lowdin_
  implicit none
 
  character(50) :: strAuxNumber
+ integer :: statusSystem
  
  !! Time Control
  call Stopwatch_constructor( lowdin_stopwatch )
@@ -99,7 +100,7 @@ program lowdin_
     !!***************************************************************************
     !!        Shows system's geometry
     !!
-    write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
+    write (6,"(T20,A30)") " INITIAL GEOMETRY: ANGSTROM"
     write (6,"(T18,A35)") "------------------------------------------"
  
     call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
@@ -113,7 +114,7 @@ program lowdin_
     
     call MolecularSystem_moveToCenterOfMass()
     call MolecularSystem_rotateOnPrincipalAxes()
-    write (6,"(T20,A30)") " GEOMETRY IN C.M. : AMSTRONG"
+    write (6,"(T20,A30)") " GEOMETRY IN C.M. : ANGSTROM"
     write (6,"(T18,A35)") "------------------------------------------"
     call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
     
@@ -182,8 +183,8 @@ program lowdin_
 
   if ( CONTROL_instance%IS_THERE_OUTPUT ) then
     write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs
-    call system("lowdin-output.x" //trim(strAuxNumber))
-    ! statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
+    ! call system("lowdin-output.x" //trim(strAuxNumber))
+    statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
   end if
 
 

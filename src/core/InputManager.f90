@@ -23,8 +23,7 @@ module InputManager_
   use Exception_
   use Particle_
   use MolecularSystem_
-  use InterPotential_
-  use ExternalPotential_
+  use GTFPotential_
   implicit none
 
   
@@ -344,6 +343,7 @@ contains
     real(8):: InputParticle_origin(3)
     real(8) :: InputParticle_charge
     real(8) :: InputParticle_mass
+    integer :: InputParticle_eta
     real(8) :: InputParticle_omega
     character(15):: InputParticle_qdoCenterOf
     character(3):: InputParticle_fixedCoordinates
@@ -359,6 +359,7 @@ contains
          InputParticle_basisSetName, &
          InputParticle_charge, &
          InputParticle_mass, &
+         InputParticle_eta, &
          InputParticle_omega, &
          InputParticle_qdoCenterOf, &
          InputParticle_origin, &
@@ -538,6 +539,7 @@ contains
        InputParticle_basisSetName = "NONE"
        InputParticle_charge=0.0_8
        InputParticle_mass=0.0_8
+       InputParticle_eta=0
        InputParticle_omega=0.0_8
        InputParticle_qdoCenterOf = "NONE"
        InputParticle_origin=0.0_8
@@ -557,7 +559,7 @@ contains
        
        !! Fix units ( converts ANGS to BOHR )
        if ( trim(CONTROL_instance%UNITS) == "ANGS") then
-          InputParticle_origin= InputParticle_origin / AMSTRONG
+          InputParticle_origin= InputParticle_origin / ANGSTROM
        end if
        
        !! All uppercase
@@ -620,7 +622,8 @@ contains
                   spin="ALPHA", &
                   id = particlesID(speciesID), &
                   charge = InputParticle_charge, &
-                  mass = InputParticle_mass, & 
+                  mass = InputParticle_mass, &
+                  eta = InputParticle_eta, &
                   omega = InputParticle_omega )
              
              !!BETA SET
@@ -644,6 +647,7 @@ contains
                   id = particlesID(speciesID), &
                   charge = InputParticle_charge, &
                   mass = InputParticle_mass, &
+                  eta = InputParticle_eta, &
                   omega = InputParticle_omega )         
              
           else 
@@ -671,6 +675,7 @@ contains
                   id = particlesID(speciesID), &
                   charge = InputParticle_charge, &
                   mass = InputParticle_mass, &
+                  eta = InputParticle_eta, &
                   omega = InputParticle_omega )                         
              
           end if
@@ -750,7 +755,7 @@ contains
     ! Load interpotentials
     if(CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
 
-      call InterPotential_constructor(Input_instance%numberOfInterPots)
+      call GTFPotential_constructor(InterPotential_instance, Input_instance%numberOfInterPots,"INTERNAL")
 
       !! Reload input file
       rewind(4)
@@ -760,10 +765,10 @@ contains
         read(4,NML=InterPot, iostat=stat)
     
         if( stat > 0 ) then       
-          call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
+          call InputManager_exception( ERROR, "check the INTERPOTENTIAL block in your input file", "InputManager loadTask function" )       
         end if
 
-        call InterPotential_load(potId, trim(InterPot_name), trim(InterPot_specie), trim(InterPot_otherSpecie))
+        call GTFPotential_load(InterPotential_instance, "INTERNAL", potId, trim(InterPot_name), trim(InterPot_specie), trim(InterPot_otherSpecie))
 
       end do
     
@@ -772,7 +777,7 @@ contains
     ! Load External Potentials
     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
 
-      call ExternalPotential_constructor(Input_instance%numberOfExternalPots)
+      call GTFPotential_constructor(ExternalPotential_instance, Input_instance%numberOfExternalPots,"EXTERNAL")
 
       !! Reload input file
       rewind(4)
@@ -782,10 +787,10 @@ contains
         read(4,NML=ExternalPot, iostat=stat)
     
         if( stat > 0 ) then       
-          call InputManager_exception( ERROR, "check the TASKS block in your input file", "InputManager loadTask function" )       
+          call InputManager_exception( ERROR, "check the EXTERPOTENTIAL block in your input file", "InputManager loadTask function" )       
         end if
 
-        call ExternalPotential_load(potId, trim(ExternalPot_name), trim(ExternalPot_specie))
+        call GTFPotential_load(ExternalPotential_instance, "EXTERNAL", potId, trim(ExternalPot_name), trim(ExternalPot_specie), "NONE")
 
       end do
     end if

@@ -41,6 +41,8 @@ module Exception_
   integer, public, parameter :: ERROR = 3
 
   public :: &
+       Exception_stopError, &
+       Exception_sendWarning, &
        Exception_constructor, &
        Exception_destructor, &
        Exception_show, &
@@ -96,7 +98,7 @@ contains
 
     this%description = ""
     this%debugDescription = ""
-
+    
   end subroutine Exception_destructor
 
   subroutine Exception_show( this )
@@ -136,7 +138,7 @@ contains
        write(6,"(A16,ES10.2,A4)") "Elapsed Time : ", lowdin_stopwatch%enlapsetTime ," (s)"
        write(6,*) "lowdin execution terminated ABNORMALLY at : ", trim( Stopwatch_getCurretData( lowdin_stopwatch ) )
        call Stopwatch_destructor( lowdin_stopwatch )
-       stop
+       STOP
 
     end select
 
@@ -161,5 +163,41 @@ contains
 
   end subroutine Exception_setDescription
 
+  !>
+  !! @brief  A nice way to stop the code in other routines
+  !<
+  subroutine Exception_stopError( description, debugDescription)
+    implicit none
+    character(*) :: description
+    character(*) :: debugDescription
 
+    type(Exception) :: ex
+
+    call Exception_constructor( ex , ERROR )
+    call Exception_setDebugDescription( ex, debugDescription )
+    call Exception_setDescription( ex, description )
+    call Exception_show( ex )
+    call Exception_destructor( ex )
+
+  end subroutine Exception_stopError
+
+
+  !>
+  !! @brief  A nice way to send warnings in other routines
+  !<
+  subroutine Exception_sendWarning( description, debugDescription)
+    implicit none
+    character(*) :: description
+    character(*) :: debugDescription
+
+    type(Exception) :: ex
+
+    call Exception_constructor( ex , WARNING )
+    call Exception_setDebugDescription( ex, debugDescription )
+    call Exception_setDescription( ex, description )
+    call Exception_show( ex )
+    call Exception_destructor( ex )
+
+  end subroutine Exception_sendWarning
+  
 end module Exception_

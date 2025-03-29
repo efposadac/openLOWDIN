@@ -185,7 +185,7 @@ Program Ints
      !! intra-species two-boy integration
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
         !!Calculate attraction integrals (intra-species)
-        call IntegralManager_writeIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+        call IntegralManager_writeIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecies(speciesID)), &
              trim(CONTROL_instance%INTEGRAL_SCHEME))
      end do
 
@@ -254,8 +254,8 @@ Program Ints
 
              call Libint2Interface_computeG12Interspecies_disk(i, j)
         
-             ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecie(i)), &
-             !  trim(MolecularSystem_getNameOfSpecie(j)), i, j)
+             ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecies(i)), &
+             !  trim(MolecularSystem_getNameOfSpecies(j)), i, j)
 
           end do
         end do

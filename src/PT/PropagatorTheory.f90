@@ -28,13 +28,14 @@ module PropagatorTheory_
         use InputCI_
 !	use IntegralManager_
 !	use GenericInterface_
-!        use PInterface_ 
+!       use PInterface_ 
 	use Exception_
         use Matrix_
 	use Vector_
         use ReadTransformedIntegrals_
 	use IndexMap_
-  use omp_lib
+	use Units_
+        use omp_lib
 !	use TransformIntegrals_
 !	use TransformIntegrals2_
 	implicit NONE
@@ -275,10 +276,10 @@ contains
           end if
 
           if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+             species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
              do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
                if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
+               species2ID= MolecularSystem_getSpeciesIDfromSymbol(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
           else
@@ -294,9 +295,9 @@ contains
              
              n=size(PropagatorTheory_instance%secondOrderCorrections(i)%values,DIM=1)
 
-             nameOfSpecies=trim(MolecularSystem_getNameOfSpecie( q ))
+             nameOfSpecies=trim(MolecularSystem_getNameOfSpecies( q ))
 
-             write (6,"(T10,A8,A10)") "SPECIES: ",nameOfSpecies
+             write (6,"(T10,A8,A10)") "SPECIES: ", trim(MolecularSystem_getSymbolOfSpecies( q ))
 
              if (nameOfSpecies=="E-ALPHA".or.nameOfSpecies=="E-BETA") then
                 
@@ -386,10 +387,10 @@ contains
           write (*,"(T10,A64)") "---------------------------------------------------------------"
 
           if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+             species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
              do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
                if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
+               species2ID= MolecularSystem_getSpeciesIDfromSymbol(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
           else
@@ -404,7 +405,7 @@ contains
 !             i = i + 1
 !
 !             n=size(PropagatorTheory_instance%thirdOrderCorrections(i)%values,DIM=1)
-!             write (6,"(T10,A8,A10)")"SPECIE: ",trim(MolecularSystem_getNameOfSpecie( q ))
+!             write (6,"(T10,A8,A10)")"SPECIE: ",trim(MolecularSystem_getNameOfSpecies( q ))
 !             write ( 6,'(T10,A85)') "--------------------------------------------------------------------------------------------"
 !             write ( 6,'(T10,A10,A10,A10,A10,A10,A10,A10,A10)') " Orbital ","  KT (eV) ","  EP2 (eV)","  P.S  ","  P3 (eV)"&
 !                  ,"  P.S  "," OVGF (eV)","  P.S  "
@@ -522,7 +523,7 @@ contains
     !!! Defining for which species the correction will be applied
     
 !    if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -532,12 +533,12 @@ contains
 !    end if
 
       if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+             species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
              zz = 0 
              do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
                if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
                zz = zz + 1
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
+               species2ID= MolecularSystem_getSpeciesIDfromSymbol(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
              m = zz 
@@ -590,7 +591,7 @@ contains
 
        q = q + 1
 
-       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
        chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
        occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -649,7 +650,7 @@ contains
        
 !       call TransformIntegrals_constructor( repulsionTransformer )
 
-        arguments(2) = MolecularSystem_getNameOfSpecie(i)
+        arguments(2) = MolecularSystem_getNameOfSpecies(i)
 
         arguments(1) = "ORBITALS"
 
@@ -662,7 +663,7 @@ contains
              activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( p )
              if ( InputCI_Instance(p)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(p)%activeOrbitals
 
-             arguments(2) = trim(MolecularSystem_getNameOfSpecie(p))
+             arguments(2) = trim(MolecularSystem_getNameOfSpecies(p))
 
              arguments(1) = "ORBITALS"
              call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( p ), &
@@ -721,7 +722,7 @@ contains
              activeOrbitalsOfSpeciesB = MolecularSystem_getTotalNumberOfContractions( j )
              if ( InputCI_Instance(j)%activeOrbitals /= 0 ) activeOrbitalsOfSpeciesB = InputCI_Instance(j)%activeOrbitals
 
-             arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+             arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
 
              arguments(1) = "ORBITALS"
              call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
@@ -845,7 +846,7 @@ contains
                 
              else ! interspecies
 
-                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
                 chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                 occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -952,11 +953,11 @@ contains
           ! Koopmans
           koopmans = eigenValuesOfSpeciesA%values(pa)
           PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)=real(pa,8)
-          PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
+          PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2)=EV * koopmans
 
           print *,"----------------------------------------------------------------"
           write (*,"(T5,A25,I2,A13,A8)") "Results for spin-orbital:",int(PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)),&
-               " of species: ",nameOfSpeciesA
+               " of species: ", trim(MolecularSystem_getSymbolOfSpecies(i))
           write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2)
 
           ! Selecting value of o, for spin-component-scaled calculations
@@ -990,7 +991,7 @@ contains
 
                 do j = 1 , PropagatorTheory_instance%numberOfSpecies             
 
-                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )                   
+                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )                   
 
                    E2hp = 0.0_8
                    E2ph= 0.0_8
@@ -1078,10 +1079,10 @@ contains
              print *, ""
              write (*,"(T5,A43,I2,A13,A12)") "P2 decomposition (in eV) for spin-orbital:", &
                    int(PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)),&
-                   " of species a: ",nameOfSpeciesA
+                   " of species a: ", trim(MolecularSystem_getSymbolOfSpecies(i))
 
              write (*, "(T6,A50)") "--------------------------------------------------"
-             write (*, "(T6,A14,A11,A11,A12,A13)"),"Species b     ", "    PRX    ", "    ORX    ", "E_2ph (PRM) ", "\Sigma_{ab}^2"
+             write (*, "(T6,A14,A11,A11,A12,A13)") "Species b     ", "    PRX    ", "    ORX    ", "E_2ph (PRM) ", "\Sigma_{ab}^2"
              write (*, "(T6,A50)") "--------------------------------------------------"
              TE2hp = 0.0_8
              TE2ph = 0.0_8
@@ -1090,7 +1091,7 @@ contains
 
              do j = 1 , PropagatorTheory_instance%numberOfSpecies             
 
-                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )                   
+                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )                   
 
                 E2hp = 0.0_8
                 E2ph= 0.0_8
@@ -1151,8 +1152,8 @@ contains
                    
                 end if
 
-                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), nameOfSpeciesB, prx*27.211396_8, orx*27.211396_8, &
-                        E2ph*27.211396_8,(E2hp+E2ph)*27.211396_8
+                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)")  trim(MolecularSystem_getSymbolOfSpecies(j)), prx*EV, orx*EV, &
+                        E2ph*EV,(E2hp+E2ph)*EV
 
                 TE2hp = TE2hp + E2hp
                 TE2ph = TE2ph + E2ph
@@ -1164,22 +1165,22 @@ contains
              write (*, "(T6,A50)") "--------------------------------------------------"
 
              !! Total 
-             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), "Sum for b " , Tprx*27.211396_8,Torx*27.211396_8, &
-                         TE2ph*27.211396_8,(TE2hp+TE2ph)*27.211396_8
+             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)")  "Sum for b " , Tprx*EV,Torx*EV, &
+                         TE2ph*EV,(TE2hp+TE2ph)*EV
 
              write (*, "(T6,A50)") "--------------------------------------------------"
              write (*, *) ""
 
              ! Storing corrections
              
-             PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1)=27.211396_8 * newOmega
+             PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1)=EV * newOmega
              PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+2)=poleStrenght
              
              write (*,"(T5,A10,F8.5,A10,F8.5)") " FactorOS: ",factorOS(n)," FactorSS: ",factorSS(n)
              write (*,"(T5,A30,F8.4,A7,I2,A12)") " Optimized second order pole: ",&
                   PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1),&
                   " after ",ni," iterations."
-             write (*,"(T5,A17,F8.4,A15,F7.4)") "Correction(eV): ",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+             write (*,"(T5,A17,F8.4,A15,F7.4)") "Correction(eV): ",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
              write (*, *) ""
 
           end do          
@@ -1348,7 +1349,7 @@ contains
     ! Defining for which species the correction will be applied
     
     if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+       species1ID = MolecularSystem_getSpeciesIDFromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
        species2ID= species1ID
        m=1
     else
@@ -1489,7 +1490,7 @@ contains
     
     do p = 1 , PropagatorTheory_instance%numberOfSpecies
 
-       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( p ) )
+       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( p ) )
 
        if (nameOfSpeciesA=="E-ALPHA".or.nameOfSpeciesA=="E-BETA") then
 
@@ -1514,7 +1515,7 @@ contains
              
           else
              
-             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( n ) )
+             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( n ) )
              
 !JC             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !                  MolecularSystem_getEigenVectors(p), MolecularSystem_getEigenVectors(n), &
@@ -1540,7 +1541,7 @@ contains
        
        q = q + 1
        
-       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
        chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !JC       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
        occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -1549,7 +1550,7 @@ contains
        lambdaOfSpeciesA = MolecularSystem_getLambda( i )
        virtualNumberOfSpeciesA = activeOrbitalsOfSpeciesA - occupationNumberOfSpeciesA
 
-       arguments(2) = trim(MolecularSystem_getNameOfSpecie(i))
+       arguments(2) = trim(MolecularSystem_getNameOfSpecies(i))
 
        arguments(1) = "ORBITALS"
        call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( i ), &
@@ -1774,7 +1775,7 @@ contains
   
   !JC               print *,"entro al else"                
   
-                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( p ) )
+                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( p ) )
                   chargeOfSpeciesB = MolecularSystem_getCharge( p )
   !JC                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
@@ -1783,7 +1784,7 @@ contains
                   lambdaOfSpeciesB = MolecularSystem_getLambda( p )
                   virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
   
-                  arguments(2) = trim(MolecularSystem_getNameOfSpecie(p))
+                  arguments(2) = trim(MolecularSystem_getNameOfSpecies(p))
                   arguments(1) = "ORBITALS"
                   call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( p ), &
                        unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -2191,7 +2192,7 @@ contains
   
   !JC                      print *,"entro a r diferente de p"
   
-                        nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( r ) )
+                        nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( r ) )
                         chargeOfSpeciesC = MolecularSystem_getCharge( r )
   !                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
                         occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
@@ -2200,7 +2201,7 @@ contains
                         lambdaOfSpeciesC = MolecularSystem_getLambda( r )
                         virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
   
-                        arguments(2) = trim(MolecularSystem_getNameOfSpecie(r))
+                        arguments(2) = trim(MolecularSystem_getNameOfSpecies(r))
                         arguments(1) = "ORBITALS"
                         call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( r ), &
                              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -2646,7 +2647,7 @@ contains
                    
                 else ! interspecies
                    
-                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
                    chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                    occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -2655,7 +2656,7 @@ contains
                    lambdaOfSpeciesB = MolecularSystem_getLambda( j )
                    virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                   arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+                   arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                    arguments(1) = "ORBITALS"
                    call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                          unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -3061,7 +3062,7 @@ contains
                    
                 else ! Interspecies term
 
-                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
                    chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                    occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -3070,7 +3071,7 @@ contains
                    lambdaOfSpeciesB = MolecularSystem_getLambda( j )
                    virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                   arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+                   arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                    arguments(1) = "ORBITALS"
                    call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                         unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -3134,16 +3135,16 @@ contains
 !          print *,"M y Q:",m,q
 
           PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
           PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 
           write (*,"(T5,A25,I2,A13,A8)") "Results for spin-orbital:",int(PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)),&
-               " of species: ",nameOfSpeciesA
+               " of species: ", molecularSystem_getSymbolOfSpecies(i)
           write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
           write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
                " after ",ni," iterations."
-          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
           print *,"----------------------------------------------------------------"
 
           ! Calculation of third order poles
@@ -3176,8 +3177,8 @@ contains
              ! Initial guess             
              koopmans = eigenValuesOfSpeciesA%values(pa)
              newOmega = koopmans
-             ! if (o>2.and.o/=6) newOmega = thirdOrderResults(1,2)/27.211396_8
-             ! if (o==6) newOmega = thirdOrderResults(1,1)/27.211396_8
+             ! if (o>2.and.o/=6) newOmega = thirdOrderResults(1,2)/EV
+             ! if (o==6) newOmega = thirdOrderResults(1,1)/EV
              lastOmega = 0.0_8
              
              ni = 0
@@ -3190,7 +3191,7 @@ contains
              fI = 1.0_8
              if (o==1 .or. o==6) fW=1.0_8
              if (o==1 .or. o==6) fI=0.0_8
-             threshold=0.001_8/27.211396_8
+             threshold=0.001_8/EV
              ! if (o==1 .or. o==2) threshold=0.00001_8
              
              ! NR procedure Hola
@@ -3501,7 +3502,7 @@ contains
                             id1=0
                             id2=0
 
-                            nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+                            nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
                             chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !                            eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
                             occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -3510,7 +3511,7 @@ contains
                             lambdaOfSpeciesB = MolecularSystem_getLambda( k )
                             virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                            arguments(2) = trim(MolecularSystem_getNameOfSpecie(k))
+                            arguments(2) = trim(MolecularSystem_getNameOfSpecies(k))
                             arguments(1) = "ORBITALS"
                             call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( k ), &
                                      unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -3756,7 +3757,7 @@ contains
                       
                    else ! Interspecies term
                       
-                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
                       chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
                       occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -3765,7 +3766,7 @@ contains
                       lambdaOfSpeciesB = MolecularSystem_getLambda( j )
                       virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                      arguments(2) = trim(MolecularSystem_getNameOfSpecie(j))
+                      arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                       arguments(1) = "ORBITALS"
                       call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
                            unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -4130,7 +4131,7 @@ contains
                             
 !                            print *,"ENTRO AL TERMINO DE TRES PARTICULAS:",i,j,k
                             
-                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
                             chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
                             occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -4139,7 +4140,7 @@ contains
                             lambdaOfSpeciesC = MolecularSystem_getLambda( k )
                             virtualNumberOfSpeciesC = activeOrbitalsOfSpeciesC - occupationNumberOfSpeciesC
 
-                            arguments(2) = trim(MolecularSystem_getNameOfSpecie(k))
+                            arguments(2) = trim(MolecularSystem_getNameOfSpecies(k))
                             arguments(1) = "ORBITALS"
                             call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( k ), &
                                     unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
@@ -4616,13 +4617,13 @@ contains
              end if
              
              poleStrenght = 1.0_8/(selfEnergyDerivative)
-             thirdOrderResults(1,o) = 27.211396_8 * newOmega
+             thirdOrderResults(1,o) = EV * newOmega
              thirdOrderResults(2,o) = poleStrenght
 
 !             print *,"value of o:",o
 !             ! print *,"FACTORS:"
 !             ! print *,factors(:,:,:)
-             print *, "Constant self-energy: ", constantSelfEnergy*27.211396_8
+             print *, "Constant self-energy: ", constantSelfEnergy*EV
              print *, "2hp(2):               ",s2hp(:)
              print *, "2ph(2):               ",s2ph(:)
              print *, "W 2hp(3):             ",W2hp(:)
@@ -4638,8 +4639,8 @@ contains
              print *, "Factor2 2hp:          ",factors2(:,2,o)
              print *, "Factor2 2ph:         ",factors2(:,1,o)
              print *, ""
-             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*27.211396_8," after ",ni," iterations."
-             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*EV," after ",ni," iterations."
+             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
              print *,"----------------------------------------------------------------"
                           
           end do ! options for third order
@@ -4647,7 +4648,7 @@ contains
           ! printing results for one spin-orbital
 
           write (*,"(T5,A55,I2,A13,A8)") "SUMMARY OF PROPAGATOR RESULTS FOR THE SPIN-ORBITAL:",&
-               int(PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1))," OF SPECIES:",nameOfSpeciesA 
+               int(PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1))," OF SPECIES:", molecularSystem_getSymbolOfSpecies(i)
           write (*, "(T5,A45)") "--------------------------------------------" 
           write (*, "(T10,A12,A12,A12)") " Method ","BE (eV)","Pole S."
           write (*, "(T5,A45)") "--------------------------------------------"
@@ -4661,7 +4662,7 @@ contains
           end do
           write (*, "(T5,A45)") "--------------------------------------------"
 
-          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
           ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
                               
           ! call Matrix_destructor(auxMatrix2(:))          
@@ -4851,7 +4852,7 @@ end module PropagatorTheory_
   !   print *,"******************************************************************"
   !   print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
-  !   electronsID = MolecularSystem_getSpecieID(  nameOfSpecie="e-" )
+  !   electronsID = MolecularSystem_getSpeciesIDfromSymbol(  "e-" )
 
   !   if ( PropagatorTheory_instance%numberOfSpecies.gt.1 ) then
        
@@ -4861,7 +4862,7 @@ end module PropagatorTheory_
   !   end if
 
   !   if (CONTROL_instance%PT_TRANSITION_OPERATOR.or.CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-  !      specie1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+  !      specie1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
   !      specie2ID= specie1ID
   !   else
   !      specie1ID=1
@@ -4870,9 +4871,9 @@ end module PropagatorTheory_
 
   !   do i = specie1ID , specie2ID
        
-  !      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
+  !      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( i ) )
        
-  !      specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
+  !      specieID = MolecularSystem_getSpeciesIDfromSymbol( nameOfSpecie )
   !      charge = MolecularSystem_getCharge( specieID )
   !      eigenValues = MolecularSystem_getEigenValues(i)
   !      occupationNumber = MolecularSystem_getOcupationNumber( i )
@@ -5034,8 +5035,8 @@ end module PropagatorTheory_
   !            do j = 1 , PropagatorTheory_instance%numberOfSpecies
   !               if (j.ne.i) then
                    
-  !                  nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecie( j ) )
-  !                  otherSpecieID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
+  !                  nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( j ) )
+  !                  otherSpecieID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecie )
   !                  eigenValuesOfOtherSpecie = MolecularSystem_getEigenValues(j)
   !                  occupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( j )
   !                  numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
@@ -5209,18 +5210,18 @@ end module PropagatorTheory_
   !         ! Storing of corrections
 
   !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,4*m)= &
-  !              27.211396_8 * optimizedOmega
+  !              EV * optimizedOmega
           
   !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-1))= &
   !              PropagatorTheory_getPolarStrength( auxNumeratorsVector, &
   !              auxDenominatorsVector, id, optimizedOmega)
 
-  !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-2))= 27.211396_8 * selfEnergyIntraSpecie
-  !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-3))= 27.211396_8 * selfEnergyInterSpecie
+  !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-2))= EV * selfEnergyIntraSpecie
+  !         PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-3))= EV * selfEnergyInterSpecie
           
   !         if ( CONTROL_instance%PT_SELF_ENERGY_SCAN ) then    
              
-  !            range=(CONTROL_instance%PT_SELF_ENERGY_RANGE)/27.211396_8
+  !            range=(CONTROL_instance%PT_SELF_ENERGY_RANGE)/EV
              
   !            call PropagatorTheory_scanSelfEnergy( auxNumeratorsVector, &
   !                 auxDenominatorsVector, id, p, nameOfSpecie, & 
@@ -5298,9 +5299,9 @@ end module PropagatorTheory_
   !   print *,"******************************************************************"
   !   print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
-  !   speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+  !   speciesID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 
-  !   nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
+  !   nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
        
   !   chargeOfSpecies = MolecularSystem_getCharge( speciesID )
     
@@ -5409,8 +5410,8 @@ end module PropagatorTheory_
   !      do j = 1 , PropagatorTheory_instance%numberOfSpecies
   !         if (j.ne.speciesID) then
              
-  !            nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
-  !            otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+  !            nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
+  !            otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
   !            eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
   !            occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
   !            numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -5503,8 +5504,8 @@ end module PropagatorTheory_
   !         do j = 1 , PropagatorTheory_instance%numberOfSpecies
   !            if (j.ne.speciesID) then
                 
-  !               nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
-  !               otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+  !               nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
+  !               otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
   !               eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
   !               occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
   !               numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -5716,7 +5717,7 @@ end module PropagatorTheory_
   !   ! Storing of corrections
     
   !   PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(speciesID,4*CONTROL_instance%IONIZE_MO(1))= &
-  !        27.211396_8 * lastEigenvalue
+  !        EV * lastEigenvalue
 
   !   !!! DAVIDSON ALGORYTHM ENDS
 
@@ -5800,8 +5801,8 @@ end module PropagatorTheory_
 !     print *,"******************************************************************"
 !     print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
-!     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
-!     nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )       
+!     speciesID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
+!     nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )       
 !     chargeOfSpecies = MolecularSystem_getCharge( speciesID )
 !     eigenValuesOfSpecies = MolecularSystem_getEigenValues( speciesID )
 !     occupationNumberOfSpecies = MolecularSystem_getOcupationNumber( speciesID )
@@ -6034,8 +6035,8 @@ end module PropagatorTheory_
 !           do j = 1 , PropagatorTheory_instance%numberOfSpecies
 !              if (j.ne.speciesID) then
                 
-!                 nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
-!                 otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!                 nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
+!                 otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !                 eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !                 occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
 !                 numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -6248,8 +6249,8 @@ end module PropagatorTheory_
 !        do j = 1 , PropagatorTheory_instance%numberOfSpecies
 !           if (j.ne.speciesID) then
              
-!              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
-!              otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
+!              otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
 !              numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -6391,8 +6392,8 @@ end module PropagatorTheory_
 !        do j = 1 , PropagatorTheory_instance%numberOfSpecies
 !           if (j.ne.speciesID) then
              
-!              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( j ) )
-!              otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
+!              otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
 !              numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -6477,8 +6478,8 @@ end module PropagatorTheory_
 !        do i = 1 , PropagatorTheory_instance%numberOfSpecies - 1
 !           if (i.ne.speciesID) then
              
-!              nameOfOtherSpecies1= trim(  MolecularSystem_getNameOfSpecie( i ) )
-!              otherSpeciesID1 =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!              nameOfOtherSpecies1= trim(  MolecularSystem_getNameOfSpecies( i ) )
+!              otherSpeciesID1 =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies1 = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies1 = MolecularSystem_getOcupationNumber( i )
 !              numberOfContractionsOfOtherSpecies1 = MolecularSystem_getTotalNumberOfContractions( i )
@@ -6495,8 +6496,8 @@ end module PropagatorTheory_
 !              do j = i+1 , PropagatorTheory_instance%numberOfSpecies
 !                 if (j.ne.speciesID) then
                    
-!                    nameOfOtherSpecies2= trim(  MolecularSystem_getNameOfSpecie( j ) )
-!                    otherSpeciesID2 =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!                    nameOfOtherSpecies2= trim(  MolecularSystem_getNameOfSpecies( j ) )
+!                    otherSpeciesID2 =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !                    eigenValuesOfOtherSpecies2 = MolecularSystem_getEigenValues(j)
 !                    occupationNumberOfOtherSpecies2 = MolecularSystem_getOcupationNumber( j )
 !                    numberOfContractionsOfOtherSpecies2 = MolecularSystem_getTotalNumberOfContractions( j )
@@ -6863,14 +6864,14 @@ end module PropagatorTheory_
 !     ! Storing of corrections
     
 !     PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(speciesID,4*CONTROL_instance%IONIZE_MO(1))= &
-!          27.211396_8 * lastEigenvalue
+!          EV * lastEigenvalue
     
 !     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-1))= &
 !     !      PropagatorTheory_getPolarStrength( auxNumeratorsVector, &
 !     !      auxDenominatorsVector, id, optimizedOmega)
     
-!     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-2))= 27.211396_8 * selfEnergyIntraSpecie
-!     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-3))= 27.211396_8 * selfEnergyInterSpecie
+!     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-2))= EV * selfEnergyIntraSpecie
+!     ! PropagatorTheory_instance%energyCorrectionsOfSecondOrder%values(i,(4*m-3))= EV * selfEnergyInterSpecie
 
 !     !!************************************************************************************************
 !     print *,"END OF CALCULATION OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR"
@@ -6952,7 +6953,7 @@ end module PropagatorTheory_
 !    !!! Defining for which species the correction will be applied
 !    
 !    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -6972,7 +6973,7 @@ end module PropagatorTheory_
 !       
 !       q = q + 1
 !       
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -7017,7 +7018,7 @@ end module PropagatorTheory_
 !             
 !          else
 !             
-!             nameOfSpeciesB= trim(  MolecularSystem_getNameOfSpecie( p ) )
+!             nameOfSpeciesB= trim(  MolecularSystem_getNameOfSpecies( p ) )
 !             
 !!             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                  MolecularSystem_getEigenVectors(i), MolecularSystem_getEigenVectors(p), &
@@ -7136,7 +7137,7 @@ end module PropagatorTheory_
 !                               
 !                               if (k .ne. i)  then
 !                                  
-!                                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -7257,7 +7258,7 @@ end module PropagatorTheory_
 !                               
 !                               if (k .ne. i)  then
 !
-!                                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                  nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -7303,7 +7304,7 @@ end module PropagatorTheory_
 !                
 !             else ! interspecies
 !
-!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -7593,7 +7594,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -7663,8 +7664,8 @@ end module PropagatorTheory_
 !          ! Storing corrections
 !
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 !
 !          print *,"----------------------------------------------------------------"
@@ -7673,7 +7674,7 @@ end module PropagatorTheory_
 !          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
 !          write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
 !               " after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !
 !          ! Initial guess
 !          koopmans = eigenValuesOfSpeciesA%values(pa)
@@ -7778,7 +7779,7 @@ end module PropagatorTheory_
 !                                  
 !                                  if (k .ne. i)  then
 !                                     
-!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -7914,7 +7915,7 @@ end module PropagatorTheory_
 !                                  
 !                                  if (k .ne. i)  then
 !                                     
-!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -7975,7 +7976,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -8180,7 +8181,7 @@ end module PropagatorTheory_
 !                         
 !                         print *,"entro al manolito",k
 !                         
-!                         nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                         nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                         chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                         eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                         occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -8295,11 +8296,11 @@ end module PropagatorTheory_
 !
 !          poleStrenght = 1.0_8/(selfEnergyDerivative)
 !
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
 !
-!          write (*,"(T5,A26,F8.4,A7,I2,A12)") "Optimized P3 order pole: ",newOmega*27.211396_8," after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A26,F8.4,A7,I2,A12)") "Optimized P3 order pole: ",newOmega*EV," after ",ni," iterations."
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !          print *,"----------------------------------------------------------------"
 !
 !       end do
@@ -8395,7 +8396,7 @@ end module PropagatorTheory_
 !    !!! Defining for which species the correction will be applied
 !    
 !    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -8415,7 +8416,7 @@ end module PropagatorTheory_
 !       
 !       q = q + 1
 !       
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -8461,7 +8462,7 @@ end module PropagatorTheory_
 !             
 !          else
 !             
-!             nameOfSpeciesB= trim(  MolecularSystem_getNameOfSpecie( p ) )
+!             nameOfSpeciesB= trim(  MolecularSystem_getNameOfSpecies( p ) )
 !             
 !!             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                  MolecularSystem_getEigenVectors(i), MolecularSystem_getEigenVectors(p), &
@@ -8595,7 +8596,7 @@ end module PropagatorTheory_
 !                
 !             else
 !                
-!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
@@ -8808,7 +8809,7 @@ end module PropagatorTheory_
 !                            
 !                            if (k .ne. i)  then
 !                               
-!                               nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                               nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                  chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                  eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                  occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -8927,7 +8928,7 @@ end module PropagatorTheory_
 !                                  
 !                                  if (k .ne. i)  then
 !                                     
-!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -8973,7 +8974,7 @@ end module PropagatorTheory_
 !                   
 !                else ! interspecies
 !                   
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -9447,7 +9448,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -9511,8 +9512,8 @@ end module PropagatorTheory_
 !          ! Storing corrections
 !
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 !
 !          print *,"----------------------------------------------------------------"
@@ -9521,7 +9522,7 @@ end module PropagatorTheory_
 !          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
 !          write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
 !               " after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !
 !          ! Calculation of third order poles
 !
@@ -9687,7 +9688,7 @@ end module PropagatorTheory_
 !                                     
 !                                     if (k .ne. i)  then
 !                                        
-!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -9841,7 +9842,7 @@ end module PropagatorTheory_
 !                                     
 !                                     if (k .ne. i)  then
 !                                        
-!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -9910,7 +9911,7 @@ end module PropagatorTheory_
 !                      
 !                   else ! Interspecies term
 !                      
-!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -10163,7 +10164,7 @@ end module PropagatorTheory_
 !                            
 !                            print *,"entro al manolito",k
 !                            
-!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -10411,17 +10412,17 @@ end module PropagatorTheory_
 !             end if
 !
 !             poleStrenght = 1.0_8/(selfEnergyDerivative)
-!             thirdOrderResults(1,o) = 27.211396_8 * newOmega
+!             thirdOrderResults(1,o) = EV * newOmega
 !             thirdOrderResults(2,o) = poleStrenght
 !
 !             print *,"value of o:",o
 !             print *,"constant self-energy:", constantSelfEnergy
-!             print *,"2hp(2):",s2hp*27.211396_8,"2ph(2):",s2ph*27.211396_8
-!             print *,"W 2hp(3):",W2hp*27.211396_8,"W 2ph(3):",W2ph*27.211396_8
-!             print *,"U 2hp(3):",U2hp*27.211396_8,"U 2ph(3):",U2ph*27.211396_8
+!             print *,"2hp(2):",s2hp*EV,"2ph(2):",s2ph*EV
+!             print *,"W 2hp(3):",W2hp*EV,"W 2ph(3):",W2ph*EV
+!             print *,"U 2hp(3):",U2hp*EV,"U 2ph(3):",U2ph*EV
 !             print *,"factor 2hp:",factors(2,o),"factor 2ph:",factors(1,o)
-!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*27.211396_8," after ",ni," iterations."
-!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*EV," after ",ni," iterations."
+!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !             print *,"----------------------------------------------------------------"
 !             
 !             
@@ -10444,7 +10445,7 @@ end module PropagatorTheory_
 !          end do
 !          write (*, "(T5,A45)") "--------------------------------------------"
 !
-!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
 !          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
 !                              
 !          ! call Matrix_destructor(auxMatrix2(:))          
@@ -10547,7 +10548,7 @@ end module PropagatorTheory_
 !    !!! Defining for which species the correction will be applied
 !    
 !    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -10565,7 +10566,7 @@ end module PropagatorTheory_
 !    
 !    do p = 1 , PropagatorTheory_instance%numberOfSpecies
 !
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !
 !       do n = 1 , PropagatorTheory_instance%numberOfSpecies
 !          
@@ -10579,7 +10580,7 @@ end module PropagatorTheory_
 !             
 !          else
 !             
-!             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( n ) )
+!             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( n ) )
 !             
 !!             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                  MolecularSystem_getEigenVectors(p), MolecularSystem_getEigenVectors(n), &
@@ -10602,7 +10603,7 @@ end module PropagatorTheory_
 !       
 !       q = q + 1
 !       
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -10796,7 +10797,7 @@ end module PropagatorTheory_
 !
 !                print *,"entro al else"                
 !
-!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
@@ -11070,7 +11071,7 @@ end module PropagatorTheory_
 !
 !                      print *,"entro a r diferente de p"
 !
-!                      nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( r ) )
+!                      nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( r ) )
 !                      chargeOfSpeciesC = MolecularSystem_getCharge( r )
 !!                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
 !                      occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
@@ -11295,7 +11296,7 @@ end module PropagatorTheory_
 !                            
 !                            if (k .ne. i)  then
 !                               
-!                               nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                               nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                               chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                               eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                               occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -11414,7 +11415,7 @@ end module PropagatorTheory_
 !                                  
 !                                  if (k .ne. i)  then
 !                                     
-!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                     nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                     chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                     eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                     occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -11460,7 +11461,7 @@ end module PropagatorTheory_
 !                   
 !                else ! interspecies
 !                   
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -11734,7 +11735,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -11798,8 +11799,8 @@ end module PropagatorTheory_
 !          ! Storing corrections
 !
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 !
 !          print *,"----------------------------------------------------------------"
@@ -11808,7 +11809,7 @@ end module PropagatorTheory_
 !          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
 !          write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
 !               " after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !
 !          ! Calculation of third order poles
 !
@@ -11957,7 +11958,7 @@ end module PropagatorTheory_
 !                                     
 !                                     if (k .ne. i)  then
 !                                        
-!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -12112,7 +12113,7 @@ end module PropagatorTheory_
 !                                     
 !                                     if (k .ne. i)  then
 !                                        
-!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                                        nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                                        chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                                        eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                                        occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -12182,7 +12183,7 @@ end module PropagatorTheory_
 !                      
 !                   else ! Interspecies term
 !                      
-!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -12412,7 +12413,7 @@ end module PropagatorTheory_
 !                            
 !                            print *,"entro al manolito",k
 !                            
-!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -12560,17 +12561,17 @@ end module PropagatorTheory_
 !             end if
 !
 !             poleStrenght = 1.0_8/(selfEnergyDerivative)
-!             thirdOrderResults(1,o) = 27.211396_8 * newOmega
+!             thirdOrderResults(1,o) = EV * newOmega
 !             thirdOrderResults(2,o) = poleStrenght
 !
 !             print *,"value of o:",o
-!             print *,"constant self-energy:", constantSelfEnergy*27.211396_8
-!             print *,"2hp(2):",s2hp*27.211396_8,"2ph(2):",s2ph*27.211396_8
-!             print *,"W 2hp(3):",W2hp*27.211396_8,"W 2ph(3):",W2ph*27.211396_8
-!             print *,"U 2hp(3):",U2hp*27.211396_8,"U 2ph(3):",U2ph*27.211396_8
+!             print *,"constant self-energy:", constantSelfEnergy*EV
+!             print *,"2hp(2):",s2hp*EV,"2ph(2):",s2ph*EV
+!             print *,"W 2hp(3):",W2hp*EV,"W 2ph(3):",W2ph*EV
+!             print *,"U 2hp(3):",U2hp*EV,"U 2ph(3):",U2ph*EV
 !             print *,"factor 2hp:",factors(2,o),"factor 2ph:",factors(1,o)
-!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*27.211396_8," after ",ni," iterations."
-!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*EV," after ",ni," iterations."
+!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !             print *,"----------------------------------------------------------------"
 !             
 !          end do ! options of third order
@@ -12592,7 +12593,7 @@ end module PropagatorTheory_
 !          end do
 !          write (*, "(T5,A45)") "--------------------------------------------"
 !
-!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
 !          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
 !                              
 !          ! call Matrix_destructor(auxMatrix2(:))          
@@ -12724,7 +12725,7 @@ end module PropagatorTheory_
 !    ! Defining for which species the correction will be applied
 !    
 !    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -12747,7 +12748,7 @@ end module PropagatorTheory_
 !    
 !    do p = 1 , PropagatorTheory_instance%numberOfSpecies
 !
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !
 !       if (nameOfSpeciesA=="e-ALPHA".or.nameOfSpeciesA=="e-BETA") then
 !
@@ -12769,7 +12770,7 @@ end module PropagatorTheory_
 !             
 !          else
 !             
-!             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( n ) )
+!             nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( n ) )
 !             
 !!             call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
 !!                  MolecularSystem_getEigenVectors(p), MolecularSystem_getEigenVectors(n), &
@@ -12792,7 +12793,7 @@ end module PropagatorTheory_
 !       
 !       q = q + 1
 !       
-!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecie( i ) )
+!       nameOfSpeciesA = trim(  MolecularSystem_getNameOfSpecies( i ) )
 !       chargeOfSpeciesA = MolecularSystem_getCharge( i )
 !!       eigenValuesOfSpeciesA = MolecularSystem_getEigenValues( i )
 !       occupationNumberOfSpeciesA = MolecularSystem_getOcupationNumber( i )
@@ -12986,7 +12987,7 @@ end module PropagatorTheory_
 !
 !                print *,"entro al else"                
 !
-!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( p ) )
+!                nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( p ) )
 !                chargeOfSpeciesB = MolecularSystem_getCharge( p )
 !!                eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( p )
 !                occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( p )
@@ -13331,7 +13332,7 @@ end module PropagatorTheory_
 !
 !                      print *,"entro a r diferente de p"
 !
-!                      nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( r ) )
+!                      nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( r ) )
 !                      chargeOfSpeciesC = MolecularSystem_getCharge( r )
 !!                      eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( r )
 !                      occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( r )
@@ -13711,7 +13712,7 @@ end module PropagatorTheory_
 !                   
 !                else ! interspecies
 !                   
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -14081,7 +14082,7 @@ end module PropagatorTheory_
 !                   
 !                else ! Interspecies term
 !
-!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                   nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                   chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                   eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                   occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -14147,8 +14148,8 @@ end module PropagatorTheory_
 !          print *,"M y Q:",m,q
 !
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)=real(pa,8)
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=27.211396_8 * koopmans
-!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=27.211396_8 * newOmega
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)=EV * koopmans
+!          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3)=EV * newOmega
 !          PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 !
 !          print *,"----------------------------------------------------------------"
@@ -14157,7 +14158,7 @@ end module PropagatorTheory_
 !          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
 !          write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
 !               " after ",ni," iterations."
-!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!          write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !
 !          ! Calculation of third order poles
 !
@@ -14444,7 +14445,7 @@ end module PropagatorTheory_
 !                            id1=0
 !                            id2=0
 !
-!                            nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                            nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                            chargeOfSpeciesB = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( k )
@@ -14678,7 +14679,7 @@ end module PropagatorTheory_
 !                      
 !                   else ! Interspecies term
 !                      
-!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecie( j ) )
+!                      nameOfSpeciesB = trim(  MolecularSystem_getNameOfSpecies( j ) )
 !                      chargeOfSpeciesB = MolecularSystem_getCharge( j )
 !!                      eigenValuesOfSpeciesB = MolecularSystem_getEigenValues( j )
 !                      occupationNumberOfSpeciesB = MolecularSystem_getOcupationNumber( j )
@@ -14988,7 +14989,7 @@ end module PropagatorTheory_
 !                            
 !                            print *,"ENTRO AL TERMINO DE TRES PARTICULAS:",i,j,k
 !                            
-!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecie( k ) )
+!                            nameOfSpeciesC = trim(  MolecularSystem_getNameOfSpecies( k ) )
 !                            chargeOfSpeciesC = MolecularSystem_getCharge( k )
 !!                            eigenValuesOfSpeciesC = MolecularSystem_getEigenValues( k )
 !                            occupationNumberOfSpeciesC = MolecularSystem_getOcupationNumber( k )
@@ -15282,13 +15283,13 @@ end module PropagatorTheory_
 !             end if
 !             
 !             poleStrenght = 1.0_8/(selfEnergyDerivative)
-!             thirdOrderResults(1,o) = 27.211396_8 * newOmega
+!             thirdOrderResults(1,o) = EV * newOmega
 !             thirdOrderResults(2,o) = poleStrenght
 !
 !             print *,"value of o:",o
 !             ! print *,"FACTORS:"
 !             ! print *,factors(:,:,:)
-!             print *,"constant self-energy:", constantSelfEnergy*27.211396_8
+!             print *,"constant self-energy:", constantSelfEnergy*EV
 !             print *,"2hp(2):",s2hp(:)
 !             print *,"2ph(2):",s2ph(:)
 !             print *,"W 2hp(3):",W2hp(:)
@@ -15297,8 +15298,8 @@ end module PropagatorTheory_
 !             print *,"U 2ph(3):",U2ph(:)
 !             print *,"factor 2hp:",factors(:,2,o)
 !             print *,"factor 2ph:",factors(:,1,o)
-!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*27.211396_8," after ",ni," iterations."
-!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*27.211396_8," Pole strength:",poleStrenght
+!             write (*,"(T5,A10,A10,A6,F8.4,A7,I2,A12)") "Optimized ",thirdOrderMethods(o),"pole: ",newOmega*EV," after ",ni," iterations."
+!             write (*,"(T5,A11,F8.4,A15,F7.4)") "Correction:",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
 !             print *,"----------------------------------------------------------------"
 !                          
 !          end do ! options for third order
@@ -15320,7 +15321,7 @@ end module PropagatorTheory_
 !          end do
 !          write (*, "(T5,A45)") "--------------------------------------------"
 !
-!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=27.211396_8 * newOmega
+!          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,5)=EV * newOmega
 !          ! PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,6)=poleStrenght
 !                              
 !          ! call Matrix_destructor(auxMatrix2(:))          

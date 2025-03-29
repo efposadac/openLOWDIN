@@ -1,6 +1,6 @@
 #!/bin/sh
 
-LOWDIN_HOME="PREFIX/.lowdin2"
+LOWDIN_HOME="PREFIX/.EXENAME"
 LOWDIN_SCRATCH="SCRATCH_DIR"
 LOWDIN_COMMIT="COMMIT_ID"
 LOWDIN_DATE="COMPILATION_DATE"
@@ -19,6 +19,12 @@ if [ -z "$LOWDIN_DATA" ]
 then
     LOWDIN_DATA="$LOWDIN_HOME/lib"
     export LOWDIN_DATA
+fi
+
+if [ -z "$ERKALE_LIBRARY" ]
+then
+    ERKALE_LIBRARY="$LOWDIN_DATA/erkaleBasis"
+    export ERKALE_LIBRARY
 fi
 
 if [ -z "$PATH" ]

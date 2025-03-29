@@ -29,7 +29,7 @@ module G12Integrals_
   use CONTROL_
   use MolecularSystem_
   use ContractedGaussian_
-  use InterPotential_
+  use GTFPotential_
   implicit none
 
 #define contr(n,m) contractions(n)%contractions(m)
@@ -217,7 +217,7 @@ contains
 
     G12_ptr => G12Integrals_instance%libintG12
 
-    nameOfSpecie = trim(MolecularSystem_getNameOfSpecie(specieID))
+    nameOfSpecie = trim(MolecularSystem_getNameOfSpecies(specieID))
 
     call cpu_time(startTime)
 
@@ -253,7 +253,7 @@ contains
 
     !Get potential ID
     do i=1, InterPotential_instance%ssize
-       if ( trim( MolecularSystem_instance%species(specieID)%symbol) == trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. trim( MolecularSystem_instance%species(specieID)%symbol) == trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie))) ) then
+       if ( trim( MolecularSystem_instance%species(specieID)%symbol) == trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. trim( MolecularSystem_instance%species(specieID)%symbol) == trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies))) ) then
           potID=i
           exit
        end if
@@ -918,14 +918,14 @@ contains
     !Get potential ID
     do i=1, InterPotential_instance%ssize
        if ( (trim(MolecularSystem_instance%species(specieID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
             trim(MolecularSystem_instance%species(otherSpecieID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies)) ) &
             ) .or. &
             (trim( MolecularSystem_instance%species(otherSpecieID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%specie))) .and. &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%species))) .and. &
             trim( MolecularSystem_instance%species(specieID)%symbol) == &
-            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecie)) ) &
+            trim(String_getUpperCase(trim(InterPotential_instance%potentials(i)%otherSpecies)) ) &
             ) &
             ) then
           potID=i

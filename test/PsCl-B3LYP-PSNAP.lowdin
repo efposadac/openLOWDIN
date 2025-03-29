@@ -1,0 +1,20 @@
+SYSTEM_DESCRIPTION='Molecula de H2'
+
+GEOMETRY
+e-(Cl) AUG-CC-PVTZ  0.0000  0.00000 0.0000 addParticles=1
+e+     PSX-TZ 0.0000  0.00000 0.0000
+Cl   dirac          0.0000  0.00000 0.0000
+END GEOMETRY
+
+TASKS
+method = "RKS"
+END TASKS
+
+CONTROL
+readCoefficients=.F.
+electronExchangeCorrelationFunctional="B3LYP"
+positronElectronCorrelationFunctional="PSNAP"
+END CONTROL
+
+
+

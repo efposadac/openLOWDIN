@@ -2082,8 +2082,8 @@ contains
     integer :: totalActiveOrbitals, otherTotalActiveOrbitals
     logical :: ionizeA, ionizeB
     integer :: s
-    character(10) :: nameOfSpecies
-    character(10) :: nameOfOtherSpecies
+    character(10) :: nameOfSpecies, symbolOfSpecies
+    character(10) :: nameOfOtherSpecies, symbolOfOtherSpecies
 
     totalOccupation = MolecularSystem_getOcupationNumber( speciesID )
     otherTotalOccupation = MolecularSystem_getOcupationNumber( otherSpeciesID )
@@ -2149,14 +2149,16 @@ contains
         ionizeA = .false.
         ionizeB = .false.
 
-         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
-         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
+         symbolOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         symbolOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
 
          do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
-           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
+           if ( symbolOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeA = .true. 
            end if
-           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
+           if ( symbolOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeB = .true. 
            end if
          end do
@@ -2287,14 +2289,16 @@ contains
          ionizeA = .false.
          ionizeB = .false.
 
-         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
-         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
+         symbolOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         symbolOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
 
          do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
-            if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
+            if ( symbolOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
                ionizeA = .true. 
             end if
-            if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
+            if ( symbolOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
                ionizeB = .true. 
             end if
          end do

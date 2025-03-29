@@ -73,6 +73,8 @@ program CalcProp_
 
   call CalculateProperties_showExpectedPositions(CalculateProperties_instance)
 
+  call CalculateProperties_showRMSradius(CalculateProperties_instance)
+  
   call CalculateProperties_showContributionsToElectrostaticMoment(CalculateProperties_instance)
 
   call CalculateProperties_destructor (CalculateProperties_instance)

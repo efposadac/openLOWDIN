@@ -30,6 +30,6 @@ END CONTROL
 INPUT_CI
 	species="E-ALPHA" core=0 active=0
 	species="E-BETA" core=0 active=0
-	species="POSITRON" core=0 active=0
+	species="E+" core=0 active=0
 END INPUT_CI
 

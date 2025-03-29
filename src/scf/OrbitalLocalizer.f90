@@ -109,7 +109,7 @@ contains
     type(Matrix) :: orbitalCoefficients
     type(Vector) :: orbitalEnergies
 
-    character(30) :: nameOfSpecies
+    character(30) :: nameOfSpecies, symbolOfSpecies
     integer :: statusSystem
 
     integer :: numberOfContractions
@@ -117,23 +117,24 @@ contains
 
     
     !! Convert lowdin fchk files to erkale chk files
-    nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+    nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
+    symbolOfSpecies=MolecularSystem_getSymbolOfSpecies(speciesID)
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
     open(unit=30, file="erkale.read", status="replace", form="formatted")
 
-    write(30,*) "LoadFChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk"
-    write(30,*) "SaveChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".chk"
+    write(30,*) "LoadFChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".fchk"
+    write(30,*) "SaveChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".chk"
     write(30,*) "Reorthonormalize true"
     
     close(30)
 
-    call system("erkale_fchkpt erkale.read")
+    call system("erkale_fchkpt erkale.read >> erkale_fchkpt.log")
 
     !! Localize orbitals
     open(unit=30, file="erkale.local", status="replace", form="formatted")
     
-    write(30,*) "LoadChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".chk"
-    write(30,*) "SaveChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.chk"
+    write(30,*) "LoadChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".chk"
+    write(30,*) "SaveChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.chk"
     write(30,*) "Method ", trim(CONTROL_instance%ERKALE_LOCALIZATION_METHOD)
     write(30,*) "Virtual false"
     write(30,*) "Maxiter 5000"
@@ -144,20 +145,20 @@ contains
 
     close(30)
 
-    call system("erkale_loc_omp erkale.local")
+    call system("erkale_loc erkale.local")
     
     !!Convert erkale chk files to lowdin fchk files
     open(unit=30, file="erkale.write", status="replace", form="formatted")
     
-    write(30,*) "LoadChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.chk"
-    write(30,*) "SaveFChk ", trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.fchk"
+    write(30,*) "LoadChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.chk"
+    write(30,*) "SaveFChk ", trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.fchk"
     
     close(30)
 
-    call system("erkale_fchkpt erkale.write")
+    call system("erkale_fchkpt erkale.write >> erkale_fchkpt.log")
     
     !! Read orbital coefficients from fchk files
-    call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".local.fchk",  orbitalCoefficients, densityMatrix, nameOfSpecies )
+    call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.fchk",  orbitalCoefficients, densityMatrix, nameOfSpecies )
 
     orbitalEnergies%values=0.0
     !! Molecular orbital fock operator expected value
@@ -188,6 +189,7 @@ contains
     integer :: shellSize
     
     type(BasisSet) :: reducedBasisA
+    type(MolecularSystem) :: oldMolecularSystem
     
     type(Matrix),allocatable :: auxMatrix(:)
     type(Matrix),allocatable :: densityMatrixA(:)
@@ -220,8 +222,6 @@ contains
     real(8),allocatable :: densStd(:)
     real(8),allocatable :: auxEnergy(:)
     character(9), allocatable :: shellCode(:)
-    character(9), allocatable :: holdPointChargeSymbol(:)
-    real(8), allocatable :: holdPointChargeMass(:)
     
     real(8) :: totalDensStd
 
@@ -294,7 +294,7 @@ contains
     
     do speciesID=1, numberOfSpecies
 
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
        numberOfCenters = size(MolecularSystem_instance%species(speciesID)%particles)
        occupationNumber = MolecularSystem_getOcupationNumber( speciesID )
@@ -337,7 +337,7 @@ contains
        OrbitalLocalizer_instance(speciesID)%virtualOrbitalsB=0
 
        print *, ""
-       print *, "Occupied orbitals subsystem separation for ", nameOfSpecies
+       print *, "Occupied orbitals subsystem separation for ", MolecularSystem_getSymbolOfSpecies(speciesID)
        print *, ""
        write(*,"(A15,A15,A15)") "Orbital", "Subsystem", "A Population"
        
@@ -450,7 +450,7 @@ contains
        if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
             (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") .and. &
             trim(nameOfSpecies) .eq. "E-BETA"  ) then
-          otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
+          otherSpeciesID=MolecularSystem_getSpeciesIDFromSymbol( trim("E-ALPHA")  )
           if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
              densityMatrixB(speciesID)%values=densityMatrixB(otherSpeciesID)%values
           end if
@@ -491,7 +491,7 @@ contains
     !!Reduce basis set loops
     do speciesID=1, numberOfSpecies
 
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
        numberOfCenters = size(MolecularSystem_instance%species(speciesID)%particles)
        overlapMatrix=WaveFunction_instance( speciesID )%OverlapMatrix
@@ -522,7 +522,7 @@ contains
        else
           populationMatrixA(speciesID)%values= matmul(densityMatrixA(speciesID)%values, overlapMatrix%values )
           populationMatrixB(speciesID)%values= matmul(densityMatrixB(speciesID)%values, overlapMatrix%values )
-          nickname=nameOfSpecies
+          nickname=trim(MolecularSystem_getSymbolOfSpecies(speciesID))
        end if
        
        print *, ""
@@ -578,7 +578,7 @@ contains
     end do
        
     do speciesID=1, numberOfSpecies
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
 
        !Adds diagonal proyection elements to orbitals with small contributions to A orbitals - small mulliken population
@@ -673,7 +673,7 @@ contains
     write(*,"(A15,A15,A15,A15,A15)") "Species", "Occupied A","Virtual A","Occupied B", "Virtual B"
     write(*,"(A75)") "---------------------------------------------------------------------------"
     do speciesID=1, numberOfSpecies
-       write(*,"(A15,I7,F7.1,A,I7,F7.1,A,I7,F7.1,A,I7,F7.1,A)") trim(MolecularSystem_getNameOfSpecie(speciesID)), &
+       write(*,"(A15,I7,F7.1,A,I7,F7.1,A,I7,F7.1,A,I7,F7.1,A)") trim(MolecularSystem_getSymbolofspecies(speciesID)), &
             OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA,&
             100.0_8*OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA/(OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsA+OrbitalLocalizer_instance(speciesID)%occupiedOrbitalsB),&
             "%",&
@@ -699,7 +699,7 @@ contains
     !Two particles and coupling matrices
     do speciesID=1, numberOfSpecies     
        
-       nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+       nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
        !Only Coulomb (factor=0.0)
        call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
          densityMatrixIN=densityMatrixB(speciesID),&
@@ -814,7 +814,7 @@ contains
        !Calculates the fock matrix with the new subsystem density 
        do speciesID=1, numberOfSpecies
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
-          nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+          nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
           
           !Updates two particles matrix - only Coulomb (factor=0.0)
           call WaveFunction_buildTwoParticlesMatrix(WaveFunction_instance(speciesID),&
@@ -991,7 +991,7 @@ contains
        !Calculates the subsystem orbitals with the new fock matrix
        do speciesID=1, numberOfSpecies
           numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
-          nameOfSpecies=MolecularSystem_getNameOfSpecie(speciesID)
+          nameOfSpecies=MolecularSystem_getNameOfSpecies(speciesID)
 
           call Matrix_copyConstructor( fockMatrixTransformed, OrbitalLocalizer_instance(speciesID)%fockMatrixA )
           
@@ -1112,8 +1112,8 @@ contains
        !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
        if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
             (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
-          speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
-          otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
+          speciesID=MolecularSystem_getSpeciesIDFromSymbol( trim("E-ALPHA")  )
+          otherSpeciesID=MolecularSystem_getSpeciesIDFromSymbol( trim("E-BETA")  )
 
           if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
              OrbitalLocalizer_instance(otherSpeciesID)%waveFunctionCoefficientsA%values = OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values
@@ -1170,8 +1170,8 @@ contains
     !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations
     if ( CONTROL_instance%FORCE_CLOSED_SHELL .and. &
          (CONTROL_instance%METHOD .eq. "UKS" .or. CONTROL_instance%METHOD .eq. "UHF") ) then
-       speciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-ALPHA")  )
-       otherSpeciesID=MolecularSystem_getSpecieIDFromSymbol( trim("E-BETA")  )
+       speciesID=MolecularSystem_getSpeciesIDFromSymbol( trim("E-ALPHA")  )
+       otherSpeciesID=MolecularSystem_getSpeciesIDFromSymbol( trim("E-BETA")  )
 
        if(MolecularSystem_getNumberOfParticles(speciesID) .eq. MolecularSystem_getNumberOfParticles(otherSpeciesID) ) then
           OrbitalLocalizer_instance(otherSpeciesID)%waveFunctionCoefficientsA%values = OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA%values
@@ -1326,7 +1326,7 @@ contains
      totalKineticEnergyA=0.0
      totalKineticEnergyB=0.0
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-        write (6,"(A35,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // " Kinetic energy = ", &
+        write (6,"(A35,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%symbol ) // " Kinetic energy = ", &
              sum(transpose(densityMatrixA(speciesID)%values)* WaveFunction_instance( speciesID )%kineticMatrix%values), &
              sum(transpose(densityMatrixB(speciesID)%values)* WaveFunction_instance( speciesID )%kineticMatrix%values)
         totalKineticEnergyA=totalKineticEnergyA+&
@@ -1354,7 +1354,7 @@ contains
      totalQuantumPuntualInteractionEnergyA=0.0
      totalQuantumPuntualInteractionEnergyB=0.0
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-        write (6,"(A35,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // "/Fixed interact. energy = ",  &
+        write (6,"(A35,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%symbol ) // "/Fixed interact. energy = ",  &
              sum(transpose(densityMatrixA(speciesID)%values)* WaveFunction_instance( speciesID )%puntualInteractionMatrix%values),&
              sum(transpose(densityMatrixB(speciesID)%values)* WaveFunction_instance( speciesID )%puntualInteractionMatrix%values)
         totalQuantumPuntualInteractionEnergyA=totalQuantumPuntualInteractionEnergyA+&
@@ -1374,8 +1374,8 @@ contains
      totalHartreeEnergyAB=0.0
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
         write (6,"(A35,F20.12,F20.12,F20.12)") &
-             trim( MolecularSystem_instance%species(speciesID)%name ) // &
-             "/"//trim( MolecularSystem_instance%species(speciesID)%name ) // &
+             trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
+             "/"//trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
              " Hartree energy = ", &
              0.5*sum(transpose(densityMatrixA(speciesID)%values)* hartreeMatrixA(speciesID,speciesID)%values), &
              0.5*sum(transpose(densityMatrixB(speciesID)%values)* hartreeMatrixB(speciesID,speciesID)%values), &
@@ -1390,8 +1390,8 @@ contains
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
         do otherSpeciesID = speciesID + 1, MolecularSystem_instance%numberOfQuantumSpecies                
            write (6,"(A35,F20.12,F20.12,F20.12)") &
-                trim( MolecularSystem_instance%species(speciesID)%name ) // &
-                "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
+                trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
+                "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%symbol ) // &
                 " Hartree energy = ", &
                 sum(transpose(densityMatrixA(speciesID)%values)* hartreeMatrixA(speciesID,otherSpeciesID)%values), &
                 sum(transpose(densityMatrixB(speciesID)%values)* hartreeMatrixB(speciesID,otherSpeciesID)%values), &
@@ -1417,7 +1417,7 @@ contains
      totalExchangeHFEnergyAB=0.0
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
            write (6,"(A35,F20.12,F20.12,F20.12)") &
-             trim( MolecularSystem_instance%species(speciesID)%name ) // &
+             trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
              " Exchange energy = ", &
              0.5*sum(transpose(densityMatrixA(speciesID)%values)* exchangeHFMatrixA(speciesID)%values), &
              0.5*sum(transpose(densityMatrixB(speciesID)%values)* exchangeHFMatrixB(speciesID)%values), &
@@ -1446,7 +1446,7 @@ contains
         write(*,*) ""
         do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
            write (6,"(A35,F20.12,F20.12,F20.12)") &
-                trim( MolecularSystem_instance%species(speciesID)%name ) // &
+                trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
                 " Exc.Corr. energy = ", &
                 excCorrEnergyA(speciesID,speciesID), excCorrEnergyB(speciesID,speciesID), &
                 excCorrEnergyAB(speciesID,speciesID)-excCorrEnergyA(speciesID,speciesID)-excCorrEnergyB(speciesID,speciesID)
@@ -1459,8 +1459,8 @@ contains
         do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
            do otherSpeciesID = speciesID + 1, MolecularSystem_instance%numberOfQuantumSpecies                
               write (6,"(A35,F20.12,F20.12,F20.12)") &
-                   trim( MolecularSystem_instance%species(speciesID)%name ) // &
-                   "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
+                   trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
+                   "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%symbol ) // &
                    " Corr. energy = ", &
                    excCorrEnergyA(speciesID,otherSpeciesID), excCorrEnergyB(speciesID,otherSpeciesID), &
                    excCorrEnergyAB(speciesID,otherSpeciesID)-excCorrEnergyA(speciesID,otherSpeciesID)-excCorrEnergyB(speciesID,otherSpeciesID)
@@ -1482,7 +1482,7 @@ contains
         write(*,*) ""
         do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
            write (6,"(A35,F20.12)") &
-                trim( MolecularSystem_instance%species(speciesID)%name ) // &
+                trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
                 " Embedding energy = ", &
                 sum(transpose(densityMatrixA(speciesID)%values)*exchangeCorrelationMatrixAB(speciesID)%values)&
                 -sum(transpose(densityMatrixA(speciesID)%values)*exchangeCorrelationMatrixA(speciesID)%values)
@@ -1507,7 +1507,7 @@ contains
      totalProjectionCorrectionA=0.0
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
         write (6,"(A35,F20.12)") &
-             trim( MolecularSystem_instance%species(speciesID)%name ) // &
+             trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
              " Projection energy = ", &
              OrbitalLocalizer_instance(speciesID)%levelShiftingValue*&
              sum(transpose(densityMatrixA(speciesID)%values)*&
@@ -1533,7 +1533,7 @@ contains
         write(*,*) ""
 
         do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies                
-           write (6,"(A35,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // "/Ext. Pot. energy = ",  &
+           write (6,"(A35,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%symbol ) // "/Ext. Pot. energy = ",  &
                 sum(transpose(densityMatrixA(speciesID)%values)* WaveFunction_instance( speciesID )%externalPotentialMatrix%values),&
                 sum(transpose(densityMatrixB(speciesID)%values)* WaveFunction_instance( speciesID )%externalPotentialMatrix%values)
            totalExternalPotentialEnergyA=totalExternalPotentialEnergyA+&
@@ -1644,7 +1644,7 @@ contains
                 end do
              end if
           end do
-          write(*,"(A10,I20,I20,ES15.3)") trim(MolecularSystem_instance%species(speciesID)%name ), jj, ii, maxSumAB
+          write(*,"(A10,I20,I20,ES15.3)") trim(MolecularSystem_instance%species(speciesID)%symbol ), jj, ii, maxSumAB
        end if
        ! kAB=0.0
        ! pAB=0.0
@@ -1679,7 +1679,7 @@ contains
     write(*,*) "---------------------------------------------------------------------------"
     write(*,*) ""             
 
-
+    oldMolecularSystem=MolecularSystem_instance
     !Destroy unrequired basis centers and shells from the molecular system
     !Write a LOWDIN.BAS with the reduced basis set file
     
@@ -1688,7 +1688,7 @@ contains
     write(40,*) numberOfSpecies
 
     do speciesID=1, numberOfSpecies
-       write(40,*) MolecularSystem_instance%species(speciesID)%name
+       write(40,*) MolecularSystem_instance%species(speciesID)%symbol
 
        numberOfCenters=0
        nu=0
@@ -1745,11 +1745,8 @@ contains
        end do
     end do
     
-    allocate(holdPointChargeSymbol(MolecularSystem_instance%numberOfPointCharges),holdPointChargeMass(MolecularSystem_instance%numberOfPointCharges))
     write(40,*) MolecularSystem_instance%numberOfPointCharges
     do i = 1, MolecularSystem_instance%numberOfPointCharges
-       holdPointChargeSymbol(i)=trim(MolecularSystem_instance%pointCharges(i)%nickname)
-       holdPointChargeMass(i)=MolecularSystem_instance%pointCharges(i)%mass
        write(40,*) MolecularSystem_instance%pointCharges(i)%charge
        write(40,*) MolecularSystem_instance%pointCharges(i)%origin
     end do
@@ -1765,25 +1762,32 @@ contains
        MolecularSystem_instance%species(speciesID)%particles(:)%basis%name="REDUCED"      
 
        do i=1, size(MolecularSystem_instance%species(speciesID)%particles)
-          MolecularSystem_instance%species(speciesID)%particles(i)%name=MolecularSystem_instance%species(speciesID)%name
-          MolecularSystem_instance%species(speciesID)%particles(i)%symbol=MolecularSystem_instance%species(speciesID)%symbol
-          MolecularSystem_instance%species(speciesID)%particles(i)%statistics=MolecularSystem_instance%species(speciesID)%statistics
+          MolecularSystem_instance%species(speciesID)%particles(i)%name=oldMolecularSystem%species(speciesID)%name
+          MolecularSystem_instance%species(speciesID)%particles(i)%symbol=oldMolecularSystem%species(speciesID)%symbol
+          MolecularSystem_instance%species(speciesID)%particles(i)%statistics=oldMolecularSystem%species(speciesID)%statistics
           MolecularSystem_instance%species(speciesID)%particles(i)%basisSetName="REDUCED"
           MolecularSystem_instance%species(speciesID)%particles(i)%origin=MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction(1)%origin
-          MolecularSystem_instance%species(speciesID)%particles(i)%charge=MolecularSystem_instance%species(speciesID)%charge
-          MolecularSystem_instance%species(speciesID)%particles(i)%mass=MolecularSystem_instance%species(speciesID)%mass
-          MolecularSystem_instance%species(speciesID)%particles(i)%spin=MolecularSystem_instance%species(speciesID)%spin
+          MolecularSystem_instance%species(speciesID)%particles(i)%charge=oldMolecularSystem%species(speciesID)%charge
+          MolecularSystem_instance%species(speciesID)%particles(i)%mass=oldMolecularSystem%species(speciesID)%mass
+          MolecularSystem_instance%species(speciesID)%particles(i)%eta=oldMolecularSystem%species(speciesID)%eta
+          MolecularSystem_instance%species(speciesID)%particles(i)%omega=oldMolecularSystem%species(speciesID)%omega
+          MolecularSystem_instance%species(speciesID)%particles(i)%qdoCenterOf = "NONE"
+          MolecularSystem_instance%species(speciesID)%particles(i)%spin=oldMolecularSystem%species(speciesID)%spin
           MolecularSystem_instance%species(speciesID)%particles(i)%totalCharge=0
-          MolecularSystem_instance%species(speciesID)%particles(i)%internalSize=0
           MolecularSystem_instance%species(speciesID)%particles(i)%isQuantum=.true.
           MolecularSystem_instance%species(speciesID)%particles(i)%isDummy=.false.
           MolecularSystem_instance%species(speciesID)%particles(i)%fixComponent=.false.
           MolecularSystem_instance%species(speciesID)%particles(i)%isCenterOfOptimization=.true.
-          MolecularSystem_instance%species(speciesID)%particles(i)%multiplicity=MolecularSystem_instance%species(speciesID)%multiplicity
+          MolecularSystem_instance%species(speciesID)%particles(i)%multiplicity=oldMolecularSystem%species(speciesID)%multiplicity
           MolecularSystem_instance%species(speciesID)%particles(i)%id=i
+          MolecularSystem_instance%species(speciesID)%particles(i)%internalSize=0
           MolecularSystem_instance%species(speciesID)%particles(i)%owner=i
           MolecularSystem_instance%species(speciesID)%particles(i)%basisSetSize=size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
           MolecularSystem_instance%species(speciesID)%particles(i)%subsystem=1
+          MolecularSystem_instance%species(speciesID)%particles(i)%translationCenter=0
+          MolecularSystem_instance%species(speciesID)%particles(i)%rotationPoint=0
+          MolecularSystem_instance%species(speciesID)%particles(i)%rotateAround=0
+
           ! MolecularSystem_instance%species(speciesID)%particles(i)%childs=.false.
           
           ! do j=1, size(MolecularSystem_instance%species(speciesID)%particles(i)%basis%contraction)
@@ -1798,15 +1802,33 @@ contains
        end do
     end do
 
-    do i = 1, MolecularSystem_instance%numberOfPointCharges
-       MolecularSystem_instance%pointCharges(i)%name=trim(holdPointChargeSymbol(i))
-       MolecularSystem_instance%pointCharges(i)%symbol=trim(holdPointChargeSymbol(i))
-       MolecularSystem_instance%pointCharges(i)%statistics="BOSON"
-       MolecularSystem_instance%pointCharges(i)%basisSetName="DIRAC"
-       MolecularSystem_instance%pointCharges(i)%nickname=trim(holdPointChargeSymbol(i))
-       MolecularSystem_instance%pointCharges(i)%mass=holdPointChargeMass(i)
-       MolecularSystem_instance%pointCharges(i)%totalCharge=MolecularSystem_instance%pointCharges(i)%charge
-       MolecularSystem_instance%pointCharges(i)%isQuantum=.false.
+    do i = 1, MolecularSystem_instance%numberOfPointCharges       
+       MolecularSystem_instance%pointCharges(i)%name=oldMolecularSystem%pointCharges(i)%name                   
+       MolecularSystem_instance%pointCharges(i)%symbol=oldMolecularSystem%pointCharges(i)%symbol                 
+       MolecularSystem_instance%pointCharges(i)%nickname=oldMolecularSystem%pointCharges(i)%nickname               
+       MolecularSystem_instance%pointCharges(i)%statistics=oldMolecularSystem%pointCharges(i)%statistics             
+       MolecularSystem_instance%pointCharges(i)%basisSetName=oldMolecularSystem%pointCharges(i)%basisSetName           
+       MolecularSystem_instance%pointCharges(i)%origin=oldMolecularSystem%pointCharges(i)%origin                 
+       MolecularSystem_instance%pointCharges(i)%charge=oldMolecularSystem%pointCharges(i)%charge                 
+       MolecularSystem_instance%pointCharges(i)%mass=oldMolecularSystem%pointCharges(i)%mass                   
+       MolecularSystem_instance%pointCharges(i)%eta=oldMolecularSystem%pointCharges(i)%eta                    
+       MolecularSystem_instance%pointCharges(i)%omega=oldMolecularSystem%pointCharges(i)%omega                  
+       MolecularSystem_instance%pointCharges(i)%qdoCenterOf=oldMolecularSystem%pointCharges(i)%qdoCenterOf            
+       MolecularSystem_instance%pointCharges(i)%spin=oldMolecularSystem%pointCharges(i)%spin                   
+       MolecularSystem_instance%pointCharges(i)%totalCharge=oldMolecularSystem%pointCharges(i)%totalCharge            
+       MolecularSystem_instance%pointCharges(i)%isQuantum=oldMolecularSystem%pointCharges(i)%isQuantum              
+       MolecularSystem_instance%pointCharges(i)%isDummy=oldMolecularSystem%pointCharges(i)%isDummy                
+       MolecularSystem_instance%pointCharges(i)%fixComponent=oldMolecularSystem%pointCharges(i)%fixComponent           
+       MolecularSystem_instance%pointCharges(i)%isCenterOfOptimization=oldMolecularSystem%pointCharges(i)%isCenterOfOptimization 
+       MolecularSystem_instance%pointCharges(i)%multiplicity=oldMolecularSystem%pointCharges(i)%multiplicity           
+       MolecularSystem_instance%pointCharges(i)%id=oldMolecularSystem%pointCharges(i)%id                     
+       MolecularSystem_instance%pointCharges(i)%internalSize=oldMolecularSystem%pointCharges(i)%internalSize           
+       MolecularSystem_instance%pointCharges(i)%owner=oldMolecularSystem%pointCharges(i)%owner                  
+       MolecularSystem_instance%pointCharges(i)%basisSetSize=oldMolecularSystem%pointCharges(i)%basisSetSize           
+       MolecularSystem_instance%pointCharges(i)%subsystem=oldMolecularSystem%pointCharges(i)%subsystem              
+       MolecularSystem_instance%pointCharges(i)%translationCenter=oldMolecularSystem%pointCharges(i)%translationCenter      
+       MolecularSystem_instance%pointCharges(i)%rotationPoint=oldMolecularSystem%pointCharges(i)%rotationPoint          
+       MolecularSystem_instance%pointCharges(i)%rotateAround=oldMolecularSystem%pointCharges(i)%rotateAround           
     end do
 
     call ParticleManager_setOwner()
@@ -1828,12 +1850,13 @@ contains
     call MolecularSystem_saveToFile()
     
     !! Recalculate one particle integrals  
-    call system("rm lowdin.opints")
+    ! call system("rm lowdin.opints")
     call system("lowdin-ints.x ONE_PARTICLE")
 
     !! Start the wavefunction object
     deallocate(WaveFunction_instance)
-    call WaveFunction_constructor(WaveFunction_instance)
+    allocate(WaveFunction_instance(numberOfSpecies))
+    call WaveFunction_constructor(WaveFunction_instance,numberOfSpecies)
        
     do speciesID=1, numberOfSpecies
        call WaveFunction_readOverlapMatrix(WaveFunction_instance(speciesID), "lowdin.opints")
@@ -1930,7 +1953,7 @@ contains
     open(unit=wfnUnit, file=trim(wfnFile), status="replace", form="unformatted")
     rewind(wfnUnit)
     do speciesID = 1, numberOfSpecies
-       labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+       labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
        labels(1) = "DENSITY"
        call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
     end do
@@ -1986,7 +2009,7 @@ contains
     ! if ( CONTROL_instance%HF_PRINT_EIGENVALUES ) then
     do speciesID=1, numberOfSpecies
        write(*,*) ""
-       write(*,*) " Subsystem Eigenvalues for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+       write(*,*) " Subsystem Eigenvalues for: ", trim( MolecularSystem_instance%species(speciesID)%symbol )
        write(*,*) "--------------------------- "
        write(*,*) ""
        WaveFunction_instance(speciesID)%removedOrbitals=0
@@ -1998,7 +2021,7 @@ contains
              write(*,"(T2,I4,F24.12)") i,WaveFunction_instance(speciesID)%molecularOrbitalsEnergy%values(i)
           end if
        end do
-       write(*,"(I10,A30,A10)") WaveFunction_instance(speciesID)%removedOrbitals, " eigenvectors were removed for ", trim(MolecularSystem_instance%species(speciesID)%name )
+       write(*,"(I10,A30,A10)") WaveFunction_instance(speciesID)%removedOrbitals, " eigenvectors were removed for ", trim(MolecularSystem_instance%species(speciesID)%symbol )
     end do
     write(*,*) " end of eigenvalues "
     ! end if
@@ -2010,7 +2033,7 @@ contains
           if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "ALL") then
 
              write(*,*) ""
-             write(*,*) " Subsystem Eigenvectors for: ", trim(MolecularSystem_instance%species(speciesID)%name )
+             write(*,*) " Subsystem Eigenvectors for: ", trim(MolecularSystem_instance%species(speciesID)%symbol )
              write(*,*) "-----------------------------"
              write(*,*) ""
 
@@ -2031,7 +2054,7 @@ contains
            else if ( trim(CONTROL_instance%HF_PRINT_EIGENVECTORS) .eq. "OCCUPIED" ) then
              
               write(*,*) ""
-              write(*,*) " Subsystem Occupied Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%name )
+              write(*,*) " Subsystem Occupied Eigenvectors for: ", trim( MolecularSystem_instance%species(speciesID)%symbol )
               write(*,*) "------------------------------------- "
               write(*,*) ""
               
@@ -2064,7 +2087,7 @@ contains
     totalEnergy=0.0
     do speciesID=1, numberOfSpecies
        
-       write (*,"(A20,F20.12,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%name )//":", &
+       write (*,"(A20,F20.12,F20.12,F20.12)") trim( MolecularSystem_instance%species(speciesID)%symbol )//":", &
             sum(transpose(wavefunction_instance(speciesID)%densityMatrix%values)* wavefunction_instance(speciesID)%hcoreMatrix%values), &
             0.5*sum(transpose(wavefunction_instance(speciesID)%densityMatrix%values)* WaveFunction_instance(speciesID)%twoParticlesMatrix%values), &
             sum(transpose(wavefunction_instance(speciesID)%densityMatrix%values)* WaveFunction_instance(speciesID)%couplingMatrix%values)
@@ -2103,7 +2126,7 @@ contains
 
     do speciesID = 1, numberOfSpecies
 
-       labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+       labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
 
        labels(1) = "REMOVED-ORBITALS"
        call Vector_writeToFile(unit=wfnUnit, binary=.true., value=real(WaveFunction_instance(speciesID)%removedOrbitals,8), arguments= labels )
@@ -2126,6 +2149,16 @@ contains
        labels(1) = "DENSITY"
        call Matrix_writeToFile(wavefunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
+       labels(1) = "KINETIC"
+       call Matrix_writeToFile(wavefunction_instance(speciesID)%kineticMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
+       labels(1) = "ATTRACTION"
+       call Matrix_writeToFile(wavefunction_instance(speciesID)%puntualInteractionMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+
+       labels(1) = "EXTERNAL"
+       if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+            call Matrix_writeToFile(wavefunction_instance(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
+       
        labels(1) = "HCORE"      
        call Matrix_writeToFile(wavefunction_instance(speciesID)%hcoreMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
@@ -2147,10 +2180,14 @@ contains
        end if
 
        if (CONTROL_instance%COSMO) then
+          labels(1) = "COSMO1"
+          call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo1, unit=wfnUnit, binary=.true., arguments = labels(1:2) )
           labels(1) = "COSMO2"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo2, unit=wfnUnit, binary=.true., arguments = labels )  
           labels(1) = "COSMOCOUPLING"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmoCoupling, unit=wfnUnit, binary=.true., arguments = labels ) 
+          labels(1) = "COSMO4"
+          call Matrix_writeToFile(WaveFunction_instance(speciesID)%cosmo4, unit=wfnUnit, binary=.true., arguments = labels(1:2) )
        end if
        
     end do
@@ -2162,7 +2199,7 @@ contains
        vecFile = trim(CONTROL_instance%INPUT_FILE)//"subvec"
        open(unit=vecUnit, file=trim(vecFile), form="unformatted", status='replace')
        do speciesID = 1, numberOfSpecies
-          labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
           labels(1) = "COEFFICIENTS"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
                unit=vecUnit, binary=.true., arguments = labels)
@@ -2177,7 +2214,7 @@ contains
        open(unit=vecUnit, file=trim(vecFile), form="formatted", status='replace')
 
        do speciesID = 1, numberOfSpecies
-          labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+          labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
           labels(1) = "COEFFICIENTS"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%waveFunctionCoefficients, &
                unit=vecUnit, binary=.false., arguments = labels)

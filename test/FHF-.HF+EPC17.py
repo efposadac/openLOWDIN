@@ -1,61 +1,25 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues={
+    "Total Exc.Corr. energy":[-0.035742864487,1E-3],
+    "Number of E-":[19.99997642,1E-4],
+    "Number of H_1":[0.99999993,1E-4],
+    "KS energy":[-199.524726631186,1E-6],
+}
+    return refValues
 
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
+def getTestValues(testValues,testName):
+    testValues["KS energy"] = test.getSCFTotalEnergy(testName)
+    testValues["Number of E-"] = test.getParticlesInGrid(testName,"E-")
+    testValues["Number of H_1"] = test.getParticlesInGrid(testName,"H_1")
+    testValues["Total Exc.Corr. energy"] = test.getDFTTotalExcCorrEnergy(testName)
+    return 
 
-testName = "FHF-.HF+EPC17"
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
-
-# Reference values
-
-refExchangeCorrelationEnergy=-0.035742864487
-refNumberOfE=19.99997642
-refNumberOfP=0.99999993
-refTotalEnergy=-199.524726631186
-# Run calculation
-
-status = os.system(lowdinbin + " -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-
-for line in outputRead:
-    if "TOTAL ENERGY =" in line:
-        totalEnergy = float(line.split()[3])
-    if "Total Exchange Correlation energy" in line:
-        exchangeCorrelationEnergy = float(line.split()[5])
-    if "Number of E- particles in the final grid" in line:
-        numberOfE = float(line.split()[8])
-    if "Number of H_1 particles in the final grid" in line:
-        numberOfP = float(line.split()[8])
-
-
-diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffExchangeCorrelationEnergy = abs(refExchangeCorrelationEnergy - exchangeCorrelationEnergy)
-diffRefNumberOfE = abs(refNumberOfE - numberOfE)
-diffRefNumberOfP = abs(refNumberOfP - numberOfP)
-
-if (diffTotalEnergy <= 1E-6 and diffExchangeCorrelationEnergy <= 1E-3 and diffRefNumberOfE <= 1E-4 and diffRefNumberOfP <= 1E-4 ):
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-    print("Difference RKS energy: " + str(diffTotalEnergy))
-    print("Difference ExcCor energy: " + str(diffExchangeCorrelationEnergy))
-    print("Difference E- number: " + str(diffRefNumberOfE))
-    print("Difference H_1 number: " + str(diffRefNumberOfP))
-    sys.exit(1)
-
-output.close()
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)

@@ -54,7 +54,7 @@ program SCF
   write(*,"(A)")" "
 
   if(.not. CONTROL_instance%FIRST_STEP) then
-     write (6,"(T20,A30)") " TEST GEOMETRY: AMSTRONG"
+     write (6,"(T20,A30)") " TEST GEOMETRY: ANGSTROM"
      write (6,"(T18,A35)") "------------------------------------------"
      call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
      call MolecularSystem_showDistanceMatrix()
@@ -67,7 +67,7 @@ program SCF
 
   !! Start the MultiSCF object
   allocate(WaveFunction_instance(MolecularSystem_instance%numberOfQuantumSpecies))
-  call MultiSCF_constructor(MultiSCF_instance,WaveFunction_instance,CONTROL_instance%ITERATION_SCHEME)
+  call MultiSCF_constructor(MultiSCF_instance,WaveFunction_instance,CONTROL_instance%ITERATION_SCHEME,molecularSystem_instance)
 
   !! Calculate one-particle integrals  
   if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) &
@@ -81,13 +81,14 @@ program SCF
   !!**************************************************************************************************************************
   !! Calculate two-particle integrals (not building 2 particles and coupling matrix... those matrices updated at each SCF cycle)
   !!
+  allocate(Libint2Instance(MolecularSystem_instance%numberOfQuantumSpecies))
   if ( CONTROL_instance%INTEGRAL_STORAGE == "DISK" ) then
      !! Save matrices to lowdin.wfn file required by ints program
      wfnUnit = 300
      wfnFile = "lowdin.wfn"
      open(unit=wfnUnit, file=trim(wfnFile), status="replace", form="unformatted")
      do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        labels(2) = MolecularSystem_getNameOfSpecie(speciesID)
+        labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
         labels(1) = "DENSITY"
         call Matrix_writeToFile(WaveFunction_instance(speciesID)%densityMatrix, unit=wfnUnit, binary=.true., arguments = labels )
      end do
@@ -99,7 +100,6 @@ program SCF
         call system(" lowdin-ints.x TWO_PARTICLE_R12")
      end if
   else if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY" ) then
-     allocate(Libint2Instance(MolecularSystem_instance%numberOfQuantumSpecies))
      call DirectIntegralManager_constructor(Libint2Instance,MolecularSystem_instance)
      do speciesID=1, MolecularSystem_instance%numberOfQuantumSpecies
         call DirectIntegralManager_getDirectIntraRepulsionIntegralsAll(&

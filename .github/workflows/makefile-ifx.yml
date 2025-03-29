@@ -1,0 +1,98 @@
+name: Makefile-ifx-CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+  
+jobs:
+  build:
+    name: Compiles and Tests Lowdin (with ifx)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Compile and install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install wget git build-essential libgsl0-dev autotools-dev automake libtool gawk libeigen3-dev libgmp-dev libboost-all-dev gpg-agent gnuplot
+        wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        sudo apt-get -y update
+        sudo apt-get -y install intel-oneapi-mkl-devel intel-oneapi-compiler-dpcpp-cpp intel-oneapi-compiler-fortran
+        source /opt/intel/oneapi/setvars.sh 
+        # Define ENV Variables
+        export WORKDIR=$PWD/dependencies
+        export PATH=$PATH:$WORKDIR/bin
+        export C_INCLUDE_PATH=$C_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
+        export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$WORKDIR/include:$WORKDIR/include/libint2:/usr/include/eigen3
+        export LIBRARY_PATH=$LIBRARY_PATH:$WORKDIR/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$WORKDIR/lib
+        # Create work directories
+        mkdir $WORKDIR
+        mkdir $WORKDIR/bin
+        mkdir $WORKDIR/lib
+        cd $WORKDIR
+        # Get libint
+        wget 'https://www.dropbox.com/scl/fi/26203zd6zmw2eb33ckuqk/libint-master-ifort-MAR2025.tgz?rlkey=qskf0l0so66d42h8925hwb0ot&st=wlnhlfd6&dl=0'
+        mv 'libint-master-ifort-MAR2025.tgz?rlkey=qskf0l0so66d42h8925hwb0ot&st=wlnhlfd6&dl=0' libint-master-ifort-MAR2025.tgz
+        tar xzvf libint-master-ifort-MAR2025.tgz
+        cd ..
+        # # Build libint2
+        # git clone https://github.com/evaleev/libint.git
+        # cd libint
+        # git checkout 668b10c4bdca5876984058742d4212675eb93f3f
+        # ./autogen.sh
+        # mkdir ../libint2
+        # cd ../libint2
+        # export CC=icc
+        # export CXX=icpc
+        # export CXXFLAGS="-std=c++11 -Wno-enum-compare -qopenmp"
+        # export CPPFLAGS='-I/usr/include/eigen3'
+        # ../libint/configure --prefix=$WORKDIR --with-max-am=6 --enable-g12=4 --with-g12-max-am=4 --with-cxxgen-optflags
+        # make -j 4
+        # make install
+        # cd ..
+        # # Build libint1
+        # cd libint
+        # git checkout v1
+        # aclocal -I lib/autoconf
+        # autoconf
+        # export CC=icc
+        # export CXX=icpc
+        # export CXXFLAGS="-std=c++11 -Wno-enum-compare -qopenmp"
+        # ./configure --prefix=$WORKDIR
+        # make -j 4
+        # make install
+        # make clean
+        # make distclean
+        # cd ..
+        # Get libxc
+        cd $WORKDIR 
+        wget 'https://www.dropbox.com/scl/fi/wdxgk1n3gh6qn0vsjjyky/libxc-master-ifort-MAR2025.tgz?rlkey=aj62ovsg3v7n4pjy4ufyx4bxe&st=jfbkdtai&dl=0'
+        mv 'libxc-master-ifort-MAR2025.tgz?rlkey=aj62ovsg3v7n4pjy4ufyx4bxe&st=jfbkdtai&dl=0' libxc-master-ifort-MAR2025.tgz
+        tar xzvf libxc-master-ifort-MAR2025.tgz
+        cd ..
+        # Build libxc
+        # git clone https://gitlab.com/libxc/libxc.git
+        # cd libxc
+        # git checkout 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
+        # autoreconf -i
+        # ./configure --enable-shared --prefix=$WORKDIR
+        # make -j 4
+        # make install
+        # cd ..
+        # Get erkale - save some compilation time
+        wget 'https://www.dropbox.com/scl/fi/rrboefmyu04wse1s57n3o/erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0'
+        mv 'erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0' erkaleStaticForLowdin.tgz
+        tar xzvf erkaleStaticForLowdin.tgz
+        # Configure Lowdin
+        ./configure -f "ifx" -o 2 -p $WORKDIR/bin -s /tmp
+        # Build Lowdin
+        make -j 4
+        # Install Lowdin
+        make install
+        # Run Tests
+        make test
+    

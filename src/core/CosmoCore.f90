@@ -121,10 +121,10 @@ contains
 
 
     do i=1,surface%sizeSurface        
-       surface%xs(i)=x(i)/AMSTRONG
-       surface%ys(i)=y(i)/AMSTRONG
-       surface%zs(i)=z(i)/AMSTRONG
-       surface%area(i)=a(i)/((AMSTRONG)**2)
+       surface%xs(i)=x(i)/ANGSTROM
+       surface%ys(i)=y(i)/ANGSTROM
+       surface%zs(i)=z(i)/ANGSTROM
+       surface%area(i)=a(i)/((ANGSTROM)**2)
     end do
 
     !Reading surface from .sup
@@ -388,9 +388,9 @@ contains
     call Matrix_constructor(q_charge, int(ints,8), 1_8)
     call Matrix_constructor(cosmo_pot, int(ints,8), 1_8)
 
-    specieName=MolecularSystem_getNameOfSpecie(specieid)
+    specieName=MolecularSystem_getNameOfSpecies(specieid)
 
-    charge=MolecularSystem_getCharge(MolecularSystem_getSpecieID(specieName))
+    charge=MolecularSystem_getCharge(MolecularSystem_getSpeciesID(specieName))
 
     lambda=-(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC+CONTROL_instance%COSMO_SCALING)
 
@@ -503,7 +503,7 @@ contains
        if(trim(charges_file)=="cosmo.clasical") then
 
 
-          allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+          allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(f_aux), MolecularSystem_getTotalNumberOfContractions(f_aux)))
 	  ints_mat_aux = 0 !!JC
           ii = 0
           mm = 1
@@ -710,7 +710,7 @@ contains
     allocate(cosmo_int(charges))
     allocate(a_mat(segments,charges))
     allocate(clasical_positions(np,3))
-    allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(specieID = f_aux), MolecularSystem_getTotalNumberOfContractions(specieID = f_aux)))
+    allocate(ints_mat_aux(MolecularSystem_getTotalNumberOfContractions(f_aux), MolecularSystem_getTotalNumberOfContractions(f_aux)))
 
     open(unit=100, file=trim(charges_file), status='old', form="unformatted")
 

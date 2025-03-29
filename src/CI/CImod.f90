@@ -111,9 +111,9 @@ contains
 
     write (*,"(A32)",advance="no") "Number of orbitals for species: "
     do i = 1, numberOfSpecies-1
-      write (*,"(A)",advance="no") trim(MolecularSystem_getNameOfSpecie(i))//", "
+      write (*,"(A)",advance="no") trim(MolecularSystem_getSymbolOfSpecies(i))//", "
     end do
-    write (*,"(A)",advance="no") trim(MolecularSystem_getNameOfSpecie(numberOfSpecies))
+    write (*,"(A)",advance="no") trim(MolecularSystem_getSymbolOfSpecies(numberOfSpecies))
     write (*,*) ""
 
     write (*,"(A28)",advance="no") "  occupied orbitals: "
@@ -530,18 +530,18 @@ contains
     integer :: numberOfSpecies
     integer :: i,j,m,n,mu,nu,a,b
     integer(8) :: c
-    integer :: specieID
-    integer :: otherSpecieID
-    character(10) :: nameOfSpecie
-    character(10) :: nameOfOtherSpecie
+    integer :: speciesID
+    integer :: otherSpeciesID
+    character(10) :: nameOfSpecies
+    character(10) :: nameOfOtherSpecies
     integer :: ocupationNumber
-    integer :: ocupationNumberOfOtherSpecie
+    integer :: ocupationNumberOfOtherSpecies
     integer :: numberOfContractions
-    integer :: numberOfContractionsOfOtherSpecie
+    integer :: numberOfContractionsOfOtherSpecies
     type(Matrix) :: hcoreMatrix
     type(Matrix) :: coefficients
     real(8) :: charge
-    real(8) :: otherSpecieCharge
+    real(8) :: otherSpeciesCharge
 
     integer :: ssize1, ssize2
     type(Matrix) :: externalPotential
@@ -558,13 +558,13 @@ contains
     allocate(CIcore_instance%fourIndexArray(numberOfSpecies))
 
     do i=1, numberOfSpecies
-      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecie( i ) )
-      specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
+      nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( i ) )
+      speciesID = MolecularSystem_getSpeciesID( nameOfSpecies=nameOfSpecies )
       ocupationNumber = MolecularSystem_getOcupationNumber( i )
       numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
       charge=MolecularSystem_getCharge(i)
 
-!        write (6,"(T10,A)")"ONE PARTICLE INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)
+!        write (6,"(T10,A)")"ONE PARTICLE INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecies)
       call Matrix_constructor (CIcore_instance%twoCenterIntegrals(i), &
         int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8 )
 
@@ -577,7 +577,7 @@ contains
 
       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-      arguments(2) = MolecularSystem_getNameOfSpecie(i)
+      arguments(2) = MolecularSystem_getNameOfSpecies(i)
       arguments(1) = "COEFFICIENTS"
 
       coefficients = &
@@ -644,23 +644,23 @@ contains
        end do
 
 
-       call ReadTransformedIntegrals_readOneSpecies( specieID, CIcore_instance%fourCenterIntegrals(i,i)   )
+       call ReadTransformedIntegrals_readOneSpecies( speciesID, CIcore_instance%fourCenterIntegrals(i,i)   )
        CIcore_instance%fourCenterIntegrals(i,i)%values = &
            CIcore_instance%fourCenterIntegrals(i,i)%values * charge * charge
 
        if ( numberOfSpecies > 1 ) then
          do j = 1 , numberOfSpecies
            if ( i .ne. j) then
-             nameOfOtherSpecie = trim(  MolecularSystem_getNameOfSpecie( j ) )
-             otherSpecieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
-             ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( j )
-             numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
-             otherSpecieCharge = MolecularSystem_getCharge(j)
+             nameOfOtherSpecies = trim(  MolecularSystem_getNameOfSpecies( j ) )
+             otherSpeciesID = MolecularSystem_getSpeciesID( nameOfSpecies=nameOfOtherSpecies )
+             ocupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
+             numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
+             otherSpeciesCharge = MolecularSystem_getCharge(j)
 
-             call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, &
+             call ReadTransformedIntegrals_readTwoSpecies( speciesID, otherSpeciesID, &
                          CIcore_instance%fourCenterIntegrals(i,j) )
              CIcore_instance%fourCenterIntegrals(i,j)%values = &
-               CIcore_instance%fourCenterIntegrals(i,j)%values * charge * otherSpeciecharge
+               CIcore_instance%fourCenterIntegrals(i,j)%values * charge * otherSpeciescharge
 
 
            end if
@@ -1077,7 +1077,7 @@ contains
 
       !Inicializando las matrices
       do species=1, numberOfSpecies
-         speciesName = MolecularSystem_getNameOfSpecie(species)
+         speciesName = MolecularSystem_getNameOfSpecies(species)
          
          numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
          ! numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(species)
@@ -1264,8 +1264,8 @@ contains
     
                                    numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(s)
     
-                                   ! print *, i, j, CIcore_instance%configurations(i)%occupations(:,specie), CIcore_instance%configurations(j)%occupations(:,specie)
-                                   ! print *, i, j, auxthisA%occupations(:,specie), auxthisB%occupations(:,specie)
+                                   ! print *, i, j, CIcore_instance%configurations(i)%occupations(:,species), CIcore_instance%configurations(j)%occupations(:,species)
+                                   ! print *, i, j, auxthisA%occupations(:,species), auxthisB%occupations(:,species)
                                    ! print *, i, j, orbitalA, orbitalB, factor*CIcore_instance%eigenVectors%values(i,1)*CIcore_instance%eigenVectors%values(j,1)
     
                                    auxDensMatrix(s,n)%values( orbitalA,orbitalB)= auxDensMatrix(s,n)%values( orbitalA, orbitalB) + &
@@ -1338,8 +1338,8 @@ contains
 !
 !                              numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(s)
 !
-!                              ! print *, i, j, CIcore_instance%configurations(i)%occupations(:,specie), CIcore_instance%configurations(j)%occupations(:,specie)
-!                              ! print *, i, j, auxthisA%occupations(:,specie), auxthisB%occupations(:,specie)
+!                              ! print *, i, j, CIcore_instance%configurations(i)%occupations(:,species), CIcore_instance%configurations(j)%occupations(:,species)
+!                              ! print *, i, j, auxthisA%occupations(:,species), auxthisB%occupations(:,species)
 !
 !                              ! print *, i, j, orbitalA, orbitalB, factor*CIcore_instance%eigenVectors%values(i,1)*CIcore_instance%eigenVectors%values(j,1)
 !
@@ -1388,7 +1388,7 @@ contains
        
      !! Building the CI reduced density matrix in the atomic orbital representation       
      do species=1, numberOfSpecies
-       speciesName = MolecularSystem_getNameOfSpecie(species)
+       speciesName = MolecularSystem_getNameOfSpecies(species)
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
 
        do state=1, CONTROL_instance%CI_STATES_TO_PRINT
@@ -1440,12 +1440,12 @@ contains
        do state=1, CONTROL_instance%CI_STATES_TO_PRINT
           write(*,*) " STATE: ", state
           do species=1, molecularSystem_instance%numberOfQuantumSpecies
-             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%name ) // &
+             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%symbol ) // &
                   " Kinetic energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*kineticMatrix(species)%values)
-             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%name ) // &
+             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%symbol ) // &
                   "/Fixed interact. energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*attractionMatrix(species)%values)
              if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
-                  write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%name) // &
+                  write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%symbol) // &
                   " Ext Pot energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*externalPotMatrix(species)%values)
              print *, ""
           end do
@@ -1468,11 +1468,11 @@ contains
              do species=1, numberOfSpecies
 
                 write(*,*) ""
-                write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(species)%name )
+                write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(species)%symbol )
                 write(*,*) "-----------------"
 
                 numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-                speciesName = MolecularSystem_getNameOfSpecie(species)
+                speciesName = MolecularSystem_getNameOfSpecies(species)
 
 
                 call Vector_constructor ( auxdensityEigenValues, &
@@ -1535,9 +1535,9 @@ contains
                 !!end do
                 !!print *, "atomic density matrix from natural orbitals"
                 !!call Matrix_show ( auxdensityEigenVectors)
-                write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(speciesName) , "natural orbital occupations", sum(densityEigenValues%values)
+                write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_instance%species(species)%symbol) , "natural orbital occupations", sum(densityEigenValues%values)
 
-                write(*,*) " End of natural orbitals in state: ", state, " for: ", trim(speciesName)
+                write(*,*) " End of natural orbitals in state: ", state, " for: ", trim(MolecularSystem_instance%species(species)%symbol)
              end do
           end do
 
@@ -1624,7 +1624,7 @@ contains
     !          ciOccupationNumbers%values( j, state)= ciOccupationNumbers%values( j, state) -  &
     !               CIcore_instance%eigenVectors%values(i,state)**2
     !          !! Unoccupied orbitals
-    !          orbital = CIcore_instance%configurations(i)%occupations(j,specie) 
+    !          orbital = CIcore_instance%configurations(i)%occupations(j,species) 
     
     !          ciOccupationNumbers%values( orbital, state)= ciOccupationNumbers%values( orbital, state) + &
     !               CIcore_instance%eigenVectors%values(i,state)**2
@@ -1684,7 +1684,7 @@ contains
     !  end do
     
     ! !Write occupation numbers to file
-    ! write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecie(specie)),"OCCUPATIONS:"
+    ! write (6,"(T8,A10,A20)") trim(MolecularSystem_getNameOfSpecies(species)),"OCCUPATIONS:"
     
     ! call Matrix_show ( ciOccupationNumbers )
     

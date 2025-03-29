@@ -144,6 +144,9 @@ contains
        k = i*3 + 3
        write(*,"(3F17.12)") EnergyGradients_instance%gradients%total(j:k)
     end do
+    write(*,"(A)") "----------------------------------------------------"
+    write(*,"(A)") "|            END ENERGY GRADIENTS                  |"
+    write(*,"(A)") "----------------------------------------------------"
 
     if(CONTROL_instance%AMBER_FILE) then
        !! Results for Amber package
@@ -698,11 +701,11 @@ contains
   ! #ifdef intel
   !                     write(34,"(A10,A10,<3>F15.10)")     trim(ParticleManager_instance%particles(i)%nickname), &
   !                                         trim(ParticleManager_instance%particles(i)%basisSetName), &
-  !                                         ParticleManager_instance%particles(i)%origin*0.52917724924_8
+  !                                         ParticleManager_instance%particles(i)%origin*ANGSTROM
   ! #else
   !                     write(34,"(A10,A10,3F15.10)")     trim(ParticleManager_instance%particles(i)%nickname), &
   !                                         trim(ParticleManager_instance%particles(i)%basisSetName), &
-  !                                         ParticleManager_instance%particles(i)%origin*0.52917724924_8
+  !                                         ParticleManager_instance%particles(i)%origin*ANGSTROM
   ! #endif
   !                 end do
   !             write (34,*) "END GEOMETRY"
@@ -746,10 +749,10 @@ contains
 
   !             do i=1, ParticleManager_getNumberOfQuantumSpecies()
   !                 if ( ParticleManager_instance%particles(i)%isQuantum ) then
-  !                     status=system("cp "//trim(fileName)//trim(ParticleManager_getNameOfSpecie( i ))//".vec " &
-  !                             //trim(fileName)//"0."//trim(ParticleManager_getNameOfSpecie( i ))//".vec ")
-  !                     status=system("cp "//trim(fileName)//trim(ParticleManager_getNameOfSpecie( i ))//".vec " &
-  !                             //trim(fileName)//"1."//trim(ParticleManager_getNameOfSpecie( i ))//".vec ")
+  !                     status=system("cp "//trim(fileName)//trim(ParticleManager_getNameOfSpecies( i ))//".vec " &
+  !                             //trim(fileName)//"0."//trim(ParticleManager_getNameOfSpecies( i ))//".vec ")
+  !                     status=system("cp "//trim(fileName)//trim(ParticleManager_getNameOfSpecies( i ))//".vec " &
+  !                             //trim(fileName)//"1."//trim(ParticleManager_getNameOfSpecies( i ))//".vec ")
   !                 end if
   !             end do
 
@@ -1003,7 +1006,7 @@ contains
        ! end do
        ocupationNumber = MolecularSystem_getOcupationNumber( specieIterator )
 
-       arguments(2) = MolecularSystem_getNameOfSpecie(specieIterator)
+       arguments(2) = MolecularSystem_getNameOfSpecies(specieIterator)
 
        arguments(1) = "DENSITY"
        densityMatrix = &
@@ -1891,7 +1894,7 @@ contains
 
        orderOfMatrix = MolecularSystem_getTotalNumberOfContractions(specieIterator)
 
-       arguments(2) = MolecularSystem_getNameOfSpecie(specieIterator)
+       arguments(2) = MolecularSystem_getNameOfSpecies(specieIterator)
 
        arguments(1) = "DENSITY"
        densityMatrix = &
@@ -1921,7 +1924,7 @@ contains
 
           otherOrderOfMatrix = MolecularSystem_getTotalNumberOfContractions(otherSpecieIterator)
 
-          otherArguments(2) = MolecularSystem_getNameOfSpecie(otherSpecieIterator)
+          otherArguments(2) = MolecularSystem_getNameOfSpecies(otherSpecieIterator)
 
           otherArguments(1) = "DENSITY"
           otherDensityMatrix = &

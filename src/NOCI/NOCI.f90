@@ -27,13 +27,16 @@
 !! @warning This programs only works linked to lowdincore library, provided by LOWDIN quantum chemistry package
 !!
 program NOCI
+  use NOCIBuild_
+  use NOCIRunSCF_
+  use NOCIMatrices_
+  use NOCISuperposed_
+  use NOCIFranckCondon_
+  use NOCIRotFormula_
   use CONTROL_
   use InputManager_
   use MolecularSystem_
-  use Exception_
-  use NonOrthogonalCI_
   use String_
-  use InputCI_
   use Stopwatch_
   use MecanicProperties_
   implicit none
@@ -63,23 +66,25 @@ program NOCI
      !!Load the system in lowdin.sys format
      call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
 
-     call NonOrthogonalCI_constructor(NonOrthogonalCI_instance)
+     call NOCIBuild_constructor(NOCI_instance)
      if(CONTROL_instance%READ_NOCI_GEOMETRIES) then
-        call NonOrthogonalCI_readGeometries(NonOrthogonalCI_instance)
+        call NOCIBuild_readGeometries(NOCI_instance)
      else
-        call NonOrthogonalCI_displaceGeometries(NonOrthogonalCI_instance)
+        call NOCIBuild_displaceGeometries(NOCI_instance)
      end if
-     call NonOrthogonalCI_runHFs(NonOrthogonalCI_instance)
-     call NonOrthogonalCI_buildOverlapAndHamiltonianMatrix(NonOrthogonalCI_instance)
+     call NOCIRunSCF_runHFs(NOCI_instance)
+     call NOCIMatrices_buildOverlapAndHamiltonian(NOCI_instance)
 
-     if(.not. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
-        call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_generateSuperposedSystem(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_buildDensityMatrix(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_getNaturalOrbitals(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_computeFranckCondon(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_saveToFile(NonOrthogonalCI_instance)
-     else
+     if (.not.(CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS .or. CONTROL_instance%COMPUTE_ROCI_FORMULA)) then
+        call NOCIMatrices_diagonalize(NOCI_instance)
+        call NOCISuperposed_generateSuperposedSystem(NOCI_instance)
+        call NOCISuperposed_buildDensityMatrix(NOCI_instance)
+        call NOCISuperposed_getNaturalOrbitals(NOCI_instance)
+        call NOCIFranckCondon_computeFranckCondon(NOCI_instance)
+        call NOCISuperposed_saveToFile(NOCI_instance)
+     else if (CONTROL_instance%COMPUTE_ROCI_FORMULA) then
+        call NOCIRotFormula_compute(NOCI_instance)
+     else if (CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
         write (*,"(T10,A)") "COMPUTED NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
      end if
 
@@ -156,7 +161,7 @@ program NOCI
      !!***************************************************************************
      !!        Shows system's geometry
      !!
-     write (6,"(T20,A30)") " INITIAL GEOMETRY: AMSTRONG"
+     write (6,"(T20,A30)") " INITIAL GEOMETRY: ANGSTROM"
      write (6,"(T18,A35)") "------------------------------------------"
      call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
 
@@ -167,7 +172,7 @@ program NOCI
 
         call MolecularSystem_moveToCenterOfMass()
         call MolecularSystem_rotateOnPrincipalAxes()
-        write (6,"(T20,A30)") " GEOMETRY IN C.M. : AMSTRONG"
+        write (6,"(T20,A30)") " GEOMETRY IN C.M. : ANGSTROM"
         write (6,"(T18,A35)") "------------------------------------------"
         call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
 
@@ -204,18 +209,25 @@ program NOCI
      ! end if
 
      if ( CONTROL_instance%NONORTHOGONAL_CONFIGURATION_INTERACTION ) then
-        call NonOrthogonalCI_constructor(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_displaceGeometries(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_runHFs(NonOrthogonalCI_instance)
-        call NonOrthogonalCI_buildOverlapAndHamiltonianMatrix(NonOrthogonalCI_instance)
-        if(.not. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
-           call NonOrthogonalCI_diagonalizeCImatrix(NonOrthogonalCI_instance)
-           call NonOrthogonalCI_generateSuperposedSystem(NonOrthogonalCI_instance)
-           call NonOrthogonalCI_buildDensityMatrix(NonOrthogonalCI_instance)
-           call NonOrthogonalCI_getNaturalOrbitals(NonOrthogonalCI_instance)
-           call NonOrthogonalCI_computeFranckCondon(NonOrthogonalCI_instance)
-           call NonOrthogonalCI_saveToFile(NonOrthogonalCI_instance)
+        call NOCIBuild_constructor(NOCI_instance)
+        if(CONTROL_instance%READ_NOCI_GEOMETRIES) then
+           call NOCIBuild_readGeometries(NOCI_instance)
         else
+           call NOCIBuild_displaceGeometries(NOCI_instance)
+        end if
+        call NOCIRunSCF_runHFs(NOCI_instance)
+        call NOCIMatrices_buildOverlapAndHamiltonian(NOCI_instance)
+        
+        if (.not.(CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS .or. CONTROL_instance%COMPUTE_ROCI_FORMULA)) then
+           call NOCIMatrices_diagonalize(NOCI_instance)
+           call NOCISuperposed_generateSuperposedSystem(NOCI_instance)
+           call NOCISuperposed_buildDensityMatrix(NOCI_instance)
+           call NOCISuperposed_getNaturalOrbitals(NOCI_instance)
+           call NOCIFranckCondon_computeFranckCondon(NOCI_instance)
+           call NOCISuperposed_saveToFile(NOCI_instance)
+        else if (CONTROL_instance%COMPUTE_ROCI_FORMULA) then
+           call NOCIRotFormula_compute(NOCI_instance)
+        else if (CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
            write (*,"(T10,A)") "COMPUTED NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
         end if
      end if
@@ -223,7 +235,7 @@ program NOCI
      call MolecularSystem_saveToFile()
      
      !!calculate CI density properties
-     call system ("lowdin-CalcProp.x")
+     if ( .not. (CONTROL_instance%COMPUTE_ROCI_FORMULA .or. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS)) call system ("lowdin-CalcProp.x")
 
      if ( CONTROL_instance%IS_THERE_OUTPUT ) then
         write(strAuxNumber,"(I10)") Input_instance%numberOfOutputs

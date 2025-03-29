@@ -1,0 +1,17 @@
+GEOMETRY
+	e-(F) aug-cc-pvdz	0.00 0.00 -1.33 addParticles=1 
+	e-(F) aug-cc-pvdz	0.00 0.00  1.33 addParticles=1 
+	e+     PSX-DZ 	0.00 0.00 -1.33 eta=2
+	e+     PSX-DZ 	0.00 0.00  1.33 
+	F     dirac	0.00 0.00 -1.33
+	F     dirac	0.00 0.00  1.33
+END GEOMETRY
+
+TASKS
+	method = "RHF"
+END TASKS
+
+CONTROL
+	readCoefficients=F
+END CONTROL
+

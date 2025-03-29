@@ -28,18 +28,31 @@
 !!   - <tt> 2007-05-15 </tt>: Sergio A. Gonz\'alez M. ( sagonzalezm@unal.edu.co )
 !!        -# Creaci\'on de m\'odulo y procedimientos b\'asicos
 module Units_
+  use Math_
   implicit none
     
   !>
-  !! @brief Definici\'on de factores de conversi\'on
+  !! @brief Conversion factors from atomic units. Updated March-2025, according to CODATA values  F.M.
+  !! CODATA Internationally recommended 2022 values of the Fundamental Physical Constants
   !!
-  real(8) , parameter :: HARTREE = 1.0_8
-  real(8) , parameter :: AMSTRONG = 0.52917724924_8
-  real(8) , parameter :: DEBYES = 2.541764_8
-  real(8) , parameter :: ELECTRON_REST = 1.0_8
-  real(8) , parameter :: AMU = 1.0_8/1822.88850065855_8
-  real(8) , parameter :: kg = 9.109382616D-31
-  real(8) , parameter :: DEGREES = 57.29577951_8
-  real(8) , parameter :: CM_NEG1 = 219476.0_8
-    
+  !a0=5.29177210544x10-11 m 
+  real(8) , parameter :: METER = 5.29177210544E-11_8
+  real(8) , parameter :: ANGSTROM = METER*1.0E10_8
+  !e=1.602176634E-19 C
+  real(8) , parameter :: COULOMB = 1.602176634E-19_8
+  !Debye = (1/c)*1E-21 C m^2/s
+  !c= 299792458 m s-1    
+  real(8) , parameter :: DEBYE = METER*COULOMB*299792458.0_8/1.0E-21_8
+  !me=9.1093837139x10-31 kg
+  real(8) , parameter :: KG = 9.1093837139E-31_8
+  !NA=6.02214076x10+23
+  real(8) , parameter :: AMU = 1000_8*6.02214076E+23_8*KG
+  real(8) , parameter :: DALTON = 1/AMU
+
+  real(8) , parameter :: DEGREES = 180.0_8/Math_PI
+  !Eh=2.1947463136314x10+7 m^-1
+  real(8) , parameter :: CM_NEG1 = 219474.63136314_8
+  !Eh=27.211386245981 eV
+  real(8) , parameter :: EV=27.211386245981_8
+  !Eh=4.3597447222060x10-18 J 
 end module Units_

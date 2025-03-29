@@ -225,7 +225,7 @@ contains
       ioff(pq) = ioff(pq-1) + ssize2 - pq + 1 
     end do
 
-!$  timeA(1) = omp_get_wtime()
+    !$  timeA(1) = omp_get_wtime()
     !! Read integrals
 
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, pp, qq, rr, ss, p, shellIntegrals, i, index2, filesize, pq, rs)
@@ -303,25 +303,6 @@ contains
     !! First half-transformation
 !$  timeA(2) = omp_get_wtime()
 
-    allocate (tempB ( ssize, ssize ) )
-    tempB = 0
-
-    if ( allocated (tempC)) deallocate (tempC )
-    allocate (tempC ( ssize ) )
-
-    tempC = 0
-
-    if ( allocated (tempA)) deallocate (tempA )
-    allocate (tempA ( ssize, ssize, ssize ) )
-    tempA = 0
-
-    !if ( allocated (auxtempA)) deallocate (auxtempA )
-    !allocate (auxtempA ( this%numberOfContractions , &
-    !     this%numberOfContractions, &
-    !     this%numberOfContractions ) )
-    !auxtempA = 0
-
-
     auxIntegrals = 0.0_8
     pp = 0
     qq = 0
@@ -341,6 +322,18 @@ contains
     !$OMP PARALLEL &
     !$omp& private(p,q,r,s,j,n,u,k,l,ij,kl,tempA, tempB, tempC, index2, mu, nu,lambda, sigma, auxTransformedTwoParticlesIntegral) &
     !$omp& shared(pp,qq,rr,ss,m,auxIntegrals) reduction(+:mm) 
+    if ( allocated (tempC)) deallocate (tempC )
+    allocate (tempC ( ssize ) )
+    tempC = 0
+
+    if ( allocated (tempB)) deallocate (tempB )
+    allocate (tempB ( ssize, ssize ) )
+    tempB = 0
+
+    if ( allocated (tempA)) deallocate (tempA )
+    allocate (tempA ( ssize, ssize, ssize ) )
+    tempA = 0
+
     !$omp do schedule (dynamic)
     do p = this%p_l, this%p_u
        n = p
@@ -1638,8 +1631,8 @@ contains
     integer :: totalActiveOrbitals, otherTotalActiveOrbitals
     logical :: ionizeA, ionizeB
     integer :: s
-    character(10) :: nameOfSpecies
-    character(10) :: nameOfOtherSpecies
+    character(10) :: nameOfSpecies, symbolOfSpecies
+    character(10) :: nameOfOtherSpecies, symbolOfOtherSpecies
     logical :: symmetric
 
     totalOccupation = MolecularSystem_getOcupationNumber( speciesID )
@@ -1723,14 +1716,16 @@ contains
         ionizeA = .false.
         ionizeB = .false.
 
-         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
-         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
+         symbolOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         symbolOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
 
          do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
-           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
+           if ( symbolOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeA = .true. 
            end if
-           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
+           if ( symbolOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeB = .true. 
            end if
          end do
@@ -1850,14 +1845,16 @@ contains
         ionizeA = .false.
         ionizeB = .false.
 
-         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecie( speciesID ) )
-         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecie( otherSpeciesID ) )
+         nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
+         symbolOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
+         symbolOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( otherSpeciesID ) )
 
          do s = 1, size(CONTROL_instance%IONIZE_SPECIES )
-           if ( nameOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
+           if ( symbolOfSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeA = .true. 
            end if
-           if ( nameOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
+           if ( symbolOfOtherSpecies == trim(CONTROL_instance%IONIZE_SPECIES(s)) ) then
              ionizeB = .true. 
            end if
          end do
@@ -1986,7 +1983,7 @@ contains
        sfile = trim(adjustl(sfile))
        unit = ifile+50
 
-       nameOfSpecie = MolecularSystem_getNameOfSpecie( specieID )          
+       nameOfSpecie = MolecularSystem_getNameOfSpecies( specieID )          
 
        if ( trim(nameOfSpecie) == "E-BETA" ) nameOfSpecie =""//trim("E-ALPHA")
 
@@ -2016,8 +2013,8 @@ contains
        sfile = trim(adjustl(sfile))
        unit = ifile+50
 
-       nameOfSpecie = MolecularSystem_getNameOfSpecie( i )          
-       nameOfOtherSpecie = MolecularSystem_getNameOfSpecie( j )          
+       nameOfSpecie = MolecularSystem_getNameOfSpecies( i )          
+       nameOfOtherSpecie = MolecularSystem_getNameOfSpecies( j )          
 
 
        open( UNIT=unit,FILE=trim(sfile)//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//".nints", status='old',access='sequential', form='Unformatted')

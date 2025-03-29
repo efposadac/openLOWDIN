@@ -41,7 +41,7 @@ contains
   
   !>
   !! @brief Obtiene la matriz de densidad inicial
-  subroutine DensityMatrixSCFGuess_getGuess( speciesID, hcoreMatrix, transformationMatrix, densityMatrix, orbitals, printInfo )
+  subroutine DensityMatrixSCFGuess_getGuess( speciesID, hcoreMatrix, transformationMatrix, densityMatrix, orbitals, printInfo, system)
     implicit none
     integer, intent(in) :: speciesID
     type(Matrix), intent(in) :: hcoreMatrix
@@ -49,9 +49,12 @@ contains
     type(Matrix), intent(inout) :: densityMatrix
     type(Matrix), intent(inout) :: orbitals
     logical, intent(in) :: printInfo
-    
+    type(MolecularSystem), optional, target :: system
+
+    type(MolecularSystem), pointer :: molSys
+
     type(Matrix) :: auxMatrix
-    character(30) :: nameOfSpecies
+    character(30) :: nameOfSpecies, symbolOfSpecies
     integer(8) :: orderOfMatrix, occupationNumber
     logical :: existPlain, existBinnary, readSuccess
     character(50) :: guessType
@@ -60,21 +63,28 @@ contains
     integer :: wfnUnit
     integer :: i,j,k
 
-    orderOfMatrix = MolecularSystem_getTotalnumberOfContractions( speciesID )
-    nameOfSpecies = MolecularSystem_instance%species(speciesID)%name
-    occupationNumber = MolecularSystem_getOcupationNumber( speciesID )
+    if( present(system) ) then
+       molSys=>system
+    else
+       molSys=>MolecularSystem_instance
+    end if
+    
+    orderOfMatrix = MolecularSystem_getTotalnumberOfContractions(speciesID,molSys)
+    nameOfSpecies = molSys%species(speciesID)%name
+    symbolOfSpecies = molSys%species(speciesID)%symbol
+    occupationNumber = MolecularSystem_getOcupationNumber(speciesID,molSys)
     readSuccess=.false.
 
     arguments(2) = nameOfSpecies
     arguments(1) = "COEFFICIENTS"
 
-    call Matrix_constructor(densityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8  )
     call Matrix_constructor(orbitals, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
-    
+
+    readSuccess=.false.
     !!Verifica el archivo que contiene los coeficientes para una especie dada
     if ( CONTROL_instance%READ_FCHK ) then
-       call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecies)//".fchk", orbitals, densityMatrix, nameOfSpecies )
-       return
+       wfnFile=trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".fchk"
+       call MolecularSystem_readFchk(wfnFile, orbitals, densityMatrix, nameOfSpecies, readSuccess)
 
     else if ( CONTROL_instance%READ_COEFFICIENTS ) then
        wfnUnit = 30
@@ -98,22 +108,19 @@ contains
           end if
        end if
     end if
-
-    !check if the orbitals were read correctly
-    if(.not. allocated(orbitals%values) ) readSuccess=.false.
-
-    if(readSuccess .and. printInfo ) print *, "Combination coefficients for ", trim(nameOfSpecies), " were read from ", trim(wfnFile)
+    
+    if(readSuccess .and. printInfo ) print *, "Combination coefficients for ", trim(symbolOfSpecies), " were read from ", trim(wfnFile)
 
     if(.not. readSuccess) then
        call Matrix_constructor(orbitals, orderOfMatrix, orderOfMatrix, 0.0_8  )
-       if ( MolecularSystem_instance%species(speciesID)%isElectron ) then
+       if ( molSys%species(speciesID)%isElectron ) then
           guessType=CONTROL_instance%SCF_ELECTRONIC_TYPE_GUESS
        else
           guessType=CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS
        end if
 
        if(printInfo) write(*, '(A13, A6, A28, A10)') &
-            "Usign ", trim(guessType), " density guess for species: ", trim(nameOfSpecies)
+            "Usign ", trim(guessType), " density guess for species: ", trim(symbolOfSpecies)
 
        select case( trim( String_getUppercase( guessType ) ) )
 
@@ -130,7 +137,7 @@ contains
           ! call DensityMatrixSCFGuess_huckel( densityMatrix, speciesID )
 
        case default
-          call DensityMatrixSCFGuess_exception( ERROR, "the selected guess method for "//nameOfSpecies//" is not implemented", "at program SCF module DensityMatrixSCFGuess")
+          call DensityMatrixSCFGuess_exception( ERROR, "the selected guess method for "//symbolOfSpecies//" is not implemented", "at program SCF module DensityMatrixSCFGuess")
 
        end select
     end if
@@ -142,16 +149,17 @@ contains
     
     call Matrix_copyConstructor(auxMatrix,orbitals)
     !! Segment for fractional occupations: introduce fractional occupation
-    if (trim(nameOfSpecies) == trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
+    if (trim(symbolOfSpecies) == trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
        do i=1,size(CONTROL_instance%IONIZE_MO)
           if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) then
              if(printInfo) write (*,"(A,F6.2,A,I5,A,A)") "Removing ", (1.0-CONTROL_instance%MO_FRACTION_OCCUPATION(i))*100, &
-                  " % of the density associated with orbital No. ", CONTROL_instance%IONIZE_MO(i), " of ", trim(nameOfSpecies)
+                  " % of the density associated with orbital No. ", CONTROL_instance%IONIZE_MO(i), " of ", trim(symbolOfSpecies)
              auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i)) = auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i))*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION(i))
           end if
        end do
     end if
     
+    call Matrix_constructor(densityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8  )
     do i = 1 , orderOfMatrix
        do j = 1 , orderOfMatrix
           do k = 1 , occupationNumber
@@ -159,7 +167,7 @@ contains
           end do
        end do
     end do
-    densityMatrix%values=densityMatrix%values*MolecularSystem_getEta( speciesID )
+    densityMatrix%values=densityMatrix%values*MolecularSystem_getEta(speciesID,molSys)
     
     if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX .and. ( trim(nameOfSpecies)=="E-ALPHA" .or. trim(nameOfSpecies)=="E+A")  ) then
 
@@ -184,7 +192,7 @@ contains
 
     integer(8) :: orderOfMatrix
     
-    orderOfMatrix = MolecularSystem_getTotalnumberOfContractions( speciesID )
+    orderOfMatrix = size(hcore%values,DIM=1)
  
     if ( .not.allocated(eigenVectors%values) ) then
        call Matrix_constructor(eigenVectors, orderOfMatrix, orderOfMatrix )
@@ -315,7 +323,7 @@ end module DensityMatrixSCFGuess_
 
   !   numberOfMatrixElements = int(orderOfMatrix, 8) ** 2_8
 
-  !   ocupationNumber = MolecularSystem_instance%species(speciesID)%ocupationNumber
+  !   ocupationNumber = molSys%species(speciesID)%ocupationNumber
 
   !   !    vectors = Matrix_getFromFile(orderOfMatrix, orderOfMatrix, &
   !   !         file=trim(CONTROL_instance%INPUT_FILE)//trim(nameOfSpecie)//".vec", binary = .false.)

@@ -1,6 +1,6 @@
 #!/bin/bash
 PID=$$
-VARS_PATH="PREFIX/.lowdin2/lowdinvars.sh"
+VARS_PATH="PREFIX/.EXENAME/lowdinvars.sh"
 source ${VARS_PATH}
 
 SED=sed
@@ -177,37 +177,40 @@ if [ $extFile="lowdin" ]; then
 	    '{
 		printf("\n&InputParticle\n\tInputParticle_name = \"%s\"\n\tInputParticle_basisSetName = \"%s\"\n",toupper($1),toupper($2))
 		for(i=1;i<=NF;i++){
-			if($i=="addParticles"){
+			if(toupper($i)==toupper("addParticles")){
 				printf("\tInputParticle_addParticles = %s\n",toupper($(i+2)) )
 			}
-			else if($i=="multiplicity"){
+			else if(toupper($i)==toupper("multiplicity")){
 				printf("\tInputParticle_multiplicity = %s\n",toupper($(i+2)) )
 			}
-			else if($i=="fix"){
+			else if(toupper($i)==toupper("fix")){
 				printf("\tInputParticle_fixedCoordinates = %s\n",toupper($(i+2)) )
                         }
-                        else if($i=="fragmentNumber"){
+                        else if(toupper($i)==toupper("fragmentNumber")){
 				printf("\tInputParticle_fragmentNumber = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="translationCenter"){
+                        else if(toupper($i)==toupper("translationCenter")){
 				printf("\tInputParticle_translationCenter = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="rotationPoint"){
+                        else if(toupper($i)==toupper("rotationPoint")){
 				printf("\tInputParticle_rotationPoint = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="rotateAround"){
+                        else if(toupper($i)==toupper("rotateAround")){
 				printf("\tInputParticle_rotateAround = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="q"){
+                        else if(toupper($i)==toupper("q")){
 				printf("\tInputParticle_charge = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="m"){
+                        else if(toupper($i)==toupper("m")){
 				printf("\tInputParticle_mass = %s\n",toupper($(i+2)) )
 			}
-                        else if($i=="omega"){
+                        else if(toupper($i)==toupper("eta")){
+				printf("\tInputParticle_eta = %s\n",toupper($(i+2)) )
+			}
+                        else if(toupper($i)==toupper("omega")){
 				printf("\tInputParticle_omega = %s\n",toupper($(i+2)) )
 			}
-	                else if($i=="qdoCenterOf"){
+	                else if(toupper($i)==toupper("qdoCenterOf")){
 				printf("\tInputParticle_qdoCenterOf = \"%s\"\n",toupper($(i+2)) )
 			};
 		};
@@ -291,28 +294,67 @@ if [ $extFile="lowdin" ]; then
 	    '{
                 printf("\n&Output\n")
 		for(i=1;i<=NF;i++){
-			if($i=="species"){
+			if(toupper($i)==toupper("species")){
 				printf("\tOutput_species = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="orbital"){
-				printf("\tOutput_orbital = %s\n",$toupper((i+2)) )
+			else if(toupper($i)==toupper("plane")){
+				printf("\tOutput_plane = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="state"){
+			else if(toupper($i)==toupper("axis")){
+				printf("\tOutput_axis = %s\n",$toupper((i+2)) )
+			}
+			else if(toupper($i)==toupper("state")){
 				printf("\tOutput_state = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="dimensions"){
+			else if(toupper($i)==toupper("orbital")){
+				printf("\tOutput_orbital = %s\n",$toupper((i+2)) )
+			}
+			else if(toupper($i)==toupper("dimensions")){
 				printf("\tOutput_dimensions = %s\n",$toupper((i+2)) )
                         }
-                        else if($i=="cubeSize"){
+                        else if(toupper($i)==toupper("pointsPerDim")){
+                 		printf("\tOutput_pointsPerDim =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("scanStep")){
+                 		printf("\tOutput_scanStep =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("cubeSize")){
                  		printf("\tOutput_cubeSize =  %s\n",$toupper((i+2)) )
                         }
-                        else if($i=="point1"){
+                        else if(toupper($i)==toupper("minValue")){
+                 		printf("\tOutput_minValue =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("maxValue")){
+                 		printf("\tOutput_maxValue =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("offsetX")){
+                 		printf("\tOutput_offsetX =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("offsetY")){
+                 		printf("\tOutput_offsetY =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("offsetZ")){
+                 		printf("\tOutput_offsetZ =  %s\n",$toupper((i+2)) )
+                        }
+                        else if(toupper($i)==toupper("limitX")){
+                 		printf("\tOutput_limitX = %15.12E %15.12E \n",$(i+2),$(i+3))
+                        }
+                        else if(toupper($i)==toupper("limitY")){
+                 		printf("\tOutput_limitY = %15.12E %15.12E \n",$(i+2),$(i+3))
+                        }
+                        else if(toupper($i)==toupper("limitZ")){
+                 		printf("\tOutput_limitZ = %15.12E %15.12E \n",$(i+2),$(i+3))
+                        }
+                        else if(toupper($i)==toupper("center")){
+                 		printf("\tOutput_center = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
+                        }
+                        else if(toupper($i)==toupper("point1")){
                  		printf("\tOutput_point1 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
                         }
-                        else if($i=="point2"){
+                        else if(toupper($i)==toupper("point2")){
                  		printf("\tOutput_point2 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
                         }
-                        else if($i=="point3"){
+                        else if(toupper($i)==toupper("point3")){
                  		printf("\tOutput_point3 = %15.12E %15.12E %15.12E \n",$(i+2),$(i+3),$(i+4))
 			};
 		};
@@ -324,16 +366,16 @@ if [ $extFile="lowdin" ]; then
 	    '{
                 printf("\n&InputCINamelist\n")
 		for(i=1;i<=NF;i++){
-			if($i=="species"){
+			if(toupper($i)==toupper("species")){
 				printf("\tInputCI_species = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="core"){
+			else if(toupper($i)==toupper("core")){
 				printf("\tInputCI_core = %s\n",$toupper((i+2)) )
 			}
-			else if($i=="active"){
+			else if(toupper($i)==toupper("active")){
 				printf("\tInputCI_active = %s\n",$toupper((i+2)) )
                         }
-                        else if($i=="excitation"){
+                        else if(toupper($i)==toupper("excitation")){
                  		printf("\tInputCI_excitation =  %s\n",$toupper((i+2)) )
 			};
 		};
@@ -342,10 +384,10 @@ if [ $extFile="lowdin" ]; then
 	' | $SED "s/,/./g" >> $nameFile.aux
 
 	###########################################
-	# Check custom basis sets in the input
+	# Check custom basis sets/potentials in the input
 	###########################################
 
-	BASIS_NAMES=(`gawk '($1~/BASIS/){print toupper($2)}' $nameFile`)
+	BASIS_NAMES=(`gawk '($1~/^BASIS$/){print toupper($2)}' $nameFile`)
 	if [ ${#BASIS_NAMES[@]} -gt "0" ]
 	then
 	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
@@ -358,10 +400,27 @@ if [ $extFile="lowdin" ]; then
 		fi
 		gawk '($1~/BASIS/ && toupper($2)~/^'$BASIS_NAME'$/){flag=1; next}
 		      ($0~/END/){flag=0};
-		      (flag==1){print toupper($0)}' $nameFile > $LOWDIN_DATA/basis/$BASIS_NAME
+		      (flag==1){print toupper($0)}' $nameFile > $BASIS_NAME.$PID
      	    done
 	fi
 
+	POTENTIALS_NAMES=(`gawk '($1~/^POTENTIAL$/){print toupper($2)}' $nameFile`)
+	if [ ${#POTENTIALS_NAMES[@]} -gt "0" ]
+	then
+	    for POTENTIALS_NAME in ${POTENTIALS_NAMES[@]}				 
+	    do
+		if [ -e $LOWDIN_DATA/basis/$POTENTIALS_NAME ]
+		then
+		    echo "## ERROR: ## The custom potential file already exists in " $LOWDIN_DATA/potentials/$POTENTIALS_NAME		    
+		    echo "Modify the POTENTIALS block in your input and select a different name"
+		    exit 1
+		fi
+		gawk '($1~/^POTENTIAL$/ && toupper($2)~/^'$POTENTIALS_NAME'$/){flag=1; next}
+		      ($0~/END/){flag=0};
+		      (flag==1){print toupper($0)}' $nameFile > $POTENTIALS_NAME.$PID
+     	    done
+	fi
+	
 	
 	###########################################
 	# Exec lowdin.x
@@ -382,6 +441,7 @@ if [ $extFile="lowdin" ]; then
 	
 	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.plainvec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.fchk $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
@@ -393,12 +453,24 @@ if [ $extFile="lowdin" ]; then
 	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.coeff $LOWDIN_SCRATCH/$nameFile &> /dev/null		
-	
-	if [ -e  $nameFile.gms.bs ]
-	then
-	    cp $nameFile.gms.bs $LOWDIN_SCRATCH/$nameFile
-	fi
+	cp $nameFile*.gms.bs $LOWDIN_SCRATCH/$nameFile &> /dev/null
 
+	#PID to avoid basis/potentials duplicates in simultaneous calculations
+	if [ ${#BASIS_NAMES[@]} -gt "0" ]
+	then
+	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
+	    do
+		mv $BASIS_NAME.$PID $LOWDIN_SCRATCH/$nameFile/$BASIS_NAME &> /dev/null		
+     	    done
+	fi
+	if [ ${#POTENTIALS_NAMES[@]} -gt "0" ]
+	then
+	    for POTENTIALS_NAME in ${POTENTIALS_NAMES[@]}				 
+	    do
+		mv $POTENTIALS_NAME.$PID $LOWDIN_SCRATCH/$nameFile/$POTENTIALS_NAME &> /dev/null		
+     	    done
+	fi
+	
 	# setting default number of cores for OpenMP
 
 	if [ -z "$OMP_NUM_THREADS" ]; then
@@ -447,7 +519,7 @@ if [ $extFile="lowdin" ]; then
 	if [ -e $nameFile.out ]
 	then
 	    cp $LOWDIN_SCRATCH/$nameFile/*.out $currentPath
-	    cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
+	    # cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.xyzr $currentPath 
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
 	fi
@@ -462,20 +534,21 @@ if [ $extFile="lowdin" ]; then
 	#mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
-	mv $LOWDIN_SCRATCH/$nameFile/*.molden $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.molden $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfn $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfx $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.vec $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.plainvec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.vec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.plainvec $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.fchk $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.coords $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.NOCI.s* $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.cub $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.dens $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.eps $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.orb* $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.gnp $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.NOCI.coords $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.NOCI.s* $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.cub $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.dens $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.eps $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.orb* $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.gnp $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.civec $currentPath &> 2
         # mv $LOWDIN_SCRATCH/$nameFile/*.ci $currentPath &> 2
@@ -490,15 +563,6 @@ if [ $extFile="lowdin" ]; then
 
 	if [ $keepScratch = "F" ]; then
 	   rm -rf $LOWDIN_SCRATCH/$nameFile
-	fi
-
-	### Clean custom basis files
-	if [ ${#BASIS_NAMES[@]} -gt "0" ]
-	then
-	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
-	    do
-		rm $LOWDIN_DATA/basis/$BASIS_NAME
-     	    done
 	fi
 
     else

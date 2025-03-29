@@ -71,59 +71,53 @@ contains
     !! Looking for library    
     inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//"/dataBases/constantsOfCoupling.lib", exist=existFile)
     
-    if ( existFile ) then
-       
-       !! Open library
-       open(unit=10, file=trim(CONTROL_instance%DATA_DIRECTORY)//"/dataBases/constantsOfCoupling.lib", status="old", form="formatted" )
-       
-       !! Read information
-       symbol = "NONE"
-       stat = 0
-       
-       do while(trim(symbol) /= trim(symbolSelected))
-       
-          !! Setting defaults
-          name = "NONE"
-          kappa = 0
-          eta = 0
-          particlesFraction = 1
-          
-          if (stat == -1 ) then
-             
-             call ConstantsOfCoupling_exception( ERROR, "Elemental particle: "//trim(symbolSelected)//" NOT found!!", "In ConstantsOfCoupling at load function.")
-             this%isInstanced = .false.
+    if ( .not. existFile ) call ConstantsOfCoupling_exception( ERROR, "LOWDIN library not found!! please export lowdinvars.sh file.", "In ConstantsOfCoupling at load function.")
+    
+    !! Open library
+    open(unit=10, file=trim(CONTROL_instance%DATA_DIRECTORY)//"/dataBases/constantsOfCoupling.lib", status="old", form="formatted" )
 
-          end if
-          
-          read(10,NML=specie, iostat=stat)
- 
-          if (stat > 0 ) then
-             
-             call ConstantsOfCoupling_exception( ERROR, "Failed reading ConstantsOfCouplings.lib file!! please check this file.", "In ConstantsOfCoupling at load function.")
-             
-          end if
+    !! Read information
+    symbol = "NONE"
+    stat = 0
 
-       end do
+    do while(trim(symbol) /= trim(symbolSelected))
 
-       !! Set object variables
-       this%name = name
-       this%symbol = symbol
-       this%kappa = kappa
-       this%eta = eta
-       this%lambda = lambda
-       this%particlesFraction = particlesFraction
+       !! Setting defaults
+       name = "NONE"
+       kappa = 0
+       eta = 0
+       particlesFraction = 1
        
-       !! Debug information.
-       !! call ConstantsOfCoupling_show(this)
+       if (stat == -1 ) then
+
+          ! call ConstantsOfCoupling_exception( WARNING, "Elemental particle: "//trim(symbolSelected)//" NOT found!!", "Setting default values")
+          this%isInstanced=.false.
+          exit
+       end if
+
+       read(10,NML=specie, iostat=stat)
+
+       if (stat > 0 ) then
+
+          call ConstantsOfCoupling_exception( ERROR, "Failed reading ConstantsOfCouplings.lib file!! please check this file.", "In ConstantsOfCoupling at load function.")
+
+       end if
+
+    end do
+
+    !! Set object variables
+    this%name = name
+    this%symbol = symbol
+    this%kappa = kappa
+    this%eta = eta
+    this%lambda = lambda
+    this%particlesFraction = particlesFraction
+
+    !! Debug information.
+    ! call ConstantsOfCoupling_show(this)
+
+    close(10)
        
-       close(10)
-       
-    else 
-
-       call ConstantsOfCoupling_exception( ERROR, "LOWDIN library not found!! please export lowdinvars.sh file.", "In ConstantsOfCoupling at load function.")
-
-    end if 
-
     !! Done
     
   end subroutine ConstantsOfCoupling_load

@@ -13,12 +13,13 @@ CONTROL
 	readCoefficients=F
 	numberOfPointsPerDimension=1000	
 	totalEnergyTolerance=1E-12
+	units="BOHRS"
 END CONTROL
 
 OUTPUTS
-        densityPlot  dimensions=2 point1=0.0 0.0 -10.0 point2= 0.0 0.0 10.0
-	orbitalPlot  dimensions=2 point1=0.0 0.0 -10.0 point2= 0.0 0.0 10.0 species="E+" orbital=1
-	orbitalPlot  dimensions=2 point1=0.0 0.0 -2.0 point2= 0.0 0.0 2.0 species="E-" orbital=2
+        densityPlot  dimensions=2 point1=0.0 0.0 -20.0 point2= 0.0 0.0 20.0
+	orbitalPlot  axis="z" limitZ=-20.0 20.0 species="E+" orbital=1 scanStep=0.005
+	orbitalPlot  axis="x" limitX=0.0 10.0 species="E-" orbital=2 pointsPerDim=2000
 END OUTPUTS
 
 

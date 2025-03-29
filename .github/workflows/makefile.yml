@@ -16,7 +16,7 @@ jobs:
     - name: Compile and install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran python2 gawk libeigen3-dev libgmp-dev libboost-all-dev libarpack2-dev
+        sudo apt-get -y install wget git build-essential liblapack-dev libblas-dev libgsl0-dev autotools-dev automake libtool gfortran gawk libeigen3-dev libgmp-dev libboost-all-dev libopenblas-dev gnuplot
         # Define ENV Variables
         export WORKDIR=$PWD/dependencies
         export PATH=$PATH:$WORKDIR/bin
@@ -29,39 +29,59 @@ jobs:
         mkdir $WORKDIR/bin
         mkdir $WORKDIR/lib
         cd $WORKDIR
-        # Install Libint2
+        # Get libint
         # wget https://www.dropbox.com/s/f34pbzmvcoms000/libint2.0-beta-codeship.tgz # minimal G12, fPIC, old distro
         # wget https://www.dropbox.com/s/0e6ov2fxo7pdafb/libint2.0-beta-full.tgz # full G12, no fPIC, new distro
         # wget https://www.dropbox.com/s/tzmqzt3n0trpayf/libint2.0-beta.tgz # minimal G12, fPIC, new distro
         wget https://www.dropbox.com/s/d3d44j238lkfwcr/libint-master-SEP052019.tgz # minimal (default am), G12, fPIC, new distro, gcc 9.1.0, Linux Kernel 5.2.9, libint2 commit 668b10c4bdca5876984058742d4212675eb93f3f
         tar xzvf libint-master-SEP052019.tgz
-        cd -
-        # Build libint1
-        git clone https://github.com/evaleev/libint.git
-        cd libint
-        git checkout v1
-        aclocal -I lib/autoconf
-        autoconf
-        ./configure --prefix=$WORKDIR
-        make -j 4
-        make install
-        make clean
-        make distclean
-        cd -
-        # Build libxc
-        #git clone https://gitlab.com/libxc/libxc.git
-        #cd libxc
-        #git checkout 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
-        #autoreconf -i
-        #./configure --enable-shared --prefix=$WORKDIR
-        #make -j 4
-        #make install
+        cd ..
+        # # Build libint2
+        # git clone https://github.com/evaleev/libint.git
+        # cd libint
+        # git checkout 668b10c4bdca5876984058742d4212675eb93f3f
+        # ./autogen.sh
+        # mkdir ../libint2
+        # cd ../libint2
+        # export CC=gcc
+        # export CXX=g++
+        # export CXXFLAGS="-std=c++11 -Wno-enum-compare -fopenmp"
+        # export CPPFLAGS='-I/usr/include/eigen3'
+        # ../libint/configure --prefix=$WORKDIR --with-max-am=6 --enable-g12=4 --with-g12-max-am=4 --with-cxxgen-optflags
+        # make -j 4
+        # make install
+        # cd ..
+        # # Build libint1
+        # cd libint
+        # git checkout v1
+        # aclocal -I lib/autoconf
+        # autoconf
+        # ./configure --prefix=$WORKDIR
+        # make -j 4
+        # make install
+        # make clean
+        # make distclean
+        # cd ..
+        # Get libxc
         cd $WORKDIR        
         wget https://www.dropbox.com/s/6cja3zzhl1cq46i/libxc-master-MAY242023.tgz # default options,libxc commit 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
         tar xzvf libxc-master-MAY242023.tgz
         cd ..
+        # Build libxc
+        # git clone https://gitlab.com/libxc/libxc.git
+        # cd libxc
+        # git checkout 4bd0e1e36347c6d0a4e378a2c8d891ae43f8c951
+        # autoreconf -i
+        # ./configure --enable-shared --prefix=$WORKDIR
+        # make -j 4
+        # make install
+        # cd ..
+        # Get erkale - save some compilation time
+        wget 'https://www.dropbox.com/scl/fi/rrboefmyu04wse1s57n3o/erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0'
+        mv 'erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0' erkaleStaticForLowdin.tgz
+        tar xzvf erkaleStaticForLowdin.tgz
         # Configure Lowdin
-        ./configure -p $WORKDIR/bin -s /tmp -l "-lblas -llapack -larpack"
+        ./configure -f "gfortran" -o 2 -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
         # Build Lowdin
         make -j 4
         # Install Lowdin

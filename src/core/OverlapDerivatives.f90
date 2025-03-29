@@ -86,6 +86,7 @@ contains
     center_i = 0
     center_j = 3*ssize
 
+    AB2=0.0_8
     do i = 0, 2
        AB2 = AB2 + (originA(i) - originB(i))*(originA(i) - originB(i))
     end do

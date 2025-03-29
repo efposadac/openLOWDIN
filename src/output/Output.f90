@@ -43,7 +43,7 @@ program Output_
 
   character(50) :: job
   integer :: numberOfOutputs, i
-
+  
   job = ""
   call get_command_argument(1,value=job)  
   job = trim(String_getUppercase(job))
@@ -63,7 +63,7 @@ program Output_
      allocate(outputs_instance(1) )
 
      call OutputBuilder_constructor( outputs_instance(1), 1, &
-          "fchkFile", "ALL")
+          "FCHKFILE", "ALL")
 
      call OutputBuilder_buildOutput(outputs_instance(1))
      call OutputBuilder_show(outputs_instance(1))
@@ -71,23 +71,11 @@ program Output_
   else
      read(job,"(I10)") numberOfOutputs
 
-     call InputOutput_constructor( numberOfOutputs )
-     call InputOutput_load( )
-
      allocate(outputs_instance(numberOfOutputs) )
 
-     do i=1, numberOfOutputs
-        call OutputBuilder_constructor( outputs_instance(i), i, &
-             InputOutput_Instance(i)%type, &
-             InputOutput_Instance(i)%species, & 
-             InputOutput_Instance(i)%state, &
-             InputOutput_Instance(i)%orbital, &
-             InputOutput_Instance(i)%dimensions, &
-             InputOutput_Instance(i)%cubeSize, &
-             InputOutput_Instance(i)%point1, & 
-             InputOutput_Instance(i)%point2, &
-             InputOutput_Instance(i)%point3  )
+     call InputOutput_load(outputs_instance(:))
 
+     do i=1, numberOfOutputs
         call OutputBuilder_buildOutput(outputs_instance(i))
         call OutputBuilder_show(outputs_instance(i))
      end do

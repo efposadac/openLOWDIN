@@ -1,4 +1,4 @@
-!!******************************************************************************
+!******************************************************************************
 !!	This code is part of LOWDIN Quantum chemistry package                 
 !!	
 !!	this program has been developed under direction of:
@@ -72,19 +72,19 @@ contains
     case(SCF_INTRASPECIES_CONVERGENCE_FAILED)
 
        print *,""
-       print *,"SCF STATUS: CONVERGENCE FAILED BY: ",trim(wfObject%name)
+       print *,"SCF STATUS: CONVERGENCE FAILED BY: ",trim(MolecularSystem_getSymbolOfSpecies(wfObject%species))
        print *,""
 
     case(SCF_INTRASPECIES_CONVERGENCE_CONTINUE)
 
        print *,""
-       print *,"SCF STATUS: CONVERGENCE CONTINUE BY: ",trim(wfObject%name)
+       print *,"SCF STATUS: CONVERGENCE CONTINUE BY: ",trim(MolecularSystem_getSymbolOfSpecies(wfObject%species))
        print *,""
 
     case(SCF_INTRASPECIES_CONVERGENCE_SUCCESS)
 
        print *,""
-       print *,"SCF STATUS: CONVERGENCE SUCCESS BY: ",trim(wfObject%name)
+       print *,"SCF STATUS: CONVERGENCE SUCCESS BY: ",trim(MolecularSystem_getSymbolOfSpecies(wfObject%species))
        print *,""
 
     end select
@@ -155,7 +155,7 @@ contains
     real(8) :: hold
 
     !    wfnFile = trim(CONTROL_instance%INPUT_FILE)//"lowdin.vec"
-    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species )
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species, wfObject%molSys )
 
     !!**********************************************************************************************
 
@@ -209,7 +209,8 @@ contains
     ! call Matrix_show(wfObject%waveFunctionCoefficients)
 
     !! Filtra los orbitales eliminados por el umbral de solapamiento
-    call Wavefunction_removeOrbitalsBelowEigenThreshold(wfObject)    
+    if (wfObject%removedOrbitals .ge. 1) &
+         call Wavefunction_removeOrbitalsBelowEigenThreshold(wfObject)    
 
     if ( CONTROL_instance%ACTIVATE_LEVEL_SHIFTING) &
          call Convergence_removeLevelShifting(wfObject%convergenceMethod,wfObject%molecularOrbitalsEnergy)   
@@ -281,7 +282,7 @@ contains
 
     call Convergence_destructor(wfObject%convergenceMethod)
     call Convergence_constructor(wfObject%convergenceMethod, &
-         wfObject%name,CONTROL_instance%CONVERGENCE_METHOD)
+         wfObject%name,CONTROL_instance%CONVERGENCE_METHOD,wfObject%molSys)
 
     call Convergence_reset()
 
@@ -300,7 +301,7 @@ contains
   !   wfObject%name = "E-"
   !   if ( present(wfObject%name ) )  wfObject%name= trim(wfObject%name )
 
-  !   wfObject%species = MolecularSystem_getSpecieID(wfObject%name=trim(wfObject%name ) )
+  !   wfObject%species = MolecularSystem_getSpeciesID(wfObject%name=trim(wfObject%name,wfObject%molSys ) )
 
   !   !! Determina la desviacion estandar de los elementos de la matriz de densidad
   !   call Matrix_copyConstructor(wfObject%beforeDensityMatrix, wfObject%densityMatrix )
@@ -365,13 +366,13 @@ contains
     !When the user explicitly requires EXCHANGE_ORBITALS_IN_SCF to have a solution with max overlap to the guess function
     !Or when an orbital is selected for partial ionization 
     if(CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF) then
-       activeOrbitals = MolecularSystem_getOcupationNumber(wfObject%species)
+       activeOrbitals = MolecularSystem_getOcupationNumber(wfObject%species,wfObject%molSys)
        call Vector_constructorInteger(orbitalsVector,activeOrbitals)
        do i=1,activeOrbitals
           orbitalsVector%values(i)=i
        end do
     else if(CONTROL_instance%IONIZE_MO(1) .gt. 0) then
-       if (trim(wfObject%name) .ne. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) return
+       if (trim(MolecularSystem_getSymbolOfSpecies(wfObject%species,wfObject%molSys)) .ne. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) return
        activeOrbitals = 0
        do i= 1, size(CONTROL_instance%IONIZE_MO)
           if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8 ) activeOrbitals=activeOrbitals+1
@@ -388,7 +389,7 @@ contains
     
     call Matrix_copyConstructor(auxOverlapMatrix,wfObject%overlapMatrix)
 
-    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species )
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species,wfObject%molSys)
 
     call Matrix_constructor (matchingMatrix, int(activeOrbitals,8), int(activeOrbitals,8))
 
@@ -463,7 +464,7 @@ contains
 
        prodigals = prodigals - 1
 
-       if (CONTROL_instance%PRINT_LEVEL>0) print *, "Switching orbital... ",search," with ",trial, " for ", trim(wfObject%name), " overlap", maxOverlap
+       if (CONTROL_instance%PRINT_LEVEL>0) print *, "Switching orbital... ",search," with ",trial, " for ", trim(MolecularSystem_getSymbolOfSpecies(wfObject%species)), " overlap", maxOverlap
 
        ! if (prodigals<2) then
        !    exit
@@ -499,21 +500,21 @@ contains
     integer :: wfnUnit
 
     wfnUnit = 30
-    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species )
+    numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species,wfObject%molSys)
     !! NO SCF cicle for electrons or non-electrons
-    if ( CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS .and. .not. MolecularSystem_instance%species(wfObject%species)%isElectron) return
-    if ( CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS .and. MolecularSystem_instance%species(wfObject%species)%isElectron ) return
+    if ( CONTROL_instance%FREEZE_ELECTRONIC_ORBITALS .and. .not. wfObject%molSys%species(wfObject%species)%isElectron) return
+    if ( CONTROL_instance%FREEZE_NON_ELECTRONIC_ORBITALS .and. wfObject%molSys%species(wfObject%species)%isElectron ) return
 
     !! Read coefficients from various possible files
     if (CONTROL_instance%READ_FCHK) then
 
        call Matrix_constructor (auxiliaryMatrix, numberOfContractions, numberOfContractions)
-       call MolecularSystem_readFchk( trim(CONTROL_instance%INPUT_FILE)//trim(wfObject%name)//".fchk", &
+       call MolecularSystem_readFchk( trim(CONTROL_instance%INPUT_FILE)//trim(wfObject%molSys%species(wfObject%species)%symbol)//".fchk", &
             wfObject%waveFunctionCoefficients, auxiliaryMatrix, wfObject%name )
        call Matrix_destructor(auxiliaryMatrix)
 
     else if (CONTROL_instance%READ_COEFFICIENTS) then
-       arguments(2) = MolecularSystem_getNameOfSpecie(wfObject%species)
+       arguments(2) = MolecularSystem_getNameOfSpecies(wfObject%species,wfObject%molSys)
        arguments(1) = "COEFFICIENTS"
 
        wfnFile=trim(CONTROL_instance%INPUT_FILE)//"plainvec"

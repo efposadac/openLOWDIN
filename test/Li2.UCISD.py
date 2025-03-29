@@ -1,57 +1,23 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues={
+    "HF energy" : [-14.781739628142,1E-7],
+    "CISD energy" : [-14.821294812311,1E-6],
+    "HF coefficient" : [0.926869142476,1E-4]
+}
+    return refValues
 
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
+def getTestValues(testValues,testName):
+    testValues["HF energy"] = test.getSCFTotalEnergy(testName)
+    testValues["CISD energy"] = test.getCIEnergy(testName,1)
+    testValues["HF coefficient"] = test.getHFCoefficient(testName)
+    return 
 
-testName = "Li2.UCISD"
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
-
-# Reference values
-
-refTotalEnergy = -14.781739628142
-refCISDEnergy = -14.821294812311
-refHFCoefficient = 0.926869142476
-
-# Run calculation
-
-status = os.system(lowdinbin + " -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-
-for line in outputRead:
-    if "TOTAL ENERGY =" in line:
-        totalEnergy = float(line.split()[3])
-    if "STATE:   1 ENERGY =" in line:
-        CISDEnergy = float(line.split()[4])
-    if "HF COEFFICIENT =" in line:
-        HFCoefficient = float(line.split()[3])
-
-
-diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffCISDEnergy = abs(refCISDEnergy - CISDEnergy)
-diffHFCoefficient = abs(refHFCoefficient - abs(HFCoefficient))
-
-if (diffTotalEnergy <= 1E-8 and diffCISDEnergy <= 1E-6 and diffHFCoefficient <= 1E-4 ):
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-    print("Difference HF: " + str(diffTotalEnergy))
-    print("Difference CISD: " + str(diffCISDEnergy))
-    print("Difference HF Coefficient: " + str(diffHFCoefficient))
-#    sys.exit(1)
-
-output.close()
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)
