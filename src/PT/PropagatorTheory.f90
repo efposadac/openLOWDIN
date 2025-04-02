@@ -276,10 +276,10 @@ contains
           end if
 
           if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+             species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
              do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
                if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
+               species2ID= MolecularSystem_getSpeciesIDfromSymbol(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
           else
@@ -297,7 +297,7 @@ contains
 
              nameOfSpecies=trim(MolecularSystem_getNameOfSpecies( q ))
 
-             write (6,"(T10,A8,A10)") "SPECIES: ",nameOfSpecies
+             write (6,"(T10,A8,A10)") "SPECIES: ", trim(MolecularSystem_getSymbolOfSpecies( q ))
 
              if (nameOfSpecies=="E-ALPHA".or.nameOfSpecies=="E-BETA") then
                 
@@ -387,10 +387,10 @@ contains
           write (*,"(T10,A64)") "---------------------------------------------------------------"
 
           if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+             species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
              do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
                if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
+               species2ID= MolecularSystem_getSpeciesIDfromSymbol(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
           else
@@ -523,7 +523,7 @@ contains
     !!! Defining for which species the correction will be applied
     
 !    if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -533,12 +533,12 @@ contains
 !    end if
 
       if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-             species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+             species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
              zz = 0 
              do z = 1, size(CONTROL_instance%IONIZE_SPECIES )
                if (CONTROL_instance%IONIZE_SPECIES(z) /= "NONE" ) then
                zz = zz + 1
-               species2ID= MolecularSystem_getSpecieID(CONTROL_instance%IONIZE_SPECIES(z))
+               species2ID= MolecularSystem_getSpeciesIDfromSymbol(CONTROL_instance%IONIZE_SPECIES(z))
                end if
              end do 
              m = zz 
@@ -957,7 +957,7 @@ contains
 
           print *,"----------------------------------------------------------------"
           write (*,"(T5,A25,I2,A13,A8)") "Results for spin-orbital:",int(PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)),&
-               " of species: ",nameOfSpeciesA
+               " of species: ", trim(MolecularSystem_getSymbolOfSpecies(i))
           write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2)
 
           ! Selecting value of o, for spin-component-scaled calculations
@@ -1079,10 +1079,10 @@ contains
              print *, ""
              write (*,"(T5,A43,I2,A13,A12)") "P2 decomposition (in eV) for spin-orbital:", &
                    int(PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)),&
-                   " of species a: ",nameOfSpeciesA
+                   " of species a: ", trim(MolecularSystem_getSymbolOfSpecies(i))
 
              write (*, "(T6,A50)") "--------------------------------------------------"
-             write (*, "(T6,A14,A11,A11,A12,A13)"),"Species b     ", "    PRX    ", "    ORX    ", "E_2ph (PRM) ", "\Sigma_{ab}^2"
+             write (*, "(T6,A14,A11,A11,A12,A13)") "Species b     ", "    PRX    ", "    ORX    ", "E_2ph (PRM) ", "\Sigma_{ab}^2"
              write (*, "(T6,A50)") "--------------------------------------------------"
              TE2hp = 0.0_8
              TE2ph = 0.0_8
@@ -1152,7 +1152,7 @@ contains
                    
                 end if
 
-                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), nameOfSpeciesB, prx*EV, orx*EV, &
+                write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)")  trim(MolecularSystem_getSymbolOfSpecies(j)), prx*EV, orx*EV, &
                         E2ph*EV,(E2hp+E2ph)*EV
 
                 TE2hp = TE2hp + E2hp
@@ -1165,7 +1165,7 @@ contains
              write (*, "(T6,A50)") "--------------------------------------------------"
 
              !! Total 
-             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)"), "Sum for b " , Tprx*EV,Torx*EV, &
+             write (*,"(T6,A10,2X,F10.5,2X,F10.5,2X,F10.5,2X,F10.5)")  "Sum for b " , Tprx*EV,Torx*EV, &
                          TE2ph*EV,(TE2hp+TE2ph)*EV
 
              write (*, "(T6,A50)") "--------------------------------------------------"
@@ -1349,7 +1349,7 @@ contains
     ! Defining for which species the correction will be applied
     
     if (CONTROL_instance%IONIZE_SPECIES(1) /= "NONE") then
-       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES(1) )
+       species1ID = MolecularSystem_getSpeciesIDFromSymbol( CONTROL_instance%IONIZE_SPECIES(1) )
        species2ID= species1ID
        m=1
     else
@@ -3140,7 +3140,7 @@ contains
           PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,4)=poleStrenght
 
           write (*,"(T5,A25,I2,A13,A8)") "Results for spin-orbital:",int(PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1)),&
-               " of species: ",nameOfSpeciesA
+               " of species: ", molecularSystem_getSymbolOfSpecies(i)
           write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,2)
           write (*,"(T5,A29,F8.4,A7,I2,A12)") "Optimized second order pole: ",PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,3),&
                " after ",ni," iterations."
@@ -4648,7 +4648,7 @@ contains
           ! printing results for one spin-orbital
 
           write (*,"(T5,A55,I2,A13,A8)") "SUMMARY OF PROPAGATOR RESULTS FOR THE SPIN-ORBITAL:",&
-               int(PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1))," OF SPECIES:",nameOfSpeciesA 
+               int(PropagatorTheory_instance%thirdOrderCorrections(q)%values(m,1))," OF SPECIES:", molecularSystem_getSymbolOfSpecies(i)
           write (*, "(T5,A45)") "--------------------------------------------" 
           write (*, "(T10,A12,A12,A12)") " Method ","BE (eV)","Pole S."
           write (*, "(T5,A45)") "--------------------------------------------"
@@ -4852,7 +4852,7 @@ end module PropagatorTheory_
   !   print *,"******************************************************************"
   !   print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
-  !   electronsID = MolecularSystem_getSpecieID(  nameOfSpecie="e-" )
+  !   electronsID = MolecularSystem_getSpeciesIDfromSymbol(  "e-" )
 
   !   if ( PropagatorTheory_instance%numberOfSpecies.gt.1 ) then
        
@@ -4862,7 +4862,7 @@ end module PropagatorTheory_
   !   end if
 
   !   if (CONTROL_instance%PT_TRANSITION_OPERATOR.or.CONTROL_instance%PT_JUST_ONE_ORBITAL) then
-  !      specie1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+  !      specie1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
   !      specie2ID= specie1ID
   !   else
   !      specie1ID=1
@@ -4873,7 +4873,7 @@ end module PropagatorTheory_
        
   !      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( i ) )
        
-  !      specieID = MolecularSystem_getSpecieID( nameOfSpecie=nameOfSpecie )
+  !      specieID = MolecularSystem_getSpeciesIDfromSymbol( nameOfSpecie )
   !      charge = MolecularSystem_getCharge( specieID )
   !      eigenValues = MolecularSystem_getEigenValues(i)
   !      occupationNumber = MolecularSystem_getOcupationNumber( i )
@@ -5036,7 +5036,7 @@ end module PropagatorTheory_
   !               if (j.ne.i) then
                    
   !                  nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( j ) )
-  !                  otherSpecieID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecie )
+  !                  otherSpecieID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecie )
   !                  eigenValuesOfOtherSpecie = MolecularSystem_getEigenValues(j)
   !                  occupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( j )
   !                  numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( j )
@@ -5299,7 +5299,7 @@ end module PropagatorTheory_
   !   print *,"******************************************************************"
   !   print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
-  !   speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+  !   speciesID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 
   !   nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )
        
@@ -5411,7 +5411,7 @@ end module PropagatorTheory_
   !         if (j.ne.speciesID) then
              
   !            nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
-  !            otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+  !            otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
   !            eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
   !            occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
   !            numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -5505,7 +5505,7 @@ end module PropagatorTheory_
   !            if (j.ne.speciesID) then
                 
   !               nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
-  !               otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+  !               otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
   !               eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
   !               occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
   !               numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -5801,7 +5801,7 @@ end module PropagatorTheory_
 !     print *,"******************************************************************"
 !     print *,"BEGINNING OF SECOND ORDER ELECTRON-NUCLEAR PROPAGATOR CALCULATIONS"
 
-!     speciesID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!     speciesID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !     nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( speciesID ) )       
 !     chargeOfSpecies = MolecularSystem_getCharge( speciesID )
 !     eigenValuesOfSpecies = MolecularSystem_getEigenValues( speciesID )
@@ -6036,7 +6036,7 @@ end module PropagatorTheory_
 !              if (j.ne.speciesID) then
                 
 !                 nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
-!                 otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!                 otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !                 eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !                 occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
 !                 numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -6250,7 +6250,7 @@ end module PropagatorTheory_
 !           if (j.ne.speciesID) then
              
 !              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
-!              otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!              otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
 !              numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -6393,7 +6393,7 @@ end module PropagatorTheory_
 !           if (j.ne.speciesID) then
              
 !              nameOfOtherSpecies= trim(  MolecularSystem_getNameOfSpecies( j ) )
-!              otherSpeciesID =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!              otherSpeciesID =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
 !              numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
@@ -6479,7 +6479,7 @@ end module PropagatorTheory_
 !           if (i.ne.speciesID) then
              
 !              nameOfOtherSpecies1= trim(  MolecularSystem_getNameOfSpecies( i ) )
-!              otherSpeciesID1 =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!              otherSpeciesID1 =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !              eigenValuesOfOtherSpecies1 = MolecularSystem_getEigenValues(j)
 !              occupationNumberOfOtherSpecies1 = MolecularSystem_getOcupationNumber( i )
 !              numberOfContractionsOfOtherSpecies1 = MolecularSystem_getTotalNumberOfContractions( i )
@@ -6497,7 +6497,7 @@ end module PropagatorTheory_
 !                 if (j.ne.speciesID) then
                    
 !                    nameOfOtherSpecies2= trim(  MolecularSystem_getNameOfSpecies( j ) )
-!                    otherSpeciesID2 =MolecularSystem_getSpecieID( nameOfSpecie=nameOfOtherSpecies )
+!                    otherSpeciesID2 =MolecularSystem_getSpeciesIDfromSymbol( nameOfOtherSpecies )
 !                    eigenValuesOfOtherSpecies2 = MolecularSystem_getEigenValues(j)
 !                    occupationNumberOfOtherSpecies2 = MolecularSystem_getOcupationNumber( j )
 !                    numberOfContractionsOfOtherSpecies2 = MolecularSystem_getTotalNumberOfContractions( j )
@@ -6953,7 +6953,7 @@ end module PropagatorTheory_
 !    !!! Defining for which species the correction will be applied
 !    
 !    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -8396,7 +8396,7 @@ end module PropagatorTheory_
 !    !!! Defining for which species the correction will be applied
 !    
 !    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -10548,7 +10548,7 @@ end module PropagatorTheory_
 !    !!! Defining for which species the correction will be applied
 !    
 !    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else
@@ -12725,7 +12725,7 @@ end module PropagatorTheory_
 !    ! Defining for which species the correction will be applied
 !    
 !    if (CONTROL_instance%IONIZE_SPECIES /= "NONE") then
-!       species1ID = MolecularSystem_getSpecieID( nameOfSpecie=CONTROL_instance%IONIZE_SPECIES )
+!       species1ID = MolecularSystem_getSpeciesIDfromSymbol( CONTROL_instance%IONIZE_SPECIES )
 !       species2ID= species1ID
 !       m=1
 !    else

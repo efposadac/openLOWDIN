@@ -779,7 +779,7 @@ contains
 
        open(29,file=this%fileName(l),status='replace',action='write')
 
-       specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
+       specieID = int( MolecularSystem_getSpeciesID(trim(auxString)) )
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
        arguments(2) = MolecularSystem_getNameOfSpecies(specieID)
 
@@ -1339,11 +1339,11 @@ contains
        totalNumberOfParticles = 0
 
        auxString=MolecularSystem_getSymbolOfSpecies( l )
-       specieID = MolecularSystem_getSpecieID(auxString)
+       specieID = MolecularSystem_getSpeciesID(auxString)
        this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".eigen"
        open(129,file=this%fileName(l),status='replace',action='write')
 
-       specieID = int( MolecularSystem_getSpecieID(nameOfSpecie = trim(auxString)) )
+       specieID = int( MolecularSystem_getSpeciesID(trim(auxString)) )
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
        arguments(2) = MolecularSystem_getNameOfSpecies(specieID)
 

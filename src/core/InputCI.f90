@@ -160,7 +160,7 @@ contains
           else
              if(trim(InputCI_species) .ne. "" ) then
              
-                newID = MolecularSystem_getSpecieID (InputCI_species)
+                newID = MolecularSystem_getSpeciesIDFromSymbol (InputCI_species)
 
                 if ( newID .ne. 0 ) then
                    InputCI_Instance(newID)%species = trim(InputCI_species)

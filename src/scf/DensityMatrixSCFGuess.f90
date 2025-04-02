@@ -109,7 +109,7 @@ contains
        end if
     end if
     
-    if(readSuccess .and. printInfo ) print *, "Combination coefficients for ", trim(nameOfSpecies), " were read from ", trim(wfnFile)
+    if(readSuccess .and. printInfo ) print *, "Combination coefficients for ", trim(symbolOfSpecies), " were read from ", trim(wfnFile)
 
     if(.not. readSuccess) then
        call Matrix_constructor(orbitals, orderOfMatrix, orderOfMatrix, 0.0_8  )
@@ -120,7 +120,7 @@ contains
        end if
 
        if(printInfo) write(*, '(A13, A6, A28, A10)') &
-            "Usign ", trim(guessType), " density guess for species: ", trim(nameOfSpecies)
+            "Usign ", trim(guessType), " density guess for species: ", trim(symbolOfSpecies)
 
        select case( trim( String_getUppercase( guessType ) ) )
 
@@ -137,7 +137,7 @@ contains
           ! call DensityMatrixSCFGuess_huckel( densityMatrix, speciesID )
 
        case default
-          call DensityMatrixSCFGuess_exception( ERROR, "the selected guess method for "//nameOfSpecies//" is not implemented", "at program SCF module DensityMatrixSCFGuess")
+          call DensityMatrixSCFGuess_exception( ERROR, "the selected guess method for "//symbolOfSpecies//" is not implemented", "at program SCF module DensityMatrixSCFGuess")
 
        end select
     end if
@@ -149,11 +149,11 @@ contains
     
     call Matrix_copyConstructor(auxMatrix,orbitals)
     !! Segment for fractional occupations: introduce fractional occupation
-    if (trim(nameOfSpecies) == trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
+    if (trim(symbolOfSpecies) == trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
        do i=1,size(CONTROL_instance%IONIZE_MO)
           if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) then
              if(printInfo) write (*,"(A,F6.2,A,I5,A,A)") "Removing ", (1.0-CONTROL_instance%MO_FRACTION_OCCUPATION(i))*100, &
-                  " % of the density associated with orbital No. ", CONTROL_instance%IONIZE_MO(i), " of ", trim(nameOfSpecies)
+                  " % of the density associated with orbital No. ", CONTROL_instance%IONIZE_MO(i), " of ", trim(symbolOfSpecies)
              auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i)) = auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i))*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION(i))
           end if
        end do

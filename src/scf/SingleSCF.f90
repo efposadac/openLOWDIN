@@ -72,19 +72,19 @@ contains
     case(SCF_INTRASPECIES_CONVERGENCE_FAILED)
 
        print *,""
-       print *,"SCF STATUS: CONVERGENCE FAILED BY: ",trim(wfObject%name)
+       print *,"SCF STATUS: CONVERGENCE FAILED BY: ",trim(MolecularSystem_getSymbolOfSpecies(wfObject%species))
        print *,""
 
     case(SCF_INTRASPECIES_CONVERGENCE_CONTINUE)
 
        print *,""
-       print *,"SCF STATUS: CONVERGENCE CONTINUE BY: ",trim(wfObject%name)
+       print *,"SCF STATUS: CONVERGENCE CONTINUE BY: ",trim(MolecularSystem_getSymbolOfSpecies(wfObject%species))
        print *,""
 
     case(SCF_INTRASPECIES_CONVERGENCE_SUCCESS)
 
        print *,""
-       print *,"SCF STATUS: CONVERGENCE SUCCESS BY: ",trim(wfObject%name)
+       print *,"SCF STATUS: CONVERGENCE SUCCESS BY: ",trim(MolecularSystem_getSymbolOfSpecies(wfObject%species))
        print *,""
 
     end select
@@ -301,7 +301,7 @@ contains
   !   wfObject%name = "E-"
   !   if ( present(wfObject%name ) )  wfObject%name= trim(wfObject%name )
 
-  !   wfObject%species = MolecularSystem_getSpecieID(wfObject%name=trim(wfObject%name,wfObject%molSys ) )
+  !   wfObject%species = MolecularSystem_getSpeciesID(wfObject%name=trim(wfObject%name,wfObject%molSys ) )
 
   !   !! Determina la desviacion estandar de los elementos de la matriz de densidad
   !   call Matrix_copyConstructor(wfObject%beforeDensityMatrix, wfObject%densityMatrix )
@@ -372,7 +372,7 @@ contains
           orbitalsVector%values(i)=i
        end do
     else if(CONTROL_instance%IONIZE_MO(1) .gt. 0) then
-       if (trim(wfObject%name) .ne. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) return
+       if (trim(MolecularSystem_getSymbolOfSpecies(wfObject%species,wfObject%molSys)) .ne. trim(CONTROL_instance%IONIZE_SPECIES(1)) ) return
        activeOrbitals = 0
        do i= 1, size(CONTROL_instance%IONIZE_MO)
           if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8 ) activeOrbitals=activeOrbitals+1
@@ -464,7 +464,7 @@ contains
 
        prodigals = prodigals - 1
 
-       if (CONTROL_instance%PRINT_LEVEL>0) print *, "Switching orbital... ",search," with ",trial, " for ", trim(wfObject%name), " overlap", maxOverlap
+       if (CONTROL_instance%PRINT_LEVEL>0) print *, "Switching orbital... ",search," with ",trial, " for ", trim(MolecularSystem_getSymbolOfSpecies(wfObject%species)), " overlap", maxOverlap
 
        ! if (prodigals<2) then
        !    exit

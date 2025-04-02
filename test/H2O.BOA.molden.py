@@ -1,23 +1,13 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
-
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
-
-testName = sys.argv[0][:-3]
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
-molden1Name = testName + ".E-.molden"                                                                
-# Reference values and tolerance
-
-refValues = {
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues = {
 "HF energy" : [-76.056328834832,1E-8],
-"e-HOMO" : [-5.08882E-01,1E-4],
+"e-HOMO molden" : [-5.08882E-01,1E-4],
 "eigvec,1,1": [0.9939786,0.001],
 "eigvec,1,2": [0.00321949,0.001],
 "eigvec,1,3": [0.02029773,0.001],
@@ -129,64 +119,20 @@ refValues = {
 "eigvec,5,63": [0.00285564,0.001],
 "eigvec,5,69": [0.00492437,0.001]
 }                       
+    return refValues
 
-testValues = dict(refValues) #copy 
-for value in testValues: #reset
-    testValues[value] = 0 #reset
-    
-# Run calculation
+def getTestValues(testValues,testName):
+    testValues["HF energy"] = test.getSCFTotalEnergy(testName)
+    testValues["e-HOMO molden"] = test.getHOMOmolden(testName,"E-")
+    eigvecs=test.getOccupiedOrbitalsMolden(testName,"E-")
+    for i in range(0,5):
+        for mu in range(0,74):
+              if abs(eigvecs[i][mu]) >= 0.001:
+    	          string="eigvec,"+str(i+1)+","+str(mu+1)
+    	          testValues[string] = abs(eigvecs[i][mu])
+    testValues["e-HOMO"] = test.getHFeigenvalues(testName,"E-",1)
+    return 
 
-status = os.system(lowdinbin + " -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-for i in range(0,len(outputRead)):
-    line = outputRead[i]
-    if "TOTAL ENERGY =" in line:
-        testValues["HF energy"] = float(line.split()[3])
-
-output.close()
-
-molden1 = open(molden1Name, "r")
-molden1Read = molden1.readlines()
-v=0
-eigenv=[]
-flag=0
-for i in range(0,len(molden1Read)):
-    line = molden1Read[i]
-    if "Ene=" in line:
-        eigenv.append(float(line.split()[1]))
-        v+=1
-    if flag==1 and "=" not in line:
-        if abs(float(line.split()[1])) >= 0.001:
-            string="eigvec,"+str(v)+","+str(line.split()[0])
-            testValues[string] = abs(float(line.split()[1]))
-    if "[MO]" in line:
-        flag=1
-    if "Occup=" in line and "0.0" in line :
-        testValues["e-HOMO"] = eigenv[v-2]
-        break
-molden1.close()
-
-passTest = True
-
-for value in refValues:
-    diffValue = abs(refValues[value][0] - testValues[value]) 
-    if ( diffValue <= refValues[value][1] ):
-        passTest = passTest * True
-    else :
-        passTest = passTest * False
-        print("%s %.8f %.8f %.2e" % ( value, refValues[value][0], testValues[value], diffValue))
-
-if passTest :
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)

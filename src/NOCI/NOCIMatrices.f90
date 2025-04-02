@@ -335,36 +335,36 @@ contains
           if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) then 
              write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, "Overlap element = ", this%configurationOverlapMatrix%values(mySysI,mySysII)
              do speciesID = 1, nspecies                
-                write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
+                write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
                      " Kinetic element = ", this%configurationKineticMatrix(speciesID)%values(mySysI,mySysII)
-                write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
+                write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
                      " Puntual element = ", this%configurationPuntualMatrix(speciesID)%values(mySysI,mySysII)
                 if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
-                     write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
+                     write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
                      " External element = ", this%configurationExternalMatrix(speciesID)%values(mySysI,mySysII)
-                write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
-                     "/"//trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
+                write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
+                     "/"//trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
                      " Hartree element = ", this%configurationHartreeMatrix(speciesID,speciesID)%values(mySysI,mySysII)
-                write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
+                write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
                      " Exchange element = ", this%configurationExchangeMatrix(speciesID)%values(mySysI,mySysII)
              end do
              do speciesID=1, nspecies-1
                 do otherSpeciesID=speciesID+1, nspecies
-                   write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
-                        "/"//trim( this%molecularSystems(mySysI)%species(otherSpeciesID)%name ) // &
+                   write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
+                        "/"//trim( this%molecularSystems(mySysI)%species(otherSpeciesID)%symbol ) // &
                         " Hartree element = ", this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(mySysI,mySysII)
                 end do
              end do
              if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
                 do speciesID=1, nspecies
-                   write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
-                        "/"//trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
+                   write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
+                        "/"//trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
                         " DFTcorrelation element = ", this%configurationDFTcorrelationMatrix(speciesID,speciesID)%values(mySysI,mySysII)
                 end do
                 do speciesID=1, nspecies
                    do otherSpeciesID=speciesID+1, nspecies-1
-                      write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%name ) // &
-                           "/"//trim( this%molecularSystems(mySysI)%species(otherSpeciesID)%name ) // &
+                      write (*,'(I10,I10,A38,ES20.12)') mySysI, mySysII, trim( this%molecularSystems(mySysI)%species(speciesID)%symbol ) // &
+                           "/"//trim( this%molecularSystems(mySysI)%species(otherSpeciesID)%symbol ) // &
                            " DFTcorrelation element = ", this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(mySysI,mySysII)
                    end do
                 end do
@@ -612,14 +612,14 @@ contains
     !         particlesInGrid)
 
     !    do speciesID = 1, numberOfSpecies
-    !       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
+    !       write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
     !            " Particles in grid = ", particlesInGrid(speciesID)
     !    end do
 
     !    do speciesID = 1, numberOfSpecies
     !       do otherSpeciesID = speciesID, numberOfSpecies
-    !          write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%name ) // &
-    !               "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%name ) // &
+    !          write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(speciesID)%symbol ) // &
+    !               "/"//trim( MolecularSystem_instance%species(otherSpeciesID)%symbol ) // &
     !               " DFT Corr. energy = ", dftEnergyMatrix%values(speciesID,otherSpeciesID)
     !          this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(sysI,sysII)=dftEnergyMatrix%values(speciesID,otherSpeciesID)*overlapElement
     !       end do
@@ -1250,7 +1250,7 @@ contains
                      this%configurationKineticMatrix(speciesID)%values(sysI,sysII)
              end do
           end do
-          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol) // &
                " Kinetic energy = ", auxEnergy
        end do
        do speciesID = 1, this%molecularSystems(1)%numberOfQuantumSpecies                
@@ -1266,7 +1266,7 @@ contains
                      this%configurationPuntualMatrix(speciesID)%values(sysI,sysII)
              end do
           end do
-          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
                " Puntual energy = ", auxEnergy
        end do
        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
@@ -1283,7 +1283,7 @@ contains
                         this%configurationExternalMatrix(speciesID)%values(sysI,sysII)
                 end do
              end do
-             write(*,"(A38,F25.12)") trim(this%molecularSystems(1)%species(speciesID)%name ) // &
+             write(*,"(A38,F25.12)") trim(this%molecularSystems(1)%species(speciesID)%symbol ) // &
                   " External energy = ", auxEnergy
           end do
        end if
@@ -1300,7 +1300,7 @@ contains
                      this%configurationExchangeMatrix(speciesID)%values(sysI,sysII)
              end do
           end do
-          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
                   " Exchange energy = ", auxEnergy
 
           do otherSpeciesID=speciesID, this%molecularSystems(1)%numberOfQuantumSpecies
@@ -1316,8 +1316,8 @@ contains
                         this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(sysI,sysII)
                 end do
              end do
-             write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
-                  "/"//trim( this%molecularSystems(1)%species(otherSpeciesID)%name ) // &
+             write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
+                  "/"//trim( this%molecularSystems(1)%species(otherSpeciesID)%symbol ) // &
                   " Hartree energy = ", auxEnergy
           end do
        end do

@@ -143,7 +143,7 @@ contains
           do sysI=1,this%numberOfDisplacedSystems
              auxEnergyIntegral=auxEnergyIntegral+signs%values(sysI)*this%configurationKineticMatrix(speciesID)%values(1,sysI)*weights%values(sysI,state)
           end do
-          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
                " Kinetic energy = ", auxEnergyIntegral/overlapIntegral
        end do
 
@@ -152,7 +152,7 @@ contains
           do sysI=1,this%numberOfDisplacedSystems
              auxEnergyIntegral=auxEnergyIntegral+signs%values(sysI)*this%configurationPuntualMatrix(speciesID)%values(1,sysI)*weights%values(sysI,state)
           end do
-          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
                " Puntual energy = ", auxEnergyIntegral/overlapIntegral
        end do
 
@@ -162,7 +162,7 @@ contains
              do sysI=1,this%numberOfDisplacedSystems
                 auxEnergyIntegral=auxEnergyIntegral+signs%values(sysI)*this%configurationExternalMatrix(speciesID)%values(1,sysI)*weights%values(sysI,state)
              end do
-             write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
+             write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
                   " External energy = ", auxEnergyIntegral/overlapIntegral
           end do
        end if
@@ -172,8 +172,8 @@ contains
           do sysI=1,this%numberOfDisplacedSystems
              auxEnergyIntegral=auxEnergyIntegral+signs%values(sysI)*this%configurationHartreeMatrix(speciesID,speciesID)%values(1,sysI)*weights%values(sysI,state)
           end do
-          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
-               "/"//trim( this%molecularSystems(1)%species(speciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
+               "/"//trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
                " Hartree energy = ", auxEnergyIntegral/overlapIntegral
        end do
 
@@ -182,7 +182,7 @@ contains
           do sysI=1,this%numberOfDisplacedSystems
              auxEnergyIntegral=auxEnergyIntegral+signs%values(sysI)*this%configurationExchangeMatrix(speciesID)%values(1,sysI)*weights%values(sysI,state)
           end do
-          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
+          write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
                " Exchange energy = ", auxEnergyIntegral/overlapIntegral
 
        end do
@@ -193,8 +193,8 @@ contains
              do sysI=1,this%numberOfDisplacedSystems
                 auxEnergyIntegral=auxEnergyIntegral+signs%values(sysI)*this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(1,sysI)*weights%values(sysI,state)
              end do
-             write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
-                  "/"//trim( this%molecularSystems(1)%species(otherSpeciesID)%name ) // &
+             write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
+                  "/"//trim( this%molecularSystems(1)%species(otherSpeciesID)%symbol ) // &
                   " Hartree energy = ", auxEnergyIntegral/overlapIntegral
           end do
        end do
@@ -205,8 +205,8 @@ contains
                 do sysI=1,this%numberOfDisplacedSystems
                    auxEnergyIntegral=auxEnergyIntegral+signs%values(sysI)*this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(1,sysI)*weights%values(sysI,state)
                 end do
-                write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
-                     "/"//trim( this%molecularSystems(1)%species(otherSpeciesID)%name ) // &
+                write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
+                     "/"//trim( this%molecularSystems(1)%species(otherSpeciesID)%symbol ) // &
                      " DFTcorrelation energy = ", auxEnergyIntegral/overlapIntegral
              end do
           end do
@@ -254,8 +254,8 @@ contains
                    ((e0+(1-e0)*exp(-(1-abs(this%configurationOverlapMatrix%values(1,sysI)))**4/sc**4))-1)
                         
                 end do
-                write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%name ) // &
-                     "/"//trim( this%molecularSystems(1)%species(otherSpeciesID)%name ) // &
+                write(*,"(A38,F25.12)") trim( this%molecularSystems(1)%species(speciesID)%symbol ) // &
+                     "/"//trim( this%molecularSystems(1)%species(otherSpeciesID)%symbol ) // &
                      " DFTcorrection energy = ", auxEnergyIntegral/overlapIntegral
                 auxEnergy=auxEnergy+auxEnergyIntegral/overlapIntegral
              end do

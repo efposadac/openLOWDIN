@@ -26,6 +26,8 @@ module Functional_
   type, public :: Functional
      character(30) :: species1
      character(30) :: species2
+     character(30) :: symbol1
+     character(30) :: symbol2
      real(8) :: mass1
      real(8) :: mass2
      character(50) :: name
@@ -117,6 +119,8 @@ contains
     this%exchangeName="NONE"
     this%species1=MolecularSystem_getNameOfSpecies(speciesID,molSys)
     this%species2=MolecularSystem_getNameOfSpecies(otherSpeciesID,molSys)
+    this%symbol1=MolecularSystem_getSymbolOfSpecies(speciesID,molSys)
+    this%symbol2=MolecularSystem_getSymbolOfSpecies(otherSpeciesID,molSys)
     this%exactExchangeFraction=1.0_8
     this%mass1=MolecularSystem_getMass(speciesID,molSys)
     this%mass2=MolecularSystem_getMass(otherSpeciesID,molSys)
@@ -332,26 +336,26 @@ contains
 
                 if( this%correlationName .ne. "NONE" ) then
 
-                   write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","exchange:", xc_f03_func_info_get_name(this%info1)
+                   write(*, "(T5,A10,A10,A5,A12,A)") trim(this%symbol1), trim(this%symbol2), "","exchange:", xc_f03_func_info_get_name(this%info1)
                    ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
 
-                   write(*, "(T5,A10,A10,A5,A12,A)") trim(this%species1), trim(this%species2), "","correlation:", xc_f03_func_info_get_name(this%info2)
+                   write(*, "(T5,A10,A10,A5,A12,A)") trim(this%symbol1), trim(this%symbol2), "","correlation:", xc_f03_func_info_get_name(this%info2)
                    ! print *, "family", xc_f03_func_info_get_family(this%info2), "shell", this%shell
 
                 else
 
-                   write(*, "(T5,A10,A10,A5,A21,A)") trim(this%species1), trim(this%species2), "", "exchange-correlation:", xc_f03_func_info_get_name(this%info1)
+                   write(*, "(T5,A10,A10,A5,A21,A)") trim(this%symbol1), trim(this%symbol2), "", "exchange-correlation:", xc_f03_func_info_get_name(this%info1)
 
                    ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
 
                 end if
 
              else
-                write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
+                write(*, "(T5,A10,A10,A5,A)") trim(this%symbol1), trim(this%symbol2), "",this%name
 
              end if
           else 
-             write(*, "(T5,A10,A10,A5,A)") trim(this%species1), trim(this%species2), "",this%name
+             write(*, "(T5,A10,A10,A5,A)") trim(this%symbol1), trim(this%symbol2), "",this%name
 
              if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE3") print *, "Using as correlation length: beta=q*rhoE^(1/3)"
              if(this%name .ne. "NONE" .and. CONTROL_instance%BETA_FUNCTION .eq. "RHOE6RHON6") print *, "Using as correlation length: beta=q*rhoE^(1/6)*rhoN^(1/6)"

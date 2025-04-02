@@ -432,7 +432,7 @@ contains
        end do
        if (this%removedOrbitals .gt. 0 .and. CONTROL_instance%PRINT_LEVEL .gt. 0) &
             write(*,"(A,I5,A,A,A,ES10.3)") "Removed ", this%removedOrbitals , " orbitals for species ", &
-            trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys)), " with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
+            trim(MolecularSystem_getSymbolOfSpecies(this%species,this%molSys)), " with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
        !!
        !!****************************************************************
 
@@ -676,7 +676,7 @@ contains
 
        write(*,*)"COSMO energy contributions"
 
-       write(*,*)"Especie = ",trim(this%molSys%species(this%species)%name)
+       write(*,*)"Species = ",trim(this%molSys%species(this%species)%symbol)
 
        this%cosmoEnergy =  &
             0.5_8* (sum( transpose( this%densitymatrix%values ) * &
@@ -709,18 +709,18 @@ contains
 
 
 
-
-    ! print *, "__________________ ENERGY COMPONENTS _______________________"
-    ! print *, "	Specie                       ", MolecularSystem_getNameOfSpecies(this%species,this%molSys)
-    ! print *, "	Total Energy                =", this%totalEnergyForSpecies
-    ! print *, "	Indepent Specie Energy      =", this%independentSpeciesEnergy
-    ! print *, "	Kinetic Energy              =",this%kineticEnergy
-    ! print *, "	Puntual Interaction Energy  =",this%puntualInteractionEnergy
-    ! print *, "	Independent Particle Energy =",this%independentParticleEnergy
-    ! print *, "	Repultion Energy            =",this%twoParticlesEnergy
-    ! print *, "	Coupling Energy             =", this%couplingEnergy
-    ! print *, "____________________________________________________________"
-    !
+    if (  CONTROL_instance%DEBUG_SCFS) then   
+       print *, "__________________ ENERGY COMPONENTS _______________________"
+       print *, "	Specie                       ", MolecularSystem_getNameOfSpecies(this%species,this%molSys)
+       print *, "	Total Energy                =", this%totalEnergyForSpecies
+       print *, "	Indepent Specie Energy      =", this%independentSpeciesEnergy
+       print *, "	Kinetic Energy              =",this%kineticEnergy
+       print *, "	Puntual Interaction Energy  =",this%puntualInteractionEnergy
+       print *, "	Independent Particle Energy =",this%independentParticleEnergy
+       print *, "	Repultion Energy            =",this%twoParticlesEnergy
+       print *, "	Coupling Energy             =", this%couplingEnergy
+       print *, "____________________________________________________________"
+    end if
   end subroutine WaveFunction_obtainEnergyComponentsForSpecies
 
   !!cosmo matrices construction
@@ -1512,10 +1512,8 @@ contains
                      hartreeMatrices(otherSpeciesID)%values(i,j)
              end do
           end do
-          
-          nameOfOtherSpecies = MolecularSystem_getNameOfSpecies( otherSpeciesID,these(otherSpeciesID)%molSys )          
-             
-          if ( nameOfOtherSpecies .ne. CONTROL_instance%SCF_GHOST_SPECIES ) &
+                                       
+          if ( MolecularSystem_getSymbolOfSpecies( otherSpeciesID,these(otherSpeciesID)%molSys ) .ne. CONTROL_instance%SCF_GHOST_SPECIES ) &
                couplingMatrix%values = couplingMatrix%values + hartreeMatrices(otherSpeciesID)%values 
 
        end do
@@ -1863,7 +1861,7 @@ contains
     call Matrix_copyConstructor(auxMatrix, this%waveFunctionCoefficients)
     
     !! Segment for fractional occupations: introduce fractional occupation
-    if (trim(this%name) == trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
+    if (trim(MolecularSystem_getSymbolOfSpecies(this%species,this%molSys)) == trim(CONTROL_instance%IONIZE_SPECIES(1)) ) then
        do i=1,size(CONTROL_instance%IONIZE_MO)
           if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) &
                auxMatrix%values(:,CONTROL_instance%IONIZE_MO(i)) = &
@@ -2414,7 +2412,7 @@ contains
     integer:: a, b, c
 
 
-    currentSpeciesID = MolecularSystem_getSpecieID(this%name,this%molSys)
+    currentSpeciesID = MolecularSystem_getSpeciesID(this%name,this%molSys)
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(currentSpeciesID,this%molSys)
     specieSelected=this%molSys%species(currentSpeciesID)
 
@@ -2716,7 +2714,7 @@ contains
        end do
 
        ! write(*,*)"Cosmo Quantum Charges : ", qiCosmo(:)
-       write(*,*) "COSMO Charges for ",MolecularSystem_getNameOfSpecies( f,molSys )," = ", sum(qiCosmo(:))
+       write(*,*) "COSMO Charges for ",MolecularSystem_getSymbolOfSpecies( f,molSys )," = ", sum(qiCosmo(:))
 
     end do
     close(wfnUnit)

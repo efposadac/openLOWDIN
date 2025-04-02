@@ -74,8 +74,6 @@ distclean::
 
 test::
 	cd $(TOPDIR)/test/; \
-	mkdir -p testResults_$(EXENAME); \
-	sh runtest.sh $(EXENAME) | tee -a testResults_$(EXENAME)/maketest.log ; \
-	sh clean.sh $(EXENAME)	
+	sh runtest.sh $(EXENAME) && sh clean.sh $(EXENAME) 
 
 

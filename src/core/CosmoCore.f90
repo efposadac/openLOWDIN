@@ -390,7 +390,7 @@ contains
 
     specieName=MolecularSystem_getNameOfSpecies(specieid)
 
-    charge=MolecularSystem_getCharge(MolecularSystem_getSpecieID(specieName))
+    charge=MolecularSystem_getCharge(MolecularSystem_getSpeciesID(specieName))
 
     lambda=-(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC-1)/(CONTROL_instance%COSMO_SOLVENT_DIELECTRIC+CONTROL_instance%COSMO_SCALING)
 

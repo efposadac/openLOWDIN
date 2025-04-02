@@ -10,15 +10,15 @@ END GEOMETRY
 TASKS
 	method = "UKS"
 END TASKS
+!The initial coefficients are read from a UHF H2O.APMO calculation
 CONTROL
+	readCoefficients=T
 	electronExchangeCorrelationFunctional="B3LYP"
 	nuclearElectronCorrelationFunctional="epc17-2"
-	readCoefficients=F
 	iterationScheme=0
 	NonelectronicEnergyTolerance=1E-10
-	totalEnergyTolerance=1E-10
+	totalEnergyTolerance=1E-11
 	scfNonelectronicMaxIterations=25
-	scfGlobalMaxIterations=10000
 	integralStorage="MEMORY"
 	gridStorage="MEMORY"
 END CONTROL

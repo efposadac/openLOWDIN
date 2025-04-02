@@ -144,6 +144,9 @@ contains
        k = i*3 + 3
        write(*,"(3F17.12)") EnergyGradients_instance%gradients%total(j:k)
     end do
+    write(*,"(A)") "----------------------------------------------------"
+    write(*,"(A)") "|            END ENERGY GRADIENTS                  |"
+    write(*,"(A)") "----------------------------------------------------"
 
     if(CONTROL_instance%AMBER_FILE) then
        !! Results for Amber package

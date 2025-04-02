@@ -1,77 +1,28 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
+#The corresponding input file is testName.lowdin
+#The functions setReferenceValues and getTestValues are specific for this test
+#The common procedures are found in lowdinTestFunctions.py
 import sys
-from colorstring import *
+import lowdinTestFunctions as test
+def setReferenceValues():
+    refValues={
+    "HF energy" : [-99.639838220375,1E-8],
+    "Orb1Positron_KT" : [-5.045419,1E-3],
+    "Orb1Positron_EP2" : [-5.653732,1E-3],
+    "Orb1Positron_P3" : [-5.915010,1E-3],
+    "Orb1Positron_RENP3" : [-5.952235,1E-3]
+    }
+    return refValues
 
-if len(sys.argv)==2:
-    lowdinbin = sys.argv[1]
-else:
-    lowdinbin = "lowdin2"
-    
-testName = "PsF-RENP3"
-inputName = testName + ".lowdin"
-outputName = testName + ".out"
+def getTestValues(testValues,testName):
+    testValues["HF energy"] = test.getSCFTotalEnergy(testName)
+    P3values = test.getP3results(testName,"E+",1)
+    testValues["Orb1Positron_KT"] = P3values[0]
+    testValues["Orb1Positron_EP2"] = P3values[1]
+    testValues["Orb1Positron_P3"] = P3values[2]
+    testValues["Orb1Positron_RENP3"] = P3values[7]
+    return 
 
-# Reference values
-
-refTotalEnergy = -99.639838220375
-refOrb1Positron_KT = -5.045419
-refOrb1Positron_EP2 = -5.653732
-refOrb1Positron_P3 = -5.915010
-refOrb1Positron_RENP3 = -5.952235
-
-# Run calculation
-
-status = os.system(lowdinbin+" -i " + inputName)
-
-if status:
-    print(testName + str_red(" ... NOT OK"))
-    sys.exit(1)
-
-output = open(outputName, "r")
-outputRead = output.readlines()
-
-# Values
-
-count = 0
-for line in outputRead:
-    if "TOTAL ENERGY =" in line:
-        totalEnergy = float(line.split()[3])
-
-    if "SUMMARY OF PROPAGATOR RESULTS FOR THE SPIN-ORBITAL: 1  OF SPECIES:POSITRON" in line:
-
-        orb1Positron_KT = float(outputRead[count + 4].split()[1])
-        orb1Positron_EP2 = float(outputRead[count + 5].split()[1])
-        orb1Positron_P3 = float(outputRead[count + 6].split()[1])
-        orb1Positron_RENP3 = float(outputRead[count + 11].split()[1])
-
-    count = count + 1
-
-diffTotalEnergy = abs(refTotalEnergy - totalEnergy)
-diffOrb1Positron_KT = abs(refOrb1Positron_KT - orb1Positron_KT)
-diffOrb1Positron_EP2 = abs(refOrb1Positron_EP2 - orb1Positron_EP2)
-diffOrb1Positron_P3 = abs(refOrb1Positron_P3 - orb1Positron_P3)
-diffOrb1Positron_RENP3 = abs(refOrb1Positron_RENP3 - orb1Positron_RENP3)
-
-errorInP3 = 0.001
-
-if (diffTotalEnergy <= 1E-8 and
-        diffOrb1Positron_KT <= errorInP3 and
-        diffOrb1Positron_EP2 <= errorInP3 and
-        diffOrb1Positron_P3 <= errorInP3 and
-        diffOrb1Positron_RENP3 <= errorInP3):
-
-    print(testName + str_green(" ... OK"))
-else:
-    print(testName + str_red(" ... NOT OK"))
-
-    print("\tDifference HF: " + str(diffTotalEnergy))
-    print("\tDifference in e+ values")
-    print("\tDifference KT     " + str(diffOrb1Positron_KT))
-    print("\tDifference EP2    " + str(diffOrb1Positron_EP2))
-    print("\tDifference P3     " + str(diffOrb1Positron_P3))
-    print("\tDifference RENP3  " + str(diffOrb1Positron_RENP3))
-    sys.exit(1)
-
-output.close()
+if __name__ == '__main__':
+    testName = sys.argv[0][:-3]
+    test.performTest(testName,setReferenceValues,getTestValues)
