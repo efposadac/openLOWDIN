@@ -1,0 +1,21 @@
+GEOMETRY
+e-[O]   6-31G		 0.0000	 0.0000	 0.1173 multiplicity=2 addParticles=-1
+e-[H]   6-31G		 0.0000	 0.7572	-0.4692 
+e-[H]   6-31G		 0.0000	-0.7572	-0.4692
+u-	13S.ET.O.u.TF	 0.0000	 0.0000	 0.1173
+O	dirac   		 0.0000	 0.0000	 0.1173
+H-a_1   DZSPDN		 0.0000	 0.7572	-0.4692 m = 1836.15 
+H-b_2	DZSPDn		 0.0000	-0.7572	 0.4692 m = 1836.15
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	propagatorTheoryCorrection = 2
+END TASKS
+
+CONTROL
+	iterationScheme = 3
+	convergenceMethod = 1
+	readCoefficients = F
+	hartreeProductGuess = T
+END CONTROL

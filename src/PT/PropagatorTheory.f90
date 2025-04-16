@@ -310,7 +310,7 @@ contains
                   write ( 6,'(T10,A90)') "-------------------------------------------------------------------------------------------------"
                   
                   do j=1,n
-                     write (*,'(T10,A4,I4,A4,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6)') "    ",&
+                     write (*,'(T10,A4,I4,A4,F12.6,F1.6,F12.6,F12.6,F12.6,F12.6,F12.6)') "    ",&
                           int(PropagatorTheory_instance%secondOrderCorrections(i)%values(j,1)),&
                           "    ",PropagatorTheory_instance%secondOrderCorrections(i)%values(j,2), &
                           PropagatorTheory_instance%secondOrderCorrections(i)%values(j,3), &
@@ -352,18 +352,18 @@ contains
                 
              else
                    
-                write ( 6,'(T10,A50)') "-----------------------------------------------------------"
-                write ( 6,'(T10,A12,A12,A12,A12)') " Orbital ","  KT (eV) ","  EP2 (eV)","  P.S  "
-                write ( 6,'(T10,A50)') "-----------------------------------------------------------"
+                write ( 6,'(T10,A60)') "-------------------------------------------------------------------"
+                write ( 6,'(T10,A12,A16,A16,A12)') " Orbital ","  KT (eV) ","  EP2 (eV)","  P.S  "
+                write ( 6,'(T10,A60)') "-------------------------------------------------------------------"
                 
                 do j=1,n
-                   write (*,'(T10,A4,I4,A4,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6)') "    ",&
+                   write (*,'(T10,A4,I4,A4,F16.6,F16.6,F12.6,F12.6,F12.6,F12.6,F12.6)') "    ",&
                         int(PropagatorTheory_instance%secondOrderCorrections(i)%values(j,1)),&
                         "    ",PropagatorTheory_instance%secondOrderCorrections(i)%values(j,2), &
                         PropagatorTheory_instance%secondOrderCorrections(i)%values(j,3), &
                         PropagatorTheory_instance%secondOrderCorrections(i)%values(j,4)
                 end do
-                write ( 6,'(T10,A50)') "-----------------------------------------------------------"
+                write ( 6,'(T10,A60)') "-------------------------------------------------------------------"
 
              end if
 
@@ -958,7 +958,7 @@ contains
           print *,"----------------------------------------------------------------"
           write (*,"(T5,A25,I2,A13,A8)") "Results for spin-orbital:",int(PropagatorTheory_instance%secondOrderCorrections(q)%values(m,1)),&
                " of species: ", trim(MolecularSystem_getSymbolOfSpecies(i))
-          write (*,"(T5,A17,F8.4)") "Koopmans' value: ",PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2)
+          write (*,"(T5,A17,F12.4)") "Koopmans' value: ",PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2)
 
           ! Selecting value of o, for spin-component-scaled calculations
 
@@ -1069,7 +1069,7 @@ contains
                 
                 residual = abs(newOmega-lastOmega)
                 
-                write (*,"(T5,A11,I2,A10,F8.5,A10,F8.5)") "Iteration: ",ni," newOmega: ",newOmega," residual: ",residual
+                write (*,"(T5,A11,I2,A10,F12.5,A10,F8.5)") "Iteration: ",ni," newOmega: ",newOmega," residual: ",residual
                 
              end do ! end while
              
@@ -1177,7 +1177,7 @@ contains
              PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+2)=poleStrenght
              
              write (*,"(T5,A10,F8.5,A10,F8.5)") " FactorOS: ",factorOS(n)," FactorSS: ",factorSS(n)
-             write (*,"(T5,A30,F8.4,A7,I2,A12)") " Optimized second order pole: ",&
+             write (*,"(T5,A30,F12.4,A7,I2,A12)") " Optimized second order pole: ",&
                   PropagatorTheory_instance%secondOrderCorrections(q)%values(m,2*n+1),&
                   " after ",ni," iterations."
              write (*,"(T5,A17,F8.4,A15,F7.4)") "Correction(eV): ",(newOmega-koopmans)*EV," Pole strength:",poleStrenght
