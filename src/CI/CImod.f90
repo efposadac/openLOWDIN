@@ -489,6 +489,8 @@ contains
              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
         call CISCI_run()
+        !call CISCI_runtest()
+
 
       case default
 
