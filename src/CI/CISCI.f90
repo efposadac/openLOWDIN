@@ -146,7 +146,7 @@ contains
   subroutine CISCI_run()
     use sort_
     implicit none
-    integer(8) :: i, j, ii, jj, m
+    integer(8) :: i, j, ii, jj, m,a
     integer :: k ! macro SCI iteration
     integer :: nproc
     real(8) :: timeA(15), timeB(15)
@@ -175,12 +175,9 @@ contains
 
       !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
       CISCI_instance%amplitudeCore%values = 0.0_8
-      !call CISCI_core_amplitudes_test ( CISCI_instance%amplitudeCore%values, CIcore_instance%numberOfConfigurations, &
-      !                            CISCI_instance%coefficientCore%values, CISCI_instance%indexCore, CISCI_instance%coreSpaceSize, currentEnergy )
 
       call CISCI_core_amplitudes( CISCI_instance%amplitudeCore%values, CIcore_instance%numberOfConfigurations, &
                                   CISCI_instance%coefficientCore%values, CISCI_instance%coreSpaceSize, currentEnergy )
-
 
       !! setting the HF again... because the HF amplitude diverges 
       if ( k == 2 ) CISCI_instance%amplitudeCore%values(1) = 1.0_8
@@ -196,6 +193,11 @@ contains
       !! getting the target absolute largest coefficients
       call MTSort ( CISCI_instance%amplitudeCore%values, &
             CIcore_instance%auxIndexCIMatrix%values, CIcore_instance%numberOfConfigurations, "D", nproc )
+
+       print *, "final amplitude"
+      do a = 1,  CISCI_instance%targetSpaceSize
+       print *, a, CISCI_instance%amplitudeCore%values(a)
+      enddo
 
       !! set all target space coefficint to non zero. This is needed for getting the index, and for assigning an initial weight in the diagonalization
       do i = 1,  CISCI_instance%targetSpaceSize
@@ -354,12 +356,16 @@ contains
       CISCI_instance%tmp_amplitudeCore%values = 0.0_8
       call CISCI_core_amplitudes_test ( CISCI_instance%coefficientCore%values, CISCI_instance%indexCore, CISCI_instance%coreSpaceSize, currentEnergy )
 
+      if ( k == 2 ) CISCI_instance%tmp_amplitudeCore%values(1) = 1.0_8
+
       !! final sort
       call MTSort ( CISCI_instance%tmp_amplitudeCore%values, &
             CISCI_instance%auxindex_amplitudeCore%values,  CISCI_instance%tmp_amplitudeCoreSize, "D", nproc )
 
-      !debug print *, "final amplitude"
-      !debug print *, CISCI_instance%tmp_amplitudeCore%values
+       print *, "final amplitude"
+      do a = 1, CISCI_instance%tmp_amplitudeCoreSize
+       print *, a, CISCI_instance%tmp_amplitudeCore%values(a)
+      enddo
       !debug print *, "final auxinde"
       !debug print *, CISCI_instance%auxindex_amplitudeCore%values
 
@@ -372,7 +378,6 @@ contains
 
       !! setting the HF again... because the HF amplitude diverges 
       !if ( k == 2 ) CISCI_instance%amplitudeCore%values(1) = 1.0_8
-      if ( k == 2 ) CISCI_instance%tmp_amplitudeCore%values(1) = 1.0_8
 
       !! resetting the original index changes
       !do i = 1, CIcore_instance%numberOfConfigurations
@@ -1078,7 +1083,11 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     !$omp end parallel
 
     do b = 1, CIcore_instance%numberOfConfigurations
+      
+!      print *, amplitudeCore(b), amplitudeCore(b) / ( CIcore_instance%diagonalHamiltonianMatrix%values(b) - oldEnergy + shift  )
+
       amplitudeCore(b) = amplitudeCore(b) / ( CIcore_instance%diagonalHamiltonianMatrix%values(b) - oldEnergy + shift  )
+
     end do
 
     CIcore_instance%pindexConf = 0
@@ -1121,6 +1130,12 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
     deallocate ( orbA  )
 
+    !! append the initial configuration to the amplitude, otherwise this is zero at the first iteration 
+    CISCI_instance%tmp_amplitudeCore%values(1) = 1.0_8
+    CISCI_instance%index_amplitudeCore%values(:,1) = indexCore%values(:,1)
+    CISCI_instance%auxindex_amplitudeCore%values(1) = 1
+    
+
   end subroutine CISCI_initialConfigurations
 
   subroutine CISCI_core_amplitudes_test ( coefficientCore, indexCore, SCICoreSpaceSize, oldEnergy )
@@ -1147,13 +1162,13 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     real(8) :: diagEnergy
     real(8) :: oldEnergy
     real(8) :: shift
-    type (Vector), allocatable :: occA(:), occB(:), virA(:), virB(:)
+    type (ivector), allocatable :: occA(:), occB(:), virA(:), virB(:)
     type (ivector), allocatable :: orbA(:), orbB(:)
     real(8), allocatable :: indexCoreConfB(:)
     integer :: pi, qi, ri, si, pj, qj, rj, sj
     integer :: oia, oja, via, vja, aaa
     integer :: oi1, vi1, oi2, vi2, oj2, vj2
-    integer :: factor1, factor2
+    integer :: factor1, factor2, factor2j
     integer(8) :: m   !! index to run over tmp_amplitudeCore array
 
 !$  timeA = omp_get_wtime()
@@ -1172,19 +1187,20 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     allocate ( indexCoreConfB ( numberOfSpecies ) )
 
     do spi = 1, numberOfSpecies
-      call Vector_constructor ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 ) ! use core here? yes
-      call Vector_constructor ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 )
-      call Vector_constructor ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 )  
-      call Vector_constructor ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 )  
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
 
-    m = 0
+    m = 1 !! at the start: number of initial configurations
+
     do a = 1, SCICoreSpaceSize  
 
       if ( indexCore%values(1,a) == 0 ) cycle
-      print *, a
+      !debugprint *, a
       ! getting configuration A
       do spi = 1, numberOfSpecies 
 
@@ -1205,8 +1221,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
           end if
         enddo
 
-      print *, orbA(spi)%values
-      print *, occA(spi)%values
+      !debugprint *, orbA(spi)%values
+      !debugprint *, occA(spi)%values
         !! copy to conf B
         orbB(spi)%values = orbA(spi)%values 
         occB(spi)%values = occA(spi)%values 
@@ -1215,18 +1231,12 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
       indexCoreConfB = indexCore%values(:,a) !! copy decimal representation of confA 
 
-      !! calculating the diagonal elements
-
-      CISCI_instance%diagonalCore%values(a) = CISCI_calculateEnergyZero( occA )
-      print *, CISCI_instance%diagonalCore%values(a) 
-
-  
-      if ( coefficientCore(a) / ( CISCI_instance%diagonalCore%values(a) - oldEnergy + shift ) < 1E-10  ) cycle
-
       !! building all single sustitutions from configuration A. 
       !! here all configurations pairs are generated in maximum coincidence 
       do spi = 1, numberOfSpecies 
 
+        !! calculate the sign factor for canonical order of the configuration
+        factor1 = CISCI_canonicalOrderFactor( spi, orbA(spi), occA(spi) )
 
         do pi = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
           oi1 = occA(spi)%values(pi)  
@@ -1238,42 +1248,56 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
             occB(spi)%values(pi) = vi1
 
             !! calculate the sign factor for canonical order of the configuration
-            factor1 = CISCI_canonicalOrderFactor( spi, orbA(spi), orbB(spi) )
+            factor2 = CISCI_canonicalOrderFactor( spi, orbB(spi), occB(spi) )
 
             !! get spingle sustitutions energy
             CIenergy = CISCI_calculateEnergyOneNew( spi, occA, occB, oi1, vi1  )
-            CIenergy = CIenergy * factor1
+            CIenergy = CIenergy * factor1 * factor2
+
+            !print *, occA(spi)%values
+            !print *, occB(spi)%values
+            !print *, oi1, vi1
 
             !! bit mapping from orbital to decimal num
             call CISCI_binaryToDecimal ( orbB(spi)%values, indexCoreConfB(spi) )
+            !print *, indexCoreConfB
 
-            !! calculate amplitude, Eq4 10.1063/1.4955109
-            CIenergy = CIenergy * coefficientCore(a) / ( CISCI_instance%diagonalCore%values(a) - oldEnergy + shift )
+            CIenergy = CIenergy * coefficientCore(a)
+            !print *, "1s", factor1, factor2, "|", occA(spi)%values, "|", occB(spi)%values, CIenergy
 
             !! append the amplitude 
+       !     print *, "singles"
+       !     print *, orbA(spi)%values
+       !     print *, orbB(spi)%values
+       !     print *, indexCoreConfB
+       !     print *, CIenergy
+
             call CISCI_appendAmplitude ( m, CIenergy, indexCoreConfB )
-   
             !! building all double intraspecies sustitutions from configuration A
             do ri = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
               oi2 = occA(spi)%values(ri)  
+              if ( oi1 <= oi2 ) cycle 
               orbB(spi)%values(oi2) = orbB(spi)%values(oi2) - 1 
               do si = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
                 vi2 = virA(spi)%values(si)
+                if ( vi1 <= vi2 ) cycle 
                 orbB(spi)%values(vi2) = orbB(spi)%values(vi2) + 1
                 occB(spi)%values(ri) = vi2 
 
                 !! calculate the sign factor for canonical order of the configuration
-                factor2 = CISCI_canonicalOrderFactor( spi, orbA(spi), orbB(spi) )
+                factor2 = CISCI_canonicalOrderFactor( spi, orbB(spi), occB(spi) )
  
                 !! get double intraspecies sustitutions energy
-                CIenergy = CISCI_calculateEnergyTwoSameNew( spi, occA, occB, oi1, oi2, vi1, vi2 )
+                CIenergy = CISCI_calculateEnergyTwoSameNew( spi, occA, occB, oi1, oi2, vi1,  vi2 )
+                !!checking heeeeeeeeere
                 CIenergy = CIenergy * factor1 * factor2
 
                 !! bit mapping from orbital to decimal num
                 call CISCI_binaryToDecimal ( orbB(spi)%values, indexCoreConfB(spi) )
 
-                !! calculate amplitude, Eq4 10.1063/1.4955109
-                CIenergy = CIenergy * coefficientCore(a) / ( CISCI_instance%diagonalCore%values(a) - oldEnergy + shift )
+                CIenergy = CIenergy * coefficientCore(a)
+                !print *, "d intra", occA(spi)%values, occB(spi)%values, CIenergy
+
 
                 !! append the amplitude 
                 call CISCI_appendAmplitude ( m, CIenergy, indexCoreConfB )
@@ -1286,7 +1310,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
             !! building all double interspecies sustitutions from configuration A. maybe build this as a superloop?
             !! get double interspecies sustitutions energy
-            do spj = 1, numberOfSpecies 
+            do spj = spi + 1, numberOfSpecies 
+              !if ( spj == spi ) cycle 
               do rj = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spj)
                 oj2 = occA(spj)%values(rj)  
                 orbB(spj)%values(oj2) = orbB(spj)%values(oj2) - 1 
@@ -1296,17 +1321,25 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
                   occB(spj)%values(rj) = vj2 
 
                   !! calculate the sign factor for canonical order of the configuration
-                  factor2 = CISCI_canonicalOrderFactor( spj, orbA(spj), orbB(spj) )
+                  factor2j = CISCI_canonicalOrderFactor( spj, orbB(spj), occB(spj) )
    
+       !     print *, "d inter"
                   !! get double interspecies sustitutions energy
-                  CIenergy = CISCI_calculateEnergyTwoDiffNew( spi, spj, occA, occB, oi1, oj2, vi1, vj2 )
-                  CIenergy = CIenergy * factor1 * factor2
+                  CIenergy = CISCI_calculateEnergyTwoDiffNew( spi, spj, oi1, oj2, vi1, vj2 )
+                  CIenergy = CIenergy * factor2 * factor2j
 
                   !! bit mapping from orbital to decimal num
-                  call CISCI_binaryToDecimal ( orbB(spi)%values, indexCoreConfB(spj) )
+                  call CISCI_binaryToDecimal ( orbB(spj)%values, indexCoreConfB(spj) )
 
-                  !! calculate amplitude, Eq4 10.1063/1.4955109
-                  CIenergy = CIenergy * coefficientCore(a) / ( CISCI_instance%diagonalCore%values(a) - oldEnergy + shift )
+        !    print *, orbA(spi)%values
+        !    print *, orbB(spj)%values
+        !    print *, indexCoreConfB
+        !          print *, factor1, factor2
+        !          print *, coefficientCore(a)
+        !          print *, CISCI_instance%diagonalCore%values(a), oldEnergy, shift
+              
+                  CIenergy = CIenergy * coefficientCore(a)
+                  print *, "2d", factor2, factor2j, occB(spi)%values, "|", occB(spj)%values, CIenergy
 
                   !! append the amplitude 
                   call CISCI_appendAmplitude ( m, CIenergy, indexCoreConfB )
@@ -1333,6 +1366,41 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
       enddo
       
     end do
+
+
+    !! apply the denominator from eq 4 10.1063/1.4955109
+    do aa = 1, CISCI_instance%tmp_amplitudeCoreSize 
+      a = CISCI_instance%auxindex_amplitudeCore%values(aa) 
+
+      if (  CISCI_instance%index_amplitudeCore%values(1, a ) == 0 ) cycle
+
+      do spi = 1, numberOfSpecies 
+
+        oia = 0 
+        via = 0
+
+        !! build the orbital from the index using the bit mapping
+        call CISCI_decimalToBinary ( CISCI_instance%index_amplitudeCore%values(spi, a ),  orbA(spi)%values )
+        !! build auxiliary vectors of occupied and virtuals orbitals
+        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          if ( orbA(spi)%values(pi) == 1 ) then
+            oia = oia + 1
+            occA(spi)%values(oia) = pi
+          else if ( orbA(spi)%values(pi) == 0 ) then
+            via = via + 1
+            virA(spi)%values(via) = pi
+          end if
+        enddo
+
+      enddo
+
+      !! calculating the diagonal elements
+      !CISCI_instance%diagonalCore%values(a) = CISCI_calculateEnergyZero( occA )
+      CIenergy = CISCI_calculateEnergyZero( occA )
+      CISCI_instance%tmp_amplitudeCore%values( aa ) = CISCI_instance%tmp_amplitudeCore%values( aa ) / ( CIenergy - oldEnergy + shift)
+
+    enddo    
+
 
 !$  timeB = omp_get_wtime()
 
@@ -1788,7 +1856,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     integer :: diffOrbj(4)
     integer :: pi
     integer :: oia, oib
-    type (Vector), allocatable :: occA(:), occB(:)
+    type (ivector), allocatable :: occA(:), occB(:)
     type (ivector), allocatable :: orbA(:), orbB(:)
     integer :: factor
 
@@ -1803,8 +1871,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     allocate ( couplingS ( numberOfSpecies ) )
 
     do spi = 1, numberOfSpecies
-      call Vector_constructor ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 ) ! use core here? yes
-      call Vector_constructor ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 )
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
@@ -1881,7 +1949,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         !! calculate the sign factor for canonical order of the configuration
         factor = 1
         do spi = 1, numberOfSpecies 
-          factor = factor * CISCI_canonicalOrderFactor( spi, orbA(spi), orbB(spi) )
+          factor = factor * CISCI_canonicalOrderFactor( spi, orbA(spi), occA(spi) )
         enddo 
 
         !! determinate number of diff orbitals
@@ -1945,7 +2013,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi) )
           diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj) )
-          CIenergy = CISCI_calculateEnergyTwoDiffNew( spi, spj, occA, occB, diffOrbi(1), diffOrbj(1), diffOrbi(2), diffOrbj(2)  )
+          CIenergy = CISCI_calculateEnergyTwoDiffNew( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(2), diffOrbj(2)  )
 
           w(bb) = w(bb) + CIenergy * v(aa) * factor
           w(aa) = w(aa) + CIenergy * v(bb) * factor
@@ -1991,7 +2059,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     integer :: nproc
     integer :: pi
     integer :: oia
-    type (Vector), allocatable :: occA(:)
+    type (ivector), allocatable :: occA(:)
     type (ivector), allocatable :: orbA(:)
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
@@ -2002,7 +2070,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     allocate ( orbA ( numberOfSpecies ) )
 
     do spi = 1, numberOfSpecies
-      call Vector_constructor ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 ) ! use core here? yes
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
 
@@ -2157,7 +2225,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
   function CISCI_calculateEnergyOneNew( si, occA, occB, a, b ) result ( CIenergy )
     implicit none
-    type(vector), intent(in) :: occA(:), occB(:)
+    type(ivector), intent(in) :: occA(:), occB(:)
     integer, intent(in) :: a, b
     integer, intent(in) :: si
     integer :: sj
@@ -2169,7 +2237,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
   
     CIenergy = CIenergy + CIcore_instance%twoCenterIntegrals(si)%values( a, b )
     !! save the different orbitals
-  
+!    print *, "----" 
+!    print *, CIenergy
     ab = CIcore_instance%twoIndexArray(si)%values( a, b )
   
     do la = 1, CIcore_instance%occupationNumber( si ) !! the same orbitals pair are excluded by the exchange
@@ -2189,6 +2258,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
   
       end do
   
+!    print *, CIenergy
       !end if
       do sj = 1, si - 1 !! avoid ii, same species
 
@@ -2221,6 +2291,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         end do
 
       end do
+ !   print *, CIenergy
 
   end function CISCI_calculateEnergyOneNew
 
@@ -2288,7 +2359,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
   
   function CISCI_calculateEnergyTwoSameNew( si, occA, occB, ai, aj, bi, bj ) result ( CIenergy )
     implicit none
-    type(vector), intent(in) :: occA(:), occB(:)
+    type(ivector), intent(in) :: occA(:), occB(:)
     integer, intent(in) :: ai, aj, bi, bj
     integer, intent(in) :: si
     integer :: sj
@@ -2383,9 +2454,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
  
   end function CISCI_calculateEnergyTwoDiff
 
-  function CISCI_calculateEnergyTwoDiffNew( si, sj, occA, occB, ai, aj, bi, bj ) result ( CIenergy )
+  function CISCI_calculateEnergyTwoDiffNew( si, sj, ai, aj, bi, bj ) result ( CIenergy )
     implicit none
-    type(vector), intent(in) :: occA(:), occB(:)
     integer, intent(in) :: ai, aj, bi, bj
     integer, intent(in) :: si, sj
     integer(8) :: aibi,  aux_aibi, ajbj
@@ -2404,7 +2474,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
   function CISCI_calculateEnergyZero( occA ) result (CIenergy)
     implicit none
 
-    type(vector), intent(in) :: occA(:)
+    type(ivector), intent(in) :: occA(:)
     integer :: si,sj
     integer :: ki,li,lj,k,l,kk,ll,kkll,kllk
     integer(8) :: auxIndex1, auxIndex2, auxIndex
@@ -2565,7 +2635,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     real(8) :: diagEnergy
     real(8) :: oldEnergy
     real(8) :: shift
-    type (Vector), allocatable :: occA(:), occB(:), occ0(:), virA(:), virB(:), vir0(:)
+    type (ivector), allocatable :: occA(:), occB(:), occ0(:), virA(:), virB(:), vir0(:)
     type (ivector), allocatable :: orbA(:), orbB(:), orb0(:)
     integer(1), allocatable :: couplingS(:)
     real(8) :: indexConf
@@ -2600,12 +2670,12 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     allocate ( couplingS ( numberOfSpecies ) )
 
     do spi = 1, numberOfSpecies
-      call Vector_constructor ( occ0(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 ) ! use core here? yes
-      call Vector_constructor ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 ) ! use core here? yes
-      call Vector_constructor ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 )
-      call Vector_constructor ( vir0(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 )  
-      call Vector_constructor ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 )  
-      call Vector_constructor ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0.0_8 )  
+      call Vector_constructorInteger ( occ0(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+      call Vector_constructorInteger ( vir0(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
       call Vector_constructorInteger ( orb0(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
@@ -2827,20 +2897,57 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
   end subroutine CISCI_decimalToBinary 
 
   !! calculate the sign factor for canonical order of the configuration
-  function CISCI_canonicalOrderFactor ( spi, orbA, orbB ) result (factor) 
+  function CISCI_canonicalOrderFactor ( spi, orb, occ ) result (factor) 
     implicit none
     integer, intent(in) :: spi
-    type(Ivector), intent(in) :: orbA, orbB
+    type(Ivector), intent(in) :: orb
+    type(IVector), intent(in) :: occ
     integer :: factor 
-    integer :: n_permu, pi
+    integer :: n_permu, pi, oi, qi
+    integer :: above, below, pos
 
-    n_permu = 0
-    do pi = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
-      n_permu = n_permu + ( orbA%values(pi) - orbB%values(pi) ) * pi
-    end do
+    ! counter for positions above or below the canonical order
+    above = 0
+    below = 0  
+    qi = 0
+    do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+      pos = 0
+      qi = qi + orb%values(pi)
+      if ( orb%values(pi) == 1 ) then
+        do oi = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+          if ( pi == occ%values(oi) ) then
+            pos = oi
+            exit
+          endif
+        enddo
+      endif 
+
+      if ( qi * orb%values(pi) - pos > 0 ) above = above + 1 
+      if ( qi * orb%values(pi) - pos < 0 ) below = below + 1 
+    enddo
+
+    n_permu = max(above,below)
     factor = (-1)**n_permu
 
   end function CISCI_canonicalOrderFactor 
+
+!  !! calculate the sign factor for canonical order of the configuration
+!  function CISCI_canonicalOrderFactor ( spi, orbA, orbB ) result (factor) 
+!    implicit none
+!    integer, intent(in) :: spi
+!    type(Ivector), intent(in) :: orbA, orbB
+!    integer :: factor 
+!    integer :: n_permu, pi
+!
+!    n_permu = 0
+!    do pi = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+!      n_permu = n_permu + ( orbA%values(pi) - orbB%values(pi) ) * pi
+!    end do
+!    factor = (-1)**n_permu
+!
+!  end function CISCI_canonicalOrderFactor 
+
+
 
   !! calculate the sign factor for canonical order of the configuration
   function CISCI_getDiffOrbitals ( spi, orbA, orbB ) result (diffOrb) 
@@ -2885,15 +2992,18 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
     nproc = omp_get_max_threads()
 
-    if ( abs(amplitude) < 1E-10 ) return 
+   ! if ( abs(amplitude) < 1E-10 ) return 
 
     addConf = .true.
+
+    !print *, "-----"
+    !print *, m, indexConf, amplitude
 
     !! check if the configuration is already in the amplitudes set
     do i = 1, m
       diffConf = 0.0_8
       do sp = 1, CIcore_instance%numberOfQuantumSpecies 
-        diffConf = diffConf + ( indexConf(sp) - CISCI_instance%index_amplitudeCore%values(sp, CISCI_instance%auxindex_amplitudeCore%values(i) ) )
+        diffConf = diffConf + abs( indexConf(sp) - CISCI_instance%index_amplitudeCore%values(sp, CISCI_instance%auxindex_amplitudeCore%values(i) ) )
       enddo
 
       if ( diffConf == 0 ) then
@@ -2903,14 +3013,18 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
       end if
     enddo
 
-    m = m + 1
 
     !! add the configuration at the end of the array
     if ( addConf ) then
+      m = m + 1
       CISCI_instance%tmp_amplitudeCore%values(m) = amplitude
       CISCI_instance%index_amplitudeCore%values(:,m) = indexConf(:)
       CISCI_instance%auxindex_amplitudeCore%values(m) = m
     endif
+
+    !do i = 1, m
+    !  print *, i, CISCI_instance%index_amplitudeCore%values(:, CISCI_instance%auxindex_amplitudeCore%values(i) ),  CISCI_instance%tmp_amplitudeCore%values(i) 
+    !enddo
 
     !! sort the array when it's full
     if ( m == CISCI_instance%tmp_amplitudeCoreSize ) then
@@ -2925,7 +3039,10 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
       enddo
       !! the next configurations will be added in the last half
       m = CISCI_instance%tmp_amplitudeCoreSize/2 
+
     endif
+
+
 
   end subroutine CISCI_appendAmplitude
 
@@ -2941,14 +3058,20 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     integer :: pi
     integer :: oib
     integer(1), intent(inout), allocatable :: couplingS(:)
-    type (Vector), intent(in), allocatable :: occA(:)
-    type (Vector), intent(inout), allocatable :: occB(:)
+    type (iVector), intent(in), allocatable :: occA(:)
+    type (iVector), intent(inout), allocatable :: occB(:)
     type (ivector), intent(in), allocatable :: orbA(:)
     type (ivector), intent(inout), allocatable :: orbB(:)
     integer :: factor
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     CIenergy = 0.0_8
+
+    !! calculate the sign factor for canonical order of the configuration A
+    factor = 1
+    do spi = 1, numberOfSpecies 
+      factor = factor * CISCI_canonicalOrderFactor( spi, orbA(spi), occA(spi) )
+    enddo 
 
     do bb = 1, CISCI_instance%targetSpaceSize
 
@@ -2979,11 +3102,10 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
       coupling = product(couplingS)
 
-      !! calculate the sign factor for canonical order of the configuration
+      !! calculate the sign factor for canonical order of the configuration B
       if ( coupling >= 2 .and. coupling <= 4 ) then
-        factor = 1
         do spi = 1, numberOfSpecies 
-          factor = factor * CISCI_canonicalOrderFactor( spi, orbA(spi), orbB(spi) )
+          factor = factor * CISCI_canonicalOrderFactor( spi, orbB(spi), occB(spi) )
         enddo 
       endif
 
@@ -3018,7 +3140,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
         diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi) )
         diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj) )
-        CIenergy = CIenergy + CISCI_calculateEnergyTwoDiffNew( spi, spj, occA, occB, diffOrbi(1), diffOrbj(1), diffOrbi(2), diffOrbj(2)  ) * factor * CISCI_instance%tmp_amplitudeCore%values(bb) 
+        CIenergy = CIenergy + CISCI_calculateEnergyTwoDiffNew( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(2), diffOrbj(2)  ) * factor * CISCI_instance%tmp_amplitudeCore%values(bb) 
 
       end select
 
