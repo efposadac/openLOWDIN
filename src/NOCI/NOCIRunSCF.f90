@@ -191,8 +191,6 @@ contains
           call MultiSCF_solveHartreeFockRoothan(MultiSCFParallelInstance(me),WaveFunctionParallelInstance(1:nspecies,me),Libint2ParallelInstance(1:nspecies,me))
 
           !Save HF results
-          ! call MultiSCF_saveWfn(MultiSCF_instance,WaveFunction_instance)
-          ! call MolecularSystem_copyConstructor(this%molecularSystems(sysI),molecularSystem_instance)
           this%configurationHamiltonianMatrix%values(mySysI,mySysI)=MultiSCFParallelInstance(me)%totalEnergy
           
           do speciesID = 1, nspecies
@@ -227,6 +225,16 @@ contains
              !Difference between HF and KS energies
              this%configurationCorrelationEnergies%values(mySysI)=this%configurationHamiltonianMatrix%values(mySysI,mySysI)-MultiSCFParallelInstance(me)%totalEnergy
           end if
+
+          ! NOCI + QDO
+          if(CONTROL_instance%REMOVE_QDO_IN_CI) then
+             do speciesID = 1, nspecies
+                this%configurationHamiltonianMatrix%values(mySysI,mySysI)=&
+                     this%configurationHamiltonianMatrix%values(mySysI,mySysI)-this%configurationExternalMatrix(speciesID)%values(mySysI,mySysI)
+                this%configurationExternalMatrix(speciesID)%values(mySysI,mySysI)=0.0
+             end do
+          end if
+
        end do procs
        !$omp end do nowait
        !$omp end parallel

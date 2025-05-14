@@ -1357,25 +1357,32 @@ contains
    end function MolecularSystem_getMass
 
    !> @brief Returns QDO center of quantum species
-   function MolecularSystem_getQDOcenter( speciesID ) result( origin )
+   function MolecularSystem_getQDOcenter(speciesID,this) result( origin )
      implicit none
      integer :: speciesID
+     type(MolecularSystem), optional, target :: this
+     real(8) :: origin(3)
      integer :: i
      logical :: centerFound
-     real(8) :: origin(3)
+
+     type(MolecularSystem), pointer :: system
+     if( present(this) ) then
+        system=>this
+     else
+        system=>MolecularSystem_instance
+     end if
 
      centerFound = .False.
-     do i = 1 , size( MolecularSystem_instance%pointCharges )
-        if ( trim(MolecularSystem_instance%pointCharges(i)%qdoCenterOf) == trim(MolecularSystem_instance%species(speciesID)%symbol) ) then 
-          origin = MolecularSystem_instance%pointCharges(i)%origin 
+     do i = 1 , size( system%pointCharges )
+        if ( trim(system%pointCharges(i)%qdoCenterOf) == trim(system%species(speciesID)%symbol) ) then 
+          origin = system%pointCharges(i)%origin 
           centerFound = .True.
           exit
         end if
     end do
     if ( .not. centerFound ) then
-        call MolecularSystem_exception(ERROR, "No QDO center for species: "//MolecularSystem_instance%species(speciesID)%symbol, "MolecularSystem_getQDOcenter"   )
+        call MolecularSystem_exception(ERROR, "No QDO center for species: "//system%species(speciesID)%symbol, "MolecularSystem_getQDOcenter"   )
     end if
- 
      
    end function MolecularSystem_getQDOCenter
 

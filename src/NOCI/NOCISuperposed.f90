@@ -94,8 +94,8 @@ contains
     call MolecularSystem_mergeTwoSystems(this%mergedMolecularSystem, this%molecularSystems(1), this%molecularSystems(2), &
          this%sysBasisList(1,:),this%sysBasisList(2,:))
     
-    call NOCIMatrices_mergeCoefficients(numberOfSpecies,this%HFCoefficients(1,:),this%HFCoefficients(2,:),&
-         this%molecularSystems(1),this%molecularSystems(2),this%mergedMolecularSystem,&
+    call NOCIMatrices_mergeCoefficients(this%molecularSystems(1),this%molecularSystems(2),this%mergedMolecularSystem,&
+         this%HFCoefficients(1,:),this%HFCoefficients(2,:),&
          this%sysBasisList(1,:),this%sysBasisList(2,:),this%mergedCoefficients(:))
 
     ! do speciesID=1, numberOfSpecies
@@ -112,8 +112,8 @@ contains
        end do
        call MolecularSystem_mergeTwoSystems(this%mergedMolecularSystem, auxMolecularSystem, this%molecularSystems(sysI), &
             auxBasisList,this%sysBasisList(sysI,:),reorder=.false.)
-       call NOCIMatrices_mergeCoefficients(numberOfSpecies,auxCoefficients,this%HFCoefficients(sysI,:),&
-            auxMolecularSystem,this%molecularSystems(sysI),this%mergedMolecularSystem,&
+       call NOCIMatrices_mergeCoefficients(auxMolecularSystem,this%molecularSystems(sysI),this%mergedMolecularSystem,&
+            auxCoefficients,this%HFCoefficients(sysI,:),&
             auxBasisList,this%sysBasisList(sysI,:),this%mergedCoefficients(:))
        ! do speciesID=1, numberOfSpecies
              ! print *, sysI, speciesID, "ocupationNumber", MolecularSystem_getOcupationNumber(speciesID,this%mergedMolecularSystem)
@@ -486,7 +486,8 @@ contains
           !! Lowdin orthogonalization of the density matrix
           auxMatrix = Matrix_pow(this%mergedOverlapMatrix(speciesID), 0.5_8, method="SVD" )
 
-          auxMatrix%values=matmul(matmul(auxMatrix%values,this%mergedDensityMatrix(state,speciesID)%values),auxMatrix%values)
+          ! auxMatrix%values=matmul(matmul(auxMatrix%values,this%mergedDensityMatrix(state,speciesID)%values),auxMatrix%values)
+          auxMatrix=Matrix_product_dgemm(Matrix_product_dgemm(auxMatrix,this%mergedDensityMatrix(state,speciesID)),auxMatrix)
 
           ! print *, "Diagonalizing non orthogonal CI density Matrix..."
 
@@ -496,7 +497,8 @@ contains
           !! Transform back to the atomic basis
           auxMatrix = Matrix_pow(this%mergedOverlapMatrix(speciesID), -0.5_8, method="SVD" )
 
-          auxdensityEigenVectors%values=matmul(auxMatrix%values,auxdensityEigenVectors%values)
+          ! auxdensityEigenVectors%values=matmul(auxMatrix%values,auxdensityEigenVectors%values)
+          auxdensityEigenVectors=Matrix_product_dgemm(auxMatrix,auxdensityEigenVectors)
 
           ! reorder and count significant occupations
           k=0
@@ -525,8 +527,12 @@ contains
                columnkeys = string_convertvectorofrealstostring( auxVector ),&
                flags=WITH_BOTH_KEYS)
 
+          ! write(*,"(A10,A10,A20,I5,A15,F17.12)") "number of ", trim(MolecularSystem_getSymbolOfSpecies( speciesID )) ," particles in state", state , &
+          !      " density matrix: ", sum( transpose(this%mergedDensityMatrix(state,speciesID)%values)*this%mergedOverlapMatrix(speciesID)%values)
+          auxMatrix=Matrix_product_dgemm(Matrix_getTranspose(this%mergedDensityMatrix(state,speciesID)),this%mergedOverlapMatrix(speciesID))
           write(*,"(A10,A10,A20,I5,A15,F17.12)") "number of ", trim(MolecularSystem_getSymbolOfSpecies( speciesID )) ," particles in state", state , &
-               " density matrix: ", sum( transpose(this%mergedDensityMatrix(state,speciesID)%values)*this%mergedOverlapMatrix(speciesID)%values)
+               " density matrix: ", sum(auxMatrix%values)
+
           write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_getSymbolOfSpecies( speciesID )) , "natural orbital occupations", sum(densityEigenValues%values)
 
           ! density matrix check

@@ -171,8 +171,8 @@ contains
     call MolecularSystem_showParticlesInformation(superMergedMolecularSystem)
     call MolecularSystem_showCartesianMatrix(superMergedMolecularSystem)
 
-    call NOCIMatrices_mergeCoefficients(numberOfSpecies,this%mergedCoefficients(:),auxCoefficients(:),&
-         this%mergedMolecularSystem,MolecularSystem_instance,superMergedMolecularSystem,&
+    call NOCIMatrices_mergeCoefficients(this%mergedMolecularSystem,MolecularSystem_instance,superMergedMolecularSystem,&
+         this%mergedCoefficients(:),auxCoefficients(:),&
          orbListI(:),orbListII(:),superMergedCoefficients(:))
 
     ! do speciesID=1, numberOfSpecies

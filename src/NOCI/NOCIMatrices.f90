@@ -93,6 +93,15 @@ contains
     timeOverlap=0.0
     timeTwoIntegrals=0.0
         
+    nspecies=this%molecularSystems(1)%numberOfQuantumSpecies 
+    if(CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
+       upperBound=1
+       this%printMatrixThreshold=this%numberOfDisplacedSystems
+       write (*,"(T10,A)") "COMPUTING NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY"
+    else
+       upperBound=this%numberOfDisplacedSystems       
+    end if
+    
     print *, ""
     print *, "A prescreening of the overlap matrix elements is performed for the heavy species"
     write (*,'(A,ES8.1)') "Overlap and Hamiltonian matrix elements are saved for pairs with overlap higher than",&
@@ -112,15 +121,64 @@ contains
 
     write (matrixUnit,'(A20,I20)') "MatrixSize", this%numberOfDisplacedSystems
     write (matrixUnit,'(A10,A10,A20,A20)') "Conf. ", "Conf. ", "Overlap ","Hamiltonian "
+
     !Save diagonal elements
+    if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) print *, "DIAGONAL ELEMENTS..."
+
     do sysI=1,this%numberOfDisplacedSystems
        this%configurationOverlapMatrix%values(sysI,sysI)=1.0
        write (matrixUnit,'(I10,I10,ES20.12,ES20.12)') sysI, sysI, &
-            this%configurationOverlapMatrix%values(sysI,sysI), this%configurationHamiltonianMatrix%values(sysI,sysI)               
+            this%configurationOverlapMatrix%values(sysI,sysI), this%configurationHamiltonianMatrix%values(sysI,sysI)
+
+       if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) then 
+
+          write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, "Overlap element = ", this%configurationOverlapMatrix%values(sysI,sysI)
+          do speciesID = 1, nspecies                
+             write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                  " Kinetic element = ", this%configurationKineticMatrix(speciesID)%values(sysI,sysI)
+             write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                  " Puntual element = ", this%configurationPuntualMatrix(speciesID)%values(sysI,sysI)
+             if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+                  write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                  " External element = ", this%configurationExternalMatrix(speciesID)%values(sysI,sysI)
+             write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                  "/"//trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                  " Hartree element = ", this%configurationHartreeMatrix(speciesID,speciesID)%values(sysI,sysI)
+             write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                  " Exchange element = ", this%configurationExchangeMatrix(speciesID)%values(sysI,sysI)
+          end do
+          do speciesID=1, nspecies-1
+             do otherSpeciesID=speciesID+1, nspecies
+                write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                     "/"//trim( this%molecularSystems(sysI)%species(otherSpeciesID)%symbol ) // &
+                     " Hartree element = ", this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(sysI,sysI)
+             end do
+          end do
+          if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+             do speciesID=1, nspecies
+                write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                     "/"//trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                     " DFTcorrelation element = ", this%configurationDFTcorrelationMatrix(speciesID,speciesID)%values(sysI,sysI)
+             end do
+             do speciesID=1, nspecies
+                do otherSpeciesID=speciesID+1, nspecies-1
+                   write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, trim( this%molecularSystems(sysI)%species(speciesID)%symbol ) // &
+                        "/"//trim( this%molecularSystems(sysI)%species(otherSpeciesID)%symbol ) // &
+                        " DFTcorrelation element = ", this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(sysI,sysI)
+                end do
+             end do
+
+             ! write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, "Total DFT Correlation element = ", this%configurationOverlapMatrix%values(sysI,sysI)/2.0*&
+             !      (this%configurationCorrelationEnergies%values(sysI)+&
+             !      this%configurationCorrelationEnergies%values(sysI))
+          end if
+          write (*,'(I10,I10,A38,ES20.12)') sysI, sysI, "Hamiltonian element = ", this%configurationHamiltonianMatrix%values(sysI,sysI)
+          print *, ""
+       end if
     end do
+    if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) print *, "OFF-DIAGONAL ELEMENTS..."
     
     !Allocate objets to distribute in parallel
-    nspecies=this%molecularSystems(1)%numberOfQuantumSpecies 
     ncores=CONTROL_instance%NUMBER_OF_CORES
     batchSize=this%numberOfDisplacedSystems
     print *, "ncores", ncores, "batchsize", batchSize
@@ -132,12 +190,6 @@ contains
          sysIbasisList(nspecies,batchSize),&
          sysIIbasisList(nspecies,batchSize))
 
-    if(CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
-       upperBound=1
-       this%printMatrixThreshold=this%numberOfDisplacedSystems       
-    else
-       upperBound=this%numberOfDisplacedSystems       
-    end if
     ! print *, "upperBound", upperBound
 
     sysI=1
@@ -207,8 +259,8 @@ contains
           ! print *, "evaluating S and H elements for", mySysI, mySysII
 
           !! Merge occupied coefficients into a single matrix
-          call NOCIMatrices_mergeCoefficients(nspecies,this%HFCoefficients(mySysI,1:nspecies),this%HFCoefficients(mySysII,1:nspecies),&
-               this%molecularSystems(mySysI),this%molecularSystems(mySysII),mergedMolecularSystem(me),&
+          call NOCIMatrices_mergeCoefficients(this%molecularSystems(mySysI),this%molecularSystems(mySysII),mergedMolecularSystem(me),&
+               this%HFCoefficients(mySysI,1:nspecies),this%HFCoefficients(mySysII,1:nspecies),&
                sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me),mergedCoefficients(1:nspecies))
           !$  timeA = omp_get_wtime()
 
@@ -484,22 +536,25 @@ contains
   !! @param occupationI and occupationII: Number of orbitals to merge from each matrix. 
   !! sysBasisList: array indicating which basis functions of the merged molecular system belong to sysI and sysII Merged Coefficients: Matrices for output.
   !<
-  subroutine NOCIMatrices_mergeCoefficients(nspecies,coefficientsI,coefficientsII,molecularSystemI,molecularSystemII,mergedMolecularSystem,&
+  subroutine NOCIMatrices_mergeCoefficients(molecularSystemI,molecularSystemII,mergedMolecularSystem,coefficientsI,coefficientsII,&
        sysIbasisList,sysIIbasisList,mergedCoefficients)
-    integer :: nspecies
-    type(Matrix), intent(in) :: coefficientsI(1:nspecies), coefficientsII(1:nspecies)
-    type(MolecularSystem), intent(in) :: molecularSystemI, molecularSystemII, mergedMolecularSystem
-    type(IVector), intent(in) :: sysIbasisList(1:nspecies), sysIIbasisList(1:nspecies)
-    type(Matrix), intent(out) :: mergedCoefficients(1:nspecies)
+    type(MolecularSystem) :: molecularSystemI, molecularSystemII,mergedMolecularSystem
+    type(Matrix) :: coefficientsI(mergedMolecularSystem%numberOfQuantumSpecies), coefficientsII(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(IVector) :: sysIbasisList(mergedMolecularSystem%numberOfQuantumSpecies), sysIIbasisList(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(Matrix) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies)
     
     integer :: speciesID, i, j, mu
+    integer :: occupationNumberI,occupationNumberII,numberOfContractions
     
     !! Mix coefficients of occupied orbitals of both systems    
     do speciesID = 1, mergedMolecularSystem%numberOfQuantumSpecies
        
+       occupationNumberI=MolecularSystem_getOcupationNumber(speciesID,mergedMolecularSystem)
+       numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
+
        !Max: to make the matrix square for the integral calculations for configuration pairs, and rectangular for the merged coefficients of all systems 
-       call Matrix_constructor(mergedCoefficients(speciesID), int(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem),8), &
-            int(max(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem),MolecularSystem_getOcupationNumber(speciesID,mergedMolecularSystem)),8), 0.0_8 )
+       call Matrix_constructor(mergedCoefficients(speciesID), int(numberOfContractions,8), &
+            int(max(numberOfContractions,occupationNumberI),8), 0.0_8 )
 
        ! print *, "sysI coefficients for ", speciesID
        ! call Matrix_show(coefficientsI(speciesID))
@@ -508,24 +563,24 @@ contains
 
        !sysI orbitals on the left columns, sysII on the right columns
        !sysI coefficients
-       do mu=1, MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
-          if((sysIbasisList(speciesID)%values(mu) .ne. 0) ) then
-             do i=1, MolecularSystem_getOcupationNumber(speciesID,molecularSystemI)!sysI
-                mergedCoefficients(speciesID)%values(mu,i)=coefficientsI(speciesID)%values(sysIbasisList(speciesID)%values(mu),i)
-                ! print *, "sys I", mu, i, mergedCoefficients(speciesID)%values(mu,i)
-             end do
-          end if
+       occupationNumberI=MolecularSystem_getOcupationNumber(speciesID,molecularSystemI)
+       do mu=1, numberOfContractions
+          if((sysIbasisList(speciesID)%values(mu) .eq. 0) ) cycle
+          do i=1, occupationNumberI!sysI
+             mergedCoefficients(speciesID)%values(mu,i)=coefficientsI(speciesID)%values(sysIbasisList(speciesID)%values(mu),i)
+             ! print *, "sys I", mu, i, mergedCoefficients(speciesID)%values(mu,i)
+          end do
        end do
 
        ! !sysII coefficients
-       do mu=1, MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
-          if((sysIIbasisList(speciesID)%values(mu) .ne. 0) ) then
-             do i=1, MolecularSystem_getOcupationNumber(speciesID,molecularSystemII)!sysII
-                j=MolecularSystem_getOcupationNumber(speciesID,molecularSystemI)+i !column
-                mergedCoefficients(speciesID)%values(mu,j)=coefficientsII(speciesID)%values(sysIIbasisList(speciesID)%values(mu),i)
-                ! print *, "sys II", mu, j, mergedCoefficients(speciesID)%values(mu,j)
-             end do
-          end if
+       occupationNumberII=MolecularSystem_getOcupationNumber(speciesID,molecularSystemII)
+       do mu=1, numberOfContractions
+          if((sysIIbasisList(speciesID)%values(mu) .eq. 0) ) cycle
+          do i=1, occupationNumberII!sysII
+             j=occupationNumberI+i !column
+             mergedCoefficients(speciesID)%values(mu,j)=coefficientsII(speciesID)%values(sysIIbasisList(speciesID)%values(mu),i)
+             ! print *, "sys II", mu, j, mergedCoefficients(speciesID)%values(mu,j)
+          end do
        end do                    
     end do
     
@@ -868,6 +923,97 @@ contains
          this%configurationOverlapMatrix%values(sysI,sysII)
     ! print *, "Point charge-Point charge repulsion", MolecularSystem_getPointChargesEnergy()
 
+    if(CONTROL_instance%NOCI_KINETIC_APPROXIMATION) then
+       !!Compute hcore if overlap is significant
+       do speciesID = 1, this%molecularSystems(sysI)%numberOfQuantumSpecies
+          !Make this a variable in the input
+          if(MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) .lt. 2.0_8) cycle
+          
+          numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
+          occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
+          particlesPerOrbital=MolecularSystem_getEta(speciesID,mergedMolecularSystem)
+
+          call Matrix_constructor(auxKineticMatrix(speciesID),&
+               int(numberOfContractions,8),int(numberOfContractions,8),0.0_8)
+
+          call DirectIntegralManager_getKineticIntegrals(mergedMolecularSystem,speciesID,auxKineticMatrix(speciesID))
+
+          !! Incluiding mass effect       
+          if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
+             auxKineticMatrix(speciesID)%values =  &
+                  auxKineticMatrix(speciesID)%values * &
+                  ( 1.0_8/MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) -1.0_8 / MolecularSystem_getTotalMass(this%molecularSystems(sysI)) )
+          else
+             auxKineticMatrix(speciesID)%values =  &
+                  auxKineticMatrix(speciesID)%values / &
+                  MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) )
+          end if
+
+          call Matrix_constructor(molecularKineticMatrix(speciesID), int(occupationNumber,8), int(occupationNumber,8), 0.0_8 )
+
+          !!Test 
+          ! print *, "auxKineticMatrix", speciesID
+          ! call Matrix_show(auxKineticMatrix(speciesID))
+
+          do mu=1, numberOfContractions !sysI
+             if(sysIbasisList(speciesID)%values(mu) .eq. 0) cycle
+             do nu=1, numberOfContractions !sysII
+                if(sysIIbasisList(speciesID)%values(nu) .eq. 0) cycle
+                do a=1, occupationNumber !sysI
+                   do b=occupationNumber+1, 2*occupationNumber
+                      bb=b-occupationNumber
+
+                      ! print *, "hcore", a, b, mu, nu, mergedCoefficients(speciesID)%values(mu,a), mergedCoefficients(speciesID)%values(nu,b), &
+                      !      auxKineticMatrix%values(mu,nu)/MolecularSystem_getMass(speciesID)+&
+                      !      auxAttractionMatrix%values(mu,nu)*(-MolecularSystem_getCharge(speciesID))
+
+                      molecularKineticMatrix(speciesID)%values(a,bb)=molecularKineticMatrix(speciesID)%values(a,bb)+&
+                           mergedCoefficients(speciesID)%values(mu,a)*mergedCoefficients(speciesID)%values(nu,b)*&
+                           auxKineticMatrix(speciesID)%values(mu,nu)                        
+
+                   end do
+                end do
+             end do
+          end do
+          molecularKineticMatrix(speciesID)%values=particlesPerOrbital*molecularKineticMatrix(speciesID)%values
+       end do
+
+       !!One Particle Terms - approximate for heavy particles
+       do speciesID=1, this%molecularSystems(sysI)%numberOfQuantumSpecies
+          oneParticleKineticEnergy=0.0
+          if(MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) .lt. 2.0_8) then
+             oneParticleKineticEnergy=(this%configurationKineticMatrix(speciesID)%values(sysI,sysI)+this%configurationKineticMatrix(speciesID)%values(sysII,sysII))/2.0
+          else
+             occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
+             do a=1, occupationNumber !sysI
+                do b=1, occupationNumber !sysII
+                   oneParticleKineticEnergy=oneParticleKineticEnergy+ molecularKineticMatrix(speciesID)%values(a,b)*&
+                        inverseOverlapMatrices(speciesID)%values(b,a)
+                end do
+             end do
+          end if
+          this%configurationKineticMatrix(speciesID)%values(sysI,sysII)=oneParticleKineticEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
+
+          this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)+&
+               oneParticleKineticEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
+          ! print *, "sysI, sysII", sysI, sysII, "oneParticleEnergy for species", speciesID, oneParticleEnergy
+       end do
+
+       !!Approximate potential energy terms from the diagonal elements
+       do speciesID=1, this%molecularSystems(sysI)%numberOfQuantumSpecies               
+          oneParticleAttractionEnergy=(this%configurationPuntualMatrix(speciesID)%values(sysI,sysI)+this%configurationPuntualMatrix(speciesID)%values(sysII,sysII))/2.0
+          oneParticleExternalEnergy=(this%configurationExternalMatrix(speciesID)%values(sysI,sysI)+this%configurationExternalMatrix(speciesID)%values(sysII,sysII))/2.0
+          this%configurationPuntualMatrix(speciesID)%values(sysI,sysII)=oneParticleAttractionEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
+          this%configurationExternalMatrix(speciesID)%values(sysI,sysII)=oneParticleExternalEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
+
+          this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)+&
+               (oneParticleAttractionEnergy+oneParticleExternalEnergy)*this%configurationOverlapMatrix%values(sysI,sysII)
+       end do
+       !!Don't compute anything else under kinetic approximation
+       return
+    end if
+    
+    
     !!Compute hcore if overlap is significant
     do speciesID = 1, this%molecularSystems(sysI)%numberOfQuantumSpecies
 
@@ -995,6 +1141,30 @@ contains
     integer :: ssize1, auxIndex, auxIndex1
     integer :: a,b,bb,c,d,dd,i,j
     real(8) :: hartreeEnergy, exchangeEnergy 
+
+    !!Approximate potential energy terms from the diagonal elements
+    if(CONTROL_instance%NOCI_KINETIC_APPROXIMATION) then
+       do i=1, mergedMolecularSystem%numberOfQuantumSpecies
+          hartreeEnergy=(this%configurationHartreeMatrix(i,i)%values(sysI,sysI)+this%configurationHartreeMatrix(i,i)%values(sysII,sysII))/2.0
+          exchangeEnergy=(this%configurationExchangeMatrix(i)%values(sysI,sysI)+this%configurationExchangeMatrix(i)%values(sysII,sysII))/2.0
+
+          this%configurationHartreeMatrix(i,i)%values(sysI,sysII)=hartreeEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
+          this%configurationExchangeMatrix(i)%values(sysI,sysII)=exchangeEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
+
+          this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)+&
+               (hartreeEnergy+exchangeEnergy)*this%configurationOverlapMatrix%values(sysI,sysII)
+       end do
+       do i=1, mergedMolecularSystem%numberOfQuantumSpecies-1
+          do j=i+1, mergedMolecularSystem%numberOfQuantumSpecies
+             hartreeEnergy=(this%configurationHartreeMatrix(i,j)%values(sysI,sysI)+this%configurationHartreeMatrix(i,j)%values(sysII,sysII))/2.0
+
+             this%configurationHartreeMatrix(i,j)%values(sysI,sysII)=hartreeEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
+             this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)+&
+                  hartreeEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
+          end do
+       end do
+       return
+    end if
 
     allocate(fourCenterIntegrals(mergedMolecularSystem%numberOfQuantumSpecies,mergedMolecularSystem%numberOfQuantumSpecies), &
          twoIndexArray(mergedMolecularSystem%numberOfQuantumSpecies), &
@@ -1192,13 +1362,14 @@ contains
     end do
 
     if (removedStates .gt. 0) &
-         write(*,"(A,I5,A,ES9.3)") "Removed ", removedStates , &
+         write(*,"(A,I5,A,ES10.3)") "Removed ", removedStates , &
          " states from the CI transformation Matrix with overlap eigen threshold of ", CONTROL_instance%OVERLAP_EIGEN_THRESHOLD
 
 
     !!Ortogonalizacion simetrica
-    transformationMatrix%values  = &
-         matmul(transformationMatrix%values, transpose(eigenVectors%values))
+    ! transformationMatrix%values  = &
+    !      matmul(transformationMatrix%values, transpose(eigenVectors%values))
+    transformationMatrix=Matrix_product_dgemm(transformationMatrix,Matrix_getTranspose(eigenVectors))
 
     ! print *,"Matriz de transformacion "
     ! call Matrix_show( transformationMatrix )
@@ -1206,9 +1377,12 @@ contains
     !!**********************************************************************************************
     !! Transform configuration hamiltonian matrix
     !!
-    transformedHamiltonianMatrix%values = &
-         matmul( matmul( transpose( transformationMatrix%values ) , &
-         this%configurationHamiltonianMatrix%values), transformationMatrix%values )
+    ! transformedHamiltonianMatrix%values = &
+    !      matmul( matmul( transpose( transformationMatrix%values ) , &
+    !      this%configurationHamiltonianMatrix%values), transformationMatrix%values )
+
+    transformedHamiltonianMatrix = &
+         Matrix_product_dgemm(Matrix_product_dgemm(Matrix_getTranspose(transformationMatrix),this%configurationHamiltonianMatrix),transformationMatrix)
 
     ! print *,"transformed Hamiltonian Matrix "
     ! call Matrix_show( this%configurationHamiltonianMatrix )
@@ -1218,7 +1392,8 @@ contains
     call Matrix_eigen( transformedHamiltonianMatrix, this%statesEigenvalues, this%configurationCoefficients, SYMMETRIC )
 
     !! Calcula los  vectores propios para matriz de CI       
-    this%configurationCoefficients%values = matmul( transformationMatrix%values, this%configurationCoefficients%values )
+    ! this%configurationCoefficients%values = matmul( transformationMatrix%values, this%configurationCoefficients%values )
+     this%configurationCoefficients = Matrix_product_dgemm(transformationMatrix, this%configurationCoefficients)
 
     ! print *,"non orthogonal CI eigenvalues "
     ! call Vector_show( this%statesEigenvalues )
