@@ -1192,7 +1192,6 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     do a = 1, SCICoreSpaceSize  
 
       if ( indexCore%values(1,a) == 0 ) cycle
-      print *, "a", indexCore%values(:,a)
       !debugprint *, a
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1352,10 +1351,9 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
 
     !! apply the denominator from eq 4 10.1063/1.4955109
-    do aa = 1, CISCI_instance%tmp_amplitudeCoreSize 
+    do aa = 1, CISCI_instance%tmp_amplitudeCoreSize !! replace this by m
       a = CISCI_instance%auxindex_amplitudeCore%values(aa) 
-
-      ! if (  CISCI_instance%index_amplitudeCore%values(1, a ) == 0 ) cycle
+       if (  CISCI_instance%index_amplitudeCore%values(1, a ) == 0 ) cycle
       do spi = 1, numberOfSpecies 
         occA(spi)%values(:) = 0
         virA(spi)%values(:) = 0
@@ -2618,6 +2616,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
     do b = 1, numberOfConfigurations
       energyCorrection = energyCorrection + auxenergyCorrection(b) **2 / ( refEnergy - CIcore_instance%diagonalHamiltonianMatrix%values(b)  )
+     ! if ( abs(auxenergyCorrection(b) **2 / ( refEnergy - CIcore_instance%diagonalHamiltonianMatrix%values(b)  )) > 1E-16) &
+     !  print *, auxenergyCorrection(b)**2, CIcore_instance%diagonalHamiltonianMatrix%values(b), refEnergy,  energyCorrection
     enddo
 
 
@@ -2651,7 +2651,6 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     integer :: spi, spj, numberOfSpecies
     integer, allocatable :: cilevel(:)
     real(8) :: diagEnergy
-    real(8) :: oldEnergy
     real(8) :: shift
     type (ivector), allocatable :: occA(:), occB(:), occ0(:), virA(:), virB(:), vir0(:)
     type (ivector), allocatable :: orbA(:), orbB(:), orb0(:)
@@ -2754,9 +2753,9 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
           !! calculate diagonal term and denominator of Eq5 10.1063/1.4955109
           diagonal = CISCI_calculateEnergyZero( occA )
-          denominator = 1 / ( diagonal - oldEnergy + shift ) 
+          denominator = 1 / ( refEnergy - diagonal ) 
 
-          if ( abs(denominator) < 1E-16 ) then
+          !if ( abs(denominator) < 1E-16 ) then
 
             !! bit mapping from orbital to decimal num
             call CISCI_binaryToDecimal ( orbA(spi)%values, indexCoreConfA(spi) )
@@ -2767,12 +2766,13 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
             !! run over all coupled target configurations. index "j" in Eq5 10.1063/1.4955109
             if ( .not. found ) then
               call CISCI_buildPT2Row ( occA, occB, orbA, orbB, couplingS, CIenergy )
+            energyCorrection = energyCorrection + CIenergy * denominator
+       !     if ( abs(CIenergy *denominator)> 1E-16 )print *, "single",  CIenergy, diagonal, refEnergy, energyCorrection
+
+
             endif
 
-            energyCorrection = energyCorrection + CIenergy * denominator
-            print *, "single",  energyCorrection 
-
-          end if
+          !end if
 
           tmpindexCoreConfB = indexCoreConfA(spi) !! save the indexconfB to use later in double inter, because double intra will overwritten it 
 
@@ -2789,9 +2789,9 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
               !! calculate diagonal term and denominator of Eq5 10.1063/1.4955109
               diagonal = CISCI_calculateEnergyZero( occA )
-              denominator = 1 / ( diagonal - oldEnergy + shift ) 
+              denominator = 1 / ( refEnergy - diagonal ) 
 
-              if ( abs(denominator) > 1E-16 ) then
+             ! if ( abs(denominator) > 1E-16 ) then
 
                 !! bit mapping from orbital to decimal num
                 call CISCI_binaryToDecimal ( orbA(spi)%values, indexCoreConfA(spi) )
@@ -2802,12 +2802,12 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
                 !! run over all coupled target configurations. index "j" in Eq5 10.1063/1.4955109
                 if ( .not. found ) then
                   call CISCI_buildPT2Row ( occA, occB, orbA, orbB, couplingS, CIenergy )
+       energyCorrection = energyCorrection + CIenergy * denominator
+      !      if ( abs(CIenergy*denominator) > 1E-16 )print *, "intra",  CIenergy, diagonal, refEnergy, energyCorrection 
                 endif
 
-                energyCorrection = energyCorrection + CIenergy * denominator
-            print *, "intra",  energyCorrection 
-
-              end if
+         
+             ! end if
 
               occA(spi)%values(ri) = occ0(spi)%values(ri)  
               orbA(spi)%values(vi2) = orbA(spi)%values(vi2) -1 
@@ -2830,12 +2830,12 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
                 !! calculate diagonal term and denominator of Eq5 10.1063/1.4955109
                 diagonal = CISCI_calculateEnergyZero( occA )
-                denominator = 1 / ( diagonal - oldEnergy + shift ) 
+                denominator = 1 / ( refEnergy - diagonal ) 
   
-                if ( abs(denominator) > 1E-16 ) then
+                !if ( abs(denominator) > 1E-16 ) then
   
                   !! bit mapping from orbital to decimal num
-                  call CISCI_binaryToDecimal ( orbA(spi)%values, indexCoreConfA(spi) )
+                  call CISCI_binaryToDecimal ( orbA(spj)%values, indexCoreConfA(spj) )
   
                   !! search if the conf is present in the target space
                   found = CISCI_searchConfInTargetSpace( indexCoreConfA )
@@ -2843,12 +2843,13 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
                   !! run over all coupled target configurations. index "j" in Eq5 10.1063/1.4955109
                   if ( .not. found ) then
                     call CISCI_buildPT2Row ( occA, occB, orbA, orbB, couplingS, CIenergy )
+                 energyCorrection = energyCorrection + CIenergy * denominator
+            !if ( abs(CIenergy*denominator) > 1E-16 )print *, "inter",  CIenergy, diagonal, refEnergy, energyCorrection 
+
                   endif
   
-                  energyCorrection = energyCorrection + CIenergy * denominator
-            print *, "inter",  energyCorrection 
-  
-                end if
+   
+                !end if
 
                 !! reset the confB
                 occA(spj)%values(rj) = occ0(spj)%values(rj)  
@@ -3192,7 +3193,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         end do
 
         diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
-        CIenergy = CIenergy + CISCI_calculateEnergyOneNew( spi, occA, occB, diffOrbi(1), diffOrbi(3)  ) * factorA * CISCI_instance%tmp_amplitudeCore%values(bb) !! or target array???? 
+        CIenergy = CIenergy + CISCI_calculateEnergyOneNew( spi, occA, occB, diffOrbi(1), diffOrbi(3)  ) * factorA * CISCI_instance%auxcoefficientTarget%values(bb) !! or target array???? 
 
       case(3)
         do i = 1, numberOfSpecies
@@ -3200,7 +3201,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         end do
 
         diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
-        CIenergy = CIenergy + CISCI_calculateEnergyTwoSameNew( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  ) * factorA * CISCI_instance%tmp_amplitudeCore%values(bb) 
+        CIenergy = CIenergy + CISCI_calculateEnergyTwoSameNew( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  ) * factorA * CISCI_instance%auxcoefficientTarget%values(bb) 
 
       case(4)
         do i = 1, numberOfSpecies
@@ -3215,8 +3216,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
         diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
         diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj), occA(spj), occB(spj), factorB )
-        print *, difforbi, "|", difforbj 
-        CIenergy = CIenergy + CISCI_calculateEnergyTwoDiffNew( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(2), diffOrbj(2)  ) * factorA * factorB * CISCI_instance%tmp_amplitudeCore%values(bb) 
+        CIenergy = CIenergy + CISCI_calculateEnergyTwoDiffNew( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  ) * factorA * factorB * CISCI_instance%auxcoefficientTarget%values(bb) 
 
       end select
 
