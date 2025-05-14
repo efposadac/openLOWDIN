@@ -85,7 +85,7 @@ contains
     ! print *, "HF reference energy is ", hfEnergy
     nspecies=molecularSystem_instance%numberOfQuantumSpecies 
 
-    allocate(this%HFCoefficients(this%numberOfDisplacedSystems,nspecies))
+    allocate(this%HFCoefficients(nspecies,this%numberOfDisplacedSystems))
     allocate(this%systemLabels(this%numberOfDisplacedSystems))
 
     call Matrix_constructor(this%configurationHamiltonianMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
@@ -191,12 +191,10 @@ contains
           call MultiSCF_solveHartreeFockRoothan(MultiSCFParallelInstance(me),WaveFunctionParallelInstance(1:nspecies,me),Libint2ParallelInstance(1:nspecies,me))
 
           !Save HF results
-          ! call MultiSCF_saveWfn(MultiSCF_instance,WaveFunction_instance)
-          ! call MolecularSystem_copyConstructor(this%molecularSystems(sysI),molecularSystem_instance)
           this%configurationHamiltonianMatrix%values(mySysI,mySysI)=MultiSCFParallelInstance(me)%totalEnergy
           
           do speciesID = 1, nspecies
-             this%HFCoefficients(mySysI,speciesID) = WaveFunctionParallelInstance(speciesID,me)%waveFunctionCoefficients
+             this%HFCoefficients(speciesID,mySysI) = WaveFunctionParallelInstance(speciesID,me)%waveFunctionCoefficients
              this%configurationKineticMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%kineticEnergy
              this%configurationPuntualMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%puntualInteractionEnergy
              this%configurationExternalMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%externalPotentialEnergy
@@ -227,6 +225,16 @@ contains
              !Difference between HF and KS energies
              this%configurationCorrelationEnergies%values(mySysI)=this%configurationHamiltonianMatrix%values(mySysI,mySysI)-MultiSCFParallelInstance(me)%totalEnergy
           end if
+
+          ! NOCI + QDO
+          if(CONTROL_instance%REMOVE_QDO_IN_CI) then
+             do speciesID = 1, nspecies
+                this%configurationHamiltonianMatrix%values(mySysI,mySysI)=&
+                     this%configurationHamiltonianMatrix%values(mySysI,mySysI)-this%configurationExternalMatrix(speciesID)%values(mySysI,mySysI)
+                this%configurationExternalMatrix(speciesID)%values(mySysI,mySysI)=0.0
+             end do
+          end if
+
        end do procs
        !$omp end do nowait
        !$omp end parallel

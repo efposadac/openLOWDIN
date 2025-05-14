@@ -337,7 +337,7 @@ def getRMSradius(testName,species):
         if "EXPECTED RMS RADIUS OF QUANTUM SPECIES" in line:
             for j in range(i,len(outputRead)):
                 linej = outputRead[j]
-                if "QP+" in linej:
+                if species in linej:
                     radius= float(linej.split()[1])
                     break
     output.close()

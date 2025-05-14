@@ -326,16 +326,16 @@ contains
           call DirectIntegralManager_getMomentIntegrals(this%molecularSystems(1),speciesID,2,momentMatrices(2))
           call DirectIntegralManager_getMomentIntegrals(this%molecularSystems(1),speciesID,3,momentMatrices(3))
 
-          call Matrix_constructor(densityMatrix,int(size( this%HFCoefficients(1,speciesID)%values, DIM = 1),8),int(size( this%HFCoefficients(1,speciesID)%values, DIM = 1),8),0.0_8)
+          call Matrix_constructor(densityMatrix,int(size( this%HFCoefficients(speciesID,1)%values, DIM = 1),8),int(size( this%HFCoefficients(speciesID,1)%values, DIM = 1),8),0.0_8)
           
-          do i = 1 , size( this%HFCoefficients(1,speciesID)%values, DIM = 1 )
-             do j = 1 , size( this%HFCoefficients(1,speciesID)%values, DIM = 1 )
+          do i = 1 , size( this%HFCoefficients(speciesID,1)%values, DIM = 1 )
+             do j = 1 , size( this%HFCoefficients(speciesID,1)%values, DIM = 1 )
                 do k = 1 , MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(1))
 
                    densityMatrix%values(i,j) =  &
                         densityMatrix%values( i,j ) + &
-                        ( this%HFCoefficients(1,speciesID)%values(i,k) &
-                        * this%HFCoefficients(1,speciesID)%values(j,k) )
+                        ( this%HFCoefficients(speciesID,1)%values(i,k) &
+                        * this%HFCoefficients(speciesID,1)%values(j,k) )
                 end do
              end do
           end do
