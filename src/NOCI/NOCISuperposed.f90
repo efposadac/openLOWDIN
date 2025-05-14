@@ -71,7 +71,7 @@ contains
     implicit none
     type(NonOrthogonalCI) :: this
     type(MolecularSystem) :: auxMolecularSystem
-    type(Matrix), allocatable :: auxCoefficients(:)
+    type(Matrix), allocatable :: auxCoefficients(:), auxCoefficientsII(:)
     type(IVector), allocatable :: auxBasisList(:)
     
     integer :: i, sysI, speciesID
@@ -85,18 +85,18 @@ contains
 
     numberOfSpecies=this%molecularSystems(1)%numberOfQuantumSpecies
     
-    allocate(this%sysBasisList(this%numberOfDisplacedSystems,numberOfSpecies),&
+    allocate(this%sysBasisList(numberOfSpecies,this%numberOfDisplacedSystems),&
          auxCoefficients(numberOfSpecies),&         
          auxBasisList(numberOfSpecies))
     
     !Create a super molecular system
-    !!!Merge coefficients from system 1 and system 2
+    !!!Merge coefficients from system 1 and system 2    
     call MolecularSystem_mergeTwoSystems(this%mergedMolecularSystem, this%molecularSystems(1), this%molecularSystems(2), &
-         this%sysBasisList(1,:),this%sysBasisList(2,:))
-    
-    call NOCIMatrices_mergeCoefficients(this%molecularSystems(1),this%molecularSystems(2),this%mergedMolecularSystem,&
-         this%HFCoefficients(1,:),this%HFCoefficients(2,:),&
-         this%sysBasisList(1,:),this%sysBasisList(2,:),this%mergedCoefficients(:))
+         this%sysBasisList(:,1),this%sysBasisList(:,2))
+
+    call NOCIMatrices_mergeCoefficients(numberOfSpecies,this%molecularSystems(1),this%molecularSystems(2),this%mergedMolecularSystem,&
+         this%HFCoefficients(:,1),this%HFCoefficients(:,2),&
+         this%sysBasisList(:,1),this%sysBasisList(:,2),this%mergedCoefficients(:))
 
     ! do speciesID=1, numberOfSpecies
        ! print *, "2", speciesID, "ocupationNumber", MolecularSystem_getOcupationNumber(speciesID,this%mergedMolecularSystem)
@@ -111,10 +111,10 @@ contains
           call Matrix_copyConstructor(auxCoefficients(speciesID), this%mergedCoefficients(speciesID))       
        end do
        call MolecularSystem_mergeTwoSystems(this%mergedMolecularSystem, auxMolecularSystem, this%molecularSystems(sysI), &
-            auxBasisList,this%sysBasisList(sysI,:),reorder=.false.)
-       call NOCIMatrices_mergeCoefficients(auxMolecularSystem,this%molecularSystems(sysI),this%mergedMolecularSystem,&
-            auxCoefficients,this%HFCoefficients(sysI,:),&
-            auxBasisList,this%sysBasisList(sysI,:),this%mergedCoefficients(:))
+            auxBasisList,this%sysBasisList(:,sysI),reorder=.false.)
+       call NOCIMatrices_mergeCoefficients(numberOfSpecies,auxMolecularSystem,this%molecularSystems(sysI),this%mergedMolecularSystem,&
+            auxCoefficients,this%HFCoefficients(:,sysI),&
+            auxBasisList,this%sysBasisList(:,sysI),this%mergedCoefficients(:))
        ! do speciesID=1, numberOfSpecies
              ! print *, sysI, speciesID, "ocupationNumber", MolecularSystem_getOcupationNumber(speciesID,this%mergedMolecularSystem)
              ! print *, sysI, speciesID, "mergedCoefficients"
@@ -125,13 +125,13 @@ contains
     !!!Fix basis list size
     do sysI=1, this%numberOfDisplacedSystems
        do speciesID=1, numberOfSpecies
-          call Vector_copyConstructorInteger(auxBasisList(speciesID),this%sysBasisList(sysI,speciesID))
-          call Vector_constructorInteger(this%sysBasisList(sysI,speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,this%mergedMolecularSystem), 0)           
+          call Vector_copyConstructorInteger(auxBasisList(speciesID),this%sysBasisList(speciesID,sysI))
+          call Vector_constructorInteger(this%sysBasisList(speciesID,sysI), MolecularSystem_getTotalNumberOfContractions(speciesID,this%mergedMolecularSystem), 0)           
           do i=1, size(auxBasisList(speciesID)%values)
-             this%sysBasisList(sysI,speciesID)%values(i)=auxBasisList(speciesID)%values(i)
+             this%sysBasisList(speciesID,sysI)%values(i)=auxBasisList(speciesID)%values(i)
           end do
           ! print *, "sysI", sysI, "speciesID", speciesID, "after list"
-          ! call Vector_showInteger(this%sysBasisList(sysI,speciesID))
+          ! call Vector_showInteger(this%sysBasisList(speciesID,sysI))
        end do
     end do
     
@@ -230,9 +230,9 @@ contains
        do speciesID=1, numberOfSpecies
           particlesPerOrbital=MolecularSystem_getEta(speciesID,this%molecularSystems(sysI))
           do mu = 1 , MolecularSystem_getTotalNumberOfContractions(speciesID)
-             if(this%sysBasisList(sysI,speciesID)%values(mu) .eq. 0) cycle
+             if(this%sysBasisList(speciesID,sysI)%values(mu) .eq. 0) cycle
              do nu = 1 , MolecularSystem_getTotalNumberOfContractions(speciesID)
-                if(this%sysBasisList(sysI,speciesID)%values(nu) .eq. 0) cycle
+                if(this%sysBasisList(speciesID,sysI)%values(nu) .eq. 0) cycle
                 do i = 1 , MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
                    ii=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))*(sysI-1)+i
                    do state=1, CONTROL_instance%CI_STATES_TO_PRINT
@@ -261,9 +261,9 @@ contains
                   int(MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysII)),8), 0.0_8 )
                 
              do mu=1, MolecularSystem_getTotalNumberOfContractions(speciesID) !sysI
-                if(this%sysBasisList(sysI,speciesID)%values(mu) .eq. 0) cycle
+                if(this%sysBasisList(speciesID,sysI)%values(mu) .eq. 0) cycle
                 do nu=1, MolecularSystem_getTotalNumberOfContractions(speciesID)  !sysII
-                   if(this%sysBasisList(sysII,speciesID)%values(nu) .eq. 0) cycle
+                   if(this%sysBasisList(speciesID,sysII)%values(nu) .eq. 0) cycle
                    do i = 1 , MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
                       ii=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))*(sysI-1)+i
                       do j = 1 , MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysII))
@@ -287,9 +287,9 @@ contains
           do speciesID=1, numberOfSpecies
              particlesPerOrbital=MolecularSystem_getEta(speciesID,this%molecularSystems(sysI))
              do mu = 1 , MolecularSystem_getTotalNumberOfContractions(speciesID)
-                if(this%sysBasisList(sysI,speciesID)%values(mu) .eq. 0) cycle
+                if(this%sysBasisList(speciesID,sysI)%values(mu) .eq. 0) cycle
                 do nu = 1 , MolecularSystem_getTotalNumberOfContractions(speciesID)
-                   if(this%sysBasisList(sysII,speciesID)%values(nu) .eq. 0) cycle
+                   if(this%sysBasisList(speciesID,sysII)%values(nu) .eq. 0) cycle
                    do state=1, CONTROL_instance%CI_STATES_TO_PRINT
                       do i = 1 , MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
                          ii=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))*(sysI-1)+i
@@ -623,7 +623,7 @@ contains
           write(auxString,*) sysI
           arguments(1) = "SYSBASISLIST"//trim(auxString) 
           arguments(2) = trim(MolecularSystem_instance%species(speciesID)%name)
-          call Vector_writeToFileInteger(this%sysBasisList(sysI,speciesID), nociUnit, binary=.true., arguments=arguments(1:2) )
+          call Vector_writeToFileInteger(this%sysBasisList(speciesID,sysI), nociUnit, binary=.true., arguments=arguments(1:2) )
        end do
     end do
 

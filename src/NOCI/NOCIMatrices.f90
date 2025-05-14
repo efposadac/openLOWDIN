@@ -72,10 +72,11 @@ contains
     type(Libint2Interface), allocatable :: Libint2ParallelInstance(:,:)
     integer, allocatable :: sysIbatch(:), sysIIbatch(:)
     integer :: sysI,sysII,me,mySysI,mySysII
-    type(Matrix), allocatable :: mergedCoefficients(:), inverseOverlapMatrices(:)
+    type(Matrix), allocatable :: mergedCoefficients(:),myHFCoefficientsI(:),myHFCoefficientsII(:), inverseOverlapMatrices(:)
     type(IVector), allocatable :: sysIbasisList(:,:),sysIIbasisList(:,:)
     real(8) :: overlapUpperBound
-    integer :: prescreenedElements, overlapScreenedElements
+    integer :: prescreenedElements
+    integer, allocatable :: overlapScreenedElements(:)
 
     integer :: speciesID, otherSpeciesID
     integer :: nspecies
@@ -188,8 +189,10 @@ contains
          sysIbatch(batchSize),&
          sysIIbatch(batchSize),&
          sysIbasisList(nspecies,batchSize),&
-         sysIIbasisList(nspecies,batchSize))
-
+         sysIIbasisList(nspecies,batchSize),&
+         overlapScreenedElements(batchSize))
+    prescreenedElements=0
+    overlapScreenedElements=0
     ! print *, "upperBound", upperBound
 
     sysI=1
@@ -246,22 +249,26 @@ contains
 
        call OMP_set_num_threads(ncores)
        !$omp parallel & 
-       !$omp& private(mySysI,mySysII,mergedCoefficients,inverseOverlapMatrices),&
+       !$omp& private(mySysI,mySysII,mergedCoefficients,myHFCoefficientsI,myHFCoefficientsII,inverseOverlapMatrices),&
        !$omp& shared(this,sysI,sysII,matrixUnit,prescreenedElements,overlapScreenedElements,sysIbasisList,sysIIbasisList,mergedMolecularSystem,Libint2ParallelInstance,nspecies,batchSize)
-       if(allocated(mergedCoefficients)) deallocate(mergedCoefficients,inverseOverlapMatrices)
-       allocate(mergedCoefficients(nspecies),inverseOverlapMatrices(nspecies))
+       if(allocated(mergedCoefficients)) deallocate(mergedCoefficients,myHFCoefficientsI,myHFCoefficientsII,inverseOverlapMatrices)
+       allocate(mergedCoefficients(nspecies),myHFCoefficientsI(nspecies),myHFCoefficientsII(nspecies),inverseOverlapMatrices(nspecies))
        !$omp do schedule(dynamic,10)
        procs: do me=1, batchSize
           mySysI=sysIbatch(me)
           mySysII=sysIIbatch(me)          
           if(mySysI .eq. 0 .or. mySysII .eq. 0) cycle procs
           
-          ! print *, "evaluating S and H elements for", mySysI, mySysII
+          ! do speciesID = 1, nspecies
+          !    myHFCoefficientsI(speciesID)=this%HFCoefficients(speciesID,mySysI)
+          !    myHFCoefficientsII(speciesID)=this%HFCoefficients(speciesID,mySysII)
+          ! end do
 
+          ! print *, "evaluating S and H elements for", mySysI, mySysII
           !! Merge occupied coefficients into a single matrix
-          call NOCIMatrices_mergeCoefficients(this%molecularSystems(mySysI),this%molecularSystems(mySysII),mergedMolecularSystem(me),&
-               this%HFCoefficients(mySysI,1:nspecies),this%HFCoefficients(mySysII,1:nspecies),&
-               sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me),mergedCoefficients(1:nspecies))
+          call NOCIMatrices_mergeCoefficients(nspecies,this%molecularSystems(mySysI),this%molecularSystems(mySysII),mergedMolecularSystem(me),&
+               this%HFCoefficients(1:nspecies,mySysI),this%HFCoefficients(1:nspecies,mySysII),&
+               sysIbasisList(1:nspecies,me),sysIIbasisList(1:nspecies,me),mergedCoefficients)
           !$  timeA = omp_get_wtime()
 
           call NOCIMatrices_computeOverlapAndHCoreElements(this,mySysI,mySysII,mergedMolecularSystem(me),mergedCoefficients,&
@@ -276,8 +283,7 @@ contains
              ! print *, "screening elements", mySysI, mySysII, "with overlap", this%configurationOverlapMatrix%values(mySysI,mySysII)
              this%configurationOverlapMatrix%values(mySysI,mySysII)=0.0
              this%configurationHamiltonianMatrix%values(mySysI,mySysII)=0.0
-             !$OMP ATOMIC
-             overlapScreenedElements=overlapScreenedElements+1
+             overlapScreenedElements(me)=overlapScreenedElements(me)+1
           else
 
              !$  timeA = omp_get_wtime()
@@ -443,17 +449,17 @@ contains
 
     print *, ""
     print *, "Configuration pairs skipped by overlap prescreening: ", prescreenedElements
-    print *, "Configuration pairs skipped by overlap    screening: ", overlapScreenedElements
+    print *, "Configuration pairs skipped by overlap    screening: ", sum(overlapScreenedElements)
     if( .not. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) then
        print *, "Overlap integrals computed for    ", this%numberOfDisplacedSystems*(this%numberOfDisplacedSystems-1)/2&
             -prescreenedElements, "configuration pairs"
        print *, "Four center integrals computed for", this%numberOfDisplacedSystems*(this%numberOfDisplacedSystems-1)/2&
-            -prescreenedElements-overlapScreenedElements, "configuration pairs"
+            -prescreenedElements-sum(overlapScreenedElements), "configuration pairs"
     else
        print *, "Overlap integrals computed for    ", this%numberOfDisplacedSystems&
             -prescreenedElements, "configuration pairs"
        print *, "Four center integrals computed for", this%numberOfDisplacedSystems&
-            -prescreenedElements-overlapScreenedElements, "configuration pairs"
+            -prescreenedElements-sum(overlapScreenedElements), "configuration pairs"
     end if
     print *, ""
 
@@ -536,18 +542,20 @@ contains
   !! @param occupationI and occupationII: Number of orbitals to merge from each matrix. 
   !! sysBasisList: array indicating which basis functions of the merged molecular system belong to sysI and sysII Merged Coefficients: Matrices for output.
   !<
-  subroutine NOCIMatrices_mergeCoefficients(molecularSystemI,molecularSystemII,mergedMolecularSystem,coefficientsI,coefficientsII,&
+    subroutine NOCIMatrices_mergeCoefficients(nspecies,molecularSystemI,molecularSystemII,mergedMolecularSystem,coefficientsI,coefficientsII,&
        sysIbasisList,sysIIbasisList,mergedCoefficients)
+    integer :: nspecies
     type(MolecularSystem) :: molecularSystemI, molecularSystemII,mergedMolecularSystem
-    type(Matrix) :: coefficientsI(mergedMolecularSystem%numberOfQuantumSpecies), coefficientsII(mergedMolecularSystem%numberOfQuantumSpecies)
-    type(IVector) :: sysIbasisList(mergedMolecularSystem%numberOfQuantumSpecies), sysIIbasisList(mergedMolecularSystem%numberOfQuantumSpecies)
-    type(Matrix) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(Matrix) :: coefficientsI(nspecies), coefficientsII(nspecies)
+    type(IVector) :: sysIbasisList(nspecies), sysIIbasisList(nspecies)
+    type(Matrix) :: mergedCoefficients(nspecies)
     
     integer :: speciesID, i, j, mu
     integer :: occupationNumberI,occupationNumberII,numberOfContractions
     
+    ! nspecies=mergedMolecularSystem%numberOfQuantumSpecies
     !! Mix coefficients of occupied orbitals of both systems    
-    do speciesID = 1, mergedMolecularSystem%numberOfQuantumSpecies
+    do speciesID = 1, nspecies
        
        occupationNumberI=MolecularSystem_getOcupationNumber(speciesID,mergedMolecularSystem)
        numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)

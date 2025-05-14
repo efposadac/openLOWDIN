@@ -85,7 +85,7 @@ contains
     ! print *, "HF reference energy is ", hfEnergy
     nspecies=molecularSystem_instance%numberOfQuantumSpecies 
 
-    allocate(this%HFCoefficients(this%numberOfDisplacedSystems,nspecies))
+    allocate(this%HFCoefficients(nspecies,this%numberOfDisplacedSystems))
     allocate(this%systemLabels(this%numberOfDisplacedSystems))
 
     call Matrix_constructor(this%configurationHamiltonianMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
@@ -194,7 +194,7 @@ contains
           this%configurationHamiltonianMatrix%values(mySysI,mySysI)=MultiSCFParallelInstance(me)%totalEnergy
           
           do speciesID = 1, nspecies
-             this%HFCoefficients(mySysI,speciesID) = WaveFunctionParallelInstance(speciesID,me)%waveFunctionCoefficients
+             this%HFCoefficients(speciesID,mySysI) = WaveFunctionParallelInstance(speciesID,me)%waveFunctionCoefficients
              this%configurationKineticMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%kineticEnergy
              this%configurationPuntualMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%puntualInteractionEnergy
              this%configurationExternalMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%externalPotentialEnergy
