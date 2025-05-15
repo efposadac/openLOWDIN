@@ -110,7 +110,7 @@ contains
     implicit none
 
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
-    type(pointCharge), intent(in), allocatable :: point(:)
+    type(pointCharge), intent(in) :: point(:)
 
     integer, intent(in) :: npoints
     integer, intent(in) :: speciesID
@@ -290,23 +290,25 @@ contains
 
           do atom = 0, numberOfPointCharges - 1
 
+             !! Skip integral for qdo centers
+             if ( trim( pointCharges(atom)%qdoCenterOf) .eq. trim(symbolOfSpecies)) cycle
+
+             !! Skip integral for charge zero centers (dummy particles)
+             if ( pointCharges(atom)%charge .eq. 0.0_8 ) cycle
+
              PC(0) = P(0) - pointCharges(atom)%x
              PC(1) = P(1) - pointCharges(atom)%y
              PC(2) = P(2) - pointCharges(atom)%z
+                
+             sumAngularMoment = angularMomentA + angularMomentB + 1
 
-             !! Skip integral for qdo centers
-             if ( trim( pointCharges(atom)%qdoCenterOf) == "NONE" .or. trim( pointCharges(atom)%qdoCenterOf) /= trim(symbolOfSpecies)   ) then 
+             call AttractionIntegrals_obaraSaikaRecursion(AI0,PA,PB,PC,zeta,sumAngularMoment,angularMomentA,angularMomentB)
 
-                sumAngularMoment = angularMomentA + angularMomentB + 1
-  
-                call AttractionIntegrals_obaraSaikaRecursion(AI0,PA,PB,PC,zeta,sumAngularMoment,angularMomentA,angularMomentB)
-  
-                indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
-  
-                indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
-  
-                integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
-              end if
+             indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
+
+             indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
+
+             integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
 
           end do
           ! write(*,*) "se ha llamado obara-saika ",atom," veces"
@@ -349,7 +351,7 @@ contains
     twoZetaInv = 1 / (2 * zeta)
     tmp = sqrt(zeta)*(2.0_8/Math_SQRT_PI)
     u = zeta*(PC(0) * PC(0) + PC(1) * PC(1) + PC(2) * PC(2))
-
+    
     call Math_fgamma0(sumAngularMoment,u,F)
 
     do m = 0, sumAngularMoment

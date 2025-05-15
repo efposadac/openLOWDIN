@@ -186,6 +186,7 @@ contains
        print *, ""
        write (*,"(A,I5,A,I10,A)") "Displacing coordinates of ", numberOfTranslationCenters, " centers", &
             this%numberOfIndividualTransformations," times"
+       write (*,"(A,F12.8)") "With step ", CONTROL_instance%TRANSLATION_STEP
        print *, ""
 
     else if(numberOfRotationCenters.ne.0) then

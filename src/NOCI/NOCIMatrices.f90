@@ -72,7 +72,7 @@ contains
     type(Libint2Interface), allocatable :: Libint2ParallelInstance(:,:)
     integer, allocatable :: sysIbatch(:), sysIIbatch(:)
     integer :: sysI,sysII,me,mySysI,mySysII
-    type(Matrix), allocatable :: mergedCoefficients(:),myHFCoefficientsI(:),myHFCoefficientsII(:), inverseOverlapMatrices(:)
+    type(Matrix), allocatable :: mergedCoefficients(:),inverseOverlapMatrices(:)
     type(IVector), allocatable :: sysIbasisList(:,:),sysIIbasisList(:,:)
     real(8) :: overlapUpperBound
     integer :: prescreenedElements
@@ -249,22 +249,17 @@ contains
 
        call OMP_set_num_threads(ncores)
        !$omp parallel & 
-       !$omp& private(mySysI,mySysII,mergedCoefficients,myHFCoefficientsI,myHFCoefficientsII,inverseOverlapMatrices),&
+       !$omp& private(mySysI,mySysII,mergedCoefficients,inverseOverlapMatrices),&
        !$omp& shared(this,sysI,sysII,matrixUnit,prescreenedElements,overlapScreenedElements,sysIbasisList,sysIIbasisList,mergedMolecularSystem,Libint2ParallelInstance,nspecies,batchSize)
-       if(allocated(mergedCoefficients)) deallocate(mergedCoefficients,myHFCoefficientsI,myHFCoefficientsII,inverseOverlapMatrices)
-       allocate(mergedCoefficients(nspecies),myHFCoefficientsI(nspecies),myHFCoefficientsII(nspecies),inverseOverlapMatrices(nspecies))
-       !$omp do schedule(dynamic,10)
+       if(allocated(mergedCoefficients)) deallocate(mergedCoefficients,inverseOverlapMatrices)
+       allocate(mergedCoefficients(nspecies),inverseOverlapMatrices(nspecies))
+       !$omp do schedule(dynamic,1)
        procs: do me=1, batchSize
           mySysI=sysIbatch(me)
           mySysII=sysIIbatch(me)          
           if(mySysI .eq. 0 .or. mySysII .eq. 0) cycle procs
           
-          ! do speciesID = 1, nspecies
-          !    myHFCoefficientsI(speciesID)=this%HFCoefficients(speciesID,mySysI)
-          !    myHFCoefficientsII(speciesID)=this%HFCoefficients(speciesID,mySysII)
-          ! end do
-
-          ! print *, "evaluating S and H elements for", mySysI, mySysII
+          ! print *, "evaluating S and H elements for", mySysI, mySysII, " in core", OMP_GET_THREAD_NUM()
           !! Merge occupied coefficients into a single matrix
           call NOCIMatrices_mergeCoefficients(nspecies,this%molecularSystems(mySysI),this%molecularSystems(mySysII),mergedMolecularSystem(me),&
                this%HFCoefficients(1:nspecies,mySysI),this%HFCoefficients(1:nspecies,mySysII),&
@@ -916,8 +911,6 @@ contains
        end if
        
        this%configurationOverlapMatrix%values(sysI,sysII)=this%configurationOverlapMatrix%values(sysI,sysII)*overlapDeterminant%values(speciesID)**particlesPerOrbital
-
-
     end do
 
     ! print *, "total overlap", this%configurationOverlapMatrix%values(sysI,sysII)
@@ -931,137 +924,81 @@ contains
          this%configurationOverlapMatrix%values(sysI,sysII)
     ! print *, "Point charge-Point charge repulsion", MolecularSystem_getPointChargesEnergy()
 
-    if(CONTROL_instance%NOCI_KINETIC_APPROXIMATION) then
-       !!Compute hcore if overlap is significant
-       do speciesID = 1, this%molecularSystems(sysI)%numberOfQuantumSpecies
-          !Make this a variable in the input
-          if(MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) .lt. 2.0_8) cycle
+    !!Compute kinetic if overlap is significant
+    do speciesID = 1, this%molecularSystems(sysI)%numberOfQuantumSpecies
+       !Make this a variable in the input
+       if(CONTROL_instance%NOCI_KINETIC_APPROXIMATION .and. MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) .lt. 2.0_8) cycle
           
-          numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
-          occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
-          particlesPerOrbital=MolecularSystem_getEta(speciesID,mergedMolecularSystem)
+       numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
+       occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
+       particlesPerOrbital=MolecularSystem_getEta(speciesID,mergedMolecularSystem)
 
-          call Matrix_constructor(auxKineticMatrix(speciesID),&
-               int(numberOfContractions,8),int(numberOfContractions,8),0.0_8)
+       call Matrix_constructor(auxKineticMatrix(speciesID),&
+            int(numberOfContractions,8),int(numberOfContractions,8),0.0_8)
 
-          call DirectIntegralManager_getKineticIntegrals(mergedMolecularSystem,speciesID,auxKineticMatrix(speciesID))
+       call DirectIntegralManager_getKineticIntegrals(mergedMolecularSystem,speciesID,auxKineticMatrix(speciesID))
 
-          !! Incluiding mass effect       
-          if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
-             auxKineticMatrix(speciesID)%values =  &
-                  auxKineticMatrix(speciesID)%values * &
-                  ( 1.0_8/MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) -1.0_8 / MolecularSystem_getTotalMass(this%molecularSystems(sysI)) )
-          else
-             auxKineticMatrix(speciesID)%values =  &
-                  auxKineticMatrix(speciesID)%values / &
-                  MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) )
-          end if
+       !! Incluiding mass effect       
+       if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
+          auxKineticMatrix(speciesID)%values =  &
+               auxKineticMatrix(speciesID)%values * &
+               ( 1.0_8/MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) -1.0_8 / MolecularSystem_getTotalMass(this%molecularSystems(sysI)) )
+       else
+          auxKineticMatrix(speciesID)%values =  &
+               auxKineticMatrix(speciesID)%values / &
+               MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) )
+       end if
 
-          call Matrix_constructor(molecularKineticMatrix(speciesID), int(occupationNumber,8), int(occupationNumber,8), 0.0_8 )
+       call Matrix_constructor(molecularKineticMatrix(speciesID), int(occupationNumber,8), int(occupationNumber,8), 0.0_8 )
 
-          !!Test 
-          ! print *, "auxKineticMatrix", speciesID
-          ! call Matrix_show(auxKineticMatrix(speciesID))
+       !!Test 
+       ! print *, "auxKineticMatrix", speciesID
+       ! call Matrix_show(auxKineticMatrix(speciesID))
 
-          do mu=1, numberOfContractions !sysI
-             if(sysIbasisList(speciesID)%values(mu) .eq. 0) cycle
-             do nu=1, numberOfContractions !sysII
-                if(sysIIbasisList(speciesID)%values(nu) .eq. 0) cycle
-                do a=1, occupationNumber !sysI
-                   do b=occupationNumber+1, 2*occupationNumber
-                      bb=b-occupationNumber
+       do mu=1, numberOfContractions !sysI
+          if(sysIbasisList(speciesID)%values(mu) .eq. 0) cycle
+          do nu=1, numberOfContractions !sysII
+             if(sysIIbasisList(speciesID)%values(nu) .eq. 0) cycle
+             do a=1, occupationNumber !sysI
+                do b=occupationNumber+1, 2*occupationNumber
+                   bb=b-occupationNumber
 
-                      ! print *, "hcore", a, b, mu, nu, mergedCoefficients(speciesID)%values(mu,a), mergedCoefficients(speciesID)%values(nu,b), &
-                      !      auxKineticMatrix%values(mu,nu)/MolecularSystem_getMass(speciesID)+&
-                      !      auxAttractionMatrix%values(mu,nu)*(-MolecularSystem_getCharge(speciesID))
+                   molecularKineticMatrix(speciesID)%values(a,bb)=molecularKineticMatrix(speciesID)%values(a,bb)+&
+                        mergedCoefficients(speciesID)%values(mu,a)*mergedCoefficients(speciesID)%values(nu,b)*&
+                        auxKineticMatrix(speciesID)%values(mu,nu)                        
 
-                      molecularKineticMatrix(speciesID)%values(a,bb)=molecularKineticMatrix(speciesID)%values(a,bb)+&
-                           mergedCoefficients(speciesID)%values(mu,a)*mergedCoefficients(speciesID)%values(nu,b)*&
-                           auxKineticMatrix(speciesID)%values(mu,nu)                        
-
-                   end do
                 end do
              end do
           end do
-          molecularKineticMatrix(speciesID)%values=particlesPerOrbital*molecularKineticMatrix(speciesID)%values
        end do
+       molecularKineticMatrix(speciesID)%values=particlesPerOrbital*molecularKineticMatrix(speciesID)%values
+    end do
 
-       !!One Particle Terms - approximate for heavy particles
-       do speciesID=1, this%molecularSystems(sysI)%numberOfQuantumSpecies
-          oneParticleKineticEnergy=0.0
-          if(MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) .lt. 2.0_8) then
-             oneParticleKineticEnergy=(this%configurationKineticMatrix(speciesID)%values(sysI,sysI)+this%configurationKineticMatrix(speciesID)%values(sysII,sysII))/2.0
-          else
-             occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
-             do a=1, occupationNumber !sysI
-                do b=1, occupationNumber !sysII
-                   oneParticleKineticEnergy=oneParticleKineticEnergy+ molecularKineticMatrix(speciesID)%values(a,b)*&
-                        inverseOverlapMatrices(speciesID)%values(b,a)
-                end do
-             end do
-          end if
-          this%configurationKineticMatrix(speciesID)%values(sysI,sysII)=oneParticleKineticEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
-
-          this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)+&
-               oneParticleKineticEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
-          ! print *, "sysI, sysII", sysI, sysII, "oneParticleEnergy for species", speciesID, oneParticleEnergy
-       end do
-
-       !!Approximate potential energy terms from the diagonal elements
-       do speciesID=1, this%molecularSystems(sysI)%numberOfQuantumSpecies               
-          oneParticleAttractionEnergy=(this%configurationPuntualMatrix(speciesID)%values(sysI,sysI)+this%configurationPuntualMatrix(speciesID)%values(sysII,sysII))/2.0
-          oneParticleExternalEnergy=(this%configurationExternalMatrix(speciesID)%values(sysI,sysI)+this%configurationExternalMatrix(speciesID)%values(sysII,sysII))/2.0
-          this%configurationPuntualMatrix(speciesID)%values(sysI,sysII)=oneParticleAttractionEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
-          this%configurationExternalMatrix(speciesID)%values(sysI,sysII)=oneParticleExternalEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
-
-          this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)+&
-               (oneParticleAttractionEnergy+oneParticleExternalEnergy)*this%configurationOverlapMatrix%values(sysI,sysII)
-       end do
-       !!Don't compute anything else under kinetic approximation
-       return
-    end if
-    
-    
-    !!Compute hcore if overlap is significant
+    !!Compute potential if overlap is significant
     do speciesID = 1, this%molecularSystems(sysI)%numberOfQuantumSpecies
+
+       if(CONTROL_instance%NOCI_KINETIC_APPROXIMATION) cycle
 
        numberOfContractions=MolecularSystem_getTotalNumberOfContractions(speciesID,mergedMolecularSystem)
        occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
        particlesPerOrbital=MolecularSystem_getEta(speciesID,mergedMolecularSystem)
        
-       call Matrix_constructor(auxKineticMatrix(speciesID),&
-            int(numberOfContractions,8),int(numberOfContractions,8),0.0_8)
        call Matrix_constructor(auxAttractionMatrix(speciesID),&
             int(numberOfContractions,8),int(numberOfContractions,8),0.0_8)
        call Matrix_constructor(auxExternalPotMatrix(speciesID),&
             int(numberOfContractions,8),int(numberOfContractions,8),0.0_8)
 
-       call DirectIntegralManager_getKineticIntegrals(mergedMolecularSystem,speciesID,auxKineticMatrix(speciesID))
        call DirectIntegralManager_getAttractionIntegrals(mergedMolecularSystem,speciesID,auxAttractionMatrix(speciesID))
        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
             call DirectIntegralManager_getExternalPotentialIntegrals(mergedMolecularSystem,speciesID,auxExternalPotMatrix(speciesID))
        
-       !! Incluiding mass effect       
-       if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
-          auxKineticMatrix(speciesID)%values =  &
-            auxKineticMatrix(speciesID)%values * &
-            ( 1.0_8/MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) -1.0_8 / MolecularSystem_getTotalMass(this%molecularSystems(sysI)) )
-       else
-          auxKineticMatrix(speciesID)%values =  &
-            auxKineticMatrix(speciesID)%values / &
-            MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) )
-       end if
-
        !! Including charge
        auxAttractionMatrix(speciesID)%values=auxAttractionMatrix(speciesID)%values*(-MolecularSystem_getCharge(speciesID,this%molecularSystems(sysI)))                         
        
-       call Matrix_constructor(molecularKineticMatrix(speciesID), int(occupationNumber,8), int(occupationNumber,8), 0.0_8 )
        call Matrix_constructor(molecularAttractionMatrix(speciesID), int(occupationNumber,8), int(occupationNumber,8), 0.0_8 )
        call Matrix_constructor(molecularExternalMatrix(speciesID), int(occupationNumber,8), int(occupationNumber,8), 0.0_8 )
 
        !!Test 
-       ! print *, "auxKineticMatrix", speciesID
-       ! call Matrix_show(auxKineticMatrix(speciesID))
        ! print *, "auxAttractionMatrix", speciesID
        ! call Matrix_show(auxAttractionMatrix(speciesID))
 
@@ -1072,14 +1009,6 @@ contains
              do a=1, occupationNumber !sysI
                 do b=occupationNumber+1, 2*occupationNumber
                    bb=b-occupationNumber
-
-                   ! print *, "hcore", a, b, mu, nu, mergedCoefficients(speciesID)%values(mu,a), mergedCoefficients(speciesID)%values(nu,b), &
-                   !      auxKineticMatrix%values(mu,nu)/MolecularSystem_getMass(speciesID)+&
-                   !      auxAttractionMatrix%values(mu,nu)*(-MolecularSystem_getCharge(speciesID))
-
-                   molecularKineticMatrix(speciesID)%values(a,bb)=molecularKineticMatrix(speciesID)%values(a,bb)+&
-                        mergedCoefficients(speciesID)%values(mu,a)*mergedCoefficients(speciesID)%values(nu,b)*&
-                        auxKineticMatrix(speciesID)%values(mu,nu)                        
 
                    molecularAttractionMatrix(speciesID)%values(a,bb)=molecularAttractionMatrix(speciesID)%values(a,bb)+&
                         mergedCoefficients(speciesID)%values(mu,a)*mergedCoefficients(speciesID)%values(nu,b)*&
@@ -1093,32 +1022,49 @@ contains
              end do
           end do
        end do
-       molecularKineticMatrix(speciesID)%values=particlesPerOrbital*molecularKineticMatrix(speciesID)%values
        molecularAttractionMatrix(speciesID)%values=particlesPerOrbital*molecularAttractionMatrix(speciesID)%values
-       molecularExternalMatrix(speciesID)%values=particlesPerOrbital*molecularExternalMatrix(speciesID)%values
+       if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+            molecularExternalMatrix(speciesID)%values=particlesPerOrbital*molecularExternalMatrix(speciesID)%values
        !!End test                          
     end do
-
-    !!One Particle Terms
+    
     do speciesID=1, this%molecularSystems(sysI)%numberOfQuantumSpecies
        oneParticleKineticEnergy=0.0
+       occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
+       !!One Particle Terms - approximate for heavy particles
+       if(CONTROL_instance%NOCI_KINETIC_APPROXIMATION .and. MolecularSystem_getMass( speciesID,this%molecularSystems(sysI) ) .lt. 2.0_8) then
+          oneParticleKineticEnergy=(this%configurationKineticMatrix(speciesID)%values(sysI,sysI)+this%configurationKineticMatrix(speciesID)%values(sysII,sysII))/2.0
+       else
+          do a=1, occupationNumber !sysI
+             do b=1, occupationNumber !sysII
+                oneParticleKineticEnergy=oneParticleKineticEnergy+ molecularKineticMatrix(speciesID)%values(a,b)*&
+                     inverseOverlapMatrices(speciesID)%values(b,a)
+             end do
+          end do
+       end if
+
        oneParticleAttractionEnergy=0.0
        oneParticleExternalEnergy=0.0
-       occupationNumber=MolecularSystem_getOcupationNumber(speciesID,this%molecularSystems(sysI))
-       do a=1, occupationNumber !sysI
-          do b=1, occupationNumber !sysII
-             oneParticleKineticEnergy=oneParticleKineticEnergy+ molecularKineticMatrix(speciesID)%values(a,b)*&
-                  inverseOverlapMatrices(speciesID)%values(b,a)
-             oneParticleAttractionEnergy=oneParticleAttractionEnergy+ molecularAttractionMatrix(speciesID)%values(a,b)*&
-                  inverseOverlapMatrices(speciesID)%values(b,a)
-             oneParticleExternalEnergy=oneParticleExternalEnergy+ molecularExternalMatrix(speciesID)%values(a,b)*&
-                  inverseOverlapMatrices(speciesID)%values(b,a)
-          end do          
-       end do
+       !!Approximate potential energy terms from the diagonal elements
+       if(CONTROL_instance%NOCI_KINETIC_APPROXIMATION) then
+          oneParticleAttractionEnergy=(this%configurationPuntualMatrix(speciesID)%values(sysI,sysI)+this%configurationPuntualMatrix(speciesID)%values(sysII,sysII))/2.0
+          oneParticleExternalEnergy=(this%configurationExternalMatrix(speciesID)%values(sysI,sysI)+this%configurationExternalMatrix(speciesID)%values(sysII,sysII))/2.0
+       else
+          do a=1, occupationNumber !sysI
+             do b=1, occupationNumber !sysII
+                oneParticleAttractionEnergy=oneParticleAttractionEnergy+ molecularAttractionMatrix(speciesID)%values(a,b)*&
+                     inverseOverlapMatrices(speciesID)%values(b,a)
+                if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+                     oneParticleExternalEnergy=oneParticleExternalEnergy+ molecularExternalMatrix(speciesID)%values(a,b)*&
+                     inverseOverlapMatrices(speciesID)%values(b,a)
+             end do
+          end do
+       end if
+
        this%configurationKineticMatrix(speciesID)%values(sysI,sysII)=oneParticleKineticEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
        this%configurationPuntualMatrix(speciesID)%values(sysI,sysII)=oneParticleAttractionEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
        this%configurationExternalMatrix(speciesID)%values(sysI,sysII)=oneParticleExternalEnergy*this%configurationOverlapMatrix%values(sysI,sysII)
-       
+
        this%configurationHamiltonianMatrix%values(sysI,sysII)=this%configurationHamiltonianMatrix%values(sysI,sysII)+&
             (oneParticleKineticEnergy+oneParticleAttractionEnergy+oneParticleExternalEnergy)*this%configurationOverlapMatrix%values(sysI,sysII)
        ! print *, "sysI, sysII", sysI, sysII, "oneParticleEnergy for species", speciesID, oneParticleEnergy
