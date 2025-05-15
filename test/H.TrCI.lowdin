@@ -1,0 +1,31 @@
+GEOMETRY
+E-(H) NAKAI-CC-PVTZ 0.00 0.00 0.00 translationCenter=1 multiplicity=2
+H_1 3S-scaled 0.00 0.00 0.00 translationCenter=1  omega=20.0600000000
+n0  dirac     0.00 0.00 0.00 q=0.0 qdoCenterOf=H_1 translationCenter=1
+END GEOMETRY
+
+
+TASKS
+method = "UHF"
+nonOrthogonalConfigurationInteraction=.T.
+END TASKS
+
+CONTROL
+integralStorage="DIRECT"
+translationScanGrid=1 1 100
+translationStep=0.0003
+onlyFirstNOCIelements=.T.
+readCoefficients=.F.
+removeQDOinCI=.T.
+END CONTROL
+
+BASIS 3S-scaled
+O-POSITIVE H_1 (1S) BASIS TYPE: 2
+3
+1 0 1
+58238.43840769207 1.0
+1 0 1
+18416.611273973675 1.0
+1 0 1
+5823.8438407692065 1.0
+END BASIS

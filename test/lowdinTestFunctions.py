@@ -3,6 +3,7 @@
 #Felix Moncada, Mar/2025
 import os
 import sys
+import numpy as np
 
 def performTest(testName,setRefValuesFunc,getTestValuesFunc):
     # Run calculation
@@ -781,3 +782,39 @@ def getGradient(testName):
             break
     output.close()
     return grad
+
+def getTrCIEnergyContribution(testName,typ,species1,species2):
+    output = open(testName+".out", "r")
+    outputRead = output.readlines()
+    energy=1.0E16
+    sumOverlap=0.0
+    sumEnergy=0.0
+    if(typ=="Hamiltonian"):
+        query=typ+" element"
+    elif(typ=="Kinetic"):
+        query=species1+" "+typ+" element"
+    elif(typ=="Hartree"):
+        query=species1+"/"+species2+" "+typ+" element"
+    else:
+        query=typ+" element"
+            
+    for i in range(0,len(outputRead)):
+        line = outputRead[i]
+        if "Overlap element" in line:
+            fields=line.split()
+            if(fields[0]=="1"):
+                element=float(fields[len(fields)-1])
+                weight=(float(fields[1])-1)**2
+                sign=np.sign(element)
+                sumOverlap=sumOverlap+weight*sign*element
+        if query in line:
+            fields=line.split()
+            if(fields[0]=="1"):
+                element=float(fields[len(fields)-1])
+                sumEnergy=sumEnergy+weight*sign*element
+
+    output.close()
+    if(sumOverlap > 0):
+        energy=sumEnergy/sumOverlap
+    return energy
+
