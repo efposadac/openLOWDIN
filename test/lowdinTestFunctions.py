@@ -805,7 +805,7 @@ def getTrCIEnergyContribution(testName,typ,species1,species2):
                 element=float(fields[len(fields)-1])
                 weight=(float(fields[1])-1)**2
                 sign=1.0
-                if(element>0.0):
+                if(abs(element)>0.0):
                     sign=element/abs(element)
                 sumOverlap=sumOverlap+weight*sign*element
         if query in line:
