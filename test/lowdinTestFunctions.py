@@ -3,7 +3,6 @@
 #Felix Moncada, Mar/2025
 import os
 import sys
-import numpy as np
 
 def performTest(testName,setRefValuesFunc,getTestValuesFunc):
     # Run calculation
@@ -805,7 +804,9 @@ def getTrCIEnergyContribution(testName,typ,species1,species2):
             if(fields[0]=="1"):
                 element=float(fields[len(fields)-1])
                 weight=(float(fields[1])-1)**2
-                sign=np.sign(element)
+                sign=1.0
+                if(element>0.0):
+                    sign=element/abs(element)
                 sumOverlap=sumOverlap+weight*sign*element
         if query in line:
             fields=line.split()
