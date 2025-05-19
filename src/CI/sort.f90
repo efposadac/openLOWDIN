@@ -200,7 +200,7 @@ procedure (Merge_Interface), pointer :: Merge8         ! which merge to use (asc
     endif multithread
 
 !$  timeB = omp_get_wtime()
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for sorting the vector : ", timeB - timeA ," (s)"
+!!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for sorting the vector : ", timeB - timeA ," (s)"
 
 end subroutine MTSort
 

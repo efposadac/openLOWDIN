@@ -488,8 +488,8 @@ contains
              int(CIcore_instance%numberOfConfigurations,8), &
              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
-        call CISCI_run()
-        !call CISCI_runtest()
+        !!call CISCI_run() old version. still used for developing purposes
+        call CISCI_runNew()
 
 
       case default
