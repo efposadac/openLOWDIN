@@ -66,6 +66,7 @@ module Matrix_
      logical :: isSymmetric
      logical :: isUnitary
      logical :: isInstanced
+     logical :: wasRead
   end type Matrix
 
   type, public :: IMatrix8
@@ -216,6 +217,7 @@ contains
 
     this%values = valueTmp
     this%isInstanced = .true.
+    this%wasRead = .false.
 
   end subroutine Matrix_constructor
   
@@ -718,6 +720,7 @@ contains
                    if(status == -1) then
                       call Matrix_exception( failAction, "End of file!",&
                            "Class object Matrix in the getfromFile() function "//trim(arguments(1))//" "//trim(arguments(2)) )
+                      output%wasRead=.false.
                       return
                    end if
                    
@@ -789,12 +792,14 @@ contains
                 
                 call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
+                output%wasRead=.false.
                 return
              end if
              
           else
              call Matrix_exception( failAction, "Unit file no connected!",&
                   "Class object Matrix  in the getFromFile() function" )
+             output%wasRead=.false.
              return
 
           end if
@@ -836,6 +841,7 @@ contains
                 
                 call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
+                output%wasRead=.false.
                 return
 
              end if
@@ -843,6 +849,7 @@ contains
           else
              call Matrix_exception( failAction, "The file "//trim(file)//" don't exist ",&
                   "Class object Matrix  in the getFromFile() function" )
+             output%wasRead=.false.
              return
                                    
           end if
@@ -871,6 +878,7 @@ contains
                       
                       call Matrix_exception( failAction, "End of file!",&
                            "Class object Matrix in the getfromFile() function" )
+                      output%wasRead=.false.
                       return
 
                    end if
@@ -940,6 +948,7 @@ contains
                 
                 call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
+                output%wasRead=.false.
                 return
 
                 
@@ -948,6 +957,7 @@ contains
           else
              call Matrix_exception( failAction, "Unit file no connected!",&
                   "Class object Matrix  in the getFromFile() function" )
+             output%wasRead=.false.
              return
 
              
@@ -973,6 +983,7 @@ contains
                 
                 call Matrix_exception( failAction, "The dimensions of the matrix "//trim(arguments(1))//" "//trim(arguments(2))//" are wrong ",&
                      "Class object Matrix  in the getFromFile() function"  )
+                output%wasRead=.false.
                 return
 
                 
@@ -989,6 +1000,7 @@ contains
              
              call Matrix_exception( failAction, "The file "//trim(file)//" don't exist ",&
                   "Class object Matrix  in the getFromFile() function" )
+             output%wasRead=.false.
              return
 
              
@@ -997,6 +1009,7 @@ contains
        end if
        
     end if
+    output%wasRead=.true.
 
   end function Matrix_getFromFile
 

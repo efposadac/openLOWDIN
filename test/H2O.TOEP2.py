@@ -6,16 +6,16 @@ import sys
 import lowdinTestFunctions as test
 def setReferenceValues():
     refValues = {
-"HF energy" : [-282.73698376,1E-8],
-"e+HOMO molden" : [-0.02189320,1E-4],
-"e-HOMO molden" : [-0.51095700,1E-4],
-}                       
+"Orb5alpha_P2" : [-10.768693,1E-3],
+"Orb5alpha_SCS_P2" : [-10.740363,1E-3],
+"Orb5alpha_SOS_P2" : [-10.725240,1E-3],
+}
     return refValues
 
 def getTestValues(testValues,testName):
-    testValues["HF energy"] = test.getSCFTotalEnergy(testName)
-    testValues["e+HOMO molden"] = test.getHOMOmolden(testName,"E+")
-    testValues["e-HOMO molden"] = test.getHOMOmolden(testName,"E-")
+    testValues["Orb5alpha_P2"] = test.getP2orbEnergy(testName,"E-ALPHA",5)
+    testValues["Orb5alpha_SCS_P2"] = test.getP2orbScaledEnergy(testName,"E-ALPHA",5,"SCS")
+    testValues["Orb5alpha_SOS_P2"] = test.getP2orbScaledEnergy(testName,"E-ALPHA",5,"SOS")
     return 
 
 if __name__ == '__main__':
