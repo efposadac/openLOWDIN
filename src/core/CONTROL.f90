@@ -1392,7 +1392,7 @@ contains
     !! Graphs Options
     !!
     LowdinParameters_numberOfPointsPerDimension = 50
-    LowdinParameters_moldenFileFormat = "MIXED" 
+    LowdinParameters_moldenFileFormat = "STANDARD" 
 
     !!*****************************************************
     !! Cubes Options
@@ -1741,7 +1741,7 @@ contains
     !! Graphs Options                                                                                                          
     !!                                                                                                                         
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = 50
-    LowdinParameters_moldenFileFormat = "MIXED" 
+    LowdinParameters_moldenFileFormat = "STANDARD" 
 
     !!*****************************************************                                                                    
     !! Cubes Options                                                                                                           

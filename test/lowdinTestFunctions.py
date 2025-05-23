@@ -443,8 +443,11 @@ def getParticlesInGrid(testName,species):
     output.close()
     return number
 
-def getOccupMolden(testName,species,number):
-    molden = open(testName+"."+species+".molden", "r")
+def getOccupMolden(testName,species,number,state=1):
+    if state==1:
+        molden = open(testName+"."+species+".molden", "r")
+    else:
+        molden = open(testName+"."+species+"-s"+str(state)+".molden", "r")
     moldenRead = molden.readlines()
     v=0
     eigenv=1.0E16

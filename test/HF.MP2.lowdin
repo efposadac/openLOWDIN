@@ -1,0 +1,13 @@
+GEOMETRY
+        e-(F)   cc-pvtz   0.00 0.00 0.91 
+        e-(H)   cc-pvtz   0.00 0.00 0.00
+        F       dirac     0.00 0.00 0.91 
+        H_1     dzspnb    0.00 0.00 0.00
+END GEOMETRY
+TASKS
+        method="RHF" 
+        mollerPlessetCorrection=2 
+END TASKS
+CONTROL
+	mpFrozenCoreBoundary=1
+END CONTROL

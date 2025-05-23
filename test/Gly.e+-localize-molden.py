@@ -6,9 +6,9 @@ import sys
 import lowdinTestFunctions as test
 def setReferenceValues():
     refValues = {
-"HF energy" : [-281.379249167035,1E-6],
-"e+HOMO molden" : [-3.48432E-03,1E-4],
-"e-HOMO molden" : [-6.32003E-01,1E-4],
+"HF energy" : [-282.73698370,1E-6],
+"e+HOMO molden" : [-0.02189320,1E-4],
+"e-HOMO molden" : [-0.60297000,1E-4],
 }                       
     return refValues
 
@@ -16,7 +16,6 @@ def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
     testValues["e+HOMO molden"] = test.getHOMOmolden(testName,"E+")
     testValues["e-HOMO molden"] = test.getHOMOmolden(testName,"E-")
-    testValues["e-HOMO"] = test.getHFeigenvalues(testName,"E-",1)
     return 
 
 if __name__ == '__main__':

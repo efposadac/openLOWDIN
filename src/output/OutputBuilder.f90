@@ -379,16 +379,16 @@ contains
     integer :: l
 
     print *, "--------------------------------------------------------"
-    write (*,"(A20,I5,T2,A18)") "Output Number: ", this%outputID, this%type
+    write (*,"(A20,I5)") trim(this%type), this%outputID
 
     ! TODO Fix this line.
     ! if (this%filename2 /= "") print *, "FileName 2: ", this%fileName2
     if (this%species /= "ALL") then
        write (*,"(A20,A)") "for species: ", trim(this%species)
     else
-       write (*,"(T20,A)") "for all species "
+       write (*,"(A20)") "for all species  "
     end if
-    if (this%state /= 1) write (*,"(A20,I10)") "for excited state: ", this%state
+    if (this%state /= 1) write (*,"(A20,I5)") "for excited state: ", this%state
 
     select case(trim(this%type))
 
@@ -553,8 +553,8 @@ contains
     integer :: k
     integer :: l
     integer :: m
-    integer :: numberOfSpecies
-    integer :: state,numberOfStates
+    integer :: numberOfSpecies,numberOfStates
+    integer :: state
     integer :: occupationTotal
     logical :: wasPress
     character(50) :: auxString
@@ -586,12 +586,12 @@ contains
     labels=ParticleManager_getLabelsOfCentersOfOptimization()
     charges=ParticleManager_getChargesOfCentersOfOptimization()
     numberOfSpecies=MolecularSystem_getNumberOfQuantumSpecies()
+    state=1
     numberOfStates=1
     if( this%wavefunctionType .eq. "CI") then
        write (*,"(A50)") "We are printing molden files for the CI states!"
+       state=this%state
        numberOfStates=CONTROL_instance%CI_STATES_TO_PRINT
-    else ! (this%wavefunctionType .eq. "HF")
-       numberOfStates=1
     end if
     allocate(fractionalOccupations(numberOfSpecies,numberOfStates))
     allocate(coefficientsOfCombination(numberOfSpecies,numberOfStates))
@@ -599,150 +599,141 @@ contains
 
     call CalculateWaveFunction_loadCoefficientsMatrices ( numberOfSpecies, numberOfStates, this%wavefunctionType, coefficientsOfCombination, fractionalOccupations, energyOfMolecularOrbital)
 
+    do l=1,numberOfSpecies
 
-    do state=1,numberOfStates
-       do l=1,numberOfSpecies
+       if (state .eq. 1) then
+          auxString=MolecularSystem_getSymbolOfSpecies( l )
+       else
+          write(auxString, "(I8)")  state
+          auxString=trim(MolecularSystem_getSymbolOfSpecies( l ))//"-s"//trim( adjustl(auxString))
+       end if
 
-          if (state .eq. 1) then
-             auxString=MolecularSystem_getSymbolOfSpecies( l )
-          else
-             write(auxString, "(I8)")  state
-             auxString=trim(MolecularSystem_getSymbolOfSpecies( l ))//"-"//trim( adjustl(auxString))
-          end if
+       this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
 
-          this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(auxString)//".molden"
+       totalNumberOfParticles = 0
 
-          totalNumberOfParticles = 0
+       open(10,file=this%fileName(l),status='replace',action='write')
+       write(10,"(A)") "[Molden Format]"
+       if ( CONTROL_instance%UNITS=="ANGS") then
+          write(10,"(A)") "[Atoms] Angs"
+       else 
+          write(10,"(A)") "[Atoms] AU"
+       end if
 
-          open(10,file=this%fileName(l),status='replace',action='write')
-          write(10,"(A)") "[Molden Format]"
-          if ( CONTROL_instance%UNITS=="ANGS") then
-             write(10,"(A)") "[Atoms] Angs"
-          else 
-             write(10,"(A)") "[Atoms] AU"
-          end if
+       auxMatrix%values=0.0
+       j=0
+       do i=1, size(MolecularSystem_instance%species(l)%particles)
+          j=j+1
+          origin = MolecularSystem_instance%species(l)%particles(j)%origin 
+          auxMatrix%values(j,:)=origin
+          symbol=MolecularSystem_instance%species(l)%particles(j)%nickname
 
-          auxMatrix%values=0.0
-          j=0
-          do i=1, size(MolecularSystem_instance%species(l)%particles)
-             j=j+1
-             origin = MolecularSystem_instance%species(l)%particles(j)%origin 
-             auxMatrix%values(j,:)=origin
-             symbol=MolecularSystem_instance%species(l)%particles(j)%nickname
+          if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
+          if(scan(symbol,"[") /=0) symbol=symbol(scan(symbol,"[")+1:scan(symbol,"]")-1)
 
-             if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
-             if(scan(symbol,"[") /=0) symbol=symbol(scan(symbol,"[")+1:scan(symbol,"]")-1)
+          if ( CONTROL_instance%UNITS=="ANGS") origin = origin * ANGSTROM
 
-             if ( CONTROL_instance%UNITS=="ANGS") origin = origin * ANGSTROM
+          totalNumberOfParticles = totalNumberOfParticles + 1
 
-             totalNumberOfParticles = totalNumberOfParticles + 1
+          write (10,"(A,I8,I8,F15.8,F15.8,F15.8)") trim(symbol), j,&
+               int(abs(molecularSystem_instance%allParticles( MolecularSystem_instance%species(l)%particles(j)%owner )%particlePtr%charge)) ,&
+               origin(1), origin(2), origin(3)
+          ! int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), &
 
-             write (10,"(A,I8,I8,F15.8,F15.8,F15.8)") trim(symbol), j,&
-                  int(abs(molecularSystem_instance%allParticles( MolecularSystem_instance%species(l)%particles(j)%owner )%particlePtr%charge)) ,&
-                  origin(1), origin(2), origin(3)
-             ! int(abs(MolecularSystem_instance%species(l)%particles(j)%totalCharge)), &
+       end do
+
+
+       if ( CONTROL_instance%MOLDEN_FILE_FORMAT /= "QUANTUM" ) then
+          m=j
+          do k=1,size(localizationOfCenters%values,dim=1)
+
+             wasPress=.false.
+             do i=1,j
+                if(  abs( auxMatrix%values(i,1) - localizationOfCenters%values(k,1)) < 1.0D-9 .and. &
+                     abs( auxMatrix%values(i,2) - localizationOfCenters%values(k,2)) < 1.0D-9 .and. &
+                     abs( auxMatrix%values(i,3) - localizationOfCenters%values(k,3)) < 1.0D-9  ) then
+                   wasPress=.true.
+                end if
+             end do
+
+             if( .not.wasPress) then
+                m=m+1
+
+                totalNumberOfParticles = totalNumberOfParticles + 1
+                origin=localizationOfCenters%values(k,:)
+                if ( CONTROL_instance%UNITS=="ANGS") origin = origin * ANGSTROM
+                symbol=labels(k)
+                if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
+
+                write (10,"(A,I8,I8,F15.8,F15.8,F15.8,I8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
+
+             end if
 
           end do
+       end if
+       !          print *, "totalNumberOfParticles ", totalNumberOfParticles
+       !         print *, "particles for specie", size(MolecularSystem_instance%species(l)%particles)
 
+       write(10,"(A)") "[GTO]"
+       j=0
+       do i=1,size(MolecularSystem_instance%species(l)%particles)
 
-          if ( CONTROL_instance%MOLDEN_FILE_FORMAT /= "QUANTUM" ) then
-             m=j
-             do k=1,size(localizationOfCenters%values,dim=1)
+          !              if ( trim(MolecularSystem_instance%species(l)%particles(i)%symbol) == trim(auxString) ) then
+          j=j+1
 
-                wasPress=.false.
-                do i=1,j
-                   if(  abs( auxMatrix%values(i,1) - localizationOfCenters%values(k,1)) < 1.0D-9 .and. &
-                        abs( auxMatrix%values(i,2) - localizationOfCenters%values(k,2)) < 1.0D-9 .and. &
-                        abs( auxMatrix%values(i,3) - localizationOfCenters%values(k,3)) < 1.0D-9  ) then
-                      wasPress=.true.
-                   end if
-                end do
+          write(10,"(I3,I2)") j,0
+          call BasisSet_showInSimpleForm( MolecularSystem_instance%species(l)%particles(i)%basis,&
+               trim(MolecularSystem_instance%species(l)%particles(i)%nickname),10 )
+          write(10,*) ""
 
-                if( .not.wasPress) then
-                   m=m+1
+       end do
 
-                   totalNumberOfParticles = totalNumberOfParticles + 1
-                   origin=localizationOfCenters%values(k,:)
-                   if ( CONTROL_instance%UNITS=="ANGS") origin = origin * ANGSTROM
-                   symbol=labels(k)
-                   if(scan(symbol,"_") /=0) symbol=symbol(1:scan(symbol,"_")-1)
-
-                   write (10,"(A,I8,I8,F15.8,F15.8,F15.8,I8)") trim(symbol), m,int(abs(charges(k))), origin(1), origin(2), origin(3)
-
-                end if
-
+       if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
+          if ( CONTROL_instance%MOLDEN_FILE_FORMAT == "MIXED" ) then
+             do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
+                write(10,"(I3,I2)") j+n,0
+                write(10,"(A,I1,F5.2)") " s  ",1,1.00
+                write(10,"(ES19.10,ES19.10)") 1.00,1.00
+                write(10,*) ""
              end do
           end if
-          !          print *, "totalNumberOfParticles ", totalNumberOfParticles
-          !         print *, "particles for specie", size(MolecularSystem_instance%species(l)%particles)
+       end if
+       !              end if
+       write(10,*) ""
 
-          write(10,"(A)") "[GTO]"
-          j=0
-          do i=1,size(MolecularSystem_instance%species(l)%particles)
+       write(10,"(A)") "[MO]"
 
-             !              if ( trim(MolecularSystem_instance%species(l)%particles(i)%symbol) == trim(auxString) ) then
-             j=j+1
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(l)
+       occupationTotal=MolecularSystem_getOcupationNumber(l)
 
-             write(10,"(I3,I2)") j,0
-             call BasisSet_showInSimpleForm( MolecularSystem_instance%species(l)%particles(i)%basis,&
-                  trim(MolecularSystem_instance%species(l)%particles(i)%nickname),10 )
-             write(10,*) ""
+       call MolecularSystem_changeOrbitalOrder(coefficientsOfcombination(l,state),l,"LOWDIN","MOLDEN")
 
+       do j=1,size(energyOfMolecularOrbital(l,state)%values)
+          write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital(l,state)%values(j)
+
+          write (10,"(A11)") "Spin= Alpha"
+
+          write (10,"(A6,F15.10)") "Occup= ",fractionalOccupations(l,state)%values(j)
+
+          i = 0
+          do k=1,size(coefficientsOfCombination(l,state)%values,dim=1)
+             i = i + 1
+             write(10,"(I4,A2,F15.8)") k,"  ", coefficientsOfCombination(l,state)%values(k,j)
           end do
 
           if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
              if ( CONTROL_instance%MOLDEN_FILE_FORMAT == "MIXED" ) then
                 do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-                   write(10,"(I3,I2)") j+n,0
-                   write(10,"(A,I1,F5.2)") " s  ",1,1.00
-                   write(10,"(ES19.10,ES19.10)") 1.00,1.00
-                   write(10,*) ""
+                   write(10,"(I4,A2,ES15.8)") i+n,"  ", 0.0
                 end do
              end if
           end if
-          !              end if
-          write(10,*) ""
 
-          write(10,"(A)") "[MO]"
-
-          numberOfContractions = MolecularSystem_getTotalNumberOfContractions(l)
-          occupationTotal=MolecularSystem_getOcupationNumber(l)
-
-          call MolecularSystem_changeOrbitalOrder(coefficientsOfcombination(l,state),l,"LOWDIN","MOLDEN")
-
-          do j=1,size(energyOfMolecularOrbital(l,state)%values)
-             write (10,"(A5,ES15.5)") "Ene= ",energyOfMolecularOrbital(l,state)%values(j)
-
-             write (10,"(A11)") "Spin= Alpha"
-
-             write (10,"(A6,F15.10)") "Occup= ",fractionalOccupations(l,state)%values(j)
-
-             i = 0
-             do k=1,size(coefficientsOfCombination(l,state)%values,dim=1)
-                i = i + 1
-                write(10,"(I4,A2,F15.8)") k,"  ", coefficientsOfCombination(l,state)%values(k,j)
-             end do
-
-             if ( totalNumberOfParticles > size(MolecularSystem_instance%species(l)%particles) ) then
-                if ( CONTROL_instance%MOLDEN_FILE_FORMAT == "MIXED" ) then
-                   do n = 1, ( totalNumberOfParticles - size(MolecularSystem_instance%species(l)%particles) )
-                      write(10,"(I4,A2,ES15.8)") i+n,"  ", 0.0
-                   end do
-                end if
-             end if
-
-          end do
-
-
-          close(10)
        end do
+
+
+       close(10)
     end do
-
-    ! call Matrix_destructor( localizationOfCenters )
-    ! call Matrix_destructor( auxMatrix )
-    ! deallocate(labels)
-
-    !     end if
 
   end subroutine OutputBuilder_writeMoldenFile
 
@@ -1881,7 +1872,7 @@ contains
           outputID=String_convertIntegerToString(this%outputID)
 
           this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)
-          if( state .gt. 1) this%fileName(l)=trim(this%fileName(l))//"-"//trim(String_convertIntegerToString(state))
+          if( state .gt. 1) this%fileName(l)=trim(this%fileName(l))//"-s"//trim(String_convertIntegerToString(state))
           if( this%auxID .gt. 1) this%fileName(l)=trim(this%fileName(l))//"."//trim(auxID)
           if( this%type=="DENSITYCUBE") this%fileName(l)=trim(this%fileName(l))//".dens.cub"
           if( this%type=="ORBITALCUBE") then
@@ -2026,7 +2017,7 @@ contains
 
           !Set up filename
           this%fileName(l)=trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)
-          if( state .gt. 1) this%fileName(l)=trim(this%fileName(l))//"-"//trim(String_convertIntegerToString(state))
+          if( state .gt. 1) this%fileName(l)=trim(this%fileName(l))//"-s"//trim(String_convertIntegerToString(state))
           if( this%auxID .gt. 1) this%fileName(l)=trim(this%fileName(l))//"."//trim(auxID)
           if( this%dimensions.eq.2) this%fileName(l)=trim(this%fileName(l))//".2D"
           if( this%dimensions.eq.3) this%fileName(l)=trim(this%fileName(l))//".3D"

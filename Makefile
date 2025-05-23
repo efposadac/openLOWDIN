@@ -74,6 +74,7 @@ distclean::
 
 test::
 	cd $(TOPDIR)/test/; \
+	sh clean.sh $(EXENAME); \
 	sh runtest.sh $(EXENAME) && sh clean.sh $(EXENAME) 
 
 

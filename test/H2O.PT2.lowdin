@@ -1,0 +1,13 @@
+   GEOMETRY
+   e-(O)	6-31G	    0.0000  0.0000  0.1173 	
+   e-(H)	6-31G	    0.0000  0.7572 -0.4692
+   e-(H)	6-31G       0.0000 -0.7572 -0.4692
+   O		dirac	    0.0000  0.0000  0.1173 
+   H-a_1	Nakai-7-SPD 0.0000  0.7572 -0.4692
+   H-b_1	Nakai-7-SPD 0.0000 -0.7572 -0.4692
+   END GEOMETRY
+
+   TASKS
+	   method = "RHF"
+	   propagatorTheoryCorrection=2
+   END TASKS

@@ -1,0 +1,21 @@
+GEOMETRY
+	e-(O)	6-31G	    0.0000  0.0000  0.1173 multiplicity=1 	
+	e-(H)	6-31G	    0.0000  0.7572 -0.4692
+	e-(H)	6-31G       0.0000 -0.7572 -0.4692
+	O	dirac	    0.0000  0.0000  0.1173 
+	H-a_1	Nakai-7-SPD 0.0000  0.7572 -0.4692
+	H-b_1	Nakai-7-SPD 0.0000 -0.7572 -0.4692
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	propagatorTheoryCorrection=2
+END TASKS
+
+CONTROL
+	readCoefficients=T         !read molecular orbitals generated with H2O.UHF.lowdin
+	ionizeSpecies="E-ALPHA"
+	ionizeMO=5
+	MOfractionOccupation=0.5
+	ptTransitionOperator=T
+END CONTROL
