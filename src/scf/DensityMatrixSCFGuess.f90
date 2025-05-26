@@ -94,8 +94,8 @@ contains
           open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
           orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
                columns= int(orderOfMatrix,4), binary=.false., arguments=arguments(1:2),failContinue=.true.)
+          readSuccess=orbitals%wasRead
           close(wfnUnit)
-          readSuccess=.true.
        else
           wfnFile=trim(CONTROL_instance%INPUT_FILE)//"vec"
           inquire(FILE = wfnFile, EXIST = existBinnary )
@@ -103,8 +103,8 @@ contains
              open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
              orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
                   columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2),failContinue=.true.)
+             readSuccess=orbitals%wasRead
              close(wfnUnit)             
-             readSuccess=.true.
           end if
        end if
     end if

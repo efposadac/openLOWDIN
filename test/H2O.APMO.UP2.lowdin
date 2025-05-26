@@ -1,17 +1,4 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%  Test RHF
-%  H2O Single Point
-%  Electronic Hartree Fock
-%  Basis sets used:
-%      6-311g e-
-%  Results
-%      TEST ENERGY =     -76.008843007734
-%      VIRIAL RATIO (V/T) =         1.9991485503
-% End Results
-%      Author: Felix Moncada - GQT-UNAL/2011
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-SYSTEM_DESCRIPTION='Molecula de H2O'
+SYSTEM_DESCRIPTION='H2O.PT2'
 
 GEOMETRY
 	e-[O]   6-311G     0.000000      0.000000     -0.066575
@@ -28,10 +15,8 @@ TASKS
 END TASKS
 
 CONTROL
-readCoefficients=F
-ptFactorSS = 1.000
+	ptFactorSS = 1.000
 	ptFactorOS = 1.000
-	integralsTransformationMethod = "C"
 END CONTROL
 
 

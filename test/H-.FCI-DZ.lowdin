@@ -1,0 +1,33 @@
+!The goal of this calculation is to compute the binding energy of a positron bound complex
+!Reported:
+!E(H-): -0.524029
+
+SYSTEM_DESCRIPTION='H- from Charry 2018 (10.1002/anie.201800914)' 
+
+GEOMETRY
+	e-(H)   AUG-CC-PVDZ 	0.00	0.00 	0.00 addParticles=1 
+	H	dirac		0.00	0.00 	0.00
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="FCI"
+END TASKS
+
+CONTROL
+	numberOfCIstates=1
+	CIStatesToPrint=1
+	CINaturalOrbitals=T
+	CIdiagonalizationMethod = "JADAMILU"
+	CIPrintEigenVectorsFormat = "OCCUPIED" 
+	CIPrintThreshold = 5e-2
+END CONTROL
+
+OUTPUTS
+	moldenFile state=1
+	densityPlot dimensions=2 point1=0.0 0.0 -6.0 point2=0.0 0.0 6.0 state=1 
+END OUTPUTS
+
+
+
+
