@@ -136,6 +136,70 @@ contains
     enddo
 
   end subroutine CISCI_constructor
+
+  !! Allocating arrays 
+  subroutine CISCI_constructorNew()
+    implicit none
+
+    type(Configuration) :: auxConfigurationA, auxConfigurationB
+    integer :: a,b,c,aa,bb,i
+    real(8) :: CIenergy
+    integer :: nproc
+    integer :: numberOfSpecies
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    CISCI_instance%coreSpaceSize = CONTROL_instance%CI_SCI_CORE_SPACE
+    CISCI_instance%targetSpaceSize = CONTROL_instance%CI_SCI_TARGET_SPACE
+
+    !! the first quarter is the real target space, the second quarter is the waiting list if the amplitude could grow more. 
+    !! The last half is just a temporary space to avoid sorting a big array for a single addition
+    CISCI_instance%tmp_amplitudeCoreSize = CISCI_instance%targetSpaceSize * 4 
+
+    !! copy and destroying diagonal vector... because of the intial matrix subroutine
+    !call Vector_constructor8 ( CIcore_instance%diagonalHamiltonianMatrix, &
+    !                          CIcore_instance%numberOfConfigurations, 0.0_8 ) 
+    !CIcore_instance%diagonalHamiltonianMatrix%values = CIcore_instance%diagonalHamiltonianMatrix2%values
+    !call Vector_destructor8 ( CIcore_instance%diagonalHamiltonianMatrix2 )
+
+
+    !!This will carry the index changes after sorting configurations
+    !call Vector_constructorInteger8 ( CIcore_instance%auxIndexCIMatrix, &
+    !                          CIcore_instance%numberOfConfigurations, 0_8 ) !hmm
+
+    !do a = 1, CIcore_instance%numberOfConfigurations
+    !  CIcore_instance%auxIndexCIMatrix%values(a)= a
+    !end do
+
+    !!  auxiliary array to get the index vector to build a configuration. get the configurations for the hamiltonian matrix in the core and target space
+    !call CISCI_getInitialIndexes2( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
+    !call CISCI_getInitialIndexes2( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
+
+    !! arrays for CISCI
+    !call Vector_constructor8 ( CISCI_instance%amplitudeCore, CIcore_instance%numberOfConfigurations,  0.0_8)
+    call Vector_constructor8 ( CISCI_instance%coefficientCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
+
+    !! new arrays
+    call Matrix_constructor ( CISCI_instance%indexCore, int(numberOfSpecies,8), int(CISCI_instance%coreSpaceSize,8),  0.0_8)
+    call Matrix_constructor ( CISCI_instance%index_amplitudeCore, int(numberOfSpecies,8), int(CISCI_instance%tmp_amplitudeCoreSize,8),  0.0_8)
+    call Vector_constructor8 ( CISCI_instance%tmp_amplitudeCore, int(CISCI_instance%tmp_amplitudeCoreSize,8),  0.0_8)
+    call Vector_constructorInteger8 ( CISCI_instance%auxindex_amplitudeCore, int(CISCI_instance%tmp_amplitudeCoreSize,8),  0_8)
+    call Vector_constructor8 ( CISCI_instance%diagonalCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
+    call Matrix_constructor ( CISCI_instance%index_target, int(numberOfSpecies,8), int(CISCI_instance%targetSpaceSize,8),  0.0_8)
+
+    call Matrix_constructor ( CISCI_instance%coefficientTarget, int(CISCI_instance%targetSpaceSize,8), &
+                               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+    call Vector_constructor8 ( CISCI_instance%auxcoefficientTarget, int(CISCI_instance%targetSpaceSize,8), 0.0_8) !! meh... just to avoid changing everything from matrix to vector format
+    call Vector_constructor8 ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8) !! Jadamilu requires to store diagonal vector (in target space)
+    call Vector_constructor8 ( CISCI_instance%eigenValues, 15_8, 0.0_8) !! store the eigenvalues per macro iterations
+
+
+    do a = 1, CISCI_instance%tmp_amplitudeCoreSize
+      CISCI_instance%auxindex_amplitudeCore%values(a) = a
+    enddo
+
+  end subroutine CISCI_constructorNew
+ 
   
   !! main part
   subroutine CISCI_run()
@@ -1181,8 +1245,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
                   CIenergy = CIenergy * coefficientCore(a)
 
-                  call CISCI_decimalToBinary ( CISCI_instance%index_amplitudeCore%values(spi, a ),  orbA(spi)%values )
-
+                  !!call CISCI_decimalToBinary ( CISCI_instance%index_amplitudeCore%values(spi, a ),  orbA(spi)%values ) ???
+ 
                   !! append the amplitude 
                   call CISCI_appendAmplitude ( m, CIenergy, indexCoreConfB )
 
@@ -1207,7 +1271,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
       enddo !spi
       
-    end do
+    enddo !enddo a
 
     !! apply the denominator from eq 4 10.1063/1.4955109
     do aa = 1, CISCI_instance%tmp_amplitudeCoreSize !! replace this by m
@@ -1767,13 +1831,6 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
           call CISCI_decimalToBinary ( CISCI_instance%index_target%values(spi,b), orbB(spi)%values )
           !!call CISCI_decimalToBinary ( CISCI_instance%index_amplitudeCore%values(spi,b), orbB(spi)%values )
 
-          !! build auxiliary vectors of occupied and virtuals orbitals
-          do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-            if ( orbB(spi)%values(pi) == 1 ) then
-              oib = oib + 1
-              occB(spi)%values(oib) = pi
-            end if
-          enddo
         enddo
 
         !! determinate number of diff orbitals
@@ -1784,6 +1841,19 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         end do
 
         coupling = product(couplingS)
+
+        if ( coupling <= 4 ) then
+          do spi = 1, numberOfSpecies 
+            oib = 0 
+            !! build auxiliary vectors of occupied and virtuals orbitals
+            do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+              if ( orbB(spi)%values(pi) == 1 ) then
+                oib = oib + 1
+                occB(spi)%values(oib) = pi
+              end if
+            enddo
+          enddo
+        endif
 
         select case (coupling)
 
@@ -2605,7 +2675,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     decimalNumber = 0.0_8
 
     do n = 1, size(binary) 
-      decimalNumber = decimalNumber + binary(n) * ( 2**(n-1) )
+      decimalNumber = decimalNumber + binary(n) * ( 2.0_8**(n-1) )
     enddo
 
   end subroutine CISCI_binaryToDecimal 
@@ -2624,8 +2694,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
     do while ( auxdecimalNumber > 0 ) 
       n = n + 1
-      binary(n) = modulo(auxdecimalNumber,2.0 )
-      auxdecimalNumber = floor( auxdecimalNumber/2.0)
+      binary(n) = modulo(auxdecimalNumber,2.0_8 )
+      auxdecimalNumber = floor( auxdecimalNumber/2.0_8, 16)
     enddo 
 
   end subroutine CISCI_decimalToBinary 

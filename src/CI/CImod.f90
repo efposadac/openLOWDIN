@@ -467,22 +467,22 @@ contains
 
       case ("JADAMILU")
 
-        write (*,*) "Building Strings..."
-        call CIStrings_buildStrings()
+        !write (*,*) "Building Strings..."
+        !call CIStrings_buildStrings()
 
-        write (*,*) "Building CI level table..."
-        call CIOrder_buildCIOrderList()
+        !write (*,*) "Building CI level table..."
+        !call CIOrder_buildCIOrderList()
 
-        call CIJadamilu_buildCouplingMatrix()
-        call CIJadamilu_buildCouplingOrderList()
+        !call CIJadamilu_buildCouplingMatrix()
+        !call CIJadamilu_buildCouplingOrderList()
 
-        write (*,*) "Building diagonal..."
-        call CIDiag_buildDiagonal()
+        !write (*,*) "Building diagonal..."
+        !call CIDiag_buildDiagonal()
 
         call CISCI_show()
 
         write (*,*) "Allocating arrays for SCI ..."
-        call CISCI_constructor()
+        call CISCI_constructorNew()
 
         call Matrix_constructor (CIcore_instance%eigenVectors, &
              int(CIcore_instance%numberOfConfigurations,8), &
