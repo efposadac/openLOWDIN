@@ -233,6 +233,7 @@ module CONTROL_
      real(8) :: EMPIRICAL_OVERLAP_PARAMETER_SC
      logical :: CONFIGURATION_USE_SYMMETRY
      logical :: READ_NOCI_GEOMETRIES
+     logical :: READ_NOCI_ENERGIES
      logical :: EMPIRICAL_OVERLAP_CORRECTION
      logical :: ONLY_FIRST_NOCI_ELEMENTS
      logical :: NOCI_KINETIC_APPROXIMATION
@@ -584,6 +585,7 @@ module CONTROL_
   real(8) :: LowdinParameters_empiricalOverlapParameterSc
   logical :: LowdinParameters_configurationUseSymmetry
   logical :: LowdinParameters_readNOCIGeometries
+  logical :: LowdinParameters_readNOCIEnergies
   logical :: LowdinParameters_empiricalOverlapCorrection
   logical :: LowdinParameters_onlyFirstNOCIelements
   logical :: LowdinParameters_NOCIKineticApproximation
@@ -936,6 +938,7 @@ module CONTROL_
        LowdinParameters_empiricalOverlapParameterSc,&
        LowdinParameters_configurationUseSymmetry,&
        LowdinParameters_readNOCIGeometries,&
+       LowdinParameters_readNOCIEnergies,&
        LowdinParameters_empiricalOverlapCorrection,&
        LowdinParameters_onlyFirstNOCIelements,&
        LowdinParameters_NOCIKineticApproximation,&
@@ -1308,6 +1311,7 @@ contains
     LowdinParameters_empiricalOverlapParameterSc=0.0
     LowdinParameters_configurationUseSymmetry=.false.
     LowdinParameters_readNOCIgeometries=.false.
+    LowdinParameters_readNOCIEnergies=.false.
     LowdinParameters_empiricalOverlapCorrection=.false.
     LowdinParameters_onlyFirstNOCIelements=.false.
     LowdinParameters_NOCIKineticApproximation=.false.
@@ -1657,6 +1661,7 @@ contains
     CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_Sc=0.0
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=.false.
     CONTROL_instance%READ_NOCI_GEOMETRIES=.false.
+    CONTROL_instance%READ_NOCI_ENERGIES=.false.
     CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION=.false.
     CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=.false.
     CONTROL_instance%NOCI_KINETIC_APPROXIMATION=.false.
@@ -2063,6 +2068,7 @@ contains
     CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_SC=LowdinParameters_empiricalOverlapParameterSc
     CONTROL_instance%CONFIGURATION_USE_SYMMETRY=LowdinParameters_configurationUseSymmetry
     CONTROL_instance%READ_NOCI_GEOMETRIES=LowdinParameters_readNOCIGeometries
+    CONTROL_instance%READ_NOCI_ENERGIES=LowdinParameters_readNOCIEnergies
     CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION=LowdinParameters_empiricalOverlapCorrection
     CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=LowdinParameters_onlyFirstNOCIelements
     CONTROL_instance%NOCI_KINETIC_APPROXIMATION=LowdinParameters_NOCIKineticApproximation
@@ -2433,6 +2439,7 @@ contains
     LowdinParameters_empiricalOverlapParameterSc=CONTROL_instance%EMPIRICAL_OVERLAP_PARAMETER_SC
     LowdinParameters_configurationUseSymmetry=CONTROL_instance%CONFIGURATION_USE_SYMMETRY
     LowdinParameters_readNOCIGeometries=CONTROL_instance%READ_NOCI_GEOMETRIES
+    LowdinParameters_readNOCIEnergies=CONTROL_instance%READ_NOCI_ENERGIES
     LowdinParameters_empiricalOverlapCorrection=CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION
     LowdinParameters_onlyFirstNOCIelements=CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS
     LowdinParameters_NOCIKineticApproximation=CONTROL_instance%NOCI_KINETIC_APPROXIMATION
@@ -2774,6 +2781,7 @@ contains
     otherThis%CONFIGURATION_EQUIVALENCE_DISTANCE=this%CONFIGURATION_EQUIVALENCE_DISTANCE
     otherThis%CONFIGURATION_USE_SYMMETRY=this%CONFIGURATION_USE_SYMMETRY
     otherThis%READ_NOCI_GEOMETRIES=this%READ_NOCI_GEOMETRIES
+    otherThis%READ_NOCI_ENERGIES=this%READ_NOCI_ENERGIES
     otherThis%ONLY_FIRST_NOCI_ELEMENTS=this%ONLY_FIRST_NOCI_ELEMENTS
     otherThis%NOCI_KINETIC_APPROXIMATION=this%NOCI_KINETIC_APPROXIMATION
     otherThis%COMPUTE_ROCI_FORMULA=this%COMPUTE_ROCI_FORMULA
@@ -3060,6 +3068,9 @@ contains
        if(CONTROL_instance%READ_NOCI_GEOMETRIES) &
             write (*,"(T10,A,A,A)") "GEOMETRIES FOR THE NOCI EXPANSION WILL BE READ FROM ",trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords" ," FILE"
 
+       if(CONTROL_instance%READ_NOCI_ENERGIES) &
+            write (*,"(T10,A,A,A)") "ENERGIES FOR THE NOCI EXPANSION WILL BE READ FROM ",trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords" ," FILE"
+       
        if(CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION) then
           write (*,"(T10,A,F8.5,A,F8.5)") &
                "SCALING NOCI OVERLAP AND HAMILTONIAN ELEMENTS ACCORDING TO S_I,II'=a(S_I,II)^b with a=",&

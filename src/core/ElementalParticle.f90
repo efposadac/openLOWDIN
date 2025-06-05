@@ -109,7 +109,7 @@ contains
           symbol = trim(symbolSelected)
           category = "FERMION"
           mass = 1.0
-          charge = 1.0
+          charge = 0.0
           spin = 0.5
           custom = .true.
           

@@ -14,12 +14,16 @@ O     dirac             0.0000000       -1.1357680      -0.2091040
 END GEOMETRY
 
 TASKS
-     	method = "RHF"
+     	method = "UHF"
+	configurationInteractionLevel="CIS"
 END TASKS
 
+CONTROL
+	numberOfCIstates=2
+	CIstatesToPrint=2
+END CONTROL
+
 OUTPUTS
-        densityCube  cubeSize=5  point1=0.0 0.0 0.0 species="E-" pointsPerDim=100
-	densityCube  cubeSize=20  point1=0.0 0.0 -2.5 species="E+" pointsPerDim=50
-        orbitalCube  cubeSize=15  center=0.0 0.0 -2.5 species="ALL" scanStep=0.5
-        orbitalCube  cubeSize=10  center=0.0 0.0 0.0 species="E-" orbital=11 scanStep=0.25
+	densityCube  cubeSize=20  point1=0.0 0.0 -2.5 species="E+" pointsPerDim=50 state=1
+	densityCube  cubeSize=20  point1=0.0 0.0 -2.5 species="E+" pointsPerDim=50 state=2
 END OUTPUTS

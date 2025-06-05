@@ -108,19 +108,17 @@ contains
          end do
     end do
 
-    coordsUnit=333
-    coordsFile=trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords"
-    open(unit=coordsUnit, file=trim(coordsFile), status="replace", form="formatted")
-
-    if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
-       print *, "running KS calculations at the displaced geometries ... saving results on file ", coordsFile
-    else
-       print *, "running HF calculations at the displaced geometries ... saving results on file ", coordsFile
+    if( .not. (CONTROL_instance%READ_NOCI_ENERGIES .and. CONTROL_instance%NOCI_KINETIC_APPROXIMATION)) then
+       coordsUnit=333
+       coordsFile=trim(CONTROL_instance%INPUT_FILE)//"NOCI.coords"
+       open(unit=coordsUnit, file=trim(coordsFile), status="replace", form="formatted")
+       if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
+          print *, "running KS calculations at the displaced geometries ... saving results on file ", coordsFile
+       else
+          print *, "running HF calculations at the displaced geometries ... saving results on file ", coordsFile
+       end if
+       write (coordsUnit,'(A25,I20)') "numberOfDisplacedSystems ", this%numberOfDisplacedSystems
     end if
-
-
-    write (coordsUnit,'(A25,I20)') "numberOfDisplacedSystems ", this%numberOfDisplacedSystems
-
     !Allocate objets to distribute in parallel
     ncores=CONTROL_instance%NUMBER_OF_CORES
     batchSize=min(ncores,this%numberOfDisplacedSystems)
@@ -150,7 +148,11 @@ contains
           me=me+1
           sysIbatch(me)=mySysI
 
-          write(this%systemLabels(mySysI), '(A)') trim(this%molecularSystems(mySysI)%description)
+          if(CONTROL_instance%READ_NOCI_ENERGIES) then
+             write(this%systemLabels(mySysI), '(I10)') mySysI
+          else
+             write(this%systemLabels(mySysI), '(A)') trim(this%molecularSystems(mySysI)%description)
+          end if
           call MultiSCF_constructor(MultiSCFParallelInstance(me),WaveFunctionParallelInstance(1:nspecies,me),CONTROL_instance%ITERATION_SCHEME,this%molecularSystems(mySysI))
           call MultiSCF_buildHcore(MultiSCFParallelInstance(me),WaveFunctionParallelInstance(1:nspecies,me))       
           call MultiSCF_getInitialGuess(MultiSCFParallelInstance(me),WaveFunctionParallelInstance(1:nspecies,me))
@@ -191,21 +193,30 @@ contains
           call MultiSCF_solveHartreeFockRoothan(MultiSCFParallelInstance(me),WaveFunctionParallelInstance(1:nspecies,me),Libint2ParallelInstance(1:nspecies,me))
 
           !Save HF results
-          this%configurationHamiltonianMatrix%values(mySysI,mySysI)=MultiSCFParallelInstance(me)%totalEnergy
-          
-          do speciesID = 1, nspecies
-             this%HFCoefficients(speciesID,mySysI) = WaveFunctionParallelInstance(speciesID,me)%waveFunctionCoefficients
-             this%configurationKineticMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%kineticEnergy
-             this%configurationPuntualMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%puntualInteractionEnergy
-             this%configurationExternalMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%externalPotentialEnergy
-             this%configurationExchangeMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%exchangeHFEnergy
-             do otherSpeciesID = speciesID, this%molecularSystems(mySysI)%numberOfQuantumSpecies
-                this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(mySysI,mySysI)=&
-                     WaveFunctionParallelInstance(speciesID,me)%hartreeEnergy(otherSpeciesID)
-                this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(mySysI,mySysI)=&
-                     WaveFunctionParallelInstance(speciesID,me)%exchangeCorrelationEnergy(otherSpeciesID)                  
+          if(CONTROL_instance%READ_NOCI_ENERGIES .and. CONTROL_instance%NOCI_KINETIC_APPROXIMATION) then
+             read(this%molecularSystems(mySysI)%description,*) this%configurationPuntualMatrix(1)%values(mySysI,mySysI) !ugly temporal fix
+             this%configurationHamiltonianMatrix%values(mySysI,mySysI)=this%configurationPuntualMatrix(1)%values(mySysI,mySysI)
+             do speciesID = 1, nspecies
+                this%HFCoefficients(speciesID,mySysI) = WaveFunctionParallelInstance(speciesID,me)%waveFunctionCoefficients
+                this%configurationKineticMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%kineticEnergy
+                this%configurationHamiltonianMatrix%values(mySysI,mySysI)=this%configurationHamiltonianMatrix%values(mySysI,mySysI)+WaveFunctionParallelInstance(speciesID,me)%kineticEnergy
              end do
-          end do
+          else
+             this%configurationHamiltonianMatrix%values(mySysI,mySysI)=MultiSCFParallelInstance(me)%totalEnergy
+             do speciesID = 1, nspecies
+                this%HFCoefficients(speciesID,mySysI) = WaveFunctionParallelInstance(speciesID,me)%waveFunctionCoefficients
+                this%configurationKineticMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%kineticEnergy
+                this%configurationPuntualMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%puntualInteractionEnergy
+                this%configurationExternalMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%externalPotentialEnergy
+                this%configurationExchangeMatrix(speciesID)%values(mySysI,mySysI)=WaveFunctionParallelInstance(speciesID,me)%exchangeHFEnergy
+                do otherSpeciesID = speciesID, this%molecularSystems(mySysI)%numberOfQuantumSpecies
+                   this%configurationHartreeMatrix(speciesID,otherSpeciesID)%values(mySysI,mySysI)=&
+                        WaveFunctionParallelInstance(speciesID,me)%hartreeEnergy(otherSpeciesID)
+                   this%configurationDFTcorrelationMatrix(speciesID,otherSpeciesID)%values(mySysI,mySysI)=&
+                        WaveFunctionParallelInstance(speciesID,me)%exchangeCorrelationEnergy(otherSpeciesID)                  
+                end do
+             end do
+          end if
 
           ! Compute HF energy with KS determinants
           if ( CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS" ) then
@@ -244,10 +255,12 @@ contains
           mySysI=sysIbatch(me)
           if(mySysI .eq. 0) exit systemLoop
 
-          write (coordsUnit,'(A10,I10,A10,ES20.12,A20,ES20.12)') "Geometry ", mySysI, "Energy", this%configurationHamiltonianMatrix%values(mySysI,mySysI), &
-               "Correlation energy", this%configurationCorrelationEnergies%values(mySysI)               
-          call MolecularSystem_showCartesianMatrix(this%molecularSystems(mySysI),unit=coordsUnit)
-
+          if( .not. (CONTROL_instance%READ_NOCI_ENERGIES .and. CONTROL_instance%NOCI_KINETIC_APPROXIMATION)) then
+             write (coordsUnit,'(A10,I10,A10,ES20.12,A20,ES20.12)') "Geometry ", mySysI, "Energy", this%configurationHamiltonianMatrix%values(mySysI,mySysI), &
+                  "Correlation energy", this%configurationCorrelationEnergies%values(mySysI)               
+             call MolecularSystem_showCartesianMatrix(this%molecularSystems(mySysI),unit=coordsUnit)
+          end if
+          
           if (this%numberOfDisplacedSystems .le. this%printMatrixThreshold) then 
              write (*,'(A10,I10,A10,ES20.12,A20,ES20.12)') "Geometry ", mySysI, "Energy", this%configurationHamiltonianMatrix%values(mySysI,mySysI), &
                   "Correlation energy", this%configurationCorrelationEnergies%values(mySysI)               
@@ -278,7 +291,7 @@ contains
 
     end do systemLoop
 
-    close(coordsUnit)
+    if( .not. (CONTROL_instance%READ_NOCI_ENERGIES .and. CONTROL_instance%NOCI_KINETIC_APPROXIMATION)) close(coordsUnit)
 !$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for HF calculations at displaced geometries : ", omp_get_wtime() - timeA ," (s)"
     
   end subroutine NOCIRunSCF_runHFs

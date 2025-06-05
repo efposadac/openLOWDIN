@@ -406,7 +406,7 @@ contains
 
     type(MolecularSystem) :: originalMolecularSystem
     real(8) :: origin(3)
-    character(100) :: string,coordsFile
+    character(100) :: string(10),coordsFile
     integer :: coordsUnit
     integer :: sysI,i,ii,j,mu
     real(8) :: timeA
@@ -428,16 +428,22 @@ contains
 
     open(unit=coordsUnit, file=trim(coordsFile), status="old", form="formatted")
 
-    read(coordsUnit,*) string, this%numberOfDisplacedSystems
+    read(coordsUnit,*) string(1), this%numberOfDisplacedSystems
     print *, "reading ", this%numberOfDisplacedSystems, " systems"
 
     allocate(this%molecularSystems(this%numberOfDisplacedSystems))
     
     do sysI = 1, this%numberOfDisplacedSystems
        call MolecularSystem_copyConstructor(molecularSystem_instance, originalMolecularSystem)
-       write(molecularSystem_instance%description,"(I10)") sysI       
-       read(coordsUnit,*) string !skip line
-       read(coordsUnit,*) string !skip line 
+       if(CONTROL_instance%READ_NOCI_ENERGIES) then
+          read(coordsUnit,*) string(1), string(2), string(3), string(4) !read geometry ... energy ... line
+          write(molecularSystem_instance%description, '(A)') trim(string(4))
+          print *, "sysI", sysI, "reading energy ", molecularSystem_instance%description
+       else
+          write(molecularSystem_instance%description,"(I10)") sysI       
+          read(coordsUnit,*) string(1) !skip geometry ... energy ... line
+       end if
+       read(coordsUnit,*) string(1) !skip <x> <y> <z> line 
 
        !! Print quatum species information
        do i = 1, molecularSystem_instance%numberOfQuantumSpecies
@@ -459,7 +465,7 @@ contains
           end if
 
           do j = 1, size(molecularSystem_instance%species(i)%particles)
-             read(coordsUnit,*) string, origin(1), origin(2), origin(3)
+             read(coordsUnit,*) string(1), origin(1), origin(2), origin(3)
 
              molecularSystem_instance%species(i)%particles(j)%origin = origin/ANGSTROM
              do mu = 1, molecularSystem_instance%species(i)%particles(j)%basis%length
@@ -471,7 +477,7 @@ contains
 
        !! Point charges information       
        do i = 1, molecularSystem_instance%numberOfPointCharges
-          read(coordsUnit,*) string, origin(1), origin(2), origin(3)
+          read(coordsUnit,*) string(1), origin(1), origin(2), origin(3)
           
           molecularSystem_instance%pointCharges(i)%origin = origin/ANGSTROM
        end do

@@ -347,7 +347,9 @@ contains
        if( trim(outputs_instance(i)%type) .eq. trim(this%type) .and. &
             trim(outputs_instance(i)%species) .eq. trim(this%species) .and. &
             outputs_instance(i)%dimensions .eq. this%dimensions .and. &
-            outputs_instance(i)%orbital .eq. this%orbital) this%auxID=this%auxID+1
+            outputs_instance(i)%orbital .eq. this%orbital .and. &
+            outputs_instance(i)%state .eq. this%state &
+            ) this%auxID=this%auxID+1
     end do
 
   end subroutine OutputBuilder_constructor

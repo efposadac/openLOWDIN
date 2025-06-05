@@ -490,10 +490,10 @@ contains
        
        call ElementalParticle_load( eparticle, trim(name) )
 
-       if(eparticle%custom .and. auxMass .ne. 0.0_8 .and. auxCharge .ne. 0.0_8) then
+       if(eparticle%custom .and. auxMass .ne. 0.0_8) then
           write (*,*) ""
           write (*,"(A,A15)") "Loading a custom particle from the input: ", trim(name) 
-          write (*,"(A,F15.8,A,F12.8)") "with mass: ", auxMass, "and charge: ", auxCharge
+          write (*,"(A,F15.8,A,F12.8)") "with mass: ", auxMass, " and charge: ", auxCharge
        end if
        if(eparticle%custom .and. auxMass .eq. 0.0_8 .and. auxCharge .eq. 0.0_8) &
             call Particle_exception( ERROR, "Elemental particle: "//trim(name)//&
@@ -656,8 +656,8 @@ contains
     this%eta = 0
     this%omega = 0.0_8
     this%qdoCenterOf = "NONE"
-    this%charge = PhysicalConstants_ELECTRON_CHARGE
-    this%totalCharge = PhysicalConstants_ELECTRON_CHARGE
+    this%charge = 0.0_8
+    this%totalCharge = 0.0_8
     this%name = "ELECTRON"
     this%symbol = "E-"
 

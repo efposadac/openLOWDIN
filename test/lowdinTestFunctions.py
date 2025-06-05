@@ -602,8 +602,11 @@ def getParticlesInOrbPlot3D(testName,species,number,radialNorm):
     orbplot.close()
     return sumPart
 
-def getParticlesInDensCube(testName,species):
-    cube = open(testName+"."+species+".dens.cub", "r")
+def getParticlesInDensCube(testName,species,state=1):
+    if state==1:
+        cube = open(testName+"."+species+".dens.cub", "r")
+    else:
+        cube = open(testName+"."+species+"-s"+str(state)+".dens.cub", "r")
     cubeRead = cube.readlines()
     sumPart=0
     for i in range(0,len(cubeRead)):
