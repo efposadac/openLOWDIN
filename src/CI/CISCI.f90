@@ -1792,12 +1792,12 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
 !$    timeA= omp_get_wtime()
 
-    do aa = 1, nx
+    do aa = 1, nonzero
 
       !a = CISCI_instance%auxindex_amplitudeCore%values(aa) ! if index_amplitude is unsortered
       a = aa ! if index_amplitude is sorted
 
-      if ( CISCI_instance%index_target%values(1,a) == 0 ) exit
+      !if ( CISCI_instance%index_target%values(1,a) == 0 ) exit !using nonzero now
 
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1817,11 +1817,11 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
       enddo
 
-      do bb = aa, nx
+      do bb = aa, nonzero
 
         !b = CISCI_instance%auxindex_amplitudeCore%values(bb)
         b = bb
-        if ( CISCI_instance%index_target%values(1,b) == 0 ) exit
+        !if ( CISCI_instance%index_target%values(1,b) == 0 ) exit
         ! getting configuration B
         do spi = 1, numberOfSpecies 
 
