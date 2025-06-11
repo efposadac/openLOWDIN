@@ -155,7 +155,7 @@ contains
 
     !! the first quarter is the real target space, the second quarter is the waiting list if the amplitude could grow more. 
     !! The last half is just a temporary space to avoid sorting a big array for a single addition
-    CISCI_instance%tmp_amplitudeCoreSize = CISCI_instance%targetSpaceSize * 4 
+    CISCI_instance%tmp_amplitudeCoreSize = CISCI_instance%targetSpaceSize * 8 
 
     !! copy and destroying diagonal vector... because of the intial matrix subroutine
     !call Vector_constructor8 ( CIcore_instance%diagonalHamiltonianMatrix, &
@@ -409,7 +409,7 @@ contains
     CIcore_instance%eigenVectors%values(1,1) = 1.0_8
     CISCI_instance%eigenValues%values(1) = HartreeFock_instance%totalEnergy 
 
-    call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%indexCore )
+    !call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%indexCore, m )
 
     write (6,*)    ""
     write (6,"(T2,A29 )")    "Starting SCI macro iterations "
@@ -421,7 +421,10 @@ contains
 
       !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
       CISCI_instance%tmp_amplitudeCore%values = 0.0_8
-      call CISCI_core_amplitudesNew ( CISCI_instance%coefficientCore%values, CISCI_instance%indexCore, CISCI_instance%coreSpaceSize, currentEnergy )
+      if ( k == 2 ) call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%indexCore, m )
+
+      call CISCI_core_amplitudesNew ( CISCI_instance%coefficientCore%values, CISCI_instance%indexCore, CISCI_instance%coreSpaceSize, currentEnergy, m )
+      m = 1
 
       if ( k == 2 ) CISCI_instance%tmp_amplitudeCore%values(1) = 1.0_8
 
@@ -431,8 +434,24 @@ contains
       !enddo
 
       !! final sort
-      call MTSort ( CISCI_instance%tmp_amplitudeCore%values, &
-          CISCI_instance%auxindex_amplitudeCore%values,  CISCI_instance%tmp_amplitudeCoreSize, "D", nproc )
+      !call MTSort ( CISCI_instance%tmp_amplitudeCore%values, &
+      !    CISCI_instance%auxindex_amplitudeCore%values,  CISCI_instance%tmp_amplitudeCoreSize, "D", nproc )
+
+      !test
+      !call CISCI_sortByIndex( CISCI_instance%index_amplitudeCore, CISCI_instance%auxindex_amplitudeCore, CISCI_instance%tmp_amplitudeCoreSize )
+      !! reset auxindex arrary
+      !do i = 1, CISCI_instance%tmp_amplitudeCoreSize
+      !  CISCI_instance%auxindex_amplitudeCore%values( i ) = i
+      !enddo
+
+      call CISCI_sortAmplitude( )
+
+     ! print *, "finish old sorting"
+
+      do i = 1,    CISCI_instance%tmp_amplitudeCoreSize
+        ii = CISCI_instance%auxindex_amplitudeCore%values(i) 
+      !  print *, i, ii, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,ii)
+        enddo
 
       !! sort index_ampitude core according the index mapping from sorting amplitudes. This is not needed when I'm using index_target array TBD
       !!call CISCI_sortByIndex( CISCI_instance%index_amplitudeCore,  CISCI_instance%auxindex_amplitudeCore, CISCI_instance%tmp_amplitudeCoreSize)
@@ -1035,7 +1054,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
   end subroutine CISCI_core_amplitudes 
 
-  subroutine CISCI_initialConfigurations ( coefficientCore, indexCore )
+  subroutine CISCI_initialConfigurations ( coefficientCore, indexCore, m )
 
     implicit none
     type(vector8) :: coefficientCore
@@ -1077,7 +1096,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
   end subroutine CISCI_initialConfigurations
 
-  subroutine CISCI_core_amplitudesNew ( coefficientCore, indexCore, SCICoreSpaceSize, oldEnergy )
+  subroutine CISCI_core_amplitudesNew ( coefficientCore, indexCore, SCICoreSpaceSize, oldEnergy, m )
 
     implicit none
   
@@ -1117,7 +1136,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     shift = 1E-6 !! to avoid divergence
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
-    m = 1 !!
+    !m = 1 !!
 
     allocate ( occA ( numberOfSpecies ) )
     allocate ( occB ( numberOfSpecies ) )
@@ -1153,7 +1172,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     do a = 1, nonzero !! coreSpace
       
       if ( indexCore%values(1,a) == 0 ) exit
-
+      ! print *, "a", a, indexCore%values(:,a)
       !print *, "a",  a, OMP_GET_THREAD_NUM()
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1213,6 +1232,9 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
             if ( CIenergy /= 0.0_8 ) then
               CIenergy = CIenergy * coefficientCore(a) 
 
+              !diagEnergy = CISCI_calculateEnergyZero( occA )
+              !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
+
               !! append the amplitude 
               !!$omp critical (single)
               call CISCI_appendAmplitude ( m, CIenergy, indexCoreConfB )
@@ -1245,6 +1267,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
                   call CISCI_binaryToDecimal ( orbB(spi)%values, indexCoreConfB(spi) )
 
                   CIenergy = CIenergy * coefficientCore(a)
+                  !diagEnergy = CISCI_calculateEnergyZero( occA )
+                  !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
 
                   !! append the amplitude 
                   !!$omp critical (intra)
@@ -1273,6 +1297,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
                   orbB(spj)%values(vj2) = orbB(spj)%values(vj2) + 1
                   occB(spj)%values(rj) = vj2 
 
+                  !print *, spi, spj, oi1, oj2, vi1, vj2
                   !! get double interspecies sustitutions energy
                   CIenergy = CISCI_calculateEnergyTwoDiffNew( spi, spj, oi1, oj2, vi1, vj2 )
 
@@ -1287,6 +1312,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
                     call CISCI_binaryToDecimal ( orbB(spj)%values, indexCoreConfB(spj) )
 
                     CIenergy = CIenergy * coefficientCore(a) 
+                    !diagEnergy = CISCI_calculateEnergyZero( occA )
+                    !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
 
                     !! append the amplitude 
                     !!$omp critical (inter)
@@ -1345,9 +1372,13 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     end do
 
     !! apply the denominator from eq 4 10.1063/1.4955109. First sort by heat-bath ranking, then final sort by asci ranking
+ !   print *, "before denominator"
+    call CISCI_sortAmplitude( )
 
     do aa = 1, CISCI_instance%tmp_amplitudeCoreSize !! replace this by m
       a = CISCI_instance%auxindex_amplitudeCore%values(aa) 
+
+     ! print *, "a den",  CISCI_instance%tmp_amplitudeCore%values(a), CISCI_instance%index_amplitudeCore%values(:,a),  CISCI_instance%auxindex_amplitudeCore%values(a) 
        if (  CISCI_instance%index_amplitudeCore%values(1, a ) == 0 ) cycle
       do spi = 1, numberOfSpecies 
         occA(spi)%values(:) = 0
@@ -1383,11 +1414,13 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     enddo    
 
     !!! append the core space to the target space (i.e. conf from previous step)
-    !do a = 1, SCICoreSpaceSize  
-    !  if ( indexCore%values(1,a) == 0 ) cycle
-    !  !! append the amplitude 
-    !  call CISCI_appendAmplitude ( m,  coefficientCore(a),  indexCore%values(:,a) )
-    !enddo
+!    do a = 1, SCICoreSpaceSize  
+!      if ( indexCore%values(1,a) == 0 ) cycle
+      !! append the amplitude 
+!      call CISCI_appendAmplitude ( m,  coefficientCore(a),  indexCore%values(:,a) )
+!    enddo
+
+
 
 !$  timeB = omp_get_wtime()
 
@@ -2427,9 +2460,9 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     aux_aibi = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * ( aibi - 1 ) 
 
     ajbj = CIcore_instance%twoIndexArray(sj)%values( aj, bj )
+    !print *, si, sj, ai, aj, bi, bj, CIenergy 
     CIenergy = CIcore_instance%fourCenterIntegrals( si, sj )%values( aux_aibi +  ajbj, 1)
 
-!    print *, si, sj, ai, bi, aj, bj, CIenergy 
 
   end function CISCI_calculateEnergyTwoDiffNew
 
@@ -2637,8 +2670,8 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%tmp_amplitudeCoreSize
 
       a = CISCI_instance%auxindex_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-      if (CISCI_instance%index_amplitudeCore%values(1,a) == 0) cycle
       !a = aa ! if index_amplitude is sorted
+      if (CISCI_instance%index_amplitudeCore%values(1,a) == 0) cycle
 
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -2738,6 +2771,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
       denominator = 1 / ( refEnergy - diagonal ) 
       !! PT2 correction
       energyCorrection = energyCorrection + ( CIenergy**2) * denominator
+      !print *, a, energyCorrection
 
     end do !a 
 
@@ -2886,6 +2920,167 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     real(8), intent(in) :: amplitude
     real(8), intent(in) :: indexConf(:)
     real(8) :: diffConf
+    integer(8) :: newm
+    integer :: i, j, ii, sp
+    logical :: addConf
+    integer :: nproc
+
+    !nproc = omp_get_max_threads()
+    nproc = 1
+
+    !! add the configuration at the end of the array
+    m = m + 1
+    CISCI_instance%tmp_amplitudeCore%values(m) = amplitude
+    CISCI_instance%index_amplitudeCore%values(:,m) = indexConf(:)
+    CISCI_instance%auxindex_amplitudeCore%values(m) = m
+
+     ! print *, "m", m,  CISCI_instance%tmp_amplitudeCore%values(m), CISCI_instance%index_amplitudeCore%values(:,m),  CISCI_instance%auxindex_amplitudeCore%values(m) 
+
+    !! sort the array when it's full
+    if ( m == CISCI_instance%tmp_amplitudeCoreSize ) then
+      call CISCI_sortAmplitude( m )
+    endif
+
+  end subroutine CISCI_appendAmplitude
+
+  subroutine CISCI_sortAmplitude( auxm )
+    implicit none
+    integer(8), intent(inout), optional  :: auxm
+    integer(8)  :: m
+    real(8) :: diffConf
+    integer(8) :: newm
+    integer :: i, j, ii, sp
+    logical :: addConf
+    integer :: nproc
+
+    !nproc = omp_get_max_threads()
+    nproc = 1
+    if ( present ( auxm ) ) then 
+      m = auxm
+    else 
+      m = CISCI_instance%tmp_amplitudeCoreSize
+    endif
+
+!      print *, "-----------------------------", m
+
+     ! print *, "before finish sort 1"
+      do i = 1, m 
+     !   print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
+      call MTSort ( CISCI_instance%tmp_amplitudeCore%values, &
+            CISCI_instance%auxindex_amplitudeCore%values,  CISCI_instance%tmp_amplitudeCoreSize, "D", nproc )
+
+     ! print *, "finish sort 1"
+      do i = 1, m 
+     !   print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
+
+      call CISCI_sortByIndex( CISCI_instance%index_amplitudeCore, CISCI_instance%auxindex_amplitudeCore, CISCI_instance%tmp_amplitudeCoreSize )
+
+      !print *, "finish sort index1"
+      do i = 1, m 
+      !  print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
+      !! reset auxindex arrary
+      do i = 1, CISCI_instance%tmp_amplitudeCoreSize
+        CISCI_instance%auxindex_amplitudeCore%values( i ) = i
+      enddo
+
+      !! the next configurations will be added in the last half
+      m = CISCI_instance%tmp_amplitudeCoreSize
+      !m = CISCI_instance%tmp_amplitudeCoreSize/2 
+  !    print *, "after index reset"
+
+      do i = 1, m 
+ !      print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
+      !! check if the configuration is already in the amplitudes set
+      do i = 1, m
+        !print *, i
+        if ( CISCI_instance%tmp_amplitudeCore%values(i) == 0.0_8 ) cycle
+
+        do j = i + 1, m
+
+          diffConf = 0.0_8
+          do sp = 1, CIcore_instance%numberOfQuantumSpecies 
+            diffConf = diffConf + abs( CISCI_instance%index_amplitudeCore%values(sp, CISCI_instance%auxindex_amplitudeCore%values(i) ) &
+                                    - CISCI_instance%index_amplitudeCore%values(sp, CISCI_instance%auxindex_amplitudeCore%values(j) ) )
+          enddo
+
+          if ( diffConf == 0 ) then
+            !! add and clean
+            CISCI_instance%tmp_amplitudeCore%values(i) = CISCI_instance%tmp_amplitudeCore%values(i) + CISCI_instance%tmp_amplitudeCore%values(j)
+            CISCI_instance%tmp_amplitudeCore%values(j) = 0.0_8
+            CISCI_instance%index_amplitudeCore%values(:,j) = 0.0_8
+            !CISCI_instance%auxindex_amplitudeCore%values(j) = j
+          end if
+        enddo !j
+      enddo !i
+
+!      print *, "finish duplicate"
+      do i = 1, m 
+!        print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
+      !! sort again removing duplicates
+      call MTSort ( CISCI_instance%tmp_amplitudeCore%values, &
+            CISCI_instance%auxindex_amplitudeCore%values,  CISCI_instance%tmp_amplitudeCoreSize, "D", nproc )
+
+!     print *, "finish sort 2"
+      do i = 1, m 
+!        print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
+      call CISCI_sortByIndex( CISCI_instance%index_amplitudeCore, CISCI_instance%auxindex_amplitudeCore, CISCI_instance%tmp_amplitudeCoreSize )
+      !print *, "finish sort 3"
+
+      do i = 1, m 
+       ! print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
+      !! reset auxindex arrary
+      do i = 1, CISCI_instance%tmp_amplitudeCoreSize
+        CISCI_instance%auxindex_amplitudeCore%values( i ) = i
+      enddo
+
+      !! cleaning and finding limit
+      if ( present ( auxm ) ) then
+
+        !! get the new end position
+        newm = CISCI_instance%tmp_amplitudeCoreSize/2 
+        do i = 1, CISCI_instance%tmp_amplitudeCoreSize/2 + 1
+          if ( CISCI_instance%tmp_amplitudeCore%values(i) == 0.0_8 ) then
+            newm = i - 1
+            exit
+          endif
+        enddo
+        auxm = newm
+
+        !! discard the last two quarters of tmp_ampltitude for next run, if not keep it fot PT2 corr
+        CISCI_instance%tmp_amplitudeCore%values( CISCI_instance%tmp_amplitudeCoreSize/2 + 1 : CISCI_instance%tmp_amplitudeCoreSize ) = 0.0_8
+        CISCI_instance%index_amplitudeCore%values( :, CISCI_instance%tmp_amplitudeCoreSize/2 + 1 : CISCI_instance%tmp_amplitudeCoreSize ) = 0.0_8
+      endif
+
+      !print *, "cleaned"
+      do i = 1, m 
+       ! print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
+      !m = CISCI_instance%tmp_amplitudeCoreSize/2 
+   end subroutine CISCI_sortAmplitude
+
+
+
+  subroutine CISCI_appendAmplitudeb ( m, amplitude, indexConf )
+    implicit none
+    integer(8), intent(inout) :: m
+    real(8), intent(in) :: amplitude
+    real(8), intent(in) :: indexConf(:)
+    real(8) :: diffConf
     integer :: i, ii, sp
     logical :: addConf
     integer :: nproc
@@ -2916,6 +3111,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
       CISCI_instance%tmp_amplitudeCore%values(m) = amplitude
       CISCI_instance%index_amplitudeCore%values(:,m) = indexConf(:)
       CISCI_instance%auxindex_amplitudeCore%values(m) = m
+   !   print *, "m", m,  CISCI_instance%tmp_amplitudeCore%values(m), CISCI_instance%index_amplitudeCore%values(:,m),  CISCI_instance%auxindex_amplitudeCore%values(m) 
     endif
 
     !! sort the array when it's full
@@ -2938,12 +3134,18 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         CISCI_instance%auxindex_amplitudeCore%values( i ) = i
       enddo
 
+      !print *, "middle old sorting"
+
+      do i = 1, m 
+     !   print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      enddo
+
       !! the next configurations will be added in the last half
       m = CISCI_instance%tmp_amplitudeCoreSize/2 
 
     endif
 
-  end subroutine CISCI_appendAmplitude
+  end subroutine CISCI_appendAmplitudeb
 
   subroutine CISCI_buildPT2Row ( occA, occB, orbA, orbB, couplingS, factor0, CIenergy )
     implicit none
