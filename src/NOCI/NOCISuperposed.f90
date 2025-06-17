@@ -527,11 +527,8 @@ contains
                columnkeys = string_convertvectorofrealstostring( auxVector ),&
                flags=WITH_BOTH_KEYS)
 
-          ! write(*,"(A10,A10,A20,I5,A15,F17.12)") "number of ", trim(MolecularSystem_getSymbolOfSpecies( speciesID )) ," particles in state", state , &
-          !      " density matrix: ", sum( transpose(this%mergedDensityMatrix(state,speciesID)%values)*this%mergedOverlapMatrix(speciesID)%values)
-          auxMatrix=Matrix_product_dgemm(Matrix_getTranspose(this%mergedDensityMatrix(state,speciesID)),this%mergedOverlapMatrix(speciesID))
           write(*,"(A10,A10,A20,I5,A15,F17.12)") "number of ", trim(MolecularSystem_getSymbolOfSpecies( speciesID )) ," particles in state", state , &
-               " density matrix: ", sum(auxMatrix%values)
+               " density matrix: ", sum( transpose(this%mergedDensityMatrix(state,speciesID)%values)*this%mergedOverlapMatrix(speciesID)%values)
 
           write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_getSymbolOfSpecies( speciesID )) , "natural orbital occupations", sum(densityEigenValues%values)
 

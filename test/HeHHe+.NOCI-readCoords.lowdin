@@ -1,0 +1,50 @@
+!The goal of this calculation is to compute the tunneling splitting in a double well potential
+!Reported: 40 cm-1, this input gives 41.32 cm-1.
+
+SYSTEM_DESCRIPTION='He2H+ from Skone 2005 (10.1063/1.2039727)' 
+
+GEOMETRY
+	e-[He]   6-31G     0.000000      0.000000     -1.125 
+	e-[H]    6-31G     0.000000      0.000000     -0.380 addParticles=-1
+	e-[H]    6-31G     0.000000      0.000000      0.380 addParticles=-1
+	e-[He]   6-31G     0.000000      0.000000      1.125
+	He        dirac    0.000000      0.000000     -1.125
+	H_1      QZSPDN    0.000000      0.000000      0.000000 
+	He        dirac    0.000000      0.000000      1.125
+END GEOMETRY
+
+!method to solve the SCF
+!flag to activate the NOCI method
+
+TASKS
+	method = "RHF"					
+	nonOrthogonalConfigurationInteraction=.T.	
+END TASKS
+
+!read the HeHHe+.2.25.NOCI.coords file with the geometries to use in the NOCI expansion
+!for NOCI calculations, use MEMORY or DIRECT integrals
+!Display the energy of "numberOfCIstates" states
+!Compute the density matrix for "CIstatesToPrint" states, for density outputs
+!Generate the natural orbitals, for visualization in molden files
+!strict SCF convergence improves the quality of the NOCI results
+
+CONTROL
+	readNOCIGeometries=.T.     
+	integralStorage="MEMORY"   
+	numberOfCIstates=2         
+	CIstatesToPrint=2	   
+	CInaturalOrbitals=.T.	   
+	totalEnergyTolerance=1E-12 
+END CONTROL
+
+!With NOCI, moldenFiles, 1D and 2D density slices and density cubes are good ways to visualize the density results
+OUTPUTS
+	moldenFile state=1
+	moldenFile state=2
+	densityPlot dimensions=2 point1=0.0 0.0 -1.5 point2=0.0 0.0 1.5 state=1 
+	densityPlot dimensions=2 point1=0.0 0.0 -1.5 point2=0.0 0.0 1.5 state=2 
+END OUTPUTS
+
+
+
+

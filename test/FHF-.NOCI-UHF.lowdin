@@ -23,6 +23,8 @@ CONTROL
 	translationStep=0.1
 	integralStorage="MEMORY"
 	numberOfCIstates=10
+	CIStatesToPrint=2
+	CInaturalOrbitals=.T.
 	totalEnergyTolerance=1E-12
 END CONTROL
 

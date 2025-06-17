@@ -654,24 +654,24 @@ def getP3results(testName,species,number):
     output.close()
     return eigenval
 
-def getNaturalOrbOcc(testName,species,number):
+def getNaturalOrbOcc(testName,species,number,state=1):
     output = open(testName+".out", "r")
     outputRead = output.readlines()
     for i in range(0,len(outputRead)):
         line = outputRead[i]
-        if "  Natural Orbitals in state:            "+str(number)+"  for: "+species in line:
+        if "  Natural Orbitals in state:            "+str(state)+"  for: "+species in line:
             occupation = float(outputRead[i+2].split()[number-1]) #Works only for the five first orbitals
 
     output.close()
     return occupation
 
-def getNaturalOrb(testName,species,number):
+def getNaturalOrb(testName,species,number,state=1):
     output = open(testName+".out", "r")
     outputRead = output.readlines()
     eigenvec=[]    
     for i in range(0,len(outputRead)):
         line = outputRead[i]
-        if "  Natural Orbitals in state:            "+str(number)+"  for: "+species in line:
+        if "  Natural Orbitals in state:            "+str(state)+"  for: "+species in line:
             for j in range(1,len(outputRead)-i-3):
                 linej = outputRead[i+3+j]
                 if len(linej.split()) == 0:
