@@ -1609,7 +1609,7 @@ contains
     write(*,"(T20,A5,I6,I6)") "p", this%p_l, this%p_u
     write(*,"(T20,A5,I6,I6)") "q", this%q_l, this%q_u
     write(*,"(T20,A5,I6,I6)") "r", this%r_l, this%r_u
-    write(*,"(T20A5,I6,I6)") "s", this%s_l, this%s_u
+    write(*,"(T20,A5,I6,I6)") "s", this%s_l, this%s_u
     print *, ""
    
   end subroutine TransformIntegralsC_checkMOIntegralType
