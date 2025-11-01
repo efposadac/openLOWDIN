@@ -819,7 +819,7 @@ contains
     Type(Matrix) :: integralsMatrix
     character(100) :: arguments(2)
 
-    arguments(1) = "EXTERNAL_POTENTIAL"
+    arguments(1) = "EXTERNAL-POTENTIAL"
     !!Overlap Integrals for all species    
     do f = 1, size(MolecularSystem_instance%species)
 
@@ -856,7 +856,7 @@ contains
     character(100) :: job, speciesName
     type (ContractedGaussian) :: auxContractionA, auxContractionB, auxContraction
 
-    job = "EXTERNAL_POTENTIAL"
+    job = "EXTERNAL-POTENTIAL"
     !!Overlap Integrals for all species    
     do f = 1, size(MolecularSystem_instance%species)
 

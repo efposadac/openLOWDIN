@@ -792,7 +792,7 @@ contains
     integer :: totalNumberOfContractions
     character(50) :: arguments(2)
 
-    arguments(1) = "EXTERNAL_POTENTIAL"
+    arguments(1) = "EXTERNAL-POTENTIAL"
     arguments(2) = trim(MolecularSystem_getNameOfSpecies(this%species,this%molSys))
     !! Open file
     unit = 34

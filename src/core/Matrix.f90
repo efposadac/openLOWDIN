@@ -1868,7 +1868,7 @@ contains
   subroutine Matrix_eigen_select( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method )
     implicit none
     type(Matrix), intent(in) :: this
-    type(Vector8), intent(inout) :: eigenValues
+    type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
     integer(4), intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
     !! of the eigenvalues to be computed. Start at 1
@@ -2069,6 +2069,7 @@ contains
     integer :: m_dsyevr   !! The total number of eigenvalues found.
     integer, allocatable :: isuppz(:)
     integer, allocatable :: iwork(:)
+    character(1) :: mode
 
     !!Negative ABSTOL means using the default value
     abstol = -1.0
@@ -2084,6 +2085,9 @@ contains
 
     if (allocated (iwork) ) deallocate (iwork)
     allocate( iwork( matrixSize*10 ) )
+
+    mode = "A"
+    if ( largestEigenValue - smallestEigenValue < matrixSize ) mode = "I"
 
 !    call omp_set_num_threads(omp_get_max_threads())
 !    call omp_set_num_threads (OMP_GET_NUM_THREADS())
@@ -2112,7 +2116,7 @@ contains
          !! calculates the optimal size of the WORK array
          call dsyevr( &
               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
-              "A", & !! A: All, I: select
+              mode, & !! A: All, I: select
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2144,7 +2148,7 @@ contains
          !! Calcula valores propios de la matriz de entrada
          call dsyevr( &
               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
-              "A", & !! A: All, I: select
+              mode, & !! A: All, I: select
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2173,7 +2177,7 @@ contains
          !! calculates the optimal size of the WORK array
          call dsyevr( &
               COMPUTE_EIGENVALUES, &
-              "I", &
+              mode, &
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2207,7 +2211,7 @@ contains
          !! Calcula valores propios de la matriz de entrada
          call dsyevr( &
               COMPUTE_EIGENVALUES, &
-              "I", &
+              mode, &
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &

@@ -18,7 +18,7 @@
      type(ivector8) :: auxIndexCIMatrix
      type(matrix) :: eigenVectors
      type(matrix) :: initialEigenVectors
-     type(vector8) :: initialEigenValues
+     type(vector) :: initialEigenValues
      integer(8) :: numberOfConfigurations
      integer :: nproc
      integer :: numberOfQuantumSpecies
@@ -26,7 +26,7 @@
      type(ivector) :: numberOfOccupiedOrbitals
      type(ivector) :: numberOfOrbitals
      type(vector) ::  numberOfSpatialOrbitals2 
-     type(vector8) :: eigenvalues
+     type(vector) :: eigenvalues
      type(vector) :: groundStateEnergies
      type(vector) :: DDCISDTiming
      type(vector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital

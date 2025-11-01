@@ -58,7 +58,7 @@ contains
     call CIInitial_calculateInitialCIMatrix()
 
     !! diagonalize the initial matrix
-    call Vector_constructor8 ( CIcore_instance%initialEigenValues, int(CONTROL_instance%NUMBER_OF_CI_STATES,8),  0.0_8)
+    call Vector_constructor ( CIcore_instance%initialEigenValues, int(CONTROL_instance%NUMBER_OF_CI_STATES,4),  0.0_8)
 
     call Matrix_constructor (CIcore_instance%initialEigenVectors, &
           int(initialCIMatrixSize,8), &

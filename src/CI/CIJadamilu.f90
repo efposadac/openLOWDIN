@@ -227,7 +227,7 @@ recursive  function CIJadamilu_buildCouplingOrderRecursion( s, numberOfSpecies, 
     integer(8) :: maxnev
     real(8) :: CIenergy
     integer(8) :: nproc
-    type(Vector8), intent(inout) :: eigenValues
+    type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
 
 !   N: size of the problem

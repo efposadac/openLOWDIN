@@ -177,8 +177,8 @@ contains
 
    !! write (*,*) "Total number of configurations", CIcore_instance%numberOfConfigurations
     write (*,*) ""
-    call Vector_constructor8 ( CIcore_instance%eigenvalues, &
-                              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8 )
+    call Vector_constructor ( CIcore_instance%eigenvalues, &
+                              int(CONTROL_instance%NUMBER_OF_CI_STATES,4), 0.0_8 )
 
 
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
@@ -424,7 +424,7 @@ contains
             end do
 
            call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-                 1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+                 1_8, int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &  
                  eigenVectors = CIcore_instance%eigenVectors, &
                  flags = SYMMETRIC)
   
@@ -443,7 +443,7 @@ contains
 !$    write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
   
           call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-               1, CONTROL_instance%NUMBER_OF_CI_STATES, &  
+               1_8, int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &  
                eigenVectors = CIcore_instance%eigenVectors, &
                flags = SYMMETRIC)
 
@@ -747,7 +747,7 @@ contains
 
   subroutine CImod_loadEigenVector (eigenValues,eigenVectors) 
     implicit none
-    type(Vector8) :: eigenValues
+    type(Vector) :: eigenValues
     type(Matrix) :: eigenVectors
     character(50) :: nameFile
     integer :: unitFile
@@ -991,7 +991,7 @@ contains
     integer :: numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
     integer :: state, species, orbital, orbitalA, orbitalB
     character(50) :: file, wfnfile, speciesName, auxstring
-    character(50) :: arguments(2)
+    character(100) :: arguments(2)
     type(matrix), allocatable :: coefficients(:), atomicDensityMatrix(:,:), ciDensityMatrix(:,:), auxDensMatrix(:,:)
     type(matrix), allocatable :: kineticMatrix(:), attractionMatrix(:), externalPotMatrix(:)
     integer numberOfSpecies
@@ -1053,7 +1053,6 @@ contains
         s = 0
         auxnumberOfSpecies = CIcore_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
       end do
-      !stop
   
       deallocate ( indexConf )
       allocate ( coupling ( numberOfSpecies ) )
@@ -1086,7 +1085,6 @@ contains
          numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(species)
 
          arguments(2) = speciesName
-         ! print *, "trolo", numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
 
          arguments(1) = "COEFFICIENTS"
          coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
@@ -1100,11 +1098,10 @@ contains
          attractionMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
 
-         arguments(1) = "EXTERNAL_POTENTIAL"
+         arguments(1) = "EXTERNAL-POTENTIAL"
          if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
               externalPotMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-         ! print *, "trololo"
         
          do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
