@@ -1,94 +1,132 @@
-MODULE Vector_Sort_Mod
-    IMPLICIT NONE
-    ! ... (VECTOR_LEN and EPSILON definitions remain here)
-    INTEGER, PARAMETER :: VECTOR_LEN = 3 
-    REAL, PARAMETER :: EPSILON = 1.0E-6
+module IntVectorSort_
+  use MolecularSystem_
+  implicit none
 
-    TYPE :: vector_t
-        REAL, DIMENSION(VECTOR_LEN) :: components
-    END TYPE vector_t
+  type, public :: IntVectorSort
+    real(8), allocatable :: tmp_Vector (:) ! species
+    real(8), allocatable :: pivot (:) ! species
+    integer :: numberOfSpecies
+  end type IntVectorSort
 
-CONTAINS
-    ! (The 'is_less' function for vector_t remains unchanged)
-    PURE LOGICAL FUNCTION is_less(A, B)
-        TYPE(vector_t), INTENT(IN) :: A, B
-        INTEGER :: i
-        ! ... (Logic for lexicographical comparison remains here)
-        DO i = 1, VECTOR_LEN
-            IF (A%components(i) < B%components(i) - EPSILON) THEN
-                is_less = .TRUE.; RETURN
-            ELSE IF (A%components(i) > B%components(i) + EPSON) THEN
-                is_less = .FALSE.; RETURN
-            END IF
-        END DO
-        is_less = .FALSE.; RETURN
-    END FUNCTION is_less
+  type(IntVectorSort) :: IntVectorSort_instance
+
+  !real(8), PARAMETER :: EPSILON = 1.0E-6
+
+contains
+
+  !! allocating global array, to avoid construting them in OMP
+  subroutine IntVectorSort_constructor()
+    implicit none
+    integer :: numberOfSpecies
+   
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    IntVectorSort_instance%numberOfSpecies = numberOfSpecies
+
+    allocate ( IntVectorSort_instance%tmp_Vector( numberOfSpecies) )
+    allocate ( IntVectorSort_instance%pivot( numberOfSpecies) )
+
+    IntVectorSort_instance%tmp_Vector = 0.0_8
+    IntVectorSort_instance%pivot = 0.0_8
+
+  end subroutine IntVectorSort_constructor
+
+  !! allocating global array, to avoid construting them in OMP
+  subroutine IntVectorSort_destructor()
+    implicit none
+   
+    deallocate ( IntVectorSort_instance%pivot )
+    deallocate ( IntVectorSort_instance%tmp_Vector )
+
+  end subroutine IntVectorSort_destructor
+
+  !! (The 'is_less' function for vector_t remains unchanged)
+  function IntVectorSort_is_less(A, B ) result (is_less)
+    implicit none
+    logical :: is_less
+    real(8), intent(in) :: A(:), B(:)
+    integer :: i
+
+    !! logic for lexicographical comparison
+    do i = 1, IntVectorSort_instance%numberOfSpecies 
+      if ( A(i) < B(i) ) then
+        is_less = .true.
+        return
+      else if (A(i) > B(i) ) then
+        is_less = .false.
+        return
+      end if
+    end do
+    is_less = .false.
+    return
+
+  end function IntVectorSort_is_less
+  
+  !! Swap both data and index elements
+  subroutine IntVectorSort_swap(A, B, IndexA, IndexB)
+    implicit none
+    real(8), intent(inout) :: A(:), B(:)
+    integer(8), intent(inout) :: IndexA, IndexB
+    integer(8) :: tmpIndex
+
+    !! Swap data
+    IntVectorSort_instance%tmp_Vector(:) = A(:)
+    A(:) = B(:)
+    B(:) = IntVectorSort_instance%tmp_Vector(:)
+
+    !! Swap index
+    tmpIndex = IndexA
+    IndexA = IndexB
+    IndexB = tmpIndex
+
+  end subroutine IntVectorSort_swap
+
+
+  !! Modified Partition scheme to use swap_both
+  subroutine IntVectorSort_partition(array, indices, low, high, pivot_index )
+    implicit none
+    type(Matrix), intent(inout) :: array ! original array
+    type(ivector8), intent(inout) :: indices ! The index array
+    integer(8), intent(in) :: low, high
+    integer(8), intent(out) :: pivot_index
+    integer(8) :: i, j
     
----
+    !! Select the last element (and its index) as the pivot
+    IntVectorSort_instance%pivot(:) = array%values(:,high)
 
-    ! Modified SUBROUTINE to swap both data and index elements
-    SUBROUTINE swap_both(A, B, I_A, I_B)
-        TYPE(vector_t), INTENT(INOUT) :: A, B
-        INTEGER, INTENT(INOUT) :: I_A, I_B
-        TYPE(vector_t) :: temp_data
-        INTEGER :: temp_index
+    i = low - 1 ! Index of the smaller element
 
-        ! Swap data
-        temp_data = A
-        A = B
-        B = temp_data
+    do j = low, high - 1
+      !! Use the custom comparison function (arr(j) < pivot)
+      if ( IntVectorSort_is_less(array%values(:,j), IntVectorSort_instance%pivot(:) ) ) then
+        i = i + 1
+        !! Swap both the vector and the index
+        call  IntVectorSort_swap(array%values(:,i), array%values(:,j), indices%values(i), indices%values(j) )
+      end if
+    end do
+    
+    !! Place the pivot in the correct sorted position (swap with arr(i+1) and index(i+1))
+    call IntVectorSort_swap(array%values(:,i + 1), array%values(:,high), indices%values(i+1), indices%values(high) )
+    pivot_index = i + 1
 
-        ! Swap index
-        temp_index = I_A
-        I_A = I_B
-        I_B = temp_index
-    END SUBROUTINE swap_both
+  end subroutine IntVectorSort_partition
 
+  !! Modified Recursive Quicksort routine
+  recursive subroutine IntVectorSort_quicksort(array, indices, low, high)
+    implicit none
+    type(matrix), intent(inout) :: array
+    type(ivector8), intent(inout) :: indices ! The index array
+    integer(8), intent(in) :: low, high
+    integer(8) :: pivot
 
-    ! Modified Partition scheme to use swap_both
-    SUBROUTINE partition_indexed(arr, indices, low, high, pivot_index)
-        TYPE(vector_t), DIMENSION(:), INTENT(INOUT) :: arr
-        INTEGER, DIMENSION(:), INTENT(INOUT) :: indices ! The index array
-        INTEGER, INTENT(IN) :: low, high
-        INTEGER, INTENT(OUT) :: pivot_index
-        INTEGER :: i, j
-        
-        ! Select the last element (and its index) as the pivot
-        TYPE(vector_t) :: pivot
-        pivot = arr(high)
+    if (low < high) then
+        !! Partition using the indexed version
+        call IntVectorSort_partition(array, indices, low, high, pivot)
 
-        i = low - 1 ! Index of the smaller element
+        !! Recursively sort the sub-arrays
+        call IntVectorSort_quicksort(array, indices, low, pivot - 1)
+        call IntVectorSort_quicksort(array, indices, pivot + 1, high)
+    end if
+  end subroutine IntVectorSort_quicksort
 
-        DO j = low, high - 1
-            ! Use the custom comparison function (arr(j) < pivot)
-            IF (is_less(arr(j), pivot)) THEN
-                i = i + 1
-                ! Swap both the vector and the index
-                CALL swap_both(arr(i), arr(j), indices(i), indices(j))
-            END IF
-        END DO
-        
-        ! Place the pivot in the correct sorted position (swap with arr(i+1) and index(i+1))
-        CALL swap_both(arr(i + 1), arr(high), indices(i + 1), indices(high))
-        pivot_index = i + 1
-    END SUBROUTINE partition_indexed
-
-
-    ! Modified Recursive Quicksort routine
-    RECURSIVE SUBROUTINE quicksort_indexed(arr, indices, low, high)
-        TYPE(vector_t), DIMENSION(:), INTENT(INOUT) :: arr
-        INTEGER, DIMENSION(:), INTENT(INOUT) :: indices ! The index array
-        INTEGER, INTENT(IN) :: low, high
-        INTEGER :: p
-
-        IF (low < high) THEN
-            ! Partition using the indexed version
-            CALL partition_indexed(arr, indices, low, high, p)
-
-            ! Recursively sort the sub-arrays
-            CALL quicksort_indexed(arr, indices, low, p - 1)
-            CALL quicksort_indexed(arr, indices, p + 1, high)
-        END IF
-    END SUBROUTINE quicksort_indexed
-
-END MODULE Vector_Sort_Mod
+end module IntVectorSort_
