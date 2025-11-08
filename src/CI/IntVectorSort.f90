@@ -61,6 +61,29 @@ contains
     return
 
   end function IntVectorSort_is_less
+
+  !! (The 'is_less' function for vector_t remains unchanged)
+  function IntVectorSort_is_equal(A, B ) result (is_equal)
+    implicit none
+    logical :: is_equal
+    real(8), intent(in) :: A(:), B(:)
+    integer :: i
+
+    is_equal = .true.
+    !! logic for lexicographical comparison
+    do i = 1, IntVectorSort_instance%numberOfSpecies 
+      if ( A(i) == B(i) ) then
+        is_equal = .true.
+      else 
+        is_equal = .false.
+        return
+      end if
+    end do
+    return
+
+  end function IntVectorSort_is_equal
+  
+ 
   
   !! Swap both data and index elements
   subroutine IntVectorSort_swap(A, B, IndexA, IndexB)
@@ -128,5 +151,32 @@ contains
         call IntVectorSort_quicksort(array, indices, pivot + 1, high)
     end if
   end subroutine IntVectorSort_quicksort
+
+  !! Modified Recursive Quicksort routine
+  subroutine IntVectorSort_mergeDuplicates( amplitudes, array, indices, arraySize )
+    implicit none
+    type(vector8), intent(inout) :: amplitudes
+    type(matrix), intent(inout) :: array
+    type(ivector8), intent(inout) :: indices ! The index array
+    integer(8), intent(in) :: arraySize
+    integer :: i
+
+    do i = 1, arraySize
+      if ( amplitudes%values(i) == 0.0_8 ) cycle
+
+      !! check if the configuration is the same
+      if ( IntVectorSort_is_equal( array%values(:,i),  array%values(:,i+1) ) )  then
+        !! merge in the next element 
+        amplitudes%values(i+1) = amplitudes%values(i+1) + amplitudes%values(i)  
+        !! clean the current element
+        amplitudes%values(i) = 0.0_8
+        array%values(:,i) = 0.0_8
+        indices%values(i) = 0.0_8
+      endif
+    enddo
+
+  end subroutine IntVectorSort_mergeDuplicates
+
+
 
 end module IntVectorSort_
