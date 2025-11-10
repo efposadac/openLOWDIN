@@ -1175,7 +1175,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
    ! !$omp do schedule (static) 
     do a = 1, nonzero !! coreSpace
       
-      print *, a
+      !print *, a
       if ( indexCore%values(1,a) == 0 ) exit
       ! print *, "a", a, indexCore%values(:,a)
       !print *, "a",  a, OMP_GET_THREAD_NUM()
@@ -2947,9 +2947,9 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
 
     !! sort the array when it's full
     if ( m == CISCI_instance%tmp_amplitudeCoreSize ) then
-      print *, "sorting"
+      !print *, "sorting"
       call CISCI_sortAmplitude( m )
-      print *, "sorted"
+      !print *, "sorted"
     endif
 
   end subroutine CISCI_appendAmplitude
@@ -2969,33 +2969,39 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
     if ( present ( auxm ) ) then 
       m = auxm
     else 
-      m = CISCI_instance%tmp_amplitudeCoreSize
+      do i = 1, CISCI_instance%tmp_amplitudeCoreSize
+        if (  CISCI_instance%index_amplitudeCore%values(1,i) == 0 ) then
+          m = i
+          exit
+        endif
+      enddo
     endif
 
 !      print *, "-----------------------------", m
 
-      print *, "before finish new sort 1"
-      do i = 1, m 
-        print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i)
-      enddo
+   !   print *, "before finish new sort 1"
+   !  do i = 1, m 
+   !     print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i)
+   !   enddo
 
       !! Sort according to the index of CI configurations per species in order to find duplicates ( N log( N ) )
       call IntVectorSort_quicksort(  CISCI_instance%index_amplitudeCore, &
                                      CISCI_instance%auxindex_amplitudeCore, & 
-                                     1_8,  CISCI_instance%tmp_amplitudeCoreSize )
-      print *, "after finish new sort 1"
-      do i = 1, m 
-        print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i)
-      enddo
+                                     1_8, m )
+                                     !1_8,  CISCI_instance%tmp_amplitudeCoreSize )
+   !   print *, "after finish new sort 1"
+     ! do i = 1, m 
+     !   print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i)
+     ! enddo
 
   
       !! Sort amplituted coeff vector according to sorting of index array, keeping both arrays aligned
       call CISCI_sortVectorByIndex( CISCI_instance%tmp_amplitudeCore, CISCI_instance%auxindex_amplitudeCore, CISCI_instance%tmp_amplitudeCoreSize )
 
-      print *, "after sorting the coeff vector"
-      do i = 1, m 
-        print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i)
-      enddo
+     ! print *, "after sorting the coeff vector"
+     ! do i = 1, m 
+     !   print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i)
+     ! enddo
 
     !! merge duplicated configurations (sum amplitudes)
       call IntVectorSort_mergeDuplicates ( CISCI_instance%tmp_amplitudeCore, &
@@ -3003,10 +3009,10 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
                                            CISCI_instance%auxindex_amplitudeCore, &
                                            CISCI_instance%tmp_amplitudeCoreSize )
 
-      print *, "after merging duplicates"
-      do i = 1, m 
-        print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i)
-      enddo
+     ! print *, "after merging duplicates"
+     ! do i = 1, m 
+     !   print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i)
+     ! enddo
 
       !! reset auxindex arrary
       do i = 1, CISCI_instance%tmp_amplitudeCoreSize
@@ -3016,18 +3022,18 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
       call MTSort ( CISCI_instance%tmp_amplitudeCore%values, &
             CISCI_instance%auxindex_amplitudeCore%values,  CISCI_instance%tmp_amplitudeCoreSize, "D", nproc )
 
-      print *, "finish sort 1"
-      do i = 1, m 
+     ! print *, "finish sort 1"
+     ! do i = 1, m 
      !   print *, i, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
-      enddo
+     ! enddo
 
 
       call CISCI_sortArrayByIndex( CISCI_instance%index_amplitudeCore, CISCI_instance%auxindex_amplitudeCore, CISCI_instance%tmp_amplitudeCoreSize )
 
-      print *, "finish sort index1"
-      do i = 1, m 
-      !  print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
-      enddo
+     ! print *, "finish sort index1"
+     ! do i = 1, m 
+     !  print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+     ! enddo
 
       !! reset auxindex arrary
       do i = 1, CISCI_instance%tmp_amplitudeCoreSize
@@ -3110,10 +3116,10 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         CISCI_instance%index_amplitudeCore%values( :, CISCI_instance%tmp_amplitudeCoreSize/2 + 1 : CISCI_instance%tmp_amplitudeCoreSize ) = 0.0_8
       endif
 
-      print *, "cleaned"
-      do i = 1, m 
-        print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
-      enddo
+      !print *, "cleaned"
+      !do i = 1, m 
+      !  print *, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,i),  CISCI_instance%auxindex_amplitudeCore%values(i) 
+      !enddo
 
       !m = CISCI_instance%tmp_amplitudeCoreSize/2 
    end subroutine CISCI_sortAmplitude

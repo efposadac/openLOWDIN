@@ -40,29 +40,29 @@ contains
 
   end subroutine IntVectorSort_destructor
 
-  !! (The 'is_less' function for vector_t remains unchanged)
-  function IntVectorSort_is_less(A, B ) result (is_less)
+  !! (The 'is_more' function for vector_t remains unchanged)
+  function IntVectorSort_is_more(A, B ) result (is_more)
     implicit none
-    logical :: is_less
+    logical :: is_more
     real(8), intent(in) :: A(:), B(:)
     integer :: i
 
     !! logic for lexicographical comparison
     do i = 1, IntVectorSort_instance%numberOfSpecies 
-      if ( A(i) < B(i) ) then
-        is_less = .true.
+      if ( A(i) > B(i) ) then
+        is_more = .true.
         return
-      else if (A(i) > B(i) ) then
-        is_less = .false.
+      else if (A(i) < B(i) ) then
+        is_more = .false.
         return
       end if
     end do
-    is_less = .false.
+    is_more = .false.
     return
 
-  end function IntVectorSort_is_less
+  end function IntVectorSort_is_more
 
-  !! (The 'is_less' function for vector_t remains unchanged)
+  !! (The 'is_more' function for vector_t remains unchanged)
   function IntVectorSort_is_equal(A, B ) result (is_equal)
     implicit none
     logical :: is_equal
@@ -121,7 +121,8 @@ contains
 
     do j = low, high - 1
       !! Use the custom comparison function (arr(j) < pivot)
-      if ( IntVectorSort_is_less(array%values(:,j), IntVectorSort_instance%pivot(:) ) ) then
+      if ( array%values(1,j) == 0.0_8 ) cycle !! avoid zero, it means no configuration
+      if ( IntVectorSort_is_more(array%values(:,j), IntVectorSort_instance%pivot(:) ) ) then
         i = i + 1
         !! Swap both the vector and the index
         call  IntVectorSort_swap(array%values(:,i), array%values(:,j), indices%values(i), indices%values(j) )
@@ -142,6 +143,7 @@ contains
     integer(8), intent(in) :: low, high
     integer(8) :: pivot
 
+    !print *, low, high
     if (low < high) then
         !! Partition using the indexed version
         call IntVectorSort_partition(array, indices, low, high, pivot)
