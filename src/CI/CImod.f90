@@ -170,7 +170,6 @@ contains
     call CImod_getTransformedIntegrals()
     write (*,*) " "
 
-    !write (*,*) CIcore_instance%fourCenterIntegrals(1,1)%values(171, 1) a bug...
     write (*,*) "Setting CI level..."
 
     call CIOrder_settingCILevel()
@@ -467,29 +466,17 @@ contains
 
       case ("JADAMILU")
 
-        !write (*,*) "Building Strings..."
-        !call CIStrings_buildStrings()
-
-        !write (*,*) "Building CI level table..."
-        !call CIOrder_buildCIOrderList()
-
-        !call CIJadamilu_buildCouplingMatrix()
-        !call CIJadamilu_buildCouplingOrderList()
-
-        !write (*,*) "Building diagonal..."
-        !call CIDiag_buildDiagonal()
-
         call CISCI_show()
 
         write (*,*) "Allocating arrays for SCI ..."
-        call CISCI_constructorNew()
+        call CISCI_constructorNew( CIcore_instance%numberOfConfigurations )
 
         call Matrix_constructor (CIcore_instance%eigenVectors, &
              int(CIcore_instance%numberOfConfigurations,8), &
              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
         !!call CISCI_run() old version. still used for developing purposes
-        call CISCI_runNew()
+        call CISCI_runNew( CIcore_instance%eigenVectors )
 
 
       case default
@@ -889,7 +876,7 @@ contains
     integer(8) :: numberOfConfigurations
     real(8) :: CIenergy
     integer(8), allocatable :: indexConf(:)
-    integer, allocatable :: cilevel(:), auxcilevel(:), dd(:)
+    integer, allocatable :: cilevel(:)
 
 
     if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "NONE" ) return
@@ -897,85 +884,149 @@ contains
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     numberOfConfigurations = CIcore_instance%numberOfConfigurations 
 
-    allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
-    allocate ( ciLevel ( numberOfSpecies ) )
-    allocate ( indexConf ( numberOfSpecies ) )
-    ciLevel = 0
-    CIcore_instance%allIndexConf = 0
-    indexConf = 0
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
 
-    !! gather all configurations
-    s = 0
-    c = 0
-    ciLevel = 0
-
-    do ci = 1,  CIcore_instance%sizeCiOrderList 
-
-      cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
+      allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
+      allocate ( ciLevel ( numberOfSpecies ) )
+      allocate ( indexConf ( numberOfSpecies ) )
+      ciLevel = 0
+      CIcore_instance%allIndexConf = 0
+      indexConf = 0
+  
+      !! gather all configurations
       s = 0
-      auxnumberOfSpecies = CIcore_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
-    end do
-    !stop
-
-    deallocate ( ciLevel )
-
-    if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
-    write (*,*) ""
-    write (*, "(T1,A)") "Eigenvectors" 
-    write (*,*) ""
-
-    do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-      write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
-      write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
-      write (*,*) ""
-      do a = 1, numberOfConfigurations
-        if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
-          indexConf(:) = CIcore_instance%allIndexConf(:,a) 
-
-          write (*, "(T1,I8,A1)", advance="no") a, " "
-          do i = 1, numberOfSpecies
-            do p = 1, CIcore_instance%numberOfOrbitals%values(i)
-              write (*, "(I1)", advance="no")  CIcore_instance%orbitals(i)%values(p,indexConf(i)) 
-            end do
-            write (*, "(A1)", advance="no")  " "
-          end do
-          write (*, "(F11.8)") CIcore_instance%eigenVectors%values(a,c) 
-        end if
+      c = 0
+      ciLevel = 0
+  
+      do ci = 1,  CIcore_instance%sizeCiOrderList 
+  
+        cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
+        s = 0
+        auxnumberOfSpecies = CIcore_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
       end do
-      write (*,*) ""
-    end do
-
-
-    else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
-    write (*,*) ""
-    write (*, "(T1,A)") "Eigenvectors" 
-    write (*,*) ""
-
-    do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-      write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
-      write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
-      write (*,*) ""
-      do a = 1, numberOfConfigurations
-        if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
-          indexConf(:) = CIcore_instance%allIndexConf(:,a) 
-
-          write (*, "(T1,I8,A1)", advance="no") a, " "
-          do i = 1, numberOfSpecies
-            do p = 1, CIcore_instance%numberOfOccupiedOrbitals%values(i)
-              write (*, "(I3,A1)", advance="no") CIcore_instance%strings(i)%values(p,indexConf(i) ), " "
-            end do
-            write (*, "(A1)", advance="no")  "|"
+  
+      deallocate ( ciLevel )
+  
+      if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
+        write (*,*) ""
+        write (*, "(T1,A)") "Eigenvectors" 
+        write (*,*) ""
+  
+        do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
+          write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
+          write (*,*) ""
+          do a = 1, numberOfConfigurations
+            if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
+              indexConf(:) = CIcore_instance%allIndexConf(:,a) 
+  
+              write (*, "(T1,I8,A1)", advance="no") a, " "
+              do i = 1, numberOfSpecies
+                do p = 1, CIcore_instance%numberOfOrbitals%values(i)
+                  write (*, "(I1)", advance="no")  CIcore_instance%orbitals(i)%values(p,indexConf(i)) 
+                end do
+                write (*, "(A1)", advance="no")  " "
+              end do
+              write (*, "(F11.8)") CIcore_instance%eigenVectors%values(a,c) 
+            end if
           end do
-          write (*, "(A1,F11.8)") " ", CIcore_instance%eigenVectors%values(a,c) 
-        end if
-      end do
-      write (*,*) ""
-    end do
+          write (*,*) ""
+        end do
+  
+  
+      else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
+        write (*,*) ""
+        write (*, "(T1,A)") "Eigenvectors" 
+        write (*,*) ""
+  
+        do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
+          write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
+          write (*,*) ""
+          do a = 1, numberOfConfigurations
+            if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
+              indexConf(:) = CIcore_instance%allIndexConf(:,a) 
+  
+              write (*, "(T1,I8,A1)", advance="no") a, " "
+              do i = 1, numberOfSpecies
+                do p = 1, CIcore_instance%numberOfOccupiedOrbitals%values(i)
+                  write (*, "(I3,A1)", advance="no") CIcore_instance%strings(i)%values(p,indexConf(i) ), " "
+                end do
+                write (*, "(A1)", advance="no")  "|"
+              end do
+              write (*, "(A1,F11.8)") " ", CIcore_instance%eigenVectors%values(a,c) 
+            end if
+          end do
+          write (*,*) ""
+        end do
+  
+      end if
+  
+      deallocate ( indexConf )
+      deallocate ( CIcore_instance%allIndexConf )
 
-    end if
+    else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
 
-    deallocate ( indexConf )
-    deallocate ( CIcore_instance%allIndexConf )
+      if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
+        write (*,*) ""
+        write (*, "(T1,A)") "Eigenvectors" 
+        write (*,*) ""
+  
+        do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
+          write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
+          write (*,*) ""
+          do a = 1, numberOfConfigurations
+            if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
+              !indexConf(:) = CIcore_instance%allIndexConf(:,a) 
+              write (*, "(T1,I8,A1)", advance="no") a, " "
+              do i = 1, numberOfSpecies
+                do p = 1, CIcore_instance%numberOfOrbitals%values(i)
+                  write (*, "(I1)", advance="no") CISCI_instance%targetOrb(i,a)%values(p)
+                  !write (*, "(I1)", advance="no")  CIcore_instance%orbitals(i)%values(p,indexConf(i)) 
+                end do
+                write (*, "(A1)", advance="no")  " "
+              end do
+              write (*, "(F11.8)") CIcore_instance%eigenVectors%values(a,c) 
+            end if
+          end do
+          write (*,*) ""
+        end do
+  
+  
+      else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
+        write (*,*) ""
+        write (*, "(T1,A)") "Eigenvectors" 
+        write (*,*) ""
+
+        do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
+          write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
+          write (*,*) ""
+          do a = 1, numberOfConfigurations
+            if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
+              !indexConf(:) = CIcore_instance%allIndexConf(:,a) 
+  
+              write (*, "(T1,I8,A1)", advance="no") a, " "
+              do i = 1, numberOfSpecies
+                !do p = 1, CIcore_instance%numberOfOccupiedOrbitals%values(i)
+                do p = 1, CIcore_instance%numberOfOrbitals%values(i)
+                  if ( CISCI_instance%targetOrb(i,a)%values(p)  == 1 ) then
+                    write (*, "(I3,A1)", advance="no") p, " "
+                  endif
+                  !write (*, "(I3,A1)", advance="no") CIcore_instance%strings(i)%values(p,indexConf(i) ), " "
+                end do
+                write (*, "(A1)", advance="no")  "|"
+              end do
+              write (*, "(A1,F11.8)") " ", CIcore_instance%eigenVectors%values(a,c) 
+            end if
+          end do
+          write (*,*) ""
+        end do
+  
+      end if
+
+    endif
 
   end subroutine CImod_showEigenVectors
 
@@ -995,13 +1046,13 @@ contains
     type(matrix), allocatable :: coefficients(:), atomicDensityMatrix(:,:), ciDensityMatrix(:,:), auxDensMatrix(:,:)
     type(matrix), allocatable :: kineticMatrix(:), attractionMatrix(:), externalPotMatrix(:)
     integer numberOfSpecies
-
     type(matrix) :: auxdensityEigenVectors 
     type(matrix) :: densityEigenVectors
     type(vector) :: auxdensityEigenValues
     type(vector) :: densityEigenValues
-    integer, allocatable :: cilevel(:), cilevelA(:)
     integer(8) :: numberOfConfigurations, c
+    !! auxiliary variables for CI (slow code)
+    integer, allocatable :: cilevel(:), cilevelA(:)
     integer(8), allocatable :: indexConf(:)
     type(ivector), allocatable :: stringAinB(:)
     integer :: s, ss, ci, auxnumberOfSpecies
@@ -1010,9 +1061,21 @@ contains
     integer :: u, uu, ssize
     integer(8), allocatable :: indexConfA(:)
     integer(8), allocatable :: indexConfB(:)
+    !! timing
     integer(8), allocatable :: jj(:)
     real(8) :: timeDA
     real(8) :: timeDB
+    !! Auxiliary variables for SCI
+    integer(1), allocatable :: couplingS(:)
+    integer :: spi
+    integer :: pi
+    integer :: oia, oib
+    type (ivector), allocatable :: occA(:), occB(:)
+    type (ivector), allocatable :: orbA(:), orbB(:)
+    integer :: factorA
+    integer :: diffOrbi(4)
+
+
 
     !!Iterators: i,j - Configurations .... k,l - molecular orbitals .... mu,nu - atomic orbitals ... n - threads
     if ( CIcore_instance%isInstanced .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
@@ -1022,36 +1085,61 @@ contains
   
       numberOfConfigurations = CIcore_instance%numberOfConfigurations 
   
-      allocate (stringAinB ( numberOfSpecies ))
+      if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+        allocate (stringAinB ( numberOfSpecies ))
   
-      do i = 1, numberOfSpecies 
-        call Vector_constructorInteger (stringAinB(i), CIcore_instance%numberOfOccupiedOrbitals%values(i), 0)
-      end do 
+        do i = 1, numberOfSpecies 
+          call Vector_constructorInteger (stringAinB(i), CIcore_instance%numberOfOccupiedOrbitals%values(i), 0)
+        end do 
   
-      allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
-      allocate ( ciLevelA ( numberOfSpecies ) )
-      allocate ( ciLevel ( numberOfSpecies ) )
-      allocate ( indexConf ( numberOfSpecies ) )
-      ciLevelA = 0
-      ciLevel = 0
-      CIcore_instance%allIndexConf = 0
-      indexConf = 0
+        allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
+        allocate ( ciLevelA ( numberOfSpecies ) )
+        allocate ( ciLevel ( numberOfSpecies ) )
+        allocate ( indexConf ( numberOfSpecies ) )
+        ciLevelA = 0
+        ciLevel = 0
+        CIcore_instance%allIndexConf = 0
+        indexConf = 0
   
-      !! gather all configurations
-      s = 0
-      c = 0
-      ciLevel = 0
-  
-      do ci = 1,  CIcore_instance%sizeCiOrderList 
-  
-        cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
+        !! gather all configurations
         s = 0
-        auxnumberOfSpecies = CIcore_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
-      end do
+        c = 0
+        ciLevel = 0
   
-      deallocate ( indexConf )
-      allocate ( coupling ( numberOfSpecies ) )
+        do ci = 1,  CIcore_instance%sizeCiOrderList 
+  
+          cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
+          s = 0
+          auxnumberOfSpecies = CIcore_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
+        end do
+  
+        deallocate ( indexConf )
+        allocate ( coupling ( numberOfSpecies ) )
 
+        allocate ( indexConfA ( numberOfSpecies ) )
+        allocate ( indexConfB ( numberOfSpecies ) )
+        allocate ( jj ( numberOfSpecies ) )
+
+        indexConfA = 0
+        indexConfB = 0
+        jj = 0
+
+      else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+
+        allocate ( occA ( numberOfSpecies ) )
+        allocate ( occB ( numberOfSpecies ) )
+        allocate ( orbA ( numberOfSpecies ) )
+        allocate ( orbB ( numberOfSpecies ) )
+        allocate ( couplingS ( numberOfSpecies ) )
+    
+        do spi = 1, numberOfSpecies
+          call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+          call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+          call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+          call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+        end do
+
+      endif !!SCI
 
       write (*,*) ""
       write (*,*) "=============================="
@@ -1120,163 +1208,249 @@ contains
        
       close(wfnUnit)
 
-      allocate ( indexConfA ( numberOfSpecies ) )
-      allocate ( indexConfB ( numberOfSpecies ) )
-      allocate ( jj ( numberOfSpecies ) )
-
-      indexConfA = 0
-      indexConfB = 0
-      jj = 0
-
       !! Building the CI reduced density matrix in the molecular orbital representation in parallel
       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
-         !$omp parallel & 
-         !$omp& firstprivate (stringAinB,indexConfA,indexConfB, jj) &
-         !$omp& private(i,j, species, s, numberOfOccupiedOrbitals, k, coupling, orbital, orbitalA, orbitalB, AA, BB, a, b, factor, n, cilevelA, ss, ssize, cilevel, ci, u, uu, bj),&
-         !$omp& shared(CIcore_instance, auxDensMatrix )
-         n = omp_get_thread_num() + 1
-         !$omp do schedule (dynamic) 
-         do i=1, CIcore_instance%numberOfConfigurations
+        if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+          !$omp parallel & 
+          !$omp& firstprivate (stringAinB,indexConfA,indexConfB, jj) &
+          !$omp& private(i,j, species, s, numberOfOccupiedOrbitals, k, coupling, orbital, orbitalA, orbitalB, AA, BB, a, b, factor, n, cilevelA, ss, ssize, cilevel, ci, u, uu, bj),&
+          !$omp& shared(CIcore_instance, auxDensMatrix )
+          n = omp_get_thread_num() + 1
+          !$omp do schedule (dynamic) 
+          do i=1, CIcore_instance%numberOfConfigurations
 
-            !!if( mod( i , 50000 ) .eq. 0 ) print *, state, floor(real(100*i/CIcore_instance%numberOfConfigurations)), "%"
-            !!Filter very small coefficients
-            if( abs(CIcore_instance%eigenVectors%values(i,state)) .ge. 1E-10) then
+             !!if( mod( i , 50000 ) .eq. 0 ) print *, state, floor(real(100*i/CIcore_instance%numberOfConfigurations)), "%"
+             !!Filter very small coefficients
+             if( abs(CIcore_instance%eigenVectors%values(i,state)) .ge. 1E-10) then
 
-               indexConfA(:) = CIcore_instance%allIndexConf(:,i) 
+                indexConfA(:) = CIcore_instance%allIndexConf(:,i) 
 
-               !!Diagonal contributions
-               do species=1, numberOfSpecies
-                  numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(species)
+                !!Diagonal contributions
+                do species=1, numberOfSpecies
+                   numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(species)
 
-                  do k=1, numberOfOccupiedOrbitals
+                   do k=1, numberOfOccupiedOrbitals
 
-                     !!Occupied orbitals
-                     auxDensMatrix(species,n)%values(k,k)=auxDensMatrix(species,n)%values(k,k) - CIcore_instance%eigenVectors%values(i,state)**2
-                     orbital =  CIcore_instance%strings(species)%values(k,indexConfA(species))
-                     !!Unoccupied orbitals
+                      !!Occupied orbitals
+                      auxDensMatrix(species,n)%values(k,k)=auxDensMatrix(species,n)%values(k,k) - CIcore_instance%eigenVectors%values(i,state)**2
+                      orbital =  CIcore_instance%strings(species)%values(k,indexConfA(species))
+                      !!Unoccupied orbitals
 
-                     auxDensMatrix(species,n)%values(orbital,orbital)=auxDensMatrix(species,n)%values(orbital,orbital) + CIcore_instance%eigenVectors%values(i,state)**2
-
-                  end do
-               end do
-
-               !!Off Diagonal contributions
-               cilevelA = 0
-               do ss = 1, numberOfSpecies 
-                 stringAinB(ss)%values = 0
-                 do k = 1, CIcore_instance%numberOfOccupiedOrbitals%values(ss)
-
-                   stringAinB(ss)%values(k) = CIcore_instance%orbitals(ss)%values( &
-                                             CIcore_instance%strings(ss)%values(k,  CIcore_instance%allIndexConf(ss,1)), indexConfA(ss))
-                 end do
-                 cilevelA(ss) = CIcore_instance%numberOfOccupiedOrbitals%values(ss) - sum ( stringAinB(ss)%values )
-               end do 
-
-               jj = 0
-               coupling = 0
-               do ss = 1, numberOfSpecies 
-                 ssize = 0 
-
-                 indexConfB(:) = indexConfA(:)
-                 cilevel = cilevelA
-
-                 do ci = 1,  size(CIcore_instance%numberOfStrings(ss)%values, dim = 1)
-                   cilevel(ss) = ci - 1
-                   do u = 1,  CIcore_instance%sizeCiOrderList 
-                     if ( sum(abs(cilevel - &
-                          CIcore_instance%ciOrderList( CIcore_instance%auxciOrderList(u), :))) == 0 ) then
-                       uu = CIcore_instance%auxciOrderList(u)
-                       do bj = 1 + ssize , CIcore_instance%numberOfStrings(ss)%values(ci) + ssize
-                         indexConfB(ss) = bj
-  
-                         do s=1, numberOfSpecies
-                           jj(s) = (indexConfB(s) - CIcore_instance%numberOfStrings2(s)%values(cilevel(s)+1) + &
-                                    CIcore_instance%ciOrderSize1(uu,s) )* CIcore_instance%ciOrderSize2(uu,s) 
-                         end do
-
-                         j = sum(jj)
-                         if ( j > i ) then
-                           if( abs(CIcore_instance%eigenVectors%values(j,state)) .ge. 1E-10) then
-
-                             coupling = 0
-                             do s=1, numberOfSpecies
-                                stringAinB(s)%values = 0
-                                do k = 1, CIcore_instance%numberOfOccupiedOrbitals%values(s)
-                                   stringAinB(s)%values(k) = CIcore_instance%orbitals(s)%values( &
-                                        CIcore_instance%strings(s)%values(k,indexConfA(s) ), indexConfB(s) ) 
-                                end do
-                                coupling(s) = CIcore_instance%numberOfOccupiedOrbitals%values(s) - sum ( stringAinB(s)%values )
-                             end do
-                             if (sum(coupling) == 1) then
-    
-                               do s = 1, numberOfSpecies
-    
-                                 if ( coupling(s) == 1) then !!hmm
-
-                                   orbitalA = 0
-                                   orbitalB = 0
-                                   AA = 0
-                                   BB = 0
-                                   a = indexConfA(s)
-                                   b = indexConfB(s)
-    
-                                   do k = 1, CIcore_instance%occupationNumber(s) 
-                                      if ( CIcore_instance%orbitals(s)%values( &
-                                           CIcore_instance%strings(s)%values(k,a),b) == 0 ) then
-                                         orbitalA =  CIcore_instance%strings(s)%values(k,a)
-                                         AA = k
-                                         exit
-                                      end if
-                                   end do
-                                   do k = 1, CIcore_instance%occupationNumber(s) 
-                                      if ( CIcore_instance%orbitals(s)%values( &
-                                           CIcore_instance%strings(s)%values(k,b),a) == 0 ) then
-                                         orbitalB =  CIcore_instance%strings(s)%values(k,b)
-                                         BB = k
-                                         exit
-                                      end if
-                                   end do
-    
-                                   factor = (-1)**(AA-BB)
-    
-                                   numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(s)
-    
-                                   auxDensMatrix(s,n)%values( orbitalA,orbitalB)= auxDensMatrix(s,n)%values( orbitalA, orbitalB) + &
-                                        factor*CIcore_instance%eigenVectors%values(i,state)* &
-                                        CIcore_instance%eigenVectors%values(j,state)
-                                   auxDensMatrix(s,n)%values( orbitalB,orbitalA)= auxDensMatrix(s,n)%values( orbitalB, orbitalA) + &
-                                        factor*CIcore_instance%eigenVectors%values(i,state)* &
-                                        CIcore_instance%eigenVectors%values(j,state)
-                                  end if
-                                end do
-                              end if
-                           end if
-                         end if
-                       end do
-                       ssize = ssize + CIcore_instance%numberOfStrings(ss)%values(ci)
-                     end if
+                      auxDensMatrix(species,n)%values(orbital,orbital)=auxDensMatrix(species,n)%values(orbital,orbital) + CIcore_instance%eigenVectors%values(i,state)**2
 
                    end do
-                 end do
+                end do
 
-               end do 
+                !!Off Diagonal contributions
+                cilevelA = 0
+                do ss = 1, numberOfSpecies 
+                  stringAinB(ss)%values = 0
+                  do k = 1, CIcore_instance%numberOfOccupiedOrbitals%values(ss)
 
-            end if
-         end do
-         !$omp end do nowait
-         !$omp end parallel
-         
-         !! Gather the parallel results
-         do species=1, numberOfSpecies
-            do n=1, CIcore_instance%nproc
-               ciDensityMatrix(species,state)%values = ciDensityMatrix(species,state)%values + auxDensMatrix(species,n)%values
-               auxDensMatrix(species,n)%values=0.0
-            end do
-         end do
+                    stringAinB(ss)%values(k) = CIcore_instance%orbitals(ss)%values( &
+                                              CIcore_instance%strings(ss)%values(k,  CIcore_instance%allIndexConf(ss,1)), indexConfA(ss))
+                  end do
+                  cilevelA(ss) = CIcore_instance%numberOfOccupiedOrbitals%values(ss) - sum ( stringAinB(ss)%values )
+                end do 
 
-      end do
+                jj = 0
+                coupling = 0
+                do ss = 1, numberOfSpecies 
+                  ssize = 0 
 
+                  indexConfB(:) = indexConfA(:)
+                  cilevel = cilevelA
+
+                  do ci = 1,  size(CIcore_instance%numberOfStrings(ss)%values, dim = 1)
+                    cilevel(ss) = ci - 1
+                    do u = 1,  CIcore_instance%sizeCiOrderList 
+                      if ( sum(abs(cilevel - &
+                           CIcore_instance%ciOrderList( CIcore_instance%auxciOrderList(u), :))) == 0 ) then
+                        uu = CIcore_instance%auxciOrderList(u)
+                        do bj = 1 + ssize , CIcore_instance%numberOfStrings(ss)%values(ci) + ssize
+                          indexConfB(ss) = bj
+  
+                          do s=1, numberOfSpecies
+                            jj(s) = (indexConfB(s) - CIcore_instance%numberOfStrings2(s)%values(cilevel(s)+1) + &
+                                     CIcore_instance%ciOrderSize1(uu,s) )* CIcore_instance%ciOrderSize2(uu,s) 
+                          end do
+
+                          j = sum(jj)
+                          if ( j > i ) then
+                            if( abs(CIcore_instance%eigenVectors%values(j,state)) .ge. 1E-10) then
+
+                              coupling = 0
+                              do s=1, numberOfSpecies
+                                 stringAinB(s)%values = 0
+                                 do k = 1, CIcore_instance%numberOfOccupiedOrbitals%values(s)
+                                    stringAinB(s)%values(k) = CIcore_instance%orbitals(s)%values( &
+                                         CIcore_instance%strings(s)%values(k,indexConfA(s) ), indexConfB(s) ) 
+                                 end do
+                                 coupling(s) = CIcore_instance%numberOfOccupiedOrbitals%values(s) - sum ( stringAinB(s)%values )
+                              end do
+                              if (sum(coupling) == 1) then
+    
+                                do s = 1, numberOfSpecies
+    
+                                  if ( coupling(s) == 1) then !!hmm
+
+                                    orbitalA = 0
+                                    orbitalB = 0
+                                    AA = 0
+                                    BB = 0
+                                    a = indexConfA(s)
+                                    b = indexConfB(s)
+    
+                                    do k = 1, CIcore_instance%occupationNumber(s) 
+                                       if ( CIcore_instance%orbitals(s)%values( &
+                                            CIcore_instance%strings(s)%values(k,a),b) == 0 ) then
+                                          orbitalA =  CIcore_instance%strings(s)%values(k,a)
+                                          AA = k
+                                          exit
+                                       end if
+                                    end do
+                                    do k = 1, CIcore_instance%occupationNumber(s) 
+                                       if ( CIcore_instance%orbitals(s)%values( &
+                                            CIcore_instance%strings(s)%values(k,b),a) == 0 ) then
+                                          orbitalB =  CIcore_instance%strings(s)%values(k,b)
+                                          BB = k
+                                          exit
+                                       end if
+                                    end do
+    
+                                    factor = (-1)**(AA-BB)
+    
+                                    numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(s)
+    
+                                    auxDensMatrix(s,n)%values( orbitalA,orbitalB)= auxDensMatrix(s,n)%values( orbitalA, orbitalB) + &
+                                         factor*CIcore_instance%eigenVectors%values(i,state)* &
+                                         CIcore_instance%eigenVectors%values(j,state)
+                                    auxDensMatrix(s,n)%values( orbitalB,orbitalA)= auxDensMatrix(s,n)%values( orbitalB, orbitalA) + &
+                                         factor*CIcore_instance%eigenVectors%values(i,state)* &
+                                         CIcore_instance%eigenVectors%values(j,state)
+                                   end if
+                                 end do
+                               end if
+                            end if
+                          end if
+                        end do
+                        ssize = ssize + CIcore_instance%numberOfStrings(ss)%values(ci)
+                      end if
+
+                    end do
+                  end do
+
+                end do 
+
+             end if
+          end do
+          !$omp end do nowait
+          !$omp end parallel
+          
+          !! Gather the parallel results
+          do species=1, numberOfSpecies
+             do n=1, CIcore_instance%nproc
+                ciDensityMatrix(species,state)%values = ciDensityMatrix(species,state)%values + auxDensMatrix(species,n)%values
+                auxDensMatrix(species,n)%values=0.0
+             end do
+          end do
+                
+        else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+
+          do a = 1, CIcore_instance%numberOfConfigurations
+            n = 1
+
+            do spi = 1, numberOfSpecies 
+              oia = 0 
+
+              orbA(spi)%values = CISCI_instance%targetOrb(spi,a)%values
+
+              !! build auxiliary vectors of occupied and virtuals orbitals
+              do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+                if ( orbA(spi)%values(pi) == 1 ) then
+                  oia = oia + 1
+                  occA(spi)%values(oia) = pi
+                end if
+              enddo
+       
+            enddo
+
+            !!Diagonal contributions
+            do spi = 1, numberOfSpecies
+              numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+
+              do k = 1, numberOfOccupiedOrbitals
+
+                !!Occupied orbitals
+                auxDensMatrix(spi,n)%values(k,k) = auxDensMatrix(spi,n)%values(k,k) - CIcore_instance%eigenVectors%values(a,state)**2
+                orbital = occA(spi)%values(k) 
+
+                !!Unoccupied orbitals
+                auxDensMatrix(spi,n)%values(orbital,orbital) = auxDensMatrix(spi,n)%values(orbital,orbital) + CIcore_instance%eigenVectors%values(a,state)**2
+
+               end do
+             end do
+
+            !!Off Diagonal contributions
+            do b = 1, CICore_instance%numberOfConfigurations 
+
+              do spi = 1, numberOfSpecies 
+                orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values
+              enddo
+
+              !! determinate number of diff orbitals
+              couplingS = 0
+              do spi = 1, numberOfSpecies
+                couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
+                                  - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) + 1
+              end do
+      
+              !! just single particle diff 
+              if ( product(couplingS) == 2 ) then
+
+                do spi = 1, numberOfSpecies 
+                  oib = 0 
+                  !! build auxiliary vectors of occupied and virtuals orbitals
+                  do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+                    if ( orbB(spi)%values(pi) == 1 ) then
+                      oib = oib + 1
+                      occB(spi)%values(oib) = pi
+                    end if
+                  enddo
+                enddo
+
+                do i = 1, numberOfSpecies
+                    if ( couplingS(i) == 2 ) spi = i
+                end do
+
+                diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
+
+                auxDensMatrix(spi,n)%values( orbitalA,orbitalB) = auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) + &
+                                                                factorA * & 
+                                                                CIcore_instance%eigenVectors%values(a,state) * &
+                                                                CIcore_instance%eigenVectors%values(b,state)
+                auxDensMatrix(spi,n)%values( orbitalB,orbitalA) = auxDensMatrix(spi,n)%values( diffOrbi(3), diffOrbi(1) ) + &
+                                                                factorA * &
+                                                                CIcore_instance%eigenVectors%values(a,state) * &
+                                                                CIcore_instance%eigenVectors%values(b,state)
+               
+              endif !! coupling 
+            enddo !! b
+          end do !! a
+
+          !! Gather the parallel results
+          do species=1, numberOfSpecies
+             do n=1, CIcore_instance%nproc
+                ciDensityMatrix(species,state)%values = ciDensityMatrix(species,state)%values + auxDensMatrix(species,n)%values
+                auxDensMatrix(species,n)%values=0.0
+             end do
+          end do
+ 
+
+        endif !! SCI or not SCI
+      end do !! number of CI states
+      
      !! Open file - to write density matrices
      unit = 29
        
@@ -1441,22 +1615,30 @@ contains
    
       close(unit)
 
-      deallocate ( jj )
-      deallocate ( indexConfB )
-      deallocate ( indexConfA )
-      deallocate ( coupling )
-      deallocate ( cilevel )
-      deallocate ( cilevelA )
-      deallocate ( CIcore_instance%allIndexConf )
-      deallocate ( stringAinB )
 
-     deallocate( coefficients, atomicDensityMatrix, ciDensityMatrix )
+      if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+        deallocate ( jj )
+        deallocate ( indexConfB )
+        deallocate ( indexConfA )
+        deallocate ( coupling )
+        deallocate ( cilevel )
+        deallocate ( cilevelA )
+        deallocate ( CIcore_instance%allIndexConf )
+        deallocate ( stringAinB )
+      else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+        deallocate ( occA )
+        deallocate ( occB )
+        deallocate ( orbA )
+        deallocate ( orbB )
+        deallocate ( couplingS )
+      endif
 
-     !$  timeDB = omp_get_wtime()
-     !$  write(*,"(A,F10.4,A4)") "** TOTAL Elapsed Time for Building density matrices: ", timeDB - timeDA ," (s)"
+      deallocate( coefficients, atomicDensityMatrix, ciDensityMatrix )
 
+      !$  timeDB = omp_get_wtime()
+      !$  write(*,"(A,F10.4,A4)") "** TOTAL Elapsed Time for Building density matrices: ", timeDB - timeDA ," (s)"
      
-  end if
+    end if
        
   end subroutine CImod_densityMatrices
 

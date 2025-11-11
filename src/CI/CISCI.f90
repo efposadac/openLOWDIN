@@ -37,6 +37,7 @@ module CISCI_
     integer(8) :: targetSpaceSize
     integer(8) :: tmp_amplitudeCoreSize
     real(8) :: PT2energy
+    !! store the orbitals for each target configurations, to avoid recomputing them 
     type (IVector), allocatable :: targetOrb(:,:) ! species, num of target configurations % num. of orbitals
   end type CISCI
 
@@ -140,10 +141,11 @@ contains
   end subroutine CISCI_constructor
 
   !! Allocating arrays 
-  subroutine CISCI_constructorNew()
+  subroutine CISCI_constructorNew( numberOfConfigurations )
     implicit none
 
     type(Configuration) :: auxConfigurationA, auxConfigurationB
+    integer(8), intent(out) :: numberOfConfigurations
     integer :: a,b,c,aa,bb,i, spi
     real(8) :: CIenergy
     integer :: nproc
@@ -153,32 +155,13 @@ contains
 
     CISCI_instance%coreSpaceSize = CONTROL_instance%CI_SCI_CORE_SPACE
     CISCI_instance%targetSpaceSize = CONTROL_instance%CI_SCI_TARGET_SPACE
+    numberOfConfigurations = CISCI_instance%targetSpaceSize
 
     !! the first quarter is the real target space, the second quarter is the waiting list if the amplitude could grow more. 
     !! The last half is just a temporary space to avoid sorting a big array for a single addition
     CISCI_instance%tmp_amplitudeCoreSize = CISCI_instance%targetSpaceSize * 8 
 
-    !! copy and destroying diagonal vector... because of the intial matrix subroutine
-    !call Vector_constructor8 ( CIcore_instance%diagonalHamiltonianMatrix, &
-    !                          CIcore_instance%numberOfConfigurations, 0.0_8 ) 
-    !CIcore_instance%diagonalHamiltonianMatrix%values = CIcore_instance%diagonalHamiltonianMatrix2%values
-    !call Vector_destructor8 ( CIcore_instance%diagonalHamiltonianMatrix2 )
-
-
-    !!This will carry the index changes after sorting configurations
-    !call Vector_constructorInteger8 ( CIcore_instance%auxIndexCIMatrix, &
-    !                          CIcore_instance%numberOfConfigurations, 0_8 ) !hmm
-
-    !do a = 1, CIcore_instance%numberOfConfigurations
-    !  CIcore_instance%auxIndexCIMatrix%values(a)= a
-    !end do
-
-    !!  auxiliary array to get the index vector to build a configuration. get the configurations for the hamiltonian matrix in the core and target space
-    !call CISCI_getInitialIndexes2( CIcore_instance%coreConfigurations, CIcore_instance%coreConfigurationsLevel, CISCI_instance%coreSpaceSize )
-    !call CISCI_getInitialIndexes2( CIcore_instance%targetConfigurations, CIcore_instance%targetConfigurationsLevel, CISCI_instance%targetSpaceSize )
-
     !! arrays for CISCI
-    !call Vector_constructor8 ( CISCI_instance%amplitudeCore, CIcore_instance%numberOfConfigurations,  0.0_8)
     call Vector_constructor8 ( CISCI_instance%coefficientCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
 
     !! new arrays
@@ -390,9 +373,10 @@ contains
   end subroutine CISCI_run
 
   !! main part
-  subroutine CISCI_runNew()
+  subroutine CISCI_runNew( eigenVectors )
     use sort_
     implicit none
+    type(matrix) :: eigenVectors
     integer(8) :: a, aa, i, j, ii, jj, m
     integer :: k ! macro SCI iteration
     integer :: nproc
@@ -409,8 +393,7 @@ contains
 
     !! HF determinant coefficient
     CISCI_instance%coefficientCore%values(1) = 1.0_8
-    CISCI_instance%coefficientTarget%values(1,1) = 1.0_8
-    CIcore_instance%eigenVectors%values(1,1) = 1.0_8
+    !CISCI_instance%coefficientTarget%values(1,1) = 1.0_8
     CISCI_instance%eigenValues%values(1) = HartreeFock_instance%totalEnergy 
 
     !call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%indexCore, m )
@@ -432,33 +415,7 @@ contains
 
       if ( k == 2 ) CISCI_instance%tmp_amplitudeCore%values(1) = 1.0_8
 
-      !do a = 1,  CISCI_instance%targetSpaceSize
-      !  aa = CISCI_instance%auxindex_amplitudeCore%values(a)
-      !  print *, a,  CISCI_instance%tmp_amplitudeCore%values(a)
-      !enddo
-
-      !! final sort
-      !call MTSort ( CISCI_instance%tmp_amplitudeCore%values, &
-      !    CISCI_instance%auxindex_amplitudeCore%values,  CISCI_instance%tmp_amplitudeCoreSize, "D", nproc )
-
-      !test
-      !call CISCI_sortArrayByIndex( CISCI_instance%index_amplitudeCore, CISCI_instance%auxindex_amplitudeCore, CISCI_instance%tmp_amplitudeCoreSize )
-      !! reset auxindex arrary
-      !do i = 1, CISCI_instance%tmp_amplitudeCoreSize
-      !  CISCI_instance%auxindex_amplitudeCore%values( i ) = i
-      !enddo
-
-      call CISCI_sortAmplitude( )
-
-     ! print *, "finish old sorting"
-
-      do i = 1,    CISCI_instance%tmp_amplitudeCoreSize
-        ii = CISCI_instance%auxindex_amplitudeCore%values(i) 
-      !  print *, i, ii, CISCI_instance%tmp_amplitudeCore%values(i), CISCI_instance%index_amplitudeCore%values(:,ii)
-        enddo
-
-      !! sort index_ampitude core according the index mapping from sorting amplitudes. This is not needed when I'm using index_target array TBD
-      !!call CISCI_sortArrayByIndex( CISCI_instance%index_amplitudeCore,  CISCI_instance%auxindex_amplitudeCore, CISCI_instance%tmp_amplitudeCoreSize)
+      call CISCI_sortAmplitude( ) ! do we need this? again?
 
       !! saving top-targetSize index configurations sorted from index_amplitudeCore in index_target. I will gather here the omp results, maybe...
       do i = 1, CISCI_instance%targetSpaceSize
@@ -472,7 +429,7 @@ contains
       !! using the amplituded as the initial coeff guess, after that, use the previous diganolized eigenvectors in target space
       do a = 1,  CISCI_instance%targetSpaceSize
         aa = CISCI_instance%auxindex_amplitudeCore%values(a)
-        CISCI_instance%coefficientTarget%values(a,1) = CISCI_instance%tmp_amplitudeCore%values(a)
+        eigenVectors%values(a,1) = CISCI_instance%tmp_amplitudeCore%values(a)
       enddo
       
       !! eigenvalue guess
@@ -482,10 +439,10 @@ contains
       call CISCI_jadamiluInterfaceNew( int(CISCI_instance%targetSpaceSize,8), &
                  1_8, &
                  eigenValuesTarget, &
-                 CISCI_instance%coefficientTarget, timeAA, timeBB )
+                 eigenVectors, timeAA, timeBB )
   
       !! saving the eigenvectors coeff to an aux vector. Only ground state 
-      CISCI_instance%auxcoefficientTarget%values(:) = CISCI_instance%coefficientTarget%values(:,1)
+      CISCI_instance%auxcoefficientTarget%values(:) = eigenVectors%values(:,1)
 
       !! convergence criteria
       CISCI_instance%eigenValues%values(k) = eigenValuesTarget%values(1)
