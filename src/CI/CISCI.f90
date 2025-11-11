@@ -1921,7 +1921,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         do spi = 1, numberOfSpecies
           couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
                             - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) + 1
-          if ( couplingS(spi) > 2 ) cycle bloop
+          !if ( couplingS(spi) > 2 ) cycle bloop
         end do
       
         !! if any species differs in more than 2 orb, skip
@@ -2688,7 +2688,7 @@ recursive  function CISCI_getIndexesRecursion(  auxConfigurationMatrix, auxConfi
         do spi = 1, numberOfSpecies
           couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
                             - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) + 1
-          if (couplingS(spi) > 2 ) cycle bloop
+          !if (couplingS(spi) > 2 ) cycle bloop
         end do
 
         coupling = product(couplingS)
