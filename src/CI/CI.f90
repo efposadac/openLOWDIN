@@ -60,6 +60,7 @@ program CI
 
   read(job,"(I10)") numberOfSpeciesInCI
 
+  write (*,*) "==============================================="
   call InputCI_constructor( )
   if(numberOfSpeciesInCI .ne. 0) then
      call InputCI_load( numberOfSpeciesInCI )
@@ -80,6 +81,7 @@ program CI
   write(*,"(A,F10.3,A4)") "** TOTAL CPU Time CI : ", lowdin_stopwatch%enlapsetTime ," (s)"
   write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time CI : ", lowdin_stopwatch%elapsetWTime ," (s)"
   write(*, *) ""
+  write (*,*) "==============================================="
 
 
 end program CI

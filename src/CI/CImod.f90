@@ -488,9 +488,9 @@ contains
     end if
 
     write(*,*) ""
-    write(*,*) "-----------------------------------------------"
+    write(6,*) "-----------------------------------------------------------------------"
     write(*,*) "          END ", trim(CIcore_instance%level)," CALCULATION"
-    write(*,*) "==============================================="
+    write(6,*) "-----------------------------------------------------------------------"
     write(*,*) ""
          
 !    case ( "FCI-oneSpecie" )
@@ -813,7 +813,7 @@ contains
        write(*,"(A)") ""
        write(*,"(A)") " POST HARTREE-FOCK CALCULATION"
        write(*,"(A)") " CONFIGURATION INTERACTION THEORY:"
-       write(*,"(A)") "=============================="
+       write(6,*) "-----------------------------------------------------------------------"
        write(*,"(A)") ""
        write (6,"(T8,A30, A5)") "LEVEL = ", CIcore_instance%level
        write (6,"(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", CIcore_instance%numberOfConfigurations
@@ -1142,9 +1142,9 @@ contains
       endif !!SCI
 
       write (*,*) ""
-      write (*,*) "=============================="
+      write(6,*) "-----------------------------------------------------------------------"
       write (*,*) "BUILDING CI DENSITY MATRICES"
-      write (*,*) "=============================="
+      write(6,*) "-----------------------------------------------------------------------"
       write (*,*) ""
 
       allocate( coefficients(numberOfSpecies), &
@@ -1499,7 +1499,7 @@ contains
        end do
 
        write(*,*) ""
-       write(*,*) "==============================="
+       write(6,*) "-----------------------------------------------------------------------"
        write(*,*) " ONE BODY ENERGY CONTRIBUTIONS:"
        write(*,*) ""
        do state=1, CONTROL_instance%CI_STATES_TO_PRINT
@@ -1522,7 +1522,7 @@ contains
        if (CONTROL_instance%CI_NATURAL_ORBITALS) then
 
           write(*,*) ""
-          write(*,*) "=============================="
+          write(6,*) "-----------------------------------------------------------------------"
           write(*,*) " NATURAL ORBITALS: "
           write(*,*) ""
 
@@ -1608,7 +1608,7 @@ contains
 
           write(*,*) ""
           write(*,*) " END OF NATURAL ORBITALS"
-          write(*,*) "=============================="
+          write(6,*) "-----------------------------------------------------------------------"
           write(*,*) ""
 
        end if

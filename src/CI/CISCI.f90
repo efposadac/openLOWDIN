@@ -17,27 +17,26 @@ module CISCI_
   implicit none
 
   type, public :: CISCI
-    type (Vector8) :: amplitudeCore !old code?
+    !! arrays for storing coefficients
     type (Vector8) :: buffer_amplitudeCore
-    type (Vector8) :: auxeigenVector
     type (Vector8) :: coefficientCore
-    type (Matrix) :: coefficientTarget
     type (Vector8) :: auxcoefficientTarget
-
+    !! arrays for storing CI configurations, species, orbitals, vector size
     type (Matrix) :: confCore
     type (Matrix) :: confAmplitudeCore
     type (Matrix) :: saved_confTarget
-
+    !! auxiliary array to trace the original elements in array sorting
     type (ivector8) :: index_amplitudeCore
-
+    !! storing the CI diagonal matrix elements for Jadamilu preconditioner
     type (Vector8) :: diagonalCore
     type (Vector8) :: diagonalTarget
-
+    !! eigenvalues per SCI iteration
     type (Vector8) :: eigenValues
-!    type (Vector8), allocatable :: orbitalsCore(:,:) ! species, num of core configurations % num. of orbitals
+    !! length of SCI search vectors
     integer(8) :: coreSpaceSize
     integer(8) :: targetSpaceSize
     integer(8) :: buffer_amplitudeCoreSize
+    !! PT2 perturbative energy correction to SCI
     real(8) :: PT2energy
     !! store the orbitals for each target configurations, to avoid recomputing them 
     type (IVector), allocatable :: targetOrb(:,:) ! species, num of target configurations % num. of orbitals
@@ -48,34 +47,48 @@ module CISCI_
 contains
 
   subroutine CISCI_show()
+    implicit none
+    integer :: spi, spj
+    integer :: totalSize
 
-        write (6,*) ""
-        write (6,"(T2,A62)") "          SELECTED CONFIGURATION INTERACTION (SCI):          " 
-        write (6,"(T2,A62)") "                 Adaptive Sampling CI (ASCI)                 " 
-        write (6,"(T2,A62)") "                   Deterministic Algorithm                   " 
-        write (6,"(T2,A62)") "                  Based on 10.1063/1.4955109                 "
+    totalSize = 0
+    do spi = 1, CIcore_instance%numberOfSpecies 
+      totalSize = totalSize + &
+                CIcore_instance%numberOfOrbitals%values(spi) * ( CISCI_instance%buffer_amplitudeCoreSize + CISCI_instance%coreSpaceSize + CISCI_instance%targetSpaceSize ) * 1 
+      do spj = spi, CIcore_instance%numberOfSpecies 
+        totalSize = totalSize + &
+                    size(CIcore_instance%fourCenterIntegrals( spi, spj )%values,1) * 8
+      enddo
+    enddo
 
-        write(6,*) ""
-        write(6,*) "  Diagonalizer for target space hamiltonian : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-        write(6,*) "============================================================="
-        write(6,*) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
-        write(6,*) "a software code for computing selected eigenvalues of "
-        write(6,*) "large sparse symmetric matrices, "
-        write(6,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
-        write(6,*) "============================================================="
-
-        write(6,*) ""
-        write(6,*) " Modified sorting algorithm from CENCALC quicksort code "
-        write(6,*) "============================================================="
-        write(6,*) " Code available at https://github.com/dimassuarez/cencalc_quicksort  "
-        write(6,*) " E. Suárez, N. Díaz, J. Méndez and D. Suárez. "
-        write(6,*) " CENCALC: A Computational Tool for Conformational Entropy Calculations"
-        write(6,*) " from Molecular Simulations."
-        write(6,*) " J. Comput. Chem. 54, 2031. DOI: 10.1002/jcc.23350 "
-        write(6,*) "============================================================="
-        write (6,*) ""
-        write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", float(CIcore_instance%numberOfConfigurations*3*8)/(1024**3) , " GB"
-        write (6,*) ""
+    write(6,*) "-----------------------------------------------------------------------"
+    write (6,"(T2,A62)") "          SELECTED CONFIGURATION INTERACTION (SCI):          " 
+    write (6,"(T2,A62)") "                 Adaptive Sampling CI (ASCI)                 " 
+    write (6,"(T2,A62)") "                   Deterministic Algorithm                   " 
+    write (6,"(T2,A62)") "                  Based on 10.1063/1.4955109                 "
+    write (6,"(T2,A62)") "                        J. Charry                            "
+    write(6,*) "-----------------------------------------------------------------------"
+    write(6,*) ""
+    write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed : ", float( totalSize )/(1024**2) , " MB"
+    write (6,"(T2,A,F14.5,A3 )") "                          ", float( totalSize )/(1024**3) , " GB"
+    write(6,*) "-----------------------------------------------------------------------"
+    write(6,*) ""
+    write(6,*) "  Diagonalizer for target space hamiltonian : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+    write(6,*) "-----------------------------------------------------------------------"
+    write(6,*) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
+    write(6,*) "a software code for computing selected eigenvalues of "
+    write(6,*) "large sparse symmetric matrices, "
+    write(6,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
+    write(6,*) "-----------------------------------------------------------------------"
+    write(6,*) ""
+    write(6,*) " Modified sorting algorithm from CENCALC quicksort code "
+    write(6,*) "-----------------------------------------------------------------------"
+    write(6,*) " Code available at https://github.com/dimassuarez/cencalc_quicksort  "
+    write(6,*) " E. Suárez, N. Díaz, J. Méndez and D. Suárez. "
+    write(6,*) " CENCALC: A Computational Tool for Conformational Entropy Calculations"
+    write(6,*) " from Molecular Simulations."
+    write(6,*) " J. Comput. Chem. 54, 2031. DOI: 10.1002/jcc.23350 "
+    write(6,*) "-----------------------------------------------------------------------"
 
   end subroutine CISCI_show
 
@@ -111,8 +124,6 @@ contains
     call Vector_constructor8 ( CISCI_instance%diagonalCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
     call Matrix_constructor ( CISCI_instance%saved_confTarget, int(numberOfSpecies,8), int(CISCI_instance%targetSpaceSize,8),  0.0_8)
 
-    call Matrix_constructor ( CISCI_instance%coefficientTarget, int(CISCI_instance%targetSpaceSize,8), &
-                               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
     call Vector_constructor8 ( CISCI_instance%auxcoefficientTarget, int(CISCI_instance%targetSpaceSize,8), 0.0_8) !! meh... just to avoid changing everything from matrix to vector format
     call Vector_constructor8 ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8) !! Jadamilu requires to store diagonal vector (in target space)
     call Vector_constructor8 ( CISCI_instance%eigenValues, 15_8, 0.0_8) !! store the eigenvalues per macro iterations
@@ -157,7 +168,6 @@ contains
 
     !! HF determinant coefficient
     CISCI_instance%coefficientCore%values(1) = 1.0_8
-    !CISCI_instance%coefficientTarget%values(1,1) = 1.0_8
     CISCI_instance%eigenValues%values(1) = HartreeFock_instance%totalEnergy 
 
     !call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%confCore, m )
