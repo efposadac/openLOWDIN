@@ -103,7 +103,6 @@ contains
     ms = CONTROL_instance%CI_MADSPACE
 
     write (*,*) ""
-    write (*,*) "==============================================="
     write (*,*) "         BEGIN ", trim(CIcore_instance%level)," CALCULATION"
     write (*,*) "         J. Charry, F. Moncada                "
     write (*,*) "-----------------------------------------------"
