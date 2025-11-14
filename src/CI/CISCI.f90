@@ -13,7 +13,7 @@ module CISCI_
   use CIInitial_
   use sort_
   use omp_lib
-  use IntVectorSort_
+  use CISort_
   implicit none
 
   type, public :: CISCI
@@ -126,10 +126,7 @@ contains
       CISCI_instance%combinedOrbitalsPositions(1,spi) = m + 1
       CISCI_instance%combinedOrbitalsPositions(2,spi) = m + CIcore_instance%numberOfOrbitals%values(spi)
       m = m + CIcore_instance%numberOfOrbitals%values(spi)
-      print *, spi, CISCI_instance%combinedOrbitalsPositions(1,spi), CISCI_instance%combinedOrbitalsPositions(2,spi) 
     enddo 
-
-
 
     !! arrays for storing coefficients
     call Vector_constructor8 ( CISCI_instance%buffer_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize,8),  0.0_8)
@@ -172,7 +169,7 @@ contains
     enddo
 
     !! initialize sorting subroutines
-    call IntVectorSort_constructor()
+    call CISort_constructor()
 
   end subroutine CISCI_constructorNew
  
@@ -1677,7 +1674,7 @@ contains
       !enddo
 
       !! Sort according to the index of CI configurations per species in order to find duplicates ( N log( N ) )
-      call IntVectorSort_quicksort(  CISCI_instance%confAmplitudeCore, &
+      call CISort_quicksort(  CISCI_instance%confAmplitudeCore, &
                                      CISCI_instance%index_amplitudeCore, & 
                                      1_8, m )
 
@@ -1688,11 +1685,11 @@ contains
       !enddo
   
       !! Sort amplituted coeff vector according to sorting of index array, keeping both arrays aligned
-      call IntVectorSort_sortVectorByIndex( CISCI_instance%buffer_amplitudeCore, CISCI_instance%index_amplitudeCore, CISCI_instance%buffer_amplitudeCoreSize )
+      call CISort_sortVectorByIndex( CISCI_instance%buffer_amplitudeCore, CISCI_instance%index_amplitudeCore, CISCI_instance%buffer_amplitudeCoreSize )
 
       !print *, "after sort vector by index"
     !! merge duplicated configurations (sum amplitudes)
-      call IntVectorSort_mergeDuplicates ( CISCI_instance%buffer_amplitudeCore, &
+      call CISort_mergeDuplicates ( CISCI_instance%buffer_amplitudeCore, &
                                            CISCI_instance%confAmplitudeCore, &
                                            CISCI_instance%index_amplitudeCore, &
                                            CISCI_instance%buffer_amplitudeCoreSize )
@@ -1707,7 +1704,7 @@ contains
             CISCI_instance%index_amplitudeCore%values,  CISCI_instance%buffer_amplitudeCoreSize, "D", nproc )
 
       !print *, "after coeff sort"
-      call IntVectorSort_sortArrayByIndex( CISCI_instance%confAmplitudeCore, CISCI_instance%index_amplitudeCore, CISCI_instance%buffer_amplitudeCoreSize )
+      call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore, CISCI_instance%index_amplitudeCore, CISCI_instance%buffer_amplitudeCoreSize )
       !print *, "after sort matrix by index"
 
       !! reset auxindex arrary
