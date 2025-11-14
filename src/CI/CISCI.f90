@@ -736,7 +736,7 @@ contains
      MADSPACE = maxsp !    desired size of the search space
      ITER = 1000*NEIG !    maximum number of iteration steps
      TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
-     TOL = 1e-3 !1.0d-4 !    tolerance for the eigenvector residual, for ASCI this can be higher
+     TOL = 1e-4 !1.0d-4 !    tolerance for the eigenvector residual, for ASCI this can be higher
 
      NDX1 = 0
      NDX2 = 0
@@ -929,14 +929,14 @@ contains
         couplingS = 0
         do spi = 1, numberOfSpecies
           couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
-                            - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) + 1
+                            - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) 
           !if ( couplingS(spi) > 2 ) cycle bloop
         end do
       
         !! if any species differs in more than 2 orb, skip
-        coupling = product(couplingS)
+        !coupling = product(couplingS)
 
-        if ( coupling <= 4 ) then
+        if ( sum(couplingS) <= 2 ) then
           do spi = 1, numberOfSpecies 
             oib = 0 
             !! build auxiliary vectors of occupied and virtuals orbitals
@@ -951,17 +951,16 @@ contains
           cycle 
         endif
 
-        select case (coupling)
-
-        case(1)
+        if ( sum(couplingS) == 0 ) then
           CIenergy = CISCI_instance%diagonalTarget%values(aa) 
           !$omp atomic
           w(aa) = w(aa) + CIenergy * v(aa)
           !$omp end atomic
+        endif 
 
-        case(2)
+        if ( sum(couplingS) == 1 ) then
           do i = 1, numberOfSpecies
-            if ( couplingS(i) == 2 ) spi = i
+            if ( couplingS(i) == 1 ) spi = i
           end do
 
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
@@ -973,10 +972,10 @@ contains
           !$omp atomic
           w(aa) = w(aa) + CIenergy * v(bb) * factorA
           !$omp end atomic
-
-        case(3)
+        endif
+        if ( sum(couplingS) == 2 .and. maxval(couplingS) == 2 ) then
           do i = 1, numberOfSpecies
-            if ( couplingS(i) == 3 ) spi = i
+            if ( couplingS(i) == 2 ) spi = i
           end do
 
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
@@ -989,18 +988,18 @@ contains
           w(aa) = w(aa) + CIenergy * v(bb) * factorA 
           !$omp end atomic
 
-        case(4)
+        endif
+        if ( sum(couplingS) == 2 .and. maxval(couplingS) == 1 ) then
           do i = 1, numberOfSpecies
-            if ( couplingS(i) == 2 ) then 
+            if ( couplingS(i) == 1 ) then 
               spi = i
               exit
             end if
           end do
 
           do i = spi+1, numberOfSpecies
-            if ( couplingS(i) == 2 ) spj = i
+            if ( couplingS(i) == 1 ) spj = i
           end do
-
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
           diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj), occA(spj), occB(spj), factorB )
           CIenergy = CISCI_calculateEnergyTwoDiffNew( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  )
@@ -1011,8 +1010,7 @@ contains
           !$omp atomic
           w(aa) = w(aa) + CIenergy * v(bb) * factorA * factorB
           !$omp end atomic
-
-        end select
+        endif
  
       end do bloop !b
     end do aloop !a 
@@ -1410,48 +1408,44 @@ contains
         couplingS = 0
         do spi = 1, numberOfSpecies
           couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
-                            - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) + 1
+                            - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) 
           !if (couplingS(spi) > 2 ) cycle bloop
         end do
 
-        coupling = product(couplingS)
-
-        select case (coupling)
-
-        case(2)
+        if ( sum(couplingS) == 1 ) then
           do i = 1, numberOfSpecies
-            if ( couplingS(i) == 2 ) spi = i
+            if ( couplingS(i) == 1 ) spi = i
           end do
 
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
           CIenergy = CIenergy + CISCI_calculateEnergyOneNew( spi, occA, occB, diffOrbi(1), diffOrbi(3)  ) * factorA * CISCI_instance%auxcoefficientTarget%values(bb)
 
-
-        case(3)
+        endif
+        if ( sum(couplingS) == 2 .and. maxval(couplingS) == 2 ) then
           do i = 1, numberOfSpecies
-            if ( couplingS(i) == 3 ) spi = i
+            if ( couplingS(i) == 2 ) spi = i
           end do
 
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
           CIenergy = CIenergy + CISCI_calculateEnergyTwoSameNew( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  ) * factorA * CISCI_instance%auxcoefficientTarget%values(bb)
 
-        case(4)
+        endif
+        if ( sum(couplingS) == 2 .and. maxval(couplingS) == 1 ) then
           do i = 1, numberOfSpecies
-            if ( couplingS(i) == 2 ) then 
+            if ( couplingS(i) == 1 ) then 
               spi = i
               exit
             end if
           end do
-          do i = ii+1, numberOfSpecies
-            if ( couplingS(i) == 2 ) spj = i
+          do i = spi+1, numberOfSpecies
+            if ( couplingS(i) == 1 ) spj = i
           end do
 
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
           diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj), occA(spj), occB(spj), factorB )
           CIenergy = CIenergy + CISCI_calculateEnergyTwoDiffNew( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  ) * factorA * factorB * CISCI_instance%auxcoefficientTarget%values(bb)
 
-
-        end select
+        endif
  
       end do bloop !b
 
