@@ -629,7 +629,7 @@ contains
     do aa = 1, CISCI_instance%buffer_amplitudeCoreSize !! replace this by m
       a = CISCI_instance%index_amplitudeCore%values(aa) 
 
-      if (  CISCI_instance%confAmplitudeCore(1, a ) == -1_1 ) cycle ! cycle or exit?
+      if (  CISCI_instance%confAmplitudeCore(1, a ) == -1_1 ) exit ! cycle or exit?
       !if (  CISCI_instance%confAmplitudeCore(1)%values(1, a ) == -1_1 ) cycle ! cycle or exit?
 
       do spi = 1, numberOfSpecies 
@@ -886,8 +886,6 @@ contains
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
       a = aa ! if index_amplitude is sorted
 
-      !if ( CISCI_instance%saved_confTarget%values(1,a) == 0 ) exit !using nonzero now
-
       ! getting configuration A
       do spi = 1, numberOfSpecies 
 
@@ -911,7 +909,6 @@ contains
 
         !b = CISCI_instance%index_amplitudeCore%values(bb)
         b = bb
-        !if ( CISCI_instance%saved_confTarget%values(1,b) == 0 ) exit
         ! getting configuration B
         do spi = 1, numberOfSpecies 
 
@@ -1330,6 +1327,10 @@ contains
 
     energyCorrection = 0.0_8
     
+    !$omp parallel &
+    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, ii, diagonal, denominator, diffOrbi, diffOrbj, spj, factorA, factorB ) &
+    !$omp& reduction (+:energyCorrection)
+    !$omp do schedule (static) 
     aloop: do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
 
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -1364,7 +1365,7 @@ contains
         !b = CISCI_instance%index_amplitudeCore%values(bb)
         b = bb
 
-        if (CISCI_instance%saved_confTarget(1)%values(1,b) == -1_1) exit
+        !if (CISCI_instance%saved_confTarget(1)%values(1,b) == -1_1) exit ! this is never ocurring
 
         ! getting configuration B
         do spi = 1, numberOfSpecies 
@@ -1439,9 +1440,10 @@ contains
       denominator = 1 / ( refEnergy - diagonal ) 
       !! PT2 correction
       energyCorrection = energyCorrection + ( CIenergy**2) * denominator
-      !print *, a, energyCorrection
 
     end do aloop !a 
+   !$omp end do nowait
+   !$omp end parallel
 
  
 !$  timeB = omp_get_wtime()
